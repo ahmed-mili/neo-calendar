@@ -1,0 +1,724 @@
+/* ── Sidebar ─────────────────────────────────────────────────── */
+
+.nc-sidebar {
+    width: var(--nc-sidebar-width);
+    min-width: var(--nc-sidebar-width);
+    border-right: 1px solid var(--nc-border);
+    background: var(--nc-bg-secondary);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    /* Above the events-panel drawer (z-index 2) so, as the panel slides in from
+       behind the sidebar, its overshoot is masked by the sidebar. */
+    position: relative;
+    z-index: 3;
+}
+
+.nc-sidebar-section {
+    padding: var(--nc-spacing-sm);
+    border-top: 1px solid var(--nc-border);
+}
+
+.nc-sidebar-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Match the calendar rows below: same padding + radius so the header's
+       hover highlight is identical to a calendar item, and "Calendars" lines
+       up with the colour-swatch column (section pad 8 + row pad-left 8 = the
+       item swatch's left edge). */
+    padding: 6px 8px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    /* The whole row is the collapse target — click anywhere toggles the list. */
+    cursor: pointer;
+    transition: background var(--nc-transition-fast);
+}
+
+.nc-sidebar-title-row:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+}
+
+.nc-sidebar-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--nc-text-faint, var(--text-faint));
+}
+
+/* Groups the label + chevron on the left; the "+" is pushed right by the
+   row's space-between. */
+.nc-sidebar-title-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.nc-sidebar-title-chevron {
+    display: inline-flex;
+    align-items: center;
+    color: var(--nc-text-faint, var(--text-faint));
+    /* Hidden at rest; revealed on header hover or while collapsed (below). */
+    opacity: 0;
+    transition: transform var(--nc-transition-fast),
+        opacity var(--nc-transition-fast);
+}
+
+.nc-sidebar-title-row:hover .nc-sidebar-title-chevron,
+.nc-sidebar-title-chevron.nc-collapsed {
+    opacity: 1;
+}
+
+/* Collapsed: chevron points right (▸) instead of down (▾). */
+.nc-sidebar-title-chevron.nc-collapsed {
+    transform: rotate(-90deg);
+}
+
+/* Groups the header's "..." and "+" buttons on the right; both reveal on hover
+   (see the .nc-sidebar-add-btn reveal rule below). */
+.nc-sidebar-title-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.nc-sidebar-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 4px;
+    /* Ghost button: kill the native <button> chrome so it's flat until hover. */
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1;
+    cursor: pointer;
+    transition: var(--nc-transition-paint);
+    padding: 0;
+    /* Hidden at rest, revealed only when the header row is hovered — exactly
+       like the per-calendar action buttons (.nc-calendar-actions). */
+    opacity: 0;
+}
+
+/* Reveal the "+" on header hover (or when it's keyboard-focused for a11y). */
+.nc-sidebar-title-row:hover .nc-sidebar-add-btn,
+.nc-sidebar-add-btn:focus-visible {
+    opacity: 1;
+}
+
+.nc-sidebar-add-btn:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-calendar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nc-calendar-item {
+    display: flex;
+    align-items: center;
+    gap: var(--nc-spacing-sm);
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: default;
+    transition: background var(--nc-transition-fast);
+    position: relative;
+}
+
+.nc-calendar-item:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+}
+
+/* ── Drag-to-reorder ──────────────────────────────────────────
+   Row transforms (follow-cursor + sibling slide) are applied inline by
+   useSidebarReorder; here we only hint the compositor and dress the lifted row.
+   Only transform/opacity/box-shadow animate, so it stays smooth without a GPU. */
+.nc-calendar-list.nc-reordering .nc-calendar-item {
+    will-change: transform;
+}
+/* The lifted row rides above its siblings and must obscure the row it overlaps.
+   The theme keeps surfaces translucent (wallpaper shows through), so a flat
+   background would let the row beneath bleed through mid-drag. A frosted panel
+   (backdrop blur, like the colour picker) reads as a clean lifted card while
+   still honouring the translucent look. Two classes (0,2,0) beat :hover (0,1,1)
+   so the surface holds even when the cursor drifts off the row. */
+.nc-calendar-item.nc-calendar-dragging {
+    /* Native --background-secondary (declared on <body>) so it actually resolves
+       — the plugin's own --nc-bg-* tokens bake empty here. Kept slightly
+       translucent so the backdrop blur still reads as frosted glass. */
+    background: color-mix(
+        in srgb,
+        var(--background-secondary) 88%,
+        transparent
+    );
+    backdrop-filter: blur(10px) saturate(1.1);
+    -webkit-backdrop-filter: blur(10px) saturate(1.1);
+    box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.5),
+        0 2px 6px -2px rgba(0, 0, 0, 0.3);
+    cursor: grabbing;
+}
+
+/* Colored swatch — three states (per the spec diagram):
+   - Normal: solid filled squircle (the inline background color).
+   - Hover: a thin ring detached from the swatch by a transparent gap.
+   - Default (clicked): a thicker, larger ring — the persistent selected state.
+   `outline-offset` produces the gap so the row background shows through, and
+   the ring takes the calendar's own color via the --nc-cal-color custom prop. */
+.nc-calendar-visibility:hover .nc-calendar-checkbox:not(.nc-calendar-feed) {
+    outline: 1.5px solid var(--nc-cal-color, var(--nc-text-faint));
+    outline-offset: 2px;
+}
+
+/* Remote (RSS) calendars: the rounded-square feed mark (SVG) provides its own
+   colored square, so the swatch wrapper drops its border/background. The icon
+   recolors via `color` (currentColor on the SVG); the wave cut-outs stay
+   transparent. The swatch is not interactive (can't be set as default).
+   Two-class selectors so they win over the base .nc-calendar-checkbox /
+   .nc-calendar-visibility rules regardless of bundle order. */
+.nc-calendar-checkbox.nc-calendar-feed {
+    border: none;
+    background: transparent;
+}
+
+.nc-calendar-checkbox.nc-calendar-feed svg {
+    display: block;
+}
+
+.nc-calendar-visibility.nc-calendar-visibility-static {
+    cursor: default;
+}
+
+.nc-calendar-item.nc-calendar-default .nc-calendar-checkbox,
+.nc-calendar-item.nc-calendar-default
+    .nc-calendar-visibility:hover
+    .nc-calendar-checkbox {
+    outline: 2px solid var(--nc-cal-color, var(--nc-text-faint));
+    outline-offset: 3px;
+}
+
+/* Left visibility control: colored checkbox, or a wifi glyph for online cals */
+.nc-calendar-visibility {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    /* Wrapper around the colour swatch: kill the native <button> chrome so no
+       grey halo shows behind the swatch. */
+    background: transparent !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity var(--nc-transition-normal);
+}
+
+.nc-calendar-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border: 1.5px solid var(--nc-text-faint);
+    border-radius: 4px;
+    color: #fff;
+    transition: background-color var(--nc-transition-fast),
+        border-color var(--nc-transition-fast);
+}
+
+.nc-calendar-color-hidden {
+    position: absolute;
+    width: 0;
+    height: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.nc-calendar-name {
+    font-size: 13px;
+    font-weight: 700;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    /* The name opens this calendar's event list (Notion "click a calendar"). */
+    cursor: pointer;
+    transition: opacity var(--nc-transition-normal);
+}
+
+/* Row whose event list is open in the right-hand panel: a persistent subtle
+   highlight (survives when the pointer leaves), like Notion's selected row. */
+.nc-calendar-item.nc-calendar-selected {
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+}
+
+/* "Default" badge, styled like the "Calendars" section header (11px/700/faint).
+   Absolutely pinned to the row's right edge — the SAME slot the hover action
+   icons occupy — so it no longer sits inline after the name and steal its
+   width (that was truncating short-ish names like "Production"). At rest it
+   shows; on row hover it fades out and the action buttons take its place. */
+.nc-calendar-default-label {
+    position: absolute;
+    right: 8px;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--nc-text-faint, var(--text-faint));
+    pointer-events: none;
+    transition: opacity var(--nc-transition-fast);
+}
+
+.nc-calendar-item:hover .nc-calendar-default-label {
+    opacity: 0;
+}
+
+/* Hidden calendar: keep the row's place, but hide its identity until the row
+   is hovered. The original name and swatch colors stay untouched; reduced
+   opacity alone conveys the disabled state. Keyboard focus reveals the same
+   state so the invisible swatch remains usable without a pointer. */
+.nc-calendar-hidden .nc-calendar-visibility,
+.nc-calendar-hidden .nc-calendar-name,
+.nc-calendar-hidden .nc-calendar-default-label {
+    opacity: 0;
+}
+
+.nc-calendar-hidden:hover .nc-calendar-visibility,
+.nc-calendar-hidden:hover .nc-calendar-name,
+.nc-calendar-hidden:has(:focus-visible) .nc-calendar-visibility,
+.nc-calendar-hidden:has(:focus-visible) .nc-calendar-name {
+    opacity: 0.45;
+}
+
+/* ── Calendar hover actions ─────────────────────────────────── */
+
+.nc-calendar-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity var(--nc-transition-fast);
+}
+
+.nc-calendar-item:hover .nc-calendar-actions {
+    opacity: 1;
+}
+
+.nc-calendar-action-btn svg {
+    display: block;
+}
+
+/* ── Calendar row overflow menu (Notion-style) ──────────────── */
+
+.nc-cal-menu-overlay {
+    position: fixed;
+    inset: 0;
+    /* Portaled to <body>: sits above the app and the event popup (z 10000). */
+    z-index: 10000;
+}
+
+/* Same floating-menu surface as the event panel's select/context menus
+   (.nc-cal-select-menu / .nc-select-menu): theme-aware glass, 10px radius, soft
+   shadow. Kept identical on purpose so every floating menu in the plugin reads
+   as the same component. */
+.nc-cal-menu {
+    position: fixed;
+    z-index: 10001;
+    min-width: 230px;
+    max-width: min(320px, calc(100vw - 16px));
+    padding: 4px;
+    background: color-mix(
+        in srgb,
+        var(--nc-bg-primary, var(--background-primary)) 92%,
+        transparent
+    );
+    backdrop-filter: blur(12px) brightness(1.18);
+    -webkit-backdrop-filter: blur(12px) brightness(1.18);
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 10px;
+    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.4),
+        0 2px 6px -1px rgba(0, 0, 0, 0.22);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.nc-cal-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 10px;
+    border: none;
+    border-radius: 6px;
+    /* !important neutralises Obsidian's default `.theme-dark button` surface
+       (a solid grey fill rgb(49,50,68) + inset highlight, specificity 0,1,1)
+       that otherwise paints every item as a separate raised pill. */
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-primary, var(--text-normal));
+    font-size: 13px;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast);
+}
+
+.nc-cal-menu-item:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+}
+
+.nc-cal-menu-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--nc-text-secondary, var(--text-muted));
+}
+
+.nc-cal-menu-swatch {
+    width: 13px;
+    height: 13px;
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.nc-cal-menu-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nc-cal-menu-danger {
+    color: var(--nc-error, var(--text-error));
+}
+
+.nc-cal-menu-danger .nc-cal-menu-icon {
+    color: var(--nc-error, var(--text-error));
+}
+
+.nc-calendar-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 3px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-faint, var(--text-faint));
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+    transition: var(--nc-transition-paint);
+}
+
+.nc-calendar-action-btn:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-delete-btn.nc-confirm-delete {
+    color: var(--nc-error);
+    font-size: 10px;
+    width: auto;
+    padding: 0 4px;
+}
+
+/* ── Calendar inline edit ────────────────────────────────────── */
+
+.nc-calendar-edit {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 4px;
+}
+
+.nc-calendar-edit-input {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    padding: 2px 4px;
+    border: 1px solid var(--nc-accent);
+    border-radius: 3px;
+    background: var(--nc-bg-primary);
+    color: var(--nc-text-primary);
+    outline: none;
+}
+
+.nc-calendar-edit-btn {
+    font-size: 11px;
+    padding: 2px 6px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: var(--nc-transition-paint);
+}
+
+.nc-edit-ok {
+    background: var(--nc-accent);
+    color: var(--nc-accent-text);
+}
+
+.nc-edit-ok:hover {
+    opacity: 0.9;
+}
+
+.nc-edit-cancel {
+    background: transparent;
+    color: var(--nc-text-secondary);
+}
+
+.nc-edit-cancel:hover {
+    background: var(--nc-bg-hover);
+}
+
+/* ── Sidebar Top Bar ──────────────────────────────────────── */
+
+.nc-sidebar-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px var(--nc-spacing-sm);
+    border-bottom: 1px solid var(--nc-border);
+}
+
+.nc-sidebar-top-right {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.nc-sidebar-top-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 4px;
+    /* Ghost button: kill the native <button> chrome so it's flat until hover. */
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-secondary, var(--text-muted));
+    cursor: pointer;
+    transition: var(--nc-transition-paint);
+    padding: 0;
+}
+
+.nc-sidebar-top-btn:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+/* ── Collapsed Sidebar ─────────────────────────────────────── */
+
+.nc-sidebar.nc-sidebar-collapsed {
+    width: auto;
+    min-width: auto;
+    border-right: none;
+    background: transparent;
+    overflow: visible;
+}
+
+.nc-sidebar.nc-sidebar-collapsed .nc-sidebar-top-bar {
+    justify-content: flex-start;
+    gap: 2px;
+    padding: 8px;
+    border-bottom: none;
+}
+
+/* ── Mini Calendar ──────────────────────────────────────────── */
+
+.nc-mini-calendar {
+    padding: var(--nc-spacing-sm);
+}
+
+.nc-mini-cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--nc-spacing-xs);
+}
+
+.nc-mini-cal-title {
+    font-size: 13px;
+    font-weight: 600;
+    flex: 1;
+}
+
+/* "Go back to today" sits just left of the prev/next chevrons, with a small
+   gap so it reads as a separate control (Notion mini-calendar layout). */
+.nc-mini-cal-today-btn {
+    margin-right: 4px;
+}
+
+.nc-mini-cal-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.nc-mini-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+/* Optional week-numbers column (View settings › Week numbers): a narrow leading
+   column before the 7 day columns. */
+.nc-mini-cal-grid.nc-with-week-numbers {
+    grid-template-columns: auto repeat(7, 1fr);
+}
+
+.nc-mini-cal-week {
+    font-size: 10px;
+    color: var(--nc-text-faint, var(--text-faint));
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 4px;
+    /* Match the day cells' height so the number sits on its row. */
+    height: 26px;
+}
+
+.nc-mini-cal-day-header {
+    font-size: 10px;
+    /* Weekdays brighter, weekend dimmer (Notion) — was a uniform faint row. */
+    color: var(--nc-text-secondary, var(--text-muted));
+    padding: 2px 0;
+    font-weight: 500;
+    text-align: left;
+    padding-left: 6px;
+}
+
+.nc-mini-cal-day-header.nc-weekend {
+    /* Dimmer than weekdays, theme-agnostic: some themes (e.g. Catppuccin here)
+       make --text-faint BRIGHTER than --text-muted, which would invert the
+       weekday/weekend cue. Opacity on the muted base guarantees the right order. */
+    opacity: 0.55;
+}
+
+.nc-mini-cal-day {
+    font-size: 12px;
+    padding: 2px;
+    border: none;
+    /* The date numbers must not read as buttons on the transparent calendar:
+       no fill at rest. These are <button>s outside the --nc-* token wrappers,
+       so Obsidian's `.theme-dark button` surface (grey pill + inset shadow,
+       spec 0,1,1) beats `background:transparent` — !important kills it. Hover
+       and .nc-today re-assert their own fill with !important below. */
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-primary, var(--text-normal));
+    cursor: pointer;
+    border-radius: 7px;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 5px;
+    transition: background var(--nc-transition-fast);
+}
+
+.nc-mini-cal-day:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+}
+
+.nc-mini-cal-day.nc-other-month {
+    /* Faint token alone carries the dim; stacking opacity over-faded it. */
+    color: var(--nc-text-faint, var(--text-faint));
+}
+
+.nc-mini-cal-day.nc-today {
+    font-weight: 700;
+    /* !important survives the rest rule's `background:transparent !important`;
+       placed after :hover so today keeps its red when hovered. */
+    background: var(--nc-today) !important;
+    color: #fff;
+}
+
+/* Selected day (the date the main view shows). Notion draws no hard ring here;
+   the old accent outline read as an ugly blue box. Soft fill instead, and
+   :not(.nc-today) so today's red always wins over selection. */
+.nc-mini-cal-day.nc-selected:not(.nc-today) {
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+}
+
+/* Current-week band — one continuous translucent strip behind today's week row,
+   like Notion. Transparency-safe: a low-alpha overlay, never an opaque plate.
+   The pseudo bridges the 4px grid gap (inset -2px per side); z-index:-1 within
+   the cell's own stacking context keeps the number on top and the band above the
+   panel (not punching through to the wallpaper). */
+.nc-mini-cal-day.nc-current-week {
+    position: relative;
+    z-index: 0;
+}
+.nc-mini-cal-day.nc-current-week::before {
+    content: "";
+    position: absolute;
+    inset: 0 -2px;
+    z-index: -1;
+    background: color-mix(
+        in srgb,
+        var(--nc-text-primary, var(--text-normal)) 7%,
+        transparent
+    );
+}
+.nc-mini-cal-day.nc-current-week.nc-week-first::before {
+    inset: 0 -2px 0 0;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+.nc-mini-cal-day.nc-current-week.nc-week-last::before {
+    inset: 0 0 0 -2px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+/* Pied de la barre laterale : pousse en bas par margin-top auto, l'icone d'aide
+   reste donc sous le contenu quelle que soit sa hauteur. */
+.nc-sidebar-footer {
+    margin-top: auto;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+}
+
+.nc-sidebar-help-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border: none;
+    border-radius: 6px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-faint, var(--text-faint));
+    cursor: pointer;
+}
+
+.nc-sidebar-help-btn:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: var(--nc-text-primary, var(--text-normal));
+}

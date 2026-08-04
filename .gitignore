@@ -1,0 +1,54 @@
+# vscode
+.vscode 
+
+# Intellij
+*.iml
+.idea
+
+# npm
+node_modules
+coverage/
+
+# Don't include the compiled main.js file in the repo.
+# They should be uploaded to GitHub releases instead.
+main.js
+# This is built as main.css and then moved as part of the
+# release process.
+styles.css
+main.css
+
+# Exclude sourcemaps
+*.map
+
+# obsidian
+data.json
+.obsidian
+
+.DS_Store
+
+# Claude Code sessions
+.claude
+
+# Agent guidance files — local only, not published to GitHub
+CLAUDE.md
+AGENTS.md
+
+# Superpowers brainstorm artifacts
+.superpowers
+.worktrees/
+
+# Build output for releases (CI writes here).
+dist/
+
+# esbuild staging directory (publishes by rename, never committed).
+.neo-build-stage/
+
+# Neo Calendar Desktop
+node_modules/
+apps/windows/node_modules/
+apps/windows/dist/
+apps/windows/src-tauri/target/
+*.log
+.env
+.env.*
+!.env.example

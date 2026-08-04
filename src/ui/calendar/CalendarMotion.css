@@ -1,0 +1,40 @@
+/* ──────────────────────────────────────────────────────────────
+   Neo Calendar — reduction du mouvement
+
+   Trois animations n'etaient couvertes par aucune regle
+   `prefers-reduced-motion` : l'ouverture du panneau d'evenement
+   (nc-popup-in), celle du menu contextuel (nc-context-in) et le flash de
+   navigation (nc-flash) — sans compter la centaine de `transition`
+   disseminees dans les partiels. Les deux blocs existants (panneau des
+   evenements, transitions de visibilite) ne couvraient que leur propre
+   perimetre, et chaque nouvelle animation aurait demande de penser a les
+   completer.
+
+   Une seule regle balaye donc tout le plugin. Charge en dernier.
+   ────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    /* Portee : les classes du plugin, y compris celles portalees dans <body>
+       (panneau, menus, ghost de drag) que `.nc-root *` ne couvrirait pas. Le
+       prefixe est teste en debut de chaine OU precede d'un espace, pour ne pas
+       attraper les classes d'autres plugins qui contiendraient « nc- » au
+       milieu d'un mot.
+
+       Le `!important` est ici un choix, pas un pansement : la preference
+       d'accessibilite doit primer sur les durees posees au cas par cas dans
+       les partiels, quelle que soit leur specificite. Une valeur de 1 ms
+       plutot que `none` pour que les evenements `animationend` — dont depend
+       la fin des transitions de visibilite des calendriers — continuent d'etre
+       emis. */
+    [class^="nc-"],
+    [class*=" nc-"],
+    [class^="nc-"]::before,
+    [class*=" nc-"]::before,
+    [class^="nc-"]::after,
+    [class*=" nc-"]::after {
+        animation-duration: 1ms !important;
+        animation-delay: 0ms !important;
+        transition-duration: 1ms !important;
+        transition-delay: 0ms !important;
+    }
+}

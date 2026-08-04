@@ -1,0 +1,138 @@
+/* ── Custom colour picker (replaces the OS-native <input type="color">) ────
+   Portaled to <body>, so native theme tokens are re-mapped here to resolve.
+   Themed to match the plugin's other floating popups (glass, rounded, shadow). */
+.nc-color-picker {
+    --cp-bg: var(--nc-bg-primary, var(--background-primary));
+    --cp-border: var(--nc-border, var(--background-modifier-border));
+    --cp-text: var(--nc-text-primary, var(--text-normal));
+    --cp-field: var(--background-modifier-form-field);
+
+    position: fixed;
+    /* Above the calendar-item menu (10001) it can be opened from. */
+    z-index: 10002;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--cp-bg) 94%, transparent);
+    backdrop-filter: blur(12px) brightness(1.1);
+    -webkit-backdrop-filter: blur(12px) brightness(1.1);
+    border: 1px solid var(--cp-border);
+    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.45),
+        0 2px 6px -1px rgba(0, 0, 0, 0.25);
+    color: var(--cp-text);
+    user-select: none;
+}
+
+/* Saturation / value box */
+.nc-cp-sv {
+    position: relative;
+    width: 100%;
+    height: 140px;
+    border-radius: 8px;
+    cursor: crosshair;
+    overflow: hidden;
+}
+.nc-cp-sv-thumb {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+/* Hue slider */
+.nc-cp-hue {
+    position: relative;
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    background: linear-gradient(
+        to right,
+        #f00 0%,
+        #ff0 17%,
+        #0f0 33%,
+        #0ff 50%,
+        #00f 67%,
+        #f0f 83%,
+        #f00 100%
+    );
+}
+.nc-cp-hue-thumb {
+    position: absolute;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+/* Hex input + current swatch */
+.nc-cp-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.nc-cp-current {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+.nc-cp-hex {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--cp-border);
+    background: var(--cp-field, transparent);
+    color: var(--cp-text);
+    font-size: 13px;
+    /* Explicit clean system-monospace stack instead of Obsidian's
+       --font-monospace (which follows the user's chosen editor font and can
+       render oddly for a hex code). Consolas on Windows, SF Mono/Menlo on
+       macOS — all bundled with the OS, no external font to load. */
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+        "Liberation Mono", monospace;
+    letter-spacing: 0.02em;
+    outline: none;
+}
+.nc-cp-hex:focus {
+    border-color: var(--interactive-accent);
+}
+
+/* Preset palette */
+.nc-cp-presets {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+}
+.nc-cp-preset {
+    width: 100%;
+    /* Grid items default to min-width:auto (their intrinsic min size), which is
+       what let the old row push swatches past the picker edge. Pin it to 0 so
+       the 1fr tracks always shrink to fit. */
+    min-width: 0;
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    /* Kill Obsidian's native <button> chrome (0,1,1) so only the inline colour
+       shows; the inline `background` beats its surface, but padding/border/shadow
+       need !important. */
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14) !important;
+    cursor: pointer;
+    transition: transform var(--nc-transition-fast);
+}
+.nc-cp-preset:hover {
+    transform: scale(1.12);
+}

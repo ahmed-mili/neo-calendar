@@ -1,0 +1,317 @@
+/* ── Month View ─────────────────────────────────────────────── */
+
+.nc-month-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.nc-month-headers {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    /* All grid lines source the literal, translucent --nc-grid-line (like the
+       week/day views), NOT var(--nc-border): --nc-border maps to a body-scoped
+       theme var that bakes EMPTY on :root (see CalendarVariables.css), so an
+       unfallbacked `1px solid var(--nc-border)` renders NO border at all — which
+       is exactly why the month grid had no cell separators. --nc-grid-line is a
+       literal → resolves in every scope AND stays translucent (wallpaper shows). */
+    border-bottom: 1px solid var(--nc-grid-line);
+    border-left: 1px solid var(--nc-grid-line);
+    flex-shrink: 0;
+}
+
+.nc-month-header {
+    padding: 8px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--nc-text-secondary, var(--text-muted));
+    border-right: 1px solid var(--nc-grid-line);
+}
+
+.nc-month-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    /* No border-top here: the headers' border-bottom already draws that line;
+       a second one stacked on top of it reads as a doubled 2px rule. */
+    border-left: 1px solid var(--nc-grid-line);
+    overflow-y: auto;
+}
+
+.nc-month-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nc-month-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.nc-month-grid::-webkit-scrollbar-thumb {
+    background: var(--nc-border);
+    border-radius: 3px;
+}
+
+.nc-month-row {
+    display: contents;
+}
+
+.nc-month-cell {
+    min-height: 100px;
+    padding: 4px;
+    border-bottom: 1px solid var(--nc-grid-line);
+    border-right: 1px solid var(--nc-grid-line);
+    overflow: hidden;
+}
+
+/* Leading/trailing days of the adjacent months: only the date number recedes
+   (no opaque cell fill — the calendar must stay transparent, see
+   CalendarVariables.css). Events on those days keep full strength. */
+.nc-month-cell.nc-other-month .nc-month-date {
+    opacity: 0.4;
+}
+
+.nc-month-date {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 11px;
+    font-size: 12px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    margin-bottom: 2px;
+    font-weight: 500;
+}
+
+/* Today marker: the single canonical "today" red (--nc-today, a literal — the
+   accent vars bake empty on :root, which had made this highlight invisible). */
+.nc-month-cell.nc-today .nc-month-date {
+    background: var(--nc-today);
+    color: #fff;
+    font-weight: 700;
+}
+
+.nc-month-events {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.nc-month-event {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 2px 6px;
+    margin-bottom: 1px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-left: 2px solid;
+}
+
+.nc-month-event-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* `pre` et non `pre-wrap` : les deux preservent les espaces, mais pre-wrap
+       autorise le retour a la ligne, ce qui annulait le `nowrap` du parent et
+       rendait cet `ellipsis` inoperant. Invisible sur une colonne large, mais
+       dans les 47 px d'une cellule de mois sur telephone le titre partait sur
+       trois lignes. */
+    white-space: pre;
+}
+
+.nc-month-checkbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-right: 2px;
+}
+
+.nc-month-task-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-right: 2px;
+    /* Dimensions EXPLICITES, a la taille de la coche qu'il contient. Sans
+       elles, `button { height: var(--input-height) }` d'app.css s'applique :
+       --input-height vaut 44 px sur mobile (30 px sur desktop), et le bouton
+       etire la ligne entiere — un evenement du mois passait de 18 a 48 px de
+       haut, soit deux evenements visibles par cellule au lieu de cinq. */
+    width: 12px;
+    height: 12px;
+}
+
+.nc-month-event.nc-task-completed .nc-month-event-title {
+    opacity: 0.6;
+}
+
+.nc-month-more {
+    font-size: 11px;
+    color: var(--nc-text-faint, var(--text-faint));
+    padding: 1px 4px;
+    cursor: pointer;
+}
+
+/* ── List View ──────────────────────────────────────────────── */
+
+.nc-list-view {
+    overflow-y: auto;
+    height: 100%;
+}
+
+.nc-list-view::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nc-list-view::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.nc-list-view::-webkit-scrollbar-thumb {
+    background: var(--nc-border);
+    border-radius: 3px;
+}
+
+.nc-list-view::-webkit-scrollbar-thumb:hover {
+    background: var(--nc-text-faint);
+}
+
+.nc-list-day {
+    border-bottom: 1px solid var(--nc-border);
+}
+
+.nc-list-day .nc-list-day-header,
+.nc-list-day-header {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--nc-text-secondary);
+    background: var(--nc-bg-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.nc-list-day-name {
+    font-weight: 600;
+}
+
+.nc-list-day-date {
+    font-weight: 400;
+    color: var(--nc-text-faint);
+}
+
+.nc-list-events {
+    padding: 0;
+}
+
+.nc-list-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+}
+
+.nc-list-empty-text {
+    color: var(--nc-text-muted);
+    font-size: var(--nc-text-sm);
+    font-style: italic;
+}
+
+.nc-list-event {
+    display: flex;
+    align-items: center;
+    padding: 6px 16px 6px 24px;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast);
+    gap: 8px;
+}
+
+.nc-list-event:hover {
+    background: var(--nc-bg-hover);
+}
+
+.nc-list-event-dot {
+    width: 4px;
+    height: 24px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.nc-list-event-time {
+    font-size: 12px;
+    color: var(--nc-text-faint);
+    min-width: 80px;
+}
+
+.nc-list-event-title {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: pre-wrap;
+}
+
+.nc-list-event.nc-task-completed .nc-list-event-title {
+    opacity: 0.6;
+}
+
+.nc-list-task-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.nc-list-checkbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-right: 4px;
+}
+
+/* ── Timezone Column (Plan C) ───────────────────────────────── */
+
+.nc-tz-column {
+    width: 60px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--nc-border);
+    position: relative;
+}
+
+.nc-tz-label {
+    position: absolute;
+    right: 8px;
+    /* Match the local hours column (.nc-timegrid-hour-label). */
+    font-size: 11px;
+    color: var(--nc-text-faint, var(--text-faint));
+    transform: translateY(-50%);
+}

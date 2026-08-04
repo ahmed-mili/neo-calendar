@@ -1,0 +1,698 @@
+/* ── Calendar events panel (right column, Notion "click a calendar") ─────
+   Opens when a calendar in the sidebar is clicked: a right-hand column that
+   lists every event of that calendar as cards. Sits as a flex sibling of
+   .nc-main inside .nc-layout, so it pushes the grid rather than covering it. */
+
+/* Overlay drawer, positioned right after the sidebar. The slot is a ZERO-width
+   anchor (it doesn't push the grid); the panel is absolutely positioned over the
+   calendar grid and slides in/out with transform + opacity ONLY.
+
+   Why not animate width to push the grid? Animating width reflows AND repaints
+   the whole calendar grid every frame — layout/paint are CPU work, so it stutters
+   on machines without a dedicated GPU. transform + opacity are composited on the
+   GPU as a separate layer, so the slide holds 60fps regardless of the GPU. */
+.nc-cep-slot {
+    --cep-width: min(320px, 45vw);
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    width: 0;
+    min-width: 0;
+    height: 100%;
+    transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nc-cep-slot.nc-cep-pinned {
+    width: var(--cep-width);
+}
+
+.nc-cep {
+    /* Native theme tokens resolve here (this is a body descendant), and are
+       re-exposed as --nc-* so the panel reads the same as the sidebar. */
+    --cep-bg: var(--nc-bg-secondary, var(--background-secondary));
+    --cep-border: var(--nc-border, var(--background-modifier-border));
+    --cep-text: var(--nc-text-primary, var(--text-normal));
+    --cep-text-muted: var(--nc-text-secondary, var(--text-muted));
+    --cep-text-faint: var(--nc-text-faint, var(--text-faint));
+    --cep-hover: var(--nc-bg-hover, var(--background-modifier-hover));
+
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--cep-width);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--cep-border);
+    background: var(--cep-bg);
+    color: var(--cep-text);
+    /* Reads as a drawer floating above the grid. */
+    box-shadow: 3px 0 16px -4px rgba(0, 0, 0, 0.35);
+    /* Slides in from behind the sidebar (which sits above it via z-index). Only
+       transform + opacity animate → GPU-composited, no layout/paint per frame. */
+    transform: translateX(-100%);
+    opacity: 0;
+    transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease;
+    will-change: transform, opacity;
+}
+.nc-cep-slot.nc-cep-open .nc-cep {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.nc-cep-slot.nc-cep-pinned .nc-cep {
+    box-shadow: none;
+}
+
+/* Le panneau est cible de depot pendant qu'un evenement de la grille le
+   survole. Contour interieur plutot que bordure : la largeur du panneau ne
+   bouge pas d'un pixel quand l'etat s'allume.
+
+   La classe est posee sur le noeud .nc-cep lui-meme, donc le selecteur doit
+   battre `.nc-cep-slot.nc-cep-pinned .nc-cep { box-shadow: none }` ci-dessus :
+   a (0,3,0) il l'egale et gagne par l'ordre de declaration, d'ou l'obligation de
+   rester APRES la regle epinglee. Sinon un panneau epingle ne montre aucun halo
+   tout en commettant la deplanification. */
+.nc-cep-slot .nc-cep.nc-cep-drop-active {
+    box-shadow: var(--nc-accent, var(--interactive-accent)) 0 0 0 1.5px inset;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+
+.nc-cep-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 8px 10px 12px;
+    border-bottom: 1px solid var(--cep-border);
+    flex-shrink: 0;
+}
+
+.nc-cep-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.nc-cep-header-icon {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.nc-cep-header-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cep-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-cep-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    flex-shrink: 0;
+}
+
+.nc-cep-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 4px;
+    /* Ghost button: kill Obsidian's native <button> surface + inset shadow so
+       these read as flat icon buttons until hovered. */
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--cep-text-muted);
+    cursor: pointer;
+    padding: 0;
+    transition: var(--nc-transition-paint);
+}
+
+.nc-cep-icon-btn:hover {
+    background: var(--cep-hover) !important;
+    color: var(--cep-text);
+}
+
+.nc-cep-icon-btn.nc-active {
+    background: var(--cep-hover) !important;
+    color: var(--cep-text);
+}
+
+.nc-cep-icon-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+}
+
+/* ── Search / totals ───────────────────────────────────────── */
+
+.nc-cep-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 8px 10px 0;
+    flex-shrink: 0;
+}
+
+.nc-cep-search-icon {
+    position: absolute;
+    left: 9px;
+    display: inline-flex;
+    align-items: center;
+    color: var(--cep-text-faint);
+    pointer-events: none;
+}
+
+.nc-cep-search-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.nc-cep-search input {
+    width: 100%;
+    min-width: 0;
+    height: 32px;
+    padding: 6px 30px 6px 30px;
+    border: 1px solid var(--cep-border);
+    border-radius: 8px;
+    background: var(--nc-bg-primary, var(--background-primary));
+    box-shadow: none;
+    color: var(--cep-text);
+    font-size: 13px;
+    transition: border-color var(--nc-transition-fast),
+        background var(--nc-transition-fast),
+        box-shadow var(--nc-transition-fast);
+}
+
+.nc-cep-search input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.nc-cep-search input:focus {
+    border-color: color-mix(in srgb, var(--nc-accent) 65%, var(--cep-border));
+    background: var(--cep-hover);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--nc-accent) 14%, transparent);
+    outline: none;
+}
+
+.nc-cep-search-clear {
+    position: absolute;
+    right: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--cep-text-faint);
+}
+
+.nc-cep-search-clear:hover {
+    background: var(--cep-hover) !important;
+    color: var(--cep-text);
+}
+
+.nc-cep-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    margin: 8px 10px 0;
+    overflow: hidden;
+    border: 1px solid var(--cep-border);
+    border-radius: 9px;
+    background: var(--cep-border);
+    flex-shrink: 0;
+    animation: nc-cep-summary-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes nc-cep-summary-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.nc-cep-summary-metric,
+.nc-cep-summary-period {
+    min-width: 0;
+    background: var(--nc-bg-primary, var(--background-primary));
+}
+
+.nc-cep-summary-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 10px;
+}
+
+.nc-cep-summary-metric span,
+.nc-cep-summary-period > span {
+    color: var(--cep-text-faint);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.nc-cep-summary-metric strong {
+    overflow: hidden;
+    color: var(--cep-text);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-cep-summary-period {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    color: var(--cep-text-faint);
+}
+
+.nc-cep-summary-period strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--cep-text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Header popovers ───────────────────────────────────────── */
+
+.nc-cep-popover {
+    position: absolute;
+    z-index: 4;
+    top: 45px;
+    right: 8px;
+    left: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 4px;
+    border: 1px solid var(--cep-border);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--cep-bg) 96%, transparent);
+    box-shadow: 0 14px 28px -8px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px) brightness(1.12);
+    animation: nc-cep-popover-in 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes nc-cep-popover-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.nc-cep-popover-title {
+    display: flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 4px 8px;
+    color: var(--cep-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.nc-cep-popover-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin-left: -5px;
+    margin-right: 3px;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: inherit;
+}
+
+.nc-cep-popover-back:hover {
+    background: var(--cep-hover) !important;
+    color: var(--cep-text);
+}
+
+.nc-cep-menu-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    min-width: 0;
+    min-height: 32px;
+    padding: 7px 9px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--cep-text);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast), opacity var(--nc-transition-fast);
+}
+
+.nc-cep-menu-row:hover {
+    background: var(--cep-hover) !important;
+}
+
+.nc-cep-menu-row:disabled {
+    cursor: default;
+    opacity: 0.35;
+}
+
+.nc-cep-menu-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-cep-menu-value {
+    min-width: 0;
+    max-width: 42%;
+    overflow: hidden;
+    color: var(--cep-text-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-cep-menu-swatch {
+    width: 13px;
+    height: 13px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.nc-cep-menu-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    flex-shrink: 0;
+}
+
+.nc-cep-menu-separator {
+    height: 1px;
+    margin: 7px 5px;
+    background: var(--cep-border);
+}
+
+.nc-cep-menu-danger,
+.nc-cep-menu-danger:hover {
+    color: var(--nc-error, var(--text-error));
+}
+
+.nc-cep-period-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+    padding: 5px 7px 7px;
+}
+
+.nc-cep-period-editor label {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: var(--cep-text-muted);
+    font-size: 12px;
+}
+
+.nc-cep-period-editor input {
+    width: 100%;
+    min-width: 0;
+    height: 32px;
+    padding: 5px 8px;
+    border: 1px solid var(--cep-border);
+    border-radius: 7px;
+    background: var(--nc-bg-primary, var(--background-primary));
+    box-shadow: none;
+    color: var(--cep-text);
+    font-size: 12px;
+}
+
+.nc-cep-period-editor input:focus {
+    border-color: color-mix(in srgb, var(--nc-accent) 65%, var(--cep-border));
+    outline: none;
+}
+
+.nc-cep-period-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 7px;
+    min-width: 0;
+    padding-top: 2px;
+}
+
+.nc-cep-period-clear,
+.nc-cep-period-apply {
+    height: 30px;
+    padding: 5px 11px;
+    border: 0;
+    border-radius: 6px;
+    box-shadow: none !important;
+    font-size: 12px;
+    font-weight: 600;
+    transition: background var(--nc-transition-fast),
+        opacity var(--nc-transition-fast);
+}
+
+.nc-cep-period-clear {
+    background: transparent !important;
+    color: var(--cep-text-muted);
+}
+
+.nc-cep-period-clear:hover {
+    background: var(--cep-hover) !important;
+    color: var(--cep-text);
+}
+
+.nc-cep-period-apply {
+    background: var(--nc-accent) !important;
+    color: var(--text-on-accent, #fff);
+}
+
+.nc-cep-period-apply:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+}
+
+/* ── Body / cards ───────────────────────────────────────────── */
+
+.nc-cep-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+}
+
+.nc-cep-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    /* This is a <button>: without an explicit height it inherits Obsidian's
+       ambient field height (~30px), which clips the stacked title/date/badge
+       and makes them spill over the next card. Clamp to the content instead. */
+    height: auto;
+    min-height: fit-content;
+    /* Valeurs mesurees sur Notion Calendar (theme sombre). */
+    padding: 10px 8px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: 10px;
+    /* Ghost button reset so the card isn't repainted by Obsidian's button
+       surface; the card gets its own subtle fill instead. */
+    background: var(--nc-bg-primary, var(--background-primary)) !important;
+    /* Contrats mesures sur Notion Calendar (theme sombre) : seule l'ombre est
+       animee, et en 50 ms. Animer le fond ou la bordure ferait trainer l'etat. */
+    box-shadow: rgba(0, 0, 0, 0.05) 0 1px 2px 0 !important;
+    transition: box-shadow 50ms ease-out;
+    color: var(--cep-text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.nc-cep-card:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.13);
+    box-shadow: rgba(0, 0, 0, 0.16) 0 4px 12px -2px !important;
+}
+
+.nc-cep-card:active {
+    box-shadow: rgba(0, 0, 0, 0.08) 0 2px 4px 0 !important;
+}
+
+/* Carte source pendant son propre drag : elle reste en place, estompee. */
+.nc-cep-card-dragging {
+    opacity: 0.4;
+}
+
+/* Copie qui suit le curseur. Surface opaque et non teintee, contrairement a la
+   carte du panneau : elle flotte au-dessus de la grille et doit rester lisible
+   quel que soit ce qu'elle recouvre. */
+.nc-cep-card-ghost {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    margin: 0;
+    background: rgb(37, 37, 37) !important;
+    border-radius: 10px;
+    border: none;
+    box-shadow: rgba(255, 255, 255, 0.055) 0 0 0 1px inset,
+        rgba(0, 0, 0, 0.5) 0 1px 3px 0 !important;
+}
+
+/* Rappel affiche pendant un drag depuis le panneau, centre en bas de l'ecran.
+   Dimensions et surface mesurees sur Notion. */
+.nc-panel-drag-hint {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: 6px;
+    background: rgb(37, 37, 37);
+    box-shadow: rgba(0, 0, 0, 0.16) 0 4px 12px -2px;
+    color: var(--cep-text);
+    font-size: 12px;
+}
+
+.nc-cep-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.nc-cep-card-icon {
+    display: inline-flex;
+    align-items: center;
+    color: var(--cep-text-faint);
+    flex-shrink: 0;
+}
+
+.nc-cep-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cep-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-cep-card-date {
+    font-size: 12.5px;
+    font-weight: 500;
+    /* colour is set inline to the calendar's own colour */
+}
+
+@media (max-width: 700px) {
+    .nc-cep-slot {
+        --cep-width: min(300px, 72vw);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nc-cep-slot,
+    .nc-cep,
+    .nc-cep-popover,
+    .nc-cep-summary {
+        animation: none;
+        transition-duration: 1ms;
+    }
+}
+
+/* ── Task status badge ──────────────────────────────────────── */
+
+.nc-cep-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    padding: 2px 9px 2px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cep-text);
+}
+
+.nc-cep-badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.nc-cep-badge-todo {
+    background: color-mix(
+        in srgb,
+        var(--nc-warning, var(--color-orange)) 16%,
+        transparent
+    );
+}
+.nc-cep-badge-todo .nc-cep-badge-dot {
+    background: var(--nc-warning, var(--color-orange));
+}
+
+.nc-cep-badge-complete {
+    background: color-mix(
+        in srgb,
+        var(--nc-success, var(--color-green)) 16%,
+        transparent
+    );
+}
+.nc-cep-badge-complete .nc-cep-badge-dot {
+    background: var(--nc-success, var(--color-green));
+}
+
+/* ── Empty state ────────────────────────────────────────────── */
+
+.nc-cep-empty {
+    padding: 24px 12px;
+    text-align: center;
+    color: var(--cep-text-faint);
+    font-size: 13px;
+}

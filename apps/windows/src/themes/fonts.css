@@ -1,0 +1,16 @@
+/* Satoshi is distributed by Fontshare. It is loaded when the application has
+   network access; every theme also has a bundled local fallback. */
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700,900&display=swap");
+
+:root {
+    --nc-font-inter: "Inter Variable", Inter, "Segoe UI Variable Text",
+        "Segoe UI", system-ui, sans-serif;
+    --nc-font-geist: "Geist Variable", Geist, "Inter Variable", Inter,
+        "Segoe UI", system-ui, sans-serif;
+    --nc-font-satoshi: Satoshi, "Inter Variable", Inter, "Segoe UI",
+        system-ui, sans-serif;
+    --nc-font-jetbrains: "JetBrains Mono Variable", "JetBrains Mono",
+        "Cascadia Code", Consolas, monospace;
+    --nc-font-geist-mono: "Geist Mono Variable", "Geist Mono",
+        "JetBrains Mono Variable", "Cascadia Code", Consolas, monospace;
+}

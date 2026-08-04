@@ -1,0 +1,285 @@
+/* ──────────────────────────────────────────────────────────────
+   Neo Calendar — Settings & selector tweaks
+   ────────────────────────────────────────────────────────────── */
+
+/* All plugin selectors share the folder-picker look (native suggestion popup).
+   The magnifier icon inherits an oversized size from the user's theme/Style
+   Settings (18px); bring it back to a calm, balanced size. Scoped to our
+   `.neo-suggest-field` so nothing else in the app changes.
+   Two shapes: the Setting API wraps the input in `.search-input-container`
+   inside our marked row; the React wrapper puts both classes on one element. */
+.neo-suggest-field .search-input-container::before,
+.neo-suggest-field.search-input-container::before {
+    width: 15px;
+    height: 15px;
+}
+
+/* Make the React-side field match the Setting API search field width. */
+.setting-item-control .neo-suggest-field.search-input-container {
+    width: 100%;
+}
+
+/* ── Fixed-option pickers (Desktop/Mobile view, week start, calendar type) ──
+   These are NOT native <select>s: a native select's open popup is OS-rendered
+   and unstylable (bright system highlight, light background — looks foreign in
+   the dark UI). Instead the control is a button that opens a themed Obsidian
+   Menu (see addMenuSelect in settings.ts). The menu styles itself via the
+   theme; here we only style the closed button to look like a calm dropdown.
+   Uses Obsidian's native theme vars (--interactive-*, --text-*) rather than the
+   plugin's --nc-* aliases, because those aliases live on the calendar view's
+   :root and are NOT resolved inside the Settings modal. */
+.neo-dropdown-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 150px;
+    height: auto;
+    margin: 0;
+    padding: 5px 9px 5px 11px;
+    font-size: 14px;
+    line-height: 1.3;
+    text-align: left;
+    color: var(--text-normal);
+    background-color: var(--interactive-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 7px;
+    box-shadow: none;
+    cursor: pointer;
+    transition: border-color 100ms ease, background-color 100ms ease,
+        box-shadow 100ms ease;
+}
+
+.neo-dropdown-btn:hover {
+    background-color: var(--interactive-hover);
+    border-color: var(--background-modifier-border-hover);
+    box-shadow: none;
+}
+
+.neo-dropdown-btn:focus-visible {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px
+        color-mix(in srgb, var(--interactive-accent) 30%, transparent);
+}
+
+.neo-dropdown-btn-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.neo-dropdown-btn-icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: var(--text-muted);
+}
+
+.neo-dropdown-btn-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* The menu opened by addMenuSelect (tagged .neo-dropdown-menu). Mark the active
+   option with an accent fill — like a native <select>'s highlighted row — and
+   drop the checkmark, which the fill makes redundant. Scoped to our menus so
+   Obsidian's own context menus keep their checkmark style. */
+.neo-dropdown-menu .menu-item.mod-checked,
+.neo-dropdown-menu .menu-item.mod-checked.selected,
+.neo-dropdown-menu .menu-item.mod-checked.is-focused {
+    background-color: var(--interactive-accent);
+}
+
+.neo-dropdown-menu .menu-item.mod-checked .menu-item-title {
+    color: var(--text-on-accent);
+}
+
+.neo-dropdown-menu .menu-item.mod-checked .menu-item-icon.mod-checked {
+    display: none;
+}
+
+/* ── Manage Calendars — clean row (color • name … edit / delete) ── */
+
+/* Segmented control: which sort of auto calendar is being added. */
+.neo-kind-toggle {
+    display: flex;
+    gap: 4px;
+}
+
+.neo-kind-choice {
+    padding: 4px 10px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.neo-kind-choice:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.neo-kind-choice.neo-kind-choice-active {
+    border-color: var(--interactive-accent);
+    color: var(--interactive-accent);
+}
+
+/* Icon palette for auto calendars: a row of Lucide glyphs, the chosen one
+   ringed in the accent colour. */
+.neo-icon-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.neo-icon-choice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.neo-icon-choice:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.neo-icon-choice.neo-icon-choice-active {
+    border-color: var(--interactive-accent);
+    color: var(--interactive-accent);
+}
+
+.neo-cal-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    background: var(--nc-bg-secondary);
+    transition: background var(--nc-transition-fast);
+}
+
+.neo-cal-row:hover {
+    background: var(--nc-bg-hover);
+}
+
+/* Color pill on the left — clicking it opens the native color picker. */
+.neo-cal-row-color {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.neo-cal-row-color-pill {
+    width: 28px;
+    height: 16px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    transition: transform var(--nc-transition-fast);
+}
+
+.neo-cal-row-color:hover .neo-cal-row-color-pill {
+    transform: scale(1.08);
+}
+
+.neo-cal-row-color-input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.neo-cal-row-type {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--nc-text-secondary);
+}
+
+.neo-cal-row-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    color: var(--nc-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.neo-cal-row-name[title]:not([title="Delete"]) {
+    cursor: pointer;
+}
+
+.neo-cal-row-edit {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    padding: 4px 8px;
+    border: 1px solid var(--nc-accent);
+    border-radius: 6px;
+    background: var(--nc-bg-primary);
+    color: var(--nc-text-primary);
+    outline: none;
+}
+
+.neo-cal-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.neo-cal-row-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--nc-border);
+    border-radius: 6px;
+    background: var(--nc-bg-primary);
+    color: var(--nc-text-secondary);
+    cursor: pointer;
+    transition: var(--nc-transition-paint);
+}
+
+.neo-cal-row-btn:hover {
+    background: var(--nc-bg-hover);
+    color: var(--nc-text-primary);
+}
+
+.neo-cal-row-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.neo-cal-row-delete:hover {
+    color: var(--nc-error);
+    border-color: var(--nc-error);
+}
+
+.neo-cal-row-delete.is-confirm {
+    color: var(--nc-accent-text);
+    background: var(--nc-error);
+    border-color: var(--nc-error);
+}

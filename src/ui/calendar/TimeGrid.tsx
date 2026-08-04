@@ -1,0 +1,519 @@
+import * as React from "react";
+import * as ReactDOM from "react-dom";
+import { useRef, useLayoutEffect, useMemo, useState } from "react";
+import { DndContext, DragOverlay, closestCenter } from "@dnd-kit/core";
+import {
+    HOUR_HEIGHT,
+    ALLDAY_ROW_HEIGHT,
+    ALLDAY_MAX_ROWS,
+    addDays,
+    startOfDay,
+    computeOverlapGroups,
+    formatTime,
+    getEventHeight,
+    isToday,
+    isMultiDayTimed,
+} from "./CalendarUtils";
+import { withAlpha } from "../../utils/color";
+import { DisplayEvent } from "../types";
+import { useInfiniteScroll } from "./useInfiniteScroll";
+import { TimeGridProps } from "./TimeGrid.types";
+import { useTimeGridDrag } from "./useTimeGridDrag";
+import { useTimeGridResize } from "./useTimeGridResize";
+import { useTimeGridSelection } from "./useTimeGridSelection";
+import { useAllDayLanes } from "./useAllDayLanes";
+import { useNowPosition } from "./NowIndicator";
+import {
+    LeftRail,
+    TimeGridHeaders,
+    TimeGridAllDay,
+    TimeGridDays,
+} from "./TimeGridSections";
+
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+// Days of buffer rendered on each side of the visible range for continuous scroll.
+// Larger buffer = more scroll headroom before a shift is needed = smoother feel.
+const BUFFER_DAYS = 3;
+const STICKY_COL_PX = 64;
+
+function groupEventsByDate(
+    events: DisplayEvent[],
+    filter: (e: DisplayEvent) => boolean
+): Map<string, DisplayEvent[]> {
+    const map = new Map<string, DisplayEvent[]>();
+    const push = (key: string, e: DisplayEvent) => {
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(e);
+    };
+    for (const event of events) {
+        if (!filter(event)) continue;
+        // The event lives on its start day (its block is clipped at midnight by
+        // the day column's overflow:hidden).
+        push(event.start.toDateString(), event);
+        // If it crosses midnight, add a read-only continuation on each
+        // subsequent day it touches, starting at 00:00, keeping the original
+        // start time as the label (Notion-style).
+        let dayStart = startOfDay(addDays(event.start, 1));
+        while (dayStart.getTime() < event.end.getTime()) {
+            push(dayStart.toDateString(), {
+                ...event,
+                start: new Date(dayStart),
+                editable: false,
+                isContinuation: true,
+                labelStart: event.start,
+            });
+            dayStart = addDays(dayStart, 1);
+        }
+    }
+    return map;
+}
+
+export default function TimeGrid(props: TimeGridProps) {
+    const {
+        dates,
+        events,
+        timeFormat24h,
+        secondaryTimezones,
+        onAddTimezone,
+        onRemoveTimezone,
+        allDayCollapsed = false,
+        onToggleAllDayCollapsed,
+        onEventClick,
+        onEventDrag,
+        onEventResize,
+        onSelectRange,
+        onContextMenu,
+        onToggleTask,
+        allDayEvents,
+        onEmptyContextMenu,
+        draftSlot,
+        draftColor,
+        onResizeDraft,
+        onShiftDays,
+        contextLine,
+        externalPreview,
+        onEventUnschedule,
+    } = props;
+
+    const gridRef = useRef<HTMLDivElement>(null);
+    const scrollRootRef = useRef<HTMLDivElement>(null);
+    const headersRowRef = useRef<HTMLDivElement>(null);
+    const allDayRowRef = useRef<HTMLDivElement>(null);
+    const allDayTrackRef = useRef<HTMLDivElement>(null);
+    const leftScrollableRef = useRef<HTMLDivElement>(null);
+    const [headerHeight, setHeaderHeight] = useState(0);
+    const [allDayHeight, setAllDayHeight] = useState(0);
+    // Visible width of the main scroller — the all-day row is pinned to this
+    // (sticky-left) so its vertical scrollbar stays on-screen.
+    const [mainWidth, setMainWidth] = useState(0);
+    // Full content width (= headers/days row). The all-day track must match it
+    // exactly so its day cells line up with the day columns. A `calc(100% * …)`
+    // string would resolve against the (narrower) pinned row and misalign.
+    const [contentWidth, setContentWidth] = useState(0);
+
+    // Continuous horizontal scroll: render dates with ±BUFFER_DAYS buffer
+    const extendedDates = useMemo(() => {
+        if (dates.length === 0) return dates;
+        const prefix: Date[] = [];
+        for (let i = BUFFER_DAYS; i >= 1; i--) {
+            prefix.push(addDays(dates[0], -i));
+        }
+        const suffix: Date[] = [];
+        const last = dates[dates.length - 1];
+        for (let i = 1; i <= BUFFER_DAYS; i++) {
+            suffix.push(addDays(last, i));
+        }
+        return [...prefix, ...dates, ...suffix];
+    }, [dates]);
+
+    useInfiniteScroll({
+        scrollRef: scrollRootRef,
+        daysPerView: dates.length,
+        dateKey: dates[0]?.toDateString() ?? "",
+        bufferDays: BUFFER_DAYS,
+        onShiftDays: (steps) => onShiftDays?.(steps),
+        enabled: !!onShiftDays && dates.length > 0,
+    });
+
+    // Width of the left rail = hours column + secondary timezone columns.
+    const leftRailWidth =
+        STICKY_COL_PX * (1 + (secondaryTimezones?.length ?? 0));
+
+    // The main scroller's content width must accommodate (visible + buffer)
+    // days, where each day = (scroller_viewport_width / daysPerView).
+    const scrollerWidthStyle =
+        dates.length > 0
+            ? `calc(100% * ${(dates.length + BUFFER_DAYS * 2) / dates.length})`
+            : "100%";
+
+    // Measure header + all-day row heights so the left rail can mirror the
+    // sticky-top region exactly (corner placeholder + all-day label).
+    useLayoutEffect(() => {
+        const headerEl = headersRowRef.current;
+        const allDayEl = allDayRowRef.current;
+        const measure = () => {
+            setHeaderHeight(headerEl ? headerEl.offsetHeight : 0);
+            setAllDayHeight(allDayEl ? allDayEl.offsetHeight : 0);
+            setContentWidth(headerEl ? headerEl.offsetWidth : 0);
+        };
+        measure();
+        const ro = new ResizeObserver(measure);
+        if (headerEl) ro.observe(headerEl);
+        if (allDayEl) ro.observe(allDayEl);
+        return () => ro.disconnect();
+    }, [extendedDates, allDayEvents]);
+
+    // Track the main scroller's visible width so the all-day row can be pinned
+    // to it (sticky-left), keeping its vertical scrollbar on-screen.
+    useLayoutEffect(() => {
+        const el = scrollRootRef.current;
+        if (!el) return;
+        const measure = () => setMainWidth(el.clientWidth);
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+
+    // ── Behavior hooks ────────────────────────────────────────
+
+    const {
+        activeEvent,
+        dragPreview,
+        dragPreviews,
+        dragWidth,
+        sensors,
+        handleDragStart,
+        handleDragMove,
+        handleDragEnd,
+        handleDragCancel,
+    } = useTimeGridDrag(
+        onEventDrag,
+        gridRef,
+        () => [...events, ...(allDayEvents ?? [])].filter((e) => e.selected),
+        onEventUnschedule
+    );
+
+    const { resizePreview, handleResizeStart, handleDraftResizeStart } =
+        useTimeGridResize(events, onEventResize, draftSlot, onResizeDraft);
+
+    const {
+        selection,
+        handleMouseDown,
+        handleDoubleClick,
+        handleEmptyContext,
+    } = useTimeGridSelection({
+        gridRef,
+        onSelectRange,
+        onEmptyContextMenu,
+    });
+
+    // ── Derived event maps ────────────────────────────────────
+
+    const eventsByDate = useMemo(
+        () => groupEventsByDate(events, (e) => !e.allDay),
+        [events]
+    );
+
+    const allDayLanes = useAllDayLanes(allDayEvents, extendedDates);
+
+    // Visible (capped) height of the all-day row — the value that pushes the
+    // days grid down. Used below to keep the grid from teleporting vertically
+    // when the lane count changes during a horizontal shift.
+    const allDayVisibleRows = allDayCollapsed
+        ? 1
+        : Math.min(Math.max(allDayLanes.laneCount, 1), ALLDAY_MAX_ROWS);
+
+    const overlapByDate = useMemo(() => {
+        const map = new Map<string, ReturnType<typeof computeOverlapGroups>>();
+        for (const [dateKey, dayEvents] of eventsByDate) {
+            map.set(dateKey, computeOverlapGroups(dayEvents));
+        }
+        return map;
+    }, [eventsByDate]);
+
+    // Shared "now" indicator state — used both by the left rail (badge) and
+    // by the day columns (line + tick). One source of truth, one timer.
+    const { top: nowTop, label: nowLabel, now } = useNowPosition(timeFormat24h);
+    const todayInRange = useMemo(
+        () => extendedDates.some(isToday),
+        [extendedDates]
+    );
+
+    const showAllDay = true;
+
+    // ── Scroll to current time on mount ─────────────────────
+
+    useLayoutEffect(() => {
+        const el = scrollRootRef.current;
+        if (!el) return;
+        const now = new Date();
+        const scrollTo = Math.max(
+            0,
+            (now.getHours() - 1 + now.getMinutes() / 60) * HOUR_HEIGHT
+        );
+        el.scrollTop = scrollTo;
+    }, []);
+
+    // Compensate scrollTop when the all-day section's height changes between
+    // renders. Without this, any change to the visible lane count (e.g. when a
+    // horizontal shift brings more all-day events into the buffer) shifts the
+    // days row vertically and teleports the visible grid. The height tracked
+    // here must match the capped height set on .nc-allday-row in
+    // TimeGridSections.tsx (allDayVisibleRows * ALLDAY_ROW_HEIGHT).
+    const prevAllDayHeightRef = useRef<number | null>(null);
+    useLayoutEffect(() => {
+        const el = scrollRootRef.current;
+        if (!el) return;
+        const newHeight = allDayVisibleRows * ALLDAY_ROW_HEIGHT;
+        const prev = prevAllDayHeightRef.current;
+        if (prev !== null && prev !== newHeight) {
+            el.scrollTop += newHeight - prev;
+        }
+        prevAllDayHeightRef.current = newHeight;
+    }, [allDayVisibleRows]);
+
+    // Drive sync between the main scroller and the two pinned panels. The
+    // hours column (left rail) lives outside the horizontal scroller, so only Y
+    // must follow (translateY). The all-day row is pinned to the viewport-left
+    // by counter-translating it +scrollLeft (sticky-left is unreliable for a
+    // flex-column child here), which keeps its vertical scrollbar on-screen;
+    // its inner track then translates -scrollLeft so day cells realign with the
+    // day columns. Both are GPU-cheap and tolerant of the 1-frame rAF lag.
+    useLayoutEffect(() => {
+        const main = scrollRootRef.current;
+        const scrollable = leftScrollableRef.current;
+        if (!main || !scrollable) return;
+        let frame = 0;
+        const update = () => {
+            frame = 0;
+            const x = main.scrollLeft;
+            scrollable.style.transform = `translateY(${-main.scrollTop}px)`;
+            // Drive the vertical clip on .nc-days-row: clipping its top by
+            // scrollTop keeps the grid from painting behind the transparent
+            // sticky header/all-day band. Set on the scroller (ancestor) so it
+            // inherits to the row. See .nc-days-row in CalendarGrid.css.
+            main.style.setProperty("--nc-scroll-y", `${main.scrollTop}px`);
+            if (allDayRowRef.current) {
+                allDayRowRef.current.style.transform = `translateX(${x}px)`;
+            }
+            if (allDayTrackRef.current) {
+                allDayTrackRef.current.style.transform = `translateX(${-x}px)`;
+            }
+        };
+        const onScroll = () => {
+            if (frame) return;
+            frame = requestAnimationFrame(update);
+        };
+        update();
+        main.addEventListener("scroll", onScroll, { passive: true });
+        return () => {
+            main.removeEventListener("scroll", onScroll);
+            if (frame) cancelAnimationFrame(frame);
+        };
+    }, []);
+
+    // Keep the all-day track's horizontal offset correct even when its node is
+    // recreated by a re-render (collapse toggle, data/width change). The scroll
+    // listener only fires on real scroll, so a fresh node would otherwise sit
+    // at translateX(0) and reveal the wrong (buffer) slice — making the visible
+    // days (and their collapsed counts) look empty. Same reasoning for the
+    // grid's clip offset: a resize can clamp scrollTop with no scroll event, so
+    // re-mirror --nc-scroll-y here too to keep the clip aligned.
+    useLayoutEffect(() => {
+        const main = scrollRootRef.current;
+        if (!main) return;
+        const x = main.scrollLeft;
+        main.style.setProperty("--nc-scroll-y", `${main.scrollTop}px`);
+        if (allDayRowRef.current) {
+            allDayRowRef.current.style.transform = `translateX(${x}px)`;
+        }
+        if (allDayTrackRef.current) {
+            allDayTrackRef.current.style.transform = `translateX(${-x}px)`;
+        }
+    });
+
+    // Le cadre du drag venu du panneau passe par le meme rendu que ceux du drag
+    // interne : meme composant, meme CSS, donc aucun risque de deux styles.
+    const allPreviews = externalPreview
+        ? [...dragPreviews, externalPreview]
+        : dragPreviews;
+
+    return (
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            // Disable dnd-kit's auto-scroll: grabbing an event near the top/
+            // bottom edge made the grid scroll on its own, and because the drag
+            // delta then accumulates the scrolled distance, the event landed far
+            // from the pointer (e.g. dropped at 00:00) with no usable preview.
+            autoScroll={false}
+            onDragStart={handleDragStart}
+            onDragMove={handleDragMove}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+        >
+            <div
+                className="nc-timegrid-wrapper"
+                ref={gridRef}
+                style={
+                    {
+                        // Largeur REELLEMENT visible de la grille, publiee pour
+                        // que le CSS puisse en deduire la largeur mini d'une
+                        // colonne (voir --nc-day-min-width). Une formule basee
+                        // sur 100vw se tromperait : le rail des heures grandit
+                        // de 64 px par fuseau secondaire, et la barre laterale
+                        // ou le panneau prennent aussi de la place. Mesure a
+                        // 412 px avec deux fuseaux : 198 px visibles, pas 348.
+                        "--nc-visible-grid-width": `${mainWidth}px`,
+                    } as React.CSSProperties
+                }
+            >
+                <LeftRail
+                    width={leftRailWidth}
+                    headerHeight={headerHeight}
+                    allDayHeight={allDayHeight}
+                    showAllDay={showAllDay}
+                    hours={HOURS}
+                    timeFormat24h={timeFormat24h}
+                    secondaryTimezones={secondaryTimezones}
+                    onAddTimezone={onAddTimezone}
+                    onRemoveTimezone={onRemoveTimezone}
+                    allDayCollapsed={allDayCollapsed}
+                    onToggleAllDayCollapsed={onToggleAllDayCollapsed}
+                    referenceDate={dates[0]}
+                    todayInRange={todayInRange}
+                    nowTop={nowTop}
+                    nowLabel={nowLabel}
+                    now={now}
+                    scrollableRef={leftScrollableRef}
+                />
+                <div className="nc-main-scroller" ref={scrollRootRef}>
+                    <div className="nc-main-content">
+                        <TimeGridHeaders
+                            extendedDates={extendedDates}
+                            scrollerWidthStyle={scrollerWidthStyle}
+                            onSelectRange={onSelectRange}
+                            ref={headersRowRef}
+                        />
+
+                        <TimeGridAllDay
+                            allDayLanes={allDayLanes}
+                            extendedDates={extendedDates}
+                            collapsed={allDayCollapsed}
+                            onToggleCollapse={onToggleAllDayCollapsed}
+                            stickyTop={headerHeight}
+                            scrollerWidthStyle={scrollerWidthStyle}
+                            mainWidth={mainWidth}
+                            trackWidth={contentWidth}
+                            trackRef={allDayTrackRef}
+                            timeFormat24h={timeFormat24h}
+                            onEventClick={onEventClick}
+                            onContextMenu={onContextMenu}
+                            onToggleTask={onToggleTask}
+                            onSelectRange={onSelectRange}
+                            draftSlot={draftSlot}
+                            draftColor={draftColor}
+                            dragPreview={dragPreview}
+                            dragPreviews={allPreviews}
+                            ref={allDayRowRef}
+                        />
+
+                        <TimeGridDays
+                            hours={HOURS}
+                            extendedDates={extendedDates}
+                            overlapByDate={overlapByDate}
+                            scrollerWidthStyle={scrollerWidthStyle}
+                            timeFormat24h={timeFormat24h}
+                            todayInRange={todayInRange}
+                            nowTop={nowTop}
+                            resizePreview={resizePreview}
+                            dragPreview={dragPreview}
+                            dragPreviews={allPreviews}
+                            draftSlot={draftSlot}
+                            draftColor={draftColor}
+                            selection={selection}
+                            onEventClick={onEventClick}
+                            onContextMenu={onContextMenu}
+                            onToggleTask={onToggleTask}
+                            handleResizeStart={handleResizeStart}
+                            handleDraftResizeStart={handleDraftResizeStart}
+                            handleMouseDown={handleMouseDown}
+                            handleDoubleClick={handleDoubleClick}
+                            handleEmptyContext={handleEmptyContext}
+                            contextLine={contextLine}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Block that follows the cursor while dragging. The .nc-drop-preview
+                outline (rendered in the day column) marks the snapped landing
+                slot; this ghost moves freely with the pointer and shows the live
+                projected time (Notion-style).
+
+                Portaled to document.body: Obsidian sets `contain: strict` on
+                `.workspace-leaf`, which makes it the containing block for
+                position:fixed descendants. dnd-kit positions the overlay in
+                viewport coordinates, so left inside the leaf it would render
+                offset by the leaf's viewport position. The portal escapes that
+                ancestor; React context (DndContext) still reaches it through the
+                React tree. */}
+            {ReactDOM.createPortal(
+                <DragOverlay dropAnimation={null}>
+                    {activeEvent ? (
+                        <div
+                            className="nc-drag-ghost"
+                            style={{
+                                // A band-sourced event (all-day OR multi-day
+                                // timed) collapses to a 30-min event on drop, so
+                                // its ghost is a 30-min block — NOT the full-day /
+                                // multi-day height getEventHeight would give (that
+                                // rendered a full-column wall following the cursor).
+                                height:
+                                    activeEvent.allDay ||
+                                    isMultiDayTimed(activeEvent)
+                                        ? getEventHeight(
+                                              activeEvent.start,
+                                              new Date(
+                                                  activeEvent.start.getTime() +
+                                                      30 * 60 * 1000
+                                              )
+                                          )
+                                        : getEventHeight(
+                                              activeEvent.start,
+                                              activeEvent.end
+                                          ),
+                                width: dragWidth || undefined,
+                                borderLeftColor: activeEvent.color,
+                                backgroundColor: withAlpha(
+                                    activeEvent.color,
+                                    0.6
+                                ),
+                            }}
+                        >
+                            <span className="nc-drag-ghost-title">
+                                {activeEvent.title}
+                            </span>
+                            {!activeEvent.allDay && dragPreview && (
+                                <span className="nc-drag-ghost-time">
+                                    {formatTime(
+                                        dragPreview.newStart,
+                                        timeFormat24h
+                                    )}{" "}
+                                    –{" "}
+                                    {formatTime(
+                                        dragPreview.newEnd,
+                                        timeFormat24h
+                                    )}
+                                </span>
+                            )}
+                        </div>
+                    ) : null}
+                </DragOverlay>,
+                document.body
+            )}
+        </DndContext>
+    );
+}

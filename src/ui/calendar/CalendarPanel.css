@@ -1,0 +1,1640 @@
+/* ── Responsive ──────────────────────────────────────────────── */
+
+/* ATTENTION a l'ORDRE de ces trois paliers : ils ont la meme specificite, donc
+   c'est le DERNIER declare qui gagne. Ils vont du plus large au plus etroit
+   (768 -> 480 -> 380) pour que le palier le plus contraint ait le dernier mot.
+   Places avant, les deux paliers etroits se faisaient ecraser par le padding
+   d'en-tete redeclare dans le bloc 768. */
+
+/* Deux situations, un seul traitement : un ecran ETROIT, et un telephone en
+   PAYSAGE. Ce dernier est large (915 px mesures) mais bas : le seul critere de
+   largeur le classait avec les tablettes et lui laissait la barre laterale dans
+   le flux, ou elle prenait 220 px sur les 609 px de grille. Le `pointer:
+   coarse` conjoint evite d'attraper une fenetre desktop simplement courte.
+   Mesure en paysage apres coup : grille de 609 -> 829 px. */
+@media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+    /* La largeur mini d'une colonne se regle SUR LA VARIABLE, jamais classe par
+       classe : en-tetes, cellules all-day et colonnes horaires la partagent, et
+       n'en rebaisser qu'une (ce que faisait l'ancien `.nc-timegrid-day {
+       min-width: 100px }`) desaligne la bande all-day de la grille.
+
+       Elle est posee sur le wrapper et non sur :root, parce qu'elle se deduit
+       de --nc-visible-grid-width, publiee la par TimeGrid. Les trois familles de
+       colonnes en sont descendantes.
+
+       La valeur garantit que sept colonnes tiennent dans la largeur REELLEMENT
+       visible. Au-dela, les colonnes sont ecrasees a leur min-width et la
+       geometrie du scroll infini — qui suppose largeur_colonne =
+       largeur_visible / joursParVue — devient fausse. Une formule en 100vw
+       s'y trompait : mesure a 412 px avec deux fuseaux secondaires, le rail
+       occupe 192 px et il ne reste que 198 px visibles ; les colonnes de la vue
+       Semaine etaient alors ecrasees a 44 px la ou 28 etaient attendus.
+
+       Le plancher ne sert qu'a eviter une colonne degeneree ; il doit rester
+       SOUS le huitieme de la largeur visible dans les cas serres, sinon c'est
+       lui qui ecrase les colonnes. Mesure du cas le plus contraint (412 px,
+       deux fuseaux secondaires, vue Semaine) : 198 px visibles, un huitieme
+       vaut 24,75 px — un plancher a 32 px reprenait donc la marge qu'il etait
+       cense donner. */
+    .nc-timegrid-wrapper {
+        --nc-day-min-width: max(
+            24px,
+            calc(var(--nc-visible-grid-width, 100vw) / 8)
+        );
+    }
+
+    /* Repliee, la barre laterale est retiree du flux : sa version repliee coute
+       104 px sur un ecran de 412, pour quatre boutons. Son bouton de bascule
+       part avec elle, d'ou le relais `.nc-btn-sidebar-toggle` dans l'en-tete. */
+    .nc-sidebar.nc-sidebar-collapsed {
+        display: none;
+    }
+
+    /* Depliee, elle se SUPERPOSE a la grille au lieu de la pousser : a 220 px
+       poussee sur 412, il ne resterait presque rien de la grille. Fond opaque
+       assume — c'est un tiroir pose PAR-DESSUS le contenu, pas une surface du
+       calendrier, qui lui reste transparent. */
+    .nc-sidebar:not(.nc-sidebar-collapsed) {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 60;
+        width: min(280px, 82vw);
+        min-width: 0;
+        background: var(--background-secondary);
+        box-shadow: 0 0 24px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Ancre le tiroir : sans cela il se positionnerait sur un ancetre plus
+       lointain et deborderait de la zone du calendrier. */
+    .nc-layout {
+        position: relative;
+    }
+
+    /* Le relais n'a de sens que la ou la barre quitte le flux. */
+    .nc-btn-sidebar-toggle {
+        display: inline-flex;
+    }
+
+    .nc-header {
+        padding: 0 var(--nc-spacing-sm);
+    }
+
+    .nc-header-title {
+        font-size: 14px;
+    }
+}
+
+/* Telephone en portrait. La barre d'outils porte six controles : bascule de la
+   barre laterale, reglages, selecteur de vue, « Today », precedent, suivant. A
+   360 px de large — taille tres courante — leur somme plus les espacements
+   d'origine (8 px de marge, 8 px entre chaque) depassait de 10 px et la barre
+   defilait horizontalement. Resserrer les espacements suffit, et preserve les
+   six controles avec leurs zones de frappe de 44 px plutot que d'en sacrifier
+   un. */
+@media (max-width: 480px) {
+    .nc-header {
+        padding: 0 4px;
+        gap: 2px;
+    }
+
+    .nc-header-right {
+        gap: 2px;
+    }
+}
+
+/* Dernier palier : 320 px (petit Android, ou fenetre en ecran partage), ou il
+   manquait encore 26 px. Ce sont les DEUX boutons a texte qui se resserrent,
+   jamais ceux a icone : mieux vaut « Today » un peu plus etroit que six cibles
+   tactiles ramenees sous le seuil du doigt. Mesure a 320 px : contenu 298 px
+   pour 298 px disponibles, les six icones toujours a 44 px. */
+@media (max-width: 380px) {
+    .nc-header {
+        padding: 0 2px;
+    }
+
+    .nc-btn-today,
+    .nc-view-dropdown-btn {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+}
+
+/* ── Command Palette ──────────────────────────────────────── */
+
+.nc-command-palette-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    padding-top: 80px;
+}
+
+.nc-command-palette {
+    background: var(--nc-bg-primary);
+    border: 1px solid var(--nc-border);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    /* Bornee au viewport : a 480 px fixes, la palette debordait de l'ecran d'un
+       telephone (412 px de large) et ses bords etaient inatteignables. */
+    width: min(480px, calc(100vw - 32px));
+    max-height: min(400px, calc(100vh - 160px));
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.nc-command-palette-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-bottom: 1px solid var(--nc-border);
+    background: transparent;
+    color: var(--nc-text-primary);
+    font-size: 14px;
+    outline: none;
+}
+
+.nc-command-palette-input::placeholder {
+    color: var(--nc-text-faint);
+}
+
+.nc-command-palette-list {
+    overflow-y: auto;
+    max-height: 340px;
+}
+
+.nc-command-palette-empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--nc-text-faint);
+    font-size: 13px;
+}
+
+.nc-command-palette-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--nc-text-primary);
+}
+
+.nc-command-palette-item:hover,
+.nc-command-palette-item.nc-selected {
+    background: var(--nc-accent);
+    color: #fff;
+}
+
+.nc-command-palette-item.nc-selected .nc-command-palette-category {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.nc-command-palette-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-command-palette-category {
+    font-size: 11px;
+    color: var(--nc-text-faint);
+    margin-left: 12px;
+    flex-shrink: 0;
+}
+
+/* ── Event Panel (EditEvent) ─────────────────────────────────── */
+
+.nc-panel {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    flex: 1;
+    min-height: 0;
+    color: var(--nc-text-primary);
+    font-size: 13px;
+}
+
+.nc-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 12px;
+    min-height: 36px;
+    cursor: grab;
+    user-select: none;
+    transition: background-color var(--nc-transition-fast);
+}
+
+/* Notion-style drag-handle feedback: the lighter band shows only while the
+   header is hovered or grabbed (drag-to-move), never at rest. */
+.nc-panel-header:hover,
+.nc-panel-header:active {
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+}
+
+.nc-panel-header:active {
+    cursor: grabbing;
+}
+
+.nc-panel-header-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--nc-text-primary);
+}
+
+.nc-panel-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.nc-panel-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    /* Obsidian's `.theme-dark button` (0,1,1) beats `.nc-panel-icon-btn` (0,1,0)
+       and paints a default surface (fill + inset shadow). !important on both so
+       the button is invisible at rest and only reveals its shape on hover. */
+    background: transparent !important;
+    border: none;
+    box-shadow: none !important;
+    border-radius: 4px;
+    color: var(--nc-text-secondary);
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-panel-icon-btn:hover {
+    background: var(--nc-bg-hover) !important;
+    color: var(--nc-text-primary);
+}
+
+.nc-panel-menu-wrap {
+    position: relative;
+}
+
+.nc-panel-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 160px;
+    background: var(--nc-bg-primary);
+    border: 1px solid var(--nc-border);
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    padding: 4px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+}
+
+.nc-panel-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--nc-text-primary);
+    background: transparent !important;
+    border: none;
+    box-shadow: none !important;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.nc-panel-menu-item:hover {
+    background: var(--nc-bg-hover) !important;
+}
+
+.nc-panel-menu-item.nc-danger {
+    color: var(--nc-error);
+}
+
+/* Body */
+
+.nc-panel-body {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    /* Un enfant flex refuse par defaut de passer sous sa taille de contenu
+       (min-height: auto). Sans ce 0, l'`overflow-y` juste au-dessus ne sert a
+       rien des que le panneau est borne en hauteur : le corps garderait sa
+       hauteur intrinseque et deborderait au lieu de defiler. */
+    min-height: 0;
+    /* Gap between the header's hover band and the title row (Notion keeps clear
+       air under the "Page" strip) — lives on the body so the band never covers it. */
+    padding: 10px 0 12px;
+    flex: 1;
+}
+
+/* Notion-style title: flat at rest (no visible box), the subtly-filled rounded
+   box only appears on hover/focus — matches Notion Calendar's resting state. */
+.nc-panel-title-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 10px 8px;
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    transition:
+        border-color var(--nc-transition-fast),
+        background-color var(--nc-transition-fast);
+}
+
+/* Hover: outlined box, no fill. Focus: filled box, no border — Notion Calendar's
+   three-state title (rest flat → hover border → focus fill). */
+.nc-panel-title-row:hover {
+    border-color: var(--nc-border);
+}
+
+.nc-panel-title-row:focus-within {
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+    border-color: transparent;
+}
+
+.nc-panel-title-icon {
+    display: inline-flex;
+    align-items: center;
+    color: var(--nc-text-faint);
+    flex-shrink: 0;
+}
+
+/* A full-width hairline under the title box (Notion separates the title from
+   the first property section). The title box itself is inset by its margin. */
+.nc-panel-title-row + .nc-panel-row {
+    border-top: 1px solid var(--nc-border);
+}
+
+/* box-shadow/border none to beat Obsidian's default text-input chrome. */
+.nc-panel-title-row .nc-panel-title-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    height: 20px;
+    line-height: 20px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--nc-text-primary);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+}
+
+.nc-panel-title-row .nc-panel-title-input:focus,
+.nc-panel-title-row .nc-panel-title-input:hover {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.nc-panel-title-input::placeholder {
+    color: var(--nc-text-faint);
+    font-weight: 400;
+}
+
+.nc-panel-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 16px;
+}
+
+.nc-panel-row + .nc-panel-row {
+    border-top: 1px solid var(--nc-border);
+}
+
+.nc-panel-row-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    color: var(--nc-text-secondary);
+    flex-shrink: 0;
+}
+
+.nc-panel-row-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Notion labels are flat: same size/weight as values, hierarchy comes from
+   colour (primary) vs the muted/faint values, not from bold. */
+.nc-panel-row-label {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--nc-text-primary);
+}
+
+/* Inline property row: icon + label on the left, value pushed to the right
+   (Notion-style, e.g. "État … À faire"). */
+.nc-panel-row-inline {
+    align-items: center;
+}
+
+.nc-panel-row-inline > .nc-panel-row-label {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Time range — Notion-style: bold prominent times, muted duration, no native
+   input chrome (clock spinner / calendar icon hidden). */
+
+.nc-panel-time-range {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.nc-panel-text-input,
+.nc-panel-select,
+.nc-panel-textarea {
+    padding: 4px 6px;
+    font-size: 13px;
+    color: var(--nc-text-primary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    outline: none;
+    transition: background var(--nc-transition-fast),
+        border-color var(--nc-transition-fast);
+    font-family: inherit;
+}
+
+.nc-panel-text-input:hover,
+.nc-panel-select:hover,
+.nc-panel-textarea:hover {
+    background: var(--nc-bg-hover);
+}
+
+.nc-panel-text-input:focus,
+.nc-panel-select:focus,
+.nc-panel-textarea:focus {
+    background: var(--nc-bg-secondary);
+    border-color: var(--nc-border);
+}
+
+/* Times match Notion: 13px / 400, primary colour (the prominence vs the muted
+   duration comes from colour, not size/weight). Native chrome removed. */
+.nc-panel-time-input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: auto;
+    padding: 1px 4px;
+    margin: -1px -4px;
+    font-family: var(--nc-num-font);
+    font-size: 13px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    color: var(--nc-text-primary);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    outline: none;
+    cursor: text;
+    transition: background var(--nc-transition-fast);
+}
+
+.nc-panel-time-input:hover {
+    background: var(--nc-bg-hover);
+}
+
+/* All-day residual times: the same time inputs, shown faded and inert
+   (read-only + pointer-events:none) right after toggling all-day on, then gone
+   on reopen. Only the opacity differs from the timed state. */
+.nc-panel-time-row-muted {
+    opacity: 0.38;
+    pointer-events: none;
+}
+
+.nc-panel-time-input::-webkit-calendar-picker-indicator {
+    display: none;
+}
+.nc-panel-time-input::-webkit-inner-spin-button {
+    display: none;
+}
+
+/* The native <input type=time> renders its digits through UA sub-fields that do
+   NOT inherit the input's font — that's why the digits used the foreign interface
+   face. Force the clean numeric font on every sub-field. line-height MUST stay
+   `normal` (not 1): a 1em line box clips the glyph tops, which made the hours
+   look cut off. tabular-nums keeps every digit the same width. */
+.nc-panel-time-input::-webkit-datetime-edit,
+.nc-panel-time-input::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+    font-family: var(--nc-num-font);
+    line-height: normal;
+}
+.nc-panel-time-input::-webkit-datetime-edit-hour-field,
+.nc-panel-time-input::-webkit-datetime-edit-minute-field,
+.nc-panel-time-input::-webkit-datetime-edit-ampm-field,
+.nc-panel-time-input::-webkit-datetime-edit-text {
+    padding: 0;
+    font-family: var(--nc-num-font);
+    font-variant-numeric: tabular-nums;
+}
+
+.nc-panel-arrow {
+    display: inline-flex;
+    align-items: center;
+    color: var(--nc-text-faint);
+}
+
+.nc-panel-duration {
+    font-size: 13px;
+    color: var(--nc-text-secondary);
+    font-family: var(--nc-num-font);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Two-column date/time grid (Notion): start time + start date in column 1,
+   end time + end date in column 3, with the arrow between and the duration
+   right after the end time. */
+/* Time range on one line: start → end + duration, kept close together with a
+   small gap (the arrow sits right after the start time, not stretched away). */
+.nc-panel-time-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nc-panel-date-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Date shown as a clickable label (Notion-style); the native picker is a
+   visually-hidden input triggered on click. */
+.nc-panel-date-field {
+    position: relative;
+    display: inline-flex;
+}
+
+.nc-panel-date-field .nc-panel-date-btn {
+    padding: 2px 6px;
+    margin: -2px -6px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--nc-text-primary);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 4px;
+    cursor: pointer;
+    /* Clean Latin font so "Mon Jun 29" (esp. the digits) doesn't render through
+       a non-Latin interface face. */
+    font-family: var(--nc-num-font);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-panel-date-field .nc-panel-date-btn:hover:not(:disabled) {
+    background: var(--nc-bg-hover);
+    color: var(--nc-text-primary);
+}
+
+.nc-panel-date-btn:disabled {
+    cursor: default;
+}
+
+/* Field-style date trigger (recurrence "Ends → On"): a compact bordered Notion
+   field — same look as .nc-recur-num — opening the same themed month grid as the
+   main date row. The label trigger (.nc-panel-date-btn) and this share one
+   popup; only the trigger skin differs. */
+.nc-panel-date-trigger {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 28px;
+    padding: 0 10px;
+    font-family: var(--nc-num-font);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    color: var(--nc-text-primary);
+    background-color: var(--background-modifier-form-field);
+    border: 1px solid var(--nc-border);
+    border-radius: 6px;
+    box-shadow: none !important;
+    outline: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color var(--nc-transition-fast),
+        background-color var(--nc-transition-fast);
+}
+
+.nc-panel-date-trigger:hover:not(:disabled) {
+    background-color: var(--nc-bg-hover);
+}
+
+.nc-panel-date-trigger:focus,
+.nc-panel-date-trigger[aria-expanded="true"] {
+    border-color: var(--nc-accent);
+}
+
+.nc-panel-date-trigger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ── Date picker (portaled month grid, replaces the native <input type=date>) ──
+   Portaled to <body>, so it remaps the --nc-* tokens from Obsidian's native
+   vars (the .nc-event-popup remap is out of scope here) — same approach as
+   .nc-cal-select-menu. Glass surface matching the panel's other dropdowns. */
+.nc-datepicker {
+    position: fixed;
+    z-index: 1000;
+    --nc-bg-hover: var(--background-modifier-hover);
+    --nc-text-primary: var(--text-normal);
+    --nc-text-secondary: var(--text-muted);
+    --nc-text-faint: var(--text-faint);
+    --nc-border: var(--background-modifier-border);
+    --nc-accent: var(--interactive-accent);
+    --nc-accent-text: var(--text-on-accent);
+    width: 252px;
+    padding: 10px;
+    background: color-mix(in srgb, var(--background-primary) 92%, transparent);
+    backdrop-filter: blur(12px) brightness(1.2);
+    -webkit-backdrop-filter: blur(12px) brightness(1.2);
+    border: 1px solid var(--nc-border);
+    border-radius: 12px;
+    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.4),
+        0 2px 6px -1px rgba(0, 0, 0, 0.22);
+    /* Clean Latin/numeric font so day numbers and "Jun 2026" read crisply even
+       under a non-Latin interface font (same rationale as the date label). */
+    font-family: var(--nc-num-font);
+}
+
+.nc-datepicker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.nc-datepicker-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--nc-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.nc-datepicker-nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    /* !important: neutralise Obsidian's default button surface (grey fill +
+       inset shadow from `.theme-dark button`, 0,1,1) that beats these classes. */
+    background: transparent !important;
+    border: none;
+    box-shadow: none !important;
+    border-radius: 6px;
+    color: var(--nc-text-secondary);
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-datepicker-nav:hover {
+    background: var(--nc-bg-hover) !important;
+    color: var(--nc-text-primary);
+}
+
+.nc-datepicker-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.nc-datepicker-weekday {
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--nc-text-faint);
+}
+
+.nc-datepicker-day {
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: transparent !important;
+    border: none;
+    box-shadow: none !important;
+    border-radius: 7px;
+    color: var(--nc-text-primary);
+    font-family: var(--nc-num-font);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-datepicker-day:hover {
+    background: var(--nc-bg-hover) !important;
+}
+
+.nc-datepicker-day.nc-out {
+    color: var(--nc-text-faint);
+    opacity: 0.5;
+}
+
+/* Today — the single canonical "today" red (--nc-today), shared with the
+   time-grid/mini-calendar/month markers. Text-only at rest so "today" reads
+   without competing with the selection fill. */
+.nc-datepicker-day.nc-today {
+    color: var(--nc-today);
+    font-weight: 700;
+}
+
+/* Selected — a filled accent pill (the panel's interactive accent), like the
+   reference mockup. The fill is what signals "selected". */
+.nc-datepicker-day.nc-selected {
+    background: var(--nc-accent) !important;
+    color: var(--nc-accent-text);
+    font-weight: 600;
+}
+
+.nc-datepicker-day.nc-selected:hover {
+    background: var(--nc-accent) !important;
+}
+
+/* Selected AND today — keep the filled pill (selection) but in the today red,
+   so both facts read at once: fill = selected, red = today. */
+.nc-datepicker-day.nc-selected.nc-today,
+.nc-datepicker-day.nc-selected.nc-today:hover {
+    background: var(--nc-today) !important;
+    color: #fff;
+}
+
+.nc-datepicker-foot {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.nc-datepicker-today-btn {
+    padding: 4px 10px;
+    background: transparent !important;
+    border: none;
+    box-shadow: none !important;
+    border-radius: 6px;
+    color: var(--nc-accent);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast);
+}
+
+.nc-datepicker-today-btn:hover {
+    background: var(--nc-bg-hover) !important;
+}
+
+.nc-panel-date-label {
+    font-size: 13px;
+    color: var(--nc-text-secondary);
+    font-family: var(--nc-num-font);
+    font-variant-numeric: tabular-nums;
+}
+
+.nc-panel-text-input,
+.nc-panel-select {
+    width: 100%;
+}
+
+/* Seamless description field: fully transparent, no chrome, no resize grabber —
+   the highlight is carried by the whole value block (label + field) below.
+   !important beats Obsidian's `.theme-dark textarea` (0,1,1) default surface
+   (filled background + border + inset shadow) which would otherwise show. */
+.nc-panel-textarea {
+    width: 100%;
+    /* Auto-size to content (Chromium 123+): compact one line when empty, grows
+       as you type — Notion's compact height, no fixed 40px void below "Empty". */
+    field-sizing: content;
+    min-height: 20px;
+    resize: none;
+    line-height: 1.45;
+    padding: 0;
+    margin: 0;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    /* Blue blinking caret (theme accent). */
+    caret-color: var(--nc-accent);
+}
+
+.nc-panel-textarea:hover,
+.nc-panel-textarea:focus {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Notion-style description box: the hover/focus highlight wraps the WHOLE row
+   (icon + label + field), inset from the panel edges. Nothing at rest, a subtle
+   outline on hover, outline + soft fill once clicked (editing). The 1px
+   transparent border at rest reserves space (no jump). The `.nc-panel-body …`
+   (0,3,0) selector beats the inter-row divider (0,2,0) so its border-top is
+   neutralised and the box's own border shows on all four sides. */
+.nc-panel-body .nc-panel-row.nc-panel-row-desc {
+    margin: 2px 8px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    transition: background var(--nc-transition-fast),
+        border-color var(--nc-transition-fast);
+}
+
+.nc-panel-body .nc-panel-row.nc-panel-row-desc:hover {
+    border-color: var(--nc-border);
+}
+
+.nc-panel-body .nc-panel-row.nc-panel-row-desc:focus-within {
+    border-color: var(--nc-border);
+    background: var(--nc-bg-hover);
+}
+
+/* Tighter label-to-field gap ("Empty" sits a touch higher) and the (larger)
+   icon aligned with the label, like Notion. */
+.nc-panel-row-desc .nc-panel-row-content {
+    gap: 3px;
+}
+
+.nc-panel-row-desc .nc-panel-row-icon {
+    margin-top: 0;
+}
+
+.nc-panel-text-input::placeholder,
+.nc-panel-textarea::placeholder {
+    color: var(--nc-text-faint);
+}
+
+/* Chips */
+
+.nc-panel-chips {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+/* Plain text actions, Notion-style — no boxes at rest. */
+/* Higher specificity (.nc-panel-chips .nc-chip) and box-shadow:none to beat
+   Obsidian's default `button:not(.clickable-icon)` surface + inset shadow. */
+.nc-panel-chips .nc-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    font-size: 13px;
+    color: var(--nc-text-faint);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-panel-chips .nc-chip:hover {
+    color: var(--nc-text-primary);
+    background: var(--nc-bg-hover);
+}
+
+/* Active chip: accent colour + bold only. It must NOT declare a background:
+   doing so (even `transparent`) tied the active rule with `.nc-chip:hover` on
+   specificity and, being declared later, overrode the hover fill — so an active
+   chip stopped reacting to hover. With no background here, the hover rule always
+   wins over the rest state, and the active accent colour is kept on top. */
+.nc-panel-chips .nc-chip.nc-active {
+    color: var(--nc-accent);
+    font-weight: 600;
+}
+
+/* Day picker (recurring) */
+
+.nc-day-picker {
+    display: flex;
+    gap: 4px;
+}
+
+.nc-day-btn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--nc-text-secondary);
+    background: var(--nc-bg-secondary);
+    border: 1px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-day-btn:hover {
+    background: var(--nc-bg-hover);
+    color: var(--nc-text-primary);
+}
+
+.nc-day-btn.nc-active {
+    background: var(--nc-accent);
+    color: var(--nc-accent-text);
+}
+
+/* Recurrence row — summary, presets, custom controls */
+
+.nc-recur-summary {
+    font-size: 12px;
+    color: var(--nc-text-secondary);
+    margin-bottom: 6px;
+}
+
+.nc-recur-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.nc-recur-presets .nc-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    font-size: 13px;
+    color: var(--nc-text-faint);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-recur-presets .nc-chip:hover {
+    color: var(--nc-text-primary);
+    background: var(--nc-bg-hover);
+}
+
+.nc-recur-presets .nc-chip.nc-active {
+    color: var(--nc-accent);
+    font-weight: 600;
+}
+
+.nc-recur-custom {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.nc-recur-interval {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--nc-text-primary);
+}
+
+/* Custom-recurrence number input: a clean Notion field instead of Obsidian's
+   default number-input chrome (grey fill + inset shadow + spinner). */
+.nc-recur-num {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 52px;
+    height: 28px;
+    padding: 0 8px;
+    font-family: inherit;
+    font-size: 13px;
+    text-align: center;
+    color: var(--nc-text-primary);
+    background-color: var(--background-modifier-form-field);
+    border: 1px solid var(--nc-border);
+    border-radius: 6px;
+    box-shadow: none !important;
+    outline: none;
+    cursor: text;
+    transition: border-color var(--nc-transition-fast),
+        background-color var(--nc-transition-fast);
+}
+
+.nc-recur-num:hover {
+    background-color: var(--nc-bg-hover);
+}
+
+.nc-recur-num:focus {
+    border-color: var(--nc-accent);
+}
+
+.nc-recur-num::-webkit-inner-spin-button,
+.nc-recur-num::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Custom select (NcSelect) — replaces the native <select>, whose option popup is
+   OS-drawn (square corners, flat highlight, no theming). Trigger = a panel field;
+   menu = the same rounded glass dropdown as the calendar selector. */
+.nc-select-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.nc-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 6px 0 9px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--nc-text-primary);
+    background-color: var(--background-modifier-form-field);
+    border: 1px solid var(--nc-border);
+    border-radius: 6px;
+    box-shadow: none !important;
+    cursor: pointer;
+    transition: border-color var(--nc-transition-fast),
+        background-color var(--nc-transition-fast);
+}
+
+.nc-select:hover {
+    background-color: var(--nc-bg-hover);
+}
+
+.nc-select[aria-expanded="true"] {
+    border-color: var(--nc-accent);
+    background-color: var(--nc-bg-hover);
+}
+
+.nc-recur-freq {
+    min-width: 96px;
+}
+.nc-recur-monthmode {
+    min-width: 188px;
+}
+
+.nc-select-label {
+    flex: 1;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nc-select-chevron {
+    display: inline-flex;
+    align-items: center;
+    color: var(--nc-text-faint);
+    transition: transform var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-select:hover .nc-select-chevron,
+.nc-select[aria-expanded="true"] .nc-select-chevron {
+    color: var(--nc-text-secondary);
+}
+
+.nc-select[aria-expanded="true"] .nc-select-chevron {
+    transform: rotate(180deg);
+}
+
+/* Portaled to <body>: remap --nc-* from Obsidian's native vars (the panel's
+   remap is out of scope here), exactly like the calendar selector menu. */
+.nc-select-menu {
+    position: fixed;
+    --nc-bg-hover: var(--background-modifier-hover);
+    --nc-text-primary: var(--text-normal);
+    --nc-text-secondary: var(--text-muted);
+    --nc-text-faint: var(--text-faint);
+    --nc-border: var(--background-modifier-border);
+    --nc-accent: var(--interactive-accent);
+    overflow-y: auto;
+    padding: 4px;
+    background: color-mix(in srgb, var(--background-primary) 92%, transparent);
+    backdrop-filter: blur(12px) brightness(1.18);
+    -webkit-backdrop-filter: blur(12px) brightness(1.18);
+    border: 1px solid var(--nc-border);
+    border-radius: 10px;
+    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.4),
+        0 2px 6px -1px rgba(0, 0, 0, 0.22);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--nc-border) transparent;
+}
+
+.nc-select-option {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    width: 100%;
+    padding: 5px 8px;
+    background: transparent !important;
+    border: none;
+    box-shadow: none !important;
+    border-radius: 6px;
+    color: var(--nc-text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast);
+}
+
+.nc-select-option:hover {
+    background: var(--nc-bg-hover) !important;
+}
+
+.nc-select-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    flex-shrink: 0;
+    color: var(--nc-accent);
+}
+
+.nc-select-option.nc-active {
+    color: var(--nc-accent);
+}
+
+.nc-recur-end {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+}
+
+.nc-recur-end label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--nc-text-primary);
+}
+
+/* Tint the native radios with the accent instead of the OS blue. */
+.nc-recur-end input[type="radio"] {
+    accent-color: var(--nc-accent);
+    cursor: pointer;
+    margin: 0;
+}
+
+/* An inactive end-condition's count field is disabled — mute it so it reads as
+   not-yet-active rather than broken. (The until-date trigger mutes itself via
+   .nc-panel-date-trigger:disabled.) */
+.nc-recur-end .nc-recur-num:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.nc-panel-subrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.nc-panel-subrow-label {
+    font-size: 12px;
+    color: var(--nc-text-secondary);
+    min-width: 36px;
+}
+
+/* Status pills (tasks — 2-state: todo / complete) */
+
+.nc-status-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Notion status tag: a fully-rounded pill whose background is the semantic
+   colour at ~45% alpha, with a solid dot and near-text label. Sourced from
+   Obsidian's native --color-* palette so it adapts to every theme (the colour
+   is darker on light themes, brighter on dark — exactly what we want). */
+.nc-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    /* !important kills Obsidian's default button surface (inset highlight +
+       drop shadow) that `.theme-dark button` (0,1,1) paints over the tag. */
+    box-shadow: none !important;
+    border-radius: 999px;
+    cursor: pointer;
+    color: var(--nc-text-primary);
+    transition: background var(--nc-transition-fast),
+        transform var(--nc-transition-fast);
+}
+
+/* Tactile press feedback when toggling the status. */
+.nc-status-pill:active {
+    transform: scale(0.95);
+}
+
+.nc-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Stable-width label: both states are stacked in one grid cell so the pill is
+   always as wide as the longest label ("Complete"); only the active one is
+   visible. This removes the width jump when toggling To do ↔ Complete. */
+.nc-status-pill-label {
+    display: grid;
+}
+
+.nc-status-pill-label > span {
+    grid-area: 1 / 1;
+    text-align: center;
+    visibility: hidden;
+}
+
+.nc-status-pill-label > span.is-on {
+    visibility: visible;
+}
+
+.nc-dot-todo {
+    background: var(--color-orange, #e9973f);
+}
+
+.nc-dot-complete {
+    background: var(--color-green, #2f9e44);
+}
+
+.nc-status-pill.nc-status-todo {
+    background: color-mix(
+        in srgb,
+        var(--color-orange, #e9973f) 45%,
+        transparent
+    );
+}
+
+.nc-status-pill.nc-status-complete {
+    background: color-mix(
+        in srgb,
+        var(--color-green, #2f9e44) 45%,
+        transparent
+    );
+}
+
+/* Hover deepens the tag (more saturated) for a clear interactive feel. */
+.nc-status-pill.nc-status-todo:hover {
+    background: color-mix(
+        in srgb,
+        var(--color-orange, #e9973f) 62%,
+        transparent
+    );
+}
+
+.nc-status-pill.nc-status-complete:hover {
+    background: color-mix(
+        in srgb,
+        var(--color-green, #2f9e44) 62%,
+        transparent
+    );
+}
+
+/* Footer */
+
+.nc-panel-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--nc-border);
+    margin-top: 4px;
+}
+
+.nc-panel-btn {
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--nc-text-primary);
+    background: var(--nc-bg-secondary);
+    border: 1px solid var(--nc-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast);
+}
+
+.nc-panel-btn:hover {
+    background: var(--nc-bg-hover);
+}
+
+.nc-panel-btn-primary {
+    color: var(--nc-accent-text);
+    background: var(--nc-accent);
+    border-color: var(--nc-accent);
+}
+
+.nc-panel-btn-primary:hover {
+    filter: brightness(1.1);
+    background: var(--nc-accent);
+}
+
+/* ── Calendar select (Notion-style button + dropdown) ───────── */
+
+/* Inline calendar selector pushed to the right of the row (Notion-style),
+   compact — sized to its content, not full width. */
+.nc-cal-select-wrap {
+    position: relative;
+    flex-shrink: 0;
+    max-width: 60%;
+}
+
+/* The whole calendar row IS the button (colour dot included), spanning the full
+   row width so the hover/open highlight covers everything up to the chevron —
+   like Notion. margin pulls the box out so the dot lines up with the other
+   rows' icons while the highlight extends a little to its left. */
+.nc-cal-select {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 0;
+    padding: 5px 8px;
+    margin: -3px -8px;
+    background: transparent !important;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--nc-text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: none !important;
+    transition: background var(--nc-transition-fast),
+        border-color var(--nc-transition-fast);
+}
+
+/* Same interaction as the Description box: hover shows the outline only, and
+   clicking it (open) adds the soft fill. Keeps the panel coherent. */
+.nc-cal-select:hover {
+    border-color: var(--nc-border);
+}
+
+.nc-cal-select[aria-expanded="true"] {
+    background: var(--nc-bg-hover) !important;
+    border-color: var(--nc-border);
+}
+
+/* After closing the menu the button keeps :focus; Obsidian's button:focus
+   style would otherwise leave the row "lit". Keep it transparent unless it's
+   actually hovered or open. */
+.nc-cal-select:focus:not(:hover):not([aria-expanded="true"]) {
+    background: transparent !important;
+    border-color: transparent;
+}
+
+.nc-cal-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.nc-panel-row-cal {
+    align-items: center;
+}
+
+.nc-cal-select-name {
+    /* Sizes to content (Notion groups name + type at the left, not stretched). */
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Calendar storage type, muted, sitting right AFTER the name (Notion's "Table"
+   slot — glued to the name, not pushed to the far right). */
+.nc-cal-select-type {
+    flex: 0 0 auto;
+    margin-left: 5px;
+    color: var(--nc-text-secondary);
+    font-size: 13px;
+}
+
+.nc-cal-select-chevron {
+    display: inline-flex;
+    align-items: center;
+    /* Pushed to the far right of the closed button, past the name + type. */
+    margin-left: auto;
+    padding-left: 8px;
+    color: var(--nc-text-faint);
+    opacity: 0;
+    transition: opacity var(--nc-transition-fast);
+}
+
+.nc-cal-select:hover .nc-cal-select-chevron,
+.nc-cal-select[aria-expanded="true"] .nc-cal-select-chevron {
+    opacity: 1;
+}
+
+.nc-cal-select-menu {
+    /* Portaled to <body> and fixed-positioned (top/left/width set inline from
+       the row rect) so it floats ABOVE the panel — expanding it inside the
+       panel would overflow .nc-panel-body and force a scrollbar on the panel. */
+    position: fixed;
+    /* Remap --nc-* here: portaled to <body>, the .nc-event-popup remap is out of
+       scope, so source from Obsidian's native vars directly (else glass/colours
+       bake empty). */
+    --nc-bg-hover: var(--background-modifier-hover);
+    --nc-text-primary: var(--text-normal);
+    --nc-text-secondary: var(--text-muted);
+    --nc-text-faint: var(--text-faint);
+    --nc-border: var(--background-modifier-border);
+    --nc-accent: var(--interactive-accent);
+    /* max-height is set inline to the available viewport space, so the list
+       only scrolls when it genuinely can't fit on screen (Notion-style); a
+       fixed cap would clip a short list that otherwise fits. */
+    overflow-y: auto;
+    padding: 5px;
+    /* Same theme-aware glass as the Event panel and context menus. */
+    background: color-mix(in srgb, var(--background-primary) 90%, transparent);
+    backdrop-filter: blur(12px) brightness(1.2);
+    -webkit-backdrop-filter: blur(12px) brightness(1.2);
+    border: 1px solid var(--nc-border);
+    border-radius: 12px;
+    /* Notion's softer dropdown shadow. */
+    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.4),
+        0 2px 6px -1px rgba(0, 0, 0, 0.22);
+    /* Above the panel (z-index 50) since it's portaled to <body>. */
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    /* Visible, slim scrollbar (Notion-style) when the calendar list overflows. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--nc-border) transparent;
+}
+
+.nc-cal-select-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.nc-cal-select-menu::-webkit-scrollbar-thumb {
+    background: var(--background-modifier-border-hover);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 999px;
+}
+
+.nc-cal-select-menu::-webkit-scrollbar-thumb:hover {
+    background: var(--nc-text-faint);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.nc-cal-select-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Small muted section heading, like Notion's "Calendar". Indented to line up
+   with the calendar dots/names (past the 8px padding + 14px check + 8px gap
+   gutter), so the checkmark column sits to its left as in Notion. */
+.nc-cal-select-heading {
+    padding: 4px 8px 5px 30px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--nc-text-faint);
+}
+
+.nc-cal-select-option {
+    display: flex;
+    align-items: center;
+    /* Obsidian buttons default to justify-content:center, which centred the
+       option content and left a big empty gutter on the left. Pack to start. */
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    /* !important: neutralise Obsidian's default button surface (a grey rounded
+       fill + inset shadow) that `.theme-dark button` paints on every option. */
+    background: transparent !important;
+    border: none;
+    border-radius: 6px;
+    color: var(--nc-text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: none !important;
+    transition: background var(--nc-transition-fast);
+}
+
+/* Fixed-width check gutter so every row's dot/name align whether or not the
+   row is the selected one (the check only shows on the active row). */
+.nc-cal-select-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    flex-shrink: 0;
+    color: var(--nc-text-primary);
+}
+
+/* Hover is a subtle fill (not the accent bar); the active row has no permanent
+   fill — its checkmark marks the selection, matching Notion. */
+.nc-cal-select-option:hover {
+    background: var(--nc-bg-hover) !important;
+}
+
+/* ── Panel footer ("View note") ─────────────────────────────── */
+
+.nc-panel-foot {
+    border-top: 1px solid var(--nc-border, var(--background-modifier-border));
+    padding: 6px;
+}
+
+/* Notion's footer button: a subtle outline is ALWAYS visible at rest (the
+   button never fully disappears, so the hover isn't a jarring pop-in); hover
+   simply fills it in and brightens the label. Scoped via `.nc-panel-foot …`
+   (0,2,0) so it beats `.theme-dark button` (0,1,1) without !important. */
+.nc-panel-foot .nc-panel-foot-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    padding: 6px 10px;
+    background: transparent;
+    border: 1px solid var(--nc-border);
+    border-radius: 6px;
+    box-shadow: none;
+    color: var(--nc-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        border-color var(--nc-transition-fast), color var(--nc-transition-fast);
+}
+
+.nc-panel-foot .nc-panel-foot-btn:hover {
+    background: var(--nc-bg-hover);
+    border-color: var(--background-modifier-border-hover);
+    color: var(--nc-text-primary);
+}
+
+/* Draft: keep "View note" visible but greyed out until the event exists. */
+.nc-panel-foot .nc-panel-foot-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.nc-panel-foot .nc-panel-foot-btn:disabled:hover {
+    background: transparent;
+    border-color: var(--nc-border);
+    color: var(--nc-text-secondary);
+}

@@ -1,0 +1,198 @@
+/* ──────────────────────────────────────────────────────────────
+   Neo Calendar — adaptations tactiles (Android / iOS)
+
+   Charge en DERNIER dans Calendar.css : ces regles corrigent, pour un
+   pointeur grossier, des choix qui n'ont de sens qu'a la souris.
+
+   Le critere est la NATURE du pointeur, pas la largeur de l'ecran :
+     • `hover: none`      -> l'appareil ne sait pas survoler ;
+     • `pointer: coarse`  -> on designe au doigt, pas au pixel.
+   Une fenetre desktop etroite garde donc son comportement souris, et une
+   tablette large recoit bien les tailles tactiles — ce qu'un `max-width`
+   aurait rate dans les deux sens.
+   ────────────────────────────────────────────────────────────── */
+
+/* ── 1. Ce qui n'apparait qu'au survol ───────────────────────── */
+
+/* Sans survol possible, un controle en `opacity: 0` revele au :hover n'est
+   pas « discret » : il est introuvable ET intouchable. Tous ceux-ci
+   redeviennent visibles en permanence. */
+@media (hover: none) {
+    .nc-timegrid-header-add,
+    .nc-tz-corner-label,
+    .nc-select-chevron,
+    .nc-cal-select-chevron,
+    .nc-sidebar-title-chevron,
+    .nc-sidebar-add-btn,
+    .nc-calendar-actions,
+    .nc-calendar-default-label {
+        opacity: 1;
+    }
+}
+
+/* ── 2. Zones de frappe ──────────────────────────────────────── */
+
+/* Les petits boutons gardent leur taille VISUELLE et gagnent une zone de
+   frappe centree d'au moins 44 px (seuil tactile courant). Un pseudo-element
+   plutot qu'un padding : la mise en page ne bouge pas d'un pixel, seule la
+   surface qui recoit le doigt grandit. */
+@media (pointer: coarse) {
+    .nc-timegrid-header-add,
+    .nc-tz-add,
+    .nc-allday-collapse-btn,
+    .nc-panel-icon-btn {
+        position: relative;
+    }
+
+    .nc-timegrid-header-add::after,
+    .nc-tz-add::after,
+    .nc-allday-collapse-btn::after,
+    .nc-panel-icon-btn::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
+    }
+
+    /* La case a cocher d'une tache vit DANS un bloc d'evenement haut de 22 px :
+       une zone de 44 px deborderait sur les evenements voisins et leur volerait
+       le tap. Elle s'etend donc a la hauteur de son bloc et pas au-dela. */
+    .nc-task-checkbox {
+        position: relative;
+        min-width: 22px;
+    }
+
+    .nc-task-checkbox::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 30px;
+        height: 100%;
+        min-height: 22px;
+        transform: translate(-50%, -50%);
+    }
+
+    /* Les boutons a icone de l'en-tete sont deja hauts de 44 px, mais larges
+       de 28 : le doigt manque la cible lateralement. */
+    .nc-btn-icon {
+        min-width: 44px;
+    }
+
+    /* Barre haute du tiroir : replier, palette de commandes, creer un
+       evenement. Trois boutons de 28 px, espaces — leur zone peut s'etendre
+       sans mordre sur un voisin. */
+    .nc-sidebar-top-btn {
+        position: relative;
+    }
+
+    .nc-sidebar-top-btn::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
+    }
+
+    /* Meme raison que la case a cocher de la grille : la coche d'un evenement
+       du mois vit dans une ligne de 18 px. Sa zone s'etend a la hauteur de sa
+       ligne et pas au-dela, sinon elle mordrait sur l'evenement voisin. */
+    .nc-month-task-btn,
+    .nc-list-task-btn,
+    .nc-someday-checkbox {
+        position: relative;
+    }
+
+    .nc-list-task-btn::after,
+    .nc-someday-checkbox::after,
+    .nc-month-task-btn::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 26px;
+        height: 100%;
+        min-height: 18px;
+        transform: translate(-50%, -50%);
+    }
+
+    /* Le titre de l'evenement est un champ de saisie haut de 20 px : viser une
+       bande de 20 px pour placer le curseur dans un texte est hors de portee du
+       doigt. Il gagne de la hauteur par du remplissage, sans changer sa
+       typographie ni la ligne de base du titre. */
+    .nc-panel-title-row .nc-panel-title-input {
+        height: auto;
+        min-height: 36px;
+        padding: 8px 0;
+    }
+
+    /* Lignes de listes : hautes de 33 px, elles sont sous le seuil tactile. La
+       liste defile deja, leur donner de la hauteur ne coute donc rien d'autre
+       que quelques lignes visibles en moins. */
+    .nc-command-palette-item,
+    .nc-view-dropdown-item {
+        min-height: 44px;
+    }
+
+    /* Le mini calendrier est une grille de dates JOINTIVES : etendre la zone de
+       frappe ferait empieter chaque jour sur ses voisins. C'est donc la case
+       elle-meme qui grandit, ce que la largeur du tiroir permet (7 x 34 px plus
+       les marges tiennent dans 280 px). */
+    .nc-mini-cal-day {
+        min-width: 34px;
+        min-height: 34px;
+        font-size: 13px;
+    }
+}
+
+/* Onglet de reglages du plugin. Ses styles vivent dans settings.css, mais tout
+   le tactile est regroupe ici : esbuild fond les deux dans le meme styles.css,
+   et une seule media query vaut mieux que la meme dupliquee dans deux fichiers.
+   La pastille de couleur (28x16) et les boutons renommer/supprimer (28x28) sont
+   sous le seuil ; leur taille visuelle reste inchangee. */
+@media (pointer: coarse) {
+    .neo-cal-row-btn,
+    .neo-cal-row-color {
+        position: relative;
+    }
+
+    .neo-cal-row-btn::after,
+    .neo-cal-row-color::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
+    }
+}
+
+/* ── 3. Gestes ───────────────────────────────────────────────── */
+
+@media (pointer: coarse) {
+    /* Supprime le delai de ~300 ms que le navigateur s'accorde pour guetter un
+       double-tap de zoom. Le calendrier n'utilise pas le double-tap au doigt,
+       donc chaque tap peut agir tout de suite. */
+    .nc-event-block,
+    .nc-month-event,
+    .nc-timegrid-day,
+    .nc-allday-cell,
+    button {
+        touch-action: manipulation;
+    }
+
+    /* Les poignees de redimensionnement font 6 px de haut et n'ecoutent que la
+       souris (onMouseDown) : au doigt elles ne sont ni visables ni
+       fonctionnelles, et elles ne font que rogner la zone de tap du bloc. On
+       les retire, l'heure reste modifiable dans le panneau de l'evenement. */
+    .nc-event-resize-handle,
+    .nc-event-resize-handle-top {
+        display: none;
+    }
+}

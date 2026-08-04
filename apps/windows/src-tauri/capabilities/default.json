@@ -1,0 +1,12 @@
+{
+    "$schema": "../gen/schemas/desktop-schema.json",
+    "identifier": "main-capability",
+    "description": "Neo Calendar main window capability",
+    "windows": ["main"],
+    "permissions": [
+        "core:default",
+        "dialog:allow-open",
+        "store:default",
+        "deep-link:default"
+    ]
+}

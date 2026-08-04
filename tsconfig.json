@@ -1,0 +1,29 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		// Sources live in src/, test_helpers/ and __mocks__/, so the root of the
+		// repo is their common ancestor. TypeScript 6 wants this stated outright
+		// (TS5011) rather than inferred.
+		"rootDir": ".",
+		"paths": {
+			"src/*": ["src/*"]
+		},
+		"ignoreDeprecations": "6.0",
+		"inlineSourceMap": true,
+		"inlineSources": true,
+		"module": "ESNext",
+		"target": "ESNext",
+		"allowJs": true,
+		"noImplicitAny": true,
+		"strict": true,
+		"moduleResolution": "bundler",
+		"esModuleInterop": true,
+		"importHelpers": true,
+		"isolatedModules": true,
+		"lib": ["DOM", "DOM.Iterable", "ES2022"],
+			"types": ["jest", "node"],
+		"jsx": "react"
+	},
+	"include": ["**/*.ts", "**/*.tsx"],
+	"exclude": ["apps/windows"]
+}

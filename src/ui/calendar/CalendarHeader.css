@@ -1,0 +1,350 @@
+/* ── Header ─────────────────────────────────────────────────── */
+
+.nc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--nc-header-height);
+    padding: 0 var(--nc-spacing-md);
+    border-bottom: 1px solid var(--nc-border);
+    flex-shrink: 0;
+    gap: var(--nc-spacing-sm);
+}
+
+.nc-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--nc-spacing-sm);
+}
+
+.nc-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--nc-spacing-sm);
+}
+
+.nc-header-nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.nc-header-title {
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.nc-month-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--nc-text-primary);
+    padding: 12px 8px 4px 12px;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+}
+
+.nc-view-switcher {
+    display: inline-flex;
+    align-items: center;
+    background: var(--nc-bg-secondary);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 2px;
+}
+
+/* View dropdown (Notion style) */
+.nc-view-dropdown {
+    position: relative;
+    display: inline-flex;
+}
+
+.nc-view-dropdown-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* Same floating-menu surface as the event panel's selects and the calendar
+   context menu (.nc-select-menu / .nc-cal-menu): theme-aware glass, 10px radius,
+   soft shadow — every floating menu in the plugin reads as one component.
+   The header sits OUTSIDE the wrappers that define the plugin's `--nc-*` design
+   tokens, so they are EMPTY here; every colour sources a native Obsidian var
+   directly (with `--nc-*` only as an optional override) — otherwise the border
+   falls back to currentColor, text loses its colour, and the hover disappears. */
+.nc-view-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    /* Snug to the short labels (Day / 3 Days / Week…) + the check gutter; not a
+       fixed 150px that left a wide empty right margin. Items still grow to fit a
+       longer label via max-content. */
+    min-width: max-content;
+    background: color-mix(
+        in srgb,
+        var(--nc-bg-primary, var(--background-primary)) 92%,
+        transparent
+    );
+    backdrop-filter: blur(12px) brightness(1.18);
+    -webkit-backdrop-filter: blur(12px) brightness(1.18);
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 10px;
+    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.4),
+        0 2px 6px -1px rgba(0, 0, 0, 0.22);
+    padding: 4px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.nc-view-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    /* Room for the longest label past the check gutter, without the menu being
+       wider than its content needs. */
+    padding: 5px 14px 5px 8px;
+    font-size: 13px;
+    /* !important neutralises Obsidian's `.theme-dark button` surface (grey pill
+       fill + inset highlight, 0,1,1) that otherwise raises every item. */
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none;
+    color: var(--nc-text-primary, var(--text-normal));
+    cursor: pointer;
+    border-radius: 6px;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.nc-view-dropdown-item:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+}
+
+/* Fixed-width check gutter so every label aligns whether or not it's the active
+   row; the active row carries the accent checkmark (no solid fill). */
+.nc-view-dropdown-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    flex-shrink: 0;
+    color: var(--nc-accent, var(--interactive-accent));
+}
+
+.nc-view-dropdown-item.nc-active {
+    color: var(--nc-accent, var(--interactive-accent));
+}
+
+/* Submenu rows (Number of days ›, View settings ›): a right-aligned chevron
+   after the label, like Notion's selector. */
+.nc-submenu-chevron {
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
+    padding-left: 12px;
+    color: var(--nc-text-faint, var(--text-faint));
+}
+
+.nc-submenu-chevron svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Anchor for the "Number of days" flyout: the row is a normal menu item; its
+   submenu is absolutely positioned off this box. */
+.nc-view-submenu-anchor {
+    position: relative;
+    display: flex;
+}
+
+/* Left-side flyout — same frosted-glass material as .nc-view-dropdown-menu so
+   the whole selector reads as one component. Opens to the LEFT because the menu
+   is right-anchored in the header. */
+.nc-view-submenu {
+    position: absolute;
+    right: calc(100% + 6px);
+    top: -4px;
+    min-width: max-content;
+    background: color-mix(
+        in srgb,
+        var(--nc-bg-primary, var(--background-primary)) 92%,
+        transparent
+    );
+    backdrop-filter: blur(12px) brightness(1.18);
+    -webkit-backdrop-filter: blur(12px) brightness(1.18);
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 10px;
+    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.4),
+        0 2px 6px -1px rgba(0, 0, 0, 0.22);
+    padding: 4px;
+    z-index: 101;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.nc-view-dropdown-sep {
+    height: 1px;
+    background: var(--nc-border, var(--background-modifier-border));
+    margin: 4px 6px;
+}
+
+.nc-view-other-row {
+    padding: 4px 6px 2px;
+}
+
+.nc-view-other-input {
+    width: 90px;
+    background: var(--background-modifier-form-field, rgba(0, 0, 0, 0.15));
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-view-other-input:focus {
+    outline: none;
+    border-color: var(--nc-accent, var(--interactive-accent));
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+
+.nc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    /* Flat, chrome-less "ghost" button (like the .nc-tz-add "+"): no fill at
+       rest so nothing reads as a button on the transparent calendar until hover.
+       The header sits OUTSIDE the --nc-* token wrappers AND these are <button>s,
+       so Obsidian's `.theme-dark button` surface (grey pill + inset highlight,
+       spec 0,1,1) bleeds through our `background:transparent`; !important
+       neutralises it, and hover re-asserts its own fill with !important below. */
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-primary, var(--text-normal));
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background var(--nc-transition-fast);
+    white-space: nowrap;
+}
+
+.nc-btn:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+}
+
+.nc-btn.nc-active {
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+    color: var(--nc-accent, var(--interactive-accent));
+}
+
+.nc-btn-icon {
+    padding: 6px;
+    min-width: 28px;
+}
+
+/* Relais de bascule de la barre laterale. Inutile tant que la barre est dans le
+   flux avec son propre bouton : il n'apparait que sur petit ecran (voir la
+   media query de CalendarPanel.css). */
+.nc-btn-sidebar-toggle {
+    display: none;
+}
+
+.nc-btn-sm {
+    padding: 2px;
+    min-width: 20px;
+}
+
+/* "Week ⌄" and "Today" read as real, resting-visible buttons (Notion pill):
+   a subtle translucent fill + hairline border even at rest — not the flat ghost
+   look of the icon nav buttons. Both fills are translucent ink overlays
+   (color-mix off --text-normal, theme-aware) so the calendar's wallpaper
+   translucency still tints through; never an opaque fill (see
+   CalendarVariables.css). The `!important` beats `.nc-btn`'s
+   `background: transparent !important`. Hover brightens ONLY the fill — the
+   border is left untouched (no contour effect). */
+.nc-view-dropdown-btn,
+.nc-btn-today {
+    /* Same frosted-glass material as the view-selector menu below
+       (.nc-view-dropdown-menu): theme-aware translucent primary + backdrop
+       blur/brightness + hairline border. The brightness(1.18) lifts it so it
+       reads lighter than the base surface (not a dark blob), and the trigger
+       button + its open menu now share one material. */
+    background: color-mix(
+        in srgb,
+        var(--nc-bg-primary, var(--background-primary)) 92%,
+        transparent
+    ) !important;
+    backdrop-filter: blur(12px) brightness(1.18);
+    -webkit-backdrop-filter: blur(12px) brightness(1.18);
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-weight: 500;
+    box-shadow: none !important;
+}
+
+.nc-view-dropdown-btn:hover,
+.nc-btn-today:hover {
+    /* Standard hover overlay layered over the same glass — brightens the fill
+       only; border and backdrop are unchanged (no contour effect). */
+    background: linear-gradient(
+            0deg,
+            var(--background-modifier-hover),
+            var(--background-modifier-hover)
+        ),
+        color-mix(
+            in srgb,
+            var(--nc-bg-primary, var(--background-primary)) 92%,
+            transparent
+        ) !important;
+}
+
+.nc-btn-view {
+    padding: 4px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    transition: var(--nc-transition-paint);
+}
+
+.nc-btn-view:last-child {
+    border-right: none;
+}
+
+.nc-btn-view:hover {
+    background: var(--nc-bg-hover);
+}
+
+.nc-btn-view.nc-active {
+    background: var(--nc-bg-primary);
+    color: var(--nc-text-primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+
+/* The sticky day header creates its own stacking context. Keep the application
+   header and its menus in a higher context so the day labels can never paint
+   through the 4-days selector in the Tauri development WebView. */
+.nc-header {
+    position: relative;
+    z-index: 50;
+    overflow: visible;
+}
+
+.nc-view-dropdown-menu,
+.nc-view-submenu {
+    z-index: 5000;
+    isolation: isolate;
+    background: var(--nc-bg-primary, var(--background-primary)) !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
