@@ -1,0 +1,228 @@
+import { DateTime } from "luxon";
+import { NeoEvent } from "../../types";
+import { DisplayEvent, CalendarSource } from "../types";
+
+import { HOUR_HEIGHT, SLOT_HEIGHT } from "./calendarConstants";
+import { startOfDay as startOfDayFn } from "./calendarDateUtils";
+
+// Re-export constants, date utils, formatters, and event expansion
+export {
+    HOUR_HEIGHT,
+    SLOT_HEIGHT,
+    OVERLAP_COL_GAP,
+    EVENT_VGAP,
+    ALLDAY_ROW_HEIGHT,
+    ALLDAY_MAX_ROWS,
+    DAYS_SHORT,
+    DAYS_MIN,
+    MONTHS_SHORT,
+} from "./calendarConstants";
+export {
+    startOfDay,
+    endOfDay,
+    addDays,
+    isSameDay,
+    isToday,
+    getWeekStart,
+    getWeekDays,
+} from "./calendarDateUtils";
+export {
+    formatHour,
+    formatTime,
+    formatDayHeader,
+    formatMonthTitle,
+    formatMonthTitleFull,
+    formatDayTitle,
+    formatWeekTitle,
+    getMonthDayTitle,
+    getListTitle,
+} from "./calendarFormatters";
+export { neoEventToDisplayEvents } from "./eventExpansion";
+
+// A timed event that fully covers at least one calendar day (midnight to
+// midnight). These render as a horizontal bar in the all-day band (Notion-
+// style) instead of full-height column blocks, which otherwise read as a
+// confusing "wall" filling the day. A short event that merely crosses midnight
+// (e.g. 23:00→01:00) covers NO full day, so it stays in the grid with a
+// next-day continuation — only genuine all-day-spanning events move to the band.
+export function isMultiDayTimed(event: {
+    start: Date;
+    end: Date;
+    allDay: boolean;
+}): boolean {
+    if (event.allDay) return false;
+    const start = event.start;
+    // First midnight at or after the start = start of the first day that could
+    // be fully covered.
+    const sod = startOfDayFn(start);
+    const firstMidnight =
+        sod.getTime() === start.getTime()
+            ? sod
+            : startOfDayFn(new Date(start.getTime() + 24 * 3600 * 1000));
+    // A full day is covered iff the event reaches the FOLLOWING midnight.
+    return event.end.getTime() >= firstMidnight.getTime() + 24 * 3600 * 1000;
+}
+
+// ── Event Positioning ──────────────────────────────────────
+
+export function positionToDate(yPosition: number, dayDate: Date): Date {
+    // Clamp to the day's own range [00:00, 24:00]. Dragging the pointer below
+    // the grid otherwise yields hours >= 24, which setHours rolls over into the
+    // NEXT day (e.g. 25:00 → 01:00) — so a downward drag "stuck" at 01:00
+    // instead of reaching midnight. 24:00 resolves to next-day 00:00 = midnight.
+    const clampedY = Math.max(0, Math.min(yPosition, 24 * HOUR_HEIGHT));
+    const totalMinutes = (clampedY / HOUR_HEIGHT) * 60;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = Math.round((totalMinutes % 60) / 15) * 15;
+    const date = new Date(dayDate);
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+}
+
+export function getEventTop(start: Date, dayStart: Date): number {
+    const hours =
+        start.getHours() -
+        dayStart.getHours() +
+        (start.getMinutes() - dayStart.getMinutes()) / 60;
+    return Math.max(0, hours * HOUR_HEIGHT);
+}
+
+export function getEventHeight(start: Date, end: Date): number {
+    const durationMs = end.getTime() - start.getTime();
+    const hours = durationMs / (1000 * 60 * 60);
+    return Math.max(SLOT_HEIGHT, hours * HOUR_HEIGHT);
+}
+
+/** Pick black or white text for legibility over a solid hex background. */
+// readableTextColor vit desormais dans ./color, avec le reste du parsing des
+// couleurs : la version d'ici ne lisait que le hex et rendait NaN sur la couleur
+// d'accent du theme, qui arrive en `rgb(...)`.
+export { readableTextColor } from "../../utils/color";
+
+export interface OverlapGroup {
+    events: {
+        event: DisplayEvent;
+        column: number;
+        totalColumns: number;
+    }[];
+}
+
+export function computeOverlapGroups(events: DisplayEvent[]): OverlapGroup[] {
+    if (events.length === 0) return [];
+
+    const sorted = [...events].sort((a, b) => {
+        const startDiff = a.start.getTime() - b.start.getTime();
+        if (startDiff !== 0) return startDiff;
+        const durA = a.end.getTime() - a.start.getTime();
+        const durB = b.end.getTime() - b.start.getTime();
+        return durB - durA;
+    });
+
+    const groups: OverlapGroup[] = [];
+    const assigned = new Set<string>();
+
+    for (const event of sorted) {
+        if (assigned.has(event.id)) continue;
+
+        const group: OverlapGroup["events"] = [];
+        const columns: DisplayEvent[][] = [];
+
+        const assignToColumn = (ev: DisplayEvent): number => {
+            for (let c = 0; c < columns.length; c++) {
+                const lastInCol = columns[c][columns[c].length - 1];
+                if (lastInCol.end.getTime() <= ev.start.getTime()) {
+                    columns[c].push(ev);
+                    return c;
+                }
+            }
+            columns.push([ev]);
+            return columns.length - 1;
+        };
+
+        const queue = [event];
+        assigned.add(event.id);
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            const col = assignToColumn(current);
+            group.push({
+                event: current,
+                column: col,
+                totalColumns: 0,
+            });
+
+            for (const ev of sorted) {
+                if (assigned.has(ev.id)) continue;
+                if (
+                    ev.start.getTime() < current.end.getTime() &&
+                    ev.end.getTime() > current.start.getTime()
+                ) {
+                    assigned.add(ev.id);
+                    queue.push(ev);
+                }
+            }
+        }
+
+        const totalCols = columns.length;
+        for (const item of group) {
+            item.totalColumns = totalCols;
+        }
+
+        groups.push({ events: group });
+    }
+
+    return groups;
+}
+
+// ── Calendar Source Conversion ─────────────────────────────
+
+export function eventSourceToCalendarSource(
+    source: {
+        id: string;
+        editable: boolean;
+        color: string;
+        events: { event: NeoEvent; id: string }[];
+    },
+    calendars: Map<string, { name: string; type: string; icon?: string }>
+): CalendarSource {
+    const cal = calendars.get(source.id);
+    return {
+        id: source.id,
+        name: cal?.name || source.id,
+        color: source.color,
+        editable: source.editable,
+        type: (cal?.type as CalendarSource["type"]) || "local",
+        ...(cal?.icon ? { icon: cal.icon } : {}),
+    };
+}
+
+// ── Date → Frontmatter Conversion ────────────────────────────
+
+export function dateEndpointsToFrontmatter(
+    start: Date,
+    end: Date,
+    allDay: boolean
+): Partial<NeoEvent> {
+    const date = DateTime.fromJSDate(start).toISODate()!;
+    const endDate = DateTime.fromJSDate(end).toISODate()!;
+    return {
+        type: "single",
+        date,
+        endDate: date !== endDate ? endDate : undefined,
+        allDay,
+        ...(allDay
+            ? {}
+            : {
+                  startTime: DateTime.fromJSDate(start).toISOTime({
+                      suppressMilliseconds: true,
+                      includeOffset: false,
+                      suppressSeconds: true,
+                  }),
+                  endTime: DateTime.fromJSDate(end).toISOTime({
+                      suppressMilliseconds: true,
+                      includeOffset: false,
+                      suppressSeconds: true,
+                  }),
+              }),
+    };
+}

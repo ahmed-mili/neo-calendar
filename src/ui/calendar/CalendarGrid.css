@@ -1,0 +1,890 @@
+/* ── Time Grid ──────────────────────────────────────────────── */
+
+/* Two-pane layout: a left rail (hours + secondary timezones) sits outside
+   the horizontal scroller, and a main scroller contains the headers row,
+   all-day row, and day columns. Because buffer day columns can never slide
+   under the left rail, no clip-path is needed — vertical sync is mirrored
+   by translateY on the rail's scrollable child (see TimeGrid.tsx). */
+
+.nc-timegrid-wrapper {
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* ── Left rail (fixed; does not scroll horizontally) ─────── */
+
+.nc-left-rail {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.nc-left-rail-fixed {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--nc-bg-primary);
+    z-index: 2;
+    border-bottom: 1px solid var(--nc-border, var(--nc-grid-line));
+}
+
+.nc-left-rail-allday {
+    display: flex;
+    /* Pin the chevron to the TOP-right of the gutter so it never drifts down
+       when the section grows (expanded all-day can be many rows tall). The
+       1px top offset keeps the 22px button inside the first 24px lane. */
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding-top: 1px;
+    padding-right: 4px;
+    border-top: 1px solid var(--nc-border, var(--nc-grid-line));
+    border-right: 1px solid rgba(128, 128, 128, 0.35);
+}
+
+.nc-allday-label {
+    flex: 1;
+    padding-right: 4px;
+    text-align: right;
+    font-size: 11px;
+    color: var(--nc-text-faint, var(--text-faint));
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* Collapse/expand chevron in the All-day label (left rail). */
+.nc-allday-collapse-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-left: 2px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--nc-text-faint, var(--text-faint));
+    cursor: pointer;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.nc-allday-collapse-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+/* Collapsed all-day: one compact label per day, in that day's column. */
+.nc-allday-collapsed-day {
+    position: absolute;
+    top: 1px;
+    bottom: 1px;
+    left: 2px;
+    right: 2px;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.nc-allday-collapsed-day.is-count {
+    color: var(--nc-text-faint, var(--text-faint));
+}
+
+.nc-allday-collapsed-day.is-count:hover {
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-allday-collapsed-day.is-single {
+    color: var(--nc-text-primary, var(--text-normal));
+    font-weight: 500;
+}
+
+/* ── Timezone corner control (left-rail corner) ───────────── */
+
+.nc-left-rail-corner {
+    display: flex;
+    align-items: stretch;
+}
+
+/* One cell per timezone column, aligned (64px) with the hours columns below.
+   The primary cell holds the TimezonePicker (local); each secondary cell holds
+   its offset label in the fixed band, above its own hours column — so the label
+   never overlaps the absolutely-positioned hour labels in the scroll area. */
+.nc-tz-corner-cell {
+    width: 64px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Secondary-zone header opens the context menu on click. It's a <div> (not a
+   <button>) so Obsidian's default button chrome — background, inset shadow,
+   padding/height — can't leak in. The visible pill is the label itself. */
+.nc-tz-corner-btn {
+    cursor: pointer;
+}
+
+.nc-tz-corner-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--nc-text-faint, var(--text-faint));
+    white-space: nowrap;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+.nc-tz-corner-btn:hover .nc-tz-corner-label {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-tz-corner {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: 100%;
+    padding: 0 2px;
+    position: relative;
+}
+
+.nc-tz-primary {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--nc-text-faint, var(--text-faint));
+    white-space: nowrap;
+    /* Clickable like the secondary labels: hover-only pill. */
+    padding: 1px 5px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.nc-tz-primary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-tz-add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Clean rounded-square button, Notion-style proportions (padded icon).
+       Colors left untouched on purpose. */
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--nc-text-faint, var(--text-faint));
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.nc-tz-add:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+/* Recently-used timezone rows in the picker: clock icon pinned right. */
+.suggestion-item.nc-suggest-recent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.nc-suggest-recent-icon {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-faint);
+    flex-shrink: 0;
+}
+
+.nc-suggest-recent-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.nc-tz-picker-popup {
+    /* Portaled to <body> and positioned in viewport coords (top/left set inline
+       from the button rect) so the rail's overflow:hidden can't clip it.
+       Opaque surface via Obsidian vars directly — these resolve on body, unlike
+       the empty --nc-* (kept empty for transparency elsewhere). */
+    position: fixed;
+    z-index: 1000;
+    width: 220px;
+    padding: 4px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.nc-tz-picker-input {
+    width: 100%;
+    min-width: 0;
+    height: 32px;
+    padding: 6px 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 5px;
+    color: var(--text-normal);
+    background: var(--background-primary);
+    outline: none;
+}
+
+.nc-tz-picker-input:focus {
+    border-color: var(--interactive-accent);
+}
+
+.nc-tz-picker-list {
+    max-height: 280px;
+    margin-top: 4px;
+    overflow-y: auto;
+}
+
+.nc-tz-picker-option {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 4px;
+    color: var(--text-normal);
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.nc-tz-picker-option:hover,
+.nc-tz-picker-option:focus-visible {
+    background: var(--background-modifier-hover);
+}
+
+.nc-tz-picker-option > span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-tz-picker-recent {
+    flex: 0 0 auto;
+    color: var(--text-faint);
+    font-size: 10px;
+}
+
+.nc-left-rail-window {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    border-right: 1px solid rgba(128, 128, 128, 0.5);
+}
+
+.nc-left-rail-scrollable {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    will-change: transform;
+}
+
+/* ── Main scroller (the only horizontal/vertical scroller) ── */
+
+.nc-main-scroller {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    /* Hide both scrollbars (Notion-style). Scrolling stays fully functional via
+       wheel / trackpad and the infinite-scroll + clip logic — only the visible
+       bars are removed. scrollbar-width covers Firefox; the ::-webkit rule
+       covers the Chromium Obsidian runs on. */
+    scrollbar-width: none;
+}
+
+.nc-main-scroller::-webkit-scrollbar {
+    display: none;
+}
+
+.nc-main-content {
+    display: flex;
+    flex-direction: column;
+    /* PAS de `min-width: fit-content` ici. Les trois rangees (en-tetes, bande
+       all-day, jours) portent deja leur largeur explicitement, en
+       `calc(N00%)` de CE conteneur. Un `fit-content` fait donc de la largeur
+       intrinseque minimale du contenu la BASE de ce pourcentage : des que les
+       colonnes ne tiennent plus a leur min-width, l'erreur est multipliee par N.
+       Mesure sur un viewport de 412 px : 7 colonnes x 140 px de min-width
+       imposaient une base de 980 px au lieu des 326 px visibles, et une seule
+       journee occupait trois ecrans de large. */
+    min-width: 0;
+}
+
+/* The left rail's right border doubles the left border of the first day
+   column / header / all-day cell. Drop the latter so we get a single 1px
+   line at the rail/scroller seam, regardless of which row. */
+.nc-headers-row > :first-child,
+.nc-allday-cells > :first-child,
+.nc-days-row > :first-child {
+    border-left: none;
+}
+
+/* ── Headers row ──────────────────────────────────────────── */
+
+.nc-headers-row {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--nc-bg-primary);
+    border-bottom: 1px solid var(--nc-border, var(--nc-grid-line));
+    display: flex;
+}
+
+.nc-timegrid-header {
+    position: relative;
+    flex: 1;
+    min-width: var(--nc-day-min-width);
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 12px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    border-bottom: 1px solid var(--nc-grid-line);
+}
+
+.nc-timegrid-header-add {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--nc-text-faint, var(--text-faint));
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--nc-transition-fast),
+        background var(--nc-transition-fast);
+}
+
+.nc-timegrid-header:hover .nc-timegrid-header-add {
+    opacity: 1;
+}
+
+.nc-timegrid-header-add:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-timegrid-header.nc-today {
+    color: var(--nc-text-primary, var(--text-normal));
+    font-weight: 600;
+}
+
+.nc-timegrid-header-day {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.nc-timegrid-header.nc-today .nc-timegrid-header-day {
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-timegrid-header-date {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--nc-text-primary, var(--text-normal));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 4px;
+}
+
+.nc-timegrid-header-date.nc-today-date {
+    background: var(--nc-today);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* ── All-day area ──────────────────────────────────────────── */
+
+.nc-allday-row {
+    /* Sticky-top, sized to the scroller's visible width (inline). Pinned to the
+       viewport-left via a JS translateX(+scrollLeft) (sticky-left is unreliable
+       for a flex-column child), so its vertical scrollbar stays on-screen. Grows
+       up to ALLDAY_MAX_ROWS lanes (height inline), then scrolls vertically. */
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--nc-bg-primary);
+    /* Literal color, not var(--nc-border): the latter maps to an Obsidian theme
+       var that is empty on :root (kept empty so the row stays transparent — see
+       CalendarVariables.css), which would make the whole border-bottom shorthand
+       invalid and render NO line. This separator sits on the sticky row, so it
+       stays pinned at the all-day section's bottom edge while the grid scrolls
+       (the grid's own top line scrolls up and is clipped away). */
+    border-bottom: 1px solid rgba(128, 128, 128, 0.5);
+    overflow-y: auto;
+    overflow-x: hidden;
+    will-change: transform;
+    /* Hidden scrollbar (Notion-style). The section stays scrollable when it has
+       more than ALLDAY_MAX_ROWS lanes; only the visible bar is removed. */
+    scrollbar-width: none;
+}
+
+.nc-allday-row::-webkit-scrollbar {
+    display: none;
+}
+
+/* Full-content-width inner layer; follows horizontal scroll via translateX
+   (set in TimeGrid), and is taller than the row when there are more than
+   ALLDAY_MAX_ROWS lanes — that's what makes the row scroll vertically. */
+.nc-allday-track {
+    position: relative;
+    will-change: transform;
+}
+
+/* Per-day background columns: double-click target + draft preview. */
+.nc-allday-cells {
+    position: absolute;
+    inset: 0;
+    display: flex;
+}
+
+.nc-allday-cell {
+    flex: 1;
+    min-width: var(--nc-day-min-width);
+    border-left: 1px solid var(--nc-grid-line);
+    position: relative;
+}
+
+/* Lane bars overlay. Pointer-transparent so empty areas still hit the cells'
+   double-click; the bars themselves re-enable pointer events. */
+.nc-allday-lanes {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.nc-allday-lanes > * {
+    pointer-events: auto;
+}
+
+.nc-allday-draft {
+    left: 0;
+    right: 0;
+    border-radius: 4px;
+}
+
+/* ── Days row ──────────────────────────────────────────────── */
+
+.nc-days-row {
+    min-height: calc(24 * var(--nc-hour-height));
+    display: flex;
+    align-items: stretch;
+    position: relative;
+    /* Clip the bleed at the source instead of masking it with an opaque fill,
+       so the sticky header + all-day band can stay transparent (wallpaper
+       shows through). The band occupies the top headerHeight+allDayHeight of
+       the scroller; as the grid scrolls up by scrollTop, exactly that many
+       leading pixels of this row pass behind the band. Clipping the row's top
+       by scrollTop keeps its visible top pinned at the band's bottom edge —
+       independent of band height (the sticky siblings reserve the same height
+       in flow that they occupy in the viewport, so c = scrollTop). --nc-scroll-y
+       is mirrored from the scroller's scrollTop by a rAF-batched listener in
+       TimeGrid.tsx; the 0px fallback covers the pre-first-scroll paint. */
+    clip-path: inset(var(--nc-scroll-y, 0px) 0 0 0);
+    /* Trap every descendant z-index (events 1/3/10, now-line 5/6, previews)
+       in this stacking context so nothing can ever paint outside the row and
+       over the sticky band, whatever z-index a future feature assigns. */
+    isolation: isolate;
+}
+
+.nc-timegrid-hours {
+    width: 64px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.nc-timegrid-hour {
+    position: relative;
+    height: var(--nc-hour-height);
+}
+
+.nc-timegrid-hour-label {
+    position: absolute;
+    right: 10px;
+    top: -6px;
+    font-size: 11px;
+    color: var(--nc-text-faint, var(--text-faint));
+}
+
+.nc-tz-column {
+    width: 64px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+/* Day columns */
+.nc-timegrid-day {
+    flex: 1;
+    min-width: var(--nc-day-min-width);
+    position: relative;
+    padding-left: 2px;
+    border-left: 1px solid var(--nc-grid-line);
+    overflow: hidden;
+    transform: translateZ(0);
+}
+
+.nc-timegrid-day.nc-today {
+}
+
+.nc-timegrid-day.nc-weekend:not(.nc-today) {
+    background: rgba(255, 255, 255, 0.015);
+}
+
+/* Time slots (hour and half-hour lines) */
+.nc-timegrid-slot {
+    position: relative;
+    height: var(--nc-hour-height);
+}
+
+.nc-timegrid-slot-line {
+    position: absolute;
+    left: -2px;
+    right: 0;
+    top: 0;
+    border-top: 1px solid var(--nc-grid-line);
+    pointer-events: none;
+}
+
+.nc-timegrid-slot-line.nc-half {
+    position: absolute;
+    left: -2px;
+    right: 0;
+    top: 50%;
+    border-top: 1px dashed rgba(128, 128, 128, 0.08);
+    pointer-events: none;
+}
+
+/* ── Event Block ────────────────────────────────────────────── */
+
+.nc-event-block {
+    position: absolute;
+    border-radius: var(--nc-event-radius);
+    padding: var(--nc-spacing-xs) 6px;
+    font-size: var(--nc-event-font-size);
+    cursor: pointer;
+    overflow: hidden;
+    border-left: 3px solid;
+    transition: box-shadow var(--nc-transition-fast),
+        opacity var(--nc-transition-fast), filter var(--nc-transition-fast);
+    z-index: 1;
+    user-select: none;
+    /* Own compositor layer — prevents Chrome from culling this block
+       during fast horizontal scroll, which caused events to vanish. */
+    transform: translateZ(0);
+}
+
+.nc-event-block.nc-resizing {
+    opacity: 0.9;
+    z-index: 10;
+}
+
+.nc-event-block.nc-hovered:not(.nc-selected) {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+    filter: brightness(1.1);
+    z-index: 3;
+}
+
+/* Faded origin marker while dragging — sits behind the solid drop-preview
+   (z-index 20), which shows where the event will land (Notion-style). */
+.nc-event-block.nc-dragging {
+    opacity: 0.4;
+    box-shadow: none;
+    z-index: 1;
+}
+
+/* Drag overlay for month view */
+.nc-month-event.nc-dragging {
+    opacity: 0.5;
+}
+
+.nc-drag-overlay {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.nc-event-block.nc-task-completed {
+    opacity: 0.6;
+}
+
+.nc-event-block.nc-task-completed .nc-event-title {
+    opacity: 0.7;
+}
+
+.nc-event-block.nc-past-event {
+    opacity: 0.45;
+}
+
+/* Orange flash animation for date navigation */
+@keyframes nc-flash {
+    0% {
+        background-color: rgba(255, 152, 0, 0.3);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.nc-flash-cell {
+    animation: nc-flash 0.5s ease-out;
+}
+
+.nc-event-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.nc-task-checkbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    /* !important: beat Obsidian's default `button:not(.clickable-icon)` styling
+       (a surface background + box-shadow) so only the event color shows behind
+       the dashed circle. */
+    background: transparent !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 1px;
+    width: 14px;
+    height: 14px;
+    /* !important: `.theme-dark button` (0,1,1) forces color:var(--text-normal),
+       beating this. Inherit so the check (currentColor) follows the event's
+       text colour — incl. the dark readable colour when the block is selected. */
+    color: inherit !important;
+    min-width: 0;
+    min-height: 0;
+    line-height: 0;
+}
+
+.nc-task-checkbox:hover,
+.nc-task-checkbox:focus,
+.nc-task-checkbox:active {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.nc-task-checkbox svg,
+.nc-month-task-btn svg,
+.nc-list-task-btn svg,
+.nc-someday-checkbox svg {
+    background: none;
+}
+
+/* Ces boutons-coches sont poses DANS une ligne de texte compacte, et doivent
+   donc mesurer exactement leur icone (TaskCheckbox, 14 px par defaut).
+   Sans hauteur explicite, `button { height: var(--input-height) }` d'app.css
+   s'applique : 44 px sur mobile, 30 px sur desktop. Le bouton etire alors la
+   ligne entiere — une ligne de tache de la vue Liste passait de 36 a 56 px, et
+   un evenement du mois de 18 a 48 px. `.nc-task-checkbox` et
+   `.nc-calendar-checkbox` y echappaient deja parce qu'ils declaraient leurs
+   dimensions ; ceux-ci les declarent desormais aussi. */
+.nc-list-task-btn,
+.nc-list-checkbox,
+.nc-month-checkbox,
+.nc-someday-checkbox {
+    width: 14px;
+    height: 14px;
+}
+
+.nc-event-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* Short events (≤30 min): title + start time on a single row (Notion-style). */
+.nc-event-text-inline {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 5px;
+}
+
+.nc-event-text-inline .nc-event-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.nc-event-text-inline .nc-event-time {
+    flex-shrink: 0;
+}
+
+.nc-event-title {
+    font-size: var(--nc-event-font-size);
+    font-weight: 600;
+    line-height: 1.3;
+    overflow: hidden;
+    white-space: pre-wrap;
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-event-time {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--nc-text-secondary);
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+/* Event resize handle */
+.nc-event-resize-handle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    cursor: ns-resize;
+    border-radius: 0 0 var(--nc-event-radius) var(--nc-event-radius);
+}
+
+/* No hover styling on the handles: the block's own hover (brightness + shadow)
+   is the whole feedback. A dark veil on the edges only made the top and bottom
+   6px look different from the rest of the block under the ns-resize cursor. */
+
+/* Top resize handle — mirror of the bottom one, moves the event's START time. */
+.nc-event-resize-handle-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    cursor: ns-resize;
+    border-radius: var(--nc-event-radius) var(--nc-event-radius) 0 0;
+}
+
+/* Event drag handle */
+.nc-event-drag-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 10px;
+    cursor: grab;
+    border-radius: var(--nc-event-radius) var(--nc-event-radius) 0 0;
+}
+
+.nc-event-drag-handle:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.nc-event-drag-handle:active {
+    cursor: grabbing;
+}
+
+/* ── Now Indicator ──────────────────────────────────────────── */
+
+/* Ligne semi-transparente sur toute la largeur des jours (style Notion). */
+.nc-now-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    /* Same canonical "today" red as the tick/label, at 50% (unified). */
+    background: color-mix(in srgb, var(--nc-today) 50%, transparent);
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Ligne épaisse avec contour noir sur la colonne "today" uniquement. */
+.nc-now-today-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--nc-today);
+    border-radius: 999px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    z-index: 6;
+}
+
+/* Round dot at the left edge of the today column (Notion style), not a bar. */
+.nc-now-tick {
+    position: absolute;
+    left: -3px;
+    width: 8px;
+    height: 8px;
+    background: var(--nc-today);
+    border-radius: 50%;
+    transform: translateY(-50%);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    z-index: 6;
+}
+
+/* Red pill badge sitting in the sticky hour gutter. */
+.nc-now-label {
+    position: absolute;
+    right: 4px;
+    /* Notion's now pill has a touch more space above the digits than below, so
+       the text sits slightly low. Drive the box with asymmetric vertical
+       padding (top > bottom) instead of a fixed height + line-height centering. */
+    padding: 4px 6px 2px;
+    /* Centré sur la ligne rouge, comme Notion Calendar */
+    transform: translateY(-50%);
+    background: var(--nc-today);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* ── Day / Week / 3-Day View Containers ─────────────────────── */
+
+.nc-day-view,
+.nc-week-view,
+.nc-threeday-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}

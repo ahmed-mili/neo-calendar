@@ -1,0 +1,57 @@
+.nc-desktop-storage-status {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 22000;
+    max-width: min(520px, calc(100vw - 36px));
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 13px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 11px;
+    color: var(--text-muted);
+    background: var(--background-primary);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.38);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.nc-desktop-storage-status--error {
+    border-color: color-mix(in srgb, var(--nc-danger) 52%, transparent);
+    color: var(--nc-danger);
+}
+
+.nc-desktop-storage-status button {
+    width: 20px;
+    height: 20px;
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+}
+
+.nc-desktop-storage-status button:hover {
+    background: var(--background-modifier-hover);
+}
+
+.nc-desktop-notice {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 30000;
+    max-width: min(440px, calc(100vw - 32px));
+    padding: 10px 14px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 10px;
+    color: var(--text-normal);
+    background: var(--background-primary);
+    box-shadow: 0 14px 42px rgba(0, 0, 0, 0.45);
+    font-size: 12px;
+    transform: translateX(-50%);
+}

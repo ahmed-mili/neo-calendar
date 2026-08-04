@@ -1,0 +1,30 @@
+{
+    "name": "@neo-calendar/windows",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite --port 1420",
+        "build": "tsc --noEmit && vite build",
+        "test:packaging": "node --test scripts/*.test.mjs",
+        "package": "tauri build --bundles nsis && node scripts/rename-installer.mjs",
+        "tauri": "tauri"
+    },
+    "dependencies": {
+        "@tauri-apps/api": "^2.11.1",
+        "@tauri-apps/plugin-deep-link": "^2.4.9",
+        "@tauri-apps/plugin-dialog": "^2.7.2",
+        "@tauri-apps/plugin-store": "^2.4.4",
+        "lucide-react": "^1.28.0",
+        "react": "^17.0.2",
+        "react-dom": "^17.0.2"
+    },
+    "devDependencies": {
+        "@tauri-apps/cli": "^2.11.4",
+        "@types/react": "17.0.93",
+        "@types/react-dom": "^17.0.19",
+        "@vitejs/plugin-react": "^6.0.5",
+        "typescript": "^7.0.2",
+        "vite": "^8.2.0"
+    }
+}

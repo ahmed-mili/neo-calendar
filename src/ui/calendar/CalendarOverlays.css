@@ -1,0 +1,479 @@
+/* ── Quick Add (Plan C) ─────────────────────────────────────── */
+
+.nc-quick-add {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--nc-border);
+    background: var(--nc-bg-primary);
+    flex-shrink: 0;
+}
+
+.nc-quick-add-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--nc-border);
+    border-radius: 6px;
+    background: var(--nc-bg-secondary);
+    color: var(--nc-text-primary);
+    font-size: 13px;
+    outline: none;
+    transition: border-color var(--nc-transition-fast);
+}
+
+.nc-quick-add-input:focus {
+    border-color: var(--nc-accent);
+}
+
+.nc-quick-add-input::placeholder {
+    color: var(--nc-text-faint);
+}
+
+/* ── Someday Panel (Plan C) ──────────────────────────────────── */
+
+.nc-someday-panel {
+    padding: var(--nc-spacing-sm);
+    overflow-y: auto;
+    flex: 1;
+}
+
+.nc-someday-group-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--nc-text-secondary);
+    margin: 8px 0 4px;
+}
+
+.nc-someday-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background var(--nc-transition-fast);
+}
+
+.nc-someday-item:hover {
+    background: var(--nc-bg-hover);
+}
+
+.nc-someday-item.nc-task-completed {
+    opacity: 0.6;
+}
+
+.nc-someday-checkbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.nc-someday-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-someday-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 8px;
+    margin-top: 8px;
+    border: 1px dashed var(--nc-border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--nc-text-faint);
+    cursor: pointer;
+    font-size: 12px;
+    transition: var(--nc-transition-paint);
+}
+
+.nc-someday-add-btn:hover {
+    border-color: var(--nc-accent);
+    color: var(--nc-accent);
+    background: var(--nc-bg-hover);
+}
+
+/* ── Selection Rectangle ─────────────────────────────────────── */
+
+.nc-selection-mirror {
+    position: absolute;
+    left: -1px;
+    right: -1px;
+    border-radius: 0;
+    z-index: 7;
+    pointer-events: none;
+    min-height: 4px;
+}
+
+/* ── Event Popup (Notion-style floating card) ────────────────── */
+
+.nc-event-popup {
+    /* The --nc-* design tokens are declared on :root, where Obsidian's native
+       theme vars (--background-*, --text-*) are out of scope, so they bake to
+       empty. Re-map them HERE: the popup is a <body> descendant, where the
+       native vars DO resolve — this is what makes the panel genuinely
+       theme-aware (light/dark/custom) instead of relying on cascade accidents. */
+    --nc-bg-primary: var(--background-primary);
+    --nc-bg-secondary: var(--background-secondary);
+    --nc-bg-hover: var(--background-modifier-hover);
+    --nc-text-primary: var(--text-normal);
+    --nc-text-secondary: var(--text-muted);
+    --nc-text-faint: var(--text-faint);
+    --nc-border: var(--background-modifier-border);
+    --nc-accent: var(--interactive-accent);
+    --nc-accent-text: var(--text-on-accent);
+    --nc-error: var(--text-error);
+
+    position: fixed;
+    /* Notion's panel = ~90% opaque + blur: a theme-aware "glass" (dark or light
+       depending on the theme), letting the wallpaper/translucency show faintly. */
+    background: color-mix(in srgb, var(--background-primary) 90%, transparent);
+    backdrop-filter: blur(12px) brightness(1.2);
+    -webkit-backdrop-filter: blur(12px) brightness(1.2);
+    border: 1px solid var(--nc-border);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px -8px rgba(0, 0, 0, 0.48),
+        0 4px 12px -1px rgba(0, 0, 0, 0.24);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Le panneau ne doit jamais depasser du viewport. Le cas qui mord est le
+       clavier virtuel : sur telephone il ampute environ 40 % de la hauteur, et
+       un panneau haut de 520 px se retrouvait a deborder de 112 px d'une fenetre
+       ramenee a 420 px — avec `overflow: hidden` et sans borne, tout le bas
+       (calendrier, description, boutons) devenait inatteignable au moment
+       precis ou l'on saisit. `dvh` suit la hauteur reellement visible, donc le
+       clavier ; `vh`, fige, ne le suivrait pas. */
+    /* 520 px = POPUP_MAX_HEIGHT (EventPanel.helpers.ts), qui sert au calcul du
+       placement ; garder les deux valeurs en phase. 24 px = 2 x POPUP_MARGIN. */
+    max-height: min(520px, calc(100vh - 24px));
+    max-height: min(520px, calc(100dvh - 24px));
+    color: var(--nc-text-primary);
+    animation: nc-popup-in 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    transform-origin: top left;
+}
+
+.nc-event-popup.nc-placement-left {
+    transform-origin: top right;
+}
+.nc-event-popup.nc-placement-below {
+    transform-origin: top center;
+}
+
+@keyframes nc-popup-in {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(-2px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* ── Right-click line indicator ─────────────────────────────── */
+
+.nc-context-line {
+    position: absolute;
+    height: 4px;
+    background: #fff;
+    border-radius: 999px;
+    z-index: 20;
+    pointer-events: none;
+    box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.5);
+}
+
+/* ── Context Menu ──────────────────────────────────────────── */
+
+.nc-context-menu {
+    /* Same root-cause remap as .nc-event-popup: --nc-* are declared on :root,
+       where Obsidian's native theme vars don't resolve, so they bake empty.
+       Re-map here (a <body> descendant) so the glass/colours are theme-aware. */
+    --nc-bg-primary: var(--background-primary);
+    --nc-bg-hover: var(--background-modifier-hover);
+    --nc-text-primary: var(--text-normal);
+    --nc-text-secondary: var(--text-muted);
+    --nc-text-faint: var(--text-faint);
+    --nc-border: var(--background-modifier-border);
+    --nc-error: var(--text-error);
+
+    position: fixed;
+    min-width: 180px;
+    /* Match the Event panel: theme-aware glass (≈90% + blur), 12px radius, the
+       same two-layer shadow and hairline border. */
+    background: color-mix(in srgb, var(--background-primary) 90%, transparent);
+    backdrop-filter: blur(12px) brightness(1.2);
+    -webkit-backdrop-filter: blur(12px) brightness(1.2);
+    border: 1px solid var(--nc-border);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px -8px rgba(0, 0, 0, 0.48),
+        0 4px 12px -1px rgba(0, 0, 0, 0.24);
+    color: var(--nc-text-primary);
+    /* Portaled to <body>: above the app and the event popup (z 10000). */
+    z-index: 10001;
+    padding: 5px;
+    animation: nc-context-in 120ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.nc-context-menu-item {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--nc-text-primary);
+    /* !important: Obsidian's `.theme-dark button` (0,1,1) paints a solid surface
+       (the grey "raised pill") over our items; keep them flat & transparent so
+       only the hover fill shows — matching the panel's own menus. */
+    background: transparent !important;
+    border: none;
+    box-shadow: none !important;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-context-menu-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--nc-text-secondary);
+}
+
+.nc-context-menu-label {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Subtle highlight like the panel's own menus — a soft hover fill, NOT a full
+   accent bar; the icon/text just brighten to primary. */
+.nc-context-menu-item:hover:not(:disabled) {
+    background: var(--nc-bg-hover) !important;
+    color: var(--nc-text-primary);
+}
+
+.nc-context-menu-item:hover:not(:disabled) .nc-context-menu-icon {
+    color: var(--nc-text-primary);
+}
+
+.nc-context-menu-item.nc-danger {
+    color: var(--nc-error, var(--text-error));
+}
+
+.nc-context-menu-item.nc-danger .nc-context-menu-icon {
+    color: var(--nc-error, var(--text-error));
+}
+
+/* Danger hover stays subtle: a soft red-tinted fill, the label keeps its red
+   (rather than the old full-red bar with white text). */
+.nc-context-menu-item.nc-danger:hover:not(:disabled),
+.nc-context-menu-item.nc-danger:hover:not(:disabled) .nc-context-menu-icon {
+    color: var(--nc-error, var(--text-error));
+}
+
+.nc-context-menu-item.nc-danger:hover:not(:disabled) {
+    background: color-mix(
+        in srgb,
+        var(--nc-error, var(--text-error)) 15%,
+        transparent
+    ) !important;
+}
+
+.nc-context-menu-item:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.nc-context-menu-shortcut {
+    font-size: 11px;
+    color: var(--nc-text-faint);
+    margin-left: 20px;
+}
+
+.nc-context-menu-separator {
+    height: 1px;
+    margin: 4px 6px;
+    background: var(--nc-border);
+}
+
+@keyframes nc-context-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ── Shift-to-multiselect: hint pill + marquee box ───────────── */
+
+/* Hint pill shown at the bottom-center while Shift is held (Notion-style). */
+.nc-shift-hint {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: var(--nc-bg-secondary);
+    color: var(--nc-text-primary);
+    border: 1px solid var(--nc-border);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    z-index: 60;
+}
+
+/* Rubber-band rectangle drawn while Shift+dragging across the grid — the
+   familiar Windows selection box: translucent blue fill + solid blue 1px
+   border. Explicit rgba (not color-mix / theme vars) so it always renders the
+   same recognizable way regardless of theme. */
+.nc-marquee {
+    background-color: rgba(0, 120, 215, 0.25);
+    border: 1px solid rgb(0, 120, 215);
+    border-radius: 1px;
+    pointer-events: none;
+    z-index: 60;
+}
+
+/* ── Drop preview outline (during drag) ──────────────────────── */
+
+/* Snapped landing slot — an empty outline marking where the event will drop.
+   The filled .nc-drag-ghost follows the cursor freely; this stays snapped to
+   the grid, so the gap between them shows the pending snap (Notion-style).
+   border color is set inline from the event color. */
+.nc-drop-preview {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    /* Contour interieur de 1.5 px dans la couleur du calendrier, plus une ombre
+       douce : mesure sur Notion. En box-shadow et non en border, pour que le
+       cadre ne prenne pas 3 px de plus que le bloc qui atterrira. currentColor
+       porte la couleur de l'evenement, posee en style inline. */
+    box-shadow: rgba(0, 0, 0, 0.16) 0 4px 12px -2px,
+        currentColor 0 0 0 1.5px inset;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    pointer-events: none;
+    z-index: 5;
+    transition: top 80ms ease, height 80ms ease;
+}
+
+/* ── Draft preview (pending new event before it has a title) ── */
+
+.nc-draft-preview {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-left: 3px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 0;
+    z-index: 6;
+    opacity: 0.85;
+    pointer-events: auto;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.nc-draft-preview-resize {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    cursor: ns-resize;
+    background: transparent;
+}
+
+.nc-draft-preview-resize:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* ── Drag ghost (DragOverlay) ────────────────────────────────── */
+
+/* Translucent block that follows the cursor while dragging, showing the
+   title and the live projected time. The snapped .nc-drop-preview outline
+   marks where it will land. */
+.nc-drag-ghost {
+    display: flex;
+    flex-direction: column;
+    min-width: 120px;
+    padding: var(--nc-spacing-xs) 10px;
+    border-left: 3px solid;
+    border-radius: var(--nc-event-radius);
+    font-size: var(--nc-event-font-size);
+    color: var(--nc-text-primary);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.nc-drag-ghost-title {
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nc-drag-ghost-time {
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.3;
+    white-space: nowrap;
+    opacity: 0.9;
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
+
+@keyframes nc-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes nc-slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* ── Undo link in deletion notices ── */
+.nc-undo-link {
+    color: var(--nc-accent);
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: underline;
+}

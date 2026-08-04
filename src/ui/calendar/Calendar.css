@@ -1,0 +1,27 @@
+/* ──────────────────────────────────────────────────────────────
+   Neo Calendar — Design System & Component Styles
+   Inspired by Notion Calendar
+
+   This file is a manifest — all styles are in partial CSS files
+   loaded in cascade order via @import.
+   ────────────────────────────────────────────────────────────── */
+
+@import "./CalendarVariables.css";
+@import "./CalendarLayout.css";
+@import "./CalendarHeader.css";
+@import "./CalendarSidebar.css";
+@import "./CalendarEventsPanel.css";
+@import "./ShortcutsPanel.css";
+@import "./ColorPicker.css";
+@import "./CalendarGrid.css";
+@import "./CalendarMonthList.css";
+@import "./CalendarOverlays.css";
+@import "./CalendarPanel.css";
+@import "./AddLocalCalendar.css";
+@import "./CalendarVisibilityTransitions.css";
+/* En dernier : corrige, pour un pointeur tactile, ce que les partiels
+   ci-dessus ont concu pour la souris. */
+@import "./CalendarTouch.css";
+/* Tout a la fin : la preference de mouvement reduit doit primer sur les durees
+   posees par tous les partiels ci-dessus. */
+@import "./CalendarMotion.css";

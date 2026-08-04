@@ -1,0 +1,33 @@
+/* Calendar visibility is animated before React removes hidden events. The
+   short-lived data attribute is shared by time-grid, all-day, month, list and
+   multi-day renderers, so every view follows the same motion contract. */
+[data-calendar-id][data-visibility-state="entering"] {
+    animation: nc-calendar-event-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1)
+        both;
+    will-change: opacity;
+}
+
+[data-calendar-id][data-visibility-state="exiting"] {
+    animation: nc-calendar-event-exit 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+    pointer-events: none;
+    will-change: opacity;
+}
+
+@keyframes nc-calendar-event-enter {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes nc-calendar-event-exit {
+    to {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-calendar-id][data-visibility-state="entering"],
+    [data-calendar-id][data-visibility-state="exiting"] {
+        animation-duration: 1ms;
+    }
+}

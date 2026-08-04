@@ -1,0 +1,590 @@
+/* Generated from the user-provided codex-theme-v1 palettes.
+   Fonts use local system fallbacks; this bundle does not include font files. */
+
+.nc-theme-absolutely,
+html.nc-theme-absolutely,
+body.nc-theme-absolutely {
+    color-scheme: dark;
+    --background-primary: #2d2d2b;
+    --background-secondary: #383836;
+    --background-modifier-form-field: #3c3c3a;
+    --background-modifier-hover: #454543;
+    --background-modifier-border: #565654;
+    --background-modifier-border-hover: #9f6750;
+    --text-normal: #f9f9f7;
+    --text-muted: #bcbcba;
+    --text-faint: #8f8f8d;
+    --text-on-accent: #ffffff;
+    --text-error: #ff5f38;
+    --interactive-normal: #383836;
+    --interactive-hover: #454543;
+    --interactive-accent: #cc7d5e;
+
+    --nc-bg-primary: #2d2d2b;
+    --nc-bg-secondary: #383836;
+    --nc-bg-crust: #1f1f1e;
+    --nc-surface: color-mix(in srgb, #2d2d2b 100%, transparent);
+    --nc-surface-hover: #454543;
+    --nc-text-primary: #f9f9f7;
+    --nc-text-secondary: #bcbcba;
+    --nc-text-faint: #8f8f8d;
+    --nc-border: #565654;
+    --nc-accent: #cc7d5e;
+    --nc-accent-strong: #d69880;
+    --nc-accent-text: #ffffff;
+    --nc-danger: #ff5f38;
+    --nc-success: #00c853;
+    --nc-skill: #cc7d5e;
+    --nc-ui-font: Inter;
+    --nc-code-font: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    --nc-theme-surface: #2d2d2b;
+    --nc-theme-ink: #f9f9f7;
+    --nc-theme-accent: #cc7d5e;
+    --nc-window-opacity: 1;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#2d2d2b, #2d2d2b);
+}
+
+html.nc-theme-absolutely body,
+body.nc-theme-absolutely {
+    background: #2d2d2b;
+}
+
+.nc-theme-ayu,
+html.nc-theme-ayu,
+body.nc-theme-ayu {
+    color-scheme: dark;
+    --background-primary: #10141c;
+    --background-secondary: #1a1d24;
+    --background-modifier-form-field: #1d2128;
+    --background-modifier-hover: #25282e;
+    --background-modifier-border: #33363b;
+    --background-modifier-border-hover: #aa8741;
+    --text-normal: #bfbdb6;
+    --text-muted: #8a8a88;
+    --text-faint: #646566;
+    --text-on-accent: #10141c;
+    --text-error: #f26d78;
+    --interactive-normal: #1a1d24;
+    --interactive-hover: #25282e;
+    --interactive-accent: #e6b450;
+
+    --nc-bg-primary: #10141c;
+    --nc-bg-secondary: #1a1d24;
+    --nc-bg-crust: #0b0e14;
+    --nc-surface: color-mix(in srgb, #10141c 100%, transparent);
+    --nc-surface-hover: #25282e;
+    --nc-text-primary: #bfbdb6;
+    --nc-text-secondary: #8a8a88;
+    --nc-text-faint: #646566;
+    --nc-border: #33363b;
+    --nc-accent: #e6b450;
+    --nc-accent-strong: #ddb666;
+    --nc-accent-text: #10141c;
+    --nc-danger: #f26d78;
+    --nc-success: #70bf56;
+    --nc-skill: #d0a1ff;
+    --nc-ui-font: Inter;
+    --nc-code-font: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    --nc-theme-surface: #10141c;
+    --nc-theme-ink: #bfbdb6;
+    --nc-theme-accent: #e6b450;
+    --nc-window-opacity: 1;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#10141c, #10141c);
+}
+
+html.nc-theme-ayu body,
+body.nc-theme-ayu {
+    background: #10141c;
+}
+
+.nc-theme-github,
+html.nc-theme-github,
+body.nc-theme-github {
+    color-scheme: dark;
+    --background-primary: #0d1117;
+    --background-secondary: #191d23;
+    --background-modifier-form-field: #1d2228;
+    --background-modifier-hover: #272b31;
+    --background-modifier-border: #383d43;
+    --background-modifier-border-hover: #1a55b0;
+    --text-normal: #e6edf3;
+    --text-muted: #a5abb1;
+    --text-faint: #757b81;
+    --text-on-accent: #ffffff;
+    --text-error: #f85149;
+    --interactive-normal: #191d23;
+    --interactive-hover: #272b31;
+    --interactive-accent: #1f6feb;
+
+    --nc-bg-primary: #0d1117;
+    --nc-bg-secondary: #191d23;
+    --nc-bg-crust: #090c10;
+    --nc-surface: color-mix(in srgb, #0d1117 100%, transparent);
+    --nc-surface-hover: #272b31;
+    --nc-text-primary: #e6edf3;
+    --nc-text-secondary: #a5abb1;
+    --nc-text-faint: #757b81;
+    --nc-border: #383d43;
+    --nc-accent: #1f6feb;
+    --nc-accent-strong: #4b8bed;
+    --nc-accent-text: #ffffff;
+    --nc-danger: #f85149;
+    --nc-success: #3fb950;
+    --nc-skill: #bc8cff;
+    --nc-ui-font: Inter;
+    --nc-code-font: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    --nc-theme-surface: #0d1117;
+    --nc-theme-ink: #e6edf3;
+    --nc-theme-accent: #1f6feb;
+    --nc-window-opacity: 1;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#0d1117, #0d1117);
+}
+
+html.nc-theme-github body,
+body.nc-theme-github {
+    background: #0d1117;
+}
+
+.nc-theme-linear,
+html.nc-theme-linear,
+body.nc-theme-linear {
+    color-scheme: dark;
+    --background-primary: #0f0f11;
+    --background-secondary: #1b1b1d;
+    --background-modifier-form-field: #1f1f21;
+    --background-modifier-hover: #28292b;
+    --background-modifier-border: #393a3c;
+    --background-modifier-border-hover: #495198;
+    --text-normal: #e3e4e6;
+    --text-muted: #a3a4a6;
+    --text-faint: #757577;
+    --text-on-accent: #ffffff;
+    --text-error: #ff7e78;
+    --interactive-normal: #1b1b1d;
+    --interactive-hover: #28292b;
+    --interactive-accent: #606acc;
+
+    --nc-bg-primary: #0f0f11;
+    --nc-bg-secondary: #1b1b1d;
+    --nc-bg-crust: #0a0a0c;
+    --nc-surface: color-mix(in srgb, #0f0f11 100%, transparent);
+    --nc-surface-hover: #28292b;
+    --nc-text-primary: #e3e4e6;
+    --nc-text-secondary: #a3a4a6;
+    --nc-text-faint: #757577;
+    --nc-border: #393a3c;
+    --nc-accent: #606acc;
+    --nc-accent-strong: #7d85d2;
+    --nc-accent-text: #ffffff;
+    --nc-danger: #ff7e78;
+    --nc-success: #69c967;
+    --nc-skill: #c2a1ff;
+    --nc-ui-font: Inter;
+    --nc-code-font: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    --nc-theme-surface: #0f0f11;
+    --nc-theme-ink: #e3e4e6;
+    --nc-theme-accent: #606acc;
+    --nc-window-opacity: 1;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#0f0f11, #0f0f11);
+}
+
+html.nc-theme-linear body,
+body.nc-theme-linear {
+    background: #0f0f11;
+}
+
+.nc-theme-lobster,
+html.nc-theme-lobster,
+body.nc-theme-lobster {
+    color-scheme: dark;
+    --background-primary: #111827;
+    --background-secondary: #1d2332;
+    --background-modifier-form-field: #212735;
+    --background-modifier-hover: #2a303e;
+    --background-modifier-border: #3b414d;
+    --background-modifier-border-hover: #bc494d;
+    --text-normal: #e4e4e7;
+    --text-muted: #a5a7ad;
+    --text-faint: #767a83;
+    --text-on-accent: #ffffff;
+    --text-error: #ff5c5c;
+    --interactive-normal: #1d2332;
+    --interactive-hover: #2a303e;
+    --interactive-accent: #ff5c5c;
+
+    --nc-bg-primary: #111827;
+    --nc-bg-secondary: #1d2332;
+    --nc-bg-crust: #0c111b;
+    --nc-surface: color-mix(in srgb, #111827 100%, transparent);
+    --nc-surface-hover: #2a303e;
+    --nc-text-primary: #e4e4e7;
+    --nc-text-secondary: #a5a7ad;
+    --nc-text-faint: #767a83;
+    --nc-border: #3b414d;
+    --nc-accent: #ff5c5c;
+    --nc-accent-strong: #f97a7b;
+    --nc-accent-text: #ffffff;
+    --nc-danger: #ff5c5c;
+    --nc-success: #22c55e;
+    --nc-skill: #3b82f6;
+    --nc-ui-font: Satoshi;
+    --nc-code-font: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    --nc-theme-surface: #111827;
+    --nc-theme-ink: #e4e4e7;
+    --nc-theme-accent: #ff5c5c;
+    --nc-window-opacity: 1;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#111827, #111827);
+}
+
+html.nc-theme-lobster body,
+body.nc-theme-lobster {
+    background: #111827;
+}
+
+.nc-theme-matrix,
+html.nc-theme-matrix,
+body.nc-theme-matrix {
+    color-scheme: dark;
+    --background-primary: #040805;
+    --background-secondary: #0e1610;
+    --background-modifier-form-field: #121b14;
+    --background-modifier-hover: #1a261d;
+    --background-modifier-border: #28392c;
+    --background-modifier-border-hover: #17ba42;
+    --text-normal: #b8ffca;
+    --text-muted: #82b58f;
+    --text-faint: #5a7f64;
+    --text-on-accent: #040805;
+    --text-error: #fa423e;
+    --interactive-normal: #0e1610;
+    --interactive-hover: #1a261d;
+    --interactive-accent: #1eff5a;
+
+    --nc-bg-primary: #040805;
+    --nc-bg-secondary: #0e1610;
+    --nc-bg-crust: #030604;
+    --nc-surface: color-mix(in srgb, #040805 100%, transparent);
+    --nc-surface-hover: #1a261d;
+    --nc-text-primary: #b8ffca;
+    --nc-text-secondary: #82b58f;
+    --nc-text-faint: #5a7f64;
+    --nc-border: #28392c;
+    --nc-accent: #1eff5a;
+    --nc-accent-strong: #40ff73;
+    --nc-accent-text: #040805;
+    --nc-danger: #fa423e;
+    --nc-success: #1eff5a;
+    --nc-skill: #1eff5a;
+    --nc-ui-font: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --nc-code-font: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    --nc-theme-surface: #040805;
+    --nc-theme-ink: #b8ffca;
+    --nc-theme-accent: #1eff5a;
+    --nc-window-opacity: 1;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#040805, #040805);
+}
+
+html.nc-theme-matrix body,
+body.nc-theme-matrix {
+    background: #040805;
+}
+
+.nc-theme-one,
+html.nc-theme-one,
+body.nc-theme-one {
+    color-scheme: dark;
+    --background-primary: #282c34;
+    --background-secondary: #2f333c;
+    --background-modifier-form-field: #32363e;
+    --background-modifier-hover: #383c45;
+    --background-modifier-border: #424750;
+    --background-modifier-border-hover: #4363a1;
+    --text-normal: #abb2bf;
+    --text-muted: #848a95;
+    --text-faint: #676c77;
+    --text-on-accent: #ffffff;
+    --text-error: #e05561;
+    --interactive-normal: #2f333c;
+    --interactive-hover: #383c45;
+    --interactive-accent: #4d78cc;
+
+    --nc-bg-primary: #282c34;
+    --nc-bg-secondary: #2f333c;
+    --nc-bg-crust: #1c1f24;
+    --nc-surface: color-mix(in srgb, #282c34 100%, transparent);
+    --nc-surface-hover: #383c45;
+    --nc-text-primary: #abb2bf;
+    --nc-text-secondary: #848a95;
+    --nc-text-faint: #676c77;
+    --nc-border: #424750;
+    --nc-accent: #4d78cc;
+    --nc-accent-strong: #6285c9;
+    --nc-accent-text: #ffffff;
+    --nc-danger: #e05561;
+    --nc-success: #8cc265;
+    --nc-skill: #c162de;
+    --nc-ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    --nc-code-font: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    --nc-theme-surface: #282c34;
+    --nc-theme-ink: #abb2bf;
+    --nc-theme-accent: #4d78cc;
+    --nc-window-opacity: 1;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#282c34, #282c34);
+}
+
+html.nc-theme-one body,
+body.nc-theme-one {
+    background: #282c34;
+}
+
+.nc-theme-oscurange,
+html.nc-theme-oscurange,
+body.nc-theme-oscurange {
+    color-scheme: dark;
+    --background-primary: #0b0b0f;
+    --background-secondary: #17171b;
+    --background-modifier-form-field: #1b1b1f;
+    --background-modifier-hover: #252529;
+    --background-modifier-border: #37373a;
+    --background-modifier-border-hover: #b68869;
+    --text-normal: #e6e6e6;
+    --text-muted: #a4a4a6;
+    --text-faint: #747476;
+    --text-on-accent: #0b0b0f;
+    --text-error: #fa423e;
+    --interactive-normal: #17171b;
+    --interactive-hover: #252529;
+    --interactive-accent: #f9b98c;
+
+    --nc-bg-primary: #0b0b0f;
+    --nc-bg-secondary: #17171b;
+    --nc-bg-crust: #08080a;
+    --nc-surface: color-mix(in srgb, #0b0b0f 100%, transparent);
+    --nc-surface-hover: #252529;
+    --nc-text-primary: #e6e6e6;
+    --nc-text-secondary: #a4a4a6;
+    --nc-text-faint: #747476;
+    --nc-border: #37373a;
+    --nc-accent: #f9b98c;
+    --nc-accent-strong: #f5c3a0;
+    --nc-accent-text: #0b0b0f;
+    --nc-danger: #fa423e;
+    --nc-success: #40c977;
+    --nc-skill: #479ffa;
+    --nc-ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    --nc-code-font: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    --nc-theme-surface: #0b0b0f;
+    --nc-theme-ink: #e6e6e6;
+    --nc-theme-accent: #f9b98c;
+    --nc-window-opacity: 1;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#0b0b0f, #0b0b0f);
+}
+
+html.nc-theme-oscurange body,
+body.nc-theme-oscurange {
+    background: #0b0b0f;
+}
+
+.nc-theme-raycast,
+html.nc-theme-raycast,
+body.nc-theme-raycast {
+    color-scheme: dark;
+    --background-primary: #101010;
+    --background-secondary: #1d1d1d;
+    --background-modifier-form-field: #222222;
+    --background-modifier-hover: #2d2d2d;
+    --background-modifier-border: #404040;
+    --background-modifier-border-hover: #bc4c4c;
+    --text-normal: #fefefe;
+    --text-muted: #b7b7b7;
+    --text-faint: #828282;
+    --text-on-accent: #ffffff;
+    --text-error: #ff6363;
+    --interactive-normal: #1d1d1d;
+    --interactive-hover: #2d2d2d;
+    --interactive-accent: #ff6363;
+
+    --nc-bg-primary: #101010;
+    --nc-bg-secondary: #1d1d1d;
+    --nc-bg-crust: #0b0b0b;
+    --nc-surface: color-mix(in srgb, #101010 88%, transparent);
+    --nc-surface-hover: #2d2d2d;
+    --nc-text-primary: #fefefe;
+    --nc-text-secondary: #b7b7b7;
+    --nc-text-faint: #828282;
+    --nc-border: #404040;
+    --nc-accent: #ff6363;
+    --nc-accent-strong: #ff8585;
+    --nc-accent-text: #ffffff;
+    --nc-danger: #ff6363;
+    --nc-success: #59d499;
+    --nc-skill: #cf2f98;
+    --nc-ui-font: Inter;
+    --nc-code-font: "JetBrains Mono";
+    --nc-theme-surface: #101010;
+    --nc-theme-ink: #fefefe;
+    --nc-theme-accent: #ff6363;
+    --nc-window-opacity: 0.88;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#101010, #101010);
+}
+
+html.nc-theme-raycast body,
+body.nc-theme-raycast {
+    background: #101010;
+}
+
+.nc-theme-rose-pine,
+html.nc-theme-rose-pine,
+body.nc-theme-rose-pine {
+    color-scheme: dark;
+    --background-primary: #232136;
+    --background-secondary: #2d2b40;
+    --background-modifier-form-field: #312f44;
+    --background-modifier-hover: #3a384d;
+    --background-modifier-border: #49475c;
+    --background-modifier-border-hover: #b2787c;
+    --text-normal: #e0def4;
+    --text-muted: #a7a5bb;
+    --text-faint: #7e7c91;
+    --text-on-accent: #232136;
+    --text-error: #908caa;
+    --interactive-normal: #2d2b40;
+    --interactive-hover: #3a384d;
+    --interactive-accent: #ea9a97;
+
+    --nc-bg-primary: #232136;
+    --nc-bg-secondary: #2d2b40;
+    --nc-bg-crust: #181726;
+    --nc-surface: color-mix(in srgb, #232136 88%, transparent);
+    --nc-surface-hover: #3a384d;
+    --nc-text-primary: #e0def4;
+    --nc-text-secondary: #a7a5bb;
+    --nc-text-faint: #7e7c91;
+    --nc-border: #49475c;
+    --nc-accent: #ea9a97;
+    --nc-accent-strong: #e8a9ab;
+    --nc-accent-text: #232136;
+    --nc-danger: #908caa;
+    --nc-success: #9ccfd8;
+    --nc-skill: #c4a7e7;
+    --nc-ui-font: Inter;
+    --nc-code-font: "JetBrains Mono";
+    --nc-theme-surface: #232136;
+    --nc-theme-ink: #e0def4;
+    --nc-theme-accent: #ea9a97;
+    --nc-window-opacity: 0.88;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#232136, #232136);
+}
+
+html.nc-theme-rose-pine body,
+body.nc-theme-rose-pine {
+    background: #232136;
+}
+
+.nc-theme-vercel,
+html.nc-theme-vercel,
+body.nc-theme-vercel {
+    color-scheme: dark;
+    --background-primary: #000000;
+    --background-secondary: #0d0d0d;
+    --background-modifier-form-field: #121212;
+    --background-modifier-hover: #1c1c1c;
+    --background-modifier-border: #2f2f2f;
+    --background-modifier-border-hover: #004fb7;
+    --text-normal: #ededed;
+    --text-muted: #a6a6a6;
+    --text-faint: #727272;
+    --text-on-accent: #ffffff;
+    --text-error: #F13342;
+    --interactive-normal: #0d0d0d;
+    --interactive-hover: #1c1c1c;
+    --interactive-accent: #006efe;
+
+    --nc-bg-primary: #000000;
+    --nc-bg-secondary: #0d0d0d;
+    --nc-bg-crust: #000000;
+    --nc-surface: color-mix(in srgb, #000000 100%, transparent);
+    --nc-surface-hover: #1c1c1c;
+    --nc-text-primary: #ededed;
+    --nc-text-secondary: #a6a6a6;
+    --nc-text-faint: #727272;
+    --nc-border: #2f2f2f;
+    --nc-accent: #006efe;
+    --nc-accent-strong: #348afa;
+    --nc-accent-text: #ffffff;
+    --nc-danger: #F13342;
+    --nc-success: #00AD3A;
+    --nc-skill: #9540D5;
+    --nc-ui-font: Geist, Inter;
+    --nc-code-font: "Geist Mono", ui-monospace, "SFMono-Regular";
+    --nc-theme-surface: #000000;
+    --nc-theme-ink: #ededed;
+    --nc-theme-accent: #006efe;
+    --nc-window-opacity: 1;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#000000, #000000);
+}
+
+html.nc-theme-vercel body,
+body.nc-theme-vercel {
+    background: #000000;
+}
+
+.nc-theme-vscode-plus,
+html.nc-theme-vscode-plus,
+body.nc-theme-vscode-plus {
+    color-scheme: dark;
+    --background-primary: #1e1e1e;
+    --background-secondary: #282828;
+    --background-modifier-form-field: #2c2c2c;
+    --background-modifier-hover: #343434;
+    --background-modifier-border: #424242;
+    --background-modifier-border-hover: #08609b;
+    --text-normal: #d4d4d4;
+    --text-muted: #9d9d9d;
+    --text-faint: #757575;
+    --text-on-accent: #ffffff;
+    --text-error: #f44747;
+    --interactive-normal: #282828;
+    --interactive-hover: #343434;
+    --interactive-accent: #007acc;
+
+    --nc-bg-primary: #1e1e1e;
+    --nc-bg-secondary: #282828;
+    --nc-bg-crust: #151515;
+    --nc-surface: color-mix(in srgb, #1e1e1e 100%, transparent);
+    --nc-surface-hover: #343434;
+    --nc-text-primary: #d4d4d4;
+    --nc-text-secondary: #9d9d9d;
+    --nc-text-faint: #757575;
+    --nc-border: #424242;
+    --nc-accent: #007acc;
+    --nc-accent-strong: #2f8ece;
+    --nc-accent-text: #ffffff;
+    --nc-danger: #f44747;
+    --nc-success: #369432;
+    --nc-skill: #000080;
+    --nc-ui-font: Geist, Inter;
+    --nc-code-font: "Geist Mono", ui-monospace, "SFMono-Regular";
+    --nc-theme-surface: #1e1e1e;
+    --nc-theme-ink: #d4d4d4;
+    --nc-theme-accent: #007acc;
+    --nc-window-opacity: 1;
+    --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
+    --nc-wallpaper: linear-gradient(#1e1e1e, #1e1e1e);
+}
+
+html.nc-theme-vscode-plus body,
+body.nc-theme-vscode-plus {
+    background: #1e1e1e;
+}
