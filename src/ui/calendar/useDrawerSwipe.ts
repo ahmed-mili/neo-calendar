@@ -116,8 +116,29 @@ export function useDrawerSwipe({
         const body = document.body;
         let gesture: Gesture | null = null;
         let width = 0;
+        let frame = 0;
+        let pendingProgress = 0;
+
+        // Touch events fire faster than the screen refreshes, so writing the
+        // property on every one of them costs style recalculations nobody ever
+        // sees. Only the latest value before each frame matters.
+        const scheduleProgress = (progress: number) => {
+            pendingProgress = progress;
+            if (frame) return;
+            frame = window.requestAnimationFrame(() => {
+                frame = 0;
+                body.style.setProperty(
+                    PROGRESS_PROPERTY,
+                    String(pendingProgress)
+                );
+            });
+        };
 
         const clearVisualState = () => {
+            if (frame) {
+                window.cancelAnimationFrame(frame);
+                frame = 0;
+            }
             body.style.removeProperty(PROGRESS_PROPERTY);
             body.classList.remove(DRAGGING_CLASS);
         };
@@ -204,7 +225,7 @@ export function useDrawerSwipe({
                 startedOpen: gesture.startedOpen,
             });
 
-            body.style.setProperty(PROGRESS_PROPERTY, String(gesture.progress));
+            scheduleProgress(gesture.progress);
 
             if (event.cancelable) event.preventDefault();
         };
@@ -222,6 +243,10 @@ export function useDrawerSwipe({
             // The property has to hold its settled value while the panel slides
             // home: dropping it here would snap the drawer back to fully open
             // for a frame before React took it away.
+            if (frame) {
+                window.cancelAnimationFrame(frame);
+                frame = 0;
+            }
             body.style.setProperty(PROGRESS_PROPERTY, settled ? "1" : "0");
             body.classList.remove(DRAGGING_CLASS);
             gesture = null;
