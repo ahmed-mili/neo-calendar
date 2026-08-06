@@ -9,6 +9,17 @@ export interface DragPreview {
     newEnd: Date;
 }
 
+/** New bounds of the draft after dragging one of its resize handles.
+ *
+ *  Named fields on purpose: the callback used to take two positional dates and
+ *  one consumer read the first one as the END, so dragging the bottom handle
+ *  assigned start to end and the draft collapsed to zero length. With an object
+ *  a mismatched consumer no longer compiles. */
+export interface DraftRange {
+    start: Date;
+    end: Date;
+}
+
 export interface TimeGridProps {
     dates: Date[];
     events: DisplayEvent[];
@@ -36,7 +47,7 @@ export interface TimeGridProps {
     onEmptyContextMenu?: (date: Date, mouseEvent: MouseEvent) => void;
     draftSlot?: { start: Date; end: Date; allDay: boolean } | null;
     draftColor?: string;
-    onResizeDraft?: (newEnd: Date) => void;
+    onResizeDraft?: (range: DraftRange) => void;
     onShiftDays?: (days: number) => void;
     contextLine?: { date: Date; top: number } | null;
     /** Cadre d'atterrissage pilote de l'exterieur (drag venu du panneau). */

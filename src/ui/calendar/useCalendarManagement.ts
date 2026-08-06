@@ -13,6 +13,29 @@ import { EditableCalendar } from "../../calendars/EditableCalendar";
 import ReactModal from "../ReactModal";
 import { AddLocalCalendar } from "../components/AddLocalCalendar";
 
+/* NEO_HIDDEN_FOLDER_HELPER_V3_START */
+function hasHiddenDescendantFolder(
+    path: string,
+    selectedRoot?: string
+): boolean {
+    const normalized = path.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+    const root = selectedRoot
+        ?.replace(/\\/g, "/")
+        .replace(/^\/+|\/+$/g, "");
+
+    const relative =
+        root &&
+        (normalized === root || normalized.startsWith(root + "/"))
+            ? normalized.slice(root.length).replace(/^\/+/, "")
+            : normalized;
+
+    return relative
+        .split("/")
+        .filter(Boolean)
+        .some((part) => part.startsWith("."));
+}
+/* NEO_HIDDEN_FOLDER_HELPER_V3_END */
+
 /**
  * Force the File Explorer window showing `fullPath` to the foreground (Windows).
  *
@@ -217,7 +240,14 @@ export function useCalendarManagement({
         let directories = app.vault
             .getAllLoadedFiles()
             .filter((f: any) => f instanceof TFolder)
-            .map((f: any) => f.path);
+            .map((f: any) => f.path)
+            .filter(
+                (dir: string) =>
+                    !hasHiddenDescendantFolder(
+                        dir,
+                        calendarRootFolder
+                    )
+            );
 
         if (calendarRootFolder) {
             directories = directories.filter(

@@ -1,7 +1,9 @@
+import { useEffect as useNeoAndroidDraftEffect } from "react";
 import { useState, useCallback } from "react";
 import { DateTime } from "luxon";
 import { NeoEvent } from "../../types";
 import { EditableCalendar } from "../../calendars/EditableCalendar";
+import { DraftRange } from "./TimeGrid.types";
 
 interface DraftSlot {
     start: Date;
@@ -45,6 +47,30 @@ export function useDraftEvent({
     getDefaultCalendarId?: () => string;
 }) {
     const [draftSlot, setDraftSlot] = useState<DraftSlot | null>(null);
+
+    // NEO_ANDROID_DRAFT_BRIDGE_START
+    useNeoAndroidDraftEffect(() => {
+        const androidWindow = window as Window & {
+            __neoCalendarAndroidDraftState?: {
+                startMs: number;
+                endMs: number;
+                allDay: boolean;
+            } | null;
+        };
+
+        androidWindow.__neoCalendarAndroidDraftState = draftSlot
+            ? {
+                  startMs: draftSlot.start.getTime(),
+                  endMs: draftSlot.end.getTime(),
+                  allDay: draftSlot.allDay,
+              }
+            : null;
+    }, [draftSlot]);
+
+    // NEO_ANDROID_DRAFT_BRIDGE_END
+    // A window CustomEvent used to carry draft resizes when no callback was
+    // wired. Both ends are gone: the grid now always calls onResizeDraft, and
+    // every caller provides it, so the bridge only duplicated resizeDraft.
 
     const handleSelectRange = useCallback(
         (start: Date, end: Date, allDay: boolean) => {
@@ -140,9 +166,20 @@ export function useDraftEvent({
         [cache, draftSlot, settings]
     );
 
-    const resizeDraft = useCallback((newEnd: Date) => {
-        setDraftSlot((prev) => (prev ? { ...prev, end: newEnd } : prev));
-    }, []);
+    const resizeDraft = useCallback(
+        (range: DraftRange) => {
+            setDraftSlot((previous) =>
+                previous
+                    ? {
+                          ...previous,
+                          start: range.start,
+                          end: range.end,
+                      }
+                    : previous
+            );
+        },
+        []
+    );
 
     const discardDraft = useCallback(() => {
         setDraftSlot(null);

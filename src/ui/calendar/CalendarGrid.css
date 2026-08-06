@@ -25,7 +25,8 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    background: var(--nc-bg-primary);
+    /* No background: the hours below live in .nc-left-rail-window, which clips
+       them with overflow: hidden, so nothing scrolls behind this corner. */
     z-index: 2;
     border-bottom: 1px solid var(--nc-border, var(--nc-grid-line));
 }
@@ -351,7 +352,9 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--nc-bg-primary);
+    /* Deliberately no background: the grid is clipped at its own top edge (see
+       .nc-days-row), so nothing ever scrolls behind this band. An opaque fill
+       here would read as a darker strip over a translucent grid. */
     border-bottom: 1px solid var(--nc-border, var(--nc-grid-line));
     display: flex;
 }
@@ -438,7 +441,8 @@
     position: sticky;
     top: 0;
     z-index: 3;
-    background: var(--nc-bg-primary);
+    /* No background, same reason as .nc-headers-row: the grid clips itself at
+       the band's bottom edge, so this row has nothing to mask. */
     /* Literal color, not var(--nc-border): the latter maps to an Obsidian theme
        var that is empty on :root (kept empty so the row stays transparent — see
        CalendarVariables.css), which would make the whole border-bottom shorthand

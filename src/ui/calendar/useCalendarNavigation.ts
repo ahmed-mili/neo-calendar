@@ -19,7 +19,8 @@ function alignToView(date: Date, view: ViewType, firstDay: number): Date {
 
 export function useCalendarNavigation(
     initialView: ViewType,
-    firstDay: number = 0
+    firstDay: number = 0,
+    initialDayCount: number = 3
 ) {
     const [currentDate, setCurrentDate] = useState<Date>(() =>
         alignToView(new Date(), initialView, firstDay)
@@ -28,7 +29,7 @@ export function useCalendarNavigation(
     // Span of the custom "Number of days" view; only meaningful when
     // viewType === "days". Kept in memory (not persisted) so switching counts
     // never triggers a settings save / cache rebuild.
-    const [dayCount, setDayCount] = useState<number>(3);
+    const [dayCount, setDayCount] = useState<number>(initialDayCount);
 
     // Ancrage de la plage visible. "period" est le comportement classique : la
     // vue Semaine se cale sur le debut de semaine, la vue Mois sur le premier du

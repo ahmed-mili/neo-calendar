@@ -584,9 +584,12 @@ interface DayColumnProps {
         startY: number,
         edge: "top" | "bottom"
     ) => void;
-    handleDraftResizeStart: (e: React.MouseEvent) => void;
+    handleDraftResizeStart: (
+        e: React.PointerEvent,
+        edge: "top" | "bottom"
+    ) => void;
     handleMouseDown: (
-        e: React.MouseEvent,
+        e: React.PointerEvent,
         date: Date,
         dayIndex: number
     ) => void;
@@ -641,6 +644,7 @@ function DayColumn({
         return {
             top: getEventTop(new Date(ps), dayStart),
             height: ((pe - ps) / 3600000) * HOUR_HEIGHT,
+            hasStart: s >= dayStartMs && s < dayEndMs,
             hasEnd: e > dayStartMs && e <= dayEndMs,
         };
     };
@@ -659,7 +663,7 @@ function DayColumn({
             }`}
             data-day-index={dateIdx}
             data-date={date.toISOString()}
-            onMouseDown={(e) => handleMouseDown(e, date, dateIdx)}
+            onPointerDown={(e) => handleMouseDown(e, date, dateIdx)}
             onDoubleClick={(e) => handleDoubleClick(e, date)}
             onContextMenu={(e) => handleEmptyContext(e, date)}
         >
@@ -739,10 +743,22 @@ function DayColumn({
                             : undefined,
                     }}
                 >
+                    {draftPortion.hasStart && (
+                        <div
+                            className="nc-draft-preview-resize nc-draft-preview-resize-top"
+                            data-neo-resize-edge="top"
+                            onPointerDown={(event) =>
+                                handleDraftResizeStart(event, "top")
+                            }
+                        />
+                    )}
                     {draftPortion.hasEnd && (
                         <div
-                            className="nc-draft-preview-resize"
-                            onMouseDown={handleDraftResizeStart}
+                            className="nc-draft-preview-resize nc-draft-preview-resize-bottom"
+                            data-neo-resize-edge="bottom"
+                            onPointerDown={(event) =>
+                                handleDraftResizeStart(event, "bottom")
+                            }
                         />
                     )}
                 </div>
@@ -798,9 +814,12 @@ interface DaysAreaProps {
         startY: number,
         edge: "top" | "bottom"
     ) => void;
-    handleDraftResizeStart: (e: React.MouseEvent) => void;
+    handleDraftResizeStart: (
+        e: React.PointerEvent,
+        edge: "top" | "bottom"
+    ) => void;
     handleMouseDown: (
-        e: React.MouseEvent,
+        e: React.PointerEvent,
         date: Date,
         dayIndex: number
     ) => void;
