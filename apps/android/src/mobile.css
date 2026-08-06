@@ -3793,11 +3793,16 @@ body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
         0,
         0
     );
-    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform 220ms cubic-bezier(0.2, 0.85, 0.25, 1);
 
-    /* The old entry animation moved the same panel on its own and fought the
-       drag for control of the transform. */
-    animation: none !important;
+    /* Promoted once and for all. Asking for the layer only when the finger
+       lands means paying for the promotion during the very frames that have to
+       stay smooth. */
+    will-change: transform;
+
+    /* Opening from the button has to travel the same distance as a drag; the
+       old 24px nudge read as the panel simply appearing. */
+    animation: nc-drawer-slide-in 240ms cubic-bezier(0.2, 0.85, 0.25, 1);
 
     background: rgba(17, 17, 27, var(--nc-android-drawer-opacity)) !important;
     background-image: none !important;
@@ -3807,10 +3812,16 @@ body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
 
 /* While a finger is down the panel must sit exactly where the finger is; a
    transition would drag it along a step behind. */
+/* A gesture owns the panel outright: the entry animation would fight it for the
+   transform, and would replay the instant the finger lifted. */
+body.nc-platform-android.nc-drawer-gesture
+    .nc-sidebar:not(.nc-sidebar-collapsed) {
+    animation: none !important;
+}
+
 body.nc-platform-android.nc-drawer-dragging
     .nc-sidebar:not(.nc-sidebar-collapsed) {
     transition: none !important;
-    will-change: transform;
 
     /* Re-blurring a full-screen backdrop on every frame is the single most
        expensive thing a WebView can be asked to do while something moves. The
@@ -3831,12 +3842,17 @@ body.nc-platform-android.nc-drawer-dragging
  * the calendar outright — which took the visible strip with it — it is cut off
  * at the panel's edge and follows it as it slides.
  */
-body.nc-platform-android .nc-layout--sidebar-open .nc-main {
-    clip-path: inset(
-        0 0 0
-            calc(var(--nc-android-drawer-width) * var(--nc-drawer-progress, 1))
-    );
+body.nc-platform-android:not(.nc-drawer-gesture)
+    .nc-layout--sidebar-open
+    .nc-main {
+    clip-path: inset(0 0 0 var(--nc-android-drawer-width));
 }
+
+/* Deliberately not driven by the drag: a clip-path that moves repaints the whole
+   calendar — grid, events, wallpaper — on every single frame, which is what made
+   the drag stutter. While the finger is down the panel is dense enough on its
+   own to hide what is underneath, so the cut is only made once it comes to
+   rest. */
 
 /*
  * The dimmer covers the calendar to the right of the panel and follows it as it
@@ -3844,9 +3860,10 @@ body.nc-platform-android .nc-layout--sidebar-open .nc-main {
  * readable behind it — that is the whole point of not hiding them any more.
  */
 body.nc-platform-android .nc-mobile-sidebar-scrim {
-    left: calc(
-        var(--nc-android-drawer-width) * var(--nc-drawer-progress, 1)
-    ) !important;
+    /* Fixed, never animated: left is a layout property, so moving it forced a
+       reflow of the page on every frame of the drag. Only the opacity, which
+       the compositor handles alone, follows the panel. */
+    left: var(--nc-android-drawer-width) !important;
     right: 0 !important;
     width: auto !important;
 
@@ -3944,3 +3961,13 @@ body.nc-platform-android .nc-timegrid-hour-label {
 }
 
 /* === NEO ANDROID DRAWER GESTURE V10 END === */
+
+/* A full slide from off-screen, so opening by the button reads like the drag. */
+@keyframes nc-drawer-slide-in {
+    from {
+        transform: translate3d(-100%, 0, 0);
+    }
+    to {
+        transform: translate3d(0, 0, 0);
+    }
+}
