@@ -28,6 +28,30 @@
     .nc-calendar-default-label {
         opacity: 1;
     }
+
+    /* The "Default" badge is absolutely pinned to the row's right edge because
+       on a mouse it TRADES PLACES with the action buttons on hover. With no
+       hover both are permanently visible, so they would print on top of each
+       other. Put the badge back in the flow, just before the actions. */
+    .nc-calendar-default-label {
+        position: static;
+        margin-left: auto;
+        padding-right: 6px;
+        white-space: nowrap;
+    }
+
+    .nc-calendar-item:hover .nc-calendar-default-label {
+        opacity: 1;
+    }
+
+    /* A hidden calendar fades its name to 0 and brings it back on hover. With
+       no hover the row became an anonymous strip of icons, so the state was
+       unreadable AND unrecoverable. Dim it instead of erasing it. */
+    .nc-calendar-hidden .nc-calendar-visibility,
+    .nc-calendar-hidden .nc-calendar-name,
+    .nc-calendar-hidden .nc-calendar-default-label {
+        opacity: 0.45;
+    }
 }
 
 /* ── 2. Zones de frappe ──────────────────────────────────────── */

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { DisplayEvent } from "../types";
+import { DraftRange } from "./TimeGrid.types";
 import TimeGrid from "./TimeGrid";
 import { isMultiDayTimed } from "./CalendarUtils";
 
@@ -30,7 +31,7 @@ interface ThreeDayViewProps {
     onEmptyContextMenu?: (date: Date, mouseEvent: MouseEvent) => void;
     draftSlot?: { start: Date; end: Date; allDay: boolean } | null;
     draftColor?: string;
-    onResizeDraft?: (newEnd: Date) => void;
+    onResizeDraft?: (range: DraftRange) => void;
     onShiftDays?: (days: number) => void;
     externalPreview?: import("./TimeGrid.types").DragPreview | null;
     onEventUnschedule?: (eventId: string) => Promise<boolean>;

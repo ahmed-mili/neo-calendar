@@ -31,6 +31,24 @@ import { FileTextIcon } from "./EventPanelIcons";
 import { defaultRecurrence } from "./recurrence";
 import { mergeForSave } from "./eventScheduling";
 
+/* NEO_ANDROID_RUNTIME_HELPER_V3_START */
+function isNeoAndroidRuntime(): boolean {
+    return (
+        Boolean(
+            (window as Window & { NeoAndroid?: unknown }).NeoAndroid
+        ) ||
+        document.documentElement.classList.contains(
+            "nc-platform-android"
+        ) ||
+        document.body.classList.contains(
+            "nc-platform-android"
+        ) ||
+        document.documentElement.dataset.neoCalendarPlatform ===
+            "android"
+    );
+}
+/* NEO_ANDROID_RUNTIME_HELPER_V3_END */
+
 export interface DraftInfo {
     start: Date;
     end: Date;
@@ -252,6 +270,61 @@ export default function EventPanel({
         currentCalendarId: stableCalInfo.currentId,
     });
 
+    // NEO_ANDROID_DRAFT_LIVE_TIME_V7_2_START
+    useEffect(() => {
+        if (
+            !isDraft ||
+            !draft ||
+            draft.allDay
+        ) {
+            return;
+        }
+
+        const pad = (value: number) =>
+            String(value).padStart(2, "0");
+
+        const dateValue =
+            `${draft.start.getFullYear()}-` +
+            `${pad(draft.start.getMonth() + 1)}-` +
+            `${pad(draft.start.getDate())}`;
+
+        const startValue =
+            `${pad(draft.start.getHours())}:` +
+            `${pad(draft.start.getMinutes())}`;
+
+        const endValue =
+            `${pad(draft.end.getHours())}:` +
+            `${pad(draft.end.getMinutes())}`;
+
+        if (form.date !== dateValue) {
+            form.setDate(dateValue);
+        }
+
+        if (
+            form.startTime !==
+            startValue
+        ) {
+            form.setStartTime(
+                startValue
+            );
+        }
+
+        if (
+            form.endTime !==
+            endValue
+        ) {
+            form.setEndTime(
+                endValue
+            );
+        }
+    }, [
+        isDraft,
+        draft?.start.getTime(),
+        draft?.end.getTime(),
+        draft?.allDay,
+    ]);
+    // NEO_ANDROID_DRAFT_LIVE_TIME_V7_2_END
+
     // ── Popup behavior ────────────────────────────────────────
 
     // The clicked anchor's CURRENT geometry, re-read live from the DOM (the
@@ -329,23 +402,56 @@ export default function EventPanel({
 
     usePopupDismiss({ visible, popupRef, menuRef, onClose });
 
+// NEO_ANDROID_NOTION_DRAFT_FOCUS_START
     useEffect(() => {
-        if (isDraft && visible && titleInputRef.current) {
-            titleInputRef.current.focus();
+        if (!isDraft || !visible) return;
+
+        if (isNeoAndroidRuntime()) {
+            const active = document.activeElement;
+
+            if (active instanceof HTMLElement) {
+                active.blur();
+            }
+
+            titleInputRef.current?.blur();
+
+            window.setTimeout(() => {
+                const current = document.activeElement;
+
+                if (current instanceof HTMLElement) {
+                    current.blur();
+                }
+
+                titleInputRef.current?.blur();
+            }, 80);
+
+            return;
         }
+
+        titleInputRef.current?.focus();
     }, [isDraft, visible]);
+    // NEO_ANDROID_NOTION_DRAFT_FOCUS_END
 
     // Refocus title input after draft commits (draft→edit transition)
     const justCommittedDraftRef = useRef(false);
 
+// NEO_ANDROID_NOTION_COMMIT_FOCUS_START
     useEffect(() => {
-        if (justCommittedDraftRef.current && eventId && visible) {
-            justCommittedDraftRef.current = false;
-            requestAnimationFrame(() => {
-                titleInputRef.current?.focus();
-            });
+        if (!justCommittedDraftRef.current || !eventId || !visible) {
+            return;
         }
+
+        justCommittedDraftRef.current = false;
+
+        if (isNeoAndroidRuntime()) {
+            return;
+        }
+
+        requestAnimationFrame(() => {
+            titleInputRef.current?.focus();
+        });
     }, [eventId, visible]);
+    // NEO_ANDROID_NOTION_COMMIT_FOCUS_END
 
     // ── Menu / delete ─────────────────────────────────────────
 
@@ -678,10 +784,18 @@ export default function EventPanel({
     // it the containing block for fixed descendants — so a popup rendered inside
     // it would be offset by the leaf's origin (the width of Obsidian's left
     // sidebar), landing several columns off. Body-level escapes that.
+    // NEO_ANDROID_PORTAL_TARGET_V3_START
+    const androidDraft = isDraft && isNeoAndroidRuntime();
+    const portalTarget = isNeoAndroidRuntime()
+        ? document.getElementById("nc-android-overlay-root") ??
+          document.body
+        : document.body;
+    // NEO_ANDROID_PORTAL_TARGET_V3_END
+
     return ReactDOM.createPortal(
         <div
             ref={popupRef}
-            className={`nc-event-popup nc-placement-${position.placement}`}
+            className={`nc-event-popup nc-placement-${position.placement}${isDraft ? " nc-event-popup--draft" : ""}${androidDraft ? " nc-event-popup--android-draft" : ""}`}
             role="dialog"
             aria-label={isDraft ? "New event" : "Event details"}
             style={{
@@ -861,6 +975,6 @@ export default function EventPanel({
                 </div>
             )}
         </div>,
-        document.body
+        portalTarget
     );
 }

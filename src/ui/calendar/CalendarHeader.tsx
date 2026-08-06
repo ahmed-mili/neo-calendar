@@ -1,5 +1,7 @@
 import * as React from "react";
 import { ViewType } from "../types";
+import { getISOWeek, isAndroidRuntime, todayBadgeState } from "./CalendarUtils";
+import MiniCalendar from "./MiniCalendar";
 import {
     ChevronDownIcon,
     ChevronLeftIcon,
@@ -7,9 +9,13 @@ import {
     SettingsIcon,
     CheckIcon,
     SidebarToggleIcon,
+    SearchIcon,
 } from "./Icons";
 
 interface CalendarHeaderProps {
+    currentDate: Date;
+    firstDay: number;
+    onDateSelect: (date: Date) => void;
     viewType: ViewType;
     onViewTypeChange: (view: ViewType) => void;
     dayCount: number;
@@ -20,26 +26,24 @@ interface CalendarHeaderProps {
     onGoNext: () => void;
     onGoToday: () => void;
     onOpenSettings: () => void;
-    /** Deplie/replie la barre laterale. Expose ici pour le petit ecran : la
-        barre y est retiree du flux, et son propre bouton de bascule disparait
-        avec elle — sans ce relais dans l'en-tete, la liste des calendriers
-        (visibilite, couleurs, ajout) devient inaccessible au doigt. */
+    onOpenSearch: () => void;
     onToggleSidebar: () => void;
+    /** The days the grid is showing, used to decide how the date badge reads. */
+    visibleDates: Date[];
 }
 
-// Top-level view options mirrored from Notion Calendar's selector: Day / Week /
-// Month. ("Number of days" and "View settings" are rendered separately below.)
 const VIEW_OPTIONS: { value: ViewType; label: string }[] = [
     { value: "day", label: "Day" },
     { value: "week", label: "Week" },
     { value: "month", label: "Month" },
 ];
 
-// The "Number of days" submenu offers 2..9 directly; "Other…" opens an input.
-const DAY_COUNTS = [2, 3, 4, 5, 6, 7, 8, 9];
+const DAY_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 function viewLabel(viewType: ViewType, dayCount: number): string {
-    if (viewType === "days") return `${dayCount} days`;
+    if (viewType === "days") {
+        return dayCount === 1 ? "1 day" : `${dayCount} days`;
+    }
     return (
         (
             {
@@ -55,6 +59,9 @@ function viewLabel(viewType: ViewType, dayCount: number): string {
 
 export default function CalendarHeader(props: CalendarHeaderProps) {
     const {
+        currentDate,
+        firstDay,
+        onDateSelect,
         viewType,
         onViewTypeChange,
         dayCount,
@@ -65,10 +72,14 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
         onGoNext,
         onGoToday,
         onOpenSettings,
+        onOpenSearch,
+        onToggleSidebar,
+        visibleDates,
     } = props;
 
+    const isAndroid = isAndroidRuntime();
     const [viewMenuOpen, setViewMenuOpen] = React.useState(false);
-    // Which flyout is open: the "Number of days" list or the "View settings" list.
+    const [monthPanelOpen, setMonthPanelOpen] = React.useState(false);
     const [openSubmenu, setOpenSubmenu] = React.useState<
         null | "days" | "settings"
     >(null);
@@ -84,31 +95,130 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
 
     React.useEffect(() => {
         if (!viewMenuOpen) return;
-        const handleClickOutside = (e: MouseEvent) => {
+        const handleClickOutside = (event: PointerEvent) => {
             if (
                 viewMenuRef.current &&
-                !viewMenuRef.current.contains(e.target as Node)
+                !viewMenuRef.current.contains(event.target as Node)
             ) {
                 closeAll();
             }
         };
-        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("pointerdown", handleClickOutside);
         return () =>
-            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("pointerdown", handleClickOutside);
     }, [viewMenuOpen, closeAll]);
 
     React.useEffect(() => {
         if (otherMode) otherInputRef.current?.focus();
     }, [otherMode]);
 
+    React.useEffect(() => {
+        setMonthPanelOpen(false);
+    }, [currentDate.getFullYear(), currentDate.getMonth()]);
+
     const applyOther = () => {
         const raw = otherInputRef.current?.value ?? "";
         const n = parseInt(raw, 10);
-        if (!isNaN(n) && n >= 1) {
+        if (!Number.isNaN(n) && n >= 1 && n <= 60) {
             onSetDayCount(n);
             closeAll();
         }
     };
+
+    if (isAndroid) {
+        const monthName = currentDate.toLocaleDateString(undefined, {
+            month: "long",
+        });
+        const weekLabel = `${
+            navigator.language?.startsWith("fr") ? "Semaine" : "Week"
+        } ${getISOWeek(currentDate)}`;
+
+        return (
+            <header className="nc-header nc-header--android">
+                <div className="nc-android-appbar">
+                    {/* Kept as a second way in beside the edge drag. It steps
+                        aside once the drawer is open (see V10 in mobile.css),
+                        where closing is the drag's job. */}
+                    <button
+                        type="button"
+                        className="nc-btn nc-btn-icon nc-btn-sidebar-toggle nc-android-menu-btn"
+                        onClick={onToggleSidebar}
+                        title="Calendars"
+                        aria-label="Open calendars"
+                    >
+                        <SidebarToggleIcon />
+                    </button>
+
+                    <button
+                        type="button"
+                        className={`nc-android-month-button${
+                            monthPanelOpen ? " nc-open" : ""
+                        }`}
+                        aria-expanded={monthPanelOpen}
+                        onClick={() => setMonthPanelOpen((value) => !value)}
+                    >
+                        <span>{monthName}</span>
+                        <ChevronDownIcon />
+                    </button>
+
+                    {/* Which week is on screen — the one piece of context the
+                        month name alone does not give. */}
+                    <span className="nc-android-week-label">{weekLabel}</span>
+
+                    <div className="nc-android-appbar-spacer" />
+
+                    <button
+                        type="button"
+                        className="nc-btn nc-btn-icon nc-android-search-btn"
+                        onClick={onOpenSearch}
+                        title="Search"
+                        aria-label="Search"
+                    >
+                        <SearchIcon />
+                    </button>
+                    <button
+                        type="button"
+                        className="nc-btn nc-btn-icon nc-android-settings-btn"
+                        onClick={onOpenSettings}
+                        title="Settings"
+                        aria-label="Settings"
+                    >
+                        <SettingsIcon size={20} />
+                    </button>
+
+                    {/* Always today's number, never the day being looked at:
+                        the badge is what takes you back to today. */}
+                    <button
+                        type="button"
+                        className="nc-android-date-badge"
+                        data-today-state={todayBadgeState(
+                            visibleDates,
+                            new Date()
+                        )}
+                        onClick={onGoToday}
+                        title="Go to today"
+                        aria-label="Go to today"
+                    >
+                        {new Date().getDate()}
+                    </button>
+                </div>
+
+                {monthPanelOpen && (
+                    <div className="nc-android-month-sheet">
+                        <MiniCalendar
+                            currentDate={currentDate}
+                            firstDay={firstDay}
+                            showWeekNumbers={showWeekNumbers}
+                            onDateSelect={(date) => {
+                                onDateSelect(date);
+                                setMonthPanelOpen(false);
+                            }}
+                        />
+                    </div>
+                )}
+            </header>
+        );
+    }
 
     const currentViewLabel = viewLabel(viewType, dayCount);
 
@@ -117,7 +227,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
             <div className="nc-header-left">
                 <button
                     className="nc-btn nc-btn-icon nc-btn-sidebar-toggle"
-                    onClick={props.onToggleSidebar}
+                    onClick={onToggleSidebar}
                     title="Calendars"
                     aria-label="Calendars"
                 >
@@ -128,8 +238,8 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                 <button
                     className="nc-btn nc-btn-icon nc-btn-settings"
                     onClick={onOpenSettings}
-                    title="Plugin settings"
-                    aria-label="Plugin settings"
+                    title="Settings"
+                    aria-label="Settings"
                 >
                     <SettingsIcon size={15} />
                 </button>
@@ -137,12 +247,12 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                     <button
                         className="nc-btn nc-view-dropdown-btn"
                         onClick={() =>
-                            setViewMenuOpen((v) => {
-                                if (v) {
+                            setViewMenuOpen((value) => {
+                                if (value) {
                                     setOpenSubmenu(null);
                                     setOtherMode(false);
                                 }
-                                return !v;
+                                return !value;
                             })
                         }
                     >
@@ -151,32 +261,31 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                     </button>
                     {viewMenuOpen && (
                         <div className="nc-view-dropdown-menu">
-                            {VIEW_OPTIONS.map((opt) => (
+                            {VIEW_OPTIONS.map((option) => (
                                 <button
-                                    key={opt.value}
+                                    key={option.value}
                                     role="menuitemradio"
-                                    aria-checked={viewType === opt.value}
+                                    aria-checked={viewType === option.value}
                                     className={`nc-view-dropdown-item ${
-                                        viewType === opt.value
+                                        viewType === option.value
                                             ? "nc-active"
                                             : ""
                                     }`}
                                     onMouseEnter={() => setOpenSubmenu(null)}
                                     onClick={() => {
-                                        onViewTypeChange(opt.value);
+                                        onViewTypeChange(option.value);
                                         closeAll();
                                     }}
                                 >
                                     <span className="nc-view-dropdown-check">
-                                        {viewType === opt.value && (
+                                        {viewType === option.value && (
                                             <CheckIcon size={14} />
                                         )}
                                     </span>
-                                    <span>{opt.label}</span>
+                                    <span>{option.label}</span>
                                 </button>
                             ))}
 
-                            {/* Number of days › (opens a left-side flyout) */}
                             <div
                                 className="nc-view-submenu-anchor"
                                 onMouseEnter={() => setOpenSubmenu("days")}
@@ -188,8 +297,8 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                     aria-haspopup="menu"
                                     aria-expanded={openSubmenu === "days"}
                                     onClick={() =>
-                                        setOpenSubmenu((o) =>
-                                            o === "days" ? null : "days"
+                                        setOpenSubmenu((value) =>
+                                            value === "days" ? null : "days"
                                         )
                                     }
                                 >
@@ -234,7 +343,11 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                                             />
                                                         )}
                                                     </span>
-                                                    <span>{n} days</span>
+                                                    <span>
+                                                        {n === 1
+                                                            ? "1 day"
+                                                            : `${n} days`}
+                                                    </span>
                                                 </button>
                                             );
                                         })}
@@ -247,13 +360,17 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                                     type="number"
                                                     min={1}
                                                     max={60}
-                                                    placeholder="Days…"
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter") {
-                                                            e.preventDefault();
+                                                    placeholder="Daysâ€¦"
+                                                    onKeyDown={(event) => {
+                                                        if (
+                                                            event.key ===
+                                                            "Enter"
+                                                        ) {
+                                                            event.preventDefault();
                                                             applyOther();
                                                         } else if (
-                                                            e.key === "Escape"
+                                                            event.key ===
+                                                            "Escape"
                                                         ) {
                                                             setOtherMode(false);
                                                         }
@@ -269,15 +386,13 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                                 }
                                             >
                                                 <span className="nc-view-dropdown-check" />
-                                                <span>Other…</span>
+                                                <span>Otherâ€¦</span>
                                             </button>
                                         )}
                                     </div>
                                 )}
                             </div>
 
-                            {/* View settings › (left-side flyout: Week numbers
-                                toggle + General settings) */}
                             <div
                                 className="nc-view-submenu-anchor"
                                 onMouseEnter={() => setOpenSubmenu("settings")}
@@ -287,8 +402,10 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                     aria-haspopup="menu"
                                     aria-expanded={openSubmenu === "settings"}
                                     onClick={() =>
-                                        setOpenSubmenu((o) =>
-                                            o === "settings" ? null : "settings"
+                                        setOpenSubmenu((value) =>
+                                            value === "settings"
+                                                ? null
+                                                : "settings"
                                         )
                                     }
                                 >

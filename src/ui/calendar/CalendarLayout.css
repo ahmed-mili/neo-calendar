@@ -1,9 +1,9 @@
-/* ── Layout ─────────────────────────────────────────────────── */
+/* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* The React app is mounted into a bare <div> inside Obsidian's
    .view-content. Give that container a real height so .nc-layout's
    height:100% resolves and .nc-main-scroller becomes the single internal
-   scroller — otherwise .view-content scrolls the whole view and the sticky
+   scroller â€” otherwise .view-content scrolls the whole view and the sticky
    day headers + all-day bar scroll out of sight. The compound selector
    outranks core/theme .view-content padding & overflow. */
 .view-content.nc-view-content {
@@ -45,4 +45,12 @@
 .nc-content {
     flex: 1;
     overflow: hidden;
+}
+/* Android-only controls are rendered by the shared layout so the React tree
+   stays common. They remain inert on Windows/Obsidian and are activated by the
+   Android bundle's final mobile stylesheet. */
+.nc-mobile-sidebar-scrim,
+.nc-mobile-new-event,
+.nc-mobile-agenda-bar {
+    display: none;
 }

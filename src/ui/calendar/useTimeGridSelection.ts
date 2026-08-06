@@ -8,180 +8,449 @@ interface UseTimeGridSelectionParams {
     onEmptyContextMenu?: (date: Date, mouseEvent: MouseEvent) => void;
 }
 
-// NOTE on geometry: every handler below derives the clicked time from
-// `clientY - dayColumn.getBoundingClientRect().top`. The day column is a
-// normal-flow descendant of the vertical scroller (.nc-main-scroller), so its
-// rect top already tracks scroll. That difference is therefore the
-// content-relative Y measured from hour 0 — exactly what positionToDate wants.
-// Adding scrollTop on top would double-count the scroll offset.
+function isAndroidRuntime(): boolean {
+    const androidWindow = window as Window & {
+        NeoAndroid?: unknown;
+    };
+
+    return (
+        Boolean(androidWindow.NeoAndroid) ||
+        document.documentElement.classList.contains(
+            "nc-platform-android"
+        ) ||
+        document.body?.classList.contains(
+            "nc-platform-android"
+        ) === true
+    );
+}
+
+function snappedHalfHour(date: Date): {
+    start: Date;
+    end: Date;
+} {
+    const start = new Date(date);
+
+    start.setMinutes(
+        Math.round(start.getMinutes() / 15) * 15,
+        0,
+        0
+    );
+
+    return {
+        start,
+        end: new Date(start.getTime() + 30 * 60000),
+    };
+}
+
 export function useTimeGridSelection({
     gridRef,
     onSelectRange,
     onEmptyContextMenu,
 }: UseTimeGridSelectionParams) {
-    const [selection, setSelection] = useState<SelectionState | null>(null);
+    const [selection, setSelection] =
+        useState<SelectionState | null>(null);
+
     const selectionRef = useRef<{
         isSelecting: boolean;
+        pointerId: number;
         dayIndex: number;
         dayDate: Date;
         startDate: Date;
+        startClientX: number;
+        startClientY: number;
+        moved: boolean;
     } | null>(null);
 
     const handleMouseDown = useCallback(
-        (e: React.MouseEvent, date: Date, dayIndex: number) => {
-            if (e.button !== 0) return;
-            // Shift+drag is the multi-event marquee selection (handled at the
-            // CalendarApp level) — don't start a draft-creation drag for it.
-            if (e.shiftKey) return;
-            const target = e.target as HTMLElement;
-            if (target.closest(".nc-event-block")) return;
-            if (target.closest("[data-draft-preview]")) return;
+        (
+            event: React.PointerEvent,
+            date: Date,
+            dayIndex: number
+        ) => {
+            if (event.button !== 0) {
+                return;
+            }
 
-            const dayColumn = target.closest(".nc-timegrid-day");
-            if (!dayColumn) return;
+            if (event.shiftKey) {
+                return;
+            }
 
-            const dayRect = dayColumn.getBoundingClientRect();
-            const y = e.clientY - dayRect.top;
-            const startDate = positionToDate(y, date);
+            const target = event.target as HTMLElement;
+
+            if (
+                target.closest(".nc-event-block") ||
+                target.closest("[data-draft-preview]") ||
+                target.closest(".nc-event-popup")
+            ) {
+                return;
+            }
+
+            const dayColumn = target.closest(
+                ".nc-timegrid-day"
+            );
+
+            if (!dayColumn) {
+                return;
+            }
+
+            const dayRect =
+                dayColumn.getBoundingClientRect();
+
+            const startDate = positionToDate(
+                event.clientY - dayRect.top,
+                date
+            );
 
             selectionRef.current = {
                 isSelecting: true,
+                pointerId: event.pointerId,
                 dayIndex,
                 dayDate: date,
                 startDate,
+                startClientX: event.clientX,
+                startClientY: event.clientY,
+                moved: false,
             };
-            // Do NOT show selection rect yet — only on actual drag movement
 
-            // Prevent DndContext from processing this as a drag start
-            e.preventDefault();
+            event.preventDefault();
 
-            const onMove = (ev: PointerEvent) => {
-                if (!selectionRef.current?.isSelecting) return;
-                const { dayIndex, dayDate, startDate } = selectionRef.current;
+            const cleanup = () => {
+                document.removeEventListener(
+                    "pointermove",
+                    onMove,
+                    true
+                );
 
-                // Notion-style cross-day selection: the END day follows the
-                // column under the pointer, not the start column. So dragging
-                // sideways onto another day extends the selection across days.
-                const overEl = document.elementFromPoint(
-                    ev.clientX,
-                    ev.clientY
-                ) as HTMLElement | null;
-                const overCol = overEl?.closest(
-                    ".nc-timegrid-day"
-                ) as HTMLElement | null;
+                document.removeEventListener(
+                    "pointerup",
+                    onUp,
+                    true
+                );
 
-                let endDayDate = dayDate;
-                let col: Element | null = overCol;
-                if (overCol?.dataset.date) {
-                    endDayDate = new Date(overCol.dataset.date);
+                document.removeEventListener(
+                    "pointercancel",
+                    onCancel,
+                    true
+                );
+            };
+
+            const onMove = (
+                pointerEvent: PointerEvent
+            ) => {
+                const current =
+                    selectionRef.current;
+
+                if (
+                    !current?.isSelecting ||
+                    pointerEvent.pointerId !==
+                        current.pointerId
+                ) {
+                    return;
+                }
+
+                if (!current.moved) {
+                    const distance = Math.hypot(
+                        pointerEvent.clientX -
+                            current.startClientX,
+                        pointerEvent.clientY -
+                            current.startClientY
+                    );
+
+                    if (distance < 10) {
+                        return;
+                    }
+
+                    current.moved = true;
+                }
+
+                const overElement =
+                    document.elementFromPoint(
+                        pointerEvent.clientX,
+                        pointerEvent.clientY
+                    ) as HTMLElement | null;
+
+                const overColumn =
+                    overElement?.closest(
+                        ".nc-timegrid-day"
+                    ) as HTMLElement | null;
+
+                let endDayDate =
+                    current.dayDate;
+
+                let column: Element | null =
+                    overColumn;
+
+                if (overColumn?.dataset.date) {
+                    endDayDate = new Date(
+                        overColumn.dataset.date
+                    );
                 } else {
-                    // Pointer outside any column (e.g. above/below the grid):
-                    // keep the END on the start day and just track the time.
-                    col =
+                    column =
                         gridRef.current?.querySelector(
-                            `[data-day-index="${dayIndex}"]`
+                            `[data-day-index="${current.dayIndex}"]`
                         ) ?? null;
                 }
-                if (!col) return;
 
-                const rect = col.getBoundingClientRect();
-                const yy = ev.clientY - rect.top;
-                const endDate = positionToDate(yy, endDayDate);
+                if (!column) {
+                    return;
+                }
 
-                setSelection((prev) => {
-                    if (!prev) {
-                        // First real movement — initialize the selection mirror
+                const rect =
+                    column.getBoundingClientRect();
+
+                const endDate =
+                    positionToDate(
+                        pointerEvent.clientY -
+                            rect.top,
+                        endDayDate
+                    );
+
+                setSelection((previous) => {
+                    if (!previous) {
                         return {
-                            startDate,
+                            startDate:
+                                current.startDate,
                             endDate,
-                            dayIndex,
+                            dayIndex:
+                                current.dayIndex,
                         };
                     }
-                    return { ...prev, endDate };
+
+                    return {
+                        ...previous,
+                        endDate,
+                    };
                 });
             };
 
-            const onUp = (ev: PointerEvent) => {
-                if (!selectionRef.current?.isSelecting) return;
-                selectionRef.current.isSelecting = false;
+            const onUp = (
+                pointerEvent: PointerEvent
+            ) => {
+                const current =
+                    selectionRef.current;
 
-                setSelection((prev) => {
-                    if (prev) {
-                        const { startDate, endDate } = prev;
-                        const diffMs = Math.abs(
-                            endDate.getTime() - startDate.getTime()
+                if (
+                    !current?.isSelecting ||
+                    pointerEvent.pointerId !==
+                        current.pointerId
+                ) {
+                    return;
+                }
+
+                current.isSelecting = false;
+
+                if (
+                    !current.moved &&
+                    isAndroidRuntime()
+                ) {
+                    pointerEvent.preventDefault();
+                    pointerEvent.stopImmediatePropagation();
+
+                    const range =
+                        snappedHalfHour(
+                            current.startDate
                         );
-                        if (diffMs >= 15 * 60000) {
-                            const start = new Date(
-                                Math.min(startDate.getTime(), endDate.getTime())
+
+                    setSelection(null);
+                    selectionRef.current = null;
+                    cleanup();
+
+                    onSelectRange(
+                        range.start,
+                        range.end,
+                        false
+                    );
+
+                    return;
+                }
+
+                setSelection((previous) => {
+                    if (previous) {
+                        const difference =
+                            Math.abs(
+                                previous.endDate.getTime() -
+                                    previous.startDate.getTime()
                             );
-                            const end = new Date(
-                                Math.max(startDate.getTime(), endDate.getTime())
+
+                        if (
+                            difference >=
+                            15 * 60000
+                        ) {
+                            const start =
+                                new Date(
+                                    Math.min(
+                                        previous.startDate.getTime(),
+                                        previous.endDate.getTime()
+                                    )
+                                );
+
+                            const end =
+                                new Date(
+                                    Math.max(
+                                        previous.startDate.getTime(),
+                                        previous.endDate.getTime()
+                                    )
+                                );
+
+                            onSelectRange(
+                                start,
+                                end,
+                                false
                             );
-                            onSelectRange(start, end, false);
                         }
                     }
+
                     return null;
                 });
+
                 selectionRef.current = null;
-                document.removeEventListener("pointermove", onMove, true);
-                document.removeEventListener("pointerup", onUp, true);
+                cleanup();
             };
 
-            // Use pointer events on document with capture phase to fire
-            // before @dnd-kit's PointerSensor can intercept them
-            document.addEventListener("pointermove", onMove, true);
-            document.addEventListener("pointerup", onUp, true);
+            const onCancel = (
+                pointerEvent: PointerEvent
+            ) => {
+                const current =
+                    selectionRef.current;
+
+                if (
+                    current &&
+                    pointerEvent.pointerId !==
+                        current.pointerId
+                ) {
+                    return;
+                }
+
+                selectionRef.current = null;
+                setSelection(null);
+                cleanup();
+            };
+
+            document.addEventListener(
+                "pointermove",
+                onMove,
+                true
+            );
+
+            document.addEventListener(
+                "pointerup",
+                onUp,
+                true
+            );
+
+            document.addEventListener(
+                "pointercancel",
+                onCancel,
+                true
+            );
         },
-        [onSelectRange]
+        [gridRef, onSelectRange]
     );
 
     const handleDoubleClick = useCallback(
-        (e: React.MouseEvent, date: Date) => {
-            const target = e.target as HTMLElement;
-            if (target.closest(".nc-event-block")) return;
-            const dayColumn = target.closest(".nc-timegrid-day");
-            if (!dayColumn) return;
-            const dayRect = dayColumn.getBoundingClientRect();
-            const y = e.clientY - dayRect.top;
-            const clicked = positionToDate(y, date);
-            // Snap to nearest 15 min
-            const start = new Date(clicked);
-            start.setMinutes(Math.round(start.getMinutes() / 15) * 15, 0, 0);
-            const end = new Date(start.getTime() + 30 * 60000);
-            // Abort any pending selection from the preceding mousedown/up pair
+        (
+            event: React.MouseEvent,
+            date: Date
+        ) => {
+            if (isAndroidRuntime()) {
+                return;
+            }
+
+            const target =
+                event.target as HTMLElement;
+
+            if (
+                target.closest(
+                    ".nc-event-block"
+                )
+            ) {
+                return;
+            }
+
+            const dayColumn =
+                target.closest(
+                    ".nc-timegrid-day"
+                );
+
+            if (!dayColumn) {
+                return;
+            }
+
+            const rect =
+                dayColumn.getBoundingClientRect();
+
+            const range =
+                snappedHalfHour(
+                    positionToDate(
+                        event.clientY -
+                            rect.top,
+                        date
+                    )
+                );
+
             selectionRef.current = null;
             setSelection(null);
-            onSelectRange(start, end, false);
+
+            onSelectRange(
+                range.start,
+                range.end,
+                false
+            );
         },
         [onSelectRange]
     );
 
     const handleEmptyContext = useCallback(
-        (e: React.MouseEvent, day: Date) => {
-            // Right-clicking an event must not fall through to the empty-slot
-            // menu — the event block's own context menu handles that.
-            if ((e.target as HTMLElement).closest(".nc-event-block")) return;
-            e.preventDefault();
-            if (onEmptyContextMenu) {
-                const dayColumn = (e.target as HTMLElement).closest(
+        (
+            event: React.MouseEvent,
+            day: Date
+        ) => {
+            if (
+                (
+                    event.target as HTMLElement
+                ).closest(".nc-event-block")
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (!onEmptyContextMenu) {
+                return;
+            }
+
+            const dayColumn =
+                (
+                    event.target as HTMLElement
+                ).closest(
                     ".nc-timegrid-day"
                 );
-                if (dayColumn) {
-                    const dayRect = dayColumn.getBoundingClientRect();
-                    const y = e.clientY - dayRect.top;
-                    const clicked = positionToDate(y, day);
-                    // Snap to nearest 15 min
-                    const start = new Date(clicked);
-                    start.setMinutes(
-                        Math.round(start.getMinutes() / 15) * 15,
-                        0,
-                        0
+
+            if (dayColumn) {
+                const rect =
+                    dayColumn.getBoundingClientRect();
+
+                const clicked =
+                    positionToDate(
+                        event.clientY -
+                            rect.top,
+                        day
                     );
-                    onEmptyContextMenu(start, e.nativeEvent);
-                } else {
-                    onEmptyContextMenu(day, e.nativeEvent);
-                }
+
+                const start =
+                    snappedHalfHour(
+                        clicked
+                    ).start;
+
+                onEmptyContextMenu(
+                    start,
+                    event.nativeEvent
+                );
+            } else {
+                onEmptyContextMenu(
+                    day,
+                    event.nativeEvent
+                );
             }
         },
         [onEmptyContextMenu]

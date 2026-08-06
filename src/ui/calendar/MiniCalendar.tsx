@@ -7,6 +7,7 @@ import {
     addDays,
     getWeekStart,
     getWeekDays,
+    getISOWeek,
     formatMonthTitleFull,
 } from "./CalendarUtils";
 import { ChevronUpIcon, ChevronDownNavIcon, GoTodayIcon } from "./Icons";
@@ -16,20 +17,6 @@ interface MiniCalendarProps {
     firstDay: number;
     onDateSelect: (date: Date) => void;
     showWeekNumbers?: boolean;
-}
-
-// ISO-8601 week number (weeks are Monday-based and belong to the year of their
-// Thursday). Used for the optional week-numbers column.
-function getISOWeek(date: Date): number {
-    const d = new Date(
-        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-    );
-    const day = (d.getUTCDay() + 6) % 7; // Mon=0 … Sun=6
-    d.setUTCDate(d.getUTCDate() - day + 3); // Thursday of this week
-    const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
-    const firstDay = (firstThursday.getUTCDay() + 6) % 7;
-    firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDay + 3);
-    return 1 + Math.round((d.getTime() - firstThursday.getTime()) / 604800000);
 }
 
 export default function MiniCalendar(props: MiniCalendarProps) {

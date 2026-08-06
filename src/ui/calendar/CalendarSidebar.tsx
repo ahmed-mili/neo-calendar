@@ -4,6 +4,7 @@ import MiniCalendar from "./MiniCalendar";
 import {
     SidebarToggleIcon,
     SearchIcon,
+    SettingsIcon,
     NewEventIcon,
     PlusIcon,
     RssIcon,
@@ -22,6 +23,7 @@ import ColorPicker from "./ColorPicker";
 import ShortcutsPanel from "./ShortcutsPanel";
 import { ObsidianIcon } from "../components/ObsidianIcon";
 import { useSidebarReorder } from "./useSidebarReorder";
+import { isAndroidRuntime } from "./CalendarUtils";
 
 const ONLINE_TYPES = ["ical", "caldav", "icloud"];
 
@@ -30,6 +32,8 @@ interface CalendarSidebarProps {
     currentDate: Date;
     viewType: ViewType;
     onViewTypeChange: (view: ViewType) => void;
+    dayCount: number;
+    onSetDayCount: (count: number) => void;
     calendarSources: CalendarSource[];
     firstDay: number;
     showWeekNumbers?: boolean;
@@ -56,6 +60,7 @@ interface CalendarSidebarProps {
     selectedCalendarId: string | null;
     onToggleSidebar: () => void;
     onOpenSearch: () => void;
+    onOpenSettings: () => void;
     onNewEvent: () => void;
 }
 
@@ -65,6 +70,8 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         currentDate,
         viewType,
         onViewTypeChange,
+        dayCount,
+        onSetDayCount,
         calendarSources,
         firstDay,
         showWeekNumbers,
@@ -89,6 +96,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         selectedCalendarId,
         onToggleSidebar,
         onOpenSearch,
+        onOpenSettings,
         onNewEvent,
     } = props;
 
@@ -112,6 +120,16 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
     } | null>(null);
     const [shortcutsAnchor, setShortcutsAnchor] =
         React.useState<DOMRect | null>(null);
+    const [moreDaysOpen, setMoreDaysOpen] = React.useState(false);
+    const [customDayCount, setCustomDayCount] = React.useState(10);
+    const isAndroid = isAndroidRuntime();
+
+    const setAndroidDaySpan = (count: number) => {
+        const normalized = Math.max(1, Math.min(60, Math.round(count)));
+        onViewTypeChange("days");
+        onSetDayCount(normalized);
+        onToggleSidebar();
+    };
     // Swatch button per calendar id, so the picker can anchor to it whether it
     // was opened by double-click or from the "Color" menu item.
     const swatchRefs = React.useRef<Record<string, HTMLButtonElement | null>>(
@@ -172,7 +190,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
             onClick: () => openColorPicker(source.id, source.color),
         });
         // Editable (local) calendars rename the folder; ical feeds rename just
-        // sets a friendly display label — both go through the inline editor.
+        // sets a friendly display label â€” both go through the inline editor.
         if (source.editable || source.type === "ical") {
             items.push({
                 key: "rename",
@@ -228,23 +246,35 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
             }`}
         >
             <div className="nc-sidebar-top-bar">
-                <button
-                    className="nc-sidebar-top-btn"
-                    onClick={onToggleSidebar}
-                    title="Toggle sidebar"
-                >
-                    <SidebarToggleIcon />
-                </button>
-                <div className="nc-sidebar-top-right">
+                {/* Android closes the drawer by dragging it back or tapping
+                    the calendar beside it, so the button is dead weight. */}
+                {!isAndroid && (
                     <button
                         className="nc-sidebar-top-btn"
+                        onClick={onToggleSidebar}
+                        title="Toggle sidebar"
+                    >
+                        <SidebarToggleIcon />
+                    </button>
+                )}
+                <div className="nc-sidebar-top-right">
+                    <button
+                        className="nc-sidebar-top-btn nc-sidebar-search-btn"
                         onClick={onOpenSearch}
                         title="Open command menu"
                     >
                         <SearchIcon />
                     </button>
                     <button
-                        className="nc-sidebar-top-btn"
+                        className="nc-sidebar-top-btn nc-sidebar-settings-btn"
+                        onClick={onOpenSettings}
+                        title="Settings"
+                        aria-label="Settings"
+                    >
+                        <SettingsIcon size={17} />
+                    </button>
+                    <button
+                        className="nc-sidebar-top-btn nc-sidebar-new-event-btn"
                         onClick={onNewEvent}
                         title="Create event"
                     >
@@ -255,6 +285,111 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
 
             {sidebarVisible && (
                 <>
+                    {isAndroid && (
+                        <section
+                            className="nc-android-day-switcher"
+                            aria-label="Days displayed"
+                        >
+                            <div className="nc-android-day-switcher-primary">
+                                {[1, 2, 3].map((count) => {
+                                    const active =
+                                        viewType === "days" &&
+                                        dayCount === count;
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={count}
+                                            className={`nc-android-day-option${
+                                                active ? " nc-active" : ""
+                                            }`}
+                                            aria-pressed={active}
+                                            onClick={() =>
+                                                setAndroidDaySpan(count)
+                                            }
+                                        >
+                                            <span
+                                                className="nc-android-day-option-icon"
+                                                aria-hidden="true"
+                                            >
+                                                {Array.from(
+                                                    { length: count },
+                                                    (_, index) => (
+                                                        <i key={index} />
+                                                    )
+                                                )}
+                                            </span>
+                                            <span>
+                                                {count === 1
+                                                    ? "1 day"
+                                                    : `${count} days`}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <button
+                                type="button"
+                                className="nc-android-more-days-toggle"
+                                aria-expanded={moreDaysOpen}
+                                onClick={() =>
+                                    setMoreDaysOpen((value) => !value)
+                                }
+                            >
+                                <span>More day spans</span>
+                                <ChevronDownIcon size={14} />
+                            </button>
+
+                            {moreDaysOpen && (
+                                <div className="nc-android-more-days">
+                                    <div className="nc-android-more-days-grid">
+                                        {[4, 5, 6, 7, 8, 9].map((count) => (
+                                            <button
+                                                type="button"
+                                                key={count}
+                                                className={
+                                                    viewType === "days" &&
+                                                    dayCount === count
+                                                        ? "nc-active"
+                                                        : ""
+                                                }
+                                                onClick={() =>
+                                                    setAndroidDaySpan(count)
+                                                }
+                                            >
+                                                {count}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <form
+                                        className="nc-android-custom-days"
+                                        onSubmit={(event) => {
+                                            event.preventDefault();
+                                            setAndroidDaySpan(customDayCount);
+                                        }}
+                                    >
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={60}
+                                            value={customDayCount}
+                                            aria-label="Custom number of days"
+                                            onChange={(event) =>
+                                                setCustomDayCount(
+                                                    Number(
+                                                        event.currentTarget
+                                                            .value
+                                                    ) || 1
+                                                )
+                                            }
+                                        />
+                                        <button type="submit">Apply</button>
+                                    </form>
+                                </div>
+                            )}
+                        </section>
+                    )}
+
                     <MiniCalendar
                         currentDate={currentDate}
                         firstDay={firstDay}
@@ -378,7 +513,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                 dragProps.onPointerDown
                                             }
                                             // The whole row opens this calendar's
-                                            // event list — except the swatch and
+                                            // event list â€” except the swatch and
                                             // the action buttons, which stop
                                             // propagation. Skipped while renaming,
                                             // and after a drag (which ends here as
@@ -395,7 +530,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                             {/* Left control: colored swatch (with
                                             an RSS mark for remote calendars).
                                             Clicking sets this calendar as the
-                                            default — but only local editable
+                                            default â€” but only local editable
                                             ones; remote calendars can't be the
                                             default. Visibility is toggled via
                                             the eye icon, not here. */}
@@ -420,7 +555,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                     // colour. Kept separate from a
                                                     // plain click so changing the
                                                     // colour never also flips the
-                                                    // default calendar — a
+                                                    // default calendar â€” a
                                                     // double-click used to fire
                                                     // the plain onClick first and
                                                     // reset the default every time.

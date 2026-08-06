@@ -226,3 +226,49 @@ export function dateEndpointsToFrontmatter(
               }),
     };
 }
+
+/** ISO-8601 week number: weeks start on Monday and belong to the year of their
+    Thursday. Shared by the mini-calendar's week column and the mobile header. */
+export function getISOWeek(date: Date): number {
+    const utc = new Date(
+        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+    );
+    const dayIndex = (utc.getUTCDay() + 6) % 7; // Mon=0 … Sun=6
+    utc.setUTCDate(utc.getUTCDate() - dayIndex + 3); // Thursday of this week
+    const firstThursday = new Date(Date.UTC(utc.getUTCFullYear(), 0, 4));
+    const firstDayIndex = (firstThursday.getUTCDay() + 6) % 7;
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayIndex + 3);
+    return (
+        1 + Math.round((utc.getTime() - firstThursday.getTime()) / 604800000)
+    );
+}
+
+/** Whether the calendar is running inside the Android shell. The class is set
+    once at startup by the Android entry point. */
+export function isAndroidRuntime(): boolean {
+    return (
+        typeof document !== "undefined" &&
+        document.body.classList.contains("nc-platform-android")
+    );
+}
+
+/** How the header's date badge should read, given what the grid is showing.
+    The names describe the move that would bring today back on screen: "back"
+    when the view sits after today, "forward" when it sits before it. */
+export type TodayBadgeState = "present" | "back" | "forward";
+
+export function todayBadgeState(
+    visibleDates: Date[],
+    now: Date
+): TodayBadgeState {
+    if (visibleDates.length === 0) return "present";
+
+    const dayNumber = (date: Date) =>
+        date.getFullYear() * 10000 + date.getMonth() * 100 + date.getDate();
+
+    const today = dayNumber(now);
+    const days = visibleDates.map(dayNumber);
+
+    if (days.some((day) => day === today)) return "present";
+    return days[0] > today ? "back" : "forward";
+}

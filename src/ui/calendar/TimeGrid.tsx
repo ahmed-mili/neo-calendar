@@ -69,6 +69,20 @@ function groupEventsByDate(
     return map;
 }
 
+/** scrollTop bounded to the real scroll range.
+ *
+ *  The value drives the grid's top clip. Android's elastic overscroll and
+ *  momentum flings can report a scrollTop past either end for a frame; feeding
+ *  that straight into clip-path cuts away a visible slice of the grid, which is
+ *  what made an earlier attempt at a transparent header band look broken. */
+function clampScrollTop(scroller: HTMLElement): number {
+    const maximum = Math.max(
+        0,
+        scroller.scrollHeight - scroller.clientHeight
+    );
+    return Math.min(Math.max(scroller.scrollTop, 0), maximum);
+}
+
 export default function TimeGrid(props: TimeGridProps) {
     const {
         dates,
@@ -242,19 +256,116 @@ export default function TimeGrid(props: TimeGridProps) {
     );
 
     const showAllDay = true;
-
-    // ── Scroll to current time on mount ─────────────────────
-
+    // NEO_ANDROID_INITIAL_SCROLL_V7_4_START
+    // On Android, keep several hours of context above the current time.
+    // At 23:59 this shows roughly 18:00-00:00 instead of opening at 23:00.
     useLayoutEffect(() => {
-        const el = scrollRootRef.current;
-        if (!el) return;
-        const now = new Date();
-        const scrollTo = Math.max(
-            0,
-            (now.getHours() - 1 + now.getMinutes() / 60) * HOUR_HEIGHT
-        );
-        el.scrollTop = scrollTo;
+        const element = scrollRootRef.current;
+
+        if (!element) {
+            return;
+        }
+
+        let firstFrame = 0;
+        let secondFrame = 0;
+        let settleTimer = 0;
+
+        const isAndroidRuntime = () => {
+            const androidWindow = window as Window & {
+                NeoAndroid?: unknown;
+            };
+
+            return (
+                Boolean(androidWindow.NeoAndroid) ||
+                document.documentElement.classList.contains(
+                    "nc-platform-android"
+                ) ||
+                document.body?.classList.contains(
+                    "nc-platform-android"
+                ) === true
+            );
+        };
+
+        const applyInitialScroll = () => {
+            const current = new Date();
+
+            const currentHour =
+                current.getHours() +
+                current.getMinutes() / 60 +
+                current.getSeconds() / 3600;
+
+            const viewportHours =
+                element.clientHeight > 0
+                    ? element.clientHeight / HOUR_HEIGHT
+                    : 8;
+
+            const hoursAboveCurrent =
+                isAndroidRuntime()
+                    ? Math.min(
+                          6,
+                          Math.max(
+                              3.5,
+                              viewportHours * 0.68
+                          )
+                      )
+                    : 1;
+
+            const requestedScroll =
+                Math.max(
+                    0,
+                    (
+                        currentHour -
+                        hoursAboveCurrent
+                    ) * HOUR_HEIGHT
+                );
+
+            const maximumScroll =
+                Math.max(
+                    0,
+                    element.scrollHeight -
+                        element.clientHeight
+                );
+
+            element.scrollTop =
+                Math.min(
+                    requestedScroll,
+                    maximumScroll
+                );
+        };
+
+        applyInitialScroll();
+
+        firstFrame =
+            window.requestAnimationFrame(() => {
+                applyInitialScroll();
+
+                secondFrame =
+                    window.requestAnimationFrame(
+                        applyInitialScroll
+                    );
+            });
+
+        settleTimer =
+            window.setTimeout(
+                applyInitialScroll,
+                220
+            );
+
+        return () => {
+            window.cancelAnimationFrame(
+                firstFrame
+            );
+
+            window.cancelAnimationFrame(
+                secondFrame
+            );
+
+            window.clearTimeout(
+                settleTimer
+            );
+        };
     }, []);
+    // NEO_ANDROID_INITIAL_SCROLL_V7_4_END
 
     // Compensate scrollTop when the all-day section's height changes between
     // renders. Without this, any change to the visible lane count (e.g. when a
@@ -294,7 +405,10 @@ export default function TimeGrid(props: TimeGridProps) {
             // scrollTop keeps the grid from painting behind the transparent
             // sticky header/all-day band. Set on the scroller (ancestor) so it
             // inherits to the row. See .nc-days-row in CalendarGrid.css.
-            main.style.setProperty("--nc-scroll-y", `${main.scrollTop}px`);
+            main.style.setProperty(
+                "--nc-scroll-y",
+                `${clampScrollTop(main)}px`
+            );
             if (allDayRowRef.current) {
                 allDayRowRef.current.style.transform = `translateX(${x}px)`;
             }
@@ -325,7 +439,7 @@ export default function TimeGrid(props: TimeGridProps) {
         const main = scrollRootRef.current;
         if (!main) return;
         const x = main.scrollLeft;
-        main.style.setProperty("--nc-scroll-y", `${main.scrollTop}px`);
+        main.style.setProperty("--nc-scroll-y", `${clampScrollTop(main)}px`);
         if (allDayRowRef.current) {
             allDayRowRef.current.style.transform = `translateX(${x}px)`;
         }

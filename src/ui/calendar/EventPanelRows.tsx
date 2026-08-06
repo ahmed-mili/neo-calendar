@@ -42,6 +42,23 @@ import {
     ArrowRightIcon,
 } from "./EventPanelIcons";
 
+function getEventPanelPortalTarget(): HTMLElement {
+    const isAndroid =
+        document.documentElement.classList.contains(
+            "nc-platform-android"
+        ) ||
+        document.body.classList.contains(
+            "nc-platform-android"
+        ) ||
+        document.documentElement.dataset.neoCalendarPlatform ===
+            "android";
+
+    return isAndroid
+        ? document.getElementById(
+              "nc-android-overlay-root"
+          ) ?? document.body
+        : document.body;
+}
 function ObsidianColorIcon() {
     return (
         <svg
@@ -305,14 +322,14 @@ function DateField({
 
     React.useEffect(() => {
         if (!open) return;
-        const onDown = (e: MouseEvent) => {
+        const onDown = (e: PointerEvent) => {
             const t = e.target as Node;
             if (btnRef.current?.contains(t)) return;
             if (menuRef.current?.contains(t)) return;
             setOpen(false);
         };
-        document.addEventListener("mousedown", onDown);
-        return () => document.removeEventListener("mousedown", onDown);
+        document.addEventListener("pointerdown", onDown);
+        return () => document.removeEventListener("pointerdown", onDown);
     }, [open]);
 
     const year = viewMonth.getFullYear();
@@ -416,7 +433,7 @@ function DateField({
                             </button>
                         </div>
                     </div>,
-                    document.body
+                    getEventPanelPortalTarget()
                 )}
         </span>
     );
@@ -594,14 +611,14 @@ function NcSelect({ value, options, onChange, className }: NcSelectProps) {
 
     React.useEffect(() => {
         if (!open) return;
-        const onDown = (e: MouseEvent) => {
+        const onDown = (e: PointerEvent) => {
             const t = e.target as Node;
             if (btnRef.current?.contains(t)) return;
             if (menuRef.current?.contains(t)) return;
             setOpen(false);
         };
-        document.addEventListener("mousedown", onDown);
-        return () => document.removeEventListener("mousedown", onDown);
+        document.addEventListener("pointerdown", onDown);
+        return () => document.removeEventListener("pointerdown", onDown);
     }, [open]);
 
     const current = options.find((o) => o.value === value);
@@ -663,7 +680,7 @@ function NcSelect({ value, options, onChange, className }: NcSelectProps) {
                             </button>
                         ))}
                     </div>,
-                    document.body
+                    getEventPanelPortalTarget()
                 )}
         </div>
     );
@@ -1007,14 +1024,14 @@ export function CalendarRow({
 
     React.useEffect(() => {
         if (!open) return;
-        const onDown = (e: MouseEvent) => {
+        const onDown = (e: PointerEvent) => {
             const t = e.target as Node;
             if (rowRef.current?.contains(t)) return;
             if (menuRef.current?.contains(t)) return;
             setOpen(false);
         };
-        document.addEventListener("mousedown", onDown);
-        return () => document.removeEventListener("mousedown", onDown);
+        document.addEventListener("pointerdown", onDown);
+        return () => document.removeEventListener("pointerdown", onDown);
     }, [open]);
 
     type Cal = CalendarRowProps["editableCalendars"][number];
@@ -1110,7 +1127,7 @@ export function CalendarRow({
                             </button>
                         ))}
                     </div>,
-                    document.body
+                    getEventPanelPortalTarget()
                 )}
         </div>
     );
@@ -1471,7 +1488,7 @@ function LinkedFileRow({
                             {copied ? <CheckMarkIcon /> : <CopyIcon />}
                         </button>
                     </div>,
-                    document.body
+                    getEventPanelPortalTarget()
                 )}
         </>
     );
@@ -1551,14 +1568,14 @@ export function LinksAttachmentsRow({
 
     React.useEffect(() => {
         if (!open) return;
-        const onPointerDown = (event: MouseEvent) => {
+        const onPointerDown = (event: PointerEvent) => {
             const target = event.target as Node;
             if (shellRef.current?.contains(target)) return;
             if (popoverRef.current?.contains(target)) return;
             closePicker();
         };
-        document.addEventListener("mousedown", onPointerDown);
-        return () => document.removeEventListener("mousedown", onPointerDown);
+        document.addEventListener("pointerdown", onPointerDown);
+        return () => document.removeEventListener("pointerdown", onPointerDown);
     }, [closePicker, open]);
 
     React.useEffect(() => {
@@ -1848,7 +1865,7 @@ export function LinksAttachmentsRow({
                             </div>
                         )}
                     </div>,
-                    document.body
+                    getEventPanelPortalTarget()
                 )}
         </div>
     );
