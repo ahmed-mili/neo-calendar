@@ -3778,13 +3778,6 @@ body.nc-platform-android .nc-android-week-label {
  * stutter, so React only hears about the two end states.
  */
 
-body.nc-platform-android {
-    /* Raised from 0.54: at that value the grid showed through the panel, which
-       is why the calendar had to be hidden outright. Exposed as a variable so
-       the settings screen can drive it later. */
-    --nc-android-drawer-opacity: 0.8;
-}
-
 body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
     /* translate3d, not translateX: it puts the panel on its own compositor
        layer, so sliding it repaints nothing. */
@@ -3804,10 +3797,14 @@ body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
        old 24px nudge read as the panel simply appearing. */
     animation: nc-drawer-slide-in 240ms cubic-bezier(0.2, 0.85, 0.25, 1);
 
-    background: rgba(17, 17, 27, var(--nc-android-drawer-opacity)) !important;
+    /* Opaque on purpose. Translucency meant the calendar showed through the
+       panel, which had to be cut out underneath it, and a backdrop blur that
+       had to be re-rendered on every frame it moved. A solid layer is simply
+       painted once and slid: nothing to blend, nothing to repaint. */
+    background: var(--nc-bg-secondary, #181825) !important;
     background-image: none !important;
-    backdrop-filter: blur(26px) saturate(1.08) !important;
-    -webkit-backdrop-filter: blur(26px) saturate(1.08) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 /* While a finger is down the panel must sit exactly where the finger is; a
@@ -3822,37 +3819,7 @@ body.nc-platform-android.nc-drawer-gesture
 body.nc-platform-android.nc-drawer-dragging
     .nc-sidebar:not(.nc-sidebar-collapsed) {
     transition: none !important;
-
-    /* Re-blurring a full-screen backdrop on every frame is the single most
-       expensive thing a WebView can be asked to do while something moves. The
-       panel keeps its glass at rest and drops it only while it travels, where
-       a heavier tint reads the same at speed. */
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: rgba(
-        17,
-        17,
-        27,
-        calc(var(--nc-android-drawer-opacity) + 0.1)
-    ) !important;
 }
-
-/*
- * Behind the panel there should be nothing but the wallpaper. Rather than hide
- * the calendar outright — which took the visible strip with it — it is cut off
- * at the panel's edge and follows it as it slides.
- */
-body.nc-platform-android:not(.nc-drawer-gesture)
-    .nc-layout--sidebar-open
-    .nc-main {
-    clip-path: inset(0 0 0 var(--nc-android-drawer-width));
-}
-
-/* Deliberately not driven by the drag: a clip-path that moves repaints the whole
-   calendar — grid, events, wallpaper — on every single frame, which is what made
-   the drag stutter. While the finger is down the panel is dense enough on its
-   own to hide what is underneath, so the cut is only made once it comes to
-   rest. */
 
 /*
  * The dimmer covers the calendar to the right of the panel and follows it as it
