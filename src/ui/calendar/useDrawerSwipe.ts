@@ -17,7 +17,14 @@ export const VELOCITY_THRESHOLD = 0.4;
 const DIRECTION_LOCK_PX = 8;
 
 const PROGRESS_PROPERTY = "--nc-drawer-progress";
+
+/** On the body while a finger is actually moving the panel. */
 const DRAGGING_CLASS = "nc-drawer-dragging";
+
+/** On the body from the first drag until the panel has settled. It outlives
+    DRAGGING_CLASS so the open-by-button animation, which is suppressed while a
+    gesture owns the panel, cannot fire again the moment the finger lifts. */
+const GESTURE_CLASS = "nc-drawer-gesture";
 
 /** Matches the CSS transition on the panel, so the property is only dropped
     once the drawer has finished sliding home. */
@@ -141,6 +148,7 @@ export function useDrawerSwipe({
             }
             body.style.removeProperty(PROGRESS_PROPERTY);
             body.classList.remove(DRAGGING_CLASS);
+            body.classList.remove(GESTURE_CLASS);
         };
 
         const abandon = () => {
@@ -204,6 +212,7 @@ export function useDrawerSwipe({
 
                 gesture.dragging = true;
                 body.classList.add(DRAGGING_CLASS);
+                body.classList.add(GESTURE_CLASS);
 
                 // The drawer's contents only mount once React believes it is
                 // open, so an opening drag has to say so straight away — the
@@ -254,7 +263,9 @@ export function useDrawerSwipe({
             if (settled !== openRef.current) changeRef.current(settled);
 
             window.setTimeout(() => {
-                if (!gesture) body.style.removeProperty(PROGRESS_PROPERTY);
+                if (gesture) return;
+                body.style.removeProperty(PROGRESS_PROPERTY);
+                body.classList.remove(GESTURE_CLASS);
             }, SETTLE_MS);
         };
 
