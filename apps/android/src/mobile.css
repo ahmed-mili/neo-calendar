@@ -3786,7 +3786,13 @@ body.nc-platform-android {
 }
 
 body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
-    transform: translateX(calc((var(--nc-drawer-progress, 1) - 1) * 100%));
+    /* translate3d, not translateX: it puts the panel on its own compositor
+       layer, so sliding it repaints nothing. */
+    transform: translate3d(
+        calc((var(--nc-drawer-progress, 1) - 1) * 100%),
+        0,
+        0
+    );
     transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
 
     /* The old entry animation moved the same panel on its own and fought the
@@ -3804,6 +3810,32 @@ body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
 body.nc-platform-android.nc-drawer-dragging
     .nc-sidebar:not(.nc-sidebar-collapsed) {
     transition: none !important;
+    will-change: transform;
+
+    /* Re-blurring a full-screen backdrop on every frame is the single most
+       expensive thing a WebView can be asked to do while something moves. The
+       panel keeps its glass at rest and drops it only while it travels, where
+       a heavier tint reads the same at speed. */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(
+        17,
+        17,
+        27,
+        calc(var(--nc-android-drawer-opacity) + 0.1)
+    ) !important;
+}
+
+/*
+ * Behind the panel there should be nothing but the wallpaper. Rather than hide
+ * the calendar outright — which took the visible strip with it — it is cut off
+ * at the panel's edge and follows it as it slides.
+ */
+body.nc-platform-android .nc-layout--sidebar-open .nc-main {
+    clip-path: inset(
+        0 0 0
+            calc(var(--nc-android-drawer-width) * var(--nc-drawer-progress, 1))
+    );
 }
 
 /*
