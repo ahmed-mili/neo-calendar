@@ -274,9 +274,26 @@ function install(): void {
                 );
 
                 pending = null;
-                enterResizeMode(
-                    block
-                );
+
+                /*
+                 * The double tap is a switch, not a one-way door.
+                 *
+                 * It is what puts a block into resize mode, so it is also what
+                 * takes it out — otherwise the only way back was to tap
+                 * somewhere else entirely, and tapping the block you are
+                 * working on did nothing at all.
+                 */
+                if (
+                    block.classList.contains(
+                        "nc-android-event-resize-selected"
+                    )
+                ) {
+                    clearResizeMode();
+                } else {
+                    enterResizeMode(
+                        block
+                    );
+                }
 
                 return;
             }
