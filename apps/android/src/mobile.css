@@ -622,27 +622,84 @@ body.nc-platform-android .nc-settings-backdrop {
 }
 
 /*
- * The settings surface is tinted exactly as the calendar is.
+ * On a phone the settings are a solid surface, not glass.
  *
- * The backdrop carried a 46% black wash on top of the panel's own glass — two
- * layers where the grid has one, so the same wallpaper came out denser under
- * the settings than under the calendar. Invisible while the settings covered
- * the screen, and plain to see the moment the surface slid off and the two sat
- * side by side. The wash goes, and the panel takes the calendar's own veil,
- * the same gradient over the same wallpaper.
+ * Letting the wallpaper through meant the same picture had to come out at the
+ * same density under the settings as under the grid — two different stacks of
+ * veils and filters over the same image, which never quite matched and showed
+ * it the moment the surface slid off and the two sat side by side. There is
+ * nothing to match if there is nothing behind: the settings take the drawer's
+ * own colour, the panel they are opened from, and stop there.
+ *
+ * It costs nothing to paint and nothing to blend, so the surface has no reason
+ * left to shift while it moves.
  */
 body.nc-platform-android .nc-settings-backdrop {
-    background: transparent !important;
+    /*
+     * Darker than the theme's own surface, the way the drawer reads.
+     *
+     * `--background-secondary` is that surface mixed towards the ink, and the
+     * ink of this theme is lavender — so the page came out light and violet,
+     * nothing like the drawer it was meant to match. Mixing towards black
+     * instead moves the value without moving the hue.
+     */
+    background: color-mix(
+        in srgb,
+        var(--background-primary) 78%,
+        #000000 22%
+    ) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
 
 body.nc-platform-android .nc-settings-backdrop > .nc-settings {
-    background-color: transparent !important;
-    background-image: linear-gradient(
-        to bottom,
-        rgba(5, 8, 20, 0.07),
-        rgba(5, 8, 20, 0.13)
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/*
+ * Cards, and something for them to sit on.
+ *
+ * With the wallpaper gone the blocks kept a translucent fill, which over a flat
+ * surface resolved to very nearly that same surface: the whole screen came out
+ * one colour and the blocks stopped reading as blocks at all. They are lifted
+ * off the background instead — the page stays the darker of the two, the cards
+ * are plainly lighter, and the separation is carried by that difference rather
+ * than by an outline drawn around each one.
+ */
+body.nc-platform-android .nc-set-group__rows {
+    border: 0 !important;
+    border-radius: 16px !important;
+    /* Lifted towards white, not towards the ink: the same reason the page is
+       mixed towards black. This lands where the drawer puts its selected row,
+       which is the one surface in the app already known to sit right one step
+       above that background. */
+    background: color-mix(
+        in srgb,
+        var(--background-primary) 92%,
+        #ffffff 8%
+    ) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* Hairlines between rows on a surface this close in tone: enough to separate
+   two rows, not enough to draw a grid. */
+body.nc-platform-android .nc-set-group__rows > * + *::before {
+    background: color-mix(
+        in srgb,
+        var(--background-modifier-border) 34%,
+        transparent
+    ) !important;
+}
+
+/* The header sits on the page, not on a card, so it reads as its own band. */
+body.nc-platform-android .nc-settings__header {
+    border-bottom-color: color-mix(
+        in srgb,
+        var(--background-modifier-border) 40%,
+        transparent
     ) !important;
 }
 

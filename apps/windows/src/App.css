@@ -285,7 +285,10 @@ select {
     width: min(820px, calc(100vw - 32px));
     min-width: 0;
     max-width: calc(100vw - 32px);
-    max-height: min(720px, calc(100vh - 32px));
+    /* A height, not just a ceiling: the pages inside are positioned absolutely,
+       so they contribute nothing to the panel's own size. With a max-height
+       alone the whole window collapsed onto its header. */
+    height: min(720px, calc(100vh - 32px));
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1076,7 +1079,7 @@ button.nc-settings__theme-card:focus-visible {
 .nc-link-results-popover::-webkit-scrollbar,
 .nc-event-popup::-webkit-scrollbar,
 .nc-panel-body::-webkit-scrollbar,
-.nc-settings__content::-webkit-scrollbar,
+.nc-settings__page::-webkit-scrollbar,
 .nc-shortcuts-body::-webkit-scrollbar {
     width: 9px;
 }
@@ -1084,7 +1087,7 @@ button.nc-settings__theme-card:focus-visible {
 .nc-link-results-popover::-webkit-scrollbar-thumb,
 .nc-event-popup::-webkit-scrollbar-thumb,
 .nc-panel-body::-webkit-scrollbar-thumb,
-.nc-settings__content::-webkit-scrollbar-thumb,
+.nc-settings__page::-webkit-scrollbar-thumb,
 .nc-shortcuts-body::-webkit-scrollbar-thumb {
     border: 2px solid transparent;
     border-radius: 999px;
@@ -1095,7 +1098,7 @@ button.nc-settings__theme-card:focus-visible {
 .nc-link-results-popover::-webkit-scrollbar-thumb:hover,
 .nc-event-popup::-webkit-scrollbar-thumb:hover,
 .nc-panel-body::-webkit-scrollbar-thumb:hover,
-.nc-settings__content::-webkit-scrollbar-thumb:hover,
+.nc-settings__page::-webkit-scrollbar-thumb:hover,
 .nc-shortcuts-body::-webkit-scrollbar-thumb:hover {
     background: var(--nc-scrollbar-thumb-hover);
     background-clip: padding-box;
@@ -3485,6 +3488,64 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 .nc-wallpaper-effects {
     min-width: 0;
     width: 100%;
+    display: grid;
+    gap: 14px;
+}
+
+.nc-wallpaper-effects__header {
+    display: grid;
+    grid-template-columns: 17px minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+}
+
+.nc-wallpaper-effects__header > span {
+    display: grid;
+    gap: 3px;
+}
+
+.nc-wallpaper-effects__header strong,
+.nc-wallpaper-effects__header small {
+    display: block;
+    line-height: 1.35;
+}
+
+.nc-wallpaper-effects__rows {
+    min-width: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.nc-wallpaper-effect-row {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 36px;
+    grid-template-areas:
+        "label value reset"
+        "slider slider slider";
+    align-items: center;
+    gap: 12px 10px;
+}
+
+.nc-wallpaper-effect-row__label {
+    grid-area: label;
+    display: grid;
+    gap: 3px;
+}
+
+.nc-wallpaper-effect-row__label strong,
+.nc-wallpaper-effect-row__label small {
+    display: block;
+    line-height: 1.3;
+}
+
+.nc-wallpaper-effect-row output {
+    grid-area: value;
+    min-width: 42px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .nc-wallpaper-effects__header > span,
@@ -3493,7 +3554,17 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 }
 
 .nc-wallpaper-effect-row input[type="range"] {
+    grid-area: slider;
+    width: 100%;
     min-width: 0;
+    margin: 0;
+}
+
+.nc-wallpaper-effect-row__reset {
+    grid-area: reset;
+    width: 36px;
+    height: 36px;
+    padding: 0;
 }
 
 @media (max-width: 760px) {
@@ -3866,16 +3937,9 @@ body.nc-settings-closing .nc-layout {
     transition: none;
 }
 
-/*
- * No blur while the settings are in motion.
- *
- * The panel and every block inside it are backdrop-filters, one stacked on the
- * other. A backdrop-filter samples whatever sits behind the element on the
- * frame it is painted — and while the surface slides, part of what sits behind
- * it is off-screen, which samples as nothing and reads as darker. Hence a
- * settings surface that looked right at rest and dimmed for precisely the
- * length of its travel. The tint stays; only the blur waits until it stops.
- */
+/* No blur while the settings are in motion: a backdrop-filter samples what is
+   behind the element on the frame it is painted, and part of that is off-screen
+   while the surface slides — which samples as nothing and reads as darker. */
 body.nc-settings-entering .nc-settings,
 body.nc-settings-closing .nc-settings,
 body.nc-settings-entering .nc-set-group__rows,

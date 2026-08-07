@@ -354,6 +354,34 @@ function install(): void {
                 );
 
             if (!handle) {
+                /*
+                 * An event being resized is not an event being moved.
+                 *
+                 * Once a double tap has put a block in resize mode, its two
+                 * handles are what the finger is aiming at — and they sit on
+                 * the block, whose own drag would otherwise start the moment
+                 * the finger missed one by a few pixels. Reaching for a handle
+                 * and sliding the event across the day instead is the kind of
+                 * mistake that has to be undone by hand.
+                 *
+                 * Only the drag is refused. The pointerdown is stopped before
+                 * the grid's sensor hears it, but no default is prevented, so
+                 * the tap that follows still lands: tapping the block still
+                 * opens it, and tapping away still leaves resize mode.
+                 */
+                const selected =
+                    target.closest<HTMLElement>(
+                        eventSelector
+                    );
+
+                if (
+                    selected?.classList.contains(
+                        "nc-android-event-resize-selected"
+                    )
+                ) {
+                    event.stopImmediatePropagation();
+                }
+
                 return;
             }
 
