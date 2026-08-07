@@ -176,16 +176,6 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                     >
                         <SearchIcon />
                     </button>
-                    <button
-                        type="button"
-                        className="nc-btn nc-btn-icon nc-android-settings-btn"
-                        onClick={onOpenSettings}
-                        title="Settings"
-                        aria-label="Settings"
-                    >
-                        <SettingsIcon size={20} />
-                    </button>
-
                     {/* Always today's number, never the day being looked at:
                         the badge is what takes you back to today. */}
                     <button
