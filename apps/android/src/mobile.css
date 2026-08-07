@@ -666,32 +666,56 @@ body.nc-platform-android .nc-settings-backdrop > .nc-settings {
  */
 body.nc-platform-android .nc-set-group__rows {
     /*
-     * Each row is its own card with air around it, rather than a stack sharing
-     * one box and divided by hairlines. A gap says "these are separate things
-     * you can tap" more plainly than a line drawn between them ever did.
+     * Rows are parted by the page showing through, not by a drawn line — and
+     * the group still reads as one block because only its ends are rounded.
+     *
+     * Rounding every row turned the block into a string of capsules; rounding
+     * none of them and butting them together lost the parting altogether. The
+     * shape belongs to the group, the gap to the rows.
      */
     display: grid !important;
-    gap: 4px !important;
+    gap: 2px !important;
+    overflow: visible !important;
     border: 0 !important;
     border-radius: 0 !important;
     background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    overflow: visible !important;
 }
 
-/* The hairline between rows has nothing left to separate: the gap does it. */
+/* Nothing to draw between the rows: the gap already shows the page. */
 body.nc-platform-android .nc-set-group__rows > * + *::before {
     display: none !important;
 }
 
 body.nc-platform-android .nc-set-group__rows > * {
-    border-radius: 12px !important;
+    /*
+     * Square is never quite square.
+     *
+     * A row in the middle of a group looks unrounded at a glance, and that is
+     * the point — but its corners are eased just enough not to come to a point.
+     * Truly sharp corners read as a mistake next to the rounded ends above and
+     * below them.
+     */
+    border-radius: 4px !important;
     background: color-mix(
         in srgb,
         var(--background-primary) 78%,
         #000000 22%
     ) !important;
+}
+
+/* The ends of the group carry its shape; everything between them stays square. */
+body.nc-platform-android .nc-set-group__rows > *:first-child {
+    border-radius: 14px 14px 4px 4px !important;
+}
+
+body.nc-platform-android .nc-set-group__rows > *:last-child {
+    border-radius: 4px 4px 14px 14px !important;
+}
+
+body.nc-platform-android .nc-set-group__rows > *:only-child {
+    border-radius: 14px !important;
 }
 
 /* The header sits on the page, not on a card, so it reads as its own band. */
