@@ -6,7 +6,11 @@ import ThemeWallpaperPicker from "./ThemeWallpaperPicker";
 import WallpaperEffectsControls from "./WallpaperEffectsControls";
 import { isWallpaperId, type WallpaperId } from "./themes/wallpapers";
 import { ThemeId } from "./themes/types";
-import { SettingsGroup, SettingsChoiceRow } from "./SettingsPrimitives";
+import {
+    SettingsGroup,
+    SettingsChoiceRow,
+    SettingsToggleRow,
+} from "./SettingsPrimitives";
 import {
     AppearanceMode,
     AppearancePreferences,
@@ -1406,23 +1410,19 @@ function SelectPreference({
     options: Array<[string, string]>;
     onChange: (value: string) => void;
 }) {
+    // A native <select> on Android is drawn by the system, so it ignores the
+    // theme entirely and lands as a grey box in the middle of the glass. The
+    // choice sheet is ours, and reads the chosen option back by its label.
     return (
-        <label className="nc-settings__preference-row">
-            <span>
-                <strong>{title}</strong>
-                <small>{description}</small>
-            </span>
-            <select
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-            >
-                {options.map(([optionValue, label]) => (
-                    <option key={optionValue} value={optionValue}>
-                        {label}
-                    </option>
-                ))}
-            </select>
-        </label>
+        <SettingsChoiceRow
+            label={title}
+            value={value}
+            options={options.map(([optionValue, label]) => ({
+                value: optionValue,
+                label,
+            }))}
+            onChange={onChange}
+        />
     );
 }
 
@@ -1438,21 +1438,12 @@ function TogglePreference({
     onChange: (checked: boolean) => void;
 }) {
     return (
-        <label className="nc-settings__preference-row">
-            <span>
-                <strong>{title}</strong>
-                <small>{description}</small>
-            </span>
-            <button
-                className="nc-settings__switch"
-                type="button"
-                role="switch"
-                aria-checked={checked}
-                onClick={() => onChange(!checked)}
-            >
-                <span />
-            </button>
-        </label>
+        <SettingsToggleRow
+            label={title}
+            value={description}
+            checked={checked}
+            onChange={onChange}
+        />
     );
 }
 
