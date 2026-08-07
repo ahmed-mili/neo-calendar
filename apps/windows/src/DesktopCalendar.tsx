@@ -788,6 +788,12 @@ export default function DesktopCalendar({
                         : nextPreferences.dayCount
                 );
             }
+            if (isFirstLoad) {
+                // The events are in hand, so the calendar is about to draw
+                // something rather than an empty grid. The Android shell holds
+                // its splash screen until it hears this.
+                window.dispatchEvent(new Event("neo-calendar-ready"));
+            }
             if (!didApplyInitialViewRef.current) {
                 didApplyInitialViewRef.current = true;
                 setViewType(

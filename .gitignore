@@ -52,3 +52,13 @@ apps/windows/src-tauri/target/
 .env
 .env.*
 !.env.example
+
+# Android build output and Gradle caches
+apps/android/native/.gradle/
+apps/android/native/build/
+apps/android/native/app/build/
+apps/android/dist/
+apps/android/native/app/src/main/assets/assets/
+
+# Timestamped safety copies left beside edited files
+*.bak.*

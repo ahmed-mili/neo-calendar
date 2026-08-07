@@ -1,0 +1,16 @@
+<resources>
+    <style name="Theme.NeoCalendar" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:statusBarColor">#11111B</item>
+        <item name="android:navigationBarColor">#11111B</item>
+        <item name="android:windowBackground">#11111B</item>
+        <item name="android:colorAccent">#89B4FA</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>
