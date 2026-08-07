@@ -16,8 +16,6 @@ export const VELOCITY_THRESHOLD = 0.4;
     claims it. */
 const DIRECTION_LOCK_PX = 8;
 
-const PROGRESS_PROPERTY = "--nc-drawer-progress";
-
 /** On the body while a finger is actually moving the panel. */
 const DRAGGING_CLASS = "nc-drawer-dragging";
 
@@ -26,9 +24,14 @@ const DRAGGING_CLASS = "nc-drawer-dragging";
     gesture owns the panel, cannot fire again the moment the finger lifts. */
 const GESTURE_CLASS = "nc-drawer-gesture";
 
-/** Matches the CSS transition on the panel, so the property is only dropped
-    once the drawer has finished sliding home. */
-const SETTLE_MS = 220;
+/** How long the panel takes to travel home on its own. Matches the opening
+    animation, so closing reads as opening in reverse. */
+const SETTLE_MS = 240;
+
+const EASING = "cubic-bezier(0.2, 0.85, 0.25, 1)";
+
+const PANEL_SELECTOR = ".nc-sidebar:not(.nc-sidebar-collapsed)";
+const SCRIM_SELECTOR = ".nc-mobile-sidebar-scrim";
 
 export function canStartDrawerGesture({
     x,
@@ -95,12 +98,21 @@ function readDrawerWidth(): number {
     return Math.min(window.innerWidth * 0.88, 360);
 }
 
+export interface DrawerSwipeControls {
+    /** Slides the panel out before React unmounts it, so closing by tapping the
+        calendar looks like the opening run backwards instead of a cut. */
+    requestClose: () => void;
+}
+
 /**
  * Drives the Android drawer from touch events.
  *
- * The progress of the drag travels through a CSS custom property rather than
- * React state: going through a render on every frame of a finger drag makes the
- * panel stutter. React is only told when the drawer actually opens or closes.
+ * The panel's transform is written straight onto the element, frame by frame.
+ * Both obvious alternatives are far slower: React state re-renders the tree on
+ * every frame of a finger drag, and a CSS custom property set on <body> is
+ * inherited by the whole document, so each write invalidates every node's style
+ * and still leaves a calc() to resolve on the main thread. Setting a transform
+ * on one already-composited element costs neither.
  */
 export function useDrawerSwipe({
     enabled,
@@ -110,43 +122,90 @@ export function useDrawerSwipe({
     enabled: boolean;
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
-}): void {
+}): DrawerSwipeControls {
     const openRef = useRef(isOpen);
     const changeRef = useRef(onOpenChange);
+    const closeRef = useRef<() => void>(() => undefined);
 
     openRef.current = isOpen;
     changeRef.current = onOpenChange;
 
     useEffect(() => {
-        if (!enabled || typeof document === "undefined") return;
+        if (!enabled || typeof document === "undefined") {
+            closeRef.current = () => changeRef.current(false);
+            return;
+        }
 
         const body = document.body;
         let gesture: Gesture | null = null;
+        let panel: HTMLElement | null = null;
+        let scrim: HTMLElement | null = null;
         let width = 0;
         let frame = 0;
-        let pendingProgress = 0;
+        let pending = 0;
+        let closingTimer = 0;
 
-        // Touch events fire faster than the screen refreshes, so writing the
-        // property on every one of them costs style recalculations nobody ever
-        // sees. Only the latest value before each frame matters.
-        const scheduleProgress = (progress: number) => {
-            pendingProgress = progress;
+        const findElements = () => {
+            panel = document.querySelector(PANEL_SELECTOR);
+            scrim = document.querySelector(SCRIM_SELECTOR);
+        };
+
+        const paint = (progress: number) => {
+            if (!panel) findElements();
+            if (panel) {
+                const offset = (progress - 1) * width;
+                panel.style.transform = "translate3d(" + offset + "px, 0, 0)";
+            }
+            if (scrim) scrim.style.opacity = String(progress);
+        };
+
+        const glide = (progress: number) => {
+            if (!panel) findElements();
+            if (panel) {
+                panel.style.transition =
+                    "transform " + SETTLE_MS + "ms " + EASING;
+                panel.style.transform =
+                    "translate3d(" + (progress - 1) * width + "px, 0, 0)";
+            }
+            if (scrim) {
+                scrim.style.transition = "opacity " + SETTLE_MS + "ms ease";
+                scrim.style.opacity = String(progress);
+            }
+        };
+
+        const release = () => {
+            if (panel) {
+                panel.style.transform = "";
+                panel.style.transition = "";
+            }
+            if (scrim) {
+                scrim.style.opacity = "";
+                scrim.style.transition = "";
+            }
+            panel = null;
+            scrim = null;
+        };
+
+        // Touch events outpace the screen, so only the last position before
+        // each frame is worth painting.
+        const schedule = (progress: number) => {
+            pending = progress;
             if (frame) return;
             frame = window.requestAnimationFrame(() => {
                 frame = 0;
-                body.style.setProperty(
-                    PROGRESS_PROPERTY,
-                    String(pendingProgress)
-                );
+                paint(pending);
             });
         };
 
+        const cancelFrame = () => {
+            if (!frame) return;
+            window.cancelAnimationFrame(frame);
+            frame = 0;
+        };
+
         const clearVisualState = () => {
-            if (frame) {
-                window.cancelAnimationFrame(frame);
-                frame = 0;
-            }
-            body.style.removeProperty(PROGRESS_PROPERTY);
+            cancelFrame();
+            release();
             body.classList.remove(DRAGGING_CLASS);
             body.classList.remove(GESTURE_CLASS);
         };
@@ -155,6 +214,31 @@ export function useDrawerSwipe({
             gesture = null;
             clearVisualState();
         };
+
+        /** Runs the opening animation backwards, then lets React unmount. */
+        const glideClosed = () => {
+            if (closingTimer) return;
+
+            cancelFrame();
+            findElements();
+            if (!panel) {
+                changeRef.current(false);
+                return;
+            }
+
+            body.classList.add(GESTURE_CLASS);
+            body.classList.remove(DRAGGING_CLASS);
+            width = readDrawerWidth();
+            glide(0);
+
+            closingTimer = window.setTimeout(() => {
+                closingTimer = 0;
+                clearVisualState();
+                changeRef.current(false);
+            }, SETTLE_MS);
+        };
+
+        closeRef.current = glideClosed;
 
         const onTouchStart = (event: TouchEvent) => {
             if (event.touches.length !== 1) {
@@ -216,7 +300,7 @@ export function useDrawerSwipe({
 
                 // The drawer's contents only mount once React believes it is
                 // open, so an opening drag has to say so straight away — the
-                // panel is then held under the finger by the CSS property.
+                // panel is held under the finger from here on.
                 if (!gesture.startedOpen) changeRef.current(true);
             }
 
@@ -234,7 +318,7 @@ export function useDrawerSwipe({
                 startedOpen: gesture.startedOpen,
             });
 
-            scheduleProgress(gesture.progress);
+            schedule(gesture.progress);
 
             if (event.cancelable) event.preventDefault();
         };
@@ -242,30 +326,34 @@ export function useDrawerSwipe({
         const onTouchEnd = () => {
             if (!gesture) return;
 
-            const settled = gesture.dragging
+            const wasDragging = gesture.dragging;
+            const settled = wasDragging
                 ? settleDrawerOpen({
                       progress: gesture.progress,
                       velocity: gesture.velocity,
                   })
                 : gesture.startedOpen;
 
-            // The property has to hold its settled value while the panel slides
-            // home: dropping it here would snap the drawer back to fully open
-            // for a frame before React took it away.
-            if (frame) {
-                window.cancelAnimationFrame(frame);
-                frame = 0;
-            }
-            body.style.setProperty(PROGRESS_PROPERTY, settled ? "1" : "0");
-            body.classList.remove(DRAGGING_CLASS);
             gesture = null;
+            cancelFrame();
 
-            if (settled !== openRef.current) changeRef.current(settled);
+            if (!wasDragging) {
+                clearVisualState();
+                return;
+            }
+
+            if (!settled) {
+                glideClosed();
+                return;
+            }
+
+            // Let it fall the rest of the way open on its own rather than
+            // snapping to wherever the finger let go.
+            body.classList.remove(DRAGGING_CLASS);
+            glide(1);
 
             window.setTimeout(() => {
-                if (gesture) return;
-                body.style.removeProperty(PROGRESS_PROPERTY);
-                body.classList.remove(GESTURE_CLASS);
+                if (!gesture && !closingTimer) clearVisualState();
             }, SETTLE_MS);
         };
 
@@ -290,7 +378,12 @@ export function useDrawerSwipe({
             document.removeEventListener("touchmove", onTouchMove);
             document.removeEventListener("touchend", onTouchEnd);
             document.removeEventListener("touchcancel", onTouchCancel);
+            if (closingTimer) window.clearTimeout(closingTimer);
             clearVisualState();
         };
     }, [enabled]);
+
+    return {
+        requestClose: () => closeRef.current(),
+    };
 }
