@@ -33,9 +33,9 @@ describe("SettingsGroup", () => {
 });
 
 describe("SettingsRow", () => {
-    // The value belongs under the label rather than beside it: a row reads as
-    // one thought — what it is, then what it is set to.
-    it("shows the current value under the label", () => {
+    // The value sits at the right edge, opposite its label: the eye runs down
+    // one column of names and one column of answers instead of zig-zagging.
+    it("shows the current value beside the label", () => {
         const markup = html(<SettingsRow label="Thème" value="Sombre" />);
 
         expect(markup).toContain("Thème");
@@ -87,6 +87,7 @@ describe("SettingsChoiceRow", () => {
                     { value: "0", label: "Dimanche" },
                     { value: "1", label: "Lundi" },
                 ]}
+                onOpen={() => undefined}
                 onChange={() => undefined}
             />
         );
@@ -101,10 +102,26 @@ describe("SettingsChoiceRow", () => {
                 label="Premier jour"
                 value="9"
                 options={[{ value: "1", label: "Lundi" }]}
+                onOpen={() => undefined}
                 onChange={() => undefined}
             />
         );
 
         expect(markup).not.toContain(">9<");
+    });
+
+    // The list is a page of its own, so the row has to say it leads somewhere.
+    it("carries a chevron because it opens a page", () => {
+        const markup = html(
+            <SettingsChoiceRow
+                label="Premier jour"
+                value="1"
+                options={[{ value: "1", label: "Lundi" }]}
+                onOpen={() => undefined}
+                onChange={() => undefined}
+            />
+        );
+
+        expect(markup).toContain("nc-set-row__trailing");
     });
 });

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { TFolder } from "obsidian";
 import { CalendarInfo } from "../../types";
 import { FolderIcon, PlusIcon, CheckIcon } from "../calendar/Icons";
+import { t } from "../i18n";
 
 /**
  * The "add calendar" picker behind the sidebar "+". A local calendar is just a
@@ -85,7 +86,7 @@ export const AddLocalCalendar = ({
 
     return (
         <div className="nc-add-cal">
-            <span className="nc-add-cal-chip">Calendar</span>
+            <span className="nc-add-cal-chip">{t("Calendar")}</span>
 
             <div className="nc-add-cal-list">
                 {options.map((o) => (
@@ -138,7 +139,7 @@ export const AddLocalCalendar = ({
                                     type="text"
                                     autoFocus
                                     disabled={busy}
-                                    placeholder="Calendar name"
+                                    placeholder={t("Calendar name")}
                                     value={newName}
                                     onChange={(e) => setNewName(e.target.value)}
                                     onKeyDown={(e) => {
@@ -156,7 +157,7 @@ export const AddLocalCalendar = ({
                                     className="nc-add-cal-confirm"
                                     onClick={createNew}
                                     disabled={busy || !newName.trim()}
-                                    title="Create calendar"
+                                    title={t("Create calendar")}
                                 >
                                     <CheckIcon size={16} />
                                 </button>

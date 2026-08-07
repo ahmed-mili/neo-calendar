@@ -34,6 +34,7 @@ import {
     XIcon,
     ChartColumnIcon,
 } from "./Icons";
+import { t } from "../i18n";
 
 interface CalendarEventsPanelProps {
     calendar: {
@@ -127,8 +128,8 @@ type SettingsPage = "root" | "status" | "date" | "period";
 
 const STATUS_OPTIONS: { value: PanelStatusFilter; label: string }[] = [
     { value: "all", label: "All" },
-    { value: "todo", label: "To do" },
-    { value: "complete", label: "Complete" },
+    { value: "todo", label: t("To do") },
+    { value: "complete", label: t("Complete") },
 ];
 
 const DATE_OPTIONS: { value: PanelDateFilter; label: string }[] = [
@@ -278,7 +279,7 @@ export default function CalendarEventsPanel({
                             className={`nc-cep-icon-btn${
                                 openMenu === "more" ? " nc-active" : ""
                             }`}
-                            title="More options"
+                            title={t("More options")}
                             aria-expanded={openMenu === "more"}
                             onClick={() => toggleMenu("more")}
                         >
@@ -289,7 +290,7 @@ export default function CalendarEventsPanel({
                             className={`nc-cep-icon-btn${
                                 openMenu === "settings" ? " nc-active" : ""
                             }`}
-                            title="Filters"
+                            title={t("Filters")}
                             aria-expanded={openMenu === "settings"}
                             onClick={() => toggleMenu("settings")}
                         >
@@ -298,7 +299,7 @@ export default function CalendarEventsPanel({
                         <button
                             type="button"
                             className="nc-cep-icon-btn"
-                            title="Add event"
+                            title={t("Add event")}
                             disabled={!calendar.editable}
                             onClick={() => onAddEvent(calendar.id)}
                         >
@@ -318,7 +319,7 @@ export default function CalendarEventsPanel({
                         <button
                             type="button"
                             className="nc-cep-icon-btn"
-                            title="Collapse"
+                            title={t("Collapse")}
                             onClick={onClose}
                         >
                             <ChevronsLeftIcon />
@@ -333,15 +334,15 @@ export default function CalendarEventsPanel({
                     <input
                         type="search"
                         value={searchQuery}
-                        placeholder="Search events"
-                        aria-label="Search events"
+                        placeholder={t("Search events")}
+                        aria-label={t("Search events")}
                         onChange={(event) => setSearchQuery(event.target.value)}
                     />
                     {searchQuery && (
                         <button
                             type="button"
                             className="nc-cep-search-clear"
-                            title="Clear search"
+                            title={t("Clear search")}
                             onClick={() => setSearchQuery("")}
                         >
                             <XIcon size={12} />
@@ -350,20 +351,20 @@ export default function CalendarEventsPanel({
                 </div>
 
                 {showTotals && (
-                    <div className="nc-cep-summary" aria-label="Event totals">
+                    <div className="nc-cep-summary" aria-label={t("Event totals")}>
                         <div className="nc-cep-summary-metric">
-                            <span>Total time</span>
+                            <span>{t("Total time")}</span>
                             <strong>
                                 {formatTotalMinutes(summary.totalMinutes)}
                             </strong>
                         </div>
                         <div className="nc-cep-summary-metric">
-                            <span>Tasks</span>
+                            <span>{t("Tasks")}</span>
                             <strong>{summary.taskCount}</strong>
                         </div>
                         <div className="nc-cep-summary-period">
                             <CalendarGlyphIcon size={14} />
-                            <span>Period</span>
+                            <span>{t("Period")}</span>
                             <strong title={periodLabel}>{periodLabel}</strong>
                         </div>
                     </div>
@@ -385,7 +386,7 @@ export default function CalendarEventsPanel({
                                 className="nc-cep-menu-swatch"
                                 style={{ backgroundColor: calendar.color }}
                             />
-                            <span className="nc-cep-menu-label">Color</span>
+                            <span className="nc-cep-menu-label">{t("Color")}</span>
                             <span className="nc-cep-menu-value">
                                 {getCalendarColorName(calendar.color)}
                             </span>
@@ -469,7 +470,7 @@ export default function CalendarEventsPanel({
                                                 : "root"
                                         )
                                     }
-                                    title="Back"
+                                    title={t("Back")}
                                 >
                                     <ChevronLeftIcon size={14} />
                                 </button>
@@ -579,7 +580,7 @@ export default function CalendarEventsPanel({
                         {settingsPage === "period" && (
                             <div className="nc-cep-period-editor">
                                 <label>
-                                    <span>From</span>
+                                    <span>{t("From")}</span>
                                     <input
                                         type="date"
                                         value={draftPeriod.start}

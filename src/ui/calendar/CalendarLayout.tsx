@@ -12,6 +12,7 @@ import ListView from "./ListView";
 import ThreeDayView from "./ThreeDayView";
 import { PlusIcon } from "./Icons";
 import { useDrawerSwipe } from "./useDrawerSwipe";
+import { t } from "../i18n";
 
 interface CalendarLayoutProps {
     currentDate: Date;
@@ -327,7 +328,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                 <button
                     type="button"
                     className="nc-mobile-sidebar-scrim"
-                    aria-label="Close calendars"
+                    aria-label={t("Close calendars")}
                     onClick={drawerSwipe.requestClose}
                 />
             )}
@@ -451,8 +452,8 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                         <button
                             type="button"
                             className="nc-mobile-agenda-add"
-                            aria-label="Create a new event"
-                            title="New event"
+                            aria-label={t("Create a new event")}
+                            title={t("New event")}
                             onClick={onNewEvent}
                         >
                             <PlusIcon size={25} />
@@ -504,8 +505,8 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
             <button
                 type="button"
                 className="nc-mobile-new-event"
-                aria-label="Create a new event"
-                title="New event"
+                aria-label={t("Create a new event")}
+                title={t("New event")}
                 onClick={onNewEvent}
             >
                 <PlusIcon size={24} />

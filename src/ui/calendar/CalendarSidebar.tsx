@@ -24,6 +24,7 @@ import ShortcutsPanel from "./ShortcutsPanel";
 import { ObsidianIcon } from "../components/ObsidianIcon";
 import { useSidebarReorder } from "./useSidebarReorder";
 import { isAndroidRuntime } from "./CalendarUtils";
+import { t } from "../i18n";
 
 const ONLINE_TYPES = ["ical", "caldav", "icloud"];
 
@@ -185,7 +186,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         const items: CalendarMenuItem[] = [];
         items.push({
             key: "color",
-            label: "Color",
+            label: t("Color"),
             swatchColor: source.color,
             onClick: () => openColorPicker(source.id, source.color),
         });
@@ -194,7 +195,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         if (source.editable || source.type === "ical") {
             items.push({
                 key: "rename",
-                label: "Rename",
+                label: t("Rename"),
                 icon: <PencilIcon />,
                 onClick: () => startRename(source),
             });
@@ -203,7 +204,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         if (source.type === "ical") {
             items.push({
                 key: "edit-link",
-                label: "Edit link",
+                label: t("Edit link"),
                 icon: <LinkIcon />,
                 onClick: () => onEditCalendarLink(source.id),
             });
@@ -265,7 +266,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                         <button
                             className="nc-sidebar-top-btn nc-sidebar-search-btn"
                             onClick={onOpenSearch}
-                            title="Open command menu"
+                            title={t("Open command menu")}
                         >
                             <SearchIcon />
                         </button>
@@ -273,8 +274,8 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                     <button
                         className="nc-sidebar-top-btn nc-sidebar-settings-btn"
                         onClick={onOpenSettings}
-                        title="Settings"
-                        aria-label="Settings"
+                        title={t("Settings")}
+                        aria-label={t("Settings")}
                     >
                         <SettingsIcon size={17} />
                     </button>
@@ -282,7 +283,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                         <button
                             className="nc-sidebar-top-btn nc-sidebar-new-event-btn"
                             onClick={onNewEvent}
-                            title="Create event"
+                            title={t("Create event")}
                         >
                             <NewEventIcon />
                         </button>
@@ -295,7 +296,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                     {isAndroid && (
                         <section
                             className="nc-android-day-switcher"
-                            aria-label="Days displayed"
+                            aria-label={t("Days displayed")}
                         >
                             <div className="nc-android-day-switcher-primary">
                                 {[1, 2, 3].map((count) => {
@@ -343,7 +344,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                     setMoreDaysOpen((value) => !value)
                                 }
                             >
-                                <span>More day spans</span>
+                                <span>{t("More day spans")}</span>
                                 <ChevronDownIcon size={14} />
                             </button>
 
@@ -380,7 +381,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                             min={1}
                                             max={60}
                                             value={customDayCount}
-                                            aria-label="Custom number of days"
+                                            aria-label={t("Custom number of days")}
                                             onChange={(event) =>
                                                 setCustomDayCount(
                                                     Number(
@@ -390,7 +391,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                 )
                                             }
                                         />
-                                        <button type="submit">Apply</button>
+                                        <button type="submit">{t("Apply")}</button>
                                     </form>
                                 </div>
                             )}
@@ -448,7 +449,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                             e.currentTarget.getBoundingClientRect()
                                         );
                                     }}
-                                    title="More options"
+                                    title={t("More options")}
                                 >
                                     <MoreHorizontalIcon />
                                 </button>
@@ -458,7 +459,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                         e.stopPropagation();
                                         onAddCalendar();
                                     }}
-                                    title="Add calendar"
+                                    title={t("Add calendar")}
                                 >
                                     <PlusIcon size={14} />
                                 </button>
@@ -566,6 +567,23 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                     // double-click used to fire
                                                     // the plain onClick first and
                                                     // reset the default every time.
+                                                    // There is no shift on a
+                                                    // touch screen, so the
+                                                    // colour was simply out of
+                                                    // reach there. On a phone
+                                                    // the swatch IS the colour:
+                                                    // it opens the picker, and
+                                                    // the row beside it sets the
+                                                    // default - so recolouring a
+                                                    // calendar never moves the
+                                                    // default with it.
+                                                    if (isAndroidRuntime()) {
+                                                        openColorPicker(
+                                                            source.id,
+                                                            source.color
+                                                        );
+                                                        return;
+                                                    }
                                                     if (e.shiftKey) {
                                                         openColorPicker(
                                                             source.id,
@@ -579,7 +597,9 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                         );
                                                 }}
                                                 title={
-                                                    source.editable
+                                                    isAndroidRuntime()
+                                                        ? "Change colour"
+                                                        : source.editable
                                                         ? "Set as default (shift-click to change colour)"
                                                         : "Shift-click to change colour"
                                                 }
@@ -651,7 +671,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                         className="nc-calendar-edit-btn nc-edit-ok"
                                                         onClick={commitRename}
                                                         disabled={renaming}
-                                                        title="Save"
+                                                        title={t("Save")}
                                                     >
                                                         {renaming
                                                             ? "..."
@@ -661,7 +681,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                         className="nc-calendar-edit-btn nc-edit-cancel"
                                                         onClick={cancelRename}
                                                         disabled={renaming}
-                                                        title="Cancel"
+                                                        title={t("Cancel")}
                                                     >
                                                         Cancel
                                                     </button>
@@ -690,7 +710,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                                     source.id
                                                                 );
                                                             }}
-                                                            title="More options"
+                                                            title={t("More options")}
                                                         >
                                                             <MoreHorizontalIcon />
                                                         </button>
@@ -754,8 +774,8 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                 <button
                     type="button"
                     className="nc-sidebar-help-btn"
-                    title="Keyboard shortcuts"
-                    aria-label="Keyboard shortcuts"
+                    title={t("Keyboard shortcuts")}
+                    aria-label={t("Keyboard shortcuts")}
                     onClick={(event) =>
                         setShortcutsAnchor(
                             shortcutsAnchor

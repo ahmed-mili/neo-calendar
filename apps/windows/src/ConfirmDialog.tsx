@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, X } from "lucide-react";
+import { t } from "../../../src/ui/i18n";
 
 export interface ConfirmDialogProps {
     open: boolean;
@@ -16,7 +17,7 @@ export default function ConfirmDialog({
     open,
     title,
     message,
-    confirmLabel = "Confirm",
+    confirmLabel = t("Confirm"),
     danger = false,
     onClose,
     onConfirm,
@@ -72,7 +73,7 @@ export default function ConfirmDialog({
                         type="button"
                         onClick={onClose}
                         disabled={submitting}
-                        aria-label="Close"
+                        aria-label={t("Close")}
                     >
                         <X size={17} />
                     </button>

@@ -7,6 +7,13 @@ import WallpaperEffectsControls from "./WallpaperEffectsControls";
 import { isWallpaperId, type WallpaperId } from "./themes/wallpapers";
 import { ThemeId } from "./themes/types";
 import {
+    getLanguage,
+    LANGUAGES,
+    setLanguage,
+    t,
+    type Language,
+} from "../../../src/ui/i18n";
+import {
     SettingsGroup,
     SettingsChoiceRow,
     SettingsRow,
@@ -29,22 +36,15 @@ import type {
     MobileInitialView,
 } from "./platform/desktopWorkspacePreferences";
 import {
-    Cable,
-    CalendarDays,
+    ArrowLeft,
     Check,
-    Cloud,
     ChevronDown,
     Copy,
     FileText,
     Flag,
     FolderOpen,
     Library,
-    Moon,
-    Palette,
     Plus,
-    Settings2,
-    Smartphone,
-    Sun,
     Trash2,
     Upload,
     Wifi,
@@ -53,7 +53,66 @@ import {
     Save,
 } from "lucide-react";
 
-type SettingsTab = "general" | "calendars" | "appearance" | "sync";
+/**
+ * The settings are a stack of pages rather than a row of tabs.
+ *
+ * A tab bar asks a person to read four labels and guess which one hides what
+ * they came for; a first page that lists everything, with the heavy subjects
+ * behind a chevron, answers the question before it is asked. The back arrow is
+ * then the only way out, at the top left, where it always is.
+ */
+type SettingsSection =
+    | "calendars"
+    | "appearance"
+    | "sync"
+    | "vaults"
+    | "timezones"
+    | "folder";
+
+/** Kept for callers that used to open the settings straight onto a tab. */
+type SettingsTab = "general" | SettingsSection;
+
+interface ChoicePage {
+    title: string;
+    value: string;
+    options: Array<{ value: string; label: string; icon?: React.ReactNode }>;
+    onPick: (value: string) => void;
+}
+
+type SettingsPage =
+    | { kind: "root" }
+    | { kind: "section"; id: SettingsSection }
+    | { kind: "choice"; choice: ChoicePage };
+
+const SECTION_TITLES: Record<SettingsSection, string> = {
+    calendars: t("Calendars"),
+    appearance: t("Appearance"),
+    sync: t("Sync"),
+    vaults: t("Obsidian vaults"),
+    timezones: t("Time zones"),
+    folder: t("Data folder"),
+};
+
+function pageTitle(page: SettingsPage): string {
+    if (page.kind === "root") return t("Settings");
+    if (page.kind === "choice") return page.choice.title;
+    return SECTION_TITLES[page.id];
+}
+
+function pageKey(page: SettingsPage, index: number): string {
+    if (page.kind === "root") return "root";
+    if (page.kind === "section") return `section:${page.id}`;
+    return `choice:${index}:${page.choice.title}`;
+}
+
+/**
+ * A caller asking for a section gets it opened on top of the first page, not
+ * instead of it: the back arrow then leads where it looks like it leads.
+ */
+function initialStack(tab: SettingsTab): SettingsPage[] {
+    if (tab === "general") return [{ kind: "root" }];
+    return [{ kind: "root" }, { kind: "section", id: tab }];
+}
 
 export interface DesktopSettingsCalendar {
     id: string;
@@ -96,28 +155,27 @@ export interface DesktopSettingsProps {
     onCalendarColorChange: (calendarId: string, color: string) => void;
 }
 
-const TABS: Array<{
-    id: SettingsTab;
-    label: string;
-    icon: typeof Settings2;
-}> = [
-    { id: "general", label: "Général", icon: Settings2 },
-    { id: "calendars", label: "Calendriers", icon: CalendarDays },
-    { id: "appearance", label: "Apparence", icon: Palette },
-    { id: "sync", label: "Synchronisation", icon: Cloud },
-];
+/**
+ * How long the settings take to leave, matched in App.css and mobile.css. The
+ * panel is unmounted on this timer, so a shorter value here cuts the exit off
+ * partway through.
+ */
+const SETTINGS_EXIT_MS = 240;
 
-/** Length of the settings panel's fade, matched in App.css. */
-const SETTINGS_EXIT_MS = 200;
+/** Length of a page sliding back out to the right, matched in App.css. */
+const PAGE_EXIT_MS = 220;
+
+/** Length of the settings arriving, matched in App.css and mobile.css. */
+const SETTINGS_ENTER_MS = 260;
 
 const WEEKDAYS = [
-    "Dimanche",
-    "Lundi",
-    "Mardi",
-    "Mercredi",
-    "Jeudi",
-    "Vendredi",
-    "Samedi",
+    t("Sunday"),
+    t("Monday"),
+    t("Tuesday"),
+    t("Wednesday"),
+    t("Thursday"),
+    t("Friday"),
+    t("Saturday"),
 ];
 
 function createThemeDraft(
@@ -172,7 +230,13 @@ export default function DesktopSettings({
     onCalendarColorChange,
 }: DesktopSettingsProps) {
     const currentTheme = getTheme(themeId);
-    const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+    const [stack, setStack] = useState<SettingsPage[]>(() =>
+        initialStack(initialTab)
+    );
+    // The page that was just left stays mounted for the length of its exit:
+    // React would otherwise remove it on the spot and it would vanish instead
+    // of sliding back out.
+    const [leaving, setLeaving] = useState<SettingsPage | null>(null);
     const [timezone, setTimezone] = useState("");
     const [editingCalendarId, setEditingCalendarId] = useState<string | null>(
         null
@@ -191,14 +255,46 @@ export default function DesktopSettings({
     const [themeDirty, setThemeDirty] = useState(false);
 
     /*
-     * Select the requested tab only when the settings window is opened (or when
-     * a caller explicitly changes initialTab). Keeping this separate from the
-     * Escape listener prevents theme-picker state and parent callback updates
-     * from resetting the user back to the General tab.
+     * Rewind to the requested page only when the settings window is opened (or
+     * when a caller explicitly changes initialTab). Keeping this separate from
+     * the Escape listener prevents theme-picker state and parent callback
+     * updates from throwing the user back to the first page mid-visit.
      */
     useEffect(() => {
-        if (open) setActiveTab(initialTab);
+        if (open) {
+            setStack(initialStack(initialTab));
+            setLeaving(null);
+        }
     }, [initialTab, open]);
+
+    const currentPage = stack[stack.length - 1] ?? { kind: "root" };
+
+    /**
+     * One step back: out of a sub-page, or out of the settings from the first
+     * page. Both leave in the same direction, so the arrow always means the
+     * same thing.
+     */
+    const goBack = React.useCallback(() => {
+        if (stack.length <= 1) {
+            onClose();
+            return;
+        }
+        const departing = stack[stack.length - 1];
+        setLeaving(departing);
+        setStack(stack.slice(0, -1));
+        window.setTimeout(() => {
+            setLeaving((page) => (page === departing ? null : page));
+        }, PAGE_EXIT_MS);
+    }, [onClose, stack]);
+
+    const openPage = React.useCallback((page: SettingsPage) => {
+        setStack((current) => [...current, page]);
+    }, []);
+
+    const openChoice = React.useCallback(
+        (choice: ChoicePage) => openPage({ kind: "choice", choice }),
+        [openPage]
+    );
 
     useEffect(() => {
         if (!open) return;
@@ -208,11 +304,11 @@ export default function DesktopSettings({
                 setThemePickerOpen(false);
                 return;
             }
-            if (!editingCalendarId) onClose();
+            if (!editingCalendarId) goBack();
         };
         window.addEventListener("keydown", closeOnEscape);
         return () => window.removeEventListener("keydown", closeOnEscape);
-    }, [editingCalendarId, onClose, open, themePickerOpen]);
+    }, [editingCalendarId, goBack, open, themePickerOpen]);
 
     useEffect(() => {
         if (!themePickerOpen) return;
@@ -272,16 +368,38 @@ export default function DesktopSettings({
     // The calendar behind is faded out rather than left showing through: the
     // panel is glass, so without this the drawer and the grid read straight
     // through the settings instead of the wallpaper alone.
+    /*
+     * Both stacks of glass in here are backdrop-filters, and a backdrop-filter
+     * on something that is moving is resampled from whatever happens to be
+     * behind it that frame — including, at the edges, nothing at all. The panel
+     * darkened for exactly as long as it slid, and looked right the moment it
+     * stopped. So the blur is switched off while it travels: `entering` marks
+     * the arrival the way `closing` already marked the departure.
+     */
+    const [entering, setEntering] = useState(false);
+
+    useEffect(() => {
+        if (!open) return;
+        setEntering(true);
+        const timer = window.setTimeout(
+            () => setEntering(false),
+            SETTINGS_ENTER_MS
+        );
+        return () => window.clearTimeout(timer);
+    }, [open]);
+
     useEffect(() => {
         if (typeof document === "undefined") return;
         const body = document.body;
         body.classList.toggle("nc-settings-open", mounted);
         body.classList.toggle("nc-settings-closing", closing);
+        body.classList.toggle("nc-settings-entering", entering && mounted);
         return () => {
             body.classList.remove("nc-settings-open");
             body.classList.remove("nc-settings-closing");
+            body.classList.remove("nc-settings-entering");
         };
-    }, [mounted, closing]);
+    }, [mounted, closing, entering]);
 
     if (!mounted) return null;
 
@@ -319,14 +437,14 @@ export default function DesktopSettings({
             !isValidHex(themeDraft.surface) ||
             !isValidHex(themeDraft.ink)
         ) {
-            setThemeMessage("Les couleurs doivent utiliser le format #RRGGBB");
+            setThemeMessage(t("Colours must use the #RRGGBB format"));
             return;
         }
         const next = setThemeCustomization(appearance, themeId, themeDraft);
         setAppearance(next);
         setThemeDraft(createThemeDraft(themeId, next));
         setThemeDirty(false);
-        setThemeMessage("Modifications enregistrées");
+        setThemeMessage(t("Changes saved"));
     };
 
     const resetCurrentTheme = () => {
@@ -334,7 +452,7 @@ export default function DesktopSettings({
         setAppearance(next);
         setThemeDraft(createThemeDraft(themeId, next));
         setThemeDirty(false);
-        setThemeMessage("Thème réinitialisé");
+        setThemeMessage(t("Theme reset"));
     };
 
     const copyCurrentTheme = async () => {
@@ -360,9 +478,9 @@ export default function DesktopSettings({
 
         try {
             await navigator.clipboard.writeText(payload);
-            setThemeMessage("Thème copié");
+            setThemeMessage(t("Theme copied"));
         } catch {
-            setThemeMessage("Impossible de copier le thème");
+            setThemeMessage(t("Could not copy the theme"));
         }
     };
 
@@ -420,7 +538,7 @@ export default function DesktopSettings({
                 `${importedTheme.label} importé — enregistre pour appliquer`
             );
         } catch {
-            setThemeMessage("Fichier de thème invalide");
+            setThemeMessage(t("Invalid theme file"));
         } finally {
             if (importThemeInputRef.current) {
                 importThemeInputRef.current.value = "";
@@ -460,6 +578,806 @@ export default function DesktopSettings({
         setCalendarName("");
     };
 
+    const secondaryTimezoneCount = preferences.secondaryTimezones.length;
+    const enabledVaultCount = detectedVaults.filter((vault) =>
+        isVaultEnabled(vault.path)
+    ).length;
+
+    /** The first page: everything the app can be set to, in one column. */
+    const renderRoot = () => (
+        <div className="nc-set-groups">
+            <SettingsGroup
+                title={t("Calendar view")}
+                note={t("Without “Create an event by tapping a day of the month”, tapping a day opens the day view instead.")}
+            >
+                <SettingsChoiceRow
+                    label={t("Initial view on desktop")}
+                    value={preferences.initialView.desktop}
+                    options={[
+                        { value: "day", label: t("Day") },
+                        { value: "week", label: t("Week") },
+                        { value: "month", label: t("Month") },
+                        { value: "list", label: t("List") },
+                    ]}
+                    onOpen={openChoice}
+                    onChange={(value) =>
+                        patchInitialView({
+                            desktop: value as DesktopInitialView,
+                        })
+                    }
+                />
+                <SettingsChoiceRow
+                    label={t("Initial view on phone")}
+                    value={preferences.initialView.mobile}
+                    options={[
+                        { value: "day", label: t("Day") },
+                        { value: "3days", label: t("3 days") },
+                        { value: "list", label: t("List") },
+                    ]}
+                    onOpen={openChoice}
+                    onChange={(value) =>
+                        patchInitialView({
+                            mobile: value as MobileInitialView,
+                        })
+                    }
+                />
+                <SettingsChoiceRow
+                    label={t("First day of the week")}
+                    value={String(preferences.firstDay)}
+                    options={WEEKDAYS.map((day, index) => ({
+                        value: String(index),
+                        label: day,
+                    }))}
+                    onOpen={openChoice}
+                    onChange={(value) =>
+                        patchPreferences({ firstDay: Number(value) })
+                    }
+                />
+                <SettingsToggleRow
+                    label={t("24-hour time")}
+                    checked={preferences.timeFormat24h}
+                    onChange={(checked) =>
+                        patchPreferences({ timeFormat24h: checked })
+                    }
+                />
+                <SettingsToggleRow
+                    label={t("Create an event by tapping a day of the month")}
+                    checked={preferences.clickToCreateEventFromMonthView}
+                    onChange={(checked) =>
+                        patchPreferences({
+                            clickToCreateEventFromMonthView: checked,
+                        })
+                    }
+                />
+                <SettingsToggleRow
+                    label={t("New events created as tasks")}
+                    checked={preferences.defaultEventsAsTasks}
+                    onChange={(checked) =>
+                        patchPreferences({ defaultEventsAsTasks: checked })
+                    }
+                />
+            </SettingsGroup>
+
+            {/* Colour mode sits directly under the theme rather than inside
+                the appearance page: going light-to-dark is a decision taken
+                often, and four taps for it is three too many. */}
+            <SettingsGroup title={t("Appearance")}>
+                <SettingsRow
+                    label={t("Theme")}
+                    value={currentTheme.label}
+                    navigates
+                    onClick={() =>
+                        openPage({ kind: "section", id: "appearance" })
+                    }
+                />
+                <SettingsChoiceRow
+                    label={t("Colour mode")}
+                    value={appearance.mode}
+                    options={[
+                        { value: "system", label: t("System") },
+                        { value: "light", label: t("Light") },
+                        { value: "dark", label: t("Dark") },
+                    ]}
+                    onOpen={openChoice}
+                    onChange={(mode) =>
+                        updateAppearance({ mode: mode as AppearanceMode })
+                    }
+                />
+                <SettingsChoiceRow
+                    label={t("Language")}
+                    value={getLanguage()}
+                    options={LANGUAGES}
+                    onOpen={openChoice}
+                    onChange={(language) => setLanguage(language as Language)}
+                />
+            </SettingsGroup>
+
+            <SettingsGroup title={t("Integrations")}>
+                <SettingsRow
+                    label={t("Calendars")}
+                    value={String(calendars.length)}
+                    navigates
+                    onClick={() =>
+                        openPage({ kind: "section", id: "calendars" })
+                    }
+                />
+                <SettingsRow
+                    label={t("Time zones")}
+                    value={
+                        secondaryTimezoneCount === 0
+                            ? t("None")
+                            : String(secondaryTimezoneCount)
+                    }
+                    navigates
+                    onClick={() =>
+                        openPage({ kind: "section", id: "timezones" })
+                    }
+                />
+            </SettingsGroup>
+
+            <SettingsGroup title={t("Data")}>
+                <SettingsRow
+                    label={t("Data folder")}
+                    value={vaultName(dataFolder)}
+                    navigates
+                    onClick={() => openPage({ kind: "section", id: "folder" })}
+                />
+                <SettingsRow
+                    label={t("Obsidian vaults")}
+                    value={
+                        vaultFolders.length === 0
+                            ? t("No folder")
+                            : String(enabledVaultCount)
+                    }
+                    navigates
+                    onClick={() => openPage({ kind: "section", id: "vaults" })}
+                />
+                <SettingsRow
+                    label={t("Sync")}
+                    navigates
+                    onClick={() => openPage({ kind: "section", id: "sync" })}
+                />
+            </SettingsGroup>
+        </div>
+    );
+
+    const renderTimezones = () => (
+        <div className="nc-set-groups">
+            <SettingsGroup note={t("An extra hour column appears in the week, day and three-day views.")}>
+                <div className="nc-set-row nc-set-row--field">
+                    <input
+                        value={timezone}
+                        placeholder="ex. America/New_York"
+                        aria-label={t("Time zone to add")}
+                        onChange={(event) => setTimezone(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                                event.preventDefault();
+                                addTimezone();
+                            }
+                        }}
+                    />
+                    <button
+                        type="button"
+                        onClick={addTimezone}
+                        aria-label="Ajouter un fuseau horaire"
+                    >
+                        <Plus size={18} />
+                    </button>
+                </div>
+            </SettingsGroup>
+
+            {preferences.secondaryTimezones.length > 0 && (
+                <SettingsGroup title={t("Time zones added")}>
+                    {preferences.secondaryTimezones.map((zone) => (
+                        <div className="nc-set-row" key={zone}>
+                            <span className="nc-set-row__label">{zone}</span>
+                            <span className="nc-set-row__trailing">
+                                <button
+                                    type="button"
+                                    className="nc-set-row__icon-button"
+                                    onClick={() =>
+                                        patchPreferences({
+                                            secondaryTimezones:
+                                                preferences.secondaryTimezones.filter(
+                                                    (item) => item !== zone
+                                                ),
+                                        })
+                                    }
+                                    aria-label={`Retirer ${zone}`}
+                                >
+                                    <X size={16} />
+                                </button>
+                            </span>
+                        </div>
+                    ))}
+                </SettingsGroup>
+            )}
+        </div>
+    );
+
+    const renderFolder = () => (
+        <div className="nc-set-groups">
+            <SettingsGroup note={t("Neo Calendar keeps its calendar files in this folder. Each direct subfolder is a calendar.")}>
+                <div className="nc-set-row nc-set-row--stacked">
+                    <code>{dataFolder}</code>
+                </div>
+                <SettingsRow
+                    label={t("Change folder")}
+                    onClick={() => void onChangeDataFolder()}
+                />
+                <SettingsRow
+                    label={t("Open folder")}
+                    onClick={() => void onOpenDataFolder()}
+                />
+            </SettingsGroup>
+        </div>
+    );
+
+    const renderVaults = () => (
+        <div className="nc-set-groups">
+            <SettingsGroup note={t("Add the folder that holds your Obsidian vaults. Those sitting directly inside it with an .obsidian folder are detected.")}>
+                <SettingsRow
+                    label={
+                        isChoosingVaultFolder
+                            ? t("Choosing…")
+                            : t("Add a folder")
+                    }
+                    disabled={isChoosingVaultFolder}
+                    onClick={() => void onAddVaultFolder()}
+                />
+            </SettingsGroup>
+
+            {vaultFolders.length > 0 && (
+                <SettingsGroup title={t("Folders added")}>
+                    {vaultFolders.map((folderPath) => (
+                        <div
+                            className="nc-set-row nc-set-row--path"
+                            key={folderPath}
+                        >
+                            <span className="nc-set-row__icon">
+                                <FolderOpen size={18} />
+                            </span>
+                            <span className="nc-set-row__text">
+                                <span className="nc-set-row__label">
+                                    {vaultName(folderPath)}
+                                </span>
+                                <code>{folderPath}</code>
+                            </span>
+                            <span className="nc-set-row__trailing">
+                                <button
+                                    type="button"
+                                    className="nc-set-row__icon-button"
+                                    onClick={() =>
+                                        void onRemoveVaultFolder(folderPath)
+                                    }
+                                    aria-label={`Retirer ${folderPath}`}
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </span>
+                        </div>
+                    ))}
+                </SettingsGroup>
+            )}
+
+            {vaultFolders.length > 0 && (
+                <SettingsGroup
+                    title={
+                        isScanningVaults
+                            ? t("Vaults detected — scanning…")
+                            : t("Vaults detected")
+                    }
+                    note={t("Turn a vault off to leave it out of note search.")}
+                >
+                    {detectedVaults.length === 0 ? (
+                        <div className="nc-set-row">
+                            <span className="nc-set-row__label">
+                                Aucun coffre détecté
+                            </span>
+                        </div>
+                    ) : (
+                        detectedVaults.map((vault) => {
+                            const enabled = isVaultEnabled(vault.path);
+                            return (
+                                <button
+                                    className="nc-set-row nc-set-row--action nc-set-row--path"
+                                    key={vault.path}
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={enabled}
+                                    onClick={() =>
+                                        void onSetVaultEnabled(
+                                            vault.path,
+                                            !enabled
+                                        )
+                                    }
+                                >
+                                    <span className="nc-set-row__icon">
+                                        <Library size={18} />
+                                    </span>
+                                    <span className="nc-set-row__text">
+                                        <span className="nc-set-row__label">
+                                            {vault.name}
+                                        </span>
+                                        <code>{vault.path}</code>
+                                    </span>
+                                    <span className="nc-set-row__trailing">
+                                        <span
+                                            className="nc-set-switch"
+                                            aria-hidden="true"
+                                        >
+                                            <span className="nc-set-switch__knob" />
+                                        </span>
+                                    </span>
+                                </button>
+                            );
+                        })
+                    )}
+                </SettingsGroup>
+            )}
+        </div>
+    );
+
+    const renderCalendars = () => (
+        <div className="nc-set-groups">
+            <SettingsGroup note={t("Each direct subfolder of the data folder is a calendar.")}>
+                <SettingsRow
+                    label={t("Add calendar")}
+                    value={t("Full note, ICS or automatic")}
+                    onClick={onAddCalendar}
+                />
+            </SettingsGroup>
+
+            {calendars.length > 0 && (
+                <SettingsGroup title={t("Calendars")}>
+                    {calendars.map((calendar) => (
+                        <div
+                            className="nc-settings__calendar-item"
+                            key={calendar.id}
+                        >
+                            <span
+                                className="nc-settings__calendar-kind"
+                                title={
+                                    calendar.type === "local"
+                                        ? t("Full note")
+                                        : calendar.type === "ical"
+                                        ? "Remote ICS"
+                                        : "Calendrier automatique"
+                                }
+                            >
+                                {calendar.type === "local" ? (
+                                    <FileText size={15} />
+                                ) : calendar.type === "ical" ? (
+                                    <Wifi size={15} />
+                                ) : (
+                                    <Flag size={15} />
+                                )}
+                            </span>
+                            <button
+                                className={`nc-settings__calendar-enabled${
+                                    calendar.hidden ? " is-hidden" : ""
+                                }`}
+                                type="button"
+                                onClick={() => onToggleCalendar(calendar.id)}
+                                aria-label={`${
+                                    calendar.hidden ? "Afficher" : "Masquer"
+                                } ${calendar.name}`}
+                            >
+                                {!calendar.hidden && <Check size={14} />}
+                            </button>
+                            <input
+                                className="nc-settings__calendar-color"
+                                type="color"
+                                value={calendar.color}
+                                onChange={(event) =>
+                                    onCalendarColorChange(
+                                        calendar.id,
+                                        event.target.value
+                                    )
+                                }
+                                aria-label={`Couleur de ${calendar.name}`}
+                            />
+                            {editingCalendarId === calendar.id ? (
+                                <input
+                                    className="nc-settings__calendar-name-input"
+                                    value={calendarName}
+                                    autoFocus
+                                    onChange={(event) =>
+                                        setCalendarName(event.target.value)
+                                    }
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Enter") {
+                                            event.preventDefault();
+                                            void submitCalendarRename(
+                                                calendar.id
+                                            );
+                                        } else if (event.key === "Escape") {
+                                            setEditingCalendarId(null);
+                                        }
+                                    }}
+                                    onBlur={() =>
+                                        void submitCalendarRename(calendar.id)
+                                    }
+                                />
+                            ) : (
+                                <button
+                                    type="button"
+                                    className="nc-settings__calendar-name"
+                                    onDoubleClick={() => {
+                                        setEditingCalendarId(calendar.id);
+                                        setCalendarName(calendar.name);
+                                    }}
+                                    onClick={() => {
+                                        if (calendar.editable) {
+                                            onSetDefaultCalendar(calendar.id);
+                                        }
+                                    }}
+                                    title={
+                                        calendar.editable
+                                            ? t("Tap to set as default, double-tap to rename")
+                                            : t("Read-only calendar; double-tap to rename")
+                                    }
+                                >
+                                    {calendar.name}
+                                </button>
+                            )}
+                            {calendar.isDefault && (
+                                <span className="nc-settings__calendar-default">
+                                    Par défaut
+                                </span>
+                            )}
+                            <button
+                                className="nc-settings__calendar-delete"
+                                type="button"
+                                onClick={() => void onDeleteCalendar(calendar.id)}
+                                aria-label={`Supprimer ${calendar.name}`}
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                    ))}
+                </SettingsGroup>
+            )}
+        </div>
+    );
+
+    const renderSync = () => (
+        <div className="nc-set-groups">
+            <SettingsGroup note={t("Neo Calendar keeps its data in the folder you choose. Syncing is done by whichever tool you settle on.")}>
+                <SettingsRow
+                    label={t("Data folder")}
+                    value={vaultName(dataFolder)}
+                    navigates
+                    onClick={() => openPage({ kind: "section", id: "folder" })}
+                />
+            </SettingsGroup>
+
+            <SettingsGroup title={t("Possible methods")}>
+                <SettingsRow
+                    label="Syncthing"
+                    value={t("Recommended")}
+                />
+                <SettingsRow
+                    label={t("Online storage")}
+                    value={t("OneDrive, Google Drive, Dropbox")}
+                />
+                <SettingsRow
+                    label={t("Manual transfer")}
+                    value={t("Over USB")}
+                />
+            </SettingsGroup>
+        </div>
+    );
+
+    const renderAppearance = () => (
+        <div className="nc-set-groups nc-settings__appearance">
+            <section className="nc-theme-studio">
+                <header className="nc-theme-studio__header">
+                    <strong>
+                        {appearance.mode === "system"
+                            ? t("System mode")
+                            : appearance.mode === "light"
+                            ? t("Light mode")
+                            : t("Dark mode")}
+                    </strong>
+                    <div className="nc-theme-studio__actions">
+                        <input
+                            ref={importThemeInputRef}
+                            className="nc-theme-import-input"
+                            type="file"
+                            accept=".json,.txt,application/json,text/plain"
+                            onChange={(event) =>
+                                void importThemeFile(event.target.files?.[0])
+                            }
+                        />
+                        <button
+                            type="button"
+                            className="nc-theme-text-action"
+                            onClick={() => importThemeInputRef.current?.click()}
+                        >
+                            <Upload size={14} />
+                            Importer
+                        </button>
+                        <button
+                            type="button"
+                            className="nc-theme-text-action"
+                            onClick={() => void copyCurrentTheme()}
+                        >
+                            <Copy size={14} />
+                            Copier le thème
+                        </button>
+
+                        <div
+                            className="nc-settings__theme-picker"
+                            ref={themePickerRef}
+                        >
+                            <button
+                                className="nc-settings__theme-picker-button"
+                                type="button"
+                                aria-haspopup="listbox"
+                                aria-expanded={themePickerOpen}
+                                onClick={() => setThemePickerOpen((it) => !it)}
+                            >
+                                <ThemePreview theme={currentTheme} />
+                                <span>{currentTheme.label}</span>
+                                <ChevronDown
+                                    className={
+                                        themePickerOpen ? "nc-open" : undefined
+                                    }
+                                    size={15}
+                                />
+                            </button>
+
+                            {themePickerOpen && (
+                                <div
+                                    className="nc-settings__theme-menu"
+                                    role="listbox"
+                                    aria-label={t("Themes")}
+                                >
+                                    {THEMES.map((theme) => {
+                                        const selected = theme.id === themeId;
+                                        return (
+                                            <button
+                                                key={theme.id}
+                                                className="nc-settings__theme-option"
+                                                type="button"
+                                                role="option"
+                                                aria-selected={selected}
+                                                onClick={() => {
+                                                    setThemePickerOpen(false);
+                                                    setThemeDirty(false);
+                                                    setThemeMessage(null);
+                                                    void onThemeChange(theme.id);
+                                                }}
+                                            >
+                                                <ThemePreview theme={theme} />
+                                                <span>
+                                                    <strong>
+                                                        {theme.label}
+                                                    </strong>
+                                                    <small>
+                                                        {theme.variantLabel}
+                                                    </small>
+                                                </span>
+                                                {selected && <Check size={16} />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </header>
+
+                <ThemeColorPicker
+                    label={t("Accent")}
+                    value={themeDraft.accent}
+                    emphasized
+                    onChange={(accent) => updateThemeDraft({ accent })}
+                />
+                <ThemeColorPicker
+                    label={t("Background")}
+                    value={themeDraft.surface}
+                    onChange={(surface) => updateThemeDraft({ surface })}
+                />
+                <ThemeColorPicker
+                    label={t("Foreground")}
+                    value={themeDraft.ink}
+                    onChange={(ink) => updateThemeDraft({ ink })}
+                />
+                <ThemeWallpaperPicker
+                    value={themeDraft.wallpaperId}
+                    accent={themeDraft.accent}
+                    surface={themeDraft.surface}
+                    onChange={applyWallpaper}
+                />
+                <WallpaperEffectsControls />
+                <label className="nc-theme-studio__row nc-theme-font-row">
+                    <span>Police de l’interface utilisateur</span>
+                    <input
+                        type="text"
+                        list="nc-ui-fonts"
+                        value={themeDraft.uiFont}
+                        onChange={(event) =>
+                            updateThemeDraft({ uiFont: event.target.value })
+                        }
+                        spellCheck={false}
+                    />
+                    <datalist id="nc-ui-fonts">
+                        <option
+                            value={'"Inter Variable", Inter, sans-serif'}
+                        />
+                        <option
+                            value={
+                                '"Geist Variable", Geist, "Inter Variable", sans-serif'
+                            }
+                        />
+                        <option
+                            value={
+                                'Satoshi, "Inter Variable", Inter, sans-serif'
+                            }
+                        />
+                        <option
+                            value={
+                                '"JetBrains Mono Variable", "JetBrains Mono", monospace'
+                            }
+                        />
+                        <option
+                            value={
+                                '"Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif'
+                            }
+                        />
+                    </datalist>
+                </label>
+                <label className="nc-theme-studio__row nc-theme-font-row">
+                    <span>Police monospace</span>
+                    <input
+                        type="text"
+                        list="nc-code-fonts"
+                        value={themeDraft.codeFont}
+                        onChange={(event) =>
+                            updateThemeDraft({ codeFont: event.target.value })
+                        }
+                        spellCheck={false}
+                    />
+                    <datalist id="nc-code-fonts">
+                        <option
+                            value={
+                                '"JetBrains Mono Variable", "JetBrains Mono", monospace'
+                            }
+                        />
+                        <option
+                            value={
+                                '"Geist Mono Variable", "Geist Mono", "JetBrains Mono Variable", monospace'
+                            }
+                        />
+                        <option
+                            value={'"Cascadia Code", Consolas, monospace'}
+                        />
+                    </datalist>
+                </label>
+                <div className="nc-theme-studio__row">
+                    <span>Barre latérale translucide</span>
+                    <button
+                        className="nc-theme-switch"
+                        type="button"
+                        role="switch"
+                        aria-checked={themeDraft.translucentSidebar}
+                        onClick={() =>
+                            updateThemeDraft({
+                                translucentSidebar:
+                                    !themeDraft.translucentSidebar,
+                            })
+                        }
+                    >
+                        <i />
+                    </button>
+                </div>
+                <label className="nc-theme-studio__row nc-theme-contrast-row">
+                    <span>Contraste</span>
+                    <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={themeDraft.contrast}
+                        onChange={(event) =>
+                            updateThemeDraft({
+                                contrast: Number(event.target.value),
+                            })
+                        }
+                    />
+                    <output>{themeDraft.contrast}</output>
+                </label>
+
+                <footer className="nc-theme-studio__footer">
+                    <button
+                        type="button"
+                        className="nc-theme-reset-button"
+                        onClick={resetCurrentTheme}
+                    >
+                        <RotateCcw size={15} />
+                        Réinitialiser ce thème
+                    </button>
+                    <button
+                        type="button"
+                        className="nc-theme-save-button"
+                        disabled={!themeDirty}
+                        onClick={saveThemeChanges}
+                    >
+                        <Save size={15} />
+                        Enregistrer
+                    </button>
+                </footer>
+
+                {themeMessage && (
+                    <p className="nc-theme-studio__message" role="status">
+                        {themeMessage}
+                    </p>
+                )}
+            </section>
+        </div>
+    );
+
+    /** A list of choices, one per line, the current one ticked. */
+    const renderChoice = (choice: ChoicePage) => (
+        <div className="nc-set-groups">
+            <SettingsGroup>
+                {choice.options.map((option) => (
+                    <button
+                        key={option.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={option.value === choice.value}
+                        className="nc-set-row nc-set-row--action"
+                        onClick={() => {
+                            choice.onPick(option.value);
+                            goBack();
+                        }}
+                    >
+                        {option.icon && (
+                            <span className="nc-set-row__icon">
+                                {option.icon}
+                            </span>
+                        )}
+                        <span className="nc-set-row__label">
+                            {option.label}
+                        </span>
+                        {option.value === choice.value && (
+                            <span className="nc-set-row__trailing nc-set-row__trailing--check">
+                                <Check size={18} />
+                            </span>
+                        )}
+                    </button>
+                ))}
+            </SettingsGroup>
+        </div>
+    );
+
+    const renderSection = (id: SettingsSection) => {
+        switch (id) {
+            case "appearance":
+                return renderAppearance();
+            case "calendars":
+                return renderCalendars();
+            case "sync":
+                return renderSync();
+            case "vaults":
+                return renderVaults();
+            case "timezones":
+                return renderTimezones();
+            case "folder":
+                return renderFolder();
+        }
+    };
+
+    const renderPage = (page: SettingsPage) => {
+        if (page.kind === "root") return renderRoot();
+        if (page.kind === "choice") return renderChoice(page.choice);
+        return renderSection(page.id);
+    };
+
     const content = (
         <div
             className="nc-settings-backdrop"
@@ -472,914 +1390,52 @@ export default function DesktopSettings({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="nc-settings-title"
-                data-settings-tab={activeTab}
+                data-settings-page={
+                    currentPage.kind === "section" ? currentPage.id : "general"
+                }
             >
                 <header className="nc-settings__header">
-                    <h2 id="nc-settings-title">Paramètres</h2>
                     <button
-                        className="nc-settings__close"
+                        className="nc-settings__back"
                         type="button"
-                        onClick={onClose}
-                        aria-label="Fermer les paramètres"
+                        onClick={goBack}
+                        aria-label={
+                            stack.length > 1 ? t("Back") : t("Close settings")
+                        }
                     >
-                        <X size={18} />
+                        <ArrowLeft size={22} />
                     </button>
+                    <h2 id="nc-settings-title">{pageTitle(currentPage)}</h2>
                 </header>
-                <div className="nc-settings__body">
-                    <nav className="nc-settings__tabs" aria-label="Paramètres">
-                        {TABS.map(({ id, label, icon: Icon }) => (
-                            <button
-                                key={id}
-                                className="nc-settings__tab"
-                                type="button"
-                                role="tab"
-                                aria-selected={activeTab === id}
-                                onClick={() => setActiveTab(id)}
+
+                {/* Every page occupies the same slot: the one on top slides in
+                    from the right, and the one it replaced waits underneath
+                    with the scroll position it was left at. */}
+                <div className="nc-settings__pages">
+                    {stack.map((page, index) => {
+                        const buried = index < stack.length - 1;
+                        return (
+                            <div
+                                className={`nc-settings__page${
+                                    buried ? " nc-settings__page--buried" : ""
+                                }`}
+                                key={pageKey(page, index)}
+                                data-depth={index}
+                                aria-hidden={buried ? true : undefined}
                             >
-                                <Icon size={16} />
-                                <span>{label}</span>
-                            </button>
-                        ))}
-                    </nav>
-                    <div className="nc-settings__content">
-                        {activeTab === "general" && (
-                            <div className="nc-settings__section">
-                                <h3>Préférences du calendrier</h3>
-                                <div className="nc-settings__preference-list">
-                                    <SelectPreference
-                                        title="Vue initiale sur ordinateur"
-                                        description="La vue affichée au lancement sur ordinateur."
-                                        value={preferences.initialView.desktop}
-                                        onChange={(value) =>
-                                            patchInitialView({
-                                                desktop:
-                                                    value as DesktopInitialView,
-                                            })
-                                        }
-                                        options={[
-                                            ["day", "Jour"],
-                                            ["week", "Semaine"],
-                                            ["month", "Mois"],
-                                            ["list", "Liste"],
-                                        ]}
-                                    />
-                                    <SelectPreference
-                                        title="Vue initiale sur téléphone"
-                                        description="La vue affichée au lancement sur téléphone."
-                                        value={preferences.initialView.mobile}
-                                        onChange={(value) =>
-                                            patchInitialView({
-                                                mobile: value as MobileInitialView,
-                                            })
-                                        }
-                                        options={[
-                                            ["day", "Jour"],
-                                            ["3days", "3 jours"],
-                                            ["list", "Liste"],
-                                        ]}
-                                    />
-                                    <SelectPreference
-                                        title="Premier jour de la semaine"
-                                        description="Le jour par lequel commencent les semaines."
-                                        value={String(preferences.firstDay)}
-                                        onChange={(value) =>
-                                            patchPreferences({
-                                                firstDay: Number(value),
-                                            })
-                                        }
-                                        options={WEEKDAYS.map(
-                                            (day, index): [string, string] => [
-                                                String(index),
-                                                day,
-                                            ]
-                                        )}
-                                    />
-                                    <TogglePreference
-                                        title="Format 24 heures"
-                                        description="Afficher les heures de 0 à 23 plutôt qu'en AM et PM."
-                                        checked={preferences.timeFormat24h}
-                                        onChange={(checked) =>
-                                            patchPreferences({
-                                                timeFormat24h: checked,
-                                            })
-                                        }
-                                    />
-                                    <TogglePreference
-                                        title="Créer un événement en cliquant un jour du mois"
-                                        description="Désactiver pour ouvrir la vue du jour à la place."
-                                        checked={
-                                            preferences.clickToCreateEventFromMonthView
-                                        }
-                                        onChange={(checked) =>
-                                            patchPreferences({
-                                                clickToCreateEventFromMonthView:
-                                                    checked,
-                                            })
-                                        }
-                                    />
-                                    <TogglePreference
-                                        title="Créer les nouveaux événements comme des tâches"
-                                        description="Les nouveaux événements sont créés avec le statut « À faire »."
-                                        checked={
-                                            preferences.defaultEventsAsTasks
-                                        }
-                                        onChange={(checked) =>
-                                            patchPreferences({
-                                                defaultEventsAsTasks: checked,
-                                            })
-                                        }
-                                    />
-                                </div>
-
-                                <div className="nc-settings__divider" />
-
-                                <h3>Fuseaux horaires secondaires</h3>
-                                <div className="nc-settings__timezone-add">
-                                    <div>
-                                        <strong>
-                                            Ajouter un fuseau secondaire
-                                        </strong>
-                                        <span>
-                                            Afficher une colonne d'heures
-                                            supplémentaire dans les vues
-                                            semaine, jour et trois jours.
-                                        </span>
-                                    </div>
-                                    <div className="nc-settings__timezone-control">
-                                        <input
-                                            value={timezone}
-                                            placeholder="ex. America/New_York"
-                                            onChange={(event) =>
-                                                setTimezone(event.target.value)
-                                            }
-                                            onKeyDown={(event) => {
-                                                if (event.key === "Enter") {
-                                                    event.preventDefault();
-                                                    addTimezone();
-                                                }
-                                            }}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={addTimezone}
-                                            aria-label="Ajouter un fuseau horaire"
-                                        >
-                                            <Plus size={17} />
-                                        </button>
-                                    </div>
-                                </div>
-                                {preferences.secondaryTimezones.map((zone) => (
-                                    <div
-                                        className="nc-settings__timezone-item"
-                                        key={zone}
-                                    >
-                                        <span>{zone}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                patchPreferences({
-                                                    secondaryTimezones:
-                                                        preferences.secondaryTimezones.filter(
-                                                            (item) =>
-                                                                item !== zone
-                                                        ),
-                                                })
-                                            }
-                                            aria-label={`Remove ${zone}`}
-                                        >
-                                            <X size={16} />
-                                        </button>
-                                    </div>
-                                ))}
-
-                                <div className="nc-settings__divider" />
-
-                                <h3>Dossier de données</h3>
-                                <p>
-                                    Neo Calendar range ses fichiers de
-                                    calendrier dans ce dossier.
-                                </p>
-                                <FolderSetting
-                                    dataFolder={dataFolder}
-                                    onChangeDataFolder={onChangeDataFolder}
-                                />
-
-                                <div className="nc-settings__divider" />
-
-                                <div className="nc-settings__section-heading">
-                                    <div>
-                                        <h3>Dossiers de coffres Obsidian</h3>
-                                        <p>
-                                            Ajoutez le dossier qui contient vos
-                                            coffres Obsidian. Ceux qui s'y
-                                            trouvent directement et possèdent un
-                                            dossier .obsidian sont détectés.
-                                        </p>
-                                    </div>
-                                    <button
-                                        className="nc-settings__primary-action"
-                                        type="button"
-                                        onClick={() => void onAddVaultFolder()}
-                                        disabled={isChoosingVaultFolder}
-                                    >
-                                        <Plus size={16} />
-                                        {isChoosingVaultFolder
-                                            ? "Sélection…"
-                                            : "Ajouter un dossier"}
-                                    </button>
-                                </div>
-
-                                <div className="nc-settings__vault-list">
-                                    {vaultFolders.length === 0 ? (
-                                        <div className="nc-settings__vault-empty">
-                                            <FolderOpen size={20} />
-                                            <div>
-                                                <strong>
-                                                    Aucun dossier de coffres
-                                                </strong>
-                                                <span>
-                                                    Choisissez le dossier qui
-                                                    contient vos coffres.
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        vaultFolders.map((folderPath) => (
-                                            <div
-                                                className="nc-settings__vault-item nc-settings__vault-root"
-                                                key={folderPath}
-                                            >
-                                                <span className="nc-settings__vault-icon">
-                                                    <FolderOpen size={17} />
-                                                </span>
-                                                <div className="nc-settings__vault-copy">
-                                                    <strong>
-                                                        {vaultName(folderPath)}
-                                                    </strong>
-                                                    <code>{folderPath}</code>
-                                                </div>
-                                                <button
-                                                    className="nc-settings__vault-remove"
-                                                    type="button"
-                                                    onClick={() =>
-                                                        void onRemoveVaultFolder(
-                                                            folderPath
-                                                        )
-                                                    }
-                                                    aria-label={`Remove ${folderPath}`}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-
-                                {vaultFolders.length > 0 && (
-                                    <div className="nc-settings__detected-vaults">
-                                        <div className="nc-settings__detected-heading">
-                                            <div>
-                                                <h4>Coffres détectés</h4>
-                                                <p>
-                                                    Désactivez un coffre pour
-                                                    l'exclure de la recherche de
-                                                    notes.
-                                                </p>
-                                            </div>
-                                            {isScanningVaults && (
-                                                <span>Scanning…</span>
-                                            )}
-                                        </div>
-                                        <div className="nc-settings__vault-list">
-                                            {detectedVaults.map((vault) => {
-                                                const enabled = isVaultEnabled(
-                                                    vault.path
-                                                );
-                                                return (
-                                                    <div
-                                                        className="nc-settings__vault-item"
-                                                        key={vault.path}
-                                                    >
-                                                        <span className="nc-settings__vault-icon">
-                                                            <Library
-                                                                size={17}
-                                                            />
-                                                        </span>
-                                                        <div className="nc-settings__vault-copy">
-                                                            <strong>
-                                                                {vault.name}
-                                                            </strong>
-                                                            <code>
-                                                                {vault.path}
-                                                            </code>
-                                                        </div>
-                                                        <button
-                                                            className="nc-settings__vault-toggle"
-                                                            type="button"
-                                                            role="switch"
-                                                            aria-checked={
-                                                                enabled
-                                                            }
-                                                            onClick={() =>
-                                                                void onSetVaultEnabled(
-                                                                    vault.path,
-                                                                    !enabled
-                                                                )
-                                                            }
-                                                        >
-                                                            <span />
-                                                        </button>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
+                                {renderPage(page)}
                             </div>
-                        )}
-
-                        {activeTab === "calendars" && (
-                            <div className="nc-settings__section">
-                                <h3>Gérer les calendriers</h3>
-                                <div className="nc-settings__calendar-root">
-                                    <div>
-                                        <strong>
-                                            Dossier racine des calendriers
-                                        </strong>
-                                        <span>
-                                            Chaque sous-dossier direct est un
-                                            calendrier.
-                                        </span>
-                                    </div>
-                                    <code>{dataFolder}</code>
-                                    <button
-                                        type="button"
-                                        onClick={() => void onOpenDataFolder()}
-                                    >
-                                        <FolderOpen size={16} />
-                                    </button>
-                                </div>
-
-                                <div className="nc-settings__calendar-add">
-                                    <div>
-                                        <strong>Calendriers</strong>
-                                        <span>Ajouter un calendrier</span>
-                                    </div>
-                                    <div className="nc-settings__calendar-add-control">
-                                        <span>
-                                            Full note / Remote ICS / Auto
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={onAddCalendar}
-                                            aria-label="Ajouter un calendrier"
-                                        >
-                                            <Plus size={17} />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="nc-settings__calendar-list">
-                                    {calendars.map((calendar) => (
-                                        <div
-                                            className="nc-settings__calendar-item"
-                                            key={calendar.id}
-                                        >
-                                            <span
-                                                className="nc-settings__calendar-kind"
-                                                title={
-                                                    calendar.type === "local"
-                                                        ? "Note complète"
-                                                        : calendar.type ===
-                                                          "ical"
-                                                        ? "Remote ICS"
-                                                        : "Calendrier automatique"
-                                                }
-                                            >
-                                                {calendar.type === "local" ? (
-                                                    <FileText size={15} />
-                                                ) : calendar.type === "ical" ? (
-                                                    <Wifi size={15} />
-                                                ) : (
-                                                    <Flag size={15} />
-                                                )}
-                                            </span>
-                                            <button
-                                                className={`nc-settings__calendar-enabled${
-                                                    calendar.hidden
-                                                        ? " is-hidden"
-                                                        : ""
-                                                }`}
-                                                type="button"
-                                                onClick={() =>
-                                                    onToggleCalendar(
-                                                        calendar.id
-                                                    )
-                                                }
-                                                aria-label={`${
-                                                    calendar.hidden
-                                                        ? "Show"
-                                                        : "Hide"
-                                                } ${calendar.name}`}
-                                            >
-                                                {!calendar.hidden && (
-                                                    <Check size={14} />
-                                                )}
-                                            </button>
-                                            <input
-                                                className="nc-settings__calendar-color"
-                                                type="color"
-                                                value={calendar.color}
-                                                onChange={(event) =>
-                                                    onCalendarColorChange(
-                                                        calendar.id,
-                                                        event.target.value
-                                                    )
-                                                }
-                                                aria-label={`Color for ${calendar.name}`}
-                                            />
-                                            {editingCalendarId ===
-                                            calendar.id ? (
-                                                <input
-                                                    className="nc-settings__calendar-name-input"
-                                                    value={calendarName}
-                                                    autoFocus
-                                                    onChange={(event) =>
-                                                        setCalendarName(
-                                                            event.target.value
-                                                        )
-                                                    }
-                                                    onKeyDown={(event) => {
-                                                        if (
-                                                            event.key ===
-                                                            "Enter"
-                                                        ) {
-                                                            event.preventDefault();
-                                                            void submitCalendarRename(
-                                                                calendar.id
-                                                            );
-                                                        } else if (
-                                                            event.key ===
-                                                            "Escape"
-                                                        ) {
-                                                            setEditingCalendarId(
-                                                                null
-                                                            );
-                                                        }
-                                                    }}
-                                                    onBlur={() =>
-                                                        void submitCalendarRename(
-                                                            calendar.id
-                                                        )
-                                                    }
-                                                />
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    className="nc-settings__calendar-name"
-                                                    onDoubleClick={() => {
-                                                        setEditingCalendarId(
-                                                            calendar.id
-                                                        );
-                                                        setCalendarName(
-                                                            calendar.name
-                                                        );
-                                                    }}
-                                                    onClick={() => {
-                                                        if (calendar.editable) {
-                                                            onSetDefaultCalendar(
-                                                                calendar.id
-                                                            );
-                                                        }
-                                                    }}
-                                                    title={
-                                                        calendar.editable
-                                                            ? "Cliquer pour définir par défaut, double-cliquer pour renommer"
-                                                            : "Read-only calendar; double-click to rename"
-                                                    }
-                                                >
-                                                    {calendar.name}
-                                                </button>
-                                            )}
-                                            {calendar.isDefault && (
-                                                <span className="nc-settings__calendar-default">
-                                                    Default
-                                                </span>
-                                            )}
-                                            <button
-                                                className="nc-settings__calendar-delete"
-                                                type="button"
-                                                onClick={() =>
-                                                    void onDeleteCalendar(
-                                                        calendar.id
-                                                    )
-                                                }
-                                                aria-label={`Delete ${calendar.name}`}
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === "appearance" && (
-                            <div className="nc-settings__section nc-settings__appearance">
-                                <h3>Thème</h3>
-                                <p>
-                                    Chaque thème peut avoir ses propres
-                                    couleurs, polices, contraste et
-                                    transparence.
-                                </p>
-
-                                {/* One row that opens three choices, rather
-                                    than three cards competing for attention:
-                                    picking an appearance mode is a one-second
-                                    decision taken once. */}
-                                <div className="nc-set-groups">
-                                    <SettingsGroup>
-                                        <SettingsChoiceRow
-                                            label="Mode de couleur"
-                                            icon={<Moon size={18} />}
-                                            value={appearance.mode}
-                                            options={[
-                                                {
-                                                    value: "system",
-                                                    label: "Système",
-                                                    icon: (
-                                                        <Smartphone size={17} />
-                                                    ),
-                                                },
-                                                {
-                                                    value: "light",
-                                                    label: "Clair",
-                                                    icon: <Sun size={17} />,
-                                                },
-                                                {
-                                                    value: "dark",
-                                                    label: "Sombre",
-                                                    icon: <Moon size={17} />,
-                                                },
-                                            ]}
-                                            onChange={(mode) =>
-                                                updateAppearance({ mode })
-                                            }
-                                        />
-                                    </SettingsGroup>
-                                </div>
-
-                                <section className="nc-theme-studio">
-                                    <header className="nc-theme-studio__header">
-                                        <strong>
-                                            {appearance.mode === "system"
-                                                ? "Mode système"
-                                                : appearance.mode === "light"
-                                                ? "Mode clair"
-                                                : "Mode sombre"}
-                                        </strong>
-                                        <div className="nc-theme-studio__actions">
-                                            <input
-                                                ref={importThemeInputRef}
-                                                className="nc-theme-import-input"
-                                                type="file"
-                                                accept=".json,.txt,application/json,text/plain"
-                                                onChange={(event) =>
-                                                    void importThemeFile(
-                                                        event.target.files?.[0]
-                                                    )
-                                                }
-                                            />
-                                            <button
-                                                type="button"
-                                                className="nc-theme-text-action"
-                                                onClick={() =>
-                                                    importThemeInputRef.current?.click()
-                                                }
-                                            >
-                                                <Upload size={14} />
-                                                Importer
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="nc-theme-text-action"
-                                                onClick={() =>
-                                                    void copyCurrentTheme()
-                                                }
-                                            >
-                                                <Copy size={14} />
-                                                Copier le thème
-                                            </button>
-
-                                            <div
-                                                className="nc-settings__theme-picker"
-                                                ref={themePickerRef}
-                                            >
-                                                <button
-                                                    className="nc-settings__theme-picker-button"
-                                                    type="button"
-                                                    aria-haspopup="listbox"
-                                                    aria-expanded={
-                                                        themePickerOpen
-                                                    }
-                                                    onClick={() =>
-                                                        setThemePickerOpen(
-                                                            (open) => !open
-                                                        )
-                                                    }
-                                                >
-                                                    <ThemePreview
-                                                        theme={currentTheme}
-                                                    />
-                                                    <span>
-                                                        {currentTheme.label}
-                                                    </span>
-                                                    <ChevronDown
-                                                        className={
-                                                            themePickerOpen
-                                                                ? "nc-open"
-                                                                : undefined
-                                                        }
-                                                        size={15}
-                                                    />
-                                                </button>
-
-                                                {themePickerOpen && (
-                                                    <div
-                                                        className="nc-settings__theme-menu"
-                                                        role="listbox"
-                                                        aria-label="Thèmes"
-                                                    >
-                                                        {THEMES.map((theme) => {
-                                                            const selected =
-                                                                theme.id ===
-                                                                themeId;
-                                                            return (
-                                                                <button
-                                                                    key={
-                                                                        theme.id
-                                                                    }
-                                                                    className="nc-settings__theme-option"
-                                                                    type="button"
-                                                                    role="option"
-                                                                    aria-selected={
-                                                                        selected
-                                                                    }
-                                                                    onClick={() => {
-                                                                        setThemePickerOpen(
-                                                                            false
-                                                                        );
-                                                                        setThemeDirty(
-                                                                            false
-                                                                        );
-                                                                        setThemeMessage(
-                                                                            null
-                                                                        );
-                                                                        void onThemeChange(
-                                                                            theme.id
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <ThemePreview
-                                                                        theme={
-                                                                            theme
-                                                                        }
-                                                                    />
-                                                                    <span>
-                                                                        <strong>
-                                                                            {
-                                                                                theme.label
-                                                                            }
-                                                                        </strong>
-                                                                        <small>
-                                                                            {
-                                                                                theme.variantLabel
-                                                                            }
-                                                                        </small>
-                                                                    </span>
-                                                                    {selected && (
-                                                                        <Check
-                                                                            size={
-                                                                                16
-                                                                            }
-                                                                        />
-                                                                    )}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </header>
-
-                                    <ThemeColorPicker
-                                        label="Accentuation"
-                                        value={themeDraft.accent}
-                                        emphasized
-                                        onChange={(accent) =>
-                                            updateThemeDraft({ accent })
-                                        }
-                                    />
-                                    <ThemeColorPicker
-                                        label="Arrière-plan"
-                                        value={themeDraft.surface}
-                                        onChange={(surface) =>
-                                            updateThemeDraft({ surface })
-                                        }
-                                    />
-                                    <ThemeColorPicker
-                                        label="Avant-plan"
-                                        value={themeDraft.ink}
-                                        onChange={(ink) =>
-                                            updateThemeDraft({ ink })
-                                        }
-                                    />
-                                    <ThemeWallpaperPicker
-                                        value={themeDraft.wallpaperId}
-                                        accent={themeDraft.accent}
-                                        surface={themeDraft.surface}
-                                        onChange={applyWallpaper}
-                                    />
-                                    <WallpaperEffectsControls />
-                                    <label className="nc-theme-studio__row nc-theme-font-row">
-                                        <span>
-                                            Police de l’interface utilisateur
-                                        </span>
-                                        <input
-                                            type="text"
-                                            list="nc-ui-fonts"
-                                            value={themeDraft.uiFont}
-                                            onChange={(event) =>
-                                                updateThemeDraft({
-                                                    uiFont: event.target.value,
-                                                })
-                                            }
-                                            spellCheck={false}
-                                        />
-                                        <datalist id="nc-ui-fonts">
-                                            <option
-                                                value={
-                                                    '"Inter Variable", Inter, sans-serif'
-                                                }
-                                            />
-                                            <option
-                                                value={
-                                                    '"Geist Variable", Geist, "Inter Variable", sans-serif'
-                                                }
-                                            />
-                                            <option
-                                                value={
-                                                    'Satoshi, "Inter Variable", Inter, sans-serif'
-                                                }
-                                            />
-                                            <option
-                                                value={
-                                                    '"JetBrains Mono Variable", "JetBrains Mono", monospace'
-                                                }
-                                            />
-                                            <option
-                                                value={
-                                                    '"Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif'
-                                                }
-                                            />
-                                        </datalist>
-                                    </label>
-                                    <label className="nc-theme-studio__row nc-theme-font-row">
-                                        <span>Police monospace</span>
-                                        <input
-                                            type="text"
-                                            list="nc-code-fonts"
-                                            value={themeDraft.codeFont}
-                                            onChange={(event) =>
-                                                updateThemeDraft({
-                                                    codeFont:
-                                                        event.target.value,
-                                                })
-                                            }
-                                            spellCheck={false}
-                                        />
-                                        <datalist id="nc-code-fonts">
-                                            <option
-                                                value={
-                                                    '"JetBrains Mono Variable", "JetBrains Mono", monospace'
-                                                }
-                                            />
-                                            <option
-                                                value={
-                                                    '"Geist Mono Variable", "Geist Mono", "JetBrains Mono Variable", monospace'
-                                                }
-                                            />
-                                            <option
-                                                value={
-                                                    '"Cascadia Code", Consolas, monospace'
-                                                }
-                                            />
-                                        </datalist>
-                                    </label>
-                                    <div className="nc-theme-studio__row">
-                                        <span>Barre latérale translucide</span>
-                                        <button
-                                            className="nc-theme-switch"
-                                            type="button"
-                                            role="switch"
-                                            aria-checked={
-                                                themeDraft.translucentSidebar
-                                            }
-                                            onClick={() =>
-                                                updateThemeDraft({
-                                                    translucentSidebar:
-                                                        !themeDraft.translucentSidebar,
-                                                })
-                                            }
-                                        >
-                                            <i />
-                                        </button>
-                                    </div>
-                                    <label className="nc-theme-studio__row nc-theme-contrast-row">
-                                        <span>Contraste</span>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="100"
-                                            step="1"
-                                            value={themeDraft.contrast}
-                                            onChange={(event) =>
-                                                updateThemeDraft({
-                                                    contrast: Number(
-                                                        event.target.value
-                                                    ),
-                                                })
-                                            }
-                                        />
-                                        <output>{themeDraft.contrast}</output>
-                                    </label>
-
-                                    <footer className="nc-theme-studio__footer">
-                                        <button
-                                            type="button"
-                                            className="nc-theme-reset-button"
-                                            onClick={resetCurrentTheme}
-                                        >
-                                            <RotateCcw size={15} />
-                                            Réinitialiser ce thème
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="nc-theme-save-button"
-                                            disabled={!themeDirty}
-                                            onClick={saveThemeChanges}
-                                        >
-                                            <Save size={15} />
-                                            Enregistrer
-                                        </button>
-                                    </footer>
-
-                                    {themeMessage && (
-                                        <p
-                                            className="nc-theme-studio__message"
-                                            role="status"
-                                        >
-                                            {themeMessage}
-                                        </p>
-                                    )}
-                                </section>
-                            </div>
-                        )}
-
-                        {activeTab === "sync" && (
-                            <div className="nc-settings__section">
-                                <h3>Synchronisation</h3>
-                                <p>
-                                    Neo Calendar range ses données dans le
-                                    dossier que vous choisissez. La
-                                    synchronisation est assurée par l'outil que
-                                    vous retenez.
-                                </p>
-                                <FolderSetting
-                                    dataFolder={dataFolder}
-                                    onChangeDataFolder={onChangeDataFolder}
-                                />
-                                <SettingsGroup title="Méthodes possibles">
-                                    <SettingsRow
-                                        icon={<Cloud size={18} />}
-                                        label="Syncthing"
-                                        value="Synchronisation directe entre votre PC et votre téléphone. Recommandé."
-                                    />
-                                    <SettingsRow
-                                        icon={<Cloud size={18} />}
-                                        label="Stockage en ligne"
-                                        value="OneDrive, Google Drive ou Dropbox, avec un outil de synchronisation de dossier."
-                                    />
-                                    <SettingsRow
-                                        icon={<Cable size={18} />}
-                                        label="Transfert manuel"
-                                        value="Copier le dossier de données par USB, au besoin."
-                                    />
-                                </SettingsGroup>
-                            </div>
-                        )}
-                    </div>
+                        );
+                    })}
+                    {leaving && (
+                        <div
+                            className="nc-settings__page nc-settings__page--leaving"
+                            key="leaving"
+                            aria-hidden="true"
+                        >
+                            {renderPage(leaving)}
+                        </div>
+                    )}
                 </div>
             </section>
         </div>
@@ -1409,72 +1465,7 @@ function ThemePreview({ theme }: { theme: (typeof THEMES)[number] }) {
     );
 }
 
-function SelectPreference({
-    title,
-    description,
-    value,
-    options,
-    onChange,
-}: {
-    title: string;
-    description: string;
-    value: string;
-    options: Array<[string, string]>;
-    onChange: (value: string) => void;
-}) {
-    // A native <select> on Android is drawn by the system, so it ignores the
-    // theme entirely and lands as a grey box in the middle of the glass. The
-    // choice sheet is ours, and reads the chosen option back by its label.
-    return (
-        <SettingsChoiceRow
-            label={title}
-            value={value}
-            options={options.map(([optionValue, label]) => ({
-                value: optionValue,
-                label,
-            }))}
-            onChange={onChange}
-        />
-    );
-}
-
-function TogglePreference({
-    title,
-    description,
-    checked,
-    onChange,
-}: {
-    title: string;
-    description: string;
-    checked: boolean;
-    onChange: (checked: boolean) => void;
-}) {
-    return (
-        <SettingsToggleRow
-            label={title}
-            value={description}
-            checked={checked}
-            onChange={onChange}
-        />
-    );
-}
-
 function vaultName(path: string): string {
     const normalized = path.replace(/[\\/]+$/, "");
     return normalized.split(/[\\/]/).pop() || path;
-}
-
-function FolderSetting({
-    dataFolder,
-    onChangeDataFolder,
-}: Pick<DesktopSettingsProps, "dataFolder" | "onChangeDataFolder">) {
-    return (
-        <div className="nc-settings__folder">
-            <code>{dataFolder}</code>
-            <button type="button" onClick={() => void onChangeDataFolder()}>
-                <FolderOpen size={16} />
-                Changer de dossier
-            </button>
-        </div>
-    );
 }

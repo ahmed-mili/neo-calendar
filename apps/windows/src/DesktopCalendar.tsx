@@ -2615,11 +2615,24 @@ export default function DesktopCalendar({
                     }
                 }}
                 onOpenRootFolder={() => void openDesktopPath(dataFolder)}
-                onCalendarClick={(calendarId: string) =>
+                onCalendarClick={(calendarId: string) => {
+                    /*
+                     * The events panel is a second column, and a phone has room
+                     * for one. Opening it there covered the calendar with a list
+                     * that had no way out — its close button sat under the status
+                     * bar — so tapping a calendar in the drawer now makes it the
+                     * default one, which is the decision that list is really for.
+                     * Its colour is one tap away on the swatch, and finding a
+                     * particular event is the magnifier's job.
+                     */
+                    if (isAndroid) {
+                        setDefaultCalendar(calendarId);
+                        return;
+                    }
                     setSelectedCalendarId((current) =>
                         current === calendarId ? null : calendarId
-                    )
-                }
+                    );
+                }}
                 selectedCalendar={selectedCalendar}
                 panelEvents={panelEvents}
                 onAddPanelEvent={(calendarId: string) =>
@@ -2689,6 +2702,7 @@ export default function DesktopCalendar({
                 onGoToday={goToday}
                 onCreateEvent={() => openNewEvent()}
                 onToggleSidebar={toggleSidebar}
+                timeFormat24h={preferences.timeFormat24h}
             />
 
             <EventPanel
@@ -2796,7 +2810,7 @@ export default function DesktopCalendar({
                     {storageError}
                     <button
                         type="button"
-                        aria-label="Dismiss error"
+                        aria-label="Masquer l'erreur"
                         onClick={() => setStorageError(null)}
                     >
                         ×
@@ -2828,7 +2842,14 @@ export default function DesktopCalendar({
                 preferences={preferences}
                 calendars={settingsCalendars}
                 onPreferencesChange={updateWorkspacePreferences}
-                onClose={() => setSettingsOpen(false)}
+                onClose={() => {
+                    setSettingsOpen(false);
+                    // Leaving the settings lands on the grid, not back on the
+                    // drawer that opened them: on a phone the drawer covers the
+                    // calendar, so closing the settings would otherwise reveal
+                    // a menu nobody asked for a second time.
+                    if (isAndroid) setSidebarVisible(false);
+                }}
                 onChangeDataFolder={onChangeDataFolder}
                 onOpenDataFolder={() => openDesktopPath(dataFolder)}
                 onAddVaultFolder={onAddVaultFolder}
@@ -2836,6 +2857,7 @@ export default function DesktopCalendar({
                 onSetVaultEnabled={onSetVaultEnabled}
                 onAddCalendar={() => {
                     setSettingsOpen(false);
+                    if (isAndroid) setSidebarVisible(false);
                     setAddCalendarOpen(true);
                 }}
                 onRenameCalendar={renameCalendar}
@@ -2857,7 +2879,7 @@ export default function DesktopCalendar({
 
             <ConfirmDialog
                 open={calendarToDelete !== null}
-                title="Delete calendar"
+                title="Supprimer le calendrier"
                 message={
                     calendarToDelete
                         ? calendarById.get(calendarToDelete)?.editable

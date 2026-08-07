@@ -11,6 +11,7 @@ import {
     SidebarToggleIcon,
     SearchIcon,
 } from "./Icons";
+import { t } from "../i18n";
 
 interface CalendarHeaderProps {
     currentDate: Date;
@@ -33,9 +34,9 @@ interface CalendarHeaderProps {
 }
 
 const VIEW_OPTIONS: { value: ViewType; label: string }[] = [
-    { value: "day", label: "Day" },
-    { value: "week", label: "Week" },
-    { value: "month", label: "Month" },
+    { value: "day", label: t("Day") },
+    { value: "week", label: t("Week") },
+    { value: "month", label: t("Month") },
 ];
 
 const DAY_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -143,8 +144,8 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                         type="button"
                         className="nc-btn nc-btn-icon nc-btn-sidebar-toggle nc-android-menu-btn"
                         onClick={onToggleSidebar}
-                        title="Calendars"
-                        aria-label="Open calendars"
+                        title={t("Calendars")}
+                        aria-label={t("Open calendars")}
                     >
                         <SidebarToggleIcon />
                     </button>
@@ -171,8 +172,8 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                         type="button"
                         className="nc-btn nc-btn-icon nc-android-search-btn"
                         onClick={onOpenSearch}
-                        title="Search"
-                        aria-label="Search"
+                        title={t("Search")}
+                        aria-label={t("Search")}
                     >
                         <SearchIcon />
                     </button>
@@ -186,8 +187,8 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                             new Date()
                         )}
                         onClick={onGoToday}
-                        title="Go to today"
-                        aria-label="Go to today"
+                        title={t("Go to today")}
+                        aria-label={t("Go to today")}
                     >
                         {new Date().getDate()}
                     </button>
@@ -218,8 +219,8 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                 <button
                     className="nc-btn nc-btn-icon nc-btn-sidebar-toggle"
                     onClick={onToggleSidebar}
-                    title="Calendars"
-                    aria-label="Calendars"
+                    title={t("Calendars")}
+                    aria-label={t("Calendars")}
                 >
                     <SidebarToggleIcon />
                 </button>
@@ -228,8 +229,8 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                 <button
                     className="nc-btn nc-btn-icon nc-btn-settings"
                     onClick={onOpenSettings}
-                    title="Settings"
-                    aria-label="Settings"
+                    title={t("Settings")}
+                    aria-label={t("Settings")}
                 >
                     <SettingsIcon size={15} />
                 </button>
@@ -297,7 +298,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                             <CheckIcon size={14} />
                                         )}
                                     </span>
-                                    <span>Number of days</span>
+                                    <span>{t("Number of days")}</span>
                                     <span className="nc-submenu-chevron">
                                         <ChevronRightIcon />
                                     </span>
@@ -400,7 +401,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                     }
                                 >
                                     <span className="nc-view-dropdown-check" />
-                                    <span>View settings</span>
+                                    <span>{t("View settings")}</span>
                                     <span className="nc-submenu-chevron">
                                         <ChevronRightIcon />
                                     </span>
@@ -425,7 +426,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                                     <CheckIcon size={14} />
                                                 )}
                                             </span>
-                                            <span>Week numbers</span>
+                                            <span>{t("Week numbers")}</span>
                                         </button>
                                         <div className="nc-view-dropdown-sep" />
                                         <button
@@ -436,7 +437,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                             }}
                                         >
                                             <span className="nc-view-dropdown-check" />
-                                            <span>General settings</span>
+                                            <span>{t("General settings")}</span>
                                         </button>
                                     </div>
                                 )}
@@ -451,14 +452,14 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                     <button
                         className="nc-btn nc-btn-icon"
                         onClick={onGoPrev}
-                        title="Previous"
+                        title={t("Previous")}
                     >
                         <ChevronLeftIcon />
                     </button>
                     <button
                         className="nc-btn nc-btn-icon"
                         onClick={onGoNext}
-                        title="Next"
+                        title={t("Next")}
                     >
                         <ChevronRightIcon />
                     </button>

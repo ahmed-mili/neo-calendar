@@ -135,8 +135,36 @@ export default function ColorPicker({
 
     // ── Dismiss on outside click / Escape ───────────────────────
     React.useEffect(() => {
+        let swallowTimer = 0;
+
+        /**
+         * The tap that dismisses the picker must not also press what was behind
+         * it. Closing happens on mousedown, and the same tap then delivers a
+         * click to whatever the picker was covering — the calendar row, whose
+         * tap sets the default calendar. So changing a colour and tapping away
+         * silently moved the default, which is exactly what the swatch is
+         * arranged not to do.
+         */
+        const swallowNextClick = () => {
+            const swallow = (click: MouseEvent) => {
+                click.stopPropagation();
+                click.preventDefault();
+            };
+            document.addEventListener("click", swallow, {
+                capture: true,
+                once: true,
+            });
+            // A mousedown does not always produce a click (a drag, a cancelled
+            // touch), and a listener left armed would eat an unrelated one.
+            swallowTimer = window.setTimeout(() => {
+                document.removeEventListener("click", swallow, true);
+            }, 0);
+        };
+
         const onDown = (e: MouseEvent) => {
-            if (!rootRef.current?.contains(e.target as Node)) onClose();
+            if (rootRef.current?.contains(e.target as Node)) return;
+            onClose();
+            swallowNextClick();
         };
         const onKey = (e: KeyboardEvent) => {
             if (e.key === "Escape") onClose();
@@ -146,6 +174,7 @@ export default function ColorPicker({
         return () => {
             document.removeEventListener("mousedown", onDown);
             document.removeEventListener("keydown", onKey);
+            if (swallowTimer) window.clearTimeout(swallowTimer);
         };
     }, [onClose]);
 

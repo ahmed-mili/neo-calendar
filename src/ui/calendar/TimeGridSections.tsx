@@ -24,6 +24,7 @@ import { TimezonePicker } from "./TimezonePicker";
 import { ChevronsUpDownIcon, ChevronsDownUpIcon, XIcon } from "./Icons";
 import { AllDayLanesResult } from "./useAllDayLanes";
 import { SelectionState, DragPreview } from "./TimeGrid.types";
+import { t } from "../i18n";
 
 type OverlapGroups = ReturnType<typeof computeOverlapGroups>;
 
@@ -246,7 +247,7 @@ export const TimeGridHeaders = React.forwardRef<HTMLDivElement, HeadersProps>(
                             </span>
                             <button
                                 className="nc-timegrid-header-add"
-                                title="New event"
+                                title={t("New event")}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     const start = new Date(date);

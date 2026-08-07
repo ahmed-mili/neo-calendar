@@ -1,5 +1,6 @@
 import { DAYS_SHORT, MONTHS_SHORT, MONTHS } from "./calendarConstants";
 import { addDays, getWeekStart } from "./calendarDateUtils";
+import { getLanguage } from "../i18n";
 
 export function formatHour(hour: number, format24h: boolean): string {
     if (format24h) {
@@ -32,27 +33,42 @@ export function formatMonthTitle(date: Date): string {
     return `${MONTHS_SHORT[date.getMonth()]} ${date.getFullYear()}`;
 }
 
-/** Full month name + year, e.g. "September 2026" (Notion mini-calendar style). */
+/** Full month name + year, e.g. "septembre 2026" (Notion mini-calendar style). */
 export function formatMonthTitleFull(date: Date): string {
     return `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+/** e.g. "sam. 20 juin", or "Sat, Jun 20" — a date is not read in the same
+    order in both languages, so the order follows the language too. */
 export function formatDayTitle(date: Date): string {
-    return `${DAYS_SHORT[date.getDay()]}, ${
-        MONTHS_SHORT[date.getMonth()]
-    } ${date.getDate()}`;
+    const day = DAYS_SHORT[date.getDay()];
+    const month = MONTHS_SHORT[date.getMonth()];
+    if (getLanguage() === "fr") {
+        return `${day} ${date.getDate()} ${month}`;
+    }
+    return `${day}, ${month} ${date.getDate()}`;
 }
 
+/** e.g. "20 – 26 juin 2026" / "Jun 20 – 26, 2026", and across a month end
+    "28 juin – 4 juil. 2026" / "Jun 28 – Jul 4, 2026". */
 export function formatWeekTitle(weekStart: Date): string {
     const weekEnd = addDays(weekStart, 6);
-    if (weekStart.getMonth() === weekEnd.getMonth()) {
-        return `${
-            MONTHS_SHORT[weekStart.getMonth()]
-        } ${weekStart.getDate()} – ${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
+    const startMonth = MONTHS_SHORT[weekStart.getMonth()];
+    const endMonth = MONTHS_SHORT[weekEnd.getMonth()];
+    const year = weekStart.getFullYear();
+    const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
+
+    if (getLanguage() === "fr") {
+        if (sameMonth) {
+            return `${weekStart.getDate()} – ${weekEnd.getDate()} ${startMonth} ${year}`;
+        }
+        return `${weekStart.getDate()} ${startMonth} – ${weekEnd.getDate()} ${endMonth} ${year}`;
     }
-    return `${MONTHS_SHORT[weekStart.getMonth()]} ${weekStart.getDate()} – ${
-        MONTHS_SHORT[weekEnd.getMonth()]
-    } ${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
+
+    if (sameMonth) {
+        return `${startMonth} ${weekStart.getDate()} – ${weekEnd.getDate()}, ${year}`;
+    }
+    return `${startMonth} ${weekStart.getDate()} – ${endMonth} ${weekEnd.getDate()}, ${year}`;
 }
 
 export function getMonthDayTitle(date: Date): string {

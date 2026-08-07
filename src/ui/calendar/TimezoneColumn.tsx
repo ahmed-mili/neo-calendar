@@ -3,6 +3,7 @@ import { ArrowLeft, Globe2, Pencil, Trash2 } from "lucide-react";
 import { DateTime } from "luxon";
 import { HOUR_HEIGHT } from "./CalendarUtils";
 import ContextMenu, { ContextMenuItem } from "./ContextMenu";
+import { t } from "../i18n";
 
 /** Actions for the timezone context menu, provided by CalendarApp via context. */
 export interface TimezoneMenuActions {
@@ -41,12 +42,12 @@ export function TimezoneColumnHeader({
     const items: ContextMenuItem[] = menu
         ? [
               {
-                  label: "Change time zone",
+                  label: t("Change time zone"),
                   icon: <Globe2 size={15} />,
                   onClick: () => menu.onChange(timezone),
               },
               {
-                  label: "Rename",
+                  label: t("Rename"),
                   icon: <Pencil size={15} />,
                   onClick: () => menu.onRename(timezone),
               },

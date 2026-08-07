@@ -44,8 +44,10 @@ describe("Windows application shell", () => {
         const syncProductName = ["Sync", "thing"].join("");
 
         expect(html).toContain("Neo Calendar");
-        expect(html).toContain("Choose your Neo Calendar data folder.");
-        expect(html).toContain("Choose data folder");
+        expect(html).toContain(
+            "Choisissez le dossier de données de Neo Calendar."
+        );
+        expect(html).toContain("Choisir le dossier");
         expect(html).not.toContain(syncProductName);
         expect(html).not.toContain("mock event");
     });
@@ -58,7 +60,7 @@ describe("Windows application shell", () => {
 
         const html = renderToStaticMarkup(<App />);
 
-        expect(html).not.toContain("Choose data folder");
+        expect(html).not.toContain("Choisir le dossier");
         expect(html).toContain('aria-busy="true"');
     });
 
@@ -74,7 +76,7 @@ describe("Windows application shell", () => {
         const html = renderToStaticMarkup(<App />);
 
         expect(html).toContain('data-view="week"');
-        expect(html).not.toContain("Choose data folder");
+        expect(html).not.toContain("Choisir le dossier");
     });
 
     it("shows the task route received from Obsidian", () => {
@@ -86,6 +88,6 @@ describe("Windows application shell", () => {
 
         const html = renderToStaticMarkup(<App />);
 
-        expect(html).toContain("Opening task: test@task");
+        expect(html).toContain("Ouverture de la tâche : test@task");
     });
 });

@@ -10,6 +10,7 @@ import {
     filterSections,
     resolveHotkeys,
 } from "./shortcutRegistry";
+import { t } from "../i18n";
 
 const PANEL_MARGIN_PX = 8;
 
@@ -119,15 +120,15 @@ export default function ShortcutsPanel({
                     type="search"
                     autoFocus
                     value={query}
-                    placeholder="Find keyboard shortcuts"
-                    aria-label="Find keyboard shortcuts"
+                    placeholder={t("Find keyboard shortcuts")}
+                    aria-label={t("Find keyboard shortcuts")}
                     onChange={(event) => setQuery(event.target.value)}
                 />
                 {query && (
                     <button
                         type="button"
                         className="nc-shortcuts-search-clear"
-                        title="Clear search"
+                        title={t("Clear search")}
                         onClick={() => setQuery("")}
                     >
                         <XIcon size={12} />

@@ -11,6 +11,7 @@ import {
     formatMonthTitleFull,
 } from "./CalendarUtils";
 import { ChevronUpIcon, ChevronDownNavIcon, GoTodayIcon } from "./Icons";
+import { t } from "../i18n";
 
 interface MiniCalendarProps {
     currentDate: Date;
@@ -73,8 +74,8 @@ export default function MiniCalendar(props: MiniCalendarProps) {
                         <button
                             className="nc-btn nc-btn-icon nc-btn-sm nc-mini-cal-today-btn"
                             onClick={goToToday}
-                            title="Go back to today"
-                            aria-label="Go back to today"
+                            title={t("Go back to today")}
+                            aria-label={t("Go back to today")}
                         >
                             <GoTodayIcon />
                         </button>
@@ -82,14 +83,14 @@ export default function MiniCalendar(props: MiniCalendarProps) {
                     <button
                         className="nc-btn nc-btn-icon nc-btn-sm"
                         onClick={goPrevMonth}
-                        title="Previous month"
+                        title={t("Previous month")}
                     >
                         <ChevronUpIcon />
                     </button>
                     <button
                         className="nc-btn nc-btn-icon nc-btn-sm"
                         onClick={goNextMonth}
-                        title="Next month"
+                        title={t("Next month")}
                     >
                         <ChevronDownNavIcon />
                     </button>

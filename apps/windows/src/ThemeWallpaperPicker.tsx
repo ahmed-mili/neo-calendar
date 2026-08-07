@@ -8,6 +8,7 @@ import {
     WallpaperDefinition,
     WallpaperId,
 } from "./themes/wallpapers";
+import { t } from "../../../src/ui/i18n";
 
 interface ThemeWallpaperPickerProps {
     value: WallpaperId;
@@ -121,19 +122,19 @@ export default function ThemeWallpaperPicker({
                         className="nc-wallpaper-sheet"
                         role="dialog"
                         aria-modal="true"
-                        aria-label="Fonds d'écran"
+                        aria-label={t("Wallpapers")}
                     >
                         <button
                             type="button"
                             className="nc-wallpaper-sheet__scrim"
-                            aria-label="Fermer"
+                            aria-label={t("Close")}
                             onClick={() => setOpen(false)}
                         />
                         <div
                             ref={menuRef}
                             className="nc-wallpaper-sheet__panel"
                             role="listbox"
-                            aria-label="Fonds d'écran"
+                            aria-label={t("Wallpapers")}
                         >
                             {wallpapers.map((wallpaper) => (
                                 <button
