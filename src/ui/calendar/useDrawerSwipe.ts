@@ -31,7 +31,11 @@ const SETTLE_MS = 240;
 const EASING = "cubic-bezier(0.2, 0.85, 0.25, 1)";
 
 const PANEL_SELECTOR = ".nc-sidebar:not(.nc-sidebar-collapsed)";
-const SCRIM_SELECTOR = ".nc-mobile-sidebar-scrim";
+const CALENDAR_SELECTOR = ".nc-main";
+
+/** How dark the calendar goes with the drawer fully out. A filter dims the
+    element's own pixels, so unlike a scrim it has no edge to notice. */
+const DIMMED = 0.6;
 
 export function canStartDrawerGesture({
     x,
@@ -139,7 +143,7 @@ export function useDrawerSwipe({
         const body = document.body;
         let gesture: Gesture | null = null;
         let panel: HTMLElement | null = null;
-        let scrim: HTMLElement | null = null;
+        let calendar: HTMLElement | null = null;
         let width = 0;
         let frame = 0;
         let pending = 0;
@@ -147,8 +151,11 @@ export function useDrawerSwipe({
 
         const findElements = () => {
             panel = document.querySelector(PANEL_SELECTOR);
-            scrim = document.querySelector(SCRIM_SELECTOR);
+            calendar = document.querySelector(CALENDAR_SELECTOR);
         };
+
+        const brightnessFor = (progress: number) =>
+            "brightness(" + (1 - (1 - DIMMED) * progress) + ")";
 
         const paint = (progress: number) => {
             if (!panel) findElements();
@@ -156,7 +163,7 @@ export function useDrawerSwipe({
                 const offset = (progress - 1) * width;
                 panel.style.transform = "translate3d(" + offset + "px, 0, 0)";
             }
-            if (scrim) scrim.style.opacity = String(progress);
+            if (calendar) calendar.style.filter = brightnessFor(progress);
         };
 
         const glide = (progress: number) => {
@@ -167,9 +174,10 @@ export function useDrawerSwipe({
                 panel.style.transform =
                     "translate3d(" + (progress - 1) * width + "px, 0, 0)";
             }
-            if (scrim) {
-                scrim.style.transition = "opacity " + SETTLE_MS + "ms ease";
-                scrim.style.opacity = String(progress);
+            if (calendar) {
+                calendar.style.transition =
+                    "filter " + SETTLE_MS + "ms " + EASING;
+                calendar.style.filter = brightnessFor(progress);
             }
         };
 
@@ -178,12 +186,12 @@ export function useDrawerSwipe({
                 panel.style.transform = "";
                 panel.style.transition = "";
             }
-            if (scrim) {
-                scrim.style.opacity = "";
-                scrim.style.transition = "";
+            if (calendar) {
+                calendar.style.filter = "";
+                calendar.style.transition = "";
             }
             panel = null;
-            scrim = null;
+            calendar = null;
         };
 
         // Touch events outpace the screen, so only the last position before
