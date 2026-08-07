@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, FolderOpen } from "lucide-react";
 import DesktopCalendar from "./DesktopCalendar";
 import DesktopErrorBoundary from "./DesktopErrorBoundary";
@@ -11,7 +11,9 @@ import {
     resolveAppearanceMode,
 } from "./themes/appearancePreferences";
 import { getTheme, THEMES } from "./themes/registry";
-import { getWallpaper } from "./themes/wallpapers";
+import { getWallpaper, isAndroidRuntime } from "./themes/wallpapers";
+import WallpaperRenderLayer from "./WallpaperRenderLayer";
+import "./themes/wallpaperEffects";
 
 function readStringProperty(
     value: unknown,
@@ -74,6 +76,12 @@ export default function App() {
     const [appearance, setAppearance] = useState<AppearancePreferences>(() =>
         loadAppearancePreferences()
     );
+    // The calendar mounts hidden and reads its folder; revealing it only once
+    // that read is done means landing on a filled grid instead of watching it
+    // populate. It also makes the startup race impossible to trigger by hand:
+    // nothing is clickable before the stored preferences are known.
+    const [isCalendarReady, setIsCalendarReady] = useState(false);
+    const handleCalendarReady = useCallback(() => setIsCalendarReady(true), []);
 
     const appearanceMode = useMemo(
         () => resolveAppearanceMode(appearance.mode),
@@ -193,6 +201,24 @@ export default function App() {
         };
     }, [appearanceMode, effectiveTheme, theme]);
 
+    // `preferences` stays null until the stored settings have been read. Falling
+    // through to the welcome screen would flash "Choose data folder" on every
+    // launch, even though a folder is already configured.
+    if (!preferences) {
+        return (
+            <main
+                className={`nc-desktop nc-desktop--loading ${theme.className}`}
+                aria-busy="true"
+            >
+                <WallpaperRenderLayer
+                    wallpaperId={effectiveTheme.wallpaperId}
+                    appearanceMode={appearanceMode}
+                    surface={effectiveTheme.surface}
+                />
+            </main>
+        );
+    }
+
     if (dataFolder) {
         const preferenceRecord =
             preferences && typeof preferences === "object"
@@ -211,10 +237,19 @@ export default function App() {
 
         return (
             <main
-                className={`nc-desktop nc-desktop--calendar ${theme.className}`}
+                className={`nc-desktop nc-desktop--calendar ${theme.className}${
+                    isCalendarReady ? "" : " nc-desktop--booting"
+                }`}
+                aria-busy={isCalendarReady ? undefined : "true"}
             >
+                <WallpaperRenderLayer
+                    wallpaperId={effectiveTheme.wallpaperId}
+                    appearanceMode={appearanceMode}
+                    surface={effectiveTheme.surface}
+                />
                 <DesktopErrorBoundary>
                     <DesktopCalendar
+                        onReady={handleCalendarReady}
                         dataFolder={dataFolder}
                         onChangeDataFolder={chooseDataFolder}
                         linkedVaults={enabledVaults.map((vault) => vault.path)}
@@ -240,7 +275,9 @@ export default function App() {
                 <div className="nc-welcome__mark" aria-hidden="true">
                     <CalendarDays size={28} strokeWidth={1.8} />
                 </div>
-                <p className="nc-welcome__eyebrow">Windows application</p>
+                <p className="nc-welcome__eyebrow">
+                    {isAndroidRuntime() ? "Android" : "Windows"} application
+                </p>
                 <h1 id="welcome-title">Neo Calendar</h1>
                 <p className="nc-welcome__description">
                     Choose your Neo Calendar data folder.

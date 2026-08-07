@@ -14,6 +14,7 @@ import EventPanel, {
     type EventLinkedItem,
     type EventLinkTarget,
 } from "../../../src/ui/calendar/EventPanel";
+import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { open } from "@tauri-apps/plugin-dialog";
 import { createUnscheduledPanelEvent } from "../../../src/ui/calendar/CalendarEventsPanel.helpers";
 import {
@@ -25,7 +26,10 @@ import {
 } from "../../../src/ui/calendar/CalendarUtils";
 import { useCalendarNavigation } from "../../../src/ui/calendar/useCalendarNavigation";
 import { useEventDragResize } from "../../../src/ui/calendar/useEventDragResize";
-import { eventToPaste, cutMayDeleteSource } from "../../../src/ui/calendar/useClipboardActions";
+import {
+    eventToPaste,
+    cutMayDeleteSource,
+} from "../../../src/ui/calendar/useClipboardActions";
 import type { DragPreview } from "../../../src/ui/calendar/TimeGrid.types";
 import type { PanelDropTarget } from "../../../src/ui/calendar/usePanelDrag";
 import {
@@ -36,11 +40,7 @@ import {
     TrashIcon,
 } from "../../../src/ui/calendar/Icons";
 import { NeoEvent, validateEvent } from "../../../src/types";
-import {
-    CalendarSource,
-    DisplayEvent,
-    ViewType,
-} from "../../../src/ui/types";
+import { CalendarSource, DisplayEvent, ViewType } from "../../../src/ui/types";
 import DesktopSettings from "./DesktopSettings";
 import AddCalendarDialog, {
     type AddCalendarRequest,
@@ -61,6 +61,10 @@ import {
     saveDesktopPreferences,
     writeDesktopEventFile,
 } from "./platform/desktopCalendarStore";
+import {
+    loadDeviceWorkspacePreferences,
+    saveDeviceWorkspacePreferences,
+} from "./platform/tauriSettingsStore";
 import type { DesktopDetectedVaultDto } from "./platform/desktopCalendarStore";
 import {
     DesktopCacheController,
@@ -91,8 +95,14 @@ import {
 import {
     defaultDesktopWorkspacePreferences,
     parseDesktopWorkspacePreferences,
+    reconcileWorkspacePreferences,
+    sharedWorkspacePreferences,
+    deviceWorkspacePreferences,
+    withDeviceWorkspacePreferences,
+    type DeviceWorkspacePreferences,
     type DesktopWorkspacePreferences,
 } from "./platform/desktopWorkspacePreferences";
+import { createWorkspacePreferenceWriter } from "./platform/workspacePreferenceWriter";
 import "./DesktopCalendar.css";
 
 export interface DesktopCalendarProps {
@@ -109,6 +119,9 @@ export interface DesktopCalendarProps {
     isScanningVaults: boolean;
     themeId: ThemeId;
     onThemeChange: (themeId: ThemeId) => Promise<void>;
+    /** Fired once the folder has been read, so the shell can reveal the
+        calendar only when it has something to show. */
+    onReady?: () => void;
 }
 
 interface DraftSlot {
@@ -160,6 +173,64 @@ const COLOR_PALETTE = [
     "#b4befe",
     "#eba0ac",
 ];
+
+interface DesktopEventRoute {
+    relativePath: string;
+    occurrenceDate: string | null;
+}
+
+function normalizeDesktopEventPath(value: string): string {
+    return value.replace(/\\/g, "/").replace(/^\/+/, "").replace(/\/+/g, "/");
+}
+
+function parseDesktopEventRoute(url: string): DesktopEventRoute | null {
+    try {
+        const parsed = new URL(url);
+
+        if (
+            parsed.protocol !== "neo-calendar:" ||
+            parsed.hostname !== "event"
+        ) {
+            return null;
+        }
+
+        const encodedPath = parsed.pathname.replace(/^\/+/, "");
+        if (!encodedPath) return null;
+
+        const relativePath = normalizeDesktopEventPath(
+            decodeURIComponent(encodedPath)
+        );
+
+        if (
+            !relativePath ||
+            relativePath.length > 2048 ||
+            /[\u0000-\u001f\u007f]/.test(relativePath) ||
+            relativePath
+                .split("/")
+                .some(
+                    (segment) =>
+                        segment.length === 0 ||
+                        segment === "." ||
+                        segment === ".."
+                )
+        ) {
+            return null;
+        }
+
+        const dateValue = parsed.searchParams.get("date");
+        const occurrenceDate =
+            dateValue && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)
+                ? dateValue
+                : null;
+
+        return {
+            relativePath,
+            occurrenceDate,
+        };
+    } catch {
+        return null;
+    }
+}
 
 function pad(value: number): string {
     return String(value).padStart(2, "0");
@@ -254,7 +325,9 @@ function externalEventRecord(
         id: eventId,
         calendarId,
         calendarPath: calendarId,
-        relativePath: `@external/${encodeURIComponent(calendarId)}/${encodeURIComponent(sourceEventId)}`,
+        relativePath: `@external/${encodeURIComponent(
+            calendarId
+        )}/${encodeURIComponent(sourceEventId)}`,
         fileName: `${encodeURIComponent(sourceEventId)}.ics`,
         contents: "",
         event: { ...event, id: eventId },
@@ -274,6 +347,67 @@ function anchorForEvent(eventId: string): DOMRect | null {
     );
 }
 
+const ANDROID_VIEW_STORAGE_KEY =
+    "neo-calendar.android.view.single-day-compatible-v1";
+const ANDROID_DAY_COUNT_STORAGE_KEY =
+    "neo-calendar.android.day-count.single-day-compatible-v1";
+
+function isAndroidRuntime(): boolean {
+    if (typeof window === "undefined") return false;
+    const androidWindow = window as Window & { NeoAndroid?: unknown };
+    return (
+        Boolean(androidWindow.NeoAndroid) ||
+        document.documentElement.classList.contains("nc-platform-android") ||
+        document.body?.classList.contains("nc-platform-android") === true ||
+        document.documentElement.dataset.neoCalendarPlatform === "android"
+    );
+}
+
+function readAndroidView(): ViewType {
+    try {
+        const saved = window.localStorage.getItem(ANDROID_VIEW_STORAGE_KEY);
+        if (
+            saved === "day" ||
+            saved === "week" ||
+            saved === "month" ||
+            saved === "list" ||
+            saved === "3days" ||
+            saved === "days"
+        ) {
+            return saved;
+        }
+    } catch {
+        // A restricted WebView may temporarily deny localStorage.
+    }
+    return "days";
+}
+
+function readAndroidDayCount(): number {
+    try {
+        const saved = Number(
+            window.localStorage.getItem(ANDROID_DAY_COUNT_STORAGE_KEY)
+        );
+        if (Number.isFinite(saved) && saved >= 1 && saved <= 60) {
+            return Math.round(saved);
+        }
+    } catch {
+        // A restricted WebView may temporarily deny localStorage.
+    }
+    return 2;
+}
+
+function saveAndroidNavigation(viewType: ViewType, dayCount: number): void {
+    try {
+        window.localStorage.setItem(ANDROID_VIEW_STORAGE_KEY, viewType);
+        window.localStorage.setItem(
+            ANDROID_DAY_COUNT_STORAGE_KEY,
+            String(Math.max(1, Math.min(60, Math.round(dayCount))))
+        );
+    } catch {
+        // Navigation still works for the current session without persistence.
+    }
+}
+
 export default function DesktopCalendar({
     dataFolder,
     onChangeDataFolder,
@@ -288,7 +422,12 @@ export default function DesktopCalendar({
     isScanningVaults,
     themeId,
     onThemeChange,
+    onReady,
 }: DesktopCalendarProps) {
+    const isAndroid = useMemo(isAndroidRuntime, []);
+    const androidInitialView = useMemo(readAndroidView, []);
+    const androidInitialDayCount = useMemo(readAndroidDayCount, []);
+
     const [preferences, setPreferences] = useState<DesktopWorkspacePreferences>(
         defaultDesktopWorkspacePreferences
     );
@@ -306,8 +445,10 @@ export default function DesktopCalendar({
         shiftDays,
         shiftMonths,
     } = useCalendarNavigation(
-        preferences.initialView.desktop,
-        preferences.firstDay
+        isAndroid ? androidInitialView : preferences.initialView.desktop,
+        preferences.firstDay,
+        // Starting on the stored span avoids a visible 3-day flash on Android.
+        isAndroid ? androidInitialDayCount : preferences.dayCount
     );
 
     const [calendars, setCalendars] = useState<DesktopCalendarModel[]>([]);
@@ -321,13 +462,17 @@ export default function DesktopCalendar({
     const [selectedCalendarId, setSelectedCalendarId] = useState<string | null>(
         null
     );
-    const [sidebarVisible, setSidebarVisible] = useState(true);
+    // On Android the sidebar is a drawer: it must stay closed until tapped,
+    // and its state never travels through the shared preference file.
+    const [sidebarVisible, setSidebarVisible] = useState(!isAndroid);
     const [showWeekNumbers, setShowWeekNumbers] = useState(false);
     const [allDayCollapsed, setAllDayCollapsed] = useState(false);
     const [secondaryTimezones, setSecondaryTimezones] = useState<string[]>([]);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [addCalendarOpen, setAddCalendarOpen] = useState(false);
-    const [calendarToDelete, setCalendarToDelete] = useState<string | null>(null);
+    const [calendarToDelete, setCalendarToDelete] = useState<string | null>(
+        null
+    );
     const [panelEventId, setPanelEventId] = useState<string | null>(null);
     const [panelAnchor, setPanelAnchor] = useState<DOMRect | null>(null);
     const [draftSlot, setDraftSlot] = useState<DraftSlot | null>(null);
@@ -343,13 +488,13 @@ export default function DesktopCalendar({
     const [clipboard, setClipboard] = useState<ClipboardState | null>(null);
     const [deletedBatch, setDeletedBatch] = useState<DesktopStoredEvent[]>([]);
     const [panelPreview, setPanelPreview] = useState<DragPreview | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
     const [, setIsSaving] = useState(false);
     const [storageError, setStorageError] = useState<string | null>(null);
 
     const calendarRootRef = useRef<HTMLElement>(null);
     const calendarsRef = useRef(calendars);
     const recordsRef = useRef(storedEvents);
+    const pendingEventRouteRef = useRef<DesktopEventRoute | null>(null);
     const didApplyInitialViewRef = useRef(false);
     useEffect(() => {
         calendarsRef.current = calendars;
@@ -358,24 +503,129 @@ export default function DesktopCalendar({
         recordsRef.current = storedEvents;
     }, [storedEvents]);
 
+    const revealDesktopEventRoute = useCallback(
+        (
+            route: DesktopEventRoute,
+            records: readonly DesktopStoredEvent[] = recordsRef.current
+        ): boolean => {
+            const requestedPath = normalizeDesktopEventPath(route.relativePath);
+            const record = records.find(
+                (candidate) =>
+                    !candidate.readOnly &&
+                    normalizeDesktopEventPath(candidate.relativePath) ===
+                        requestedPath
+            );
+
+            if (!record) return false;
+
+            const preferredDate =
+                route.occurrenceDate ??
+                (record.event.type === "single" ? record.event.date : null);
+
+            if (preferredDate && /^\d{4}-\d{2}-\d{2}$/.test(preferredDate)) {
+                setCurrentDate(parseLocalDate(preferredDate));
+            }
+
+            pendingEventRouteRef.current = null;
+            setSelectedIds(new Set());
+            setDraftSlot(null);
+            setPanelEventId(record.id);
+            setPanelAnchor(null);
+            setSettingsOpen(false);
+            setAddCalendarOpen(false);
+            return true;
+        },
+        [setCurrentDate]
+    );
+
+    // Read once at startup and kept in a ref rather than in state: it is only
+    // ever consulted while loading or saving, and a re-render for it would be
+    // wasted work.
+    const deviceWorkspaceRef = useRef<DeviceWorkspacePreferences>({});
+
+    useEffect(() => {
+        let cancelled = false;
+        loadDeviceWorkspacePreferences()
+            .then((stored) => {
+                if (!cancelled) deviceWorkspaceRef.current = stored;
+            })
+            .catch(() => {
+                // A device that cannot recall its own last view simply opens on
+                // the shared default; nothing worth surfacing.
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const preferenceWriter = useMemo(
+        () =>
+            createWorkspacePreferenceWriter(
+                defaultDesktopWorkspacePreferences(),
+                async (value: DesktopWorkspacePreferences) => {
+                    // Two destinations: what the calendar owns goes to the
+                    // synced file, what this machine owns stays here. Switching
+                    // view no longer rewrites the colours, so there is nothing
+                    // left for the two devices to disagree about.
+                    deviceWorkspaceRef.current =
+                        deviceWorkspacePreferences(value);
+                    await Promise.all([
+                        saveDesktopPreferences(
+                            dataFolder,
+                            sharedWorkspacePreferences(value)
+                        ),
+                        saveDeviceWorkspacePreferences(
+                            deviceWorkspaceRef.current
+                        ),
+                    ]);
+                }
+            ),
+        [dataFolder]
+    );
+
     const persistPreferences = useCallback(
-        async (next: DesktopWorkspacePreferences) => {
-            setPreferences(next);
+        async (
+            mutate: (
+                current: DesktopWorkspacePreferences
+            ) => DesktopWorkspacePreferences
+        ) => {
             try {
-                await saveDesktopPreferences(dataFolder, next);
+                setPreferences(await preferenceWriter.mutate(mutate));
             } catch (reason) {
+                setPreferences(preferenceWriter.current());
                 setStorageError(errorMessage(reason));
             }
         },
-        [dataFolder]
+        [preferenceWriter]
     );
 
     const reloadWorkspace = useCallback(async () => {
         setStorageError(null);
         try {
             const snapshot = await loadDesktopWorkspace(dataFolder);
-            const nextPreferences = parseDesktopWorkspacePreferences(
-                snapshot.preferences
+            const isFirstLoad = !preferenceWriter.isLoaded();
+            // Adopting replays whatever the user changed while the folder was
+            // still loading, so their action is kept without discarding the
+            // stored colors, ordering and hidden calendars.
+            //
+            // What is read is reconciled with what is already known rather than
+            // replacing it: the file sits in a synced folder, so it can arrive
+            // missing colours another device has, or not arrive at all while it
+            // is being replaced.
+            const storedPreferences = await preferenceWriter.adopt(
+                reconcileWorkspacePreferences({
+                    previous: preferenceWriter.isLoaded()
+                        ? preferenceWriter.current()
+                        : null,
+                    loaded: parseDesktopWorkspacePreferences(
+                        snapshot.preferences
+                    ),
+                    fileExisted: snapshot.preferencesFound,
+                })
+            );
+            const nextPreferences = withDeviceWorkspacePreferences(
+                storedPreferences,
+                deviceWorkspaceRef.current
             );
             const orderIndex = new Map(
                 nextPreferences.order.map((path, index) => [path, index])
@@ -410,19 +660,20 @@ export default function DesktopCalendar({
                     };
                 }
             );
-            const nextCalendars = [...localCalendars, ...externalCalendars].sort(
-                (left, right) => {
-                    const leftOrder =
-                        orderIndex.get(left.relativePath) ??
-                        Number.MAX_SAFE_INTEGER;
-                    const rightOrder =
-                        orderIndex.get(right.relativePath) ??
-                        Number.MAX_SAFE_INTEGER;
-                    return leftOrder !== rightOrder
-                        ? leftOrder - rightOrder
-                        : left.name.localeCompare(right.name);
-                }
-            );
+            const nextCalendars = [
+                ...localCalendars,
+                ...externalCalendars,
+            ].sort((left, right) => {
+                const leftOrder =
+                    orderIndex.get(left.relativePath) ??
+                    Number.MAX_SAFE_INTEGER;
+                const rightOrder =
+                    orderIndex.get(right.relativePath) ??
+                    Number.MAX_SAFE_INTEGER;
+                return leftOrder !== rightOrder
+                    ? leftOrder - rightOrder
+                    : left.name.localeCompare(right.name);
+            });
 
             const knownLocalIds = new Set<string>(
                 localCalendars.map((calendar) => calendar.id)
@@ -434,9 +685,7 @@ export default function DesktopCalendar({
             );
             const localEvents = snapshot.eventFiles
                 .map((file) => parseStoredEvent(file, knownLocalIds))
-                .filter(
-                    (event): event is DesktopStoredEvent => event !== null
-                )
+                .filter((event): event is DesktopStoredEvent => event !== null)
                 .map((record) => ({
                     ...record,
                     id: previousByPath.get(record.relativePath) ?? record.id,
@@ -445,7 +694,9 @@ export default function DesktopCalendar({
 
             const automaticEvents = nextPreferences.externalCalendars
                 .filter(
-                    (source): source is Extract<
+                    (
+                        source
+                    ): source is Extract<
                         DesktopExternalCalendarSource,
                         { type: "auto" }
                     > => source.type === "auto"
@@ -463,7 +714,9 @@ export default function DesktopCalendar({
             const remoteEventGroups = await Promise.all(
                 nextPreferences.externalCalendars
                     .filter(
-                        (source): source is Extract<
+                        (
+                            source
+                        ): source is Extract<
                             DesktopExternalCalendarSource,
                             { type: "ical" }
                         > => source.type === "ical"
@@ -508,19 +761,39 @@ export default function DesktopCalendar({
 
             calendarsRef.current = nextCalendars;
             recordsRef.current = nextEvents;
+
+            const pendingRoute = pendingEventRouteRef.current;
+            if (pendingRoute) {
+                revealDesktopEventRoute(pendingRoute, nextEvents);
+            }
+
             setCalendars(nextCalendars);
             setStoredEvents(nextEvents);
             setPreferences(nextPreferences);
             setDefaultCalendarIdState(nextDefaultId);
             setHiddenCalendars(nextHidden);
-            setAllDayCollapsed(nextPreferences.allDayCollapsed);
-            setShowWeekNumbers(nextPreferences.showWeekNumbers);
-            setSidebarVisible(nextPreferences.sidebarVisible);
-            setSecondaryTimezones(nextPreferences.secondaryTimezones);
-            setDaysCount(nextPreferences.dayCount);
+            // Later reloads (window focus, remote calendar refresh) must not
+            // snap the interface back: they would undo what the user just did.
+            if (isFirstLoad) {
+                setAllDayCollapsed(nextPreferences.allDayCollapsed);
+                setShowWeekNumbers(nextPreferences.showWeekNumbers);
+                setSecondaryTimezones(nextPreferences.secondaryTimezones);
+                if (!isAndroid) {
+                    setSidebarVisible(nextPreferences.sidebarVisible);
+                }
+                setDaysCount(
+                    isAndroid
+                        ? androidInitialDayCount
+                        : nextPreferences.dayCount
+                );
+            }
             if (!didApplyInitialViewRef.current) {
                 didApplyInitialViewRef.current = true;
-                setViewType(nextPreferences.initialView.desktop);
+                setViewType(
+                    isAndroid
+                        ? androidInitialView
+                        : nextPreferences.initialView.desktop
+                );
             }
             setSelectedCalendarId((current) =>
                 current &&
@@ -538,14 +811,74 @@ export default function DesktopCalendar({
         } catch (reason) {
             setStorageError(errorMessage(reason));
         } finally {
-            setIsLoading(false);
+            // Also on failure: the shell must never stay on the splash because
+            // the folder could not be read — the error has to be reachable.
+            onReady?.();
         }
-    }, [dataFolder, setDaysCount, setViewType]);
+    }, [
+        dataFolder,
+        onReady,
+        preferenceWriter,
+        revealDesktopEventRoute,
+        setDaysCount,
+        setViewType,
+    ]);
 
     useEffect(() => {
-        setIsLoading(true);
         void reloadWorkspace();
     }, [reloadWorkspace]);
+
+    useEffect(() => {
+        let active = true;
+        let dispose: (() => void) | undefined;
+
+        const acceptRoutes = (urls: string[]) => {
+            if (!active) return;
+
+            let route: DesktopEventRoute | null = null;
+
+            for (const url of urls) {
+                route = parseDesktopEventRoute(url) ?? route;
+            }
+
+            if (!route) return;
+
+            pendingEventRouteRef.current = route;
+
+            if (!revealDesktopEventRoute(route)) {
+                void reloadWorkspace();
+            }
+        };
+
+        void getCurrent()
+            .then((urls) => acceptRoutes(urls ?? []))
+            .catch((reason) => {
+                console.error(
+                    "Neo Calendar: deep-link startup route failed.",
+                    reason
+                );
+            });
+
+        void onOpenUrl(acceptRoutes)
+            .then((unlisten) => {
+                if (active) {
+                    dispose = unlisten;
+                } else {
+                    unlisten();
+                }
+            })
+            .catch((reason) => {
+                console.error(
+                    "Neo Calendar: deep-link listener failed.",
+                    reason
+                );
+            });
+
+        return () => {
+            active = false;
+            dispose?.();
+        };
+    }, [reloadWorkspace, revealDesktopEventRoute]);
 
     useEffect(() => {
         const reloadOnFocus = () => void reloadWorkspace();
@@ -554,7 +887,11 @@ export default function DesktopCalendar({
     }, [reloadWorkspace]);
 
     useEffect(() => {
-        if (!preferences.externalCalendars.some((source) => source.type === "ical")) {
+        if (
+            !preferences.externalCalendars.some(
+                (source) => source.type === "ical"
+            )
+        ) {
             return;
         }
         // Match the plugin's five-minute remote-calendar revalidation window.
@@ -723,9 +1060,7 @@ export default function DesktopCalendar({
                 ? linkedVaults.filter(
                       (path) =>
                           path.replace(/\\/g, "/").toLowerCase() ===
-                          requestedVaultPath
-                              .replace(/\\/g, "/")
-                              .toLowerCase()
+                          requestedVaultPath.replace(/\\/g, "/").toLowerCase()
                   )
                 : linkedVaults;
             if (!paths.length) return [];
@@ -801,13 +1136,18 @@ export default function DesktopCalendar({
 
     const deleteEventFiles = useCallback(
         async (records: DesktopStoredEvent[]): Promise<void> => {
-            const editableRecords = records.filter((record) => !record.readOnly);
+            const editableRecords = records.filter(
+                (record) => !record.readOnly
+            );
             if (!editableRecords.length) return;
             setIsSaving(true);
             setStorageError(null);
             try {
                 for (const record of editableRecords) {
-                    await deleteDesktopEventFile(dataFolder, record.relativePath);
+                    await deleteDesktopEventFile(
+                        dataFolder,
+                        record.relativePath
+                    );
                 }
                 const removed = new Set(
                     editableRecords.map((record) => record.id)
@@ -882,7 +1222,6 @@ export default function DesktopCalendar({
         }
     }, [dataFolder, deletedBatch]);
 
-
     const controller = useMemo<DesktopCacheController>(
         () => ({
             getRecords: () => recordsRef.current,
@@ -907,9 +1246,7 @@ export default function DesktopCalendar({
             case "day":
                 return [currentDate];
             case "3days":
-                return [0, 1, 2].map((offset) =>
-                    addDays(currentDate, offset)
-                );
+                return [0, 1, 2].map((offset) => addDays(currentDate, offset));
             case "days":
                 return Array.from({ length: dayCount }, (_, offset) =>
                     addDays(currentDate, offset)
@@ -1076,7 +1413,10 @@ export default function DesktopCalendar({
             if (requested && calendarById.get(requested)?.editable) {
                 return requested;
             }
-            if (defaultCalendarId && calendarById.get(defaultCalendarId)?.editable) {
+            if (
+                defaultCalendarId &&
+                calendarById.get(defaultCalendarId)?.editable
+            ) {
                 return defaultCalendarId;
             }
             return calendars.find((calendar) => calendar.editable)?.id ?? "";
@@ -1087,14 +1427,19 @@ export default function DesktopCalendar({
     const setDraftAnchorSoon = useCallback(() => {
         requestAnimationFrame(() => {
             const element = document.querySelector(
-                "[data-draft-preview=\"true\"]"
+                '[data-draft-preview="true"]'
             );
             setPanelAnchor(element?.getBoundingClientRect() ?? null);
         });
     }, []);
 
     const openDraft = useCallback(
-        (start: Date, end: Date, allDay: boolean, requestedCalendar?: string) => {
+        (
+            start: Date,
+            end: Date,
+            allDay: boolean,
+            requestedCalendar?: string
+        ) => {
             const calendarId = activeCalendarId(requestedCalendar);
             if (!calendarId) {
                 setStorageError(
@@ -1365,9 +1710,7 @@ export default function DesktopCalendar({
                 type: "single",
                 date,
                 endDate:
-                    typeof source.endDate === "string"
-                        ? source.endDate
-                        : null,
+                    typeof source.endDate === "string" ? source.endDate : null,
                 ...(allDay
                     ? { allDay: true }
                     : {
@@ -1410,31 +1753,45 @@ export default function DesktopCalendar({
             const calendar = calendarById.get(calendarId);
             if (!calendar?.editable) return;
             setDefaultCalendarIdState(calendarId);
-            void persistPreferences({
-                ...preferences,
+            void persistPreferences((current) => ({
+                ...current,
                 defaultCalendarPath: calendar.relativePath,
-            });
+            }));
         },
-        [calendarById, persistPreferences, preferences]
+        [calendarById, persistPreferences]
     );
 
     const toggleCalendar = useCallback(
         (calendarId: string) => {
+            const calendar = calendarById.get(calendarId);
+            if (!calendar) return;
             setSoloCalendarId(null);
             setHiddenCalendars((current) => {
                 const next = new Set(current);
                 if (next.has(calendarId)) next.delete(calendarId);
                 else next.add(calendarId);
-                void persistPreferences({
-                    ...preferences,
-                    hiddenCalendarPaths: calendars
-                        .filter((calendar) => next.has(calendar.id))
-                        .map((calendar) => calendar.relativePath),
-                });
+                const hidden = next.has(calendarId);
+                // Expressed per calendar path so the change stays correct even
+                // when replayed once the calendar list is finally loaded.
+                void persistPreferences((stored) => ({
+                    ...stored,
+                    hiddenCalendarPaths: hidden
+                        ? stored.hiddenCalendarPaths.includes(
+                              calendar.relativePath
+                          )
+                            ? stored.hiddenCalendarPaths
+                            : [
+                                  ...stored.hiddenCalendarPaths,
+                                  calendar.relativePath,
+                              ]
+                        : stored.hiddenCalendarPaths.filter(
+                              (path) => path !== calendar.relativePath
+                          ),
+                }));
                 return next;
             });
         },
-        [calendars, persistPreferences, preferences]
+        [calendarById, persistPreferences]
     );
 
     const showOnlyCalendar = useCallback(
@@ -1469,27 +1826,27 @@ export default function DesktopCalendar({
                     const calendarId = externalCalendarId(request);
                     if (
                         preferences.externalCalendars.some(
-                            (source) => externalCalendarId(source) === calendarId
+                            (source) =>
+                                externalCalendarId(source) === calendarId
                         )
                     ) {
                         throw new Error("This calendar source already exists.");
                     }
                     const key = externalCalendarPreferenceKey(request);
-                    const nextPreferences: DesktopWorkspacePreferences = {
-                        ...preferences,
+                    await persistPreferences((stored) => ({
+                        ...stored,
                         externalCalendars: [
-                            ...preferences.externalCalendars,
+                            ...stored.externalCalendars,
                             request,
                         ],
                         colors: {
-                            ...preferences.colors,
+                            ...stored.colors,
                             [key]: request.color,
                         },
-                        order: preferences.order.includes(key)
-                            ? preferences.order
-                            : [...preferences.order, key],
-                    };
-                    await saveDesktopPreferences(dataFolder, nextPreferences);
+                        order: stored.order.includes(key)
+                            ? stored.order
+                            : [...stored.order, key],
+                    }));
                 }
                 await reloadWorkspace();
             } catch (reason) {
@@ -1500,7 +1857,12 @@ export default function DesktopCalendar({
                 setIsSaving(false);
             }
         },
-        [dataFolder, preferences, reloadWorkspace]
+        [
+            dataFolder,
+            persistPreferences,
+            preferences.externalCalendars,
+            reloadWorkspace,
+        ]
     );
 
     const addCalendar = useCallback(() => {
@@ -1521,36 +1883,42 @@ export default function DesktopCalendar({
                         calendar.relativePath,
                         trimmedName
                     );
-                    const nextColors = { ...preferences.colors };
-                    if (nextColors[calendar.relativePath]) {
-                        nextColors[nextPath] = nextColors[calendar.relativePath];
-                        delete nextColors[calendar.relativePath];
-                    }
-                    await saveDesktopPreferences(dataFolder, {
-                        ...preferences,
-                        colors: nextColors,
-                        order: preferences.order.map((path) =>
-                            path === calendar.relativePath ? nextPath : path
-                        ),
-                        defaultCalendarPath:
-                            preferences.defaultCalendarPath === calendar.relativePath
-                                ? nextPath
-                                : preferences.defaultCalendarPath,
-                        hiddenCalendarPaths: preferences.hiddenCalendarPaths.map(
-                            (path) =>
+                    await persistPreferences((stored) => {
+                        const nextColors = { ...stored.colors };
+                        if (nextColors[calendar.relativePath]) {
+                            nextColors[nextPath] =
+                                nextColors[calendar.relativePath];
+                            delete nextColors[calendar.relativePath];
+                        }
+                        return {
+                            ...stored,
+                            colors: nextColors,
+                            order: stored.order.map((path) =>
                                 path === calendar.relativePath ? nextPath : path
-                        ),
+                            ),
+                            defaultCalendarPath:
+                                stored.defaultCalendarPath ===
+                                calendar.relativePath
+                                    ? nextPath
+                                    : stored.defaultCalendarPath,
+                            hiddenCalendarPaths: stored.hiddenCalendarPaths.map(
+                                (path) =>
+                                    path === calendar.relativePath
+                                        ? nextPath
+                                        : path
+                            ),
+                        };
                     });
                 } else {
-                    await saveDesktopPreferences(dataFolder, {
-                        ...preferences,
-                        externalCalendars: preferences.externalCalendars.map(
+                    await persistPreferences((stored) => ({
+                        ...stored,
+                        externalCalendars: stored.externalCalendars.map(
                             (source) =>
                                 externalCalendarId(source) === calendarId
                                     ? { ...source, name: trimmedName }
                                     : source
                         ),
-                    });
+                    }));
                 }
                 await reloadWorkspace();
             } catch (reason) {
@@ -1559,7 +1927,7 @@ export default function DesktopCalendar({
                 setIsSaving(false);
             }
         },
-        [calendarById, dataFolder, preferences, reloadWorkspace]
+        [calendarById, dataFolder, persistPreferences, reloadWorkspace]
     );
 
     const removeCalendar = useCallback(async (calendarId: string) => {
@@ -1579,22 +1947,23 @@ export default function DesktopCalendar({
                     calendar.relativePath
                 );
             } else {
-                const nextColors = { ...preferences.colors };
-                delete nextColors[calendar.relativePath];
-                await saveDesktopPreferences(dataFolder, {
-                    ...preferences,
-                    colors: nextColors,
-                    order: preferences.order.filter(
-                        (key) => key !== calendar.relativePath
-                    ),
-                    hiddenCalendarPaths:
-                        preferences.hiddenCalendarPaths.filter(
+                await persistPreferences((stored) => {
+                    const nextColors = { ...stored.colors };
+                    delete nextColors[calendar.relativePath];
+                    return {
+                        ...stored,
+                        colors: nextColors,
+                        order: stored.order.filter(
                             (key) => key !== calendar.relativePath
                         ),
-                    externalCalendars: preferences.externalCalendars.filter(
-                        (source) =>
-                            externalCalendarId(source) !== calendar.id
-                    ),
+                        hiddenCalendarPaths: stored.hiddenCalendarPaths.filter(
+                            (key) => key !== calendar.relativePath
+                        ),
+                        externalCalendars: stored.externalCalendars.filter(
+                            (source) =>
+                                externalCalendarId(source) !== calendar.id
+                        ),
+                    };
                 });
             }
             await reloadWorkspace();
@@ -1609,7 +1978,7 @@ export default function DesktopCalendar({
         calendarById,
         calendarToDelete,
         dataFolder,
-        preferences,
+        persistPreferences,
         reloadWorkspace,
     ]);
 
@@ -1622,21 +1991,20 @@ export default function DesktopCalendar({
                     item.id === calendarId ? { ...item, color } : item
                 )
             );
-            void persistPreferences({
-                ...preferences,
+            void persistPreferences((current) => ({
+                ...current,
                 colors: {
-                    ...preferences.colors,
+                    ...current.colors,
                     [calendar.relativePath]: color,
                 },
-                externalCalendars: preferences.externalCalendars.map(
-                    (source) =>
-                        externalCalendarId(source) === calendarId
-                            ? { ...source, color }
-                            : source
+                externalCalendars: current.externalCalendars.map((source) =>
+                    externalCalendarId(source) === calendarId
+                        ? { ...source, color }
+                        : source
                 ),
-            });
+            }));
         },
-        [calendarById, persistPreferences, preferences]
+        [calendarById, persistPreferences]
     );
 
     const reorderCalendars = useCallback(
@@ -1652,12 +2020,12 @@ export default function DesktopCalendar({
             });
             ordered.push(...byId.values());
             setCalendars(ordered);
-            void persistPreferences({
-                ...preferences,
+            void persistPreferences((current) => ({
+                ...current,
                 order: ordered.map((calendar) => calendar.relativePath),
-            });
+            }));
         },
-        [calendars, persistPreferences, preferences]
+        [calendars, persistPreferences]
     );
 
     const actionTargetIds = useCallback((): string[] => {
@@ -1695,9 +2063,7 @@ export default function DesktopCalendar({
                 date?: string;
             };
             pasted.date = formatLocalDate(targetDate);
-            const sourceCalendar = calendarById.get(
-                clipboard.sourceCalendarId
-            );
+            const sourceCalendar = calendarById.get(clipboard.sourceCalendarId);
             const targetCalendarId = sourceCalendar?.editable
                 ? sourceCalendar.id
                 : activeCalendarId();
@@ -1718,13 +2084,7 @@ export default function DesktopCalendar({
                 setClipboard(null);
             }
         },
-        [
-            activeCalendarId,
-            addEvent,
-            calendarById,
-            clipboard,
-            deleteEvents,
-        ]
+        [activeCalendarId, addEvent, calendarById, clipboard, deleteEvents]
     );
 
     const duplicateEvent = useCallback(
@@ -1799,14 +2159,9 @@ export default function DesktopCalendar({
             ];
         }
 
-        const record = findStoredEvent(
-            recordsRef.current,
-            contextMenu.eventId
-        );
+        const record = findStoredEvent(recordsRef.current, contextMenu.eventId);
         if (!record) return [];
-        const selectedCount = selectedIds.has(record.id)
-            ? selectedIds.size
-            : 0;
+        const selectedCount = selectedIds.has(record.id) ? selectedIds.size : 0;
         if (record.readOnly) {
             return [
                 {
@@ -1837,9 +2192,10 @@ export default function DesktopCalendar({
                 onClick: () => copyEvent(contextMenu.eventId),
             },
             {
-                label: selectedCount > 1
-                    ? `Duplicate ${selectedCount} events`
-                    : "Duplicate",
+                label:
+                    selectedCount > 1
+                        ? `Duplicate ${selectedCount} events`
+                        : "Duplicate",
                 shortcut: "Ctrl D",
                 icon: <DuplicateIcon />,
                 onClick: () =>
@@ -1884,39 +2240,72 @@ export default function DesktopCalendar({
         selectedIds,
     ]);
 
-
     const toggleAllDayCollapsed = useCallback(() => {
         setAllDayCollapsed((current) => {
             const next = !current;
-            void persistPreferences({
-                ...preferences,
+            void persistPreferences((stored) => ({
+                ...stored,
                 allDayCollapsed: next,
-            });
+            }));
             return next;
         });
-    }, [persistPreferences, preferences]);
+    }, [persistPreferences]);
+
+    const toggleSidebar = useCallback(() => {
+        setSidebarVisible((current) => {
+            const next = !current;
+            // The Android drawer is a per-session state: persisting it would
+            // fight with the desktop value inside the shared preference file.
+            if (!isAndroid) {
+                void persistPreferences((stored) => ({
+                    ...stored,
+                    sidebarVisible: next,
+                }));
+            }
+            return next;
+        });
+    }, [isAndroid, persistPreferences]);
 
     const changeView = useCallback(
         (next: ViewType) => {
             setViewType(next);
-            void persistPreferences({ ...preferences, viewType: next });
+            if (isAndroid) {
+                saveAndroidNavigation(next, dayCount);
+                return;
+            }
+            void persistPreferences((stored) => ({
+                ...stored,
+                viewType: next,
+            }));
         },
-        [persistPreferences, preferences, setViewType]
+        [dayCount, isAndroid, persistPreferences, setViewType]
     );
 
     const changeDayCount = useCallback(
         (next: number) => {
-            setDaysCount(next);
-            void persistPreferences({ ...preferences, dayCount: next });
+            const normalized = Math.max(1, Math.min(60, Math.round(next)));
+            setDaysCount(normalized);
+            if (isAndroid) {
+                saveAndroidNavigation("days", normalized);
+                return;
+            }
+            void persistPreferences((stored) => ({
+                ...stored,
+                dayCount: normalized,
+            }));
         },
-        [persistPreferences, preferences, setDaysCount]
+        [isAndroid, persistPreferences, setDaysCount]
     );
 
     const updateWorkspacePreferences = useCallback(
-        async (next: DesktopWorkspacePreferences) => {
-            const firstDayChanged = next.firstDay !== preferences.firstDay;
-            setSecondaryTimezones(next.secondaryTimezones);
-            await persistPreferences(next);
+        async (patch: Partial<DesktopWorkspacePreferences>) => {
+            const firstDayChanged =
+                patch.firstDay !== undefined &&
+                patch.firstDay !== preferences.firstDay;
+            if (patch.secondaryTimezones) {
+                setSecondaryTimezones(patch.secondaryTimezones);
+            }
+            await persistPreferences((stored) => ({ ...stored, ...patch }));
             if (firstDayChanged) {
                 requestAnimationFrame(() => setViewType(viewType));
             }
@@ -2047,12 +2436,7 @@ export default function DesktopCalendar({
                 case "b":
                 case ".": {
                     claim();
-                    const next = !sidebarVisible;
-                    setSidebarVisible(next);
-                    void persistPreferences({
-                        ...preferences,
-                        sidebarVisible: next,
-                    });
+                    toggleSidebar();
                     break;
                 }
                 case "/":
@@ -2079,12 +2463,9 @@ export default function DesktopCalendar({
         goToday,
         openNewEvent,
         pasteEvent,
-        persistPreferences,
-        preferences,
-        sidebarVisible,
+        toggleSidebar,
         undoLastDeletion,
     ]);
-
 
     return (
         <section
@@ -2102,10 +2483,10 @@ export default function DesktopCalendar({
                 onToggleWeekNumbers={() => {
                     const next = !showWeekNumbers;
                     setShowWeekNumbers(next);
-                    void persistPreferences({
-                        ...preferences,
+                    void persistPreferences((stored) => ({
+                        ...stored,
                         showWeekNumbers: next,
-                    });
+                    }));
                 }}
                 onGoPrev={goPrev}
                 onGoNext={goNext}
@@ -2120,14 +2501,7 @@ export default function DesktopCalendar({
                 firstDay={preferences.firstDay}
                 timeFormat24h={preferences.timeFormat24h}
                 sidebarVisible={sidebarVisible}
-                onToggleSidebar={() => {
-                    const next = !sidebarVisible;
-                    setSidebarVisible(next);
-                    void persistPreferences({
-                        ...preferences,
-                        sidebarVisible: next,
-                    });
-                }}
+                onToggleSidebar={toggleSidebar}
                 onEventClick={selectEvent}
                 onEventDrag={handleEventDrag}
                 onEventResize={handleEventResize}
@@ -2178,13 +2552,16 @@ export default function DesktopCalendar({
                 onShowOnly={showOnlyCalendar}
                 somedayEvents={somedayEvents}
                 onAddSomeday={() => void createSomeday()}
-                onQuickAdd={(partial: Partial<NeoEvent>) => void quickAdd(partial)}
+                onQuickAdd={(partial: Partial<NeoEvent>) =>
+                    void quickAdd(partial)
+                }
                 onOpenSearch={() => setCommandPaletteVisible(true)}
                 onAddCalendar={() => void addCalendar()}
                 onRenameCalendar={renameCalendar}
                 onEditCalendarLink={(calendarId: string) => {
                     const source = preferences.externalCalendars.find(
-                        (candidate) => externalCalendarId(candidate) === calendarId
+                        (candidate) =>
+                            externalCalendarId(candidate) === calendarId
                     );
                     if (source?.type === "ical") {
                         setStorageError(
@@ -2192,7 +2569,9 @@ export default function DesktopCalendar({
                         );
                     }
                 }}
-                onDeleteCalendar={(calendarId: string) => void removeCalendar(calendarId)}
+                onDeleteCalendar={(calendarId: string) =>
+                    void removeCalendar(calendarId)
+                }
                 onColorChange={changeColor}
                 onReorderCalendars={reorderCalendars}
                 onOpenCalendarFolder={(calendarId: string) => {
@@ -2209,7 +2588,9 @@ export default function DesktopCalendar({
                 }
                 selectedCalendar={selectedCalendar}
                 panelEvents={panelEvents}
-                onAddPanelEvent={(calendarId: string) => void addPanelEvent(calendarId)}
+                onAddPanelEvent={(calendarId: string) =>
+                    void addPanelEvent(calendarId)
+                }
                 onCloseEventsPanel={() => setSelectedCalendarId(null)}
                 onPanelEventClick={selectEvent}
                 secondaryTimezones={secondaryTimezones}
@@ -2218,37 +2599,47 @@ export default function DesktopCalendar({
                         ? secondaryTimezones
                         : [...secondaryTimezones, timezone];
                     setSecondaryTimezones(next);
-                    void persistPreferences({
-                        ...preferences,
+                    void persistPreferences((stored) => ({
+                        ...stored,
                         secondaryTimezones: next,
-                    });
+                    }));
                 }}
                 onRemoveTimezone={(timezone: string) => {
                     const next = secondaryTimezones.filter(
                         (item) => item !== timezone
                     );
                     setSecondaryTimezones(next);
-                    void persistPreferences({
-                        ...preferences,
+                    void persistPreferences((stored) => ({
+                        ...stored,
                         secondaryTimezones: next,
-                    });
+                    }));
                 }}
                 allDayCollapsed={allDayCollapsed}
                 onToggleAllDayCollapsed={toggleAllDayCollapsed}
                 draftSlot={draftSlot}
                 draftColor={
-                    calendarById.get(
-                        draftSlot?.calendarId ?? defaultCalendarId
-                    )?.color ?? "var(--nc-accent)"
+                    calendarById.get(draftSlot?.calendarId ?? defaultCalendarId)
+                        ?.color ?? "var(--nc-accent)"
                 }
-                onResizeDraft={(newEnd: Date) =>
+                onResizeDraft={(range) =>
                     setDraftSlot((current) =>
-                        current ? { ...current, end: newEnd } : current
+                        current
+                            ? {
+                                  ...current,
+                                  start: range.start,
+                                  end: range.end,
+                              }
+                            : current
                     )
                 }
                 panelPreview={panelPreview}
                 onPanelDragTarget={handlePanelDragTarget}
-                onPanelDrop={(event: DisplayEvent, start: Date, end: Date, allDay: boolean) => {
+                onPanelDrop={(
+                    event: DisplayEvent,
+                    start: Date,
+                    end: Date,
+                    allDay: boolean
+                ) => {
                     setPanelPreview(null);
                     void handleEventDrag(event.id, start, end, allDay);
                 }}
@@ -2263,14 +2654,7 @@ export default function DesktopCalendar({
                 onViewChange={changeView}
                 onGoToday={goToday}
                 onCreateEvent={() => openNewEvent()}
-                onToggleSidebar={() => {
-                    const next = !sidebarVisible;
-                    setSidebarVisible(next);
-                    void persistPreferences({
-                        ...preferences,
-                        sidebarVisible: next,
-                    });
-                }}
+                onToggleSidebar={toggleSidebar}
             />
 
             <EventPanel
@@ -2300,22 +2684,19 @@ export default function DesktopCalendar({
                     color: calendar.color,
                     type: calendar.type,
                 }))}
-                defaultCalendarId={
-                    draftSlot?.calendarId ?? defaultCalendarId
-                }
+                defaultCalendarId={draftSlot?.calendarId ?? defaultCalendarId}
                 onClose={() => {
                     setPanelEventId(null);
                     setPanelAnchor(null);
                     setDraftSlot(null);
                 }}
-                onDraftCommit={(title: string, updates?: Partial<NeoEvent>, calendarId?: string) =>
-                    void commitDraft(title, updates, calendarId)
-                }
+                onDraftCommit={(
+                    title: string,
+                    updates?: Partial<NeoEvent>,
+                    calendarId?: string
+                ) => void commitDraft(title, updates, calendarId)}
                 onOpenFile={(eventId: string) => {
-                    const record = findStoredEvent(
-                        recordsRef.current,
-                        eventId
-                    );
+                    const record = findStoredEvent(recordsRef.current, eventId);
                     if (record && !record.readOnly) {
                         void openDesktopPath(dataFolder, record.relativePath);
                     }
@@ -2334,10 +2715,15 @@ export default function DesktopCalendar({
                     try {
                         if (item.kind === "attachment") {
                             const record = panelEventId
-                                ? findStoredEvent(recordsRef.current, panelEventId)
+                                ? findStoredEvent(
+                                      recordsRef.current,
+                                      panelEventId
+                                  )
                                 : null;
                             if (!record || record.readOnly) {
-                                throw new Error("The attachment source event is unavailable.");
+                                throw new Error(
+                                    "The attachment source event is unavailable."
+                                );
                             }
                             await openDesktopLinkedPath(
                                 dataFolder,
@@ -2365,25 +2751,22 @@ export default function DesktopCalendar({
                 }}
             />
 
-            {(isLoading || storageError) && (
+            {/* Errors only. The loading notice was removed: the calendar is
+                already usable while the folder is read, so the toast only
+                announced work the user does not act on. */}
+            {storageError && (
                 <div
-                    className={`nc-desktop-storage-status${
-                        storageError
-                            ? " nc-desktop-storage-status--error"
-                            : ""
-                    }`}
-                    role={storageError ? "alert" : "status"}
+                    className="nc-desktop-storage-status nc-desktop-storage-status--error"
+                    role="alert"
                 >
-                    {storageError ? storageError : "Loading calendars…"}
-                    {storageError && (
-                        <button
-                            type="button"
-                            aria-label="Dismiss error"
-                            onClick={() => setStorageError(null)}
-                        >
-                            ×
-                        </button>
-                    )}
+                    {storageError}
+                    <button
+                        type="button"
+                        aria-label="Dismiss error"
+                        onClick={() => setStorageError(null)}
+                    >
+                        ×
+                    </button>
                 </div>
             )}
 

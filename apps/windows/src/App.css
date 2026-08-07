@@ -623,6 +623,14 @@ button.nc-settings__theme-card:focus-visible {
     --nc-grid-line: color-mix(in srgb, var(--text-faint) 24%, transparent);
 }
 
+/* Startup: the calendar is mounted (so it can read its folder) but not shown
+   until it has something to display. `visibility` rather than `display`, so the
+   grid measures itself normally and appears already scrolled to the right hour;
+   it also makes the interface untouchable while the folder is being read. */
+.nc-desktop--booting .nc-desktop-calendar {
+    visibility: hidden;
+}
+
 .nc-desktop--calendar .nc-desktop-calendar,
 .nc-desktop--calendar .nc-root,
 .nc-desktop--calendar .nc-layout,
@@ -3356,3 +3364,643 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
         min-width: 0;
     }
 }
+
+/* === NEO WALLPAPER LIBRARY V8 START === */
+
+.nc-wallpaper-picker__menu {
+    width: min(620px, calc(100vw - 24px));
+    max-height: min(690px, calc(100dvh - 24px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid
+        color-mix(
+            in srgb,
+            var(--nc-accent) 28%,
+            var(--background-modifier-border)
+        );
+    border-radius: 20px;
+    color: var(--text-normal);
+    background:
+        color-mix(
+            in srgb,
+            var(--background-primary) 97%,
+            transparent
+        );
+    box-shadow:
+        0 28px 80px rgba(0, 0, 0, 0.58),
+        0 0 48px
+            color-mix(
+                in srgb,
+                var(--nc-accent) 12%,
+                transparent
+            );
+    backdrop-filter: blur(22px) saturate(1.08);
+    -webkit-backdrop-filter: blur(22px) saturate(1.08);
+}
+
+.nc-wallpaper-picker__menu--mobile {
+    inset: 0 !important;
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    padding-top: max(
+        0px,
+        var(--nc-native-root-top, 0px),
+        var(--nc-android-inset-top, 0px)
+    );
+    padding-bottom: max(
+        0px,
+        var(--nc-native-root-bottom, 0px),
+        var(--nc-android-inset-bottom, 0px)
+    );
+}
+
+.nc-wallpaper-library__topbar {
+    position: relative;
+    z-index: 4;
+    min-height: 72px;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    background:
+        color-mix(
+            in srgb,
+            var(--background-primary) 94%,
+            transparent
+        );
+}
+
+.nc-wallpaper-library__topbar > span {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+}
+
+.nc-wallpaper-library__topbar strong {
+    color: var(--text-normal);
+    font-size: 18px;
+    font-weight: 760;
+}
+
+.nc-wallpaper-library__topbar small {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.nc-wallpaper-library__topbar > button {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 12px;
+    color: var(--text-muted);
+    background: var(--background-secondary) !important;
+}
+
+.nc-wallpaper-library__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    gap: 24px;
+    padding: 18px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+
+.nc-wallpaper-library__hero {
+    position: relative;
+    min-height: 240px;
+    overflow: hidden;
+    border: 1px solid
+        color-mix(
+            in srgb,
+            var(--nc-accent) 30%,
+            var(--background-modifier-border)
+        );
+    border-radius: 20px;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 18px 40px rgba(0, 0, 0, 0.26);
+}
+
+.nc-wallpaper-library__hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(5, 8, 24, 0.06),
+            rgba(5, 8, 24, 0.38)
+        );
+    pointer-events: none;
+}
+
+.nc-wallpaper-library__hero-badge {
+    position: absolute;
+    z-index: 2;
+    top: 14px;
+    right: 14px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(8, 10, 28, 0.62);
+    font-size: 10px;
+    font-weight: 760;
+    letter-spacing: 0.08em;
+}
+
+.nc-wallpaper-library__hero-calendar {
+    position: absolute;
+    z-index: 2;
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    display: grid;
+    grid-template-columns: 0.72fr 1.28fr;
+    gap: 12px;
+}
+
+.nc-wallpaper-library__hero-calendar > span,
+.nc-wallpaper-library__hero-calendar > div {
+    min-width: 0;
+    display: grid;
+    gap: 6px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    color: white;
+    background: rgba(8, 10, 28, 0.48);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.nc-wallpaper-library__hero-calendar small {
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 11px;
+}
+
+.nc-wallpaper-library__hero-calendar > span strong {
+    font-size: 42px;
+    line-height: 1;
+}
+
+.nc-wallpaper-library__hero-calendar em {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 12px;
+    font-style: normal;
+}
+
+.nc-wallpaper-library__hero-calendar > div strong {
+    font-size: 14px;
+}
+
+.nc-wallpaper-library__section {
+    display: grid;
+    gap: 12px;
+}
+
+.nc-wallpaper-library__section + .nc-wallpaper-library__section {
+    padding-top: 22px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.nc-wallpaper-library__section-header {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    color: var(--nc-accent);
+}
+
+.nc-wallpaper-library__section--pc
+    .nc-wallpaper-library__section-header {
+    color: color-mix(
+        in srgb,
+        var(--nc-accent) 72%,
+        #4f8cff
+    );
+}
+
+.nc-wallpaper-library__section--universal
+    .nc-wallpaper-library__section-header {
+    color: var(--text-muted);
+}
+
+.nc-wallpaper-library__section-header > span {
+    display: grid;
+    gap: 2px;
+}
+
+.nc-wallpaper-library__section-header strong {
+    font-size: 15px;
+    font-weight: 740;
+}
+
+.nc-wallpaper-library__section-header small {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.nc-wallpaper-library__grid {
+    display: grid;
+    gap: 12px;
+}
+
+.nc-wallpaper-library__grid--android {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.nc-wallpaper-library__grid--pc {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.nc-wallpaper-library__grid--universal {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.nc-wallpaper-card {
+    position: relative;
+    min-width: 0;
+    display: grid !important;
+    gap: 9px;
+    padding: 8px !important;
+    overflow: hidden;
+    border: 1px solid var(--background-modifier-border) !important;
+    border-radius: 16px !important;
+    color: var(--text-normal) !important;
+    background:
+        color-mix(
+            in srgb,
+            var(--background-secondary) 88%,
+            transparent
+        ) !important;
+    box-shadow: none !important;
+    text-align: left;
+}
+
+.nc-wallpaper-card:hover {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--nc-accent) 55%,
+            var(--background-modifier-border)
+        ) !important;
+    transform: translateY(-1px);
+}
+
+.nc-wallpaper-card[aria-selected="true"] {
+    border-color: var(--nc-accent) !important;
+    box-shadow:
+        0 0 0 1px
+            color-mix(
+                in srgb,
+                var(--nc-accent) 58%,
+                transparent
+            ),
+        0 10px 28px
+            color-mix(
+                in srgb,
+                var(--nc-accent) 16%,
+                transparent
+            ) !important;
+}
+
+.nc-wallpaper-card .nc-wallpaper-preview {
+    width: 100%;
+    border-radius: 11px;
+}
+
+.nc-wallpaper-card--android .nc-wallpaper-preview {
+    height: auto;
+    aspect-ratio: 9 / 13;
+    background-position: center;
+}
+
+.nc-wallpaper-card--pc .nc-wallpaper-preview {
+    height: auto;
+    aspect-ratio: 16 / 7;
+    background-position: center;
+}
+
+.nc-wallpaper-card--universal .nc-wallpaper-preview {
+    height: 82px;
+}
+
+.nc-wallpaper-card__badge {
+    position: absolute;
+    top: 17px;
+    left: 17px;
+    z-index: 2;
+    padding: 5px 8px;
+    border-radius: 999px;
+    color: white;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.32);
+}
+
+.nc-wallpaper-card__badge--android {
+    background:
+        color-mix(
+            in srgb,
+            var(--nc-accent) 82%,
+            #7448ff
+        );
+}
+
+.nc-wallpaper-card__badge--pc {
+    background: #2f6bdb;
+}
+
+.nc-wallpaper-card__badge--universal {
+    background: rgba(25, 28, 44, 0.84);
+}
+
+.nc-wallpaper-card__selected {
+    position: absolute;
+    z-index: 3;
+    top: 16px;
+    right: 16px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: white;
+    background: var(--nc-accent);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
+}
+
+.nc-wallpaper-card__copy {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+    padding: 0 3px 4px;
+}
+
+.nc-wallpaper-card__copy strong {
+    overflow: hidden;
+    color: var(--text-normal);
+    font-size: 12px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-wallpaper-card__copy small {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: 10px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.nc-wallpaper-picker__trigger small {
+    display: block;
+}
+
+@media (max-width: 760px) {
+    .nc-wallpaper-library__scroll {
+        gap: 22px;
+        padding: 14px;
+    }
+
+    .nc-wallpaper-library__hero {
+        min-height: 220px;
+    }
+
+    .nc-wallpaper-library__hero-calendar {
+        grid-template-columns: 0.8fr 1.2fr;
+    }
+
+    .nc-wallpaper-card--android .nc-wallpaper-preview {
+        aspect-ratio: 9 / 14;
+    }
+}
+
+@media (max-width: 390px) {
+    .nc-wallpaper-library__grid--universal {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .nc-wallpaper-library__hero-calendar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .nc-wallpaper-library__hero-calendar > div {
+        display: none;
+    }
+}
+
+/* === NEO WALLPAPER LIBRARY V8 END === */
+
+/* === NEO WALLPAPER EFFECTS V8.2 START === */
+
+:root {
+    --nc-wallpaper-brightness: 0.70;
+    --nc-wallpaper-blur: 5px;
+    --nc-grid-container-background: rgba(17, 17, 27, 0.40);
+    --nc-chrome-container-background: rgba(17, 17, 27, 0.48);
+    --nc-sidebar-container-background: rgba(17, 17, 27, 0.54);
+}
+
+/*
+ * Desktop wallpaper layer. The picture is isolated from the interface,
+ * therefore brightness and blur affect only the picture.
+ */
+.nc-desktop--calendar {
+    position: relative !important;
+    isolation: isolate !important;
+    background-color:
+        var(--nc-bg-crust, var(--background-primary)) !important;
+    background-image: none !important;
+}
+
+.nc-desktop--calendar::before {
+    content: "";
+    position: fixed;
+    z-index: 0;
+    inset: -32px;
+    pointer-events: none;
+
+    background-color:
+        var(--nc-bg-crust, var(--background-primary));
+
+    background-image:
+        var(
+            --nc-selected-wallpaper-overlay,
+            var(
+                --nc-wallpaper-overlay,
+                linear-gradient(
+                    rgba(13, 15, 28, 0.10),
+                    rgba(13, 15, 28, 0.18)
+                )
+            )
+        ),
+        var(
+            --nc-selected-wallpaper,
+            var(--nc-wallpaper)
+        );
+
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+
+    filter:
+        brightness(
+            var(--nc-wallpaper-brightness, 0.70)
+        )
+        blur(
+            var(--nc-wallpaper-blur, 5px)
+        );
+
+    transform: scale(1.04);
+    transform-origin: center;
+    will-change: filter;
+}
+
+.nc-desktop--calendar > * {
+    position: relative;
+    z-index: 1;
+}
+
+/*
+ * The event grid is itself a container.
+ * Only one grid layer receives the opacity to avoid stacking the alpha
+ * several times over the same wallpaper.
+ */
+.nc-desktop--calendar .nc-main-scroller,
+.nc-desktop--calendar .nc-left-rail-window,
+/* The rail corner sits outside .nc-left-rail-window, so it needs the same
+   single grid tint to match the hours below it — with the chrome tint it read
+   as a lighter/darker patch depending on which layer won. */
+.nc-desktop--calendar .nc-left-rail-fixed {
+    background:
+        var(
+            --nc-grid-container-background,
+            rgba(17, 17, 27, 0.40)
+        ) !important;
+    background-image: none !important;
+}
+
+.nc-desktop--calendar .nc-main-content,
+.nc-desktop--calendar .nc-days-row,
+.nc-desktop--calendar .nc-timegrid-day,
+.nc-desktop--calendar .nc-timegrid-hours,
+.nc-desktop--calendar .nc-tz-column,
+.nc-desktop--calendar .nc-left-rail-scrollable {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+.nc-desktop--calendar .nc-header,
+.nc-desktop--calendar .nc-mobile-agenda-bar {
+    background:
+        var(
+            --nc-chrome-container-background,
+            rgba(17, 17, 27, 0.48)
+        ) !important;
+    background-image: none !important;
+}
+
+/* Inside the already-tinted grid container: a second tint here would paint a
+   darker strip across the top of an otherwise translucent grid. The grid clips
+   itself at this band's bottom edge, so no fill is needed to mask anything. */
+.nc-desktop--calendar .nc-headers-row,
+.nc-desktop--calendar .nc-allday-row {
+    background: transparent !important;
+    background-image: none !important;
+}
+
+.nc-desktop--calendar .nc-sidebar {
+    background:
+        var(
+            --nc-sidebar-container-background,
+            rgba(17, 17, 27, 0.54)
+        ) !important;
+    background-image: none !important;
+}
+
+/*
+ * Editors, menus and settings are not part of the adjustable calendar
+ * container. They remain fully readable.
+ */
+.nc-desktop--calendar .nc-event-popup,
+.nc-context-menu,
+.nc-settings,
+.nc-wallpaper-picker__menu {
+    opacity: 1 !important;
+}
+
+/* === NEO WALLPAPER EFFECTS V8.2 END === */
+
+/* === NEO RESPONSIVE WALLPAPER CONTROLS V9 START === */
+
+.nc-wallpaper-effects,
+.nc-wallpaper-effects * {
+    box-sizing: border-box;
+}
+
+.nc-wallpaper-effects {
+    min-width: 0;
+    width: 100%;
+}
+
+.nc-wallpaper-effects__header > span,
+.nc-wallpaper-effect-row__label {
+    min-width: 0;
+}
+
+.nc-wallpaper-effect-row input[type="range"] {
+    min-width: 0;
+}
+
+@media (max-width: 760px) {
+    .nc-wallpaper-effect-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto 48px;
+        grid-template-areas:
+            "label value reset"
+            "slider slider slider";
+        gap: 12px 10px;
+    }
+
+    .nc-wallpaper-effect-row__label {
+        grid-area: label;
+    }
+
+    .nc-wallpaper-effect-row output {
+        grid-area: value;
+    }
+
+    .nc-wallpaper-effect-row input[type="range"] {
+        grid-area: slider;
+        width: 100%;
+    }
+
+    .nc-wallpaper-effect-row__reset {
+        grid-area: reset;
+        width: 48px;
+        height: 48px;
+    }
+}
+
+/* === NEO RESPONSIVE WALLPAPER CONTROLS V9 END === */

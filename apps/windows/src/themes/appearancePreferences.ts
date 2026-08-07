@@ -1,6 +1,7 @@
 import type { ThemeDefinition, ThemeId } from "./types";
 import {
     DEFAULT_WALLPAPER_ID,
+    getRuntimeDefaultWallpaperId,
     isWallpaperId,
     type WallpaperId,
 } from "./wallpapers";
@@ -188,7 +189,7 @@ export function getEffectiveThemeAppearance(
         translucentSidebar:
             override.translucentSidebar ?? !theme.opaqueWindows,
         contrast: override.contrast ?? theme.contrast,
-        wallpaperId: override.wallpaperId ?? DEFAULT_WALLPAPER_ID,
+        wallpaperId: override.wallpaperId ?? getRuntimeDefaultWallpaperId(),
     };
 }
 

@@ -74,6 +74,37 @@ function splitYamlArray(value: string): string[] {
     return result;
 }
 
+function parseTextScalar(value: string): string {
+    const withoutSeparator = value.startsWith(" ")
+        ? value.slice(1)
+        : value;
+
+    if (
+        withoutSeparator.startsWith('"') &&
+        withoutSeparator.endsWith('"')
+    ) {
+        try {
+            const parsed = JSON.parse(withoutSeparator) as unknown;
+            return typeof parsed === "string"
+                ? parsed
+                : withoutSeparator;
+        } catch {
+            return withoutSeparator;
+        }
+    }
+
+    if (
+        withoutSeparator.startsWith("'") &&
+        withoutSeparator.endsWith("'")
+    ) {
+        return withoutSeparator
+            .slice(1, -1)
+            .replace(/''/g, "'");
+    }
+
+    return withoutSeparator;
+}
+
 function parseYamlValue(value: string): unknown {
     const trimmed = value.trim();
     if (trimmed === "null" || trimmed === "~") return null;
@@ -128,7 +159,12 @@ export function parseFrontmatter(
         if (colon <= 0) continue;
         const key = rawLine.slice(0, colon).trim();
         if (!key) continue;
-        result[key] = parseYamlValue(rawLine.slice(colon + 1));
+
+        const rawValue = rawLine.slice(colon + 1);
+        result[key] =
+            key.toLocaleLowerCase("en-US") === "description"
+                ? parseTextScalar(rawValue)
+                : parseYamlValue(rawValue);
     }
     return result;
 }
@@ -180,15 +216,18 @@ type PrintableAtom = Array<number | string> | number | string | boolean | null;
 
 function stringifyYamlAtom(value: PrintableAtom): string {
     if (value === null) return "null";
+
     if (Array.isArray(value)) {
         return `[${value.map(stringifyYamlAtom).join(",")}]`;
     }
-    if (
-        typeof value === "string" &&
-        (value === "" || value !== value.trim() || /[\n\r]/.test(value))
-    ) {
+
+    // JSON string syntax is valid YAML. Always quoting strings guarantees
+    // that descriptions and every other text field safely support values
+    // such as @, #, :, brackets, quotes, emojis and encoded new lines.
+    if (typeof value === "string") {
         return JSON.stringify(value);
     }
+
     return String(value);
 }
 
