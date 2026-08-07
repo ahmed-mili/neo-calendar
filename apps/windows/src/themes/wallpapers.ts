@@ -54,7 +54,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
     },
     {
         id: "starlit-alpine-refuge",
-        label: "Refuge sous les étoiles",
+        label: "Starlit Alpine Refuge",
         description:
             "Refuge des Dolomites sous un ciel étoilé, à la nuit tombée.",
         imageUrl: "/themes/neo-wallpapers/starlit-alpine-refuge.jpg",
@@ -64,7 +64,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
     },
     {
         id: "mountain-sunset",
-        label: "Crépuscule sur les cimes",
+        label: "Mountain Sunset",
         description: "Fond horizontal optimisé pour PC et grands écrans.",
         imageUrl: "/themes/catppuccin-mocha/mountain-sunset.jpg",
         previewStyle: "image",
