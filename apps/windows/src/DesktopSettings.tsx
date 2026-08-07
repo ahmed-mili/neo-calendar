@@ -107,6 +107,9 @@ const TABS: Array<{
     { id: "sync", label: "Synchronisation", icon: Cloud },
 ];
 
+/** Length of the settings panel's fade, matched in App.css. */
+const SETTINGS_EXIT_MS = 200;
+
 const WEEKDAYS = [
     "Dimanche",
     "Lundi",
@@ -244,7 +247,43 @@ export default function DesktopSettings({
         [disabledVaults]
     );
 
-    if (!open) return null;
+    // The panel outlives `open` by the length of its exit: React would
+    // otherwise unmount it on the spot and the closing animation would have
+    // nothing left to animate.
+    const [mounted, setMounted] = useState(open);
+    const [closing, setClosing] = useState(false);
+
+    useEffect(() => {
+        if (open) {
+            setMounted(true);
+            setClosing(false);
+            return;
+        }
+        if (!mounted) return;
+
+        setClosing(true);
+        const timer = window.setTimeout(() => {
+            setMounted(false);
+            setClosing(false);
+        }, SETTINGS_EXIT_MS);
+        return () => window.clearTimeout(timer);
+    }, [open, mounted]);
+
+    // The calendar behind is faded out rather than left showing through: the
+    // panel is glass, so without this the drawer and the grid read straight
+    // through the settings instead of the wallpaper alone.
+    useEffect(() => {
+        if (typeof document === "undefined") return;
+        const body = document.body;
+        body.classList.toggle("nc-settings-open", mounted);
+        body.classList.toggle("nc-settings-closing", closing);
+        return () => {
+            body.classList.remove("nc-settings-open");
+            body.classList.remove("nc-settings-closing");
+        };
+    }, [mounted, closing]);
+
+    if (!mounted) return null;
 
     const updateAppearance = (patch: Partial<AppearancePreferences>) => {
         setAppearance((current) => {
