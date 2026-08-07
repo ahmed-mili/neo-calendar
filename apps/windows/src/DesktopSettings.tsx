@@ -9,6 +9,7 @@ import { ThemeId } from "./themes/types";
 import {
     SettingsGroup,
     SettingsChoiceRow,
+    SettingsRow,
     SettingsToggleRow,
 } from "./SettingsPrimitives";
 import {
@@ -767,8 +768,8 @@ export default function DesktopSettings({
                                             Dossier racine des calendriers
                                         </strong>
                                         <span>
-                                            Full-note calendars are direct
-                                            subfolders of this folder.
+                                            Chaque sous-dossier direct est un
+                                            calendrier.
                                         </span>
                                     </div>
                                     <code>{dataFolder}</code>
@@ -782,7 +783,7 @@ export default function DesktopSettings({
 
                                 <div className="nc-settings__calendar-add">
                                     <div>
-                                        <strong>Calendars</strong>
+                                        <strong>Calendriers</strong>
                                         <span>Ajouter un calendrier</span>
                                     </div>
                                     <div className="nc-settings__calendar-add-control">
@@ -1320,51 +1321,23 @@ export default function DesktopSettings({
                                     dataFolder={dataFolder}
                                     onChangeDataFolder={onChangeDataFolder}
                                 />
-                                <div className="nc-sync-options">
-                                    <article className="nc-sync-option nc-sync-option--recommended">
-                                        <div className="nc-sync-option__icon">
-                                            <Cloud size={19} />
-                                        </div>
-                                        <div>
-                                            <div className="nc-sync-option__title">
-                                                <strong>Syncthing</strong>
-                                                <span>Recommandé</span>
-                                            </div>
-                                            <p>
-                                                Synchronisation directe du
-                                                dossier entre votre PC Windows
-                                                et votre téléphone Android.
-                                            </p>
-                                        </div>
-                                    </article>
-                                    <article className="nc-sync-option">
-                                        <div className="nc-sync-option__icon">
-                                            <Cloud size={19} />
-                                        </div>
-                                        <div>
-                                            <strong>Stockage en ligne</strong>
-                                            <p>
-                                                OneDrive, Google Drive ou
-                                                Dropbox, avec un outil de
-                                                synchronisation de dossier
-                                                compatible.
-                                            </p>
-                                        </div>
-                                    </article>
-                                    <article className="nc-sync-option">
-                                        <div className="nc-sync-option__icon">
-                                            <Cable size={19} />
-                                        </div>
-                                        <div>
-                                            <strong>Transfert manuel</strong>
-                                            <p>
-                                                Copier le dossier de données par
-                                                USB ou par tout autre moyen, au
-                                                besoin.
-                                            </p>
-                                        </div>
-                                    </article>
-                                </div>
+                                <SettingsGroup title="Méthodes possibles">
+                                    <SettingsRow
+                                        icon={<Cloud size={18} />}
+                                        label="Syncthing"
+                                        value="Synchronisation directe entre votre PC et votre téléphone. Recommandé."
+                                    />
+                                    <SettingsRow
+                                        icon={<Cloud size={18} />}
+                                        label="Stockage en ligne"
+                                        value="OneDrive, Google Drive ou Dropbox, avec un outil de synchronisation de dossier."
+                                    />
+                                    <SettingsRow
+                                        icon={<Cable size={18} />}
+                                        label="Transfert manuel"
+                                        value="Copier le dossier de données par USB, au besoin."
+                                    />
+                                </SettingsGroup>
                             </div>
                         )}
                     </div>
