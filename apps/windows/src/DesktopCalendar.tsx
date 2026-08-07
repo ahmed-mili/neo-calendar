@@ -12,6 +12,7 @@ import {
     buildWidgetPayload,
     readWidgetTheme,
 } from "./platform/androidWidget";
+import { buildReminders } from "./platform/androidReminders";
 import ContextMenu, {
     ContextMenuItem,
 } from "../../../src/ui/calendar/ContextMenu";
@@ -2351,6 +2352,33 @@ export default function DesktopCalendar({
         },
         [persistPreferences, preferences.firstDay, setViewType, viewType]
     );
+
+    /*
+     * Hand the reminders to the phone.
+     *
+     * Rewritten whole on every change rather than diffed: the list is small,
+     * and working out which alarms an edit invalidated is exactly the kind of
+     * bookkeeping that ends with a reminder for an event that no longer exists.
+     */
+    useEffect(() => {
+        if (!isAndroid) return;
+        const reminders = buildReminders({
+            events: displayEvents,
+            now: new Date(),
+            minutesBefore: preferences.reminderMinutes,
+            timeFormat24h: preferences.timeFormat24h,
+        });
+        void invoke("write_reminders", {
+            payload: JSON.stringify(reminders),
+        }).catch(() => {
+            // A reminder that failed to schedule is not worth interrupting for.
+        });
+    }, [
+        displayEvents,
+        isAndroid,
+        preferences.reminderMinutes,
+        preferences.timeFormat24h,
+    ]);
 
     /*
      * Keep the home-screen widget in step.

@@ -212,6 +212,7 @@ public class MainActivity extends Activity {
 
     webView.loadUrl(APP_URL);
     routeFromIntent(getIntent());
+    requestNotificationPermission();
   }
 
   private void applyNeoCalendarRootBounds() {
@@ -355,6 +356,24 @@ public class MainActivity extends Activity {
    * from cold — so the route is held until the interface says it is ready, and
    * delivered then. Anything else drops the very taps that matter most.
    */
+  /**
+   * Asks once for the right to post notifications.
+   *
+   * Below Android 13 there is nothing to ask: the permission did not exist and
+   * posting was allowed outright. Above it, a refusal is final and silent —
+   * reminders are simply scheduled and never seen, which is why the settings
+   * say so rather than letting it look broken.
+   */
+  private void requestNotificationPermission() {
+    if (android.os.Build.VERSION.SDK_INT < 33) return;
+    if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+        == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+      return;
+    }
+    requestPermissions(
+        new String[] {android.Manifest.permission.POST_NOTIFICATIONS}, 42);
+  }
+
   private void routeFromIntent(Intent intent) {
     if (intent == null) return;
     String route = null;
@@ -435,6 +454,13 @@ public class MainActivity extends Activity {
       /* The widget is handed a finished list rather than the calendar itself:
          see WidgetData. Writing it is cheap, so the app may call this on every
          change without thinking about it. */
+      /* The phone is handed times and finished sentences: the app knows the
+         language, the format and what is worth mentioning, and a reminder has
+         to read like the calendar it came from. See ReminderScheduler. */
+      case "write_reminders": {
+        ReminderScheduler.write(MainActivity.this, a.optString("payload", "[]"));
+        return null;
+      }
       case "write_widget_events": {
         WidgetData.write(MainActivity.this, a.optString("payload", ""));
         runOnUiThread(() -> NeoCalendarWidget.refreshAll(MainActivity.this));

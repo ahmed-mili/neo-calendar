@@ -1,5 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- A calendar is one of the few kinds of app allowed to ask for exact
+         alarms outright: a reminder that drifts by twenty minutes is not a
+         reminder. Granted at install, unlike SCHEDULE_EXACT_ALARM. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -40,6 +46,17 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/neo_calendar_widget_info" />
+        </receiver>
+
+        <!-- Alarms do not survive a reboot, so the pending reminders are
+             re-armed when the phone comes back up. -->
+        <receiver
+            android:name=".ReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
         </receiver>
 
         <!-- Binding this service is a privileged operation: only the launcher,

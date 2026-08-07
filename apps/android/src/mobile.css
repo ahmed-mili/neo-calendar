@@ -636,18 +636,14 @@ body.nc-platform-android .nc-settings-backdrop {
  */
 body.nc-platform-android .nc-settings-backdrop {
     /*
-     * Darker than the theme's own surface, the way the drawer reads.
+     * The page is the theme's own surface, and the cards sit BELOW it.
      *
-     * `--background-secondary` is that surface mixed towards the ink, and the
-     * ink of this theme is lavender — so the page came out light and violet,
-     * nothing like the drawer it was meant to match. Mixing towards black
-     * instead moves the value without moving the hue.
+     * Measured off Obsidian, whose settings this follows: page #1e1e2e, cards
+     * #181825 — the cards are darker than what they sit on, not lighter. Going
+     * the other way, as this did, is what made the screen read as one flat
+     * slab whichever way the mix was tuned.
      */
-    background: color-mix(
-        in srgb,
-        var(--background-primary) 78%,
-        #000000 22%
-    ) !important;
+    background: var(--background-primary) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
@@ -669,28 +665,32 @@ body.nc-platform-android .nc-settings-backdrop > .nc-settings {
  * than by an outline drawn around each one.
  */
 body.nc-platform-android .nc-set-group__rows {
+    /*
+     * Each row is its own card with air around it, rather than a stack sharing
+     * one box and divided by hairlines. A gap says "these are separate things
+     * you can tap" more plainly than a line drawn between them ever did.
+     */
+    display: grid !important;
+    gap: 4px !important;
     border: 0 !important;
-    border-radius: 16px !important;
-    /* Lifted towards white, not towards the ink: the same reason the page is
-       mixed towards black. This lands where the drawer puts its selected row,
-       which is the one surface in the app already known to sit right one step
-       above that background. */
-    background: color-mix(
-        in srgb,
-        var(--background-primary) 92%,
-        #ffffff 8%
-    ) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    overflow: visible !important;
 }
 
-/* Hairlines between rows on a surface this close in tone: enough to separate
-   two rows, not enough to draw a grid. */
+/* The hairline between rows has nothing left to separate: the gap does it. */
 body.nc-platform-android .nc-set-group__rows > * + *::before {
+    display: none !important;
+}
+
+body.nc-platform-android .nc-set-group__rows > * {
+    border-radius: 12px !important;
     background: color-mix(
         in srgb,
-        var(--background-modifier-border) 34%,
-        transparent
+        var(--background-primary) 78%,
+        #000000 22%
     ) !important;
 }
 
