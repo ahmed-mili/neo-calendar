@@ -122,6 +122,17 @@ const FR: Record<string, string> = {
     "Click again to confirm": "Cliquer à nouveau pour confirmer",
     Untitled: "Sans titre",
     "No event scheduled": "Aucun événement prévu",
+
+    // ── Reminders ────────────────────────────────────────────
+    Reminder: "Rappel",
+    "No reminder": "Aucun rappel",
+    "5 minutes before": "5 minutes avant",
+    "10 minutes before": "10 minutes avant",
+    "15 minutes before": "15 minutes avant",
+    "30 minutes before": "30 minutes avant",
+    "1 hour before": "1 heure avant",
+    "Tomorrow, all day": "Demain, toute la journée",
+    In: "Dans",
     Someday: "Un jour",
 
     // ── Calendars ────────────────────────────────────────────

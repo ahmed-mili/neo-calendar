@@ -15,4 +15,6 @@
     <string name="widget_preview_time_two">"18:00 – 19:00"</string>
     <string name="widget_preview_time_three">"20:00 – 22:30"</string>
     <string name="widget_preview_time_four">"09:00 – 22:00"</string>
+    <string name="reminder_channel">"Rappels d’événements"</string>
+    <string name="reminder_channel_description">"Prévient avant le début d’un événement."</string>
 </resources>

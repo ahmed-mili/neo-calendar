@@ -37,14 +37,26 @@ import type {
 } from "./platform/desktopWorkspacePreferences";
 import {
     ArrowLeft,
+    Bell,
+    CalendarClock,
+    CalendarDays,
+    CalendarRange,
     Check,
     ChevronDown,
     Copy,
     FileText,
     Flag,
     FolderOpen,
+    Globe,
+    Languages,
     Library,
+    Moon,
+    Monitor,
+    Palette,
+    RefreshCw,
+    Smartphone,
     Plus,
+    Timer,
     Trash2,
     Upload,
     Wifi,
@@ -592,6 +604,7 @@ export default function DesktopSettings({
             >
                 <SettingsChoiceRow
                     label={t("Initial view on desktop")}
+                    icon={<Monitor size={18} />}
                     value={preferences.initialView.desktop}
                     options={[
                         { value: "day", label: t("Day") },
@@ -608,6 +621,7 @@ export default function DesktopSettings({
                 />
                 <SettingsChoiceRow
                     label={t("Initial view on phone")}
+                    icon={<Smartphone size={18} />}
                     value={preferences.initialView.mobile}
                     options={[
                         { value: "day", label: t("Day") },
@@ -623,6 +637,7 @@ export default function DesktopSettings({
                 />
                 <SettingsChoiceRow
                     label={t("First day of the week")}
+                    icon={<CalendarRange size={18} />}
                     value={String(preferences.firstDay)}
                     options={WEEKDAYS.map((day, index) => ({
                         value: String(index),
@@ -635,6 +650,7 @@ export default function DesktopSettings({
                 />
                 <SettingsToggleRow
                     label={t("24-hour time")}
+                    icon={<Timer size={18} />}
                     checked={preferences.timeFormat24h}
                     onChange={(checked) =>
                         patchPreferences({ timeFormat24h: checked })
@@ -642,6 +658,7 @@ export default function DesktopSettings({
                 />
                 <SettingsToggleRow
                     label={t("Create an event by tapping a day of the month")}
+                    icon={<CalendarClock size={18} />}
                     checked={preferences.clickToCreateEventFromMonthView}
                     onChange={(checked) =>
                         patchPreferences({
@@ -649,8 +666,26 @@ export default function DesktopSettings({
                         })
                     }
                 />
+                <SettingsChoiceRow
+                    label={t("Reminder")}
+                    icon={<Bell size={18} />}
+                    value={String(preferences.reminderMinutes)}
+                    options={[
+                        { value: "0", label: t("No reminder") },
+                        { value: "5", label: t("5 minutes before") },
+                        { value: "10", label: t("10 minutes before") },
+                        { value: "15", label: t("15 minutes before") },
+                        { value: "30", label: t("30 minutes before") },
+                        { value: "60", label: t("1 hour before") },
+                    ]}
+                    onOpen={openChoice}
+                    onChange={(value) =>
+                        patchPreferences({ reminderMinutes: Number(value) })
+                    }
+                />
                 <SettingsToggleRow
                     label={t("New events created as tasks")}
+                    icon={<Check size={18} />}
                     checked={preferences.defaultEventsAsTasks}
                     onChange={(checked) =>
                         patchPreferences({ defaultEventsAsTasks: checked })
@@ -664,6 +699,7 @@ export default function DesktopSettings({
             <SettingsGroup title={t("Appearance")}>
                 <SettingsRow
                     label={t("Theme")}
+                    icon={<Palette size={18} />}
                     value={currentTheme.label}
                     navigates
                     onClick={() =>
@@ -672,6 +708,7 @@ export default function DesktopSettings({
                 />
                 <SettingsChoiceRow
                     label={t("Colour mode")}
+                    icon={<Moon size={18} />}
                     value={appearance.mode}
                     options={[
                         { value: "system", label: t("System") },
@@ -685,6 +722,7 @@ export default function DesktopSettings({
                 />
                 <SettingsChoiceRow
                     label={t("Language")}
+                    icon={<Languages size={18} />}
                     value={getLanguage()}
                     options={LANGUAGES}
                     onOpen={openChoice}
@@ -695,6 +733,7 @@ export default function DesktopSettings({
             <SettingsGroup title={t("Integrations")}>
                 <SettingsRow
                     label={t("Calendars")}
+                    icon={<CalendarDays size={18} />}
                     value={String(calendars.length)}
                     navigates
                     onClick={() =>
@@ -703,6 +742,7 @@ export default function DesktopSettings({
                 />
                 <SettingsRow
                     label={t("Time zones")}
+                    icon={<Globe size={18} />}
                     value={
                         secondaryTimezoneCount === 0
                             ? t("None")
@@ -718,12 +758,14 @@ export default function DesktopSettings({
             <SettingsGroup title={t("Data")}>
                 <SettingsRow
                     label={t("Data folder")}
+                    icon={<FolderOpen size={18} />}
                     value={vaultName(dataFolder)}
                     navigates
                     onClick={() => openPage({ kind: "section", id: "folder" })}
                 />
                 <SettingsRow
                     label={t("Obsidian vaults")}
+                    icon={<Library size={18} />}
                     value={
                         vaultFolders.length === 0
                             ? t("No folder")
@@ -734,6 +776,7 @@ export default function DesktopSettings({
                 />
                 <SettingsRow
                     label={t("Sync")}
+                    icon={<RefreshCw size={18} />}
                     navigates
                     onClick={() => openPage({ kind: "section", id: "sync" })}
                 />

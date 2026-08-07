@@ -27,6 +27,8 @@ export interface DesktopWorkspacePreferences {
     timeFormat24h: boolean;
     clickToCreateEventFromMonthView: boolean;
     defaultEventsAsTasks: boolean;
+    /** Minutes before an event to be reminded. 0 means no reminder at all. */
+    reminderMinutes: number;
     externalCalendars: DesktopExternalCalendarSource[];
 }
 
@@ -45,6 +47,10 @@ const DESKTOP_INITIAL_VIEWS: DesktopInitialView[] = [
     "list",
 ];
 const MOBILE_INITIAL_VIEWS: MobileInitialView[] = ["day", "3days", "list"];
+
+/** How long before an event a reminder may be set for. Anything else stored in
+    the file is a value this app never wrote, so it falls back to the default. */
+export const REMINDER_CHOICES: readonly number[] = [0, 5, 10, 15, 30, 60];
 
 export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreferences {
     return {
@@ -66,6 +72,7 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         timeFormat24h: true,
         clickToCreateEventFromMonthView: true,
         defaultEventsAsTasks: true,
+        reminderMinutes: 10,
         externalCalendars: [],
     };
 }
@@ -287,6 +294,11 @@ export function parseDesktopWorkspacePreferences(
             source.defaultEventsAsTasks,
             defaults.defaultEventsAsTasks
         ),
+        reminderMinutes: REMINDER_CHOICES.includes(
+            Number(source.reminderMinutes)
+        )
+            ? Number(source.reminderMinutes)
+            : defaults.reminderMinutes,
         externalCalendars: parseExternalCalendarSources(
             source.externalCalendars ?? source.calendarSources
         ),
