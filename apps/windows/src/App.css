@@ -3276,7 +3276,9 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 .nc-wallpaper-sheet {
     position: fixed;
     inset: 0;
-    z-index: 1200;
+    /* Au-dessus du panneau de reglages (20000), sinon la feuille s'ouvre
+       derriere lui et rien ne semble se passer. */
+    z-index: 20100;
     display: grid;
     place-items: center;
     padding: 24px;
@@ -3700,7 +3702,7 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 .nc-set-sheet {
     position: fixed;
     inset: 0;
-    z-index: 1300;
+    z-index: 20100;
     display: grid;
     place-items: center;
     padding: 24px;
@@ -3790,17 +3792,26 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 .nc-settings {
     background: color-mix(
         in srgb,
-        var(--background-primary) 72%,
+        var(--background-primary) 40%,
         transparent
     ) !important;
-    backdrop-filter: blur(24px) saturate(1.06);
-    -webkit-backdrop-filter: blur(24px) saturate(1.06);
+    backdrop-filter: blur(22px) saturate(1.06);
+    -webkit-backdrop-filter: blur(22px) saturate(1.06);
+}
+
+/* L'en-tete et les onglets n'ont rien a peindre : le panneau porte deja sa
+   matiere, et deux couches superposees faisaient une bande opaque en haut. */
+.nc-settings__header,
+.nc-settings__tabs {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 .nc-settings__tabs {
-    background: color-mix(
+    border-right-color: color-mix(
         in srgb,
-        var(--background-secondary) 46%,
+        var(--background-modifier-border) 50%,
         transparent
     ) !important;
 }

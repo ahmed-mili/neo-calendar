@@ -43,7 +43,7 @@ describe("Windows settings", () => {
 
         expect(html).toContain('data-settings-tab="sync"');
         expect(html).toContain("Syncthing");
-        expect(html).toContain("Recommended");
+        expect(html).toContain("Recommandé");
         expect(html).toContain("OneDrive");
         expect(html).toContain("Google Drive");
         expect(html).toContain("Dropbox");
@@ -58,9 +58,9 @@ describe("Windows settings", () => {
             <DesktopSettings open initialTab="calendars" {...commonProps} />
         );
 
-        expect(general).toContain("Calendar Preferences");
-        expect(general).toContain("Secondary Timezones");
-        expect(calendars).toContain("Manage Calendars");
+        expect(general).toContain("Préférences du calendrier");
+        expect(general).toContain("Fuseaux horaires secondaires");
+        expect(calendars).toContain("Gérer les calendriers");
         expect(calendars).toContain("Full note");
     });
 });

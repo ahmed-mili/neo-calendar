@@ -96,20 +96,20 @@ const TABS: Array<{
     label: string;
     icon: typeof Settings2;
 }> = [
-    { id: "general", label: "General", icon: Settings2 },
-    { id: "calendars", label: "Calendars", icon: CalendarDays },
-    { id: "appearance", label: "Appearance", icon: Palette },
-    { id: "sync", label: "Sync", icon: Cloud },
+    { id: "general", label: "Général", icon: Settings2 },
+    { id: "calendars", label: "Calendriers", icon: CalendarDays },
+    { id: "appearance", label: "Apparence", icon: Palette },
+    { id: "sync", label: "Synchronisation", icon: Cloud },
 ];
 
 const WEEKDAYS = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
+    "Dimanche",
+    "Lundi",
+    "Mardi",
+    "Mercredi",
+    "Jeudi",
+    "Vendredi",
+    "Samedi",
 ];
 
 function createThemeDraft(
@@ -431,18 +431,18 @@ export default function DesktopSettings({
                 data-settings-tab={activeTab}
             >
                 <header className="nc-settings__header">
-                    <h2 id="nc-settings-title">Settings</h2>
+                    <h2 id="nc-settings-title">Paramètres</h2>
                     <button
                         className="nc-settings__close"
                         type="button"
                         onClick={onClose}
-                        aria-label="Close settings"
+                        aria-label="Fermer les paramètres"
                     >
                         <X size={18} />
                     </button>
                 </header>
                 <div className="nc-settings__body">
-                    <nav className="nc-settings__tabs" aria-label="Settings">
+                    <nav className="nc-settings__tabs" aria-label="Paramètres">
                         {TABS.map(({ id, label, icon: Icon }) => (
                             <button
                                 key={id}
@@ -460,11 +460,11 @@ export default function DesktopSettings({
                     <div className="nc-settings__content">
                         {activeTab === "general" && (
                             <div className="nc-settings__section">
-                                <h3>Calendar Preferences</h3>
+                                <h3>Préférences du calendrier</h3>
                                 <div className="nc-settings__preference-list">
                                     <SelectPreference
-                                        title="Desktop Initial View"
-                                        description="Choose the initial view range on desktop devices."
+                                        title="Vue initiale sur ordinateur"
+                                        description="La vue affichée au lancement sur ordinateur."
                                         value={preferences.initialView.desktop}
                                         onChange={(value) =>
                                             patchInitialView({
@@ -473,15 +473,15 @@ export default function DesktopSettings({
                                             })
                                         }
                                         options={[
-                                            ["day", "Day"],
-                                            ["week", "Week"],
-                                            ["month", "Month"],
-                                            ["list", "List"],
+                                            ["day", "Jour"],
+                                            ["week", "Semaine"],
+                                            ["month", "Mois"],
+                                            ["list", "Liste"],
                                         ]}
                                     />
                                     <SelectPreference
-                                        title="Mobile Initial View"
-                                        description="Choose the initial view range for the future mobile app."
+                                        title="Vue initiale sur téléphone"
+                                        description="La vue affichée au lancement sur téléphone."
                                         value={preferences.initialView.mobile}
                                         onChange={(value) =>
                                             patchInitialView({
@@ -489,14 +489,14 @@ export default function DesktopSettings({
                                             })
                                         }
                                         options={[
-                                            ["day", "Day"],
-                                            ["3days", "3 Days"],
-                                            ["list", "List"],
+                                            ["day", "Jour"],
+                                            ["3days", "3 jours"],
+                                            ["list", "Liste"],
                                         ]}
                                     />
                                     <SelectPreference
-                                        title="Starting Day of the Week"
-                                        description="Choose what day of the week to start."
+                                        title="Premier jour de la semaine"
+                                        description="Le jour par lequel commencent les semaines."
                                         value={String(preferences.firstDay)}
                                         onChange={(value) =>
                                             patchPreferences({
@@ -511,8 +511,8 @@ export default function DesktopSettings({
                                         )}
                                     />
                                     <TogglePreference
-                                        title="24-hour format"
-                                        description="Display the time in a 24-hour format."
+                                        title="Format 24 heures"
+                                        description="Afficher les heures de 0 à 23 plutôt qu'en AM et PM."
                                         checked={preferences.timeFormat24h}
                                         onChange={(checked) =>
                                             patchPreferences({
@@ -521,8 +521,8 @@ export default function DesktopSettings({
                                         }
                                     />
                                     <TogglePreference
-                                        title="Click on a day in month view to create event"
-                                        description="Switch off to open day view on click instead."
+                                        title="Créer un événement en cliquant un jour du mois"
+                                        description="Désactiver pour ouvrir la vue du jour à la place."
                                         checked={
                                             preferences.clickToCreateEventFromMonthView
                                         }
@@ -534,8 +534,8 @@ export default function DesktopSettings({
                                         }
                                     />
                                     <TogglePreference
-                                        title="New events are tasks by default"
-                                        description='When enabled, new events are created with status "To do".'
+                                        title="Créer les nouveaux événements comme des tâches"
+                                        description="Les nouveaux événements sont créés avec le statut « À faire »."
                                         checked={
                                             preferences.defaultEventsAsTasks
                                         }
@@ -549,19 +549,22 @@ export default function DesktopSettings({
 
                                 <div className="nc-settings__divider" />
 
-                                <h3>Secondary Timezones</h3>
+                                <h3>Fuseaux horaires secondaires</h3>
                                 <div className="nc-settings__timezone-add">
                                     <div>
-                                        <strong>Add secondary timezone</strong>
+                                        <strong>
+                                            Ajouter un fuseau secondaire
+                                        </strong>
                                         <span>
-                                            Display an extra time column in
-                                            week/day/3-day views.
+                                            Afficher une colonne d'heures
+                                            supplémentaire dans les vues
+                                            semaine, jour et trois jours.
                                         </span>
                                     </div>
                                     <div className="nc-settings__timezone-control">
                                         <input
                                             value={timezone}
-                                            placeholder="e.g. America/New_York"
+                                            placeholder="ex. America/New_York"
                                             onChange={(event) =>
                                                 setTimezone(event.target.value)
                                             }
@@ -575,7 +578,7 @@ export default function DesktopSettings({
                                         <button
                                             type="button"
                                             onClick={addTimezone}
-                                            aria-label="Add timezone"
+                                            aria-label="Ajouter un fuseau horaire"
                                         >
                                             <Plus size={17} />
                                         </button>
@@ -607,10 +610,10 @@ export default function DesktopSettings({
 
                                 <div className="nc-settings__divider" />
 
-                                <h3>Data folder</h3>
+                                <h3>Dossier de données</h3>
                                 <p>
-                                    Neo Calendar stores its calendar files in
-                                    this folder.
+                                    Neo Calendar range ses fichiers de
+                                    calendrier dans ce dossier.
                                 </p>
                                 <FolderSetting
                                     dataFolder={dataFolder}
@@ -621,12 +624,12 @@ export default function DesktopSettings({
 
                                 <div className="nc-settings__section-heading">
                                     <div>
-                                        <h3>Obsidian vault folders</h3>
+                                        <h3>Dossiers de coffres Obsidian</h3>
                                         <p>
-                                            Add the parent folder that contains
-                                            your Obsidian vaults. Direct
-                                            subfolders containing a .obsidian
-                                            folder are detected automatically.
+                                            Ajoutez le dossier qui contient vos
+                                            coffres Obsidian. Ceux qui s'y
+                                            trouvent directement et possèdent un
+                                            dossier .obsidian sont détectés.
                                         </p>
                                     </div>
                                     <button
@@ -637,8 +640,8 @@ export default function DesktopSettings({
                                     >
                                         <Plus size={16} />
                                         {isChoosingVaultFolder
-                                            ? "Selecting…"
-                                            : "Add folder"}
+                                            ? "Sélection…"
+                                            : "Ajouter un dossier"}
                                     </button>
                                 </div>
 
@@ -648,11 +651,11 @@ export default function DesktopSettings({
                                             <FolderOpen size={20} />
                                             <div>
                                                 <strong>
-                                                    No vault folder selected
+                                                    Aucun dossier de coffres
                                                 </strong>
                                                 <span>
-                                                    Select the folder containing
-                                                    all your Obsidian vaults.
+                                                    Choisissez le dossier qui
+                                                    contient vos coffres.
                                                 </span>
                                             </div>
                                         </div>
@@ -692,10 +695,11 @@ export default function DesktopSettings({
                                     <div className="nc-settings__detected-vaults">
                                         <div className="nc-settings__detected-heading">
                                             <div>
-                                                <h4>Detected vaults</h4>
+                                                <h4>Coffres détectés</h4>
                                                 <p>
-                                                    Disable a vault to exclude
-                                                    it from note search.
+                                                    Désactivez un coffre pour
+                                                    l'exclure de la recherche de
+                                                    notes.
                                                 </p>
                                             </div>
                                             {isScanningVaults && (
@@ -752,10 +756,12 @@ export default function DesktopSettings({
 
                         {activeTab === "calendars" && (
                             <div className="nc-settings__section">
-                                <h3>Manage Calendars</h3>
+                                <h3>Gérer les calendriers</h3>
                                 <div className="nc-settings__calendar-root">
                                     <div>
-                                        <strong>Calendars root folder</strong>
+                                        <strong>
+                                            Dossier racine des calendriers
+                                        </strong>
                                         <span>
                                             Full-note calendars are direct
                                             subfolders of this folder.
@@ -773,7 +779,7 @@ export default function DesktopSettings({
                                 <div className="nc-settings__calendar-add">
                                     <div>
                                         <strong>Calendars</strong>
-                                        <span>Add calendar</span>
+                                        <span>Ajouter un calendrier</span>
                                     </div>
                                     <div className="nc-settings__calendar-add-control">
                                         <span>
@@ -782,7 +788,7 @@ export default function DesktopSettings({
                                         <button
                                             type="button"
                                             onClick={onAddCalendar}
-                                            aria-label="Add calendar"
+                                            aria-label="Ajouter un calendrier"
                                         >
                                             <Plus size={17} />
                                         </button>
@@ -799,11 +805,11 @@ export default function DesktopSettings({
                                                 className="nc-settings__calendar-kind"
                                                 title={
                                                     calendar.type === "local"
-                                                        ? "Full note"
+                                                        ? "Note complète"
                                                         : calendar.type ===
                                                           "ical"
                                                         ? "Remote ICS"
-                                                        : "Auto calendar"
+                                                        : "Calendrier automatique"
                                                 }
                                             >
                                                 {calendar.type === "local" ? (
@@ -904,7 +910,7 @@ export default function DesktopSettings({
                                                     }}
                                                     title={
                                                         calendar.editable
-                                                            ? "Click to set default; double-click to rename"
+                                                            ? "Cliquer pour définir par défaut, double-cliquer pour renommer"
                                                             : "Read-only calendar; double-click to rename"
                                                     }
                                                 >
@@ -1058,7 +1064,7 @@ export default function DesktopSettings({
                                                     <div
                                                         className="nc-settings__theme-menu"
                                                         role="listbox"
-                                                        aria-label="Themes"
+                                                        aria-label="Thèmes"
                                                     >
                                                         {THEMES.map((theme) => {
                                                             const selected =
@@ -1299,11 +1305,12 @@ export default function DesktopSettings({
 
                         {activeTab === "sync" && (
                             <div className="nc-settings__section">
-                                <h3>Sync</h3>
+                                <h3>Synchronisation</h3>
                                 <p>
-                                    Neo Calendar stores data in your chosen
-                                    folder. Synchronization is handled by the
-                                    solution you select.
+                                    Neo Calendar range ses données dans le
+                                    dossier que vous choisissez. La
+                                    synchronisation est assurée par l'outil que
+                                    vous retenez.
                                 </p>
                                 <FolderSetting
                                     dataFolder={dataFolder}
@@ -1317,12 +1324,12 @@ export default function DesktopSettings({
                                         <div>
                                             <div className="nc-sync-option__title">
                                                 <strong>Syncthing</strong>
-                                                <span>Recommended</span>
+                                                <span>Recommandé</span>
                                             </div>
                                             <p>
-                                                Direct folder synchronization
-                                                between your Windows PC and
-                                                Android phone.
+                                                Synchronisation directe du
+                                                dossier entre votre PC Windows
+                                                et votre téléphone Android.
                                             </p>
                                         </div>
                                     </article>
@@ -1331,11 +1338,12 @@ export default function DesktopSettings({
                                             <Cloud size={19} />
                                         </div>
                                         <div>
-                                            <strong>Cloud storage</strong>
+                                            <strong>Stockage en ligne</strong>
                                             <p>
-                                                OneDrive, Google Drive or
-                                                Dropbox with a compatible folder
-                                                synchronization tool.
+                                                OneDrive, Google Drive ou
+                                                Dropbox, avec un outil de
+                                                synchronisation de dossier
+                                                compatible.
                                             </p>
                                         </div>
                                     </article>
@@ -1344,11 +1352,11 @@ export default function DesktopSettings({
                                             <Cable size={19} />
                                         </div>
                                         <div>
-                                            <strong>Manual transfer</strong>
+                                            <strong>Transfert manuel</strong>
                                             <p>
-                                                Copy the data folder by USB or
-                                                another transfer method when
-                                                needed.
+                                                Copier le dossier de données par
+                                                USB ou par tout autre moyen, au
+                                                besoin.
                                             </p>
                                         </div>
                                     </article>
@@ -1462,7 +1470,7 @@ function FolderSetting({
             <code>{dataFolder}</code>
             <button type="button" onClick={() => void onChangeDataFolder()}>
                 <FolderOpen size={16} />
-                Change folder
+                Changer de dossier
             </button>
         </div>
     );
