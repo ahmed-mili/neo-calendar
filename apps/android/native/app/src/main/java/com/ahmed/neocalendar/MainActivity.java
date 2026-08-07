@@ -26,6 +26,12 @@ public class MainActivity extends Activity {
   private static final long SPLASH_TIMEOUT_MS = 6000L;
 
   private volatile boolean interfaceReady = false;
+
+  /** Which event a widget tap wants opened, if any. */
+  static final String EXTRA_EVENT_ID = "neoCalendarEventId";
+
+  /** Held until the page can hear it: a widget tap can start the app cold. */
+  private String pendingWidgetRoute = null;
   private android.widget.FrameLayout rootView;
   private int neoInsetTop = 32;
   private int neoInsetRight = 0;
@@ -205,6 +211,7 @@ public class MainActivity extends Activity {
     });
 
     webView.loadUrl(APP_URL);
+    routeFromIntent(getIntent());
   }
 
   private void applyNeoCalendarRootBounds() {
@@ -341,9 +348,56 @@ public class MainActivity extends Activity {
   @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);String id=pendingPickerId;pendingPickerId=null;if(id==null)return;if(result!=RESULT_OK||data==null){resolve(id,true,"null");return;}try{if(request==PICK_TREE){Uri uri=data.getData();if(uri==null){resolve(id,true,"null");return;}int flags=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);getContentResolver().takePersistableUriPermission(uri,flags);getSharedPreferences(PREF_FILE,MODE_PRIVATE).edit().putString(PREF_TREE,uri.toString()).apply();resolve(id,true,JSONObject.quote(uri.toString()));}else{JSONArray arr=new JSONArray();if(data.getClipData()!=null){for(int i=0;i<data.getClipData().getItemCount();i++)arr.put(data.getClipData().getItemAt(i).getUri().toString());}else if(data.getData()!=null)arr.put(data.getData().toString());resolve(id,true,arr.toString());}}catch(Exception e){resolve(id,false,e.getMessage());}}
   private void resolve(String id,boolean ok,String payload){String safeId=JSONObject.quote(id), safePayload=JSONObject.quote(payload==null?"":payload);runOnUiThread(()->webView.evaluateJavascript("window.__neoAndroidResolve&&window.__neoAndroidResolve("+safeId+","+ok+","+safePayload+")",null));}
 
+  /**
+   * Passes a widget tap to the page.
+   *
+   * A tap can arrive before there is a page to tell — the widget starts the app
+   * from cold — so the route is held until the interface says it is ready, and
+   * delivered then. Anything else drops the very taps that matter most.
+   */
+  private void routeFromIntent(Intent intent) {
+    if (intent == null) return;
+    String route = null;
+    if (NeoCalendarWidget.ACTION_NEW_EVENT.equals(intent.getAction())) {
+      route = "{\"type\":\"new-event\"}";
+    } else {
+      String eventId = intent.getStringExtra(EXTRA_EVENT_ID);
+      if (eventId != null && !eventId.isEmpty()) {
+        route = "{\"type\":\"event\",\"eventId\":" + JSONObject.quote(eventId) + "}";
+      }
+    }
+    if (route == null) return;
+
+    intent.removeExtra(EXTRA_EVENT_ID);
+    if (!interfaceReady || webView == null) {
+      pendingWidgetRoute = route;
+      return;
+    }
+    deliverWidgetRoute(route);
+  }
+
+  private void deliverWidgetRoute(String route) {
+    final String javascript =
+      "window.dispatchEvent(new CustomEvent('neo-calendar-widget-route',{detail:"
+        + route + "}))";
+    runOnUiThread(() -> webView.evaluateJavascript(javascript, null));
+  }
+
+  @Override protected void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    routeFromIntent(intent);
+  }
+
   private void markInterfaceReady() {
     if (interfaceReady) return;
     interfaceReady = true;
+    if (pendingWidgetRoute != null) {
+      String route = pendingWidgetRoute;
+      pendingWidgetRoute = null;
+      // The page has only just come up; give it a beat to mount its listener.
+      webView.postDelayed(() -> deliverWidgetRoute(route), 120);
+    }
     // Ask for a fresh frame so the pre-draw listener runs again and lets it
     // through. Nothing else is guaranteed to request one, and a splash screen
     // that never lifts is worse than one that lifts too early.
@@ -378,6 +432,14 @@ public class MainActivity extends Activity {
       case "search_desktop_vault_notes": return new JSONArray();
       case "copy_desktop_attachment": return copyAttachment(tree(a),a);
       case "fetch_desktop_ics": return fetch(a.getString("url"));
+      /* The widget is handed a finished list rather than the calendar itself:
+         see WidgetData. Writing it is cheap, so the app may call this on every
+         change without thinking about it. */
+      case "write_widget_events": {
+        WidgetData.write(MainActivity.this, a.optString("payload", ""));
+        runOnUiThread(() -> NeoCalendarWidget.refreshAll(MainActivity.this));
+        return null;
+      }
       default: throw new Exception("Commande Android non prise en charge: "+c);
     }
   }
