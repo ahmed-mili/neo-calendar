@@ -3905,3 +3905,68 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     font-size: 13px;
     line-height: 1.45;
 }
+
+/*
+ * Opening the settings.
+ *
+ * The panel is glass, so whatever sits behind it shows through — which meant
+ * the drawer and the calendar grid read straight through the settings. Only the
+ * wallpaper should: the app fades out beneath, leaving the layer it is painted
+ * on. The panel itself arrives with it, and leaves the same way.
+ */
+body.nc-settings-open .nc-layout {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+}
+
+body.nc-settings-closing .nc-layout {
+    opacity: 1;
+}
+
+.nc-settings-backdrop {
+    animation: nc-settings-fade-in 220ms ease;
+}
+
+.nc-settings-backdrop > .nc-settings {
+    animation: nc-settings-rise 240ms cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+
+body.nc-settings-closing .nc-settings-backdrop {
+    animation: nc-settings-fade-in 200ms ease reverse forwards;
+}
+
+body.nc-settings-closing .nc-settings-backdrop > .nc-settings {
+    animation: nc-settings-rise 200ms ease reverse forwards;
+}
+
+@keyframes nc-settings-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* A short rise rather than a scale: the panel is a sheet coming up to the
+   front, and scaling glass smears what shows through it. */
+@keyframes nc-settings-rise {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 14px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.nc-settings-open .nc-layout,
+    .nc-settings-backdrop,
+    .nc-settings-backdrop > .nc-settings {
+        animation: none !important;
+        transition: none !important;
+    }
+}
