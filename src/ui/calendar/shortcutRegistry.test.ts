@@ -1,6 +1,8 @@
 import {
     Hotkey,
     OTHER_SECTION_TITLE,
+    POINTER_ROWS,
+    POINTER_SECTION_TITLE,
     SHORTCUT_SECTIONS,
     ShortcutCommand,
     ViewBinding,
@@ -30,12 +32,19 @@ const commands: ShortcutCommand[] = [
 const noKeys = () => [] as Hotkey[];
 
 /** Les liaisons de la vue sont injectees explicitement : un test qui n'en parle
-    pas n'en veut pas, et n'a donc pas a suivre la vraie table. */
+    pas n'en veut pas, et n'a donc pas a suivre la vraie table.
+
+    La section souris et tactile est retiree : c'est une table constante que
+    buildSections ajoute toujours, et non un resultat de la construction. Elle a
+    son propre test plus bas. */
 const build = (
     cmds: ShortcutCommand[],
     hotkeysOf: (id: string) => Hotkey[],
     bindings: ViewBinding[] = []
-) => buildSections(cmds, hotkeysOf, "Ctrl", bindings);
+) =>
+    buildSections(cmds, hotkeysOf, "Ctrl", bindings).filter(
+        (section) => section.title !== POINTER_SECTION_TITLE
+    );
 
 const goTodayBinding: ViewBinding = {
     id: "go-today",
@@ -243,7 +252,10 @@ describe("buildSections, fusion des deux sources", () => {
     it("annonce exactement les touches cablees dans la vue", () => {
         // Sans commande : il ne reste que la vraie table du module, donc ce test
         // est le contrat de ce que le panneau affiche comme non remappable.
-        const rows = buildSections([], noKeys).flatMap((s) => s.rows);
+        // La section souris est ecartee ici, elle a le sien.
+        const rows = buildSections([], noKeys)
+            .filter((section) => section.title !== POINTER_SECTION_TITLE)
+            .flatMap((s) => s.rows);
         expect(
             rows.map(
                 (r) =>
@@ -275,7 +287,10 @@ describe("buildSections, fusion des deux sources", () => {
     });
 
     it("ne perd aucune touche de la vue dans une section fantome", () => {
-        const titles = SHORTCUT_SECTIONS.map((s) => s.title);
+        const titles = [
+            ...SHORTCUT_SECTIONS.map((s) => s.title),
+            POINTER_SECTION_TITLE,
+        ];
         const sections = buildSections([], noKeys);
         expect(sections.map((s) => s.title)).not.toContain(OTHER_SECTION_TITLE);
         expect(sections.every((s) => titles.includes(s.title))).toBe(true);
@@ -335,5 +350,20 @@ describe("filterSections", () => {
 
     it("renvoie une liste vide quand rien ne correspond", () => {
         expect(filterSections(sections, "zzzz")).toEqual([]);
+    });
+});
+
+describe("la section souris et tactile", () => {
+    // Elle ne depend ni des commandes ni des touches de la vue : elle decrit
+    // des gestes cables dans l'interface, donc elle est toujours la.
+    it("est presente meme sans aucune commande ni liaison", () => {
+        const sections = buildSections([], noKeys, "Ctrl", []);
+        const pointer = sections.find((s) => s.title === POINTER_SECTION_TITLE);
+
+        expect(pointer?.rows).toEqual(POINTER_ROWS);
+    });
+
+    it("n'annonce aucune de ses lignes comme remappable", () => {
+        expect(POINTER_ROWS.every((row) => row.remappable)).toBe(false);
     });
 });

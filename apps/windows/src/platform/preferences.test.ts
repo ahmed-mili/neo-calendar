@@ -5,6 +5,8 @@ describe("normalizeDesktopPreferences", () => {
         expect(normalizeDesktopPreferences(null)).toEqual({
             dataFolder: null,
             themeId: "catppuccin-mocha",
+            vaultFolders: [],
+            disabledVaults: [],
         });
     });
 
@@ -17,6 +19,8 @@ describe("normalizeDesktopPreferences", () => {
         ).toEqual({
             dataFolder: "C:\\Neo Calendar",
             themeId: "catppuccin-mocha",
+            vaultFolders: [],
+            disabledVaults: [],
         });
     });
 
@@ -29,6 +33,24 @@ describe("normalizeDesktopPreferences", () => {
         ).toEqual({
             dataFolder: null,
             themeId: "catppuccin-mocha",
+            vaultFolders: [],
+            disabledVaults: [],
+        });
+    });
+
+    it("keeps the vaults that were configured", () => {
+        expect(
+            normalizeDesktopPreferences({
+                dataFolder: null,
+                themeId: "catppuccin-mocha",
+                vaultFolders: ["C:\\obsidian-vaults"],
+                disabledVaults: ["C:\\obsidian-vaults\\Troubleshooting"],
+            })
+        ).toEqual({
+            dataFolder: null,
+            themeId: "catppuccin-mocha",
+            vaultFolders: ["C:\\obsidian-vaults"],
+            disabledVaults: ["C:\\obsidian-vaults\\Troubleshooting"],
         });
     });
 });
