@@ -3792,7 +3792,7 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 .nc-settings {
     background: color-mix(
         in srgb,
-        var(--background-primary) 40%,
+        var(--background-primary) 28%,
         transparent
     ) !important;
     backdrop-filter: blur(22px) saturate(1.06);
@@ -3822,4 +3822,45 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     .nc-set-groups {
         gap: 18px;
     }
+}
+
+/* The general tab feeds its rows through the same components, so its container
+   becomes a block like any other. */
+.nc-settings__preference-list {
+    display: grid !important;
+    gap: 0 !important;
+    overflow: hidden;
+    border: 1px solid
+        color-mix(in srgb, var(--background-modifier-border) 70%, transparent);
+    border-radius: 16px;
+    background: color-mix(
+        in srgb,
+        var(--background-secondary) 62%,
+        transparent
+    );
+}
+
+.nc-settings__preference-list > * + * {
+    border-top: 1px solid
+        color-mix(in srgb, var(--background-modifier-border) 52%, transparent);
+}
+
+/* Section titles inside the panel now name blocks, so they read like the
+   group titles rather than like page headings. */
+.nc-settings__section > h3 {
+    margin: 0 0 8px 4px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.nc-settings__section > h3:not(:first-child) {
+    margin-top: 26px;
+}
+
+/* The dividers separated a list that now closes itself. */
+.nc-settings__divider {
+    display: none;
 }
