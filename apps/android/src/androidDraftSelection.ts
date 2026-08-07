@@ -27,6 +27,26 @@ const handleSelector =
 
 const doubleTapWindowMs = 340;
 
+/**
+ * Which handles have been pulled since resize mode was entered.
+ *
+ * Dragging one end and being thrown out of resize mode is the wrong bargain:
+ * an event is usually adjusted at both ends, and re-entering by double tap
+ * between the two is a tax on the obvious. The mode ends by itself once both
+ * ends have been moved, and not before.
+ */
+const usedHandles = new Set<string>();
+
+/** The handle a finger is on right now, if any. */
+let activeHandle: string | null = null;
+
+/**
+ * A drag ends with a click, and its target is wherever the finger came to rest
+ * — usually the grid rather than the block. That click read as "tapped outside"
+ * and closed the mode, so it is swallowed for a moment after a resize.
+ */
+let swallowClickUntil = 0;
+
 function isAndroidRuntime(): boolean {
     return (
         Boolean(
@@ -57,6 +77,9 @@ function readEventColor(
 }
 
 function clearResizeMode(): void {
+    usedHandles.clear();
+    activeHandle = null;
+
     for (const block of Array.from(
         document.querySelectorAll<HTMLElement>(
             eventSelector
@@ -213,6 +236,15 @@ function install(): void {
                 !isAndroidRuntime() ||
                 replayingClick
             ) {
+                return;
+            }
+
+            if (
+                performance.now() <
+                swallowClickUntil
+            ) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
                 return;
             }
 
@@ -419,6 +451,13 @@ function install(): void {
             event.preventDefault();
             event.stopImmediatePropagation();
 
+            activeHandle =
+                handle.classList.contains(
+                    "nc-event-resize-handle-top"
+                )
+                    ? "top"
+                    : "bottom";
+
             try {
                 handle.setPointerCapture(
                     event.pointerId
@@ -431,6 +470,39 @@ function install(): void {
                 handle,
                 event
             );
+        },
+        true
+    );
+
+    window.addEventListener(
+        "pointerup",
+        () => {
+            if (
+                !isAndroidRuntime() ||
+                !activeHandle
+            ) {
+                return;
+            }
+
+            usedHandles.add(
+                activeHandle
+            );
+
+            activeHandle = null;
+            swallowClickUntil =
+                performance.now() +
+                400;
+
+            if (
+                usedHandles.has(
+                    "top"
+                ) &&
+                usedHandles.has(
+                    "bottom"
+                )
+            ) {
+                clearResizeMode();
+            }
         },
         true
     );
