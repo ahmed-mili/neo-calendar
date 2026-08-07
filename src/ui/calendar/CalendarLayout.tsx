@@ -286,8 +286,9 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
             );
     }, [events]);
 
-    // On Android the drawer is opened and closed by dragging, not by a button.
-    useDrawerSwipe({
+    // On Android the drawer follows the finger, and closing it plays the
+    // opening backwards instead of cutting to nothing.
+    const drawerSwipe = useDrawerSwipe({
         enabled: isAndroidRuntime(),
         isOpen: sidebarVisible,
         onOpenChange: (open) => {
@@ -327,7 +328,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                     type="button"
                     className="nc-mobile-sidebar-scrim"
                     aria-label="Close calendars"
-                    onClick={onToggleSidebar}
+                    onClick={drawerSwipe.requestClose}
                 />
             )}
             <CalendarSidebar

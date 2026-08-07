@@ -3779,14 +3779,10 @@ body.nc-platform-android .nc-android-week-label {
  */
 
 body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
-    /* translate3d, not translateX: it puts the panel on its own compositor
-       layer, so sliding it repaints nothing. */
-    transform: translate3d(
-        calc((var(--nc-drawer-progress, 1) - 1) * 100%),
-        0,
-        0
-    );
-    transition: transform 220ms cubic-bezier(0.2, 0.85, 0.25, 1);
+    /* The drag writes this transform straight onto the element; the value here
+       is only the resting state. Driving it from a custom property on <body>
+       cost a style invalidation of the entire document per frame. */
+    transform: translate3d(0, 0, 0);
 
     /* Promoted once and for all. Asking for the layer only when the finger
        lands means paying for the promotion during the very frames that have to
@@ -3841,18 +3837,18 @@ body.nc-platform-android .nc-mobile-sidebar-scrim {
     width: auto !important;
 
     background: rgba(3, 4, 12, 0.25) !important;
-    opacity: var(--nc-drawer-progress, 1);
+    opacity: 1;
+    animation: nc-drawer-scrim-in 240ms ease;
 
     /* Blurring here would undo the readability the dimmer is being kept light
        for. */
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 
-    transition: opacity 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-body.nc-platform-android.nc-drawer-dragging .nc-mobile-sidebar-scrim {
-    transition: none !important;
+body.nc-platform-android.nc-drawer-gesture .nc-mobile-sidebar-scrim {
+    animation: none !important;
 }
 
 /* With the hamburger gone the remaining buttons would slide to the left edge. */
@@ -3942,5 +3938,14 @@ body.nc-platform-android .nc-timegrid-hour-label {
     }
     to {
         transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes nc-drawer-scrim-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
     }
 }
