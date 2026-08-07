@@ -3800,8 +3800,14 @@ body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
     /* Opaque on purpose. Translucency meant the calendar showed through the
        panel, which had to be cut out underneath it, and a backdrop blur that
        had to be re-rendered on every frame it moved. A solid layer is simply
-       painted once and slid: nothing to blend, nothing to repaint. */
-    background: var(--nc-bg-secondary, #181825) !important;
+       painted once and slid: nothing to blend, nothing to repaint.
+
+       --background-secondary and not --nc-bg-secondary: the latter is
+       redefined on .nc-desktop--calendar as 58% of the former over
+       transparent, so asking for it here kept the panel see-through however
+       opaque the fallback was — the fallback never applies to a variable that
+       is defined. */
+    background: var(--background-secondary, #181825) !important;
     background-image: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
