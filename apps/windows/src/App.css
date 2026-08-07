@@ -3864,3 +3864,44 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 .nc-settings__divider {
     display: none;
 }
+
+/* The tabs that hold lists rather than rows — calendars, vaults, folders — take
+   the same block treatment, so the whole panel reads as one system instead of
+   three unrelated screens. */
+.nc-settings__calendar-root,
+.nc-settings__calendar-add,
+.nc-settings__timezone-add,
+.nc-settings__folder,
+.nc-settings__vault-empty,
+.nc-settings__vault-list,
+.nc-settings__detected-vaults {
+    border: 1px solid
+        color-mix(in srgb, var(--background-modifier-border) 70%, transparent) !important;
+    border-radius: 16px !important;
+    background: color-mix(
+        in srgb,
+        var(--background-secondary) 62%,
+        transparent
+    ) !important;
+}
+
+/* A list of calendars is already a stack of rows: hairlines between them, and
+   the block's own border closes the set. */
+.nc-settings__vault-list > * + *,
+.nc-settings__calendar-list > * + * {
+    border-top: 1px solid
+        color-mix(in srgb, var(--background-modifier-border) 52%, transparent);
+}
+
+.nc-settings__vault-list {
+    overflow: hidden;
+}
+
+/* Paragraphs introducing a section sit with the group titles, not against the
+   block below them. */
+.nc-settings__section > p {
+    margin: -2px 0 12px 4px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 13px;
+    line-height: 1.45;
+}
