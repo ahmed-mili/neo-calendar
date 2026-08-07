@@ -4,7 +4,7 @@ import { getTheme, THEMES } from "./themes/registry";
 import ThemeColorPicker from "./ThemeColorPicker";
 import ThemeWallpaperPicker from "./ThemeWallpaperPicker";
 import WallpaperEffectsControls from "./WallpaperEffectsControls";
-import { isWallpaperId } from "./themes/wallpapers";
+import { isWallpaperId, type WallpaperId } from "./themes/wallpapers";
 import { ThemeId } from "./themes/types";
 import {
     AppearanceMode,
@@ -115,7 +115,10 @@ function createThemeDraft(
     themeId: ThemeId,
     preferences: AppearancePreferences
 ): Required<ThemeCustomization> {
-    const effective = getEffectiveThemeAppearance(getTheme(themeId), preferences);
+    const effective = getEffectiveThemeAppearance(
+        getTheme(themeId),
+        preferences
+    );
     return {
         accent: effective.accent,
         surface: effective.surface,
@@ -206,12 +209,16 @@ export default function DesktopSettings({
         if (!themePickerOpen) return;
         const closeOnPointerDown = (event: PointerEvent) => {
             const target = event.target;
-            if (target instanceof Node && !themePickerRef.current?.contains(target)) {
+            if (
+                target instanceof Node &&
+                !themePickerRef.current?.contains(target)
+            ) {
                 setThemePickerOpen(false);
             }
         };
         window.addEventListener("pointerdown", closeOnPointerDown);
-        return () => window.removeEventListener("pointerdown", closeOnPointerDown);
+        return () =>
+            window.removeEventListener("pointerdown", closeOnPointerDown);
     }, [themePickerOpen]);
 
     useEffect(() => {
@@ -224,7 +231,10 @@ export default function DesktopSettings({
     }, [open, themeId]);
 
     const disabledKeys = useMemo(
-        () => disabledVaults.map((path) => path.replace(/\\/g, "/").toLowerCase()),
+        () =>
+            disabledVaults.map((path) =>
+                path.replace(/\\/g, "/").toLowerCase()
+            ),
         [disabledVaults]
     );
 
@@ -240,6 +250,21 @@ export default function DesktopSettings({
     const updateThemeDraft = (patch: Partial<ThemeCustomization>) => {
         setThemeDraft((current) => ({ ...current, ...patch }));
         setThemeDirty(true);
+        setThemeMessage(null);
+    };
+
+    /**
+     * Picking a wallpaper takes effect straight away.
+     *
+     * It used to land in the draft like a colour, waiting on a Save button
+     * sitting far below the fold — so choosing a background appeared to do
+     * nothing at all. A wallpaper needs no validation and is undone by picking
+     * another, so there is nothing to confirm.
+     */
+    const applyWallpaper = (wallpaperId: WallpaperId) => {
+        const draft = { ...themeDraft, wallpaperId };
+        setThemeDraft(draft);
+        setAppearance(setThemeCustomization(appearance, themeId, draft));
         setThemeMessage(null);
     };
 
@@ -319,18 +344,25 @@ export default function DesktopSettings({
                 (candidate) => candidate.id === parsed.codeThemeId
             );
             if (!importedTheme) {
-                setThemeMessage("Ce thème n’est pas installé dans Neo Calendar");
+                setThemeMessage(
+                    "Ce thème n’est pas installé dans Neo Calendar"
+                );
                 return;
             }
             await onThemeChange(importedTheme.id);
             const imported = parsed.theme ?? {};
             const nextDraft = createThemeDraft(importedTheme.id, appearance);
-            if (typeof imported.accent === "string") nextDraft.accent = imported.accent;
-            if (typeof imported.surface === "string") nextDraft.surface = imported.surface;
+            if (typeof imported.accent === "string")
+                nextDraft.accent = imported.accent;
+            if (typeof imported.surface === "string")
+                nextDraft.surface = imported.surface;
             if (typeof imported.ink === "string") nextDraft.ink = imported.ink;
-            if (typeof imported.contrast === "number") nextDraft.contrast = imported.contrast;
-            if (typeof imported.fonts?.ui === "string") nextDraft.uiFont = imported.fonts.ui;
-            if (typeof imported.fonts?.code === "string") nextDraft.codeFont = imported.fonts.code;
+            if (typeof imported.contrast === "number")
+                nextDraft.contrast = imported.contrast;
+            if (typeof imported.fonts?.ui === "string")
+                nextDraft.uiFont = imported.fonts.ui;
+            if (typeof imported.fonts?.code === "string")
+                nextDraft.codeFont = imported.fonts.code;
             if (typeof imported.opaqueWindows === "boolean") {
                 nextDraft.translucentSidebar = !imported.opaqueWindows;
             }
@@ -339,7 +371,9 @@ export default function DesktopSettings({
             }
             setThemeDraft(nextDraft);
             setThemeDirty(true);
-            setThemeMessage(`${importedTheme.label} importé — enregistre pour appliquer`);
+            setThemeMessage(
+                `${importedTheme.label} importé — enregistre pour appliquer`
+            );
         } catch {
             setThemeMessage("Fichier de thème invalide");
         } finally {
@@ -433,7 +467,8 @@ export default function DesktopSettings({
                                         value={preferences.initialView.desktop}
                                         onChange={(value) =>
                                             patchInitialView({
-                                                desktop: value as DesktopInitialView,
+                                                desktop:
+                                                    value as DesktopInitialView,
                                             })
                                         }
                                         options={[
@@ -500,7 +535,9 @@ export default function DesktopSettings({
                                     <TogglePreference
                                         title="New events are tasks by default"
                                         description='When enabled, new events are created with status "To do".'
-                                        checked={preferences.defaultEventsAsTasks}
+                                        checked={
+                                            preferences.defaultEventsAsTasks
+                                        }
                                         onChange={(checked) =>
                                             patchPreferences({
                                                 defaultEventsAsTasks: checked,
@@ -555,7 +592,8 @@ export default function DesktopSettings({
                                                 patchPreferences({
                                                     secondaryTimezones:
                                                         preferences.secondaryTimezones.filter(
-                                                            (item) => item !== zone
+                                                            (item) =>
+                                                                item !== zone
                                                         ),
                                                 })
                                             }
@@ -674,7 +712,9 @@ export default function DesktopSettings({
                                                         key={vault.path}
                                                     >
                                                         <span className="nc-settings__vault-icon">
-                                                            <Library size={17} />
+                                                            <Library
+                                                                size={17}
+                                                            />
                                                         </span>
                                                         <div className="nc-settings__vault-copy">
                                                             <strong>
@@ -688,7 +728,9 @@ export default function DesktopSettings({
                                                             className="nc-settings__vault-toggle"
                                                             type="button"
                                                             role="switch"
-                                                            aria-checked={enabled}
+                                                            aria-checked={
+                                                                enabled
+                                                            }
                                                             onClick={() =>
                                                                 void onSetVaultEnabled(
                                                                     vault.path,
@@ -733,7 +775,9 @@ export default function DesktopSettings({
                                         <span>Add calendar</span>
                                     </div>
                                     <div className="nc-settings__calendar-add-control">
-                                        <span>Full note / Remote ICS / Auto</span>
+                                        <span>
+                                            Full note / Remote ICS / Auto
+                                        </span>
                                         <button
                                             type="button"
                                             onClick={onAddCalendar}
@@ -755,9 +799,10 @@ export default function DesktopSettings({
                                                 title={
                                                     calendar.type === "local"
                                                         ? "Full note"
-                                                        : calendar.type === "ical"
-                                                          ? "Remote ICS"
-                                                          : "Auto calendar"
+                                                        : calendar.type ===
+                                                          "ical"
+                                                        ? "Remote ICS"
+                                                        : "Auto calendar"
                                                 }
                                             >
                                                 {calendar.type === "local" ? (
@@ -776,7 +821,9 @@ export default function DesktopSettings({
                                                 }`}
                                                 type="button"
                                                 onClick={() =>
-                                                    onToggleCalendar(calendar.id)
+                                                    onToggleCalendar(
+                                                        calendar.id
+                                                    )
                                                 }
                                                 aria-label={`${
                                                     calendar.hidden
@@ -800,7 +847,8 @@ export default function DesktopSettings({
                                                 }
                                                 aria-label={`Color for ${calendar.name}`}
                                             />
-                                            {editingCalendarId === calendar.id ? (
+                                            {editingCalendarId ===
+                                            calendar.id ? (
                                                 <input
                                                     className="nc-settings__calendar-name-input"
                                                     value={calendarName}
@@ -811,13 +859,17 @@ export default function DesktopSettings({
                                                         )
                                                     }
                                                     onKeyDown={(event) => {
-                                                        if (event.key === "Enter") {
+                                                        if (
+                                                            event.key ===
+                                                            "Enter"
+                                                        ) {
                                                             event.preventDefault();
                                                             void submitCalendarRename(
                                                                 calendar.id
                                                             );
                                                         } else if (
-                                                            event.key === "Escape"
+                                                            event.key ===
+                                                            "Escape"
                                                         ) {
                                                             setEditingCalendarId(
                                                                 null
@@ -885,11 +937,14 @@ export default function DesktopSettings({
                             <div className="nc-settings__section nc-settings__appearance">
                                 <h3>Thème</h3>
                                 <p>
-                                    Chaque thème peut avoir ses propres couleurs,
-                                    polices, contraste et transparence.
+                                    Chaque thème peut avoir ses propres
+                                    couleurs, polices, contraste et
+                                    transparence.
                                 </p>
 
-                                <div className="nc-appearance-mode-heading">Thème</div>
+                                <div className="nc-appearance-mode-heading">
+                                    Thème
+                                </div>
                                 <div
                                     className="nc-appearance-mode-grid"
                                     role="radiogroup"
@@ -927,8 +982,8 @@ export default function DesktopSettings({
                                             {appearance.mode === "system"
                                                 ? "Mode système"
                                                 : appearance.mode === "light"
-                                                  ? "Mode clair"
-                                                  : "Mode sombre"}
+                                                ? "Mode clair"
+                                                : "Mode sombre"}
                                         </strong>
                                         <div className="nc-theme-studio__actions">
                                             <input
@@ -971,7 +1026,9 @@ export default function DesktopSettings({
                                                     className="nc-settings__theme-picker-button"
                                                     type="button"
                                                     aria-haspopup="listbox"
-                                                    aria-expanded={themePickerOpen}
+                                                    aria-expanded={
+                                                        themePickerOpen
+                                                    }
                                                     onClick={() =>
                                                         setThemePickerOpen(
                                                             (open) => !open
@@ -1002,10 +1059,13 @@ export default function DesktopSettings({
                                                     >
                                                         {THEMES.map((theme) => {
                                                             const selected =
-                                                                theme.id === themeId;
+                                                                theme.id ===
+                                                                themeId;
                                                             return (
                                                                 <button
-                                                                    key={theme.id}
+                                                                    key={
+                                                                        theme.id
+                                                                    }
                                                                     className="nc-settings__theme-option"
                                                                     type="button"
                                                                     role="option"
@@ -1016,26 +1076,40 @@ export default function DesktopSettings({
                                                                         setThemePickerOpen(
                                                                             false
                                                                         );
-                                                                        setThemeDirty(false);
-                                                                        setThemeMessage(null);
+                                                                        setThemeDirty(
+                                                                            false
+                                                                        );
+                                                                        setThemeMessage(
+                                                                            null
+                                                                        );
                                                                         void onThemeChange(
                                                                             theme.id
                                                                         );
                                                                     }}
                                                                 >
                                                                     <ThemePreview
-                                                                        theme={theme}
+                                                                        theme={
+                                                                            theme
+                                                                        }
                                                                     />
                                                                     <span>
                                                                         <strong>
-                                                                            {theme.label}
+                                                                            {
+                                                                                theme.label
+                                                                            }
                                                                         </strong>
                                                                         <small>
-                                                                            {theme.variantLabel}
+                                                                            {
+                                                                                theme.variantLabel
+                                                                            }
                                                                         </small>
                                                                     </span>
                                                                     {selected && (
-                                                                        <Check size={16} />
+                                                                        <Check
+                                                                            size={
+                                                                                16
+                                                                            }
+                                                                        />
                                                                     )}
                                                                 </button>
                                                             );
@@ -1072,13 +1146,13 @@ export default function DesktopSettings({
                                         value={themeDraft.wallpaperId}
                                         accent={themeDraft.accent}
                                         surface={themeDraft.surface}
-                                        onChange={(wallpaperId) =>
-                                            updateThemeDraft({ wallpaperId })
-                                        }
+                                        onChange={applyWallpaper}
                                     />
                                     <WallpaperEffectsControls />
                                     <label className="nc-theme-studio__row nc-theme-font-row">
-                                        <span>Police de l’interface utilisateur</span>
+                                        <span>
+                                            Police de l’interface utilisateur
+                                        </span>
                                         <input
                                             type="text"
                                             list="nc-ui-fonts"
@@ -1091,11 +1165,31 @@ export default function DesktopSettings({
                                             spellCheck={false}
                                         />
                                         <datalist id="nc-ui-fonts">
-                                            <option value={'"Inter Variable", Inter, sans-serif'} />
-                                            <option value={'"Geist Variable", Geist, "Inter Variable", sans-serif'} />
-                                            <option value={'Satoshi, "Inter Variable", Inter, sans-serif'} />
-                                            <option value={'"JetBrains Mono Variable", "JetBrains Mono", monospace'} />
-                                            <option value={'"Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif'} />
+                                            <option
+                                                value={
+                                                    '"Inter Variable", Inter, sans-serif'
+                                                }
+                                            />
+                                            <option
+                                                value={
+                                                    '"Geist Variable", Geist, "Inter Variable", sans-serif'
+                                                }
+                                            />
+                                            <option
+                                                value={
+                                                    'Satoshi, "Inter Variable", Inter, sans-serif'
+                                                }
+                                            />
+                                            <option
+                                                value={
+                                                    '"JetBrains Mono Variable", "JetBrains Mono", monospace'
+                                                }
+                                            />
+                                            <option
+                                                value={
+                                                    '"Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif'
+                                                }
+                                            />
                                         </datalist>
                                     </label>
                                     <label className="nc-theme-studio__row nc-theme-font-row">
@@ -1106,15 +1200,28 @@ export default function DesktopSettings({
                                             value={themeDraft.codeFont}
                                             onChange={(event) =>
                                                 updateThemeDraft({
-                                                    codeFont: event.target.value,
+                                                    codeFont:
+                                                        event.target.value,
                                                 })
                                             }
                                             spellCheck={false}
                                         />
                                         <datalist id="nc-code-fonts">
-                                            <option value={'"JetBrains Mono Variable", "JetBrains Mono", monospace'} />
-                                            <option value={'"Geist Mono Variable", "Geist Mono", "JetBrains Mono Variable", monospace'} />
-                                            <option value={'"Cascadia Code", Consolas, monospace'} />
+                                            <option
+                                                value={
+                                                    '"JetBrains Mono Variable", "JetBrains Mono", monospace'
+                                                }
+                                            />
+                                            <option
+                                                value={
+                                                    '"Geist Mono Variable", "Geist Mono", "JetBrains Mono Variable", monospace'
+                                                }
+                                            />
+                                            <option
+                                                value={
+                                                    '"Cascadia Code", Consolas, monospace'
+                                                }
+                                            />
                                         </datalist>
                                     </label>
                                     <div className="nc-theme-studio__row">
@@ -1255,11 +1362,7 @@ export default function DesktopSettings({
     return createPortal(content, document.body);
 }
 
-function ThemePreview({
-    theme,
-}: {
-    theme: (typeof THEMES)[number];
-}) {
+function ThemePreview({ theme }: { theme: (typeof THEMES)[number] }) {
     return (
         <span
             className="nc-settings__theme-preview"
