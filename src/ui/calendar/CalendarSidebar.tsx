@@ -258,13 +258,18 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                     </button>
                 )}
                 <div className="nc-sidebar-top-right">
-                    <button
-                        className="nc-sidebar-top-btn nc-sidebar-search-btn"
-                        onClick={onOpenSearch}
-                        title="Open command menu"
-                    >
-                        <SearchIcon />
-                    </button>
+                    {/* Android keeps search in the app bar and creation on the
+                        floating button, so the drawer only carries settings —
+                        which the app bar in turn no longer does. */}
+                    {!isAndroid && (
+                        <button
+                            className="nc-sidebar-top-btn nc-sidebar-search-btn"
+                            onClick={onOpenSearch}
+                            title="Open command menu"
+                        >
+                            <SearchIcon />
+                        </button>
+                    )}
                     <button
                         className="nc-sidebar-top-btn nc-sidebar-settings-btn"
                         onClick={onOpenSettings}
@@ -273,13 +278,15 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                     >
                         <SettingsIcon size={17} />
                     </button>
-                    <button
-                        className="nc-sidebar-top-btn nc-sidebar-new-event-btn"
-                        onClick={onNewEvent}
-                        title="Create event"
-                    >
-                        <NewEventIcon />
-                    </button>
+                    {!isAndroid && (
+                        <button
+                            className="nc-sidebar-top-btn nc-sidebar-new-event-btn"
+                            onClick={onNewEvent}
+                            title="Create event"
+                        >
+                            <NewEventIcon />
+                        </button>
+                    )}
                 </div>
             </div>
 
