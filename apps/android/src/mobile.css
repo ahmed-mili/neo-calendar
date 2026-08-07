@@ -3868,12 +3868,10 @@ body.nc-platform-android .nc-sidebar-top-bar {
     justify-content: flex-end !important;
 }
 
-/* The hamburger stays as a second way in, but bows out once the drawer is
-   open: from there the drawer is closed by dragging it back or tapping the
-   calendar beside it. */
-body.nc-platform-android .nc-layout--sidebar-open .nc-android-menu-btn {
-    display: none !important;
-}
+/* The hamburger is never hidden. Keying it on .nc-layout--sidebar-open made it
+   vanish on the first pixel of a drag — React marks the drawer open as soon as
+   the gesture commits, long before the panel has covered anything. Once the
+   panel is fully out it hides the button on its own. */
 
 @media (prefers-reduced-motion: reduce) {
     body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed),
