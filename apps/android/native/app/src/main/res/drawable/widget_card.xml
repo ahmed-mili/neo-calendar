@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The card the widget is drawn on. Its colour is set at runtime from the
+     app's theme, so the widget follows whatever the calendar looks like. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="24dp" />
+    <solid android:color="#252539" />
+</shape>

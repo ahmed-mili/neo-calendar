@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The colour bar beside an event. White on purpose: the row tints it with
+     its calendar's colour at runtime, which a solid background could not be
+     given rounded ends. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="3dp" />
+    <solid android:color="#FFFFFF" />
+</shape>

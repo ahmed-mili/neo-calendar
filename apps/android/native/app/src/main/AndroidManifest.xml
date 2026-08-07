@@ -29,5 +29,24 @@
                 <data android:scheme="neo-calendar" android:host="event" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".NeoCalendarWidget"
+            android:exported="false"
+            android:label="@string/widget_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/neo_calendar_widget_info" />
+        </receiver>
+
+        <!-- Binding this service is a privileged operation: only the launcher,
+             which holds BIND_REMOTEVIEWS, may drive the widget's list. -->
+        <service
+            android:name=".WidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
     </application>
 </manifest>

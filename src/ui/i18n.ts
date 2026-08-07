@@ -121,6 +121,7 @@ const FR: Record<string, string> = {
     "Delete event": "Supprimer l'événement",
     "Click again to confirm": "Cliquer à nouveau pour confirmer",
     Untitled: "Sans titre",
+    "No event scheduled": "Aucun événement prévu",
     Someday: "Un jour",
 
     // ── Calendars ────────────────────────────────────────────

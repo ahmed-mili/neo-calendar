@@ -11,8 +11,8 @@
     <string name="widget_preview_event_three">"Northstar (stargazing)"</string>
     <string name="widget_preview_event_four">"July 4th at Donner Lake"</string>
     <string name="widget_title">"Prochains événements"</string>
-    <string name="widget_preview_time_one">"4 – 5 PM"</string>
-    <string name="widget_preview_time_two">"6 – 7 PM"</string>
-    <string name="widget_preview_time_three">"8 – 10:30 PM"</string>
-    <string name="widget_preview_time_four">"9 AM – 10 PM"</string>
+    <string name="widget_preview_time_one">"16:00 – 17:00"</string>
+    <string name="widget_preview_time_two">"18:00 – 19:00"</string>
+    <string name="widget_preview_time_three">"20:00 – 22:30"</string>
+    <string name="widget_preview_time_four">"09:00 – 22:00"</string>
 </resources>

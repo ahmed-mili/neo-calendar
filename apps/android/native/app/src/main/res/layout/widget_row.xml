@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One event. The date column is filled on the first event of a day and left
+     blank on the others, so a day reads as one block. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/row_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="8dp">
+
+    <LinearLayout
+        android:id="@+id/row_date"
+        android:layout_width="62dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/row_weekday"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="13.7sp"
+            android:textStyle="bold"
+            android:textColor="#E6E9F5" />
+
+        <TextView
+            android:id="@+id/row_day"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:textSize="13.7sp"
+            android:textStyle="bold"
+            android:textColor="#E6E9F5" />
+    </LinearLayout>
+
+    <!-- One slot, two marks: a bar for an event that spans hours, a dot for one
+         that spans the day. Both sit in the same width so the titles beside
+         them line up whichever it is. -->
+    <FrameLayout
+        android:layout_width="10dp"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="4dp">
+
+        <ImageView
+            android:id="@+id/row_bar"
+            android:contentDescription="@null"
+            android:layout_width="4dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal"
+            android:minHeight="32dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_bar" />
+
+        <ImageView
+            android:id="@+id/row_dot"
+            android:contentDescription="@null"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:layout_gravity="center_horizontal|top"
+            android:layout_marginTop="4dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_dot"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/row_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textSize="12.6sp"
+            android:textColor="#E6E9F5" />
+
+        <TextView
+            android:id="@+id/row_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textSize="11.6sp"
+            android:textColor="#9AA0B4" />
+    </LinearLayout>
+</LinearLayout>

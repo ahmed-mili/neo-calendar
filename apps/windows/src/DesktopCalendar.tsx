@@ -7,6 +7,11 @@ import React, {
 } from "react";
 import CalendarLayout from "../../../src/ui/calendar/CalendarLayout";
 import CommandPalette from "../../../src/ui/calendar/CommandPalette";
+import { invoke } from "@tauri-apps/api/core";
+import {
+    buildWidgetPayload,
+    readWidgetTheme,
+} from "./platform/androidWidget";
 import ContextMenu, {
     ContextMenuItem,
 } from "../../../src/ui/calendar/ContextMenu";
@@ -2346,6 +2351,56 @@ export default function DesktopCalendar({
         },
         [persistPreferences, preferences.firstDay, setViewType, viewType]
     );
+
+    /*
+     * Keep the home-screen widget in step.
+     *
+     * It is written on every change rather than on a timer: the cost is a
+     * single small JSON write, and anything less means a widget that shows an
+     * event the calendar no longer has. The activity redraws the placed
+     * widgets itself once the payload has landed.
+     */
+    useEffect(() => {
+        if (!isAndroid) return;
+        const payload = buildWidgetPayload({
+            events: displayEvents,
+            now: new Date(),
+            timeFormat24h: preferences.timeFormat24h,
+            theme: readWidgetTheme(),
+        });
+        void invoke("write_widget_events", {
+            payload: JSON.stringify(payload),
+        }).catch(() => {
+            // A widget that failed to refresh is not worth interrupting for.
+        });
+    }, [displayEvents, isAndroid, preferences.timeFormat24h]);
+
+    /*
+     * A tap on the widget lands here.
+     *
+     * The activity fires this once the page is up — including when the widget
+     * started the app from cold, where the tap arrives before there is anything
+     * to hear it. Opening the event it names, or a new one for the "+".
+     */
+    useEffect(() => {
+        if (!isAndroid) return;
+        const onRoute = (event: Event) => {
+            const detail = (event as CustomEvent).detail as
+                | { type?: string; eventId?: string }
+                | undefined;
+            if (!detail) return;
+            if (detail.type === "new-event") {
+                openNewEvent();
+                return;
+            }
+            if (detail.type === "event" && detail.eventId) {
+                openExistingEvent(detail.eventId);
+            }
+        };
+        window.addEventListener("neo-calendar-widget-route", onRoute);
+        return () =>
+            window.removeEventListener("neo-calendar-widget-route", onRoute);
+    }, [isAndroid, openExistingEvent, openNewEvent]);
 
     const settingsCalendars = useMemo(
         () =>
