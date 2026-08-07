@@ -26,16 +26,22 @@ const GESTURE_CLASS = "nc-drawer-gesture";
 
 /** How long the panel takes to travel home on its own. Matches the opening
     animation, so closing reads as opening in reverse. */
-const SETTLE_MS = 240;
+const SETTLE_MS = 300;
 
-const EASING = "cubic-bezier(0.2, 0.85, 0.25, 1)";
+/** Decelerates hard at the end: a panel this size arriving at a constant rate
+    reads as a jump however long it is given. Matched in mobile.css. */
+const EASING = "cubic-bezier(0.05, 0.7, 0.1, 1)";
 
 const PANEL_SELECTOR = ".nc-sidebar:not(.nc-sidebar-collapsed)";
 const CALENDAR_SELECTOR = ".nc-main";
 
-/** How dark the calendar goes with the drawer fully out. A filter dims the
-    element's own pixels, so unlike a scrim it has no edge to notice. */
-const DIMMED = 0.6;
+/** Strength of the overlay that dims the calendar with the drawer fully out. */
+const DIM_OPACITY = 0.4;
+
+/** The overlay's opacity lives here; mobile.css reads it on .nc-main::after.
+    Dimming used to be a brightness() filter, which repainted the entire grid on
+    every frame of the drag — the panel could not stay under the finger. */
+const DIM_PROPERTY = "--nc-drawer-dim";
 
 export function canStartDrawerGesture({
     x,
@@ -154,8 +160,7 @@ export function useDrawerSwipe({
             calendar = document.querySelector(CALENDAR_SELECTOR);
         };
 
-        const brightnessFor = (progress: number) =>
-            "brightness(" + (1 - (1 - DIMMED) * progress) + ")";
+        const dimFor = (progress: number) => String(DIM_OPACITY * progress);
 
         const paint = (progress: number) => {
             if (!panel) findElements();
@@ -163,7 +168,9 @@ export function useDrawerSwipe({
                 const offset = (progress - 1) * width;
                 panel.style.transform = "translate3d(" + offset + "px, 0, 0)";
             }
-            if (calendar) calendar.style.filter = brightnessFor(progress);
+            if (calendar) {
+                calendar.style.setProperty(DIM_PROPERTY, dimFor(progress));
+            }
         };
 
         const glide = (progress: number) => {
@@ -175,9 +182,7 @@ export function useDrawerSwipe({
                     "translate3d(" + (progress - 1) * width + "px, 0, 0)";
             }
             if (calendar) {
-                calendar.style.transition =
-                    "filter " + SETTLE_MS + "ms " + EASING;
-                calendar.style.filter = brightnessFor(progress);
+                calendar.style.setProperty(DIM_PROPERTY, dimFor(progress));
             }
         };
 
@@ -187,8 +192,7 @@ export function useDrawerSwipe({
                 panel.style.transition = "";
             }
             if (calendar) {
-                calendar.style.filter = "";
-                calendar.style.transition = "";
+                calendar.style.removeProperty(DIM_PROPERTY);
             }
             panel = null;
             calendar = null;

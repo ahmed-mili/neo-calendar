@@ -50,6 +50,7 @@ import {
 } from "./CalendarEventsPanel.helpers";
 import { DragPreview } from "./TimeGrid.types";
 import { PanelDropTarget } from "./usePanelDrag";
+import { t } from "../i18n";
 
 /**
  * La disposition est-elle contrainte au point que la barre laterale doive
@@ -1111,7 +1112,7 @@ function CalendarAppInner(props: CalendarAppProps) {
             const date = contextMenuState.date!;
             const baseItems: ContextMenuItem[] = [
                 {
-                    label: "Create event",
+                    label: t("Create event"),
                     shortcut: "C",
                     onClick: () => {
                         const start = new Date(date);
@@ -1173,13 +1174,13 @@ function CalendarAppInner(props: CalendarAppProps) {
                     onClick: () => cutEvent(eventId),
                 },
                 {
-                    label: "Copy",
+                    label: t("Copy"),
                     shortcut: "Ctrl C",
                     icon: <CopyIcon />,
                     onClick: () => copyEvent(eventId),
                 },
                 {
-                    label: "Duplicate",
+                    label: t("Duplicate"),
                     shortcut: "Ctrl D",
                     icon: <DuplicateIcon />,
                     onClick: () => duplicateEvent(eventId),
@@ -1189,7 +1190,7 @@ function CalendarAppInner(props: CalendarAppProps) {
         }
 
         items.push({
-            label: "Go to note",
+            label: t("Go to note"),
             icon: <FileTextIcon />,
             onClick: () => props.onOpenFile(eventId),
         });
@@ -1466,6 +1467,7 @@ function CalendarAppInner(props: CalendarAppProps) {
                     onGoToday={goToday}
                     onCreateEvent={handleNewEvent}
                     onToggleSidebar={() => setSidebarVisible((v) => !v)}
+                    timeFormat24h={settings.timeFormat24h}
                 />
                 <EventPanel
                     visible={

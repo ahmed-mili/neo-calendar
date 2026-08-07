@@ -12,6 +12,7 @@ import {
     parseSharedCalendar,
     presetOptions,
 } from "../../calendars/auto/presets";
+import { t } from "../i18n";
 
 /**
  * The form behind "add calendar". Which fields it shows depends on the kind of
@@ -134,7 +135,7 @@ function HeadingField({
                     value={value}
                     options={headings.map((h) => ({ value: h, label: h }))}
                     onChange={onChange}
-                    placeholder="Choose a heading"
+                    placeholder={t("Choose a heading")}
                     required
                 />
             ) : (
@@ -188,7 +189,7 @@ function DirectoryField({
                         .sort()
                         .map((dir) => ({ value: dir, label: dir }))}
                     onChange={setDirectory}
-                    placeholder="Choose a directory"
+                    placeholder={t("Choose a directory")}
                     required
                 />
             </SettingRow>
@@ -226,14 +227,14 @@ function DirectoryField({
                         setDirectory(value);
                     }
                 }}
-                placeholder="Choose a calendar"
+                placeholder={t("Choose a calendar")}
                 required={!newName}
             />
             {newName !== "" && (
                 <input
                     required
                     type="text"
-                    placeholder="New calendar name"
+                    placeholder={t("New calendar name")}
                     value={newName.trim()}
                     onChange={(e) => setNewName(e.target.value || " ")}
                     autoFocus
@@ -342,7 +343,7 @@ function AutoCalendarFields({
                                     rules: preset.rules,
                                 } as Partial<CalendarInfo>);
                             }}
-                            placeholder="Choose a calendar"
+                            placeholder={t("Choose a calendar")}
                             required
                         />
                     </SettingRow>
@@ -400,7 +401,7 @@ function AutoCalendarFields({
                             app={app}
                             value={source.target || ""}
                             options={[
-                                { value: "", label: "Its own calendar" },
+                                { value: "", label: t("Its own calendar") },
                                 ...existingCalendars.map((cal) => ({
                                     value: cal.id,
                                     label: cal.name,
@@ -411,7 +412,7 @@ function AutoCalendarFields({
                                     target: target || undefined,
                                 } as Partial<CalendarInfo>)
                             }
-                            placeholder="Its own calendar"
+                            placeholder={t("Its own calendar")}
                         />
                     </SettingRow>
                 </>
@@ -446,7 +447,7 @@ function AutoCalendarFields({
                                     rules: preset.rules,
                                 } as Partial<CalendarInfo>);
                             }}
-                            placeholder="Choose a country"
+                            placeholder={t("Choose a country")}
                             required
                         />
                     ) : (

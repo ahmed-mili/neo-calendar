@@ -7,6 +7,7 @@ import { HolidayRule } from "../../calendars/auto/rules";
 import { serializeSharedCalendar } from "../../calendars/auto/presets";
 import { ObsidianIcon } from "./ObsidianIcon";
 import { normalizeColor } from "../../utils/color";
+import { t } from "../i18n";
 
 /**
  * The list of configured calendars in the settings tab: recolour one, rename it,
@@ -95,7 +96,7 @@ const CloudIcon = () => (
 const kindOf = (type?: string): { icon: React.ReactNode; label: string } => {
     switch (type) {
         case "dailynote":
-            return { icon: <CalendarDayIcon />, label: "Daily note" };
+            return { icon: <CalendarDayIcon />, label: t("Daily note") };
         case "ical":
             return { icon: <WifiIcon />, label: "Online calendar (.ics)" };
         case "caldav":
@@ -103,10 +104,10 @@ const kindOf = (type?: string): { icon: React.ReactNode; label: string } => {
         case "icloud":
             return { icon: <CloudIcon />, label: "iCloud" };
         case "auto":
-            return { icon: <CalendarDayIcon />, label: "Auto calendar" };
+            return { icon: <CalendarDayIcon />, label: t("Auto calendar") };
         case "local":
         default:
-            return { icon: <FileTextIcon />, label: "Full note" };
+            return { icon: <FileTextIcon />, label: t("Full note") };
     }
 };
 
@@ -195,7 +196,7 @@ export const CalendarSettingRow = ({
 
     return (
         <div className="neo-cal-row">
-            <label className="neo-cal-row-color" title="Change color">
+            <label className="neo-cal-row-color" title={t("Change color")}>
                 <span
                     className="neo-cal-row-color-pill"
                     style={{ backgroundColor: setting.color }}
@@ -247,7 +248,7 @@ export const CalendarSettingRow = ({
                             className="neo-cal-row-btn"
                             onClick={commit}
                             disabled={renaming}
-                            title="Save"
+                            title={t("Save")}
                         >
                             <CheckIcon />
                         </button>
@@ -256,7 +257,7 @@ export const CalendarSettingRow = ({
                             className="neo-cal-row-btn"
                             onClick={cancel}
                             disabled={renaming}
-                            title="Cancel"
+                            title={t("Cancel")}
                         >
                             <XIcon />
                         </button>
@@ -302,7 +303,7 @@ export const CalendarSettingRow = ({
                                 type="button"
                                 className="neo-cal-row-btn"
                                 onClick={startEditing}
-                                title="Rename"
+                                title={t("Rename")}
                             >
                                 <PencilIcon />
                             </button>

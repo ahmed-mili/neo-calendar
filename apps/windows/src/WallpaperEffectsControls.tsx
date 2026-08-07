@@ -12,6 +12,7 @@ import {
     WallpaperEffectKey,
     WallpaperEffects,
 } from "./themes/wallpaperEffects";
+import { t } from "../../../src/ui/i18n";
 
 interface EffectDefinition {
     key: WallpaperEffectKey;
@@ -25,7 +26,7 @@ interface EffectDefinition {
 const EFFECTS: readonly EffectDefinition[] = [
     {
         key: "backgroundBrightness",
-        label: "Luminosité du fond",
+        label: t("Wallpaper brightness"),
         min: 0,
         max: 1,
         step: 0.05,
@@ -33,7 +34,7 @@ const EFFECTS: readonly EffectDefinition[] = [
     },
     {
         key: "backgroundBlur",
-        label: "Flou du fond",
+        label: t("Wallpaper blur"),
         min: 0,
         max: 20,
         step: 1,
@@ -41,7 +42,7 @@ const EFFECTS: readonly EffectDefinition[] = [
     },
     {
         key: "containerOpacity",
-        label: "Opacité des conteneurs",
+        label: t("Container opacity"),
         min: 0,
         max: 1,
         step: 0.05,

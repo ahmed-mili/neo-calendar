@@ -14,6 +14,7 @@ import { getTheme, THEMES } from "./themes/registry";
 import { getWallpaper, isAndroidRuntime } from "./themes/wallpapers";
 import WallpaperRenderLayer from "./WallpaperRenderLayer";
 import "./themes/wallpaperEffects";
+import { t } from "../../../src/ui/i18n";
 
 function readStringProperty(
     value: unknown,
@@ -202,7 +203,7 @@ export default function App() {
     }, [appearanceMode, effectiveTheme, theme]);
 
     // `preferences` stays null until the stored settings have been read. Falling
-    // through to the welcome screen would flash "Choose data folder" on every
+    // through to the welcome screen would flash t("Choose the folder") on every
     // launch, even though a folder is already configured.
     if (!preferences) {
         return (
@@ -276,11 +277,11 @@ export default function App() {
                     <CalendarDays size={28} strokeWidth={1.8} />
                 </div>
                 <p className="nc-welcome__eyebrow">
-                    {isAndroidRuntime() ? "Android" : "Windows"} application
+                    Application {isAndroidRuntime() ? "Android" : "Windows"}
                 </p>
                 <h1 id="welcome-title">Neo Calendar</h1>
                 <p className="nc-welcome__description">
-                    Choose your Neo Calendar data folder.
+                    Choisissez le dossier de données de Neo Calendar.
                 </p>
                 <button
                     className="nc-folder-button"
@@ -290,10 +291,10 @@ export default function App() {
                     aria-busy={isChoosingFolder}
                 >
                     <FolderOpen aria-hidden="true" size={18} />
-                    Choose data folder
+                    Choisir le dossier
                 </button>
                 <p className="nc-welcome__hint">
-                    Calendar files stay outside every Obsidian vault.
+                    Les fichiers de calendrier restent hors de tout coffre Obsidian.
                 </p>
                 {error && (
                     <p className="nc-welcome__error" role="alert">
@@ -302,7 +303,7 @@ export default function App() {
                 )}
                 {route?.type === "task" && (
                     <p className="nc-route-probe">
-                        Opening task: {route.taskId}
+                        Ouverture de la tâche : {route.taskId}
                     </p>
                 )}
             </section>

@@ -6,6 +6,7 @@ import { DateTime } from "luxon";
 import { PlusIcon } from "./Icons";
 import ContextMenu, { ContextMenuItem } from "./ContextMenu";
 import { TimezoneMenuContext } from "./TimezoneColumn";
+import { t } from "../i18n";
 
 interface TimezonePickerProps {
     referenceDate: Date | undefined;
@@ -121,12 +122,12 @@ export function TimezonePicker({
     const localMenuItems: ContextMenuItem[] = timezoneMenu
         ? [
               {
-                  label: "Change time zone",
+                  label: t("Change time zone"),
                   icon: <Globe2 size={15} />,
                   onClick: timezoneMenu.onChangeHome,
               },
               {
-                  label: "Rename",
+                  label: t("Rename"),
                   icon: <Pencil size={15} />,
                   onClick: () => timezoneMenu.onRename(LOCAL_ZONE),
               },
@@ -153,7 +154,7 @@ export function TimezonePicker({
                 className="nc-tz-add"
                 role="button"
                 tabIndex={0}
-                title="Add timezone"
+                title={t("Add timezone")}
                 onClick={togglePicker}
                 onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {

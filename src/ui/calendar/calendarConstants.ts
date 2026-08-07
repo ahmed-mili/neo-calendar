@@ -11,10 +11,30 @@ export const EVENT_VGAP = 4; // px vertical gap between back-to-back events
 export const ALLDAY_ROW_HEIGHT = 24; // px per all-day lane row
 export const ALLDAY_MAX_ROWS = 4; // visible rows before the section scrolls
 
-// Day/month name arrays
-export const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-export const DAYS_MIN = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-export const MONTHS_SHORT = [
+// Day/month names, in the language the calendar is set to. Written out in the
+// dictionary rather than taken from toLocaleDateString so the grid reads the
+// same whatever locale the machine happens to be set to.
+import { tList } from "../i18n";
+
+export const DAYS_SHORT = tList("days.short", [
+    "Sun",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat",
+]);
+export const DAYS_MIN = tList("days.min", [
+    "Su",
+    "Mo",
+    "Tu",
+    "We",
+    "Th",
+    "Fr",
+    "Sa",
+]);
+export const MONTHS_SHORT = tList("months.short", [
     "Jan",
     "Feb",
     "Mar",
@@ -27,8 +47,8 @@ export const MONTHS_SHORT = [
     "Oct",
     "Nov",
     "Dec",
-];
-export const MONTHS = [
+]);
+export const MONTHS = tList("months.long", [
     "January",
     "February",
     "March",
@@ -41,4 +61,4 @@ export const MONTHS = [
     "October",
     "November",
     "December",
-];
+]);

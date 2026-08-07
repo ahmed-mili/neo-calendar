@@ -15,6 +15,7 @@ import {
     shouldAutoCommitDraft,
 } from "./EventPanel.helpers";
 import { usePopupDismiss } from "./usePopupDismiss";
+import { useSheetDrag } from "./useSheetDrag";
 import { usePopupDrag } from "./usePopupDrag";
 import { useEventFormState } from "./useEventFormState";
 import {
@@ -226,6 +227,7 @@ export default function EventPanel({
     const popupRef = useRef<HTMLDivElement>(null);
     const titleInputRef = useRef<HTMLInputElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
+    const headerRef = useRef<HTMLDivElement>(null);
 
     const calInfo = resolveCalendarInfo(
         cache,
@@ -401,6 +403,18 @@ export default function EventPanel({
     }, [visible, eventId, draft]);
 
     usePopupDismiss({ visible, popupRef, menuRef, onClose });
+
+    // The grab handle across the top of the sheet is only drawn on Android, so
+    // that is the only place the gesture belongs.
+    useSheetDrag({
+        enabled: visible && isNeoAndroidRuntime(),
+        sheetRef: popupRef,
+        handleRef: headerRef,
+        // A draft stands lower at rest than an existing event: it opens over a
+        // slot the person is still looking at.
+        variant: isDraft ? "draft" : "sheet",
+        onClose,
+    });
 
 // NEO_ANDROID_NOTION_DRAFT_FOCUS_START
     useEffect(() => {
@@ -820,6 +834,7 @@ export default function EventPanel({
             }}
         >
             <PanelHeader
+                headerRef={headerRef}
                 isDraft={isDraft}
                 editable={stableCalInfo.editable}
                 eventId={eventId}

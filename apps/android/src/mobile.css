@@ -48,9 +48,32 @@ body.nc-platform-android [role="button"] {
     touch-action: manipulation;
 }
 
+/*
+ * A focus ring says "this is where the keys go" — which a text field already
+ * says, with a blinking caret, better than a rectangle can. Ringing them too
+ * drew an accent-coloured box around every field the moment it was tapped,
+ * most visibly around the event title, where Notion shows nothing at all.
+ * Controls that have no caret keep the ring.
+ */
 body.nc-platform-android :focus-visible {
     outline: 2px solid var(--nc-accent, var(--interactive-accent));
     outline-offset: 2px;
+}
+
+body.nc-platform-android input[type="text"]:focus-visible,
+body.nc-platform-android input[type="search"]:focus-visible,
+body.nc-platform-android input:not([type]):focus-visible,
+body.nc-platform-android textarea:focus-visible,
+body.nc-platform-android [contenteditable]:focus-visible {
+    outline: none;
+}
+
+/* Since the caret is now the whole of the focus indication, it carries the
+   accent — one blinking bar in the app's own colour, everywhere. */
+body.nc-platform-android input,
+body.nc-platform-android textarea,
+body.nc-platform-android [contenteditable] {
+    caret-color: var(--nc-accent, var(--interactive-accent));
 }
 
 /* â”€â”€ Folder onboarding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -291,7 +314,9 @@ body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
         transparent
     );
     box-shadow: 18px 0 54px rgba(0, 0, 0, 0.48);
-    animation: nc-android-drawer-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* The opening animation is declared once, with the drag that shares its
+       timing — see NEO ANDROID DRAWER GESTURE V10 below. A second declaration
+       here was simply losing to it. */
 }
 
 body.nc-platform-android .nc-sidebar-top-bar {
@@ -344,16 +369,6 @@ body.nc-platform-android .nc-mobile-new-event:active {
     transform: scale(0.94);
 }
 
-@keyframes nc-android-drawer-in {
-    from {
-        opacity: 0.65;
-        transform: translateX(-24px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
 
 /* â”€â”€ Time grid tuned for a 6â€“7 inch portrait display â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
@@ -404,11 +419,51 @@ body.nc-platform-android .nc-event-popup {
     bottom: max(0px, var(--nc-mobile-safe-bottom)) !important;
     width: auto !important;
     max-width: none !important;
-    max-height: min(88vh, 720px);
-    max-height: min(88dvh, 720px);
+
+    /* Laid out at the taller of its two anchors and pushed down to the other,
+       so both are the same box at two translations: a height that changed
+       mid-gesture would relayout the sheet on every frame, and no amount of
+       easing hides that. */
+    height: min(92dvh, 780px);
+    max-height: none;
+
     border-radius: 24px 24px 0 0;
     transform-origin: bottom center !important;
-    animation: nc-android-sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: nc-android-sheet-in 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
+
+    /*
+     * The grab handle drawn on the header is now a real one: useSheetDrag
+     * writes this offset frame by frame while a finger holds the sheet, and
+     * hands it to a transition to settle. Resting value is 0 — the sheet sits
+     * where it is laid out.
+     */
+    /*
+     * The last resort is the resting anchor, never the top one.
+     *
+     * `0px` here means "filling the screen", so any moment the anchor was not
+     * on the element — before the first layout effect, or after an effect was
+     * torn down while the sheet was still up — the sheet sprang open instead of
+     * staying put. Closing it that way is what made the X grow it. The
+     * stylesheet can work the resting height out on its own; the gesture only
+     * needs pixels for its own arithmetic.
+     */
+    --nc-sheet-rest-fallback: 39%;
+    transform: translate3d(
+        0,
+        var(
+            --nc-sheet-offset,
+            var(--nc-sheet-rest-offset, var(--nc-sheet-rest-fallback))
+        ),
+        0
+    ) !important;
+    transition: transform 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
+    will-change: transform;
+}
+
+/* While a finger is down the sheet must sit exactly where the finger is; a
+   transition would drag it along a step behind. */
+body.nc-sheet-dragging.nc-platform-android .nc-event-popup {
+    transition: none !important;
 }
 
 body.nc-platform-android .nc-panel-header {
@@ -416,6 +471,9 @@ body.nc-platform-android .nc-panel-header {
     min-height: 54px;
     padding: 16px 12px 5px;
     cursor: default;
+    /* The header is the grab area, so it must not scroll the body under it or
+       hand the gesture to the browser's own pull-to-refresh. */
+    touch-action: none;
 }
 
 body.nc-platform-android .nc-panel-header::before {
@@ -444,14 +502,71 @@ body.nc-platform-android .nc-panel-body {
     padding-bottom: max(18px, calc(var(--nc-mobile-safe-bottom) + 12px));
 }
 
-body.nc-platform-android .nc-panel-title-row,
 body.nc-platform-android .nc-panel-row {
     margin-left: 10px;
     margin-right: 10px;
 }
 
-body.nc-platform-android .nc-panel-title-input {
-    font-size: 20px;
+/*
+ * The title of an event is a title, not a form field.
+ *
+ * On the desktop it keeps Notion's three states — flat, outlined on hover,
+ * filled on focus — because that is what Notion does with a mouse. There is no
+ * hover on a phone, so all that survived of those three states was the focused
+ * one: a filled slab with a document icon and the WebView's blue focus ring
+ * around the input, sitting where Notion shows nothing at all. Here the title
+ * is bare text with a blue caret, at the size a title is written in, and the
+ * draft sheet already did exactly this — this is the same treatment, moved up
+ * so every event panel gets it.
+ */
+body.nc-platform-android .nc-panel-title-row {
+    box-sizing: border-box;
+    min-height: 62px;
+    margin: 0;
+    padding: 8px 20px 10px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.nc-platform-android .nc-panel-title-row:hover,
+body.nc-platform-android .nc-panel-title-row:focus-within {
+    border-color: transparent;
+    background: transparent;
+}
+
+body.nc-platform-android .nc-panel-title-icon {
+    display: none;
+}
+
+body.nc-platform-android .nc-panel-title-row .nc-panel-title-input {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 42px;
+    margin: 0;
+    padding: 0;
+
+    border: 0;
+    outline: 0;
+    background: transparent;
+    box-shadow: none;
+
+    /* The blinking bar is the system's own — it only had to be told which
+       colour to blink in. There is no CSS control over its thickness: it
+       follows the text, which is why the title is set this large. */
+    caret-color: var(--nc-accent, var(--interactive-accent));
+
+    font-size: 25px;
+    font-weight: 650;
+    line-height: 1.2;
+}
+
+body.nc-platform-android
+    .nc-panel-title-row
+    .nc-panel-title-input::placeholder {
+    color: var(--nc-text-faint, var(--text-faint));
+    font-weight: 650;
+    opacity: 1;
 }
 
 body.nc-platform-android .nc-panel-text-input,
@@ -482,14 +597,20 @@ body.nc-platform-android .nc-panel-menu-item {
     font-size: 15px;
 }
 
+/* Up from below the screen to wherever the sheet rests — which is a translation
+   now, so the arrival has to end on it rather than on zero. */
 @keyframes nc-android-sheet-in {
     from {
         opacity: 0.6;
-        transform: translateY(36px);
+        transform: translate3d(0, 100%, 0);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translate3d(
+            0,
+            var(--nc-sheet-offset, var(--nc-sheet-rest-offset, 0px)),
+            0
+        );
     }
 }
 
@@ -498,9 +619,31 @@ body.nc-platform-android .nc-panel-menu-item {
 body.nc-platform-android .nc-settings-backdrop {
     place-items: stretch;
     padding: 0;
-    background: var(--background-primary);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+}
+
+/*
+ * The settings surface is tinted exactly as the calendar is.
+ *
+ * The backdrop carried a 46% black wash on top of the panel's own glass — two
+ * layers where the grid has one, so the same wallpaper came out denser under
+ * the settings than under the calendar. Invisible while the settings covered
+ * the screen, and plain to see the moment the surface slid off and the two sat
+ * side by side. The wash goes, and the panel takes the calendar's own veil,
+ * the same gradient over the same wallpaper.
+ */
+body.nc-platform-android .nc-settings-backdrop {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body.nc-platform-android .nc-settings-backdrop > .nc-settings {
+    background-color: transparent !important;
+    background-image: linear-gradient(
+        to bottom,
+        rgba(5, 8, 20, 0.07),
+        rgba(5, 8, 20, 0.13)
+    ) !important;
 }
 
 body.nc-platform-android .nc-settings {
@@ -519,44 +662,17 @@ body.nc-platform-android .nc-settings__header {
     padding: 7px 8px 7px 16px;
 }
 
-body.nc-platform-android .nc-settings__close {
+body.nc-platform-android .nc-settings__back {
     width: 44px;
     height: 44px;
-    border-radius: 12px;
 }
 
-body.nc-platform-android .nc-settings__tabs {
-    min-height: 54px;
-    padding: 6px 8px;
-    gap: 5px;
-    scrollbar-width: none;
+body.nc-platform-android .nc-settings__page {
+    padding: 18px 16px max(28px, calc(var(--nc-mobile-safe-bottom) + 18px));
 }
 
-body.nc-platform-android .nc-settings__tabs::-webkit-scrollbar {
-    display: none;
-}
-
-body.nc-platform-android .nc-settings__tab {
-    min-height: 42px;
-    padding: 9px 12px;
-    border-radius: 11px;
-}
-
-body.nc-platform-android .nc-settings__content {
-    padding: 20px 16px max(28px, calc(var(--nc-mobile-safe-bottom) + 18px));
-}
-
-body.nc-platform-android .nc-settings__section h3 {
-    font-size: 22px;
-}
-
-body.nc-platform-android .nc-settings__preference-row,
-body.nc-platform-android .nc-settings__timezone-add,
-body.nc-platform-android .nc-settings__timezone-item,
-body.nc-platform-android .nc-settings__calendar-root,
-body.nc-platform-android .nc-settings__calendar-add,
 body.nc-platform-android .nc-settings__calendar-item {
-    border-radius: 14px;
+    border-radius: 0;
 }
 
 body.nc-platform-android .nc-add-calendar-backdrop,
@@ -648,21 +764,9 @@ body.nc-platform-android .nc-confirm-dialog footer button {
         bottom: max(12px, calc(var(--nc-mobile-safe-bottom) + 8px));
     }
 
-    body.nc-platform-android .nc-settings__body {
-        grid-template-columns: 170px minmax(0, 1fr);
-        grid-template-rows: minmax(0, 1fr);
-    }
-
-    body.nc-platform-android .nc-settings__tabs {
-        min-height: 0;
-        flex-direction: column;
-        overflow-y: auto;
-        border-right: 1px solid var(--background-modifier-border);
-        border-bottom: 0;
-    }
-
-    body.nc-platform-android .nc-settings__tab {
-        width: 100%;
+    body.nc-platform-android .nc-settings__page {
+        padding-right: max(20px, calc(var(--nc-mobile-safe-right) + 12px));
+        padding-left: max(20px, calc(var(--nc-mobile-safe-left) + 12px));
     }
 }
 
@@ -1378,8 +1482,8 @@ body.nc-platform-android
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
-    height: auto !important;
-    max-height: min(54dvh, 590px) !important;
+    height: min(92dvh, 780px) !important;
+    max-height: none !important;
 
     margin: 0 !important;
     border: 1px solid rgba(255, 255, 255, 0.11) !important;
@@ -1400,7 +1504,17 @@ body.nc-platform-android
         0 -22px 58px rgba(0, 0, 0, 0.48),
         0 -1px 0 rgba(255, 255, 255, 0.05) !important;
 
-    transform: none !important;
+    /* Same grab gesture as any other sheet: `none` here pinned the draft sheet
+       in place while the finger moved. A draft rests lower than an event. */
+    --nc-sheet-rest-fallback: 50%;
+    transform: translate3d(
+        0,
+        var(
+            --nc-sheet-offset,
+            var(--nc-sheet-rest-offset, var(--nc-sheet-rest-fallback))
+        ),
+        0
+    ) !important;
     transform-origin: bottom center !important;
     overflow: hidden !important;
 }
@@ -2827,6 +2941,39 @@ body.nc-platform-android .nc-calendar-visibility {
     margin: -8px -6px -8px -8px !important;
 }
 
+/*
+ * Two different things were wearing the same ring.
+ *
+ * The swatch shows a ring on hover and a slightly thicker one for the default
+ * calendar — a pair a mouse can tell apart, because one of them only lasts
+ * while the pointer is there. A phone has no hover, and the WebView leaves
+ * `:hover` stuck on whatever was tapped last, so pressing a swatch to change
+ * its colour left it wearing the mark of "this is your default calendar" until
+ * something else was tapped.
+ *
+ * The ring now belongs to the default and to nothing else. Pressing a swatch
+ * presses it in — a movement, gone the moment the finger lifts, which no
+ * persistent state can be confused with.
+ */
+body.nc-platform-android
+    .nc-calendar-item:not(.nc-calendar-default)
+    .nc-calendar-visibility:hover
+    .nc-calendar-checkbox {
+    outline: none !important;
+}
+
+body.nc-platform-android .nc-calendar-checkbox {
+    transition: transform 130ms cubic-bezier(0.2, 0.85, 0.25, 1),
+        background-color var(--nc-transition-fast),
+        border-color var(--nc-transition-fast);
+}
+
+body.nc-platform-android
+    .nc-calendar-visibility:active
+    .nc-calendar-checkbox {
+    transform: scale(0.82);
+}
+
 body.nc-platform-android .nc-calendar-name {
     min-height: 42px !important;
     display: flex !important;
@@ -3079,6 +3226,7 @@ body.nc-platform-android .nc-settings-backdrop {
     padding: 0 !important;
     place-items: stretch !important;
     overflow: hidden !important;
+
 }
 
 body.nc-platform-android .nc-settings {
@@ -3108,7 +3256,7 @@ body.nc-platform-android .nc-settings__header {
         18px !important;
 }
 
-body.nc-platform-android .nc-settings__close {
+body.nc-platform-android .nc-settings__back {
     width: var(--nc-touch-target) !important;
     height: var(--nc-touch-target) !important;
     min-width: var(--nc-touch-target) !important;
@@ -3116,55 +3264,162 @@ body.nc-platform-android .nc-settings__close {
     touch-action: manipulation !important;
 }
 
-body.nc-platform-android .nc-settings__body {
+body.nc-platform-android .nc-settings__pages {
     min-width: 0 !important;
     min-height: 0 !important;
-
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows:
-        auto
-        minmax(0, 1fr) !important;
 }
 
-body.nc-platform-android .nc-settings__tabs {
-    min-width: 0 !important;
-    min-height: 58px !important;
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 6px !important;
-
-    padding: 7px 8px !important;
-
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-
-    border-right: 0 !important;
-    border-bottom: 1px solid var(--background-modifier-border) !important;
-}
-
-body.nc-platform-android .nc-settings__tab {
-    min-width: max-content !important;
-    min-height: 46px !important;
-    flex: 1 0 auto !important;
-    justify-content: center !important;
-    padding: 9px 12px !important;
-    touch-action: manipulation !important;
-}
-
-body.nc-platform-android .nc-settings__content {
+body.nc-platform-android .nc-settings__page {
     box-sizing: border-box !important;
     min-width: 0 !important;
     min-height: 0 !important;
 
+    scrollbar-width: none !important;
+
     padding:
-        14px
-        14px
-        calc(22px + var(--nc-safe-bottom)) !important;
+        18px
+        16px
+        calc(26px + var(--nc-safe-bottom)) !important;
 
     overflow-x: hidden !important;
     overflow-y: auto !important;
     overscroll-behavior: contain !important;
+}
+
+/*
+ * On a phone the settings ARE the screen, so they travel its whole width: a
+ * six-percent nudge reads as a flinch, not as a page arriving. The direction
+ * is the header arrow's, as everywhere else.
+ */
+body.nc-platform-android .nc-settings-backdrop > .nc-settings {
+    animation-name: nc-android-settings-push-in;
+}
+
+@keyframes nc-android-settings-push-in {
+    from {
+        opacity: 0;
+        transform: translate3d(100%, 0, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+/*
+ * The calendar is revealed by an edge that cannot drift from the panel's.
+ *
+ * Three things pulled against each other here. The panel is glass, so a grid
+ * switched on behind it tinted it for the length of the slide; a grid switched
+ * on late left bare wallpaper in the uncovered strip; and a solid panel turned
+ * the wallpaper off in a single frame, which was worse than either.
+ *
+ * Clipping the grid to the strip the panel had left was right in principle and
+ * wrong in practice: `clip-path` animates on the main thread while the panel's
+ * `transform` animates on the compositor. Two clocks, so the two edges drifted
+ * apart and the gap between them read as a seam crossing the screen — visible
+ * however well the durations and curves were matched, because they were never
+ * being stepped by the same thing.
+ *
+ * This is the same reveal built out of transforms alone. The container slides
+ * in from the left with its overflow hidden, and the grid inside slides the
+ * opposite way by exactly as much, so it stays put on screen while the
+ * container's edge uncovers it. Both are composited, both are driven by the
+ * same clock as the panel, and the edges cannot come apart.
+ */
+body.nc-settings-closing.nc-platform-android .nc-desktop-calendar {
+    overflow: hidden !important;
+    animation: nc-android-reveal-frame 240ms cubic-bezier(0.3, 0, 0.7, 1)
+        forwards;
+}
+
+body.nc-settings-closing.nc-platform-android .nc-layout {
+    opacity: 1;
+    animation: nc-android-reveal-content 240ms cubic-bezier(0.3, 0, 0.7, 1)
+        forwards;
+}
+
+@keyframes nc-android-reveal-frame {
+    from {
+        transform: translate3d(-100%, 0, 0);
+    }
+    to {
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes nc-android-reveal-content {
+    from {
+        transform: translate3d(100%, 0, 0);
+    }
+    to {
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+/*
+ * The grid stays painted while it is hidden: at `opacity: 0` the compositor is
+ * free to stop painting the layer, and bringing it back would otherwise cost
+ * several frames of repainting a wallpaper, a grid and every event on it.
+ */
+body.nc-settings-open.nc-platform-android .nc-layout,
+body.nc-search-open.nc-platform-android .nc-layout {
+    will-change: opacity, transform;
+}
+
+/*
+ * On the way out the whole surface leaves in one piece.
+ *
+ * The backdrop is opaque here — it IS the screen — so fading it while the
+ * panel slid inside it meant sliding a page across a wall that was dissolving
+ * on its own: two movements, and the calendar showing through the middle of
+ * them. One slide to the right, against the arrow, uncovers the grid the way
+ * a sheet of paper does.
+ */
+body.nc-settings-closing.nc-platform-android .nc-settings-backdrop {
+    animation: nc-android-settings-push-out 240ms cubic-bezier(0.3, 0, 0.7, 1)
+        forwards;
+}
+
+body.nc-settings-closing.nc-platform-android
+    .nc-settings-backdrop
+    > .nc-settings {
+    animation: none;
+}
+
+@keyframes nc-android-settings-push-out {
+    from {
+        transform: translate3d(0, 0, 0);
+    }
+    to {
+        transform: translate3d(100%, 0, 0);
+    }
+}
+
+body.nc-platform-android .nc-settings__page,
+body.nc-platform-android .nc-settings__page--leaving {
+    animation-name: nc-android-settings-page-in;
+}
+
+body.nc-platform-android .nc-settings__page[data-depth="0"] {
+    animation-name: none;
+}
+
+@keyframes nc-android-settings-page-in {
+    from {
+        opacity: 0;
+        transform: translate3d(100%, 0, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+body.nc-platform-android .nc-settings__page::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
 }
 
 body.nc-platform-android .nc-settings__appearance,
@@ -3769,6 +4024,258 @@ body.nc-platform-android .nc-android-week-label {
     white-space: nowrap;
 }
 
+/*
+ * Search, promoted.
+ *
+ * The magnifier used to sit next to a side panel that listed a calendar's whole
+ * contents. That panel is gone from the phone — it was a second column on a
+ * screen with room for one — so searching is now the only way to reach a
+ * particular event by name, and it gets the screen rather than a small box
+ * floating in the middle of it.
+ *
+ * Laid out from Notion Calendar's own search: a rounded field with a Cancel
+ * beside it, then matches grouped under the day they fall on, each one a card
+ * with its calendar's colour down the left edge. Theirs sits on a flat dark
+ * slab; ours is glass, so the wallpaper stays where it always is.
+ */
+/*
+ * Only the wallpaper behind, as when the settings open: the search screen is
+ * glass, and the grid was reading straight through it. The grid dims over a
+ * quarter of a second rather than being cut, so tapping the magnifier reads as
+ * the calendar stepping back, not as the app being replaced.
+ */
+body.nc-search-open.nc-platform-android .nc-layout {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 260ms cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+/* Back instantly on the way out, as when the settings close: the calendar was
+   never gone, only covered, and the search screen fades off a grid that is
+   already there. */
+body.nc-search-closing.nc-platform-android .nc-layout {
+    opacity: 1;
+    transition: none;
+}
+
+body.nc-search-closing.nc-platform-android .nc-search-screen {
+    animation: nc-android-search-out 220ms cubic-bezier(0.3, 0, 0.7, 1) forwards;
+    pointer-events: none;
+}
+
+body.nc-platform-android .nc-search-screen {
+    padding: 0 !important;
+    align-items: stretch !important;
+
+    /*
+     * Translucent, but not blurred.
+     *
+     * A backdrop-filter over the whole screen has to be recomputed from
+     * whatever is behind it on every frame — and what was behind it was the
+     * calendar, mid-fade. Blurring a moving picture full-screen is what made
+     * the grid stutter on its way out, where the settings, which are opaque
+     * here and have nothing to blend, glide. Once the grid has faded there is
+     * only the wallpaper left underneath, and blurring a still image nobody
+     * can see through the tint buys nothing.
+     */
+    background: color-mix(
+        in srgb,
+        var(--background-primary) 78%,
+        transparent
+    ) !important;
+
+    animation: nc-android-search-in 260ms cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+body.nc-platform-android .nc-search-screen__panel {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: none !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    padding: var(--nc-mobile-safe-top) var(--nc-mobile-safe-right) 0
+        var(--nc-mobile-safe-left) !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body.nc-platform-android .nc-search-screen__bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+    padding: 10px 16px 12px;
+}
+
+body.nc-platform-android .nc-search-screen__field {
+    position: relative;
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 44px;
+    padding: 0 10px 0 12px;
+    border-radius: 12px;
+    background: color-mix(
+        in srgb,
+        var(--background-modifier-form-field) 78%,
+        transparent
+    );
+}
+
+body.nc-platform-android .nc-search-screen__glass {
+    display: inline-flex;
+    flex: 0 0 auto;
+    color: var(--nc-text-faint, var(--text-faint));
+}
+
+body.nc-platform-android .nc-search-screen__field .nc-command-palette-input {
+    min-width: 0;
+    flex: 1;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    font-size: 17px !important;
+}
+
+/* A round grey button inside the field, not a bare glyph: it has to be worth
+   aiming at with a thumb. */
+body.nc-platform-android .nc-search-screen__clear {
+    width: 26px;
+    height: 26px;
+    display: inline-grid;
+    flex: 0 0 auto;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: var(--background-primary);
+    background: color-mix(
+        in srgb,
+        var(--nc-text-faint, var(--text-faint)) 72%,
+        transparent
+    );
+    touch-action: manipulation;
+}
+
+body.nc-platform-android .nc-search-screen__cancel {
+    flex: 0 0 auto;
+    padding: 8px 2px;
+    border: 0;
+    color: var(--nc-text-primary, var(--text-normal));
+    background: transparent;
+    font-size: 16px;
+    touch-action: manipulation;
+}
+
+body.nc-platform-android .nc-search-screen__results {
+    min-height: 0;
+    flex: 1;
+    padding: 4px 16px max(20px, calc(var(--nc-mobile-safe-bottom) + 12px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+body.nc-platform-android .nc-search-screen__day + .nc-search-screen__day {
+    margin-top: 22px;
+}
+
+body.nc-platform-android .nc-search-screen__date {
+    margin: 0 0 10px 2px;
+    color: var(--nc-text-primary, var(--text-normal));
+    font-size: 15px;
+    font-weight: 650;
+}
+
+/* The calendar's colour is a bar down the left edge rather than a dot: at this
+   size a dot reads as a bullet point, and the card has no other border. */
+body.nc-platform-android .nc-search-screen__card {
+    box-sizing: border-box;
+    width: 100%;
+    display: grid;
+    gap: 10px;
+    margin: 0 0 8px;
+    padding: 13px 14px 13px 18px;
+    border: 0;
+    border-left: 4px solid var(--nc-search-color, var(--nc-accent));
+    border-radius: 10px;
+    background: color-mix(
+        in srgb,
+        var(--background-secondary) 62%,
+        transparent
+    );
+    text-align: left;
+    touch-action: manipulation;
+}
+
+body.nc-platform-android .nc-search-screen__card:active {
+    background: var(--background-modifier-hover);
+}
+
+body.nc-platform-android .nc-search-screen__title {
+    overflow: hidden;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 15px;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.nc-platform-android .nc-search-screen__meta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+body.nc-platform-android .nc-search-screen__time {
+    color: var(--nc-text-primary, var(--text-normal));
+    font-size: 15px;
+}
+
+body.nc-platform-android .nc-search-screen__duration {
+    color: var(--nc-text-faint, var(--text-faint));
+    font-size: 15px;
+}
+
+body.nc-platform-android .nc-search-screen .nc-command-palette-empty {
+    padding: 28px 4px;
+    text-align: left;
+    font-size: 15px;
+}
+
+@keyframes nc-android-search-in {
+    from {
+        opacity: 0;
+        transform: translate3d(0, -12px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+/* Its own keyframes, not the arrival reversed: a finished animation does not
+   restart when only its direction changes, so `reverse` would jump the screen
+   straight to its end state instead of playing anything. */
+@keyframes nc-android-search-out {
+    from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+    to {
+        opacity: 0;
+        transform: translate3d(0, -12px, 0);
+    }
+}
+
 /* === NEO ANDROID DRAWER GESTURE V10 START === */
 
 /*
@@ -3790,8 +4297,10 @@ body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
     will-change: transform;
 
     /* Opening from the button has to travel the same distance as a drag; the
-       old 24px nudge read as the panel simply appearing. */
-    animation: nc-drawer-slide-in 240ms cubic-bezier(0.2, 0.85, 0.25, 1);
+       old 24px nudge read as the panel simply appearing. The curve decelerates
+       hard at the end — a panel this size arriving in a straight line reads as
+       a jump, however long it takes. */
+    animation: nc-drawer-slide-in 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
 
     /* Opaque on purpose. Translucency meant the calendar showed through the
        panel, which had to be cut out underneath it, and a backdrop blur that
@@ -3849,17 +4358,58 @@ body.nc-platform-android .nc-mobile-sidebar-scrim {
 }
 
 /*
- * The calendar dims as the drawer comes out. A filter acts on the element's own
- * pixels, so it has no border to notice and it covers everything the calendar
- * draws — grid, events and floating button alike. The drag writes this inline
- * frame by frame; the value here is only the resting state.
+ * The calendar dims as the drawer comes out.
+ *
+ * This used to be `filter: brightness()` on .nc-main. A filter is recomputed
+ * from the element's own pixels, so every frame of the drag repainted the whole
+ * grid — wallpaper, hour lines, every event — and the panel stuttered against a
+ * screen that could not keep up with it. A black overlay whose opacity changes
+ * is handled by the compositor alone: nothing is repainted, the layer is just
+ * blended at a different strength.
+ *
+ * It lives inside .nc-main, which owns its own stacking context, so it dims the
+ * grid without ever reaching the drawer or the scrim above it.
  */
-body.nc-platform-android .nc-layout--sidebar-open .nc-main {
-    filter: brightness(0.6);
-    transition: filter 240ms cubic-bezier(0.2, 0.85, 0.25, 1);
+body.nc-platform-android .nc-main::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    background: #000;
+    /* The drag writes this property frame by frame; 0 is the resting state. */
+    opacity: var(--nc-drawer-dim, 0);
+    transition: opacity 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
 }
 
-body.nc-platform-android.nc-drawer-dragging .nc-main {
+body.nc-platform-android .nc-layout--sidebar-open .nc-main {
+    --nc-drawer-dim: 0.4;
+}
+
+body.nc-platform-android.nc-drawer-dragging .nc-main::after {
+    transition: none !important;
+}
+
+/*
+ * Nothing dims the calendar while a full-screen surface is over it.
+ *
+ * The settings are opened from the drawer, and closing them closes the drawer
+ * too — so the drawer's dimming veil was fading out over its own 300ms right
+ * as the settings slid away, and the grid came back visibly darkened before
+ * brightening. Nobody ever saw that drawer close; its veil has nothing to
+ * animate. It is simply not there, and it gets there without a transition.
+ */
+body.nc-settings-open.nc-platform-android .nc-main,
+body.nc-settings-closing.nc-platform-android .nc-main,
+body.nc-search-open.nc-platform-android .nc-main,
+body.nc-search-closing.nc-platform-android .nc-main {
+    --nc-drawer-dim: 0 !important;
+}
+
+body.nc-settings-open.nc-platform-android .nc-main::after,
+body.nc-settings-closing.nc-platform-android .nc-main::after,
+body.nc-search-open.nc-platform-android .nc-main::after,
+body.nc-search-closing.nc-platform-android .nc-main::after {
     transition: none !important;
 }
 

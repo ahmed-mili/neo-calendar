@@ -41,6 +41,8 @@ import {
     FileTextIcon,
     ArrowRightIcon,
 } from "./EventPanelIcons";
+import { t } from "../i18n";
+import { isAndroidRuntime } from "./CalendarUtils";
 
 function getEventPanelPortalTarget(): HTMLElement {
     const isAndroid =
@@ -96,6 +98,8 @@ interface PanelHeaderProps {
     onOpenFile: (id: string) => void;
     onDeleteClick: () => void;
     onClose: () => void;
+    /** The grab area on a touch screen — see useSheetDrag. */
+    headerRef?: React.RefObject<HTMLDivElement>;
 }
 
 export function PanelHeader({
@@ -104,6 +108,7 @@ export function PanelHeader({
     eventId,
     menuOpen,
     menuRef,
+    headerRef,
     onHeaderMouseDown,
     onToggleMenu,
     onOpenFile,
@@ -111,14 +116,18 @@ export function PanelHeader({
     onClose,
 }: PanelHeaderProps) {
     return (
-        <div className="nc-panel-header" onMouseDown={onHeaderMouseDown}>
-            <span className="nc-panel-header-label">Event</span>
+        <div
+            className="nc-panel-header"
+            ref={headerRef}
+            onMouseDown={onHeaderMouseDown}
+        >
+            <span className="nc-panel-header-label">{t("Event")}</span>
             <div className="nc-panel-header-actions">
                 <div className="nc-panel-menu-wrap" ref={menuRef}>
                     <button
                         type="button"
                         className="nc-panel-icon-btn"
-                        title="More"
+                        title={t("More")}
                         onClick={onToggleMenu}
                     >
                         <DotsIcon />
@@ -146,11 +155,31 @@ export function PanelHeader({
                         </div>
                     )}
                 </div>
+                {/*
+                  * On a phone this closes on pointer-up rather than on click.
+                  *
+                  * The first tap on a sheet that has a focused field spends
+                  * itself dismissing the keyboard: the layout shifts under the
+                  * finger between press and release, the release no longer
+                  * lands on the button it started on, and the browser never
+                  * synthesises a click. The X needed two taps, and the first
+                  * one looked like it had done something else entirely.
+                  * Pointer-up is delivered to the element the press began on,
+                  * whatever moved in between.
+                  */}
                 <button
                     type="button"
                     className="nc-panel-icon-btn"
-                    title="Close"
-                    onClick={onClose}
+                    title={t("Close")}
+                    onPointerUp={
+                        isAndroidRuntime()
+                            ? (event) => {
+                                  event.preventDefault();
+                                  onClose();
+                              }
+                            : undefined
+                    }
+                    onClick={isAndroidRuntime() ? undefined : onClose}
                 >
                     <XIcon />
                 </button>
@@ -186,7 +215,7 @@ export function TitleRow({
                 type="text"
                 className="nc-panel-title-input"
                 value={title}
-                placeholder="Event Name"
+                placeholder={t("Event Name")}
                 required
                 onChange={(e) => onChange(e.target.value)}
                 onBlur={onCommit}
@@ -365,7 +394,7 @@ function DateField({
                     <div
                         className="nc-datepicker"
                         role="dialog"
-                        aria-label="Pick a date"
+                        aria-label={t("Pick a date")}
                         ref={menuRef}
                         style={{ top: pos.top, left: pos.left }}
                     >
@@ -373,7 +402,7 @@ function DateField({
                             <button
                                 type="button"
                                 className="nc-datepicker-nav"
-                                title="Previous month"
+                                title={t("Previous month")}
                                 onClick={() =>
                                     setViewMonth(new Date(year, month - 1, 1))
                                 }
@@ -386,7 +415,7 @@ function DateField({
                             <button
                                 type="button"
                                 className="nc-datepicker-nav"
-                                title="Next month"
+                                title={t("Next month")}
                                 onClick={() =>
                                     setViewMonth(new Date(year, month + 1, 1))
                                 }
@@ -697,11 +726,11 @@ interface RecurrenceRowProps {
 }
 
 const PRESETS: { key: PresetKey; label: string }[] = [
-    { key: "daily", label: "Daily" },
+    { key: "daily", label: t("Daily") },
     { key: "weekly", label: "Weekly" },
     { key: "monthly", label: "Monthly" },
     { key: "yearly", label: "Yearly" },
-    { key: "custom", label: "Custom" },
+    { key: "custom", label: t("Custom") },
 ];
 
 export function RecurrenceRow({
@@ -766,7 +795,7 @@ export function RecurrenceRow({
                 {isCustomOpen && (
                     <div className="nc-recur-custom">
                         <div className="nc-recur-interval">
-                            <span>Every</span>
+                            <span>{t("Every")}</span>
                             <input
                                 type="number"
                                 min={1}
@@ -849,7 +878,7 @@ export function RecurrenceRow({
                         )}
 
                         <div className="nc-recur-end">
-                            <span className="nc-panel-subrow-label">Ends</span>
+                            <span className="nc-panel-subrow-label">{t("Ends")}</span>
                             <label>
                                 <input
                                     type="radio"
@@ -1093,7 +1122,7 @@ export function CalendarRow({
                             maxHeight: menuPos.maxHeight,
                         }}
                     >
-                        <div className="nc-cal-select-heading">Calendar</div>
+                        <div className="nc-cal-select-heading">{t("Calendar")}</div>
                         {editableCalendars.map((cal, i) => (
                             <button
                                 key={cal.id}
@@ -1151,7 +1180,7 @@ export function StatusRow({ taskStatus, editable, setStatus }: StatusRowProps) {
             <span className="nc-panel-row-icon">
                 <CheckIcon />
             </span>
-            <div className="nc-panel-row-label">Status</div>
+            <div className="nc-panel-row-label">{t("Status")}</div>
             <button
                 type="button"
                 className={`nc-status-pill nc-status-${status} nc-active`}
@@ -1478,7 +1507,7 @@ function LinkedFileRow({
                         <button
                             type="button"
                             className="nc-linked-file-copy"
-                            aria-label="Copy link"
+                            aria-label={t("Copy link")}
                             onMouseDown={(event) => {
                                 event.preventDefault();
                                 event.stopPropagation();
@@ -1676,7 +1705,7 @@ export function LinksAttachmentsRow({
     return (
         <div className="nc-links-attachments">
             {items.length > 0 && (
-                <div className="nc-linked-files" aria-label="Linked files">
+                <div className="nc-linked-files" aria-label={t("Linked files")}>
                     {items.map((item) => (
                         <LinkedFileRow
                             key={item.id}
@@ -1722,9 +1751,9 @@ export function LinksAttachmentsRow({
                         className="nc-link-search-input"
                         type="text"
                         value={query}
-                        placeholder="Paste a link, or search the vault"
+                        placeholder={t("Paste a link, or search the vault")}
                         disabled={saving}
-                        aria-label="Paste a link, or search the vault"
+                        aria-label={t("Paste a link, or search the vault")}
                         aria-expanded={Boolean(position)}
                         onChange={(event) => setQuery(event.target.value)}
                         onKeyDown={(event) => {
@@ -1750,7 +1779,7 @@ export function LinksAttachmentsRow({
                         <button
                             type="button"
                             className="nc-link-attachment-icon"
-                            aria-label="Attach files"
+                            aria-label={t("Attach files")}
                             disabled={saving}
                             onClick={attachFile}
                         >
@@ -1853,11 +1882,11 @@ export function LinksAttachmentsRow({
                                     if (event.detail === 0) submitInput();
                                 }}
                             >
-                                <span className="nc-link-result-path">Add web link</span>
+                                <span className="nc-link-result-path">{t("Add web link")}</span>
                                 <span className="nc-link-result-vault">{query.trim()}</span>
                             </button>
                         ) : loading ? null : (
-                            <div className="nc-link-empty">No matching notes</div>
+                            <div className="nc-link-empty">{t("No matching notes")}</div>
                         )}
                         {error && (
                             <div className="nc-link-picker-error" role="alert">
@@ -1892,11 +1921,11 @@ export function DescriptionRow({
                 <LinesIcon />
             </span>
             <div className="nc-panel-row-content">
-                <div className="nc-panel-row-label">Description</div>
+                <div className="nc-panel-row-label">{t("Description")}</div>
                 <textarea
                     className="nc-panel-textarea"
                     value={description}
-                    placeholder="Empty"
+                    placeholder={t("Empty")}
                     onChange={(e) => setDescription(e.target.value)}
                     onBlur={onCommit}
                     readOnly={!editable}

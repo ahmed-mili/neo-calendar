@@ -7,6 +7,7 @@ import {
     type DesktopAutoCalendarSource,
     type DesktopIcalCalendarSource,
 } from "./platform/desktopExternalCalendars";
+import { t } from "../../../src/ui/i18n";
 
 export type AddCalendarRequest =
     | { type: "local"; name: string }
@@ -31,18 +32,18 @@ const TYPE_OPTIONS: Array<{
 }> = [
     {
         value: "local",
-        label: "Full note",
-        description: "Each event is stored as a Markdown file.",
+        label: t("Full note"),
+        description: t("Each event is one Markdown file."),
     },
     {
         value: "ical",
         label: "Remote (.ics format)",
-        description: "Read-only subscription from a webcal or HTTPS URL.",
+        description: t("Read-only subscription to a webcal or HTTPS URL."),
     },
     {
         value: "auto",
         label: "Auto (public holidays)",
-        description: "Read-only events computed locally from calendar rules.",
+        description: t("Read-only events, computed locally from rules."),
     },
 ];
 
@@ -112,7 +113,7 @@ export default function AddCalendarDialog({
         if (kind === "local") {
             const trimmed = name.trim();
             if (!trimmed) {
-                setError("Enter a calendar name.");
+                setError(t("Enter a calendar name."));
                 return;
             }
             if (/[\\/]/.test(trimmed) || trimmed === "." || trimmed === "..") {
@@ -120,7 +121,7 @@ export default function AddCalendarDialog({
                 return;
             }
             if (duplicateName(trimmed)) {
-                setError("A calendar with this name already exists.");
+                setError(t("A calendar already has this name."));
                 return;
             }
             request = { type: "local", name: trimmed };
@@ -128,11 +129,11 @@ export default function AddCalendarDialog({
             const trimmedName = name.trim();
             const trimmedUrl = url.trim();
             if (!trimmedName) {
-                setError("Enter a calendar name.");
+                setError(t("Enter a calendar name."));
                 return;
             }
             if (duplicateName(trimmedName)) {
-                setError("A calendar with this name already exists.");
+                setError(t("A calendar already has this name."));
                 return;
             }
             if (!/^(webcal|https?):\/\//i.test(trimmedUrl)) {
@@ -152,7 +153,7 @@ export default function AddCalendarDialog({
             if (trimmedName) source.name = trimmedName;
             source.color = color === "#3264ff" ? source.color : color;
             if (duplicateName(source.name)) {
-                setError("A calendar with this name already exists.");
+                setError(t("A calendar already has this name."));
                 return;
             }
             request = source;
@@ -161,7 +162,7 @@ export default function AddCalendarDialog({
             try {
                 parsed = JSON.parse(customJson);
             } catch {
-                setError("The custom calendar JSON is invalid.");
+                setError(t("The custom calendar JSON is invalid."));
                 return;
             }
             const source = parseExternalCalendarSources([
@@ -172,11 +173,11 @@ export default function AddCalendarDialog({
                 },
             ])[0];
             if (!source || source.type !== "auto") {
-                setError("The JSON must contain id, name and a valid rules array.");
+                setError(t("The JSON must contain id, name and a valid rules array."));
                 return;
             }
             if (duplicateName(source.name)) {
-                setError("A calendar with this name already exists.");
+                setError(t("A calendar already has this name."));
                 return;
             }
             request = source;
@@ -209,13 +210,13 @@ export default function AddCalendarDialog({
                 aria-labelledby="nc-add-calendar-title"
             >
                 <header className="nc-add-calendar-dialog__header">
-                    <span className="nc-add-calendar-dialog__tag">Calendar</span>
+                    <span className="nc-add-calendar-dialog__tag">Calendrier</span>
                     <button
                         type="button"
                         className="nc-add-calendar-dialog__close"
                         onClick={onClose}
                         disabled={submitting}
-                        aria-label="Close"
+                        aria-label={t("Close")}
                     >
                         <X size={18} />
                     </button>
@@ -231,7 +232,7 @@ export default function AddCalendarDialog({
 
                 <form onSubmit={submit}>
                     <label className="nc-add-calendar-dialog__field">
-                        <span>Calendar type</span>
+                        <span>Type de calendrier</span>
                         <select
                             value={kind}
                             onChange={(event) => {
@@ -260,8 +261,8 @@ export default function AddCalendarDialog({
                                 }}
                                 placeholder={
                                     kind === "auto"
-                                        ? "Optional custom calendar name"
-                                        : "Calendar name"
+                                        ? "Nom du calendrier (facultatif)"
+                                        : t("Calendar name")
                                 }
                                 autoComplete="off"
                                 disabled={submitting}
@@ -271,7 +272,7 @@ export default function AddCalendarDialog({
 
                     {kind === "ical" && (
                         <label className="nc-add-calendar-dialog__field">
-                            <span>Calendar URL</span>
+                            <span>URL du calendrie</span>
                             <input
                                 ref={inputRef}
                                 value={url}
@@ -289,7 +290,7 @@ export default function AddCalendarDialog({
                     {kind === "auto" && (
                         <>
                             <label className="nc-add-calendar-dialog__field">
-                                <span>Preset</span>
+                                <span>Modèle</span>
                                 <select
                                     value={autoPreset}
                                     onChange={(event) => {
@@ -298,12 +299,12 @@ export default function AddCalendarDialog({
                                     }}
                                 >
                                     <option value="FR">France</option>
-                                    <option value="custom">Import rules JSON</option>
+                                    <option value="custom">Importer un JSON de règles</option>
                                 </select>
                             </label>
                             {autoPreset === "custom" && (
                                 <label className="nc-add-calendar-dialog__field">
-                                    <span>Calendar JSON</span>
+                                    <span>JSON du calendrier</span>
                                     <textarea
                                         value={customJson}
                                         onChange={(event) => {
@@ -320,7 +321,7 @@ export default function AddCalendarDialog({
 
                     {kind !== "local" && (
                         <label className="nc-add-calendar-dialog__color">
-                            <span>Color</span>
+                            <span>Couleur</span>
                             <input
                                 type="color"
                                 value={color}
@@ -358,7 +359,7 @@ export default function AddCalendarDialog({
                             className="nc-add-calendar-dialog__primary"
                             disabled={submitting}
                         >
-                            {submitting ? "Adding…" : "Add calendar"}
+                            {submitting ? "Ajout…" : t("Add the calendar")}
                         </button>
                     </footer>
                 </form>

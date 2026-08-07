@@ -296,100 +296,71 @@ select {
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
 }
 
+/* The back arrow sits first, where a back arrow always sits, and the title
+   follows it. Nothing else lives up here: a second way out on the right only
+   makes a person wonder which one undoes what. */
 .nc-settings__header {
     min-height: 58px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 12px 16px 12px 22px;
+    gap: 6px;
+    padding: 10px 16px 10px 8px;
     border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .nc-settings__header h2 {
+    min-width: 0;
     margin: 0;
-    font-size: 18px;
+    overflow: hidden;
+    font-size: 19px;
     font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.nc-settings__close {
-    width: 34px;
-    height: 34px;
+.nc-settings__back {
+    width: 40px;
+    height: 40px;
     display: inline-grid;
     flex: 0 0 auto;
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: 9px;
-    color: var(--text-muted);
+    border-radius: 50%;
+    color: var(--text-normal);
     background: transparent;
     cursor: pointer;
 }
 
-.nc-settings__close:hover {
-    color: var(--text-normal);
+.nc-settings__back:hover {
     background: var(--background-modifier-hover);
 }
 
-.nc-settings__body {
+/* One slot, several pages: the newest covers the ones before it, which keep
+   their scroll position for the moment the arrow brings them back. */
+.nc-settings__pages {
+    position: relative;
     min-width: 0;
     min-height: 0;
-    display: grid;
-    grid-template-columns: 180px minmax(0, 1fr);
     flex: 1;
+    overflow: hidden;
 }
 
-.nc-settings__tabs {
+.nc-settings__page {
+    position: absolute;
+    inset: 0;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 12px;
-    border-right: 1px solid var(--background-modifier-border);
-    background: var(--background-secondary);
-}
-
-.nc-settings__tab {
-    width: 100%;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 8px 10px;
-    border: 0;
-    border-radius: 8px;
-    color: var(--text-muted);
-    background: transparent;
-    text-align: left;
-    cursor: pointer;
-}
-
-.nc-settings__tab[aria-selected="true"],
-.nc-settings__tab:hover {
-    color: var(--text-normal);
-    background: var(--background-modifier-hover);
-}
-
-.nc-settings__content {
-    min-width: 0;
-    min-height: 0;
-    padding: clamp(20px, 4vw, 34px);
+    padding: clamp(16px, 4vw, 30px) clamp(14px, 4vw, 30px)
+        clamp(28px, 6vw, 44px);
+    overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
-.nc-settings__section {
-    min-width: 0;
-}
-
-.nc-settings__section h3 {
-    margin: 0 0 8px;
-    font-size: 21px;
-}
-
-.nc-settings__section > p {
-    max-width: 62ch;
-    margin: 0 0 22px;
-    color: var(--text-muted);
+/* A page under the top one would show straight through the glass, so it waits
+   out of sight — keeping its scroll position for when the arrow returns. */
+.nc-settings__page--buried {
+    visibility: hidden;
 }
 
 .nc-settings__folder {
@@ -3567,44 +3538,69 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 
 .nc-set-groups {
     display: grid;
-    gap: 22px;
+    gap: 26px;
     align-content: start;
 }
 
+/* A group title names its block without competing with it: quiet, small, in
+   sentence case. It used to be set in capitals at heading size, which made
+   "PRÉFÉRENCES DU CALENDRIER" the loudest thing on a screen of settings. */
 .nc-set-group__title {
     margin: 0 0 8px 4px;
     color: var(--nc-text-secondary, var(--text-muted));
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* The one thing a label cannot say, said once under the block instead of
+   repeated under every row. */
+.nc-set-group__note {
+    max-width: 56ch;
+    margin: 8px 4px 0;
+    color: var(--nc-text-faint, var(--text-faint));
+    font-size: 13px;
+    line-height: 1.45;
 }
 
 .nc-set-group__rows {
     display: grid;
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--background-modifier-border) 70%, transparent);
-    border-radius: 16px;
+    border-radius: 14px;
     background: color-mix(in srgb, var(--background-secondary) 62%, transparent);
     backdrop-filter: blur(18px) saturate(1.06);
     -webkit-backdrop-filter: blur(18px) saturate(1.06);
 }
 
-/* Hairlines between rows, never around the block: the border already closes it. */
+/* Hairlines between rows, never around the block: the border already closes
+   it. They start where the text starts, so the block reads as one card rather
+   than as a stack of separate strips. */
 .nc-set-group__rows > * + * {
-    border-top: 1px solid color-mix(in srgb, var(--background-modifier-border) 52%, transparent);
+    position: relative;
+}
+
+.nc-set-group__rows > * + *::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 16px;
+    height: 1px;
+    background: color-mix(in srgb, var(--background-modifier-border) 52%, transparent);
 }
 
 .nc-set-row {
     box-sizing: border-box;
     width: 100%;
-    min-height: 56px;
+    min-height: 52px;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
     align-items: center;
-    gap: 13px;
+    gap: 12px;
     margin: 0;
-    padding: 10px 14px;
+    padding: 9px 14px 9px 16px;
     border: 0;
     border-radius: 0;
     color: var(--text-normal);
@@ -3640,32 +3636,125 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     color: var(--nc-text-secondary, var(--text-muted));
 }
 
-.nc-set-row__text {
-    min-width: 0;
-    display: grid;
-    gap: 2px;
-}
-
+/* The label owns the free space, so a long one wraps instead of shoving the
+   value off the right edge. */
 .nc-set-row__label {
+    grid-column: 2;
+    min-width: 0;
     font-size: 15px;
-    line-height: 1.25;
+    line-height: 1.3;
 }
 
-/* The value sits under its label, quieter: a row reads as one thought — what
-   it is, then what it is set to. */
+/* The value answers its label from the opposite edge: the eye runs down one
+   column of names and one column of answers. */
 .nc-set-row__value {
+    grid-column: 3;
+    justify-self: end;
+    /* Bounded in characters, never in percent: a percentage max-width resolves
+       against the track being sized, which collapsed every value on the screen
+       to a single letter and an ellipsis. */
+    max-width: 22ch;
+    min-width: 0;
     overflow: hidden;
     color: var(--nc-text-secondary, var(--text-muted));
-    font-size: 13px;
-    line-height: 1.25;
+    font-size: 15px;
+    line-height: 1.3;
+    text-align: right;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .nc-set-row__trailing {
+    grid-column: 4;
     display: inline-grid;
     place-items: center;
     color: var(--nc-text-faint, var(--text-faint));
+}
+
+.nc-set-row__trailing--check {
+    color: var(--nc-accent);
+}
+
+/* A row holding a two-line item — a name over its path — rather than a label
+   and an answer. */
+.nc-set-row__text {
+    grid-column: 2;
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.nc-set-row__text .nc-set-row__label {
+    grid-column: auto;
+}
+
+.nc-set-row--path code {
+    overflow: hidden;
+    color: var(--nc-text-faint, var(--text-faint));
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-set-row--stacked {
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: 12px;
+    padding-bottom: 12px;
+}
+
+.nc-set-row--stacked code {
+    overflow-wrap: anywhere;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+/* A row that is a field: the input takes the width, the button closes it. */
+.nc-set-row--field {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+}
+
+.nc-set-row--field input {
+    min-width: 0;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid
+        color-mix(in srgb, var(--background-modifier-border) 80%, transparent);
+    border-radius: 10px;
+    color: var(--text-normal);
+    background: color-mix(
+        in srgb,
+        var(--background-modifier-form-field) 70%,
+        transparent
+    );
+    font: inherit;
+    font-size: 15px;
+}
+
+.nc-set-row--field input:focus {
+    border-color: var(--nc-accent);
+    outline: none;
+}
+
+.nc-set-row--field > button,
+.nc-set-row__icon-button {
+    width: 38px;
+    height: 38px;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    background: transparent;
+    cursor: pointer;
+}
+
+.nc-set-row--field > button:hover,
+.nc-set-row__icon-button:hover {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
 }
 
 .nc-set-switch {
@@ -3698,78 +3787,6 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     background: #ffffff;
 }
 
-/* The choice sheet: a short list, centred, dismissed by tapping beside it. */
-.nc-set-sheet {
-    position: fixed;
-    inset: 0;
-    z-index: 20100;
-    display: grid;
-    place-items: center;
-    padding: 24px;
-}
-
-.nc-set-sheet__scrim {
-    position: absolute;
-    inset: 0;
-    padding: 0;
-    border: 0;
-    background: rgba(3, 4, 12, 0.55);
-    cursor: pointer;
-}
-
-.nc-set-sheet__panel {
-    position: relative;
-    width: min(340px, 100%);
-    max-height: min(70vh, 520px);
-    display: grid;
-    gap: 2px;
-    padding: 8px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 16px;
-    background: var(--background-primary);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.44);
-}
-
-.nc-set-sheet__title {
-    margin: 4px 10px 6px;
-    font-size: 15px;
-    font-weight: 600;
-}
-
-.nc-set-sheet__option {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 12px;
-    min-height: 46px;
-    padding: 8px 10px;
-    border: 0;
-    border-radius: 10px;
-    color: var(--text-normal);
-    background: transparent;
-    box-shadow: none;
-    text-align: left;
-    font-size: 15px;
-    cursor: pointer;
-}
-
-.nc-set-sheet__option:hover {
-    background: var(--background-modifier-hover);
-}
-
-.nc-set-sheet__option[aria-selected="true"] {
-    color: var(--nc-accent);
-}
-
-.nc-set-sheet__icon,
-.nc-set-sheet__check {
-    display: inline-grid;
-    place-items: center;
-    color: inherit;
-}
-
 @media (prefers-reduced-motion: reduce) {
     .nc-set-row--action,
     .nc-set-switch,
@@ -3799,120 +3816,40 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     -webkit-backdrop-filter: blur(22px) saturate(1.06);
 }
 
-/* L'en-tete et les onglets n'ont rien a peindre : le panneau porte deja sa
-   matiere, et deux couches superposees faisaient une bande opaque en haut. */
-.nc-settings__header,
-.nc-settings__tabs {
+/* L'en-tete n'a rien a peindre : le panneau porte deja sa matiere, et deux
+   couches superposees faisaient une bande opaque en haut. */
+.nc-settings__header {
     background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-}
-
-.nc-settings__tabs {
-    border-right-color: color-mix(
-        in srgb,
-        var(--background-modifier-border) 50%,
-        transparent
-    ) !important;
 }
 
 /* On a phone the panel is the screen: full height, no floating card, and the
    groups get room to breathe. */
 @media (max-width: 760px) {
     .nc-set-groups {
-        gap: 18px;
+        gap: 22px;
     }
 }
 
-/* The general tab feeds its rows through the same components, so its container
-   becomes a block like any other. */
-.nc-settings__preference-list {
-    display: grid !important;
-    gap: 0 !important;
-    overflow: hidden;
-    border: 1px solid
-        color-mix(in srgb, var(--background-modifier-border) 70%, transparent);
-    border-radius: 16px;
-    background: color-mix(
-        in srgb,
-        var(--background-secondary) 62%,
-        transparent
-    );
-}
-
-.nc-settings__preference-list > * + * {
-    border-top: 1px solid
-        color-mix(in srgb, var(--background-modifier-border) 52%, transparent);
-}
-
-/* Section titles inside the panel now name blocks, so they read like the
-   group titles rather than like page headings. */
-.nc-settings__section > h3 {
-    margin: 0 0 8px 4px;
-    color: var(--nc-text-secondary, var(--text-muted));
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-.nc-settings__section > h3:not(:first-child) {
-    margin-top: 26px;
-}
-
-/* The dividers separated a list that now closes itself. */
-.nc-settings__divider {
-    display: none;
-}
-
-/* The tabs that hold lists rather than rows — calendars, vaults, folders — take
-   the same block treatment, so the whole panel reads as one system instead of
-   three unrelated screens. */
-.nc-settings__calendar-root,
-.nc-settings__calendar-add,
-.nc-settings__timezone-add,
-.nc-settings__folder,
-.nc-settings__vault-empty,
-.nc-settings__vault-list,
-.nc-settings__detected-vaults {
-    border: 1px solid
-        color-mix(in srgb, var(--background-modifier-border) 70%, transparent) !important;
-    border-radius: 16px !important;
-    background: color-mix(
-        in srgb,
-        var(--background-secondary) 62%,
-        transparent
-    ) !important;
-}
-
-/* A list of calendars is already a stack of rows: hairlines between them, and
-   the block's own border closes the set. */
-.nc-settings__vault-list > * + *,
-.nc-settings__calendar-list > * + * {
-    border-top: 1px solid
-        color-mix(in srgb, var(--background-modifier-border) 52%, transparent);
-}
-
-.nc-settings__vault-list {
-    overflow: hidden;
-}
-
-/* Paragraphs introducing a section sit with the group titles, not against the
-   block below them. */
-.nc-settings__section > p {
-    margin: -2px 0 12px 4px;
-    color: var(--nc-text-secondary, var(--text-muted));
-    font-size: 13px;
-    line-height: 1.45;
+/* The calendar list is a stack of rows inside a block like any other. */
+.nc-set-group__rows > .nc-settings__calendar-item {
+    border-radius: 0;
+    background: transparent;
 }
 
 /*
- * Opening the settings.
+ * Opening the settings, and moving between their pages.
  *
  * The panel is glass, so whatever sits behind it shows through — which meant
  * the drawer and the calendar grid read straight through the settings. Only the
  * wallpaper should: the app fades out beneath, leaving the layer it is painted
- * on. The panel itself arrives with it, and leaves the same way.
+ * on.
+ *
+ * Direction follows the arrow in the header. The arrow points left, so what it
+ * brings on screen travels left — arriving from the right edge — and what it
+ * dismisses travels back out the way it came. Every push and every pop reads
+ * the same, which is what makes the arrow mean something.
  */
 body.nc-settings-open .nc-layout {
     opacity: 0;
@@ -3920,8 +3857,31 @@ body.nc-settings-open .nc-layout {
     transition: opacity 220ms ease;
 }
 
+/* Back instantly, not in a fade: the calendar was never gone, only covered.
+   Fading it back in left the wallpaper alone on screen for the first half of
+   the exit — the app looked like it was reloading itself every time the
+   settings closed. The panel now slides off a grid that is already there. */
 body.nc-settings-closing .nc-layout {
     opacity: 1;
+    transition: none;
+}
+
+/*
+ * No blur while the settings are in motion.
+ *
+ * The panel and every block inside it are backdrop-filters, one stacked on the
+ * other. A backdrop-filter samples whatever sits behind the element on the
+ * frame it is painted — and while the surface slides, part of what sits behind
+ * it is off-screen, which samples as nothing and reads as darker. Hence a
+ * settings surface that looked right at rest and dimmed for precisely the
+ * length of its travel. The tint stays; only the blur waits until it stops.
+ */
+body.nc-settings-entering .nc-settings,
+body.nc-settings-closing .nc-settings,
+body.nc-settings-entering .nc-set-group__rows,
+body.nc-settings-closing .nc-set-group__rows {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 .nc-settings-backdrop {
@@ -3929,15 +3889,36 @@ body.nc-settings-closing .nc-layout {
 }
 
 .nc-settings-backdrop > .nc-settings {
-    animation: nc-settings-rise 240ms cubic-bezier(0.2, 0.85, 0.25, 1);
+    animation: nc-settings-push-in 260ms cubic-bezier(0.2, 0.85, 0.25, 1);
 }
 
+/*
+ * Leaving needs its own keyframes, not the arrival played backwards.
+ * `animation: <same-name> reverse` does not restart a finished animation — the
+ * element simply recomputed its end value and jumped there, so the settings
+ * vanished on the spot while the exit looked like it was playing.
+ */
 body.nc-settings-closing .nc-settings-backdrop {
-    animation: nc-settings-fade-in 200ms ease reverse forwards;
+    animation: nc-settings-fade-out 240ms ease forwards;
 }
 
 body.nc-settings-closing .nc-settings-backdrop > .nc-settings {
-    animation: nc-settings-rise 200ms ease reverse forwards;
+    animation: nc-settings-push-out 240ms cubic-bezier(0.3, 0, 0.7, 1) forwards;
+}
+
+/* A page arriving on top of the stack, and the one the arrow just sent back. */
+.nc-settings__page {
+    animation: nc-settings-page-in 220ms cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+
+.nc-settings__page[data-depth="0"] {
+    animation: none;
+}
+
+.nc-settings__page--leaving {
+    animation: nc-settings-page-in 220ms cubic-bezier(0.3, 0, 0.6, 1) reverse
+        forwards;
+    pointer-events: none;
 }
 
 @keyframes nc-settings-fade-in {
@@ -3949,12 +3930,13 @@ body.nc-settings-closing .nc-settings-backdrop > .nc-settings {
     }
 }
 
-/* A short rise rather than a scale: the panel is a sheet coming up to the
-   front, and scaling glass smears what shows through it. */
-@keyframes nc-settings-rise {
+/* Travelling left, from the right edge: the direction the header arrow points.
+   A rise was used here before, which said nothing about where the screen came
+   from or where the arrow would send it back to. */
+@keyframes nc-settings-push-in {
     from {
         opacity: 0;
-        transform: translate3d(0, 14px, 0);
+        transform: translate3d(6%, 0, 0);
     }
     to {
         opacity: 1;
@@ -3962,10 +3944,44 @@ body.nc-settings-closing .nc-settings-backdrop > .nc-settings {
     }
 }
 
+@keyframes nc-settings-page-in {
+    from {
+        opacity: 0;
+        transform: translate3d(28%, 0, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+/* Out the way it came in: rightwards, against the arrow. */
+@keyframes nc-settings-fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes nc-settings-push-out {
+    from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+    to {
+        opacity: 0;
+        transform: translate3d(6%, 0, 0);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     body.nc-settings-open .nc-layout,
     .nc-settings-backdrop,
-    .nc-settings-backdrop > .nc-settings {
+    .nc-settings-backdrop > .nc-settings,
+    .nc-settings__page,
+    .nc-settings__page--leaving {
         animation: none !important;
         transition: none !important;
     }
