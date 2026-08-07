@@ -3243,26 +3243,6 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     gap: 2px;
 }
 
-.nc-wallpaper-picker__trigger strong,
-.nc-wallpaper-picker__menu strong {
-    overflow: hidden;
-    color: var(--text-normal);
-    font-size: 12px;
-    font-weight: 650;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.nc-wallpaper-picker__trigger small,
-.nc-wallpaper-picker__menu small {
-    overflow: hidden;
-    color: var(--text-muted);
-    font-size: 10.5px;
-    font-weight: 450;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .nc-wallpaper-preview {
     position: relative;
     width: 74px;
@@ -3285,46 +3265,56 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
 }
 
-.nc-wallpaper-picker__menu {
+/*
+ * The wallpaper sheet.
+ *
+ * One scrolling list of the wallpapers this screen can actually show, and
+ * nothing else: the preview hero it used to open with showed a mock calendar
+ * over the picture rather than the real one, so it told you less than simply
+ * applying the wallpaper does.
+ */
+.nc-wallpaper-sheet {
     position: fixed;
-    z-index: 80000;
-    width: min(390px, calc(100vw - 24px));
-    max-height: min(440px, calc(100vh - 24px));
-    overflow: hidden;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 14px;
-    color: var(--text-normal);
-    background: color-mix(in srgb, var(--background-primary) 97%, transparent);
-    box-shadow: 0 22px 56px rgba(0, 0, 0, 0.46), 0 3px 10px rgba(0, 0, 0, 0.26);
-    backdrop-filter: blur(16px) saturate(1.08);
-    -webkit-backdrop-filter: blur(16px) saturate(1.08);
-    font-family: var(--nc-ui-font) !important;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    padding: 24px;
 }
 
-.nc-wallpaper-picker__menu > header {
-    display: grid;
-    gap: 3px;
-    padding: 13px 14px 10px;
-    border-bottom: 1px solid var(--background-modifier-border);
+.nc-wallpaper-sheet__scrim {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    border: 0;
+    background: rgba(3, 4, 12, 0.58);
+    cursor: pointer;
 }
 
-.nc-wallpaper-picker__options {
-    max-height: 340px;
+.nc-wallpaper-sheet__panel {
+    position: relative;
+    width: min(420px, 100%);
+    max-height: min(70vh, 560px);
     display: grid;
-    gap: 3px;
-    padding: 6px;
+    gap: 4px;
+    padding: 8px;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 16px;
+    background: var(--background-primary);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.44);
 }
 
-.nc-wallpaper-picker__options > button {
+.nc-wallpaper-option {
     min-width: 0;
     display: grid;
-    grid-template-columns: 96px minmax(0, 1fr) 20px;
+    grid-template-columns: 64px minmax(0, 1fr) 20px;
     align-items: center;
-    gap: 11px;
+    gap: 12px;
     padding: 8px;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: 12px;
     color: var(--text-normal);
     background: transparent !important;
     box-shadow: none !important;
@@ -3332,25 +3322,32 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     cursor: pointer;
 }
 
-.nc-wallpaper-picker__options > button:hover {
-    border-color: color-mix(in srgb, var(--background-modifier-border) 74%, transparent);
+.nc-wallpaper-option:hover {
     background: var(--background-modifier-hover) !important;
 }
 
-.nc-wallpaper-picker__options > button[aria-selected="true"] {
+.nc-wallpaper-option[aria-selected="true"] {
     border-color: color-mix(in srgb, var(--nc-accent) 58%, transparent);
     background: color-mix(in srgb, var(--nc-accent) 12%, transparent) !important;
 }
 
-.nc-wallpaper-picker__options .nc-wallpaper-preview {
-    width: 96px;
-    height: 58px;
+/* Portrait crops of portrait photos: the thumbnail should look like what the
+   phone will show. */
+.nc-wallpaper-option__image {
+    width: 64px;
+    height: 88px;
+    border-radius: 8px;
 }
 
-.nc-wallpaper-picker__options > button > span:nth-child(2) {
+.nc-wallpaper-option__label {
     min-width: 0;
-    display: grid;
-    gap: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-wallpaper-option__check {
+    color: var(--nc-accent);
 }
 
 @media (max-width: 760px) {
@@ -3363,450 +3360,14 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
         width: 100%;
         min-width: 0;
     }
-}
 
-/* === NEO WALLPAPER LIBRARY V8 START === */
-
-.nc-wallpaper-picker__menu {
-    width: min(620px, calc(100vw - 24px));
-    max-height: min(690px, calc(100dvh - 24px));
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border: 1px solid
-        color-mix(
-            in srgb,
-            var(--nc-accent) 28%,
-            var(--background-modifier-border)
-        );
-    border-radius: 20px;
-    color: var(--text-normal);
-    background:
-        color-mix(
-            in srgb,
-            var(--background-primary) 97%,
-            transparent
-        );
-    box-shadow:
-        0 28px 80px rgba(0, 0, 0, 0.58),
-        0 0 48px
-            color-mix(
-                in srgb,
-                var(--nc-accent) 12%,
-                transparent
-            );
-    backdrop-filter: blur(22px) saturate(1.08);
-    -webkit-backdrop-filter: blur(22px) saturate(1.08);
-}
-
-.nc-wallpaper-picker__menu--mobile {
-    inset: 0 !important;
-    width: 100vw;
-    height: 100dvh;
-    max-height: none;
-    border: 0;
-    border-radius: 0;
-    padding-top: max(
-        0px,
-        var(--nc-native-root-top, 0px),
-        var(--nc-android-inset-top, 0px)
-    );
-    padding-bottom: max(
-        0px,
-        var(--nc-native-root-bottom, 0px),
-        var(--nc-android-inset-bottom, 0px)
-    );
-}
-
-.nc-wallpaper-library__topbar {
-    position: relative;
-    z-index: 4;
-    min-height: 72px;
-    display: flex !important;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--background-modifier-border);
-    background:
-        color-mix(
-            in srgb,
-            var(--background-primary) 94%,
-            transparent
-        );
-}
-
-.nc-wallpaper-library__topbar > span {
-    min-width: 0;
-    display: grid;
-    gap: 3px;
-}
-
-.nc-wallpaper-library__topbar strong {
-    color: var(--text-normal);
-    font-size: 18px;
-    font-weight: 760;
-}
-
-.nc-wallpaper-library__topbar small {
-    color: var(--text-muted);
-    font-size: 12px;
-}
-
-.nc-wallpaper-library__topbar > button {
-    width: 40px;
-    height: 40px;
-    display: grid;
-    place-items: center;
-    flex: 0 0 auto;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 12px;
-    color: var(--text-muted);
-    background: var(--background-secondary) !important;
-}
-
-.nc-wallpaper-library__scroll {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: grid;
-    gap: 24px;
-    padding: 18px;
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-}
-
-.nc-wallpaper-library__hero {
-    position: relative;
-    min-height: 240px;
-    overflow: hidden;
-    border: 1px solid
-        color-mix(
-            in srgb,
-            var(--nc-accent) 30%,
-            var(--background-modifier-border)
-        );
-    border-radius: 20px;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-        0 18px 40px rgba(0, 0, 0, 0.26);
-}
-
-.nc-wallpaper-library__hero::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-        linear-gradient(
-            180deg,
-            rgba(5, 8, 24, 0.06),
-            rgba(5, 8, 24, 0.38)
-        );
-    pointer-events: none;
-}
-
-.nc-wallpaper-library__hero-badge {
-    position: absolute;
-    z-index: 2;
-    top: 14px;
-    right: 14px;
-    padding: 6px 10px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 999px;
-    color: rgba(255, 255, 255, 0.92);
-    background: rgba(8, 10, 28, 0.62);
-    font-size: 10px;
-    font-weight: 760;
-    letter-spacing: 0.08em;
-}
-
-.nc-wallpaper-library__hero-calendar {
-    position: absolute;
-    z-index: 2;
-    right: 16px;
-    bottom: 16px;
-    left: 16px;
-    display: grid;
-    grid-template-columns: 0.72fr 1.28fr;
-    gap: 12px;
-}
-
-.nc-wallpaper-library__hero-calendar > span,
-.nc-wallpaper-library__hero-calendar > div {
-    min-width: 0;
-    display: grid;
-    gap: 6px;
-    padding: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    color: white;
-    background: rgba(8, 10, 28, 0.48);
-    box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-}
-
-.nc-wallpaper-library__hero-calendar small {
-    color: rgba(255, 255, 255, 0.68);
-    font-size: 11px;
-}
-
-.nc-wallpaper-library__hero-calendar > span strong {
-    font-size: 42px;
-    line-height: 1;
-}
-
-.nc-wallpaper-library__hero-calendar em {
-    color: rgba(255, 255, 255, 0.82);
-    font-size: 12px;
-    font-style: normal;
-}
-
-.nc-wallpaper-library__hero-calendar > div strong {
-    font-size: 14px;
-}
-
-.nc-wallpaper-library__section {
-    display: grid;
-    gap: 12px;
-}
-
-.nc-wallpaper-library__section + .nc-wallpaper-library__section {
-    padding-top: 22px;
-    border-top: 1px solid var(--background-modifier-border);
-}
-
-.nc-wallpaper-library__section-header {
-    display: flex !important;
-    align-items: center;
-    gap: 10px;
-    color: var(--nc-accent);
-}
-
-.nc-wallpaper-library__section--pc
-    .nc-wallpaper-library__section-header {
-    color: color-mix(
-        in srgb,
-        var(--nc-accent) 72%,
-        #4f8cff
-    );
-}
-
-.nc-wallpaper-library__section--universal
-    .nc-wallpaper-library__section-header {
-    color: var(--text-muted);
-}
-
-.nc-wallpaper-library__section-header > span {
-    display: grid;
-    gap: 2px;
-}
-
-.nc-wallpaper-library__section-header strong {
-    font-size: 15px;
-    font-weight: 740;
-}
-
-.nc-wallpaper-library__section-header small {
-    color: var(--text-muted);
-    font-size: 11px;
-}
-
-.nc-wallpaper-library__grid {
-    display: grid;
-    gap: 12px;
-}
-
-.nc-wallpaper-library__grid--android {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.nc-wallpaper-library__grid--pc {
-    grid-template-columns: minmax(0, 1fr);
-}
-
-.nc-wallpaper-library__grid--universal {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.nc-wallpaper-card {
-    position: relative;
-    min-width: 0;
-    display: grid !important;
-    gap: 9px;
-    padding: 8px !important;
-    overflow: hidden;
-    border: 1px solid var(--background-modifier-border) !important;
-    border-radius: 16px !important;
-    color: var(--text-normal) !important;
-    background:
-        color-mix(
-            in srgb,
-            var(--background-secondary) 88%,
-            transparent
-        ) !important;
-    box-shadow: none !important;
-    text-align: left;
-}
-
-.nc-wallpaper-card:hover {
-    border-color:
-        color-mix(
-            in srgb,
-            var(--nc-accent) 55%,
-            var(--background-modifier-border)
-        ) !important;
-    transform: translateY(-1px);
-}
-
-.nc-wallpaper-card[aria-selected="true"] {
-    border-color: var(--nc-accent) !important;
-    box-shadow:
-        0 0 0 1px
-            color-mix(
-                in srgb,
-                var(--nc-accent) 58%,
-                transparent
-            ),
-        0 10px 28px
-            color-mix(
-                in srgb,
-                var(--nc-accent) 16%,
-                transparent
-            ) !important;
-}
-
-.nc-wallpaper-card .nc-wallpaper-preview {
-    width: 100%;
-    border-radius: 11px;
-}
-
-.nc-wallpaper-card--android .nc-wallpaper-preview {
-    height: auto;
-    aspect-ratio: 9 / 13;
-    background-position: center;
-}
-
-.nc-wallpaper-card--pc .nc-wallpaper-preview {
-    height: auto;
-    aspect-ratio: 16 / 7;
-    background-position: center;
-}
-
-.nc-wallpaper-card--universal .nc-wallpaper-preview {
-    height: 82px;
-}
-
-.nc-wallpaper-card__badge {
-    position: absolute;
-    top: 17px;
-    left: 17px;
-    z-index: 2;
-    padding: 5px 8px;
-    border-radius: 999px;
-    color: white;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.32);
-}
-
-.nc-wallpaper-card__badge--android {
-    background:
-        color-mix(
-            in srgb,
-            var(--nc-accent) 82%,
-            #7448ff
-        );
-}
-
-.nc-wallpaper-card__badge--pc {
-    background: #2f6bdb;
-}
-
-.nc-wallpaper-card__badge--universal {
-    background: rgba(25, 28, 44, 0.84);
-}
-
-.nc-wallpaper-card__selected {
-    position: absolute;
-    z-index: 3;
-    top: 16px;
-    right: 16px;
-    width: 34px;
-    height: 34px;
-    display: grid;
-    place-items: center;
-    border-radius: 999px;
-    color: white;
-    background: var(--nc-accent);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
-}
-
-.nc-wallpaper-card__copy {
-    min-width: 0;
-    display: grid;
-    gap: 3px;
-    padding: 0 3px 4px;
-}
-
-.nc-wallpaper-card__copy strong {
-    overflow: hidden;
-    color: var(--text-normal);
-    font-size: 12px;
-    font-weight: 700;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.nc-wallpaper-card__copy small {
-    display: -webkit-box;
-    overflow: hidden;
-    color: var(--text-muted);
-    font-size: 10px;
-    line-height: 1.35;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-}
-
-.nc-wallpaper-picker__trigger small {
-    display: block;
-}
-
-@media (max-width: 760px) {
-    .nc-wallpaper-library__scroll {
-        gap: 22px;
-        padding: 14px;
+    .nc-wallpaper-sheet {
+        padding: 16px;
     }
 
-    .nc-wallpaper-library__hero {
-        min-height: 220px;
-    }
-
-    .nc-wallpaper-library__hero-calendar {
-        grid-template-columns: 0.8fr 1.2fr;
-    }
-
-    .nc-wallpaper-card--android .nc-wallpaper-preview {
-        aspect-ratio: 9 / 14;
-    }
-}
-
-@media (max-width: 390px) {
-    .nc-wallpaper-library__grid--universal {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .nc-wallpaper-library__hero-calendar {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .nc-wallpaper-library__hero-calendar > div {
-        display: none;
+    .nc-wallpaper-sheet__panel {
+        width: 100%;
+        max-height: 76vh;
     }
 }
 
@@ -3937,17 +3498,6 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
             rgba(17, 17, 27, 0.54)
         ) !important;
     background-image: none !important;
-}
-
-/*
- * Editors, menus and settings are not part of the adjustable calendar
- * container. They remain fully readable.
- */
-.nc-desktop--calendar .nc-event-popup,
-.nc-context-menu,
-.nc-settings,
-.nc-wallpaper-picker__menu {
-    opacity: 1 !important;
 }
 
 /* === NEO WALLPAPER EFFECTS V8.2 END === */

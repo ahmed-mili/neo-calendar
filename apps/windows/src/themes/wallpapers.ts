@@ -2,6 +2,7 @@ export const WALLPAPER_IDS = [
     "theme-default",
     "android-alpenglow",
     "android-rose-summit",
+    "starlit-alpine-refuge",
     "mountain-sunset",
     "none",
 ] as const;
@@ -21,8 +22,7 @@ export interface WallpaperDefinition {
 }
 
 export const DEFAULT_WALLPAPER_ID: WallpaperId = "theme-default";
-export const DEFAULT_ANDROID_WALLPAPER_ID: WallpaperId =
-    "android-alpenglow";
+export const DEFAULT_ANDROID_WALLPAPER_ID: WallpaperId = "android-alpenglow";
 
 export const WALLPAPERS: readonly WallpaperDefinition[] = [
     {
@@ -53,8 +53,18 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         aspect: "portrait",
     },
     {
+        id: "starlit-alpine-refuge",
+        label: "Refuge sous les étoiles",
+        description:
+            "Refuge des Dolomites sous un ciel étoilé, à la nuit tombée.",
+        imageUrl: "/themes/neo-wallpapers/starlit-alpine-refuge.jpg",
+        previewStyle: "image",
+        target: "android",
+        aspect: "portrait",
+    },
+    {
         id: "mountain-sunset",
-        label: "Mountain Sunset",
+        label: "Crépuscule sur les cimes",
         description: "Fond horizontal optimisé pour PC et grands écrans.",
         imageUrl: "/themes/catppuccin-mocha/mountain-sunset.jpg",
         previewStyle: "image",
@@ -90,14 +100,9 @@ export function isAndroidRuntime(): boolean {
 
     return (
         Boolean(androidWindow.NeoAndroid) ||
-        document.documentElement.classList.contains(
-            "nc-platform-android"
-        ) ||
-        document.body?.classList.contains(
-            "nc-platform-android"
-        ) === true ||
-        document.documentElement.dataset.neoCalendarPlatform ===
-            "android"
+        document.documentElement.classList.contains("nc-platform-android") ||
+        document.body?.classList.contains("nc-platform-android") === true ||
+        document.documentElement.dataset.neoCalendarPlatform === "android"
     );
 }
 
@@ -113,17 +118,36 @@ export function getWallpaper(
     return (
         WALLPAPERS.find((wallpaper) => wallpaper.id === id) ??
         WALLPAPERS.find(
-            (wallpaper) =>
-                wallpaper.id === getRuntimeDefaultWallpaperId()
+            (wallpaper) => wallpaper.id === getRuntimeDefaultWallpaperId()
         ) ??
         WALLPAPERS[0]
     );
 }
 
+export type WallpaperRuntime = "android" | "pc";
+
+/**
+ * What a given device should be offered.
+ *
+ * A landscape photo cropped to a phone screen shows a strip of its middle, and
+ * a portrait one on a desktop shows two bars: neither belongs in the other's
+ * list. Only the choices that suit any screen appear on both.
+ */
+export function getWallpapersForRuntime(
+    runtime: WallpaperRuntime
+): readonly WallpaperDefinition[] {
+    return WALLPAPERS.filter(
+        (wallpaper) =>
+            wallpaper.target === "universal" || wallpaper.target === runtime
+    );
+}
+
+export function currentWallpaperRuntime(): WallpaperRuntime {
+    return isAndroidRuntime() ? "android" : "pc";
+}
+
 export function getWallpapersForTarget(
     target: WallpaperTarget
 ): readonly WallpaperDefinition[] {
-    return WALLPAPERS.filter(
-        (wallpaper) => wallpaper.target === target
-    );
+    return WALLPAPERS.filter((wallpaper) => wallpaper.target === target);
 }
