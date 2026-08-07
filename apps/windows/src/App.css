@@ -3554,3 +3554,261 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 }
 
 /* === NEO RESPONSIVE WALLPAPER CONTROLS V9 END === */
+
+/* === NEO SETTINGS SURFACE START ===
+ *
+ * The settings screen reads as blocks rather than as one long column: an icon,
+ * a label, and what the setting is set to, repeated down the page and grouped
+ * by subject. Everything is glass, so the wallpaper stays visible behind it —
+ * the panel used to be opaque, which cut the app in two the moment it opened.
+ */
+
+.nc-set-groups {
+    display: grid;
+    gap: 22px;
+    align-content: start;
+}
+
+.nc-set-group__title {
+    margin: 0 0 8px 4px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.nc-set-group__rows {
+    display: grid;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--background-modifier-border) 70%, transparent);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--background-secondary) 62%, transparent);
+    backdrop-filter: blur(18px) saturate(1.06);
+    -webkit-backdrop-filter: blur(18px) saturate(1.06);
+}
+
+/* Hairlines between rows, never around the block: the border already closes it. */
+.nc-set-group__rows > * + * {
+    border-top: 1px solid color-mix(in srgb, var(--background-modifier-border) 52%, transparent);
+}
+
+.nc-set-row {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 56px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 13px;
+    margin: 0;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 0;
+    color: var(--text-normal);
+    background: transparent;
+    box-shadow: none;
+    text-align: left;
+    font: inherit;
+}
+
+.nc-set-row--action {
+    cursor: pointer;
+    transition: background var(--nc-transition-fast, 120ms ease);
+}
+
+.nc-set-row--action:hover {
+    background: var(--background-modifier-hover);
+}
+
+.nc-set-row--action:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.nc-set-row--action:focus-visible {
+    outline: 2px solid var(--nc-accent);
+    outline-offset: -2px;
+}
+
+.nc-set-row__icon {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    color: var(--nc-text-secondary, var(--text-muted));
+}
+
+.nc-set-row__text {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.nc-set-row__label {
+    font-size: 15px;
+    line-height: 1.25;
+}
+
+/* The value sits under its label, quieter: a row reads as one thought — what
+   it is, then what it is set to. */
+.nc-set-row__value {
+    overflow: hidden;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 13px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-set-row__trailing {
+    display: inline-grid;
+    place-items: center;
+    color: var(--nc-text-faint, var(--text-faint));
+}
+
+.nc-set-switch {
+    position: relative;
+    width: 44px;
+    height: 26px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--background-modifier-border) 90%, transparent);
+    transition: background 160ms ease;
+}
+
+.nc-set-switch__knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--text-normal);
+    transition: transform 160ms cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+
+[aria-checked="true"] .nc-set-switch {
+    background: var(--nc-accent);
+}
+
+[aria-checked="true"] .nc-set-switch__knob {
+    transform: translateX(18px);
+    background: #ffffff;
+}
+
+/* The choice sheet: a short list, centred, dismissed by tapping beside it. */
+.nc-set-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.nc-set-sheet__scrim {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    border: 0;
+    background: rgba(3, 4, 12, 0.55);
+    cursor: pointer;
+}
+
+.nc-set-sheet__panel {
+    position: relative;
+    width: min(340px, 100%);
+    max-height: min(70vh, 520px);
+    display: grid;
+    gap: 2px;
+    padding: 8px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 16px;
+    background: var(--background-primary);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.44);
+}
+
+.nc-set-sheet__title {
+    margin: 4px 10px 6px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.nc-set-sheet__option {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 46px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 10px;
+    color: var(--text-normal);
+    background: transparent;
+    box-shadow: none;
+    text-align: left;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.nc-set-sheet__option:hover {
+    background: var(--background-modifier-hover);
+}
+
+.nc-set-sheet__option[aria-selected="true"] {
+    color: var(--nc-accent);
+}
+
+.nc-set-sheet__icon,
+.nc-set-sheet__check {
+    display: inline-grid;
+    place-items: center;
+    color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nc-set-row--action,
+    .nc-set-switch,
+    .nc-set-switch__knob {
+        transition: none;
+    }
+}
+
+/* === NEO SETTINGS SURFACE END === */
+
+/*
+ * The settings panel is glass, like every other surface in the app. It used to
+ * be opaque, so opening it replaced the wallpaper with a slab and cut the app
+ * in two. The backdrop dims what is behind without hiding it.
+ */
+.nc-settings-backdrop {
+    background: rgba(3, 4, 12, 0.46) !important;
+}
+
+.nc-settings {
+    background: color-mix(
+        in srgb,
+        var(--background-primary) 72%,
+        transparent
+    ) !important;
+    backdrop-filter: blur(24px) saturate(1.06);
+    -webkit-backdrop-filter: blur(24px) saturate(1.06);
+}
+
+.nc-settings__tabs {
+    background: color-mix(
+        in srgb,
+        var(--background-secondary) 46%,
+        transparent
+    ) !important;
+}
+
+/* On a phone the panel is the screen: full height, no floating card, and the
+   groups get room to breathe. */
+@media (max-width: 760px) {
+    .nc-set-groups {
+        gap: 18px;
+    }
+}

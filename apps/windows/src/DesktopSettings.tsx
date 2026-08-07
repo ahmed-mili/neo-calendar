@@ -6,6 +6,7 @@ import ThemeWallpaperPicker from "./ThemeWallpaperPicker";
 import WallpaperEffectsControls from "./WallpaperEffectsControls";
 import { isWallpaperId, type WallpaperId } from "./themes/wallpapers";
 import { ThemeId } from "./themes/types";
+import { SettingsGroup, SettingsChoiceRow } from "./SettingsPrimitives";
 import {
     AppearanceMode,
     AppearancePreferences,
@@ -33,11 +34,11 @@ import {
     Flag,
     FolderOpen,
     Library,
-    Monitor,
     Moon,
     Palette,
     Plus,
     Settings2,
+    Smartphone,
     Sun,
     Trash2,
     Upload,
@@ -942,38 +943,40 @@ export default function DesktopSettings({
                                     transparence.
                                 </p>
 
-                                <div className="nc-appearance-mode-heading">
-                                    Thème
-                                </div>
-                                <div
-                                    className="nc-appearance-mode-grid"
-                                    role="radiogroup"
-                                    aria-label="Mode d’apparence"
-                                >
-                                    <AppearanceModeCard
-                                        mode="system"
-                                        label="Système"
-                                        selected={appearance.mode === "system"}
-                                        onSelect={() =>
-                                            updateAppearance({ mode: "system" })
-                                        }
-                                    />
-                                    <AppearanceModeCard
-                                        mode="light"
-                                        label="Clair"
-                                        selected={appearance.mode === "light"}
-                                        onSelect={() =>
-                                            updateAppearance({ mode: "light" })
-                                        }
-                                    />
-                                    <AppearanceModeCard
-                                        mode="dark"
-                                        label="Sombre"
-                                        selected={appearance.mode === "dark"}
-                                        onSelect={() =>
-                                            updateAppearance({ mode: "dark" })
-                                        }
-                                    />
+                                {/* One row that opens three choices, rather
+                                    than three cards competing for attention:
+                                    picking an appearance mode is a one-second
+                                    decision taken once. */}
+                                <div className="nc-set-groups">
+                                    <SettingsGroup>
+                                        <SettingsChoiceRow
+                                            label="Mode de couleur"
+                                            icon={<Moon size={18} />}
+                                            value={appearance.mode}
+                                            options={[
+                                                {
+                                                    value: "system",
+                                                    label: "Système",
+                                                    icon: (
+                                                        <Smartphone size={17} />
+                                                    ),
+                                                },
+                                                {
+                                                    value: "light",
+                                                    label: "Clair",
+                                                    icon: <Sun size={17} />,
+                                                },
+                                                {
+                                                    value: "dark",
+                                                    label: "Sombre",
+                                                    icon: <Moon size={17} />,
+                                                },
+                                            ]}
+                                            onChange={(mode) =>
+                                                updateAppearance({ mode })
+                                            }
+                                        />
+                                    </SettingsGroup>
                                 </div>
 
                                 <section className="nc-theme-studio">
@@ -1379,43 +1382,6 @@ function ThemePreview({ theme }: { theme: (typeof THEMES)[number] }) {
             <strong>A</strong>
             <small>a</small>
         </span>
-    );
-}
-
-function AppearanceModeCard({
-    mode,
-    label,
-    selected,
-    onSelect,
-}: {
-    mode: AppearanceMode;
-    label: string;
-    selected: boolean;
-    onSelect: () => void;
-}) {
-    const Icon = mode === "system" ? Monitor : mode === "light" ? Sun : Moon;
-
-    return (
-        <button
-            className={`nc-appearance-mode-card nc-appearance-mode-card--${mode}`}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={onSelect}
-        >
-            <span className="nc-appearance-mode-preview" aria-hidden="true">
-                <i className="nc-appearance-mode-preview__top" />
-                <i className="nc-appearance-mode-preview__line nc-line-one" />
-                <i className="nc-appearance-mode-preview__line nc-line-two" />
-                <i className="nc-appearance-mode-preview__window">
-                    <b />
-                    <b />
-                    <b />
-                </i>
-                <Icon className="nc-appearance-mode-preview__icon" size={16} />
-            </span>
-            <span>{label}</span>
-        </button>
     );
 }
 
