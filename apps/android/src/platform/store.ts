@@ -1,0 +1,1 @@
+export class LazyStore { constructor(private name:string,_opts?:unknown){} async get(key:string){const raw=localStorage.getItem(`${this.name}:${key}`);return raw?JSON.parse(raw):null} async set(key:string,value:unknown){localStorage.setItem(`${this.name}:${key}`,JSON.stringify(value))} async save(){} }

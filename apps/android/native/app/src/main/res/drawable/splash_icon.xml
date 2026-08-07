@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The icon for the system splash screen.
+
+    Android draws it inside a fixed circle and only shows the middle third of
+    whatever it is given, so the launcher icon — insetted by 12% for a home
+    screen — arrives filling the whole area and reads as enormous. This one
+    keeps the safe margin the splash screen expects.
+-->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/neo_calendar_icon"
+    android:inset="30%" />
