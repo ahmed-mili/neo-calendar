@@ -61,6 +61,7 @@ import {
     saveDesktopPreferences,
     writeDesktopEventFile,
 } from "./platform/desktopCalendarStore";
+import { shouldReloadOnWake } from "./platform/workspaceRefresh";
 import {
     loadDeviceWorkspacePreferences,
     saveDeviceWorkspacePreferences,
@@ -880,10 +881,37 @@ export default function DesktopCalendar({
         };
     }, [reloadWorkspace, revealDesktopEventRoute]);
 
+    // Files in the data folder are changed by a sync tool while the app is in
+    // the background, so coming back into view is when a change has to appear.
+    // `focus` alone was not enough: an Android WebView never fires it when its
+    // activity resumes, which is why an event created on the desktop only
+    // showed up after quitting and relaunching.
+    const lastWakeReloadRef = useRef<number | null>(null);
+
     useEffect(() => {
-        const reloadOnFocus = () => void reloadWorkspace();
-        window.addEventListener("focus", reloadOnFocus);
-        return () => window.removeEventListener("focus", reloadOnFocus);
+        const reloadOnWake = () => {
+            if (document.visibilityState === "hidden") return;
+
+            const now = Date.now();
+            if (
+                !shouldReloadOnWake({
+                    lastReloadAt: lastWakeReloadRef.current,
+                    now,
+                })
+            ) {
+                return;
+            }
+
+            lastWakeReloadRef.current = now;
+            void reloadWorkspace();
+        };
+
+        window.addEventListener("focus", reloadOnWake);
+        document.addEventListener("visibilitychange", reloadOnWake);
+        return () => {
+            window.removeEventListener("focus", reloadOnWake);
+            document.removeEventListener("visibilitychange", reloadOnWake);
+        };
     }, [reloadWorkspace]);
 
     useEffect(() => {
