@@ -8,7 +8,8 @@ use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 use tauri::Manager;
 
-const PREFERENCES_FILE_NAME: &str = ".neo-calendar-desktop.json";
+const PREFERENCES_FILE_NAME: &str = ".neo-calendar.json";
+const LEGACY_PREFERENCES_FILE_NAME: &str = ".neo-calendar-desktop.json";
 const DEFAULT_CALENDAR_NAME: &str = "Default";
 
 #[derive(Serialize)]
@@ -33,6 +34,11 @@ struct DesktopWorkspaceSnapshotDto {
     calendars: Vec<DesktopCalendarFolderDto>,
     event_files: Vec<DesktopEventFileDto>,
     preferences: Value,
+    /// False when no preference file was there to read. The data folder is
+    /// synced, so a missing file means "not right now" at least as often as it
+    /// means "never had any", and the two must not be confused: adopting empty
+    /// defaults over real preferences is what wiped the calendar colours.
+    preferences_found: bool,
 }
 
 #[derive(Serialize)]
@@ -127,20 +133,97 @@ fn is_markdown_file(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn read_preferences(root: &Path) -> Value {
+/// Reads the preference file, falling back to the pre-Android file name.
+///
+/// A missing file is fine (first run), but a file that exists and cannot be
+/// read or parsed must fail loudly: reporting it as empty would let the app
+/// save its defaults over a healthy configuration.
+#[cfg(test)]
+fn read_preferences(root: &Path) -> Result<Value, String> {
+    Ok(read_preferences_found(root)?.0)
+}
+
+/// Reads the preference file, and reports whether there was one to read.
+fn read_preferences_found(root: &Path) -> Result<(Value, bool), String> {
     let path = root.join(PREFERENCES_FILE_NAME);
-    let Ok(contents) = fs::read_to_string(path) else {
-        return Value::Object(Default::default());
+    let legacy_path = root.join(LEGACY_PREFERENCES_FILE_NAME);
+    let source = if path.exists() {
+        path
+    } else if legacy_path.exists() {
+        legacy_path
+    } else {
+        return Ok((Value::Object(Default::default()), false));
     };
-    serde_json::from_str(&contents).unwrap_or_else(|_| Value::Object(Default::default()))
+
+    let contents = fs::read_to_string(&source)
+        .map_err(|error| format!("Unable to read '{}': {error}", source.display()))?;
+    // An empty file is a file caught mid-replacement, not a blank slate.
+    if contents.trim().is_empty() {
+        return Ok((Value::Object(Default::default()), false));
+    }
+    serde_json::from_str(&contents)
+        .map(|value| (value, true))
+        .map_err(|error| format!("'{}' is not valid JSON: {error}", source.display()))
+}
+
+/// Union of the colour maps, the incoming value winning on shared keys.
+///
+/// The last barrier before the disk, and the only one that also covers what
+/// another device wrote between this app reading the file and writing it back.
+/// A colour is never removed by a write: an entry left behind for a calendar
+/// that no longer exists costs nothing, losing one costs an evening of redoing
+/// them by hand.
+fn merge_preserving_colors(stored: &Value, incoming: &Value) -> Value {
+    let mut merged = incoming.clone();
+
+    let (Some(stored_colors), Some(merged_object)) =
+        (stored.get("colors").and_then(Value::as_object), merged.as_object_mut())
+    else {
+        return merged;
+    };
+
+    let mut colors = merged_object
+        .get("colors")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+
+    for (key, value) in stored_colors {
+        colors.entry(key.clone()).or_insert_with(|| value.clone());
+    }
+
+    merged_object.insert("colors".to_string(), Value::Object(colors));
+    merged
 }
 
 fn write_preferences(root: &Path, preferences: &Value) -> Result<(), String> {
     let path = root.join(PREFERENCES_FILE_NAME);
+
+    // Re-read rather than trust the caller's snapshot: the file is in a synced
+    // folder, so it may have gained colours from another device since it was
+    // loaded. A failed read here must not block saving.
+    let preferences = match read_preferences_found(root) {
+        Ok((stored, true)) => merge_preserving_colors(&stored, preferences),
+        _ => preferences.clone(),
+    };
+    let preferences = &preferences;
+
     let json = serde_json::to_string_pretty(preferences)
-        .map_err(|error| format!("Unable to serialize desktop preferences: {error}"))?;
-    fs::write(&path, format!("{json}\n"))
-        .map_err(|error| format!("Unable to write '{}': {error}", path.display()))
+        .map_err(|error| format!("Unable to serialize calendar preferences: {error}"))?;
+
+    // Write through a temporary file so an interrupted save can never leave a
+    // truncated preference file behind.
+    let temporary = root.join(format!("{PREFERENCES_FILE_NAME}.tmp"));
+    fs::write(&temporary, format!("{json}\n"))
+        .map_err(|error| format!("Unable to write '{}': {error}", temporary.display()))?;
+    fs::rename(&temporary, &path)
+        .map_err(|error| format!("Unable to write '{}': {error}", path.display()))?;
+
+    let legacy_path = root.join(LEGACY_PREFERENCES_FILE_NAME);
+    if legacy_path.exists() {
+        let _ = fs::remove_file(&legacy_path);
+    }
+    Ok(())
 }
 
 fn discover_calendar_directories(root: &Path) -> Result<Vec<(String, String, PathBuf)>, String> {
@@ -245,10 +328,13 @@ fn load_desktop_workspace(data_folder: String) -> Result<DesktopWorkspaceSnapsho
         });
     }
 
+    let (preferences, preferences_found) = read_preferences_found(&root)?;
+
     Ok(DesktopWorkspaceSnapshotDto {
         calendars,
         event_files,
-        preferences: read_preferences(&root),
+        preferences,
+        preferences_found,
     })
 }
 
@@ -806,6 +892,12 @@ fn discover_desktop_obsidian_vaults(
             if file_type.is_symlink() || !file_type.is_dir() {
                 continue;
             }
+
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with('.') {
+                continue;
+            }
+
             add_detected_vault(&entry.path(), &mut seen, &mut output);
         }
     }
@@ -1125,4 +1217,122 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Neo Calendar");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn temporary_root(name: &str) -> PathBuf {
+        let root = env::temp_dir().join(format!("neo-calendar-tests-{name}"));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).expect("temporary folder");
+        root
+    }
+
+    #[test]
+    fn a_save_never_drops_a_colour_another_device_added() {
+        // The data folder is synced: between this app loading the file and
+        // saving it back, the phone can have added a calendar colour. Writing
+        // the loaded snapshot verbatim would erase it.
+        let root = temporary_root("merge-colors");
+        write_preferences(&root, &json!({"colors": {"Work": "#ff0000"}})).unwrap();
+
+        write_preferences(&root, &json!({"colors": {"Sport": "#00ff00"}})).unwrap();
+
+        let stored = read_preferences(&root).unwrap();
+        assert_eq!(stored["colors"]["Work"], "#ff0000");
+        assert_eq!(stored["colors"]["Sport"], "#00ff00");
+    }
+
+    #[test]
+    fn a_save_still_recolours_a_calendar_on_purpose() {
+        let root = temporary_root("recolour");
+        write_preferences(&root, &json!({"colors": {"Work": "#ff0000"}})).unwrap();
+
+        write_preferences(&root, &json!({"colors": {"Work": "#0000ff"}})).unwrap();
+
+        assert_eq!(read_preferences(&root).unwrap()["colors"]["Work"], "#0000ff");
+    }
+
+    #[test]
+    fn an_absent_file_is_reported_as_absent() {
+        let root = temporary_root("absent");
+
+        let (_, found) = read_preferences_found(&root).unwrap();
+
+        assert!(!found);
+    }
+
+    #[test]
+    fn a_file_caught_empty_mid_replacement_is_not_a_blank_slate() {
+        // Syncthing replaces files rather than editing them, so a reader can
+        // land on a zero-length file. Reporting that as "no preferences" is
+        // what let the defaults be written over real ones.
+        let root = temporary_root("empty");
+        fs::write(root.join(PREFERENCES_FILE_NAME), "").unwrap();
+
+        let (_, found) = read_preferences_found(&root).unwrap();
+
+        assert!(!found);
+    }
+
+    #[test]
+    fn a_real_file_is_reported_as_found() {
+        let root = temporary_root("present");
+        write_preferences(&root, &json!({"colors": {"Work": "#ff0000"}})).unwrap();
+
+        let (_, found) = read_preferences_found(&root).unwrap();
+
+        assert!(found);
+    }
+
+    #[test]
+    fn reads_the_legacy_file_until_the_new_one_exists() {
+        let root = temporary_root("legacy");
+        fs::write(
+            root.join(LEGACY_PREFERENCES_FILE_NAME),
+            r##"{"colors":{"Work":"#ff0000"}}"##,
+        )
+        .unwrap();
+
+        let preferences = read_preferences(&root).expect("legacy preferences");
+
+        assert_eq!(preferences["colors"]["Work"], json!("#ff0000"));
+    }
+
+    #[test]
+    fn saving_migrates_the_legacy_file_to_the_new_name() {
+        let root = temporary_root("migrate");
+        fs::write(root.join(LEGACY_PREFERENCES_FILE_NAME), "{}").unwrap();
+
+        write_preferences(&root, &json!({"colors": {"Work": "#00ff00"}})).unwrap();
+
+        assert!(root.join(PREFERENCES_FILE_NAME).exists());
+        assert!(!root.join(LEGACY_PREFERENCES_FILE_NAME).exists());
+        assert_eq!(
+            read_preferences(&root).unwrap()["colors"]["Work"],
+            json!("#00ff00")
+        );
+    }
+
+    #[test]
+    fn missing_file_reads_as_empty_but_broken_json_fails_loudly() {
+        let root = temporary_root("broken");
+        assert_eq!(read_preferences(&root).unwrap(), json!({}));
+
+        fs::write(root.join(PREFERENCES_FILE_NAME), "{ not json").unwrap();
+
+        assert!(read_preferences(&root).is_err());
+    }
+
+    #[test]
+    fn writing_leaves_no_temporary_file_behind() {
+        let root = temporary_root("atomic");
+
+        write_preferences(&root, &json!({"a": 1})).unwrap();
+
+        assert!(!root.join(format!("{PREFERENCES_FILE_NAME}.tmp")).exists());
+    }
 }

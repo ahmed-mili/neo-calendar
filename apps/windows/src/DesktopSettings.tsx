@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { getTheme, THEMES } from "./themes/registry";
 import ThemeColorPicker from "./ThemeColorPicker";
 import ThemeWallpaperPicker from "./ThemeWallpaperPicker";
+import WallpaperEffectsControls from "./WallpaperEffectsControls";
+import { isWallpaperId } from "./themes/wallpapers";
 import { ThemeId } from "./themes/types";
 import {
     AppearanceMode,
@@ -72,7 +74,7 @@ export interface DesktopSettingsProps {
     calendars: DesktopSettingsCalendar[];
     onThemeChange: (themeId: ThemeId) => Promise<void>;
     onPreferencesChange: (
-        preferences: DesktopWorkspacePreferences
+        patch: Partial<DesktopWorkspacePreferences>
     ) => Promise<void>;
     onClose: () => void;
     onChangeDataFolder: () => Promise<void>;
@@ -332,11 +334,7 @@ export default function DesktopSettings({
             if (typeof imported.opaqueWindows === "boolean") {
                 nextDraft.translucentSidebar = !imported.opaqueWindows;
             }
-            if (
-                imported.wallpaperId === "theme-default" ||
-                imported.wallpaperId === "mountain-sunset" ||
-                imported.wallpaperId === "none"
-            ) {
+            if (isWallpaperId(imported.wallpaperId)) {
                 nextDraft.wallpaperId = imported.wallpaperId;
             }
             setThemeDraft(nextDraft);
@@ -351,9 +349,10 @@ export default function DesktopSettings({
         }
     };
 
-    const patchPreferences = (
-        patch: Partial<DesktopWorkspacePreferences>
-    ) => void onPreferencesChange({ ...preferences, ...patch });
+    // Only the touched fields travel: sending a whole snapshot would overwrite
+    // whatever the stored file holds for the untouched ones.
+    const patchPreferences = (patch: Partial<DesktopWorkspacePreferences>) =>
+        void onPreferencesChange(patch);
 
     const patchInitialView = (
         patch: Partial<DesktopWorkspacePreferences["initialView"]>
@@ -1077,6 +1076,7 @@ export default function DesktopSettings({
                                             updateThemeDraft({ wallpaperId })
                                         }
                                     />
+                                    <WallpaperEffectsControls />
                                     <label className="nc-theme-studio__row nc-theme-font-row">
                                         <span>Police de l’interface utilisateur</span>
                                         <input

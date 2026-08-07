@@ -70,6 +70,135 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
     };
 }
 
+/**
+ * The settings that belong to one machine rather than to the calendar.
+ *
+ * They change constantly — every view switch, every day-count change, every
+ * sidebar toggle — and each change used to rewrite the shared file whole,
+ * colours included. Two devices doing that all day is what gave Syncthing
+ * something to conflict over. Kept locally, the shared file barely ever
+ * changes, so there is almost nothing left to conflict about.
+ */
+export interface DeviceWorkspacePreferences {
+    viewType?: ViewType;
+    dayCount?: number;
+    sidebarVisible?: boolean;
+    allDayCollapsed?: boolean;
+}
+
+const DEVICE_KEYS = [
+    "viewType",
+    "dayCount",
+    "sidebarVisible",
+    "allDayCollapsed",
+] as const;
+
+export type SharedWorkspacePreferences = Omit<
+    DesktopWorkspacePreferences,
+    (typeof DEVICE_KEYS)[number]
+>;
+
+export function sharedWorkspacePreferences(
+    preferences: DesktopWorkspacePreferences
+): SharedWorkspacePreferences {
+    const shared = { ...preferences } as Record<string, unknown>;
+    for (const key of DEVICE_KEYS) delete shared[key];
+    return shared as SharedWorkspacePreferences;
+}
+
+export function deviceWorkspacePreferences(
+    preferences: DesktopWorkspacePreferences
+): DeviceWorkspacePreferences {
+    return {
+        viewType: preferences.viewType,
+        dayCount: preferences.dayCount,
+        sidebarVisible: preferences.sidebarVisible,
+        allDayCollapsed: preferences.allDayCollapsed,
+    };
+}
+
+export function parseDeviceWorkspacePreferences(
+    value: unknown
+): DeviceWorkspacePreferences {
+    if (!value || typeof value !== "object") return {};
+    const source = value as Record<string, unknown>;
+
+    return {
+        viewType: VIEW_TYPES.includes(source.viewType as ViewType)
+            ? (source.viewType as ViewType)
+            : undefined,
+        dayCount:
+            typeof source.dayCount === "number" && source.dayCount >= 1
+                ? Math.min(60, Math.round(source.dayCount))
+                : undefined,
+        sidebarVisible:
+            typeof source.sidebarVisible === "boolean"
+                ? source.sidebarVisible
+                : undefined,
+        allDayCollapsed:
+            typeof source.allDayCollapsed === "boolean"
+                ? source.allDayCollapsed
+                : undefined,
+    };
+}
+
+/** Lays this device's view back over the shared preferences, falling back to
+    whatever the shared half carries for anything this device never set. */
+export function withDeviceWorkspacePreferences(
+    preferences: DesktopWorkspacePreferences,
+    device: DeviceWorkspacePreferences
+): DesktopWorkspacePreferences {
+    return {
+        ...preferences,
+        viewType: device.viewType ?? preferences.viewType,
+        dayCount: device.dayCount ?? preferences.dayCount,
+        sidebarVisible: device.sidebarVisible ?? preferences.sidebarVisible,
+        allDayCollapsed: device.allDayCollapsed ?? preferences.allDayCollapsed,
+    };
+}
+
+/**
+ * Decides what the app should believe after re-reading the preference file.
+ *
+ * The file lives in the synced data folder and both the desktop and the phone
+ * rewrite it whole, so two things can happen that a plain "take what was read"
+ * cannot survive: the file is briefly absent while Syncthing replaces it, and
+ * the copy that arrives is the other device's, missing whatever was added here
+ * since the last sync. Reading is therefore treated as new information about
+ * calendar colours and ordering rather than as the whole truth: an entry that
+ * exists on either side is kept, and the file wins where both know the same one.
+ *
+ * Hidden calendars are the exception. Revealing a calendar means removing it
+ * from that list, and merging would silently undo it, so the file is taken as
+ * given there.
+ */
+export function reconcileWorkspacePreferences({
+    previous,
+    loaded,
+    fileExisted,
+}: {
+    previous: DesktopWorkspacePreferences | null;
+    loaded: DesktopWorkspacePreferences;
+    fileExisted: boolean;
+}): DesktopWorkspacePreferences {
+    if (!previous) return loaded;
+
+    // Nothing was read, so nothing was learned. Writing defaults here is what
+    // used to wipe the colours for good.
+    if (!fileExisted) return previous;
+
+    const order = [
+        ...loaded.order,
+        ...previous.order.filter((path) => !loaded.order.includes(path)),
+    ];
+
+    return {
+        ...loaded,
+        colors: { ...previous.colors, ...loaded.colors },
+        order,
+    };
+}
+
 function strings(value: unknown): string[] {
     return Array.isArray(value)
         ? value.filter((item): item is string => typeof item === "string")
@@ -108,8 +237,8 @@ export function parseDesktopWorkspacePreferences(
     )
         ? (sourceInitialView.desktop as DesktopInitialView)
         : DESKTOP_INITIAL_VIEWS.includes(legacyView as DesktopInitialView)
-          ? (legacyView as DesktopInitialView)
-          : defaults.initialView.desktop;
+        ? (legacyView as DesktopInitialView)
+        : defaults.initialView.desktop;
     const mobileInitial = MOBILE_INITIAL_VIEWS.includes(
         sourceInitialView.mobile as MobileInitialView
     )
@@ -133,14 +262,8 @@ export function parseDesktopWorkspacePreferences(
                 ? source.defaultCalendarPath
                 : undefined,
         hiddenCalendarPaths: strings(source.hiddenCalendarPaths),
-        allDayCollapsed: bool(
-            source.allDayCollapsed,
-            defaults.allDayCollapsed
-        ),
-        showWeekNumbers: bool(
-            source.showWeekNumbers,
-            defaults.showWeekNumbers
-        ),
+        allDayCollapsed: bool(source.allDayCollapsed, defaults.allDayCollapsed),
+        showWeekNumbers: bool(source.showWeekNumbers, defaults.showWeekNumbers),
         sidebarVisible: bool(source.sidebarVisible, defaults.sidebarVisible),
         viewType: VIEW_TYPES.includes(source.viewType as ViewType)
             ? (source.viewType as ViewType)
@@ -155,10 +278,7 @@ export function parseDesktopWorkspacePreferences(
             mobile: mobileInitial,
         },
         firstDay,
-        timeFormat24h: bool(
-            source.timeFormat24h,
-            defaults.timeFormat24h
-        ),
+        timeFormat24h: bool(source.timeFormat24h, defaults.timeFormat24h),
         clickToCreateEventFromMonthView: bool(
             source.clickToCreateEventFromMonthView,
             defaults.clickToCreateEventFromMonthView

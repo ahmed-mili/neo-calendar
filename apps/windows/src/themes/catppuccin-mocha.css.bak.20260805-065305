@@ -43,5 +43,3 @@
     );
     --nc-wallpaper: url("/themes/catppuccin-mocha/mountain-sunset.jpg");
 }
-
-

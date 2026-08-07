@@ -16,6 +16,9 @@ export interface DesktopWorkspaceSnapshotDto {
     calendars: DesktopCalendarFolderDto[];
     eventFiles: DesktopEventFileDto[];
     preferences: unknown;
+    /** False when there was no preference file to read — which, in a synced
+        folder, means "not at this instant" as often as "never had one". */
+    preferencesFound: boolean;
 }
 
 export interface WriteEventFileRequest {
@@ -107,8 +110,6 @@ export async function openDesktopPath(
         relativePath,
     });
 }
-
-
 
 export async function openDesktopExternalTarget(target: string): Promise<void> {
     await invoke("open_desktop_external_target", { target });
