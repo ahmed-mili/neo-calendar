@@ -1,0 +1,35 @@
+{
+  "islam": {
+    "name": "الْإِسْلَامُ",
+    "icon": "moon-star",
+    "description": "Fêtes, nuits sacrées et jours de jeûne du calendrier hégirien",
+    "rules": [
+      { "n": "رأس السنة الهجرية (Nouvel an hégirien)", "k": "h", "hm": 1, "hd": 1 },
+      { "n": "صيام تاسوعاء (Jeûne de Tasu'a)", "k": "h", "hm": 1, "hd": 9 },
+      { "n": "صيام عاشوراء (Jeûne de Achoura)", "k": "h", "hm": 1, "hd": 10 },
+      { "n": "صيام الحادي عشر من محرم (Jeûne du 11 Muharram)", "k": "h", "hm": 1, "hd": 11 },
+      { "n": "المولد النبوي (Mawlid an-Nabi)", "k": "h", "hm": 3, "hd": 12 },
+      { "n": "الإسراء والمعراج (Isra et Mi'raj)", "k": "h", "hm": 7, "hd": 27 },
+      { "n": "ليلة النصف من شعبان (Nuit de la mi-Cha'ban)", "k": "h", "hm": 8, "hd": 15 },
+      { "n": "بداية شهر رمضان (Début du Ramadan)", "k": "h", "hm": 9, "hd": 1 },
+      { "n": "صيام رمضان (Jeûne du Ramadan)", "k": "h", "hm": 9, "hd": 1, "ln": -1 },
+      { "n": "غزوة بدر (Bataille de Badr)", "k": "h", "hm": 9, "hd": 17 },
+      { "n": "العشر الأواخر من رمضان (Dix dernières nuits)", "k": "h", "hm": 9, "hd": 21, "ln": -1 },
+      { "n": "ليلة القدر المرجحة (Nuit du Destin — 21e)", "k": "h", "hm": 9, "hd": 21 },
+      { "n": "ليلة القدر المرجحة (Nuit du Destin — 23e)", "k": "h", "hm": 9, "hd": 23 },
+      { "n": "ليلة القدر المرجحة (Nuit du Destin — 25e)", "k": "h", "hm": 9, "hd": 25 },
+      { "n": "ليلة القدر المرجحة (Nuit du Destin — 27e)", "k": "h", "hm": 9, "hd": 27 },
+      { "n": "ليلة القدر المرجحة (Nuit du Destin — 29e)", "k": "h", "hm": 9, "hd": 29 },
+      { "n": "عيد الفطر (Aïd al-Fitr — jeûne interdit)", "k": "h", "hm": 10, "hd": 1 },
+      { "n": "صيام ست من شوال (Six jours de Chawwal)", "k": "h", "hm": 10, "hd": 2, "ln": 6 },
+      { "n": "العشر من ذي الحجة (Dix jours de Dhou al-Hijja)", "k": "h", "hm": 12, "hd": 1, "ln": 9 },
+      { "n": "يوم التروية (Yawm at-Tarwiya — début du Hajj)", "k": "h", "hm": 12, "hd": 8 },
+      { "n": "صيام يوم عرفة (Jeûne du jour de Arafat)", "k": "h", "hm": 12, "hd": 9 },
+      { "n": "عيد الأضحى (Aïd al-Adha — jeûne interdit)", "k": "h", "hm": 12, "hd": 10 },
+      { "n": "أيام التشريق (Jours de Tachriq — jeûne interdit)", "k": "h", "hm": 12, "hd": 11, "ln": 3 },
+      { "n": "الأيام البيض (Jours blancs)", "k": "hm", "hd": 13, "ln": 3 },
+      { "n": "صيام الاثنين (Jeûne du lundi)", "k": "w", "w": 1 },
+      { "n": "صيام الخميس (Jeûne du jeudi)", "k": "w", "w": 4 }
+    ]
+  }
+}
