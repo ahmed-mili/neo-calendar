@@ -15,6 +15,16 @@ export const WALLPAPER_IDS = [
     "turquoise-lagoon",
     "stormy-fjord",
     "glacier-plateau",
+    "alpine-lake-sunset",
+    "alpine-turquoise-lake",
+    "aurora-lake-night",
+    "coastal-city-night",
+    "milky-way-mountain",
+    "misty-forest-dawn",
+    "neon-city-sunset",
+    "orange-mountain-sunset",
+    "tropical-beach-aerial",
+    "turquoise-waves-aerial",
     "none",
 ] as const;
 
@@ -177,6 +187,106 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         label: "Plateau glaciaire",
         description: "Fond vertical : glacier et versant ocre, ciel franc.",
         imageUrl: "/themes/neo-wallpapers/glacier-plateau.jpg",
+        previewStyle: "image",
+        target: "android",
+        aspect: "portrait",
+    },
+    {
+        id: "alpine-lake-sunset",
+        label: "Lac alpin au couchant",
+        description:
+            "Fond vertical : ciel pourpre reflété sur un lac de montagne.",
+        imageUrl: "/themes/neo-wallpapers/alpine-lake-sunset.jpg",
+        previewStyle: "image",
+        target: "android",
+        aspect: "portrait",
+    },
+    {
+        id: "alpine-turquoise-lake",
+        label: "Lac alpin turquoise",
+        description:
+            "Fond vertical : eau turquoise au pied de cimes enneigées.",
+        imageUrl: "/themes/neo-wallpapers/alpine-turquoise-lake.jpg",
+        previewStyle: "image",
+        target: "android",
+        aspect: "portrait",
+    },
+    {
+        id: "aurora-lake-night",
+        label: "Aurores boréales",
+        description:
+            "Fond vertical : voiles verts au-dessus d'un lac, la nuit.",
+        imageUrl: "/themes/neo-wallpapers/aurora-lake-night.jpg",
+        previewStyle: "image",
+        target: "android",
+        aspect: "portrait",
+    },
+    {
+        id: "coastal-city-night",
+        label: "Ville côtière la nuit",
+        description:
+            "Fond vertical : gratte-ciel et traînées de phares au bord de l'eau.",
+        imageUrl: "/themes/neo-wallpapers/coastal-city-night.jpg",
+        previewStyle: "image",
+        target: "android",
+        aspect: "portrait",
+    },
+    {
+        id: "milky-way-mountain",
+        label: "Voie lactée",
+        description:
+            "Fond vertical : cœur de la galaxie au-dessus d'une crête sombre.",
+        imageUrl: "/themes/neo-wallpapers/milky-way-mountain.jpg",
+        previewStyle: "image",
+        target: "android",
+        aspect: "portrait",
+    },
+    {
+        id: "misty-forest-dawn",
+        label: "Forêt brumeuse",
+        description:
+            "Fond vertical : lumière du matin filtrée entre les troncs.",
+        imageUrl: "/themes/neo-wallpapers/misty-forest-dawn.jpg",
+        previewStyle: "image",
+        target: "android",
+        aspect: "portrait",
+    },
+    {
+        id: "neon-city-sunset",
+        label: "Ville néon",
+        description:
+            "Fond vertical : crépuscule magenta sur une skyline de néons.",
+        imageUrl: "/themes/neo-wallpapers/neon-city-sunset.jpg",
+        previewStyle: "image",
+        target: "android",
+        aspect: "portrait",
+    },
+    {
+        id: "orange-mountain-sunset",
+        label: "Coucher orangé",
+        description:
+            "Fond vertical : soleil rasant sur des crêtes en ombres chinoises.",
+        imageUrl: "/themes/neo-wallpapers/orange-mountain-sunset.jpg",
+        previewStyle: "image",
+        target: "android",
+        aspect: "portrait",
+    },
+    {
+        id: "tropical-beach-aerial",
+        label: "Plage tropicale",
+        description:
+            "Fond vertical : vue aérienne d'un sable blanc et d'un récif turquoise.",
+        imageUrl: "/themes/neo-wallpapers/tropical-beach-aerial.jpg",
+        previewStyle: "image",
+        target: "android",
+        aspect: "portrait",
+    },
+    {
+        id: "turquoise-waves-aerial",
+        label: "Vagues turquoise",
+        description:
+            "Fond vertical : vue aérienne d'un rouleau d'écume sur une eau claire.",
+        imageUrl: "/themes/neo-wallpapers/turquoise-waves-aerial.jpg",
         previewStyle: "image",
         target: "android",
         aspect: "portrait",

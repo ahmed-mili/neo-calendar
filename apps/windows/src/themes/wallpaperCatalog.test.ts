@@ -1,4 +1,13 @@
-import { getWallpapersForRuntime, getWallpaper } from "./wallpapers";
+import fs from "node:fs";
+import path from "node:path";
+
+import {
+    getWallpapersForRuntime,
+    getWallpaper,
+    WALLPAPERS,
+} from "./wallpapers";
+
+const PUBLIC_DIR = path.join(__dirname, "../../public");
 
 describe("the wallpaper catalogue offered to a device", () => {
     // A landscape photo cropped to a phone screen shows a strip of its middle,
@@ -48,6 +57,23 @@ describe("the wallpaper catalogue offered to a device", () => {
         expect(wallpaper.imageUrl).toBe(
             "/themes/neo-wallpapers/starlit-alpine-refuge.jpg"
         );
+    });
+
+    // A catalogue entry whose photo never shipped shows the user an empty
+    // thumbnail and then a blank background once they pick it.
+    it("ships the photo behind every entry that claims one", () => {
+        for (const wallpaper of WALLPAPERS) {
+            if (wallpaper.imageUrl === null) {
+                continue;
+            }
+
+            const onDisk = path.join(PUBLIC_DIR, wallpaper.imageUrl);
+
+            expect([wallpaper.id, fs.existsSync(onDisk)]).toEqual([
+                wallpaper.id,
+                true,
+            ]);
+        }
     });
 
     // Selecting a wallpaper the device cannot show would leave it stuck on a
