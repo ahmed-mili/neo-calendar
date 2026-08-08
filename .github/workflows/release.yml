@@ -193,14 +193,24 @@ jobs:
 
             # `release/v1.0.3` comme `v1.0.3` donnent la même étiquette ; posée
             # sur le commit construit si elle n'existe pas déjà.
-            - name: Créer la release
+            #
+            # Une release déjà publiée reçoit les nouveaux paquets au lieu de
+            # faire échouer le travail : reconstruire une version — parce qu'un
+            # job avait lâché, ou qu'un correctif est reparti sur la même branche
+            # — doit aboutir, pas s'arrêter sur « existe déjà ».
+            - name: Créer ou compléter la release
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   tag="${GITHUB_REF_NAME#release/}"
-                  gh release create "$tag" \
-                    artifacts/android/*.apk \
-                    artifacts/windows/*.exe \
-                    --target "$GITHUB_SHA" \
-                    --title "Neo Calendar $tag" \
-                    --generate-notes
+                  packages=(artifacts/android/*.apk artifacts/windows/*.exe)
+
+                  if gh release view "$tag" > /dev/null 2>&1; then
+                    echo "Release $tag déjà publiée : mise à jour des paquets."
+                    gh release upload "$tag" "${packages[@]}" --clobber
+                  else
+                    gh release create "$tag" "${packages[@]}" \
+                      --target "$GITHUB_SHA" \
+                      --title "Neo Calendar $tag" \
+                      --generate-notes
+                  fi
