@@ -39,6 +39,12 @@ export interface NeoCalendarSettings {
     secondaryTimezones: string[];
     /** The main hours column's zone. Undefined means the system's own. */
     primaryTimezone?: string;
+    /**
+     * The system zone as of the last look, to tell a trip from a first run.
+     * Undefined on a fresh install: there is no "before" to compare against,
+     * so the first launch adopts what it finds without asking.
+     */
+    lastSeenSystemTimezone?: string;
     /** Most-recent-first, to float them to the top of the timezone picker. */
     recentTimezones?: string[];
     /** Display label per secondary timezone (IANA name -> label). */
@@ -182,13 +188,10 @@ const hasHiddenDescendantFolder = (
     selectedRoot?: string
 ): boolean => {
     const normalized = path.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
-    const root = selectedRoot
-        ?.replace(/\\/g, "/")
-        .replace(/^\/+|\/+$/g, "");
+    const root = selectedRoot?.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
 
     const relative =
-        root &&
-        (normalized === root || normalized.startsWith(root + "/"))
+        root && (normalized === root || normalized.startsWith(root + "/"))
             ? normalized.slice(root.length).replace(/^\/+/, "")
             : normalized;
 
@@ -204,10 +207,7 @@ const foldersUnder = (app: App, root?: string): string[] => {
         .getAllLoadedFiles()
         .filter((f): f is TFolder => f instanceof TFolder)
         .map((f) => f.path)
-        .filter(
-            (path) =>
-                !hasHiddenDescendantFolder(path, root)
-        );
+        .filter((path) => !hasHiddenDescendantFolder(path, root));
 
     if (!root) {
         return all;
