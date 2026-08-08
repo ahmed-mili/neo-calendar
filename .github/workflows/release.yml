@@ -39,9 +39,14 @@ jobs:
 
             # `zod-fast-check` réclame encore fast-check 2 alors que le dépôt est
             # en 3 : sans ce drapeau, npm refuse d'installer quoi que ce soit.
+            #
+            # L'application Android partage les écrans de `apps/windows`, que le
+            # typage traverse jusqu'à leurs imports `@tauri-apps` : ses
+            # dépendances doivent être là même si aucune ne part dans l'APK.
             - name: Installer les dépendances
               run: |
                   npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+                  npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
                   npm --prefix apps/android install --ignore-scripts --no-audit --no-fund
 
             - name: Construire le front et le copier dans les assets
