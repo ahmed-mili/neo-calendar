@@ -69,7 +69,9 @@ jobs:
                   path: |
                       ~/.gradle/caches
                       ~/.gradle/wrapper
-                  key: gradle-${{ runner.os }}-${{ hashFiles('apps/android/native/**/*.gradle.kts', 'apps/android/native/gradle/wrapper/gradle-wrapper.properties') }}
+                  # Même raison que côté Rust : le module Gradle porte le
+                  # versionCode, qui monte à chaque release.
+                  key: gradle-${{ runner.os }}-${{ github.run_id }}
                   restore-keys: gradle-${{ runner.os }}-
 
             # L'application Android partage les écrans de `apps/windows`, que le
@@ -134,6 +136,12 @@ jobs:
             # Sans ce cache, chaque release recompile toute la chaîne Rust de
             # Tauri : douze minutes à chaque fois, pour des dépendances qui n'ont
             # pas bougé.
+            #
+            # La clé ne dérive pas du Cargo.lock : celui-ci porte le numéro de
+            # version du paquet, que chaque release fait monter. La clé changeait
+            # donc à tous les coups et le cache n'était jamais retrouvé. Une clé
+            # neuve à chaque exécution, rattrapée par le préfixe, garde au
+            # contraire l'entrée la plus récente — c'est ce dernier qui travaille.
             - name: Réutiliser le cache Rust
               uses: actions/cache@v4
               with:
@@ -141,7 +149,7 @@ jobs:
                       ~/.cargo/registry
                       ~/.cargo/git
                       apps/windows/src-tauri/target
-                  key: cargo-${{ runner.os }}-${{ hashFiles('apps/windows/src-tauri/Cargo.lock') }}
+                  key: cargo-${{ runner.os }}-${{ github.run_id }}
                   restore-keys: cargo-${{ runner.os }}-
 
             # Les deux applications typent les écrans partagés de `src/`, dont
