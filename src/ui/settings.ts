@@ -67,7 +67,10 @@ export const DEFAULT_SETTINGS: NeoCalendarSettings = {
     hiddenCalendars: [],
     secondaryTimezones: [],
     timezoneLabels: {},
-    defaultEventsAsTasks: true,
+    // A calendar entry is an event unless you say otherwise: most things you
+    // put on a grid happen at a time rather than waiting to be done. The panel
+    // now offers the choice on every event, so this is only the starting point.
+    defaultEventsAsTasks: false,
     calendarRootFolder: "",
     allDayCollapsed: false,
 };
@@ -455,7 +458,7 @@ export class NeoCalendarSettingTab extends PluginSettingTab {
             ],
             [
                 "New events are tasks by default",
-                'When enabled, new events are created with status "À faire" (todo). Turn off to create plain events.',
+                'When enabled, new entries start as tasks with status "À faire" (todo). Either way, the event panel lets you switch between Event and Task at any time.',
                 "defaultEventsAsTasks",
             ],
         ];

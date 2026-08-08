@@ -1252,6 +1252,48 @@
     min-width: 36px;
 }
 
+/* Type toggle (event / task) — a segmented control rather than a single
+   toggling pill, because both choices must be readable at a glance: this is
+   the row that tells you what the thing IS, so neither option may be hidden
+   behind a click. */
+
+.nc-type-group {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 999px;
+    background: var(--background-modifier-hover);
+    flex-shrink: 0;
+}
+
+.nc-type-pill {
+    padding: 2px 10px;
+    font-size: var(--nc-text-sm, 12px);
+    font-weight: 500;
+    border: none;
+    box-shadow: none !important;
+    background: transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    color: var(--nc-text-secondary);
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-type-pill:hover:not(:disabled) {
+    color: var(--nc-text-primary);
+}
+
+.nc-type-pill.nc-active {
+    background: var(--nc-accent);
+    color: var(--nc-accent-text);
+}
+
+.nc-type-pill:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
 /* Status pills (tasks — 2-state: todo / complete) */
 
 .nc-status-group {

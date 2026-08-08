@@ -37,6 +37,7 @@ import {
 import {
     ClockIcon,
     CheckIcon,
+    DocIcon,
     LinesIcon,
     RepeatIcon,
     DotsIcon,
@@ -1195,6 +1196,57 @@ export function CalendarRow({
                     </div>,
                     getEventPanelPortalTarget()
                 )}
+        </div>
+    );
+}
+
+// ── Type row ───────────────────────────────────────────────
+
+interface TypeRowProps {
+    isTask: boolean;
+    editable: boolean;
+    setIsTask: (isTask: boolean) => void;
+}
+
+/**
+ * Event or task — the choice, made explicitly.
+ *
+ * The two are one object in the schema, told apart only by whether they carry
+ * a `completed` field, so this row is simply what switches that field on and
+ * off. An event occupies a slot and is over when it has passed; a task is
+ * something to get done and keeps a done/not-done state until it is.
+ *
+ * A recurring series has nowhere to record "done" (the schema gives
+ * `completed` to `single` and `someday` only), so the panel hides this row for
+ * recurring events rather than offering a choice that cannot be saved.
+ */
+export function TypeRow({ isTask, editable, setIsTask }: TypeRowProps) {
+    return (
+        <div className="nc-panel-row nc-panel-row-inline">
+            <span className="nc-panel-row-icon">
+                <DocIcon />
+            </span>
+            <div className="nc-panel-row-label">{t("Type")}</div>
+            <div className="nc-type-group" role="group">
+                <button
+                    type="button"
+                    className={`nc-type-pill ${!isTask ? "nc-active" : ""}`}
+                    onClick={() => editable && setIsTask(false)}
+                    disabled={!editable}
+                    aria-pressed={!isTask}
+                >
+                    {t("Event")}
+                </button>
+                <button
+                    type="button"
+                    className={`nc-type-pill ${isTask ? "nc-active" : ""}`}
+                    onClick={() => editable && setIsTask(true)}
+                    disabled={!editable}
+                    aria-pressed={isTask}
+                >
+                    {t("Task")}
+                </button>
+            </div>
         </div>
     );
 }

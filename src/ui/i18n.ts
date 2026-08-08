@@ -105,6 +105,9 @@ const FR: Record<string, string> = {
     Status: "Statut",
     "To do": "À faire",
     Complete: "Terminé",
+    // The event/task choice in the panel. `Event` is already spelled out above.
+    Type: "Type",
+    Task: "Tâche",
     Tasks: "Tâches",
     Description: "Description",
     Empty: "Vide",

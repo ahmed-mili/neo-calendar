@@ -24,6 +24,26 @@ interface Args {
     currentCalendarId: string;
 }
 
+/**
+ * The `completed` field a form's task state should be saved with.
+ *
+ * `undefined` is what keeps an entry a plain event: `isTask` treats *any*
+ * present, non-null `completed` as a task, so a non-task must carry no field
+ * at all. `false` means outstanding, an ISO timestamp records when it was
+ * finished.
+ *
+ * Both payload branches (dated and someday) go through here so they cannot
+ * drift: the dated one used to hardcode `false`, which silently turned every
+ * dated event into a task no matter what the form said.
+ */
+export function completedFor(
+    taskStatus: TaskStatus | null,
+    now: () => string = () => DateTime.now().toISO() as string
+): string | false | undefined {
+    if (taskStatus === null) return undefined;
+    return taskStatus === "complete" ? now() : false;
+}
+
 function toISOTime(d: Date): string {
     return (
         DateTime.fromJSDate(d).toISOTime({
@@ -182,19 +202,11 @@ export function useEventFormState({
                       type: "single",
                       date,
                       endDate: endDate || null,
-                      completed:
-                          taskStatus === "complete"
-                              ? DateTime.now().toISO()
-                              : false,
+                      completed: completedFor(taskStatus),
                   }
                 : {
                       type: "someday",
-                      completed:
-                          taskStatus === "complete"
-                              ? DateTime.now().toISO()
-                              : taskStatus === "todo"
-                              ? false
-                              : undefined,
+                      completed: completedFor(taskStatus),
                   }),
             ...(description ? { description } : {}),
         } as NeoEvent;
