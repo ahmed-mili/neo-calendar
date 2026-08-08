@@ -24,6 +24,7 @@ import {
     DateRow,
     RecurrenceRow,
     CalendarRow,
+    TypeRow,
     StatusRow,
     LinksAttachmentsRow,
     DescriptionRow,
@@ -920,8 +921,13 @@ export default function EventPanel({
                     toggleRecurring={() => {
                         const next = !form.isRecurring;
                         form.setIsRecurring(next);
-                        if (next)
+                        if (next) {
                             form.setRecurrence(defaultRecurrence(form.date));
+                            // A series has nowhere to record "done" — the
+                            // payload drops `completed`, so drop the form's
+                            // task state with it rather than leave it stale.
+                            form.setTaskStatus(null);
+                        }
                         scheduleAutoSave();
                     }}
                     onAutoSave={autoSave}
@@ -953,7 +959,20 @@ export default function EventPanel({
                     onAutoSave={autoSave}
                 />
 
-                {isTask && (
+                {!form.isRecurring && (
+                    <TypeRow
+                        isTask={isTask}
+                        editable={stableCalInfo.editable}
+                        setIsTask={(next) => {
+                            // Switching to a task starts it outstanding;
+                            // switching back drops `completed` entirely.
+                            form.setTaskStatus(next ? "todo" : null);
+                            scheduleAutoSave();
+                        }}
+                    />
+                )}
+
+                {isTask && !form.isRecurring && (
                     <StatusRow
                         taskStatus={form.taskStatus}
                         editable={stableCalInfo.editable}

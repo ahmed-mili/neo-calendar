@@ -1074,7 +1074,12 @@ function CalendarAppInner(props: CalendarAppProps) {
             try {
                 const id = await cache.addEvent(
                     calendarId,
-                    createUnscheduledPanelEvent(settings.defaultEventsAsTasks)
+                    // Always a task, whatever the global default: a dateless
+                    // entry you mean to get to is a task by nature — it has no
+                    // slot to occupy, only a done/not-done state — and this
+                    // panel draws a checkbox for exactly that. The event panel
+                    // opens right after, so the Type row can still switch it.
+                    createUnscheduledPanelEvent(true)
                 );
                 if (id) {
                     setPanelAnchor(null);
@@ -1082,7 +1087,7 @@ function CalendarAppInner(props: CalendarAppProps) {
                 }
             } catch {}
         },
-        [calendarSources, cache, settings.defaultEventsAsTasks, setPanelEventId]
+        [calendarSources, cache, setPanelEventId]
     );
 
     const handleEmptyContextMenu = useCallback(
