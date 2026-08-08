@@ -1,0 +1,125 @@
+# Fabrique les deux paquets que l'on installe — l'APK Android et
+# l'installateur Windows — et les publie sur la page Releases du dépôt.
+#
+# Pousser une étiquette `v1.0.2` publie la version ; le déclenchement manuel
+# construit sans publier, pour vérifier que la chaîne tient toujours.
+name: Release
+
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    android:
+        name: APK Android
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+
+            # Le module Android compile en Java 17 (`compileOptions` de
+            # app/build.gradle.kts).
+            - uses: actions/setup-java@v4
+              with:
+                  distribution: temurin
+                  java-version: "17"
+
+            # `zod-fast-check` réclame encore fast-check 2 alors que le dépôt est
+            # en 3 : sans ce drapeau, npm refuse d'installer quoi que ce soit.
+            - name: Installer les dépendances
+              run: |
+                  npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+                  npm --prefix apps/android install --ignore-scripts --no-audit --no-fund
+
+            - name: Construire le front et le copier dans les assets
+              run: |
+                  npm --prefix apps/android run build
+                  npm --prefix apps/android run android:sync
+
+            # `local.properties` du dépôt pointe vers le SDK d'un poste Windows.
+            - name: Pointer Gradle vers le SDK du runner
+              run: |
+                  echo "sdk.dir=$ANDROID_HOME" > apps/android/native/local.properties
+                  yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+                  "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+
+            - name: Assembler l'APK
+              working-directory: apps/android/native
+              run: ./gradlew --no-daemon assembleDebug
+
+            # Le nom porte la version : un fichier téléchargé dit ce qu'il
+            # installe, au lieu d'un « app-debug » qui ne dit rien.
+            - name: Nommer l'APK
+              run: |
+                  version=$(node -p "require('./apps/android/package.json').version")
+                  mkdir -p artifacts
+                  cp apps/android/native/app/build/outputs/apk/debug/app-debug.apk \
+                     "artifacts/neo-calendar-android-$version.apk"
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: android
+                  path: artifacts/*.apk
+                  if-no-files-found: error
+
+    windows:
+        name: Installateur Windows
+        runs-on: windows-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+
+            - name: Installer les dépendances
+              run: |
+                  npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+                  npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
+
+            # `package` compile le front, puis Tauri, puis rend à l'installateur
+            # le nom que porte un installateur de bureau.
+            - name: Construire l'installateur
+              run: npm --prefix apps/windows run package
+
+            - name: Rassembler l'installateur
+              shell: bash
+              run: |
+                  mkdir -p artifacts
+                  cp apps/windows/src-tauri/target/release/bundle/nsis/*Setup*.exe artifacts/
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: windows
+                  path: artifacts/*.exe
+                  if-no-files-found: error
+
+    publish:
+        name: Publier la release
+        needs: [android, windows]
+        if: startsWith(github.ref, 'refs/tags/v')
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/download-artifact@v4
+              with:
+                  path: artifacts
+
+            - name: Créer la release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  gh release create "${{ github.ref_name }}" \
+                    artifacts/android/*.apk \
+                    artifacts/windows/*.exe \
+                    --title "Neo Calendar ${{ github.ref_name }}" \
+                    --generate-notes
