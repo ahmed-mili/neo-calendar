@@ -60,5 +60,13 @@ apps/android/native/app/build/
 apps/android/dist/
 apps/android/native/app/src/main/assets/assets/
 
+# Chemin du SDK, propre à chaque poste : versionné, il envoyait le chemin d'un
+# PC Windows à tous les autres. Android Studio le réécrit, et Gradle sait aussi
+# se rabattre sur ANDROID_HOME.
+apps/android/native/local.properties
+
 # Timestamped safety copies left beside edited files
 *.bak.*
+
+# Paquets construits : ils vivent sur la page Releases, pas dans l'historique.
+*.apk
