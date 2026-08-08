@@ -1,8 +1,8 @@
 # Fabrique les deux paquets que l'on installe — l'APK Android et
 # l'installateur Windows — et les publie sur la page Releases du dépôt.
 #
-# Deux façons de publier une version, au choix : pousser l'étiquette `v1.0.2`,
-# ou pousser une branche `release/v1.0.2` (l'étiquette est alors posée par la
+# Deux façons de publier une version, au choix : pousser l'étiquette `v1.0.3`,
+# ou pousser une branche `release/v1.0.3` (l'étiquette est alors posée par la
 # release elle-même, ce qui dépanne quand on ne peut pousser que des branches).
 # Le déclenchement manuel, lui, construit sans publier : de quoi vérifier que la
 # chaîne tient toujours.
@@ -19,9 +19,15 @@ on:
 permissions:
     contents: write
 
+# Repousser un correctif sur la même version annule le build précédent plutôt
+# que de laisser deux compilations Rust de douze minutes se courir après.
+concurrency:
+    group: release-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
-    android:
-        name: APK Android
+    tests:
+        name: Tests
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -29,6 +35,26 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: "20"
+                  cache: npm
+
+            - run: npm install --no-audit --no-fund
+            - run: npm test
+
+    android:
+        name: APK Android
+        needs: tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: npm
+                  cache-dependency-path: |
+                      package-lock.json
+                      apps/windows/package-lock.json
+                      apps/android/package-lock.json
 
             # Le module Android compile en Java 17 (`compileOptions` de
             # app/build.gradle.kts).
@@ -37,15 +63,21 @@ jobs:
                   distribution: temurin
                   java-version: "17"
 
-            # `zod-fast-check` réclame encore fast-check 2 alors que le dépôt est
-            # en 3 : sans ce drapeau, npm refuse d'installer quoi que ce soit.
-            #
+            - name: Réutiliser le cache Gradle
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.gradle/caches
+                      ~/.gradle/wrapper
+                  key: gradle-${{ runner.os }}-${{ hashFiles('apps/android/native/**/*.gradle.kts', 'apps/android/native/gradle/wrapper/gradle-wrapper.properties') }}
+                  restore-keys: gradle-${{ runner.os }}-
+
             # L'application Android partage les écrans de `apps/windows`, que le
             # typage traverse jusqu'à leurs imports `@tauri-apps` : ses
             # dépendances doivent être là même si aucune ne part dans l'APK.
             - name: Installer les dépendances
               run: |
-                  npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+                  npm install --no-audit --no-fund
                   npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
                   npm --prefix apps/android install --ignore-scripts --no-audit --no-fund
 
@@ -54,24 +86,28 @@ jobs:
                   npm --prefix apps/android run build
                   npm --prefix apps/android run android:sync
 
-            # `local.properties` du dépôt pointe vers le SDK d'un poste Windows.
-            - name: Pointer Gradle vers le SDK du runner
+            # Le runner expose son SDK par ANDROID_HOME, dont Gradle se contente
+            # en l'absence de local.properties. Reste à garantir la plateforme
+            # que compile le module.
+            - name: Assurer la plateforme Android 35
               run: |
-                  echo "sdk.dir=$ANDROID_HOME" > apps/android/native/local.properties
                   yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
                   "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
 
+            # `assembleRelease` et non `assembleDebug` : la variante de release
+            # porte la clé fixe du dépôt, celle qui permet à une mise à jour de
+            # s'installer par-dessus la version précédente.
             - name: Assembler l'APK
               working-directory: apps/android/native
-              run: ./gradlew --no-daemon assembleDebug
+              run: ./gradlew --no-daemon assembleRelease
 
             # Le nom porte la version : un fichier téléchargé dit ce qu'il
-            # installe, au lieu d'un « app-debug » qui ne dit rien.
+            # installe, au lieu d'un « app-release » qui ne dit rien.
             - name: Nommer l'APK
               run: |
                   version=$(node -p "require('./apps/android/package.json').version")
                   mkdir -p artifacts
-                  cp apps/android/native/app/build/outputs/apk/debug/app-debug.apk \
+                  cp apps/android/native/app/build/outputs/apk/release/app-release.apk \
                      "artifacts/neo-calendar-android-$version.apk"
 
             - uses: actions/upload-artifact@v4
@@ -82,6 +118,7 @@ jobs:
 
     windows:
         name: Installateur Windows
+        needs: tests
         runs-on: windows-latest
         steps:
             - uses: actions/checkout@v4
@@ -89,11 +126,26 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: "20"
+                  cache: npm
+                  cache-dependency-path: |
+                      package-lock.json
+                      apps/windows/package-lock.json
+
+            # Sans ce cache, chaque release recompile toute la chaîne Rust de
+            # Tauri : douze minutes à chaque fois, pour des dépendances qui n'ont
+            # pas bougé.
+            - name: Réutiliser le cache Rust
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.cargo/registry
+                      ~/.cargo/git
+                      apps/windows/src-tauri/target
+                  key: cargo-${{ runner.os }}-${{ hashFiles('apps/windows/src-tauri/Cargo.lock') }}
+                  restore-keys: cargo-${{ runner.os }}-
 
             - name: Installer les dépendances
-              run: |
-                  npm install --legacy-peer-deps --ignore-scripts --no-audit --no-fund
-                  npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
+              run: npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
 
             # `package` compile le front, puis Tauri, puis rend à l'installateur
             # le nom que porte un installateur de bureau.
@@ -126,7 +178,7 @@ jobs:
               with:
                   path: artifacts
 
-            # `release/v1.0.2` comme `v1.0.2` donnent la même étiquette ; posée
+            # `release/v1.0.3` comme `v1.0.3` donnent la même étiquette ; posée
             # sur le commit construit si elle n'existe pas déjà.
             - name: Créer la release
               env:

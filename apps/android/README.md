@@ -20,6 +20,8 @@ Le dossier de données Android est une URI SAF persistante. Aucun chemin Windows
 
 ## Build
 
+Le plus court, depuis la racine du dépôt : `.\BUILD_ANDROID.ps1`. À la main :
+
 ```powershell
 npm install
 npm --prefix apps/windows install
@@ -27,8 +29,19 @@ npm --prefix apps/android install
 npm --prefix apps/android run build
 npm --prefix apps/android run android:sync
 cd apps/android/native
-gradle assembleDebug
-Copy-Item app/build/outputs/apk/debug/app-debug.apk ../../../../neo-calendar-android.apk -Force
+gradle assembleRelease
 ```
 
-APK debug signé automatiquement par la clé debug Android. Min SDK 26 (Android 8.0), cible SDK 35, APK universel.
+`assembleRelease` et non `assembleDebug` : la variante de release est signée par
+`app/neo-calendar.jks`, la clé fixe du dépôt. C'est elle qui permet à une mise à
+jour de s'installer par-dessus la version précédente, quelle que soit la machine
+qui l'a construite — la clé de débogage, elle, diffère d'un poste à l'autre et
+fait échouer l'installation sur « le package est en conflit avec un package déjà
+présent ».
+
+Le mot de passe de la clé est en clair dans `app/build.gradle.kts`, et c'est
+assumé : le fichier est juste à côté dans un dépôt privé, le cacher ne
+protégerait rien. Une publication sur le Play Store demanderait une clé gardée
+ailleurs.
+
+Min SDK 26 (Android 8.0), cible SDK 35, APK universel.
