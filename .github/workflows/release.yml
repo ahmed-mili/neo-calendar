@@ -1,14 +1,19 @@
 # Fabrique les deux paquets que l'on installe — l'APK Android et
 # l'installateur Windows — et les publie sur la page Releases du dépôt.
 #
-# Pousser une étiquette `v1.0.2` publie la version ; le déclenchement manuel
-# construit sans publier, pour vérifier que la chaîne tient toujours.
+# Deux façons de publier une version, au choix : pousser l'étiquette `v1.0.2`,
+# ou pousser une branche `release/v1.0.2` (l'étiquette est alors posée par la
+# release elle-même, ce qui dépanne quand on ne peut pousser que des branches).
+# Le déclenchement manuel, lui, construit sans publier : de quoi vérifier que la
+# chaîne tient toujours.
 name: Release
 
 on:
     push:
         tags:
             - "v*"
+        branches:
+            - "release/v*"
     workflow_dispatch:
 
 permissions:
@@ -105,7 +110,9 @@ jobs:
     publish:
         name: Publier la release
         needs: [android, windows]
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: >-
+            startsWith(github.ref, 'refs/tags/v') ||
+            startsWith(github.ref, 'refs/heads/release/v')
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -114,12 +121,16 @@ jobs:
               with:
                   path: artifacts
 
+            # `release/v1.0.2` comme `v1.0.2` donnent la même étiquette ; posée
+            # sur le commit construit si elle n'existe pas déjà.
             - name: Créer la release
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
-                  gh release create "${{ github.ref_name }}" \
+                  tag="${GITHUB_REF_NAME#release/}"
+                  gh release create "$tag" \
                     artifacts/android/*.apk \
                     artifacts/windows/*.exe \
-                    --title "Neo Calendar ${{ github.ref_name }}" \
+                    --target "$GITHUB_SHA" \
+                    --title "Neo Calendar $tag" \
                     --generate-notes

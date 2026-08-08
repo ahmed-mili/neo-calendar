@@ -17,8 +17,14 @@ prenez la dernière version, en haut.
   version installée par-dessus une autre garde ses données, mais il faudra
   désinstaller pour passer un jour à une version signée autrement.
 
-Chaque étiquette `vX.Y.Z` poussée sur le dépôt déclenche la construction des
-deux paquets et leur publication (`.github/workflows/release.yml`).
+## Publier une version
+
+Pousser l'étiquette `vX.Y.Z` — ou, à défaut, une branche `release/vX.Y.Z` —
+construit les deux paquets et les attache à une nouvelle release
+(`.github/workflows/release.yml`). Pensez à monter les versions avant :
+`package.json` (racine, `apps/windows`, `apps/android`), `tauri.conf.json`,
+`Cargo.toml`, et le `versionCode` de `apps/android/native/app/build.gradle.kts`,
+que le téléphone exige strictement croissant pour accepter une mise à jour.
 
 ## Structure
 
