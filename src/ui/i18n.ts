@@ -111,6 +111,9 @@ const FR: Record<string, string> = {
     Date: "Date",
     "Pick a date": "Choisir une date",
     "Change time zone": "Changer de fuseau horaire",
+    "Change time zone?": "Changer de fuseau horaire ?",
+    "Your system time moved to the time zone":
+        "L'heure de votre système est passée au fuseau horaire",
     "Add timezone": "Ajouter un fuseau horaire",
     "Total time": "Temps total",
     "Event totals": "Totaux des événements",
@@ -123,12 +126,14 @@ const FR: Record<string, string> = {
     "Edit link": "Modifier le lien",
     "Copy link": "Copier le lien",
     Link: "Lien",
-    "Paste a link, or search the vault": "Coller un lien, ou chercher dans le coffre",
+    "Paste a link, or search the vault":
+        "Coller un lien, ou chercher dans le coffre",
     "No matching notes": "Aucune note correspondante",
     "Open note": "Ouvrir la note",
     "Go to note": "Ouvrir la note",
     "View note": "Ouvrir la note",
-    "Available once the event is created": "Disponible une fois l'événement créé",
+    "Available once the event is created":
+        "Disponible une fois l'événement créé",
     "Delete event": "Supprimer l'événement",
     "Click again to confirm": "Cliquer à nouveau pour confirmer",
     Untitled: "Sans titre",
@@ -218,8 +223,10 @@ const FR: Record<string, string> = {
     // ── Search ───────────────────────────────────────────────
     Search: "Rechercher",
     "Search events": "Rechercher un événement",
-    "Add event… (e.g. lunch with Alex tomorrow 12pm)": "Ajouter un événement… (ex. déjeuner avec Alex demain 12h)",
-    "Search events or type a command…": "Rechercher un événement ou une commande…",
+    "Add event… (e.g. lunch with Alex tomorrow 12pm)":
+        "Ajouter un événement… (ex. déjeuner avec Alex demain 12h)",
+    "Search events or type a command…":
+        "Rechercher un événement ou une commande…",
     "Time zone…": "Fuseau horaire…",
     "Days…": "Jours…",
     "Search events or type a command...":
@@ -255,12 +262,14 @@ const FR: Record<string, string> = {
     // ── The settings screen ──────────────────────────────────
     Settings: "Paramètres",
     "Calendar view": "Vue du calendrier",
-    "Without “Create an event by tapping a day of the month”, tapping a day opens the day view instead.": "Sans « Créer un événement en cliquant un jour du mois », un clic dans le mois ouvre la vue du jour.",
+    "Without “Create an event by tapping a day of the month”, tapping a day opens the day view instead.":
+        "Sans « Créer un événement en cliquant un jour du mois », un clic dans le mois ouvre la vue du jour.",
     "Initial view on desktop": "Vue initiale sur ordinateur",
     "Initial view on phone": "Vue initiale sur téléphone",
     "First day of the week": "Premier jour de la semaine",
     "24-hour time": "Format 24 heures",
-    "Create an event by tapping a day of the month": "Créer un événement en cliquant un jour du mois",
+    "Create an event by tapping a day of the month":
+        "Créer un événement en cliquant un jour du mois",
     "New events created as tasks": "Nouveaux événements créés comme des tâches",
     Appearance: "Apparence",
     Theme: "Thème",
@@ -277,23 +286,29 @@ const FR: Record<string, string> = {
     "Obsidian vaults": "Coffres Obsidian",
     "No folder": "Aucun dossier",
     Sync: "Synchronisation",
-    "An extra hour column appears in the week, day and three-day views.": "Une colonne d'heures supplémentaire apparaît dans les vues semaine, jour et trois jours.",
+    "An extra hour column appears in the week, day and three-day views.":
+        "Une colonne d'heures supplémentaire apparaît dans les vues semaine, jour et trois jours.",
     "Time zone to add": "Fuseau horaire à ajouter",
     "Time zones added": "Fuseaux ajoutés",
-    "Neo Calendar keeps its calendar files in this folder. Each direct subfolder is a calendar.": "Neo Calendar range ses fichiers de calendrier dans ce dossier. Chaque sous-dossier direct est un calendrier.",
+    "Neo Calendar keeps its calendar files in this folder. Each direct subfolder is a calendar.":
+        "Neo Calendar range ses fichiers de calendrier dans ce dossier. Chaque sous-dossier direct est un calendrier.",
     "Change folder": "Changer de dossier",
     "Open folder": "Ouvrir le dossier",
-    "Add the folder that holds your Obsidian vaults. Those sitting directly inside it with an .obsidian folder are detected.": "Ajoutez le dossier qui contient vos coffres Obsidian. Ceux qui s'y trouvent directement et possèdent un dossier .obsidian sont détectés.",
+    "Add the folder that holds your Obsidian vaults. Those sitting directly inside it with an .obsidian folder are detected.":
+        "Ajoutez le dossier qui contient vos coffres Obsidian. Ceux qui s'y trouvent directement et possèdent un dossier .obsidian sont détectés.",
     "Choosing…": "Sélection…",
     "Add a folder": "Ajouter un dossier",
     "Folders added": "Dossiers ajoutés",
     "Vaults detected — scanning…": "Coffres détectés — analyse…",
     "Vaults detected": "Coffres détectés",
-    "Turn a vault off to leave it out of note search.": "Désactivez un coffre pour l'exclure de la recherche de notes.",
+    "Turn a vault off to leave it out of note search.":
+        "Désactivez un coffre pour l'exclure de la recherche de notes.",
     "No vault detected": "Aucun coffre détecté",
-    "Each direct subfolder of the data folder is a calendar.": "Chaque sous-dossier direct du dossier de données est un calendrier.",
+    "Each direct subfolder of the data folder is a calendar.":
+        "Chaque sous-dossier direct du dossier de données est un calendrier.",
     "Full note, ICS or automatic": "Note complète, ICS ou automatique",
-    "Neo Calendar keeps its data in the folder you choose. Syncing is done by whichever tool you settle on.": "Neo Calendar range ses données dans le dossier que vous choisissez. La synchronisation est assurée par l'outil que vous retenez.",
+    "Neo Calendar keeps its data in the folder you choose. Syncing is done by whichever tool you settle on.":
+        "Neo Calendar range ses données dans le dossier que vous choisissez. La synchronisation est assurée par l'outil que vous retenez.",
     "Possible methods": "Méthodes possibles",
     Recommended: "Recommandé",
     "Online storage": "Stockage en ligne",
@@ -303,12 +318,12 @@ const FR: Record<string, string> = {
     "Close settings": "Fermer les paramètres",
 
     // ── Themes, wallpapers and dialogs ───────────────────────
-    "Background": "Arrière-plan",
-    "Foreground": "Avant-plan",
-    "Accent": "Accentuation",
+    Background: "Arrière-plan",
+    Foreground: "Avant-plan",
+    Accent: "Accentuation",
     "No wallpaper": "Aucun fond d'écran",
-    "Wallpapers": "Fonds d'écran",
-    "Themes": "Thèmes",
+    Wallpapers: "Fonds d'écran",
+    Themes: "Thèmes",
     "System mode": "Mode système",
     "Light mode": "Mode clair",
     "Dark mode": "Mode sombre",
@@ -319,38 +334,48 @@ const FR: Record<string, string> = {
     "Changes saved": "Modifications enregistrées",
     "Could not copy the theme": "Impossible de copier le thème",
     "Invalid theme file": "Fichier de thème invalide",
-    "Colours must use the #RRGGBB format": "Les couleurs doivent utiliser le format #RRGGBB",
+    "Colours must use the #RRGGBB format":
+        "Les couleurs doivent utiliser le format #RRGGBB",
     "Interface font": "Police de l’interface utilisateur",
     "Monospace font": "Police monospace",
     "Translucent sidebar": "Barre latérale translucide",
-    "Contrast": "Contraste",
+    Contrast: "Contraste",
     "Wallpaper adjustments": "Ajustements du fond",
     "Wallpaper brightness": "Luminosité du fond",
     "Wallpaper blur": "Flou du fond",
     "Container opacity": "Opacité des conteneurs",
     "Theme default": "Par défaut du thème",
     "Pick a colour": "Choisir une couleur",
-    "Wallpaper": "Image de fond",
-    "Tap to set as default, double-tap to rename": "Cliquer pour définir par défaut, double-cliquer pour renommer",
-    "Read-only calendar; double-tap to rename": "Calendrier en lecture seule ; double-cliquer pour renommer",
-    "Default": "Par défaut",
-    "Each event is one Markdown file.": "Chaque événement est un fichier Markdown.",
-    "Read-only subscription to a webcal or HTTPS URL.": "Abonnement en lecture seule à une URL webcal ou HTTPS.",
-    "Read-only events, computed locally from rules.": "Événements en lecture seule, calculés localement à partir de règles.",
+    Wallpaper: "Image de fond",
+    "Tap to set as default, double-tap to rename":
+        "Cliquer pour définir par défaut, double-cliquer pour renommer",
+    "Read-only calendar; double-tap to rename":
+        "Calendrier en lecture seule ; double-cliquer pour renommer",
+    Default: "Par défaut",
+    "Each event is one Markdown file.":
+        "Chaque événement est un fichier Markdown.",
+    "Read-only subscription to a webcal or HTTPS URL.":
+        "Abonnement en lecture seule à une URL webcal ou HTTPS.",
+    "Read-only events, computed locally from rules.":
+        "Événements en lecture seule, calculés localement à partir de règles.",
     "A calendar already has this name.": "Un calendrier porte déjà ce nom.",
     "Enter a calendar name.": "Saisissez un nom de calendrier.",
-    "The custom calendar JSON is invalid.": "Le JSON du calendrier personnalisé est invalide.",
-    "The JSON must contain id, name and a valid rules array.": "Le JSON doit contenir id, name et un tableau rules valide.",
+    "The custom calendar JSON is invalid.":
+        "Le JSON du calendrier personnalisé est invalide.",
+    "The JSON must contain id, name and a valid rules array.":
+        "Le JSON doit contenir id, name et un tableau rules valide.",
     "Calendar type": "Type de calendrier",
     "Calendar JSON": "JSON du calendrier",
     "Import a rules JSON": "Importer un JSON de règles",
-    "Preset": "Modèle",
-    "Colour": "Couleur",
+    Preset: "Modèle",
+    Colour: "Couleur",
     "Add the calendar": "Ajouter le calendrier",
-    "Confirm": "Confirmer",
+    Confirm: "Confirmer",
     "Choose the folder": "Choisir le dossier",
-    "Choose your Neo Calendar data folder.": "Choisissez le dossier de données de Neo Calendar.",
-    "Calendar files stay outside every Obsidian vault.": "Les fichiers de calendrier restent hors de tout coffre Obsidian.",
+    "Choose your Neo Calendar data folder.":
+        "Choisissez le dossier de données de Neo Calendar.",
+    "Calendar files stay outside every Obsidian vault.":
+        "Les fichiers de calendrier restent hors de tout coffre Obsidian.",
 };
 
 const DICTIONARIES: Record<Language, Record<string, string>> = {

@@ -30,6 +30,8 @@ import {
 import CalendarLayout from "./CalendarLayout";
 import { TimezoneMenuContext, TimezoneMenuActions } from "./TimezoneColumn";
 import { openTimezonePicker, openTimezoneRename } from "./timezoneModals";
+import { TimezoneChangePrompt } from "./TimezoneChangePrompt";
+import { TimezoneUpdate, useTimezoneDrift } from "./useTimezoneDrift";
 import useKeyboardShortcuts from "./useKeyboardShortcuts";
 import CommandPalette from "./CommandPalette";
 import EventPanel from "./EventPanel";
@@ -724,6 +726,31 @@ function CalendarAppInner(props: CalendarAppProps) {
             }
         );
     }, [settings, props.plugin, addRecentTimezone, recentTimezones]);
+
+    // ── Le système change de fuseau (on descend d'avion) ─────────
+    const handleTimezoneResolved = useCallback(
+        (update: TimezoneUpdate) => {
+            settings.lastSeenSystemTimezone = update.lastSeenSystemTimezone;
+
+            if (update.primaryTimezone !== undefined) {
+                settings.primaryTimezone = update.primaryTimezone;
+                setPrimaryTimezone(update.primaryTimezone);
+            }
+
+            props.plugin.saveData(props.plugin.settings);
+        },
+        [settings, props.plugin]
+    );
+
+    const {
+        pendingSystemZone,
+        accept: acceptSystemTimezone,
+        decline: declineSystemTimezone,
+    } = useTimezoneDrift({
+        primaryTimezone,
+        lastSeenSystemTimezone: settings.lastSeenSystemTimezone,
+        onResolve: handleTimezoneResolved,
+    });
 
     const handleChangeTimezone = useCallback(
         (oldTz: string) => {
@@ -1462,6 +1489,13 @@ function CalendarAppInner(props: CalendarAppProps) {
                     onPanelDrop={handlePanelDrop}
                     onEventUnschedule={handleEventUnschedule}
                 />
+                {pendingSystemZone && (
+                    <TimezoneChangePrompt
+                        systemZone={pendingSystemZone}
+                        onAccept={acceptSystemTimezone}
+                        onDecline={declineSystemTimezone}
+                    />
+                )}
                 <CommandPalette
                     visible={commandPaletteVisible}
                     onDismiss={() => setCommandPaletteVisible(false)}

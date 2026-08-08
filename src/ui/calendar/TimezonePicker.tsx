@@ -38,9 +38,19 @@ export function richZoneLabel(zone: string, ref: Date): string {
     return `GMT${date.toFormat("ZZ")} ${date.toFormat("ZZZZZ")} – ${city}`;
 }
 
-const LOCAL_ZONE =
-    DateTime.local().zoneName ||
-    Intl.DateTimeFormat().resolvedOptions().timeZone;
+/**
+ * Le fuseau du système, lu à l'appel.
+ *
+ * Une constante de module se figerait au chargement : l'application ouverte au
+ * départ et rouverte à l'arrivée continuerait d'afficher le fuseau de la ville
+ * qu'on a quittée.
+ */
+function localZone(): string {
+    return (
+        DateTime.local().zoneName ||
+        Intl.DateTimeFormat().resolvedOptions().timeZone
+    );
+}
 
 export function listZones(): string[] {
     const supported = (
@@ -84,9 +94,10 @@ export function TimezonePicker({
     } | null>(null);
     const reference = referenceDate ?? new Date();
     const timezoneMenu = useContext(TimezoneMenuContext);
-    const homeZone = timezoneMenu?.primaryTimezone ?? LOCAL_ZONE;
+    const systemZone = localZone();
+    const homeZone = timezoneMenu?.primaryTimezone ?? systemZone;
     const displayLabel =
-        timezoneMenu?.labels?.[LOCAL_ZONE] || offsetLabel(homeZone, reference);
+        timezoneMenu?.labels?.[systemZone] || offsetLabel(homeZone, reference);
 
     const options: TimezoneOption[] = useMemo(() => {
         const zones = listZones();
@@ -129,7 +140,7 @@ export function TimezonePicker({
               {
                   label: t("Rename"),
                   icon: <Pencil size={15} />,
-                  onClick: () => timezoneMenu.onRename(LOCAL_ZONE),
+                  onClick: () => timezoneMenu.onRename(systemZone),
               },
           ]
         : [];
@@ -169,7 +180,7 @@ export function TimezonePicker({
                 className="nc-tz-primary"
                 role="button"
                 tabIndex={0}
-                title={LOCAL_ZONE}
+                title={systemZone}
                 onClick={(event) => {
                     if (!timezoneMenu) return;
                     event.stopPropagation();
