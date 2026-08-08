@@ -49,6 +49,51 @@ export function formatDayTitle(date: Date): string {
     return `${day}, ${month} ${date.getDate()}`;
 }
 
+/**
+ * A dated day as the panels write it: "Thu Jun 25" / "jeu. 25 juin".
+ *
+ * Notion-Calendar-style, with NO comma after the weekday — the en-US locale
+ * inserts one and it reads better without. Pass `weekday: false` for the two
+ * ends of a range, which carry the date alone.
+ *
+ * The names come from the dictionary rather than from toLocaleDateString, so a
+ * calendar set to French reads French whatever locale the machine is set to —
+ * which is exactly what the panels used to get wrong.
+ */
+export function formatDatedDay(
+    date: Date,
+    { weekday = true }: { weekday?: boolean } = {}
+): string {
+    const day = DAYS_SHORT[date.getDay()];
+    const month = MONTHS_SHORT[date.getMonth()];
+    if (getLanguage() === "fr") {
+        const dated = `${date.getDate()} ${month}`;
+        return weekday ? `${day} ${dated}` : dated;
+    }
+    const dated = `${month} ${date.getDate()}`;
+    return weekday ? `${day} ${dated}` : dated;
+}
+
+/** French runs the year on; English keeps the comma it has always had. */
+export function appendYear(label: string, year: number): string {
+    return getLanguage() === "fr" ? `${label} ${year}` : `${label}, ${year}`;
+}
+
+/**
+ * The same day, carrying its year once the date leaves the current one, so a
+ * list that scrolls years ahead never leaves you guessing which one you are on.
+ */
+export function formatDatedDayWithYear(
+    date: Date,
+    currentYear: number,
+    options?: { weekday?: boolean }
+): string {
+    const label = formatDatedDay(date, options);
+    return date.getFullYear() === currentYear
+        ? label
+        : appendYear(label, date.getFullYear());
+}
+
 /** e.g. "20 – 26 juin 2026" / "Jun 20 – 26, 2026", and across a month end
     "28 juin – 4 juil. 2026" / "Jun 28 – Jul 4, 2026". */
 export function formatWeekTitle(weekStart: Date): string {

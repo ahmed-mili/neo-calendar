@@ -15,6 +15,8 @@ import {
 } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { renameInstaller } from "./rename-installer.mjs";
+
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const appDirectory = resolve(scriptDirectory, "..");
 const forwardedArguments = process.argv.slice(2);
@@ -114,24 +116,44 @@ const targetDirectory = join(
     "target"
 );
 
+/*
+ * Tauri écrit `Neo Calendar_1.0.0_x64-setup.exe`. On lui rend le nom que porte
+ * un installateur de bureau — `Neo Calendar Setup 1.0.0.exe`, la forme de
+ * Notion Calendar — et c'est ce nom-là, portant la version, qui voyage jusqu'au
+ * dossier Téléchargements : le fichier dit ce qu'il installe et en quelle
+ * version, au lieu d'un « latest » qui ne dit rien une fois téléchargé.
+ */
+let renamedInstaller;
+
+try {
+    renamedInstaller = await renameInstaller(appDirectory);
+} catch {
+    // Pas d'installateur dans ce build (compilation seule) : on retombe sur
+    // l'exécutable brut plus bas.
+}
+
 const executables = findExecutables(targetDirectory);
 
-const installers = executables
-    .filter((file) => {
-        const normalized = file
-            .replaceAll("\\", "/")
-            .toLowerCase();
+const installers = (
+    renamedInstaller ? [renamedInstaller] : []
+).concat(
+    executables
+        .filter((file) => {
+            const normalized = file
+                .replaceAll("\\", "/")
+                .toLowerCase();
 
-        return (
-            normalized.includes("/release/bundle/nsis/") &&
-            normalized.endsWith("-setup.exe")
-        );
-    })
-    .sort(
-        (a, b) =>
-            statSync(b).mtimeMs -
-            statSync(a).mtimeMs
-    );
+            return (
+                normalized.includes("/release/bundle/nsis/") &&
+                normalized.endsWith("-setup.exe")
+            );
+        })
+        .sort(
+            (a, b) =>
+                statSync(b).mtimeMs -
+                statSync(a).mtimeMs
+        )
+);
 
 const rawExecutables = executables
     .filter((file) => {
@@ -177,7 +199,7 @@ const isInstaller = installers.includes(source);
 const destination = join(
     downloadsDirectory,
     isInstaller
-        ? "NeoCalendar-latest-setup.exe"
+        ? basename(source)
         : "NeoCalendar-latest.exe"
 );
 

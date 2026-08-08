@@ -22,7 +22,14 @@ export class FolderSuggest extends AbstractInputSuggest<TFolder> {
         const lower = query.toLowerCase();
         const folders = this.app.vault
             .getAllLoadedFiles()
-            .filter((f): f is TFolder => f instanceof TFolder);
+            .filter((f): f is TFolder => f instanceof TFolder)
+            .filter(
+                (f) =>
+                    !f.path
+                        .split("/")
+                        .filter(Boolean)
+                        .some((part) => part.startsWith("."))
+            );
 
         const matches = folders
             .filter((f) => f.path.toLowerCase().includes(lower))

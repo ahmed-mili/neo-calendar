@@ -2,6 +2,7 @@ import * as React from "react";
 import { useState, useRef, useEffect } from "react";
 import * as chrono from "chrono-node";
 import { NeoEvent } from "../../types";
+import { t } from "../i18n";
 
 interface QuickAddProps {
     onSubmit: (partialEvent: Partial<NeoEvent>) => void;
@@ -101,7 +102,7 @@ export default function QuickAdd({
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Add event... (e.g., lunch with Alex tomorrow 12pm)"
+                    placeholder={t("Add event… (e.g. lunch with Alex tomorrow 12pm)")}
                 />
             </form>
         </div>

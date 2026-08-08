@@ -5,6 +5,7 @@ import {
     rgbToHex as rgbToHexObj,
     FALLBACK_COLOR,
 } from "../../utils/color";
+import { swallowNextClick } from "./swallowNextClick";
 
 // ── Colour maths (hex ↔ rgb ↔ hsv) ─────────────────────────────
 
@@ -135,46 +136,34 @@ export default function ColorPicker({
 
     // ── Dismiss on outside click / Escape ───────────────────────
     React.useEffect(() => {
-        let swallowTimer = 0;
-
-        /**
-         * The tap that dismisses the picker must not also press what was behind
-         * it. Closing happens on mousedown, and the same tap then delivers a
-         * click to whatever the picker was covering — the calendar row, whose
-         * tap sets the default calendar. So changing a colour and tapping away
-         * silently moved the default, which is exactly what the swatch is
-         * arranged not to do.
-         */
-        const swallowNextClick = () => {
-            const swallow = (click: MouseEvent) => {
-                click.stopPropagation();
-                click.preventDefault();
-            };
-            document.addEventListener("click", swallow, {
-                capture: true,
-                once: true,
-            });
-            // A mousedown does not always produce a click (a drag, a cancelled
-            // touch), and a listener left armed would eat an unrelated one.
-            swallowTimer = window.setTimeout(() => {
-                document.removeEventListener("click", swallow, true);
-            }, 0);
-        };
-
-        const onDown = (e: MouseEvent) => {
+        const onDown = (e: Event) => {
             if (rootRef.current?.contains(e.target as Node)) return;
             onClose();
+            /*
+             * The tap that dismisses the picker must not also press what was
+             * behind it. Closing happens on the press, and the same tap then
+             * delivers a click to whatever the picker was covering — the
+             * calendar row, whose tap sets the default calendar. So changing a
+             * colour and tapping away silently moved the default, which is
+             * exactly what the swatch is arranged not to do.
+             *
+             * The guard outlives this effect on purpose: closing unmounts the
+             * picker, so a guard torn down with it would be gone before the
+             * click it exists to eat. It disarms itself.
+             */
             swallowNextClick();
         };
         const onKey = (e: KeyboardEvent) => {
             if (e.key === "Escape") onClose();
         };
-        document.addEventListener("mousedown", onDown);
+        // Pointer events, not mouse events: the grid cancels its `pointerdown`,
+        // which suppresses the compatibility mouse events, so a press on the
+        // calendar never produces a `mousedown` to dismiss on.
+        document.addEventListener("pointerdown", onDown);
         document.addEventListener("keydown", onKey);
         return () => {
-            document.removeEventListener("mousedown", onDown);
+            document.removeEventListener("pointerdown", onDown);
             document.removeEventListener("keydown", onKey);
-            if (swallowTimer) window.clearTimeout(swallowTimer);
         };
     }, [onClose]);
 

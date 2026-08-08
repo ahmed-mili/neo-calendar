@@ -3877,6 +3877,18 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     background: rgba(3, 4, 12, 0.46) !important;
 }
 
+/*
+ * …and on the desktop it only dims. The blur was there to keep the panel
+ * legible over a phone screen it covered entirely; over a calendar that stays
+ * in place it smears the whole app instead, which is the opposite of what a
+ * dialog laid on top should do. The panel carries its own glass, so what
+ * surrounds it stays readable, just darker.
+ */
+body:not(.nc-platform-android) .nc-settings-backdrop {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
 .nc-settings {
     background: color-mix(
         in srgb,
@@ -3912,20 +3924,29 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 /*
  * Opening the settings, and moving between their pages.
  *
- * The panel is glass, so whatever sits behind it shows through — which meant
- * the drawer and the calendar grid read straight through the settings. Only the
- * wallpaper should: the app fades out beneath, leaving the layer it is painted
- * on.
+ * On a phone the panel IS the screen: it is glass, so the drawer and the grid
+ * read straight through it. Only the wallpaper should, so the app fades out
+ * beneath and leaves the layer it is painted on.
+ *
+ * On the desktop the settings are a dialog laid over the calendar, which stays
+ * where it was — dimmed by the backdrop, never replaced. Hiding it there made
+ * opening the settings look like leaving the app for an empty wallpaper.
  *
  * Direction follows the arrow in the header. The arrow points left, so what it
  * brings on screen travels left — arriving from the right edge — and what it
  * dismisses travels back out the way it came. Every push and every pop reads
  * the same, which is what makes the arrow mean something.
  */
-body.nc-settings-open .nc-layout {
+body.nc-platform-android.nc-settings-open .nc-layout {
     opacity: 0;
-    pointer-events: none;
     transition: opacity 220ms ease;
+}
+
+/* The calendar keeps its place on both platforms, but never its clicks: the
+   dialog is modal, and a grid answering presses under it would edit events
+   nobody meant to touch. */
+body.nc-settings-open .nc-layout {
+    pointer-events: none;
 }
 
 /* Back instantly, not in a fade: the calendar was never gone, only covered.
@@ -3937,13 +3958,18 @@ body.nc-settings-closing .nc-layout {
     transition: none;
 }
 
-/* No blur while the settings are in motion: a backdrop-filter samples what is
-   behind the element on the frame it is painted, and part of that is off-screen
-   while the surface slides — which samples as nothing and reads as darker. */
-body.nc-settings-entering .nc-settings,
-body.nc-settings-closing .nc-settings,
-body.nc-settings-entering .nc-set-group__rows,
-body.nc-settings-closing .nc-set-group__rows {
+/* No blur while the settings are in motion — on a phone. A backdrop-filter
+   samples what is behind the element on the frame it is painted, and part of
+   that is off-screen while a full-screen surface slides in from the edge, which
+   samples as nothing and reads as darker.
+   The desktop dialog barely travels (6%) and never leaves the viewport, so it
+   has nothing to gain from dropping its glass — and everything to lose: without
+   the blur, the calendar it now stays laid over reads straight through its
+   text for the length of the entrance. */
+body.nc-platform-android.nc-settings-entering .nc-settings,
+body.nc-platform-android.nc-settings-closing .nc-settings,
+body.nc-platform-android.nc-settings-entering .nc-set-group__rows,
+body.nc-platform-android.nc-settings-closing .nc-set-group__rows {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
@@ -3970,6 +3996,18 @@ body.nc-settings-closing .nc-settings-backdrop > .nc-settings {
     animation: nc-settings-push-out 240ms cubic-bezier(0.3, 0, 0.7, 1) forwards;
 }
 
+/* The desktop pops instead of sliding — see the keyframes above. Shorter, too:
+   a dialog that is already in place has less distance to cover. */
+body:not(.nc-platform-android) .nc-settings-backdrop > .nc-settings {
+    animation: nc-settings-pop-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+body:not(.nc-platform-android).nc-settings-closing
+    .nc-settings-backdrop
+    > .nc-settings {
+    animation: nc-settings-pop-out 150ms ease forwards;
+}
+
 /* A page arriving on top of the stack, and the one the arrow just sent back. */
 .nc-settings__page {
     animation: nc-settings-page-in 220ms cubic-bezier(0.2, 0.85, 0.25, 1);
@@ -3991,6 +4029,34 @@ body.nc-settings-closing .nc-settings-backdrop > .nc-settings {
     }
     to {
         opacity: 1;
+    }
+}
+
+/*
+ * The desktop dialog does not travel: it appears where it is, growing the last
+ * few percent into place. Sliding says "another screen, arriving from over
+ * there" — true of a phone, where the panel IS the screen, and wrong of a box
+ * laid on a calendar that never moved.
+ */
+@keyframes nc-settings-pop-in {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes nc-settings-pop-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.97);
     }
 }
 

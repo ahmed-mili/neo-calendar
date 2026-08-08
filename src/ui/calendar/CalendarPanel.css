@@ -302,7 +302,9 @@
 }
 
 .nc-panel-menu-item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 9px;
     width: 100%;
     text-align: left;
     padding: 6px 10px;
@@ -315,11 +317,19 @@
     cursor: pointer;
 }
 
+/* The glyph carries the row; the label sets the colour. Dimming the icon keeps
+   the text the thing the eye lands on, the way the rest of the panel reads. */
+.nc-panel-menu-item > svg {
+    flex: 0 0 auto;
+    color: var(--nc-text-muted, var(--text-muted));
+}
+
 .nc-panel-menu-item:hover {
     background: var(--nc-bg-hover) !important;
 }
 
-.nc-panel-menu-item.nc-danger {
+.nc-panel-menu-item.nc-danger,
+.nc-panel-menu-item.nc-danger > svg {
     color: var(--nc-error);
 }
 

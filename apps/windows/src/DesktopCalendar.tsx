@@ -1590,7 +1590,11 @@ export default function DesktopCalendar({
             setSelectedIds(ids);
         };
 
-        const onMouseDown = (event: MouseEvent) => {
+        // Pointer events, not mouse events: the grid cancels its `pointerdown`,
+        // which suppresses the compatibility mouse events. A press on the
+        // calendar surface therefore never produced a `mousedown` — and a click
+        // on empty space stopped clearing the multi-selection.
+        const onPress = (event: PointerEvent) => {
             if (event.button !== 0 || event.ctrlKey || event.metaKey) return;
             const target = event.target as HTMLElement;
             if (isInteractive(target)) return;
@@ -1617,7 +1621,7 @@ export default function DesktopCalendar({
             });
             selectInBox(viewportX, viewportY, viewportX, viewportY);
 
-            const onMove = (moveEvent: MouseEvent) => {
+            const onMove = (moveEvent: PointerEvent) => {
                 setMarquee({
                     x0: localX,
                     y0: localY,
@@ -1632,12 +1636,12 @@ export default function DesktopCalendar({
                 );
             };
             const onUp = () => {
-                window.removeEventListener("mousemove", onMove, true);
-                window.removeEventListener("mouseup", onUp, true);
+                window.removeEventListener("pointermove", onMove, true);
+                window.removeEventListener("pointerup", onUp, true);
                 setMarquee(null);
             };
-            window.addEventListener("mousemove", onMove, true);
-            window.addEventListener("mouseup", onUp, true);
+            window.addEventListener("pointermove", onMove, true);
+            window.addEventListener("pointerup", onUp, true);
         };
 
         const onKeyDown = (event: KeyboardEvent) => {
@@ -1645,11 +1649,11 @@ export default function DesktopCalendar({
         };
         const onBlur = () => setMarquee(null);
 
-        root.addEventListener("mousedown", onMouseDown);
+        root.addEventListener("pointerdown", onPress);
         window.addEventListener("keydown", onKeyDown);
         window.addEventListener("blur", onBlur);
         return () => {
-            root.removeEventListener("mousedown", onMouseDown);
+            root.removeEventListener("pointerdown", onPress);
             window.removeEventListener("keydown", onKeyDown);
             window.removeEventListener("blur", onBlur);
         };
