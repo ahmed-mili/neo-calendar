@@ -304,6 +304,103 @@
     will-change: transform;
 }
 
+/* The hours follow the grid on the compositor, off the main thread.
+ *
+ * The rail lives outside the scroller (it must not scroll horizontally, and its
+ * background stays transparent so the wallpaper shows through), so something has
+ * to carry the vertical scroll across to it. Mirroring scrollTop into a
+ * transform from a `scroll` listener is a main-thread round trip the touch
+ * scroll never waits for: measured on a 13T Pro, the hours trailed the lines by
+ * up to 30px on a fling — a sixth of an hour slot — and sprang back on release.
+ * A scroll-driven animation is the same translation expressed as something the
+ * compositor can run itself, so the rail moves on the very frame the grid does.
+ *
+ * --nc-rail-travel is the scroll range (scrollHeight - clientHeight), published
+ * by TimeGrid whenever the layout changes — not per frame. Mapping the timeline's
+ * 0→1 progress onto it reproduces translateY(-scrollTop) exactly. */
+.nc-timegrid-wrapper {
+    timeline-scope: --nc-grid-scroll, --nc-grid-scroll-x;
+}
+
+@keyframes nc-rail-follow {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(calc(-1 * var(--nc-rail-travel, 0px)));
+    }
+}
+
+/* The all-day band rides the horizontal scroll the same way. The band counter-
+   translates by +scrollLeft to stay pinned at the viewport's left edge, and its
+   inner track by -scrollLeft so the day cells line back up under their columns.
+   Both were mirrored from the same lagging listener; a day swipe left the
+   band's events visibly adrift from the columns they belong to. */
+@keyframes nc-allday-pin {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(var(--nc-allday-travel, 0px));
+    }
+}
+
+@keyframes nc-allday-track-follow {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(calc(-1 * var(--nc-allday-travel, 0px)));
+    }
+}
+
+/* The grid's top clip follows too. It is what keeps the rows from painting
+   through the transparent sticky band above them, and it has to cancel the
+   scroll exactly: a late value lets a slice of the grid show above the band for
+   as long as the finger keeps moving. Animating the length itself leaves the
+   clip-path rule below untouched — only where the number comes from changes.
+   Unlike the transforms this one cannot run on the compositor, so it is driven
+   by the render cycle's own scroll position rather than by a listener. */
+@property --nc-scroll-y {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+}
+
+@keyframes nc-grid-clip {
+    from {
+        --nc-scroll-y: 0px;
+    }
+    to {
+        --nc-scroll-y: var(--nc-rail-travel, 0px);
+    }
+}
+
+/* Guarded so the JS fallback keeps everything in sync where the timeline is
+   unavailable — an older Electron under Obsidian, say. Where both exist the
+   animation wins the cascade over the inline transform, which is the intent. */
+@supports (animation-timeline: --nc-grid-scroll) {
+    .nc-left-rail-scrollable {
+        animation: nc-rail-follow linear both;
+        animation-timeline: --nc-grid-scroll;
+    }
+
+    .nc-main-content {
+        animation: nc-grid-clip linear both;
+        animation-timeline: --nc-grid-scroll;
+    }
+
+    .nc-allday-row {
+        animation: nc-allday-pin linear both;
+        animation-timeline: --nc-grid-scroll-x;
+    }
+
+    .nc-allday-track {
+        animation: nc-allday-track-follow linear both;
+        animation-timeline: --nc-grid-scroll-x;
+    }
+}
+
 /* ── Main scroller (the only horizontal/vertical scroller) ── */
 
 .nc-main-scroller {
@@ -312,6 +409,8 @@
     position: relative;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
+    /* The scrolls the pinned panels ride on — see nc-rail-follow above. */
+    scroll-timeline: --nc-grid-scroll block, --nc-grid-scroll-x inline;
     /* Hide both scrollbars (Notion-style). Scrolling stays fully functional via
        wheel / trackpad and the infinite-scroll + clip logic — only the visible
        bars are removed. scrollbar-width covers Firefox; the ::-webkit rule

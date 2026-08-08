@@ -1,0 +1,25 @@
+08-05 23:16:23.942  1804  4050 I SmartPower: com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedPridle->background(440993ms) R(service unbind com.ahmed.neocalendar/org.chromium.content.app.SandboxedProcessService0:0) adj=0.
+08-05 23:16:23.958  1804  4050 I ActivityManager: Killing 25987:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0a446i79 (adj 0): isolated not needed
+08-05 23:16:23.958  1804  4050 I ActivityManager: note: ProcessRecord{f742c9 25987:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0a446i79} is being killed, reason: OTHER KILLS BY SYSTEM, sub-reason: ISOLATED NOT NEEDED, message: isolated not needed
+08-05 23:16:24.152  1804  1839 I ActivityManager: note: ProcessRecord{f742c9 25987:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0a446i79} died, saving the exit info
+08-05 23:16:24.231  1804  3785 W Perf[AndroidRuntimePolicy]: App is not launched from home.
+08-05 23:16:24.353  6088  6088 D nativeloader: Load /data/app/~~44K4GSXJ98urkidGxnrpuQ==/com.google.android.webview-v81Z91F5W0zp2YuRitQZZA==/base.apk!/lib/arm64-v8a/libwebviewchromium.so using class loader ns clns-11 (caller=/data/app/~~44K4GSXJ98urkidGxnrpuQ==/com.google.android.webview-v81Z91F5W0zp2YuRitQZZA==/base.apk): ok
+08-05 23:16:24.354  6088  6088 D nativeloader: Load /system/lib64/libwebviewchromium_plat_support.so using class loader ns clns-11 (caller=/data/app/~~44K4GSXJ98urkidGxnrpuQ==/com.google.android.webview-v81Z91F5W0zp2YuRitQZZA==/base.apk): ok
+08-05 23:16:24.363  6088  3647 I chromium: [0805/231624.358932:INFO:android_webview/browser/variations/variations_seed_loader.cc:67] Failed to open file for reading.: No such file or directory (2)
+08-05 23:16:24.383  1804  3785 I SmartPower: com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedPr-1->background(0ms) R(become background) adj=-10000.
+08-05 23:16:24.383  1804  3785 I ActivityManager: Posting procStart msg for 0:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0a446i80
+08-05 23:16:24.401  1804  1912 I ActivityManager: Start proc 3657:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0i80 for  {com.ahmed.neocalendar/org.chromium.content.app.SandboxedProcessService0:0} caller=com.ahmed.neocalendar
+08-05 23:16:24.414  6088  6088 W chromium: [WARNING:android_webview/browser/network_service/net_helpers.cc:137] HTTP Cache size is: 20971520
+08-05 23:16:24.416  6088  3663 W chromium: [WARNING:net/dns/dns_config_service_android.cc:69] Failed to read DnsConfig.
+08-05 23:16:24.432  3657  3657 I RENDER_TURBO: onActivityThreadCreate not in white list, pkg=com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0, type=corot
+08-05 23:16:24.439  3657  3657 D ActivityThread: setEmbeddedParam packageName=com.ahmed.neocalendar processName=com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0 isEmbedded=false isIsolated=true
+08-05 23:16:24.445  3657  3657 I cr_WebViewApkApp: version=150.0.7871.181 (787118103) minSdkVersion=29 processName=com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0 splits=<none>
+08-05 23:16:24.482  3657  3709 W chromium: [WARNING:content/app/android/content_main_android.cc:82] android_setCpu already initialized
+08-05 23:16:24.492  3657  3709 W chromium: [WARNING:content/child/runtime_features.cc:541] Fenced frames cannot be enabled in this configuration. Use --enable-features=FencedFrames instead.
+08-05 23:16:24.492  3657  3709 W chromium: [WARNING:content/child/runtime_features.cc:566] Topics cannot be enabled in this configuration. Use --enable-features=BrowsingTopics in addition.
+08-05 23:16:24.492  3657  3709 W chromium: [WARNING:content/child/runtime_features.cc:587] SharedStorage cannot be enabled in this configuration. Use --enable-features=SharedStorageAPI in addition.
+08-05 23:16:24.500  3657  3724 I chromium: [INFO:third_party/skia/src/ports/SkFontMgr_android_parser.cpp:724] [SkFontMgr Android Parser] '/product/etc/fonts_customization.xml' could not be opened
+08-05 23:16:24.500  3657  3724 I chromium: 
+08-05 23:16:24.683  6088  6088 D NeoCalendar: JS LOG: [NeoAndroidDraftV6] installed (https://neo-calendar.local/assets/index-BP83OlU_.js:1)
+08-05 23:16:24.945  6088  3663 E NeoCalendar: 	at WV.tg.a(chromium-SystemWebViewGoogle6432.aab-stable-787118103:103)
+08-05 23:16:24.945  6088  3663 E NeoCalendar: 	at org.chromium.android_webview.ShouldInterceptRequestMediator.shouldInterceptRequestFromNative(chromium-SystemWebViewGoogle6432.aab-stable-787118103:18)

@@ -29,6 +29,7 @@ import {
     DescriptionRow,
 } from "./EventPanelRows";
 import { FileTextIcon } from "./EventPanelIcons";
+import { t } from "../i18n";
 import { defaultRecurrence } from "./recurrence";
 import { mergeForSave } from "./eventScheduling";
 
@@ -101,6 +102,7 @@ interface EventPanelProps {
         calendarId?: string
     ) => void;
     onOpenFile: (id: string) => void;
+    onDuplicate?: (id: string) => void;
     onDelete: (id: string) => void;
     firstDay: number;
     linkVaults?: EventLinkVault[];
@@ -203,6 +205,7 @@ export default function EventPanel({
     onClose,
     onDraftCommit,
     onOpenFile,
+    onDuplicate,
     onDelete,
     firstDay,
     linkVaults = [],
@@ -473,7 +476,7 @@ export default function EventPanel({
 
     useEffect(() => {
         if (!menuOpen) return;
-        const onDown = (e: MouseEvent) => {
+        const onDown = (e: Event) => {
             if (
                 menuRef.current &&
                 !menuRef.current.contains(e.target as Node)
@@ -481,8 +484,11 @@ export default function EventPanel({
                 setMenuOpen(false);
             }
         };
-        document.addEventListener("mousedown", onDown);
-        return () => document.removeEventListener("mousedown", onDown);
+        // Pointer events, not mouse events: the grid cancels its `pointerdown`,
+        // which suppresses the compatibility mouse events, so a press on the
+        // calendar never produces a `mousedown` to dismiss on.
+        document.addEventListener("pointerdown", onDown);
+        return () => document.removeEventListener("pointerdown", onDown);
     }, [menuOpen]);
 
     const handleDeleteClick = () => {
@@ -846,6 +852,18 @@ export default function EventPanel({
                     setMenuOpen(false);
                     onOpenFile(id);
                 }}
+                onDuplicate={
+                    onDuplicate
+                        ? (id) => {
+                              // Same exit as deleting: the copy lands on the
+                              // slot the panel is covering, so staying open on
+                              // the original hides the thing just made.
+                              setMenuOpen(false);
+                              onDuplicate(id);
+                              onClose();
+                          }
+                        : undefined
+                }
                 onDeleteClick={() => {
                     setMenuOpen(false);
                     handleDeleteClick();
@@ -979,13 +997,13 @@ export default function EventPanel({
                         disabled={isDraft || !eventId}
                         title={
                             isDraft || !eventId
-                                ? "Available once the event is created"
+                                ? t("Available once the event is created")
                                 : undefined
                         }
                         onClick={() => eventId && onOpenFile(eventId)}
                     >
                         <FileTextIcon />
-                        View note
+                        {t("View note")}
                     </button>
                 </div>
             )}

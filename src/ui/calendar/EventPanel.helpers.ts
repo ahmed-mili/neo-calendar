@@ -1,3 +1,5 @@
+import { formatDatedDayWithYear } from "./calendarFormatters";
+
 export const DAY_MAP: Record<string, string> = {
     U: "S",
     M: "M",
@@ -47,24 +49,13 @@ export function shouldAutoCommitDraft({
     );
 }
 
-// Notion-Calendar-style date: "Thu Jun 25" — weekday, month, day with NO comma
-// (the en-US locale inserts one after the weekday; we strip it, it reads cleaner).
+// "Thu Jun 25" / "jeu. 25 juin", with the year once the date leaves the current
+// one — so the common case stays short and a date years away is never ambiguous.
 export function formatDateParts(
     d: Date,
     currentYear: number = new Date().getFullYear()
 ): string {
-    const label = d
-        .toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-        })
-        .replace(",", "");
-    // The year only shows once the date leaves the current one, so the common
-    // case stays short and a date years away is never ambiguous.
-    return d.getFullYear() === currentYear
-        ? label
-        : `${label}, ${d.getFullYear()}`;
+    return formatDatedDayWithYear(d, currentYear);
 }
 
 export function formatDateLong(dateStr: string): string {

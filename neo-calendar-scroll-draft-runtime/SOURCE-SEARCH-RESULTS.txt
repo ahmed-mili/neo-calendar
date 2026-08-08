@@ -1,0 +1,2164 @@
+
+================================================================================
+PATTERN: nc-main-scroller
+================================================================================
+
+apps\android\src\androidEmptyGridContextMenuGuard.ts : line 11
+------------------------------------------------------------
+  
+  const emptyGridSurfaceSelector = [
+      ".nc-timegrid-day",
+      ".nc-days-row",
+>     ".nc-main-scroller",
+      ".nc-timegrid-wrapper",
+  ].join(",");
+  
+  function isAndroidRuntime(): boolean {
+
+apps\android\src\androidTimeGridBoundary.ts : line 10
+------------------------------------------------------------
+  const neoWindow =
+      window as NeoAndroidWindow;
+  
+  const scrollerSelector =
+>     ".nc-main-scroller";
+  
+  const dayRowSelector =
+      ".nc-days-row";
+  
+
+apps\android\src\mobile.css : line 393
+------------------------------------------------------------
+  body.nc-platform-android .nc-event-time {
+      font-size: 11px;
+  }
+  
+> body.nc-platform-android .nc-main-scroller {
+      overscroll-behavior: contain;
+      scroll-behavior: auto;
+  }
+  
+
+apps\android\src\mobile.css : line 701
+------------------------------------------------------------
+  body.nc-platform-android .nc-main,
+  body.nc-platform-android .nc-content,
+  body.nc-platform-android .nc-timegrid-wrapper,
+  body.nc-platform-android .nc-timegrid-main,
+> body.nc-platform-android .nc-main-scroller,
+  body.nc-platform-android .nc-days-row {
+      background: transparent !important;
+  }
+  
+
+apps\android\src\mobile.css : line 1189
+------------------------------------------------------------
+      display: none !important;
+  }
+  
+  /* Leave room behind the fixed bottom agenda dock. */
+> body.nc-platform-android .nc-main-scroller,
+  body.nc-platform-android .nc-left-rail-window {
+      padding-bottom: 78px;
+  }
+  
+
+apps\android\src\mobile.css : line 1805
+------------------------------------------------------------
+  body.nc-platform-android .nc-main,
+  body.nc-platform-android .nc-content,
+  body.nc-platform-android .nc-timegrid-wrapper,
+  body.nc-platform-android .nc-timegrid-main,
+> body.nc-platform-android .nc-main-scroller,
+  body.nc-platform-android .nc-days-row,
+  body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-window,
+
+apps\android\src\mobile.css : line 2536
+------------------------------------------------------------
+  /*
+   * This old padding was the reason the time grid could continue scrolling
+   * below the end of the 24-hour day.
+   */
+> body.nc-platform-android .nc-main-scroller,
+  body.nc-platform-android .nc-left-rail-window {
+      box-sizing: border-box !important;
+      padding-bottom: 0 !important;
+      overscroll-behavior-y: none !important;
+
+apps\android\src\mobile.css : line 2671
+------------------------------------------------------------
+   * .nc-days-row. These rules remove extra scroll space but do not decide
+   * the boundary themselves.
+   */
+  body.nc-platform-android
+>     .nc-main-scroller {
+      box-sizing: border-box !important;
+  
+      padding-bottom: 0 !important;
+      scroll-padding-bottom: 0 !important;
+
+apps\android\src\mobile.css : line 2690
+------------------------------------------------------------
+      padding-bottom: 0 !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-main-scroller[data-neo-midnight-boundary="v7.6"] {
+      overscroll-behavior:
+          none !important;
+  }
+  
+
+src\ui\calendar\CalendarGrid.css : line 308
+------------------------------------------------------------
+  }
+  
+  /* ── Main scroller (the only horizontal/vertical scroller) ── */
+  
+> .nc-main-scroller {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+      overscroll-behavior-x: contain;
+
+src\ui\calendar\CalendarGrid.css : line 321
+------------------------------------------------------------
+         covers the Chromium Obsidian runs on. */
+      scrollbar-width: none;
+  }
+  
+> .nc-main-scroller::-webkit-scrollbar {
+      display: none;
+  }
+  
+  .nc-main-content {
+
+src\ui\calendar\EventPanel.tsx : line 357
+------------------------------------------------------------
+      const position = useMemo(() => {
+          const liveAnchor = getAnchorRect();
+          // In time-grid views, read the day-column geometry so the panel can dock
+          // into the adjacent column. Absent (month/list) → float beside anchor.
+>         const scroller = document.querySelector(".nc-main-scroller");
+          const colEls = scroller?.querySelectorAll(".nc-timegrid-day");
+          if (scroller && colEls && colEls.length) {
+              const columns = Array.from(colEls).map((el) => {
+                  const r = el.getBoundingClientRect();
+
+src\ui\calendar\EventPanel.tsx : line 389
+------------------------------------------------------------
+      // layoutTick → `position` recomputes from the live column geometry, and the
+      // (un-dragged) panel slides to stay beside its event.
+      useEffect(() => {
+          if (!visible) return;
+>         const scroller = document.querySelector(".nc-main-scroller");
+          const bump = () => setLayoutTick((t) => t + 1);
+          let ro: ResizeObserver | null = null;
+          if (scroller && typeof ResizeObserver !== "undefined") {
+              ro = new ResizeObserver(bump);
+
+src\ui\calendar\TimeGrid.tsx : line 489
+------------------------------------------------------------
+                      nowLabel={nowLabel}
+                      now={now}
+                      scrollableRef={leftScrollableRef}
+                  />
+>                 <div className="nc-main-scroller" ref={scrollRootRef}>
+                      <div className="nc-main-content">
+                          <TimeGridHeaders
+                              extendedDates={extendedDates}
+                              scrollerWidthStyle={scrollerWidthStyle}
+
+================================================================================
+PATTERN: nc-days-row
+================================================================================
+
+apps\android\src\androidEmptyGridContextMenuGuard.ts : line 10
+------------------------------------------------------------
+  const neoWindow = window as NeoAndroidWindow;
+  
+  const emptyGridSurfaceSelector = [
+      ".nc-timegrid-day",
+>     ".nc-days-row",
+      ".nc-main-scroller",
+      ".nc-timegrid-wrapper",
+  ].join(",");
+  
+
+apps\android\src\androidTimeGridBoundary.ts : line 13
+------------------------------------------------------------
+  const scrollerSelector =
+      ".nc-main-scroller";
+  
+  const dayRowSelector =
+>     ".nc-days-row";
+  
+  const dockSelector =
+      ".nc-mobile-agenda-bar";
+  
+
+apps\android\src\androidTimeGridBoundary.ts : line 248
+------------------------------------------------------------
+              dayRow.getBoundingClientRect();
+  
+          /*
+           * The real end of the day is the rendered bottom edge of
+>          * .nc-days-row. Sticky headers, all-day content, legacy padding,
+           * safe areas and the bottom dock are deliberately excluded.
+           *
+           * At the maximum valid scroll position:
+           *     dayRow.bottom === dock.top
+
+apps\android\src\mobile.css : line 702
+------------------------------------------------------------
+  body.nc-platform-android .nc-content,
+  body.nc-platform-android .nc-timegrid-wrapper,
+  body.nc-platform-android .nc-timegrid-main,
+  body.nc-platform-android .nc-main-scroller,
+> body.nc-platform-android .nc-days-row {
+      background: transparent !important;
+  }
+  
+  body.nc-platform-android .nc-left-rail-fixed,
+
+apps\android\src\mobile.css : line 1806
+------------------------------------------------------------
+  body.nc-platform-android .nc-content,
+  body.nc-platform-android .nc-timegrid-wrapper,
+  body.nc-platform-android .nc-timegrid-main,
+  body.nc-platform-android .nc-main-scroller,
+> body.nc-platform-android .nc-days-row,
+  body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-window,
+  body.nc-platform-android .nc-timegrid-day,
+
+apps\android\src\mobile.css : line 2544
+------------------------------------------------------------
+      overscroll-behavior-y: none !important;
+  }
+  
+  /* Lock every time surface to exactly 24 hours. */
+> body.nc-platform-android .nc-days-row,
+  body.nc-platform-android .nc-timegrid-day,
+  body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-scrollable {
+
+apps\android\src\mobile.css : line 2667
+------------------------------------------------------------
+  /* === NEO ANDROID REAL MIDNIGHT BOUNDARY V7.6 START === */
+  
+  /*
+   * The JavaScript controller clamps against the real rendered bottom of
+>  * .nc-days-row. These rules remove extra scroll space but do not decide
+   * the boundary themselves.
+   */
+  body.nc-platform-android
+      .nc-main-scroller {
+
+apps\android\src\mobile.css : line 2684
+------------------------------------------------------------
+  
+  body.nc-platform-android
+      .nc-main-content,
+  body.nc-platform-android
+>     .nc-days-row {
+      margin-bottom: 0 !important;
+      padding-bottom: 0 !important;
+  }
+  
+
+apps\android\src\mobile.css : line 2721
+------------------------------------------------------------
+   */
+  body.nc-platform-android
+      .nc-timegrid-day,
+  body.nc-platform-android
+>     .nc-days-row {
+      -webkit-touch-callout: none !important;
+  }
+  
+  /* === NEO ANDROID EMPTY GRID MENU GUARD V7.7 END === */
+
+src\ui\calendar\CalendarGrid.css : line 344
+------------------------------------------------------------
+     column / header / all-day cell. Drop the latter so we get a single 1px
+     line at the rail/scroller seam, regardless of which row. */
+  .nc-headers-row > :first-child,
+  .nc-allday-cells > :first-child,
+> .nc-days-row > :first-child {
+      border-left: none;
+  }
+  
+  /* ── Headers row ──────────────────────────────────────────── */
+
+src\ui\calendar\CalendarGrid.css : line 503
+------------------------------------------------------------
+  }
+  
+  /* ── Days row ──────────────────────────────────────────────── */
+  
+> .nc-days-row {
+      min-height: calc(24 * var(--nc-hour-height));
+      display: flex;
+      align-items: stretch;
+      position: relative;
+
+src\ui\calendar\CalendarVariables.css : line 18
+------------------------------------------------------------
+     to `transparent`, which is REQUIRED — the calendar must let the Obsidian
+     translucency / wallpaper show through. Moving this block to `body` makes the
+     source vars resolve and turns the whole calendar opaque (rejected). The event
+     bleed that a transparent sticky all-day row / header would otherwise show is
+>    killed structurally by the scroll-driven clip-path on .nc-days-row (see
+     CalendarGrid.css), not by an opaque fill. */
+  :root {
+      /* Colors (mapped to Obsidian theme vars) */
+      --nc-bg-primary: var(--background-primary);
+
+src\ui\calendar\TimeGrid.tsx : line 390
+------------------------------------------------------------
+          const update = () => {
+              frame = 0;
+              const x = main.scrollLeft;
+              scrollable.style.transform = `translateY(${-main.scrollTop}px)`;
+>             // Drive the vertical clip on .nc-days-row: clipping its top by
+              // scrollTop keeps the grid from painting behind the transparent
+              // sticky header/all-day band. Set on the scroller (ancestor) so it
+              // inherits to the row. See .nc-days-row in CalendarGrid.css.
+              main.style.setProperty("--nc-scroll-y", `${main.scrollTop}px`);
+
+src\ui\calendar\TimeGrid.tsx : line 393
+------------------------------------------------------------
+              scrollable.style.transform = `translateY(${-main.scrollTop}px)`;
+              // Drive the vertical clip on .nc-days-row: clipping its top by
+              // scrollTop keeps the grid from painting behind the transparent
+              // sticky header/all-day band. Set on the scroller (ancestor) so it
+>             // inherits to the row. See .nc-days-row in CalendarGrid.css.
+              main.style.setProperty("--nc-scroll-y", `${main.scrollTop}px`);
+              if (allDayRowRef.current) {
+                  allDayRowRef.current.style.transform = `translateX(${x}px)`;
+              }
+
+src\ui\calendar\TimeGridSections.tsx : line 862
+------------------------------------------------------------
+            )
+          : -1;
+  
+      return (
+>         <div className="nc-days-row" style={{ width: scrollerWidthStyle }}>
+              {extendedDates.map((date, dateIdx) => (
+                  <DayColumn
+                      key={date.toDateString()}
+                      date={date}
+
+================================================================================
+PATTERN: scrollTop
+================================================================================
+
+apps\android\src\androidTimeGridBoundary.ts : line 260
+------------------------------------------------------------
+              rowRect.bottom;
+  
+          if (
+              overflowPastMidnight <= 0.5 ||
+>             scroller.scrollTop <= 0
+          ) {
+              return;
+          }
+  
+
+apps\android\src\androidTimeGridBoundary.ts : line 265
+------------------------------------------------------------
+          ) {
+              return;
+          }
+  
+>         const correctedScrollTop =
+              Math.max(
+                  0,
+                  scroller.scrollTop -
+                      overflowPastMidnight
+
+apps\android\src\androidTimeGridBoundary.ts : line 268
+------------------------------------------------------------
+  
+          const correctedScrollTop =
+              Math.max(
+                  0,
+>                 scroller.scrollTop -
+                      overflowPastMidnight
+              );
+  
+          if (
+
+apps\android\src\androidTimeGridBoundary.ts : line 274
+------------------------------------------------------------
+              );
+  
+          if (
+              Math.abs(
+>                 correctedScrollTop -
+                      scroller.scrollTop
+              ) <= 0.5
+          ) {
+              return;
+
+apps\android\src\androidTimeGridBoundary.ts : line 275
+------------------------------------------------------------
+  
+          if (
+              Math.abs(
+                  correctedScrollTop -
+>                     scroller.scrollTop
+              ) <= 0.5
+          ) {
+              return;
+          }
+
+apps\android\src\androidTimeGridBoundary.ts : line 283
+------------------------------------------------------------
+          }
+  
+          correcting = true;
+  
+>         scroller.scrollTop =
+              correctedScrollTop;
+  
+          scroller.style.setProperty(
+              "--nc-scroll-y",
+
+apps\android\src\androidTimeGridBoundary.ts : line 284
+------------------------------------------------------------
+  
+          correcting = true;
+  
+          scroller.scrollTop =
+>             correctedScrollTop;
+  
+          scroller.style.setProperty(
+              "--nc-scroll-y",
+              `${correctedScrollTop}px`
+
+apps\android\src\androidTimeGridBoundary.ts : line 288
+------------------------------------------------------------
+              correctedScrollTop;
+  
+          scroller.style.setProperty(
+              "--nc-scroll-y",
+>             `${correctedScrollTop}px`
+          );
+  
+          window.requestAnimationFrame(
+              () => {
+
+src\ui\calendar\CalendarGrid.css : line 511
+------------------------------------------------------------
+      position: relative;
+      /* Clip the bleed at the source instead of masking it with an opaque fill,
+         so the sticky header + all-day band can stay transparent (wallpaper
+         shows through). The band occupies the top headerHeight+allDayHeight of
+>        the scroller; as the grid scrolls up by scrollTop, exactly that many
+         leading pixels of this row pass behind the band. Clipping the row's top
+         by scrollTop keeps its visible top pinned at the band's bottom edge —
+         independent of band height (the sticky siblings reserve the same height
+         in flow that they occupy in the viewport, so c = scrollTop). --nc-scroll-y
+
+src\ui\calendar\CalendarGrid.css : line 513
+------------------------------------------------------------
+         so the sticky header + all-day band can stay transparent (wallpaper
+         shows through). The band occupies the top headerHeight+allDayHeight of
+         the scroller; as the grid scrolls up by scrollTop, exactly that many
+         leading pixels of this row pass behind the band. Clipping the row's top
+>        by scrollTop keeps its visible top pinned at the band's bottom edge —
+         independent of band height (the sticky siblings reserve the same height
+         in flow that they occupy in the viewport, so c = scrollTop). --nc-scroll-y
+         is mirrored from the scroller's scrollTop by a rAF-batched listener in
+         TimeGrid.tsx; the 0px fallback covers the pre-first-scroll paint. */
+
+src\ui\calendar\CalendarGrid.css : line 515
+------------------------------------------------------------
+         the scroller; as the grid scrolls up by scrollTop, exactly that many
+         leading pixels of this row pass behind the band. Clipping the row's top
+         by scrollTop keeps its visible top pinned at the band's bottom edge —
+         independent of band height (the sticky siblings reserve the same height
+>        in flow that they occupy in the viewport, so c = scrollTop). --nc-scroll-y
+         is mirrored from the scroller's scrollTop by a rAF-batched listener in
+         TimeGrid.tsx; the 0px fallback covers the pre-first-scroll paint. */
+      clip-path: inset(var(--nc-scroll-y, 0px) 0 0 0);
+      /* Trap every descendant z-index (events 1/3/10, now-line 5/6, previews)
+
+src\ui\calendar\CalendarGrid.css : line 516
+------------------------------------------------------------
+         leading pixels of this row pass behind the band. Clipping the row's top
+         by scrollTop keeps its visible top pinned at the band's bottom edge —
+         independent of band height (the sticky siblings reserve the same height
+         in flow that they occupy in the viewport, so c = scrollTop). --nc-scroll-y
+>        is mirrored from the scroller's scrollTop by a rAF-batched listener in
+         TimeGrid.tsx; the 0px fallback covers the pre-first-scroll paint. */
+      clip-path: inset(var(--nc-scroll-y, 0px) 0 0 0);
+      /* Trap every descendant z-index (events 1/3/10, now-line 5/6, previews)
+         in this stacking context so nothing can ever paint outside the row and
+
+src\ui\calendar\TimeGrid.tsx : line 315
+------------------------------------------------------------
+                      element.scrollHeight -
+                          element.clientHeight
+                  );
+  
+>             element.scrollTop =
+                  Math.min(
+                      requestedScroll,
+                      maximumScroll
+                  );
+
+src\ui\calendar\TimeGrid.tsx : line 356
+------------------------------------------------------------
+          };
+      }, []);
+      // NEO_ANDROID_INITIAL_SCROLL_V7_4_END
+  
+>     // Compensate scrollTop when the all-day section's height changes between
+      // renders. Without this, any change to the visible lane count (e.g. when a
+      // horizontal shift brings more all-day events into the buffer) shifts the
+      // days row vertically and teleports the visible grid. The height tracked
+      // here must match the capped height set on .nc-allday-row in
+
+src\ui\calendar\TimeGrid.tsx : line 369
+------------------------------------------------------------
+          if (!el) return;
+          const newHeight = allDayVisibleRows * ALLDAY_ROW_HEIGHT;
+          const prev = prevAllDayHeightRef.current;
+          if (prev !== null && prev !== newHeight) {
+>             el.scrollTop += newHeight - prev;
+          }
+          prevAllDayHeightRef.current = newHeight;
+      }, [allDayVisibleRows]);
+  
+
+src\ui\calendar\TimeGrid.tsx : line 389
+------------------------------------------------------------
+          let frame = 0;
+          const update = () => {
+              frame = 0;
+              const x = main.scrollLeft;
+>             scrollable.style.transform = `translateY(${-main.scrollTop}px)`;
+              // Drive the vertical clip on .nc-days-row: clipping its top by
+              // scrollTop keeps the grid from painting behind the transparent
+              // sticky header/all-day band. Set on the scroller (ancestor) so it
+              // inherits to the row. See .nc-days-row in CalendarGrid.css.
+
+src\ui\calendar\TimeGrid.tsx : line 391
+------------------------------------------------------------
+              frame = 0;
+              const x = main.scrollLeft;
+              scrollable.style.transform = `translateY(${-main.scrollTop}px)`;
+              // Drive the vertical clip on .nc-days-row: clipping its top by
+>             // scrollTop keeps the grid from painting behind the transparent
+              // sticky header/all-day band. Set on the scroller (ancestor) so it
+              // inherits to the row. See .nc-days-row in CalendarGrid.css.
+              main.style.setProperty("--nc-scroll-y", `${main.scrollTop}px`);
+              if (allDayRowRef.current) {
+
+src\ui\calendar\TimeGrid.tsx : line 394
+------------------------------------------------------------
+              // Drive the vertical clip on .nc-days-row: clipping its top by
+              // scrollTop keeps the grid from painting behind the transparent
+              // sticky header/all-day band. Set on the scroller (ancestor) so it
+              // inherits to the row. See .nc-days-row in CalendarGrid.css.
+>             main.style.setProperty("--nc-scroll-y", `${main.scrollTop}px`);
+              if (allDayRowRef.current) {
+                  allDayRowRef.current.style.transform = `translateX(${x}px)`;
+              }
+              if (allDayTrackRef.current) {
+
+src\ui\calendar\TimeGrid.tsx : line 419
+------------------------------------------------------------
+      // recreated by a re-render (collapse toggle, data/width change). The scroll
+      // listener only fires on real scroll, so a fresh node would otherwise sit
+      // at translateX(0) and reveal the wrong (buffer) slice — making the visible
+      // days (and their collapsed counts) look empty. Same reasoning for the
+>     // grid's clip offset: a resize can clamp scrollTop with no scroll event, so
+      // re-mirror --nc-scroll-y here too to keep the clip aligned.
+      useLayoutEffect(() => {
+          const main = scrollRootRef.current;
+          if (!main) return;
+
+src\ui\calendar\TimeGrid.tsx : line 425
+------------------------------------------------------------
+      useLayoutEffect(() => {
+          const main = scrollRootRef.current;
+          if (!main) return;
+          const x = main.scrollLeft;
+>         main.style.setProperty("--nc-scroll-y", `${main.scrollTop}px`);
+          if (allDayRowRef.current) {
+              allDayRowRef.current.style.transform = `translateX(${x}px)`;
+          }
+          if (allDayTrackRef.current) {
+
+src\ui\calendar\TimeGridSections.tsx : line 41
+------------------------------------------------------------
+  //
+  // Lives outside the horizontal scroller, so buffer day columns can never
+  // scroll under it — that's what removes the need for any clip-path hack.
+  // Vertical scroll is mirrored via translateY on the .scrollable child,
+> // driven by the main scroller's scrollTop.
+  
+  interface LeftRailProps {
+      width: number;
+      headerHeight: number;
+
+================================================================================
+PATTERN: scrollHeight
+================================================================================
+
+src\ui\calendar\TimeGrid.tsx : line 311
+------------------------------------------------------------
+  
+              const maximumScroll =
+                  Math.max(
+                      0,
+>                     element.scrollHeight -
+                          element.clientHeight
+                  );
+  
+              element.scrollTop =
+
+================================================================================
+PATTERN: 23:00
+================================================================================
+
+src\ui\calendar\CalendarUtils.ts : line 46
+------------------------------------------------------------
+  // A timed event that fully covers at least one calendar day (midnight to
+  // midnight). These render as a horizontal bar in the all-day band (Notion-
+  // style) instead of full-height column blocks, which otherwise read as a
+  // confusing "wall" filling the day. A short event that merely crosses midnight
+> // (e.g. 23:00→01:00) covers NO full day, so it stays in the grid with a
+  // next-day continuation — only genuine all-day-spanning events move to the band.
+  export function isMultiDayTimed(event: {
+      start: Date;
+      end: Date;
+
+src\ui\calendar\TimeGrid.tsx : line 247
+------------------------------------------------------------
+  
+      const showAllDay = true;
+      // NEO_ANDROID_INITIAL_SCROLL_V7_4_START
+      // On Android, keep several hours of context above the current time.
+>     // At 23:59 this shows roughly 18:00-00:00 instead of opening at 23:00.
+      useLayoutEffect(() => {
+          const element = scrollRootRef.current;
+  
+          if (!element) {
+
+================================================================================
+PATTERN: 24 *
+================================================================================
+
+apps\android\src\mobile.css : line 2550
+------------------------------------------------------------
+  body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-scrollable {
+      box-sizing: border-box !important;
+>     height: calc(24 * var(--nc-hour-height)) !important;
+      min-height: calc(24 * var(--nc-hour-height)) !important;
+      max-height: calc(24 * var(--nc-hour-height)) !important;
+  }
+  
+
+apps\android\src\mobile.css : line 2551
+------------------------------------------------------------
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-scrollable {
+      box-sizing: border-box !important;
+      height: calc(24 * var(--nc-hour-height)) !important;
+>     min-height: calc(24 * var(--nc-hour-height)) !important;
+      max-height: calc(24 * var(--nc-hour-height)) !important;
+  }
+  
+  /* A clear final boundary at midnight. */
+
+apps\android\src\mobile.css : line 2552
+------------------------------------------------------------
+  body.nc-platform-android .nc-left-rail-scrollable {
+      box-sizing: border-box !important;
+      height: calc(24 * var(--nc-hour-height)) !important;
+      min-height: calc(24 * var(--nc-hour-height)) !important;
+>     max-height: calc(24 * var(--nc-hour-height)) !important;
+  }
+  
+  /* A clear final boundary at midnight. */
+  body.nc-platform-android .nc-timegrid-day::after,
+
+src\ui\calendar\CalendarGrid.css : line 504
+------------------------------------------------------------
+  
+  /* ── Days row ──────────────────────────────────────────────── */
+  
+  .nc-days-row {
+>     min-height: calc(24 * var(--nc-hour-height));
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      /* Clip the bleed at the source instead of masking it with an opaque fill,
+
+src\ui\calendar\CalendarUtils.ts : line 61
+------------------------------------------------------------
+      const sod = startOfDayFn(start);
+      const firstMidnight =
+          sod.getTime() === start.getTime()
+              ? sod
+>             : startOfDayFn(new Date(start.getTime() + 24 * 3600 * 1000));
+      // A full day is covered iff the event reaches the FOLLOWING midnight.
+      return event.end.getTime() >= firstMidnight.getTime() + 24 * 3600 * 1000;
+  }
+  
+
+src\ui\calendar\CalendarUtils.ts : line 63
+------------------------------------------------------------
+          sod.getTime() === start.getTime()
+              ? sod
+              : startOfDayFn(new Date(start.getTime() + 24 * 3600 * 1000));
+      // A full day is covered iff the event reaches the FOLLOWING midnight.
+>     return event.end.getTime() >= firstMidnight.getTime() + 24 * 3600 * 1000;
+  }
+  
+  // ── Event Positioning ──────────────────────────────────────
+  
+
+src\ui\calendar\CalendarUtils.ts : line 73
+------------------------------------------------------------
+      // Clamp to the day's own range [00:00, 24:00]. Dragging the pointer below
+      // the grid otherwise yields hours >= 24, which setHours rolls over into the
+      // NEXT day (e.g. 25:00 → 01:00) — so a downward drag "stuck" at 01:00
+      // instead of reaching midnight. 24:00 resolves to next-day 00:00 = midnight.
+>     const clampedY = Math.max(0, Math.min(yPosition, 24 * HOUR_HEIGHT));
+      const totalMinutes = (clampedY / HOUR_HEIGHT) * 60;
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = Math.round((totalMinutes % 60) / 15) * 15;
+      const date = new Date(dayDate);
+
+src\ui\calendar\EventBlock.tsx : line 136
+------------------------------------------------------------
+      // by the day's bottom edge). Based on the room ON THIS DAY, not the full
+      // duration — a 23:30→01:45 event has only 30 min of room on its start day.
+      const durationMin = (displayEnd.getTime() - event.start.getTime()) / 60000;
+      const minutesToMidnight =
+>         24 * 60 - (event.start.getHours() * 60 + event.start.getMinutes());
+      const onDayMinutes = Math.min(durationMin, minutesToMidnight);
+      const isShort = !compact && !event.allDay && onDayMinutes <= 40;
+      // A multi-day timed event renders as a thin bar in the all-day band
+      // (compact + timed). There its title and time range share one line, like a
+
+================================================================================
+PATTERN: midnight
+================================================================================
+
+apps\android\src\androidTimeGridBoundary.ts : line 3
+------------------------------------------------------------
+  type NeoAndroidWindow = Window & {
+      NeoAndroid?: unknown;
+>     __neoMidnightBoundaryV76?: boolean;
+  };
+  
+  const neoWindow =
+      window as NeoAndroidWindow;
+
+apps\android\src\androidTimeGridBoundary.ts : line 99
+------------------------------------------------------------
+  
+  function installBoundary(): void {
+      if (
+          !isAndroidRuntime() ||
+>         neoWindow.__neoMidnightBoundaryV76
+      ) {
+          return;
+      }
+  
+
+apps\android\src\androidTimeGridBoundary.ts : line 104
+------------------------------------------------------------
+      ) {
+          return;
+      }
+  
+>     neoWindow.__neoMidnightBoundaryV76 =
+          true;
+  
+      let activeScroller:
+          | HTMLElement
+
+apps\android\src\androidTimeGridBoundary.ts : line 165
+------------------------------------------------------------
+  
+          activeDayRow =
+              found.dayRow;
+  
+>         activeScroller.dataset.neoMidnightBoundary =
+              "v7.6";
+  
+          activeScroller.addEventListener(
+              "scroll",
+
+apps\android\src\androidTimeGridBoundary.ts : line 254
+------------------------------------------------------------
+           *
+           * At the maximum valid scroll position:
+           *     dayRow.bottom === dock.top
+           */
+>         const overflowPastMidnight =
+              dockTop -
+              rowRect.bottom;
+  
+          if (
+
+apps\android\src\androidTimeGridBoundary.ts : line 259
+------------------------------------------------------------
+              dockTop -
+              rowRect.bottom;
+  
+          if (
+>             overflowPastMidnight <= 0.5 ||
+              scroller.scrollTop <= 0
+          ) {
+              return;
+          }
+
+apps\android\src\androidTimeGridBoundary.ts : line 269
+------------------------------------------------------------
+          const correctedScrollTop =
+              Math.max(
+                  0,
+                  scroller.scrollTop -
+>                     overflowPastMidnight
+              );
+  
+          if (
+              Math.abs(
+
+apps\android\src\androidTimeGridBoundary.ts : line 357
+------------------------------------------------------------
+          900
+      );
+  
+      console.info(
+>         "[NeoMidnightBoundaryV76] installed"
+      );
+  }
+  
+  if (
+
+apps\android\src\mobile.css : line 2499
+------------------------------------------------------------
+  
+  /*
+   * Layout only:
+   * - Neo Calendar theme variables remain in control.
+>  * - The grid ends at midnight.
+   * - The existing agenda/+ panel reserves the bottom of the screen.
+   */
+  body.nc-platform-android {
+      --nc-android-agenda-content-height: 86px;
+
+apps\android\src\mobile.css : line 2555
+------------------------------------------------------------
+      min-height: calc(24 * var(--nc-hour-height)) !important;
+      max-height: calc(24 * var(--nc-hour-height)) !important;
+  }
+  
+> /* A clear final boundary at midnight. */
+  body.nc-platform-android .nc-timegrid-day::after,
+  body.nc-platform-android .nc-timegrid-hours::after,
+  body.nc-platform-android .nc-tz-column::after {
+      content: "";
+
+apps\android\src\mobile.css : line 2663
+------------------------------------------------------------
+  }
+  
+  /* === NEO ANDROID GRID AND BOTTOM DOCK V7.3 END === */
+  
+> /* === NEO ANDROID REAL MIDNIGHT BOUNDARY V7.6 START === */
+  
+  /*
+   * The JavaScript controller clamps against the real rendered bottom of
+   * .nc-days-row. These rules remove extra scroll space but do not decide
+
+apps\android\src\mobile.css : line 2690
+------------------------------------------------------------
+      padding-bottom: 0 !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-main-scroller[data-neo-midnight-boundary="v7.6"] {
+      overscroll-behavior:
+          none !important;
+  }
+  
+
+apps\android\src\mobile.css : line 2701
+------------------------------------------------------------
+      .nc-mobile-agenda-bar {
+      z-index: 70 !important;
+  }
+  
+> /* === NEO ANDROID REAL MIDNIGHT BOUNDARY V7.6 END === */
+  
+  /* === NEO ANDROID EMPTY GRID MENU GUARD V7.7 START === */
+  
+  /*
+
+src\ui\calendar\CalendarUtils.ts : line 42
+------------------------------------------------------------
+      getListTitle,
+  } from "./calendarFormatters";
+  export { neoEventToDisplayEvents } from "./eventExpansion";
+  
+> // A timed event that fully covers at least one calendar day (midnight to
+  // midnight). These render as a horizontal bar in the all-day band (Notion-
+  // style) instead of full-height column blocks, which otherwise read as a
+  // confusing "wall" filling the day. A short event that merely crosses midnight
+  // (e.g. 23:00→01:00) covers NO full day, so it stays in the grid with a
+
+src\ui\calendar\CalendarUtils.ts : line 43
+------------------------------------------------------------
+  } from "./calendarFormatters";
+  export { neoEventToDisplayEvents } from "./eventExpansion";
+  
+  // A timed event that fully covers at least one calendar day (midnight to
+> // midnight). These render as a horizontal bar in the all-day band (Notion-
+  // style) instead of full-height column blocks, which otherwise read as a
+  // confusing "wall" filling the day. A short event that merely crosses midnight
+  // (e.g. 23:00→01:00) covers NO full day, so it stays in the grid with a
+  // next-day continuation — only genuine all-day-spanning events move to the band.
+
+src\ui\calendar\CalendarUtils.ts : line 45
+------------------------------------------------------------
+  
+  // A timed event that fully covers at least one calendar day (midnight to
+  // midnight). These render as a horizontal bar in the all-day band (Notion-
+  // style) instead of full-height column blocks, which otherwise read as a
+> // confusing "wall" filling the day. A short event that merely crosses midnight
+  // (e.g. 23:00→01:00) covers NO full day, so it stays in the grid with a
+  // next-day continuation — only genuine all-day-spanning events move to the band.
+  export function isMultiDayTimed(event: {
+      start: Date;
+
+src\ui\calendar\CalendarUtils.ts : line 55
+------------------------------------------------------------
+      allDay: boolean;
+  }): boolean {
+      if (event.allDay) return false;
+      const start = event.start;
+>     // First midnight at or after the start = start of the first day that could
+      // be fully covered.
+      const sod = startOfDayFn(start);
+      const firstMidnight =
+          sod.getTime() === start.getTime()
+
+src\ui\calendar\CalendarUtils.ts : line 58
+------------------------------------------------------------
+      const start = event.start;
+      // First midnight at or after the start = start of the first day that could
+      // be fully covered.
+      const sod = startOfDayFn(start);
+>     const firstMidnight =
+          sod.getTime() === start.getTime()
+              ? sod
+              : startOfDayFn(new Date(start.getTime() + 24 * 3600 * 1000));
+      // A full day is covered iff the event reaches the FOLLOWING midnight.
+
+src\ui\calendar\CalendarUtils.ts : line 62
+------------------------------------------------------------
+      const firstMidnight =
+          sod.getTime() === start.getTime()
+              ? sod
+              : startOfDayFn(new Date(start.getTime() + 24 * 3600 * 1000));
+>     // A full day is covered iff the event reaches the FOLLOWING midnight.
+      return event.end.getTime() >= firstMidnight.getTime() + 24 * 3600 * 1000;
+  }
+  
+  // ── Event Positioning ──────────────────────────────────────
+
+src\ui\calendar\CalendarUtils.ts : line 63
+------------------------------------------------------------
+          sod.getTime() === start.getTime()
+              ? sod
+              : startOfDayFn(new Date(start.getTime() + 24 * 3600 * 1000));
+      // A full day is covered iff the event reaches the FOLLOWING midnight.
+>     return event.end.getTime() >= firstMidnight.getTime() + 24 * 3600 * 1000;
+  }
+  
+  // ── Event Positioning ──────────────────────────────────────
+  
+
+src\ui\calendar\CalendarUtils.ts : line 72
+------------------------------------------------------------
+  export function positionToDate(yPosition: number, dayDate: Date): Date {
+      // Clamp to the day's own range [00:00, 24:00]. Dragging the pointer below
+      // the grid otherwise yields hours >= 24, which setHours rolls over into the
+      // NEXT day (e.g. 25:00 → 01:00) — so a downward drag "stuck" at 01:00
+>     // instead of reaching midnight. 24:00 resolves to next-day 00:00 = midnight.
+      const clampedY = Math.max(0, Math.min(yPosition, 24 * HOUR_HEIGHT));
+      const totalMinutes = (clampedY / HOUR_HEIGHT) * 60;
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = Math.round((totalMinutes % 60) / 15) * 15;
+
+src\ui\calendar\EventBlock.tsx : line 125
+------------------------------------------------------------
+  
+      // Event blocks show the time RANGE (start – end), like Notion Calendar.
+      // The end reflects a live resize via displayEnd/previewEnd; the start
+      // likewise reflects a top-edge resize via previewStart. Continuations
+>     // (next-day part of a cross-midnight event) keep the original start time
+      // via labelStart.
+      const labelStart = previewStart ?? event.labelStart ?? event.start;
+  
+      // Use the inline (one-row) layout when there's little vertical room: either
+
+src\ui\calendar\EventBlock.tsx : line 131
+------------------------------------------------------------
+      const labelStart = previewStart ?? event.labelStart ?? event.start;
+  
+      // Use the inline (one-row) layout when there's little vertical room: either
+      // a short event, OR one starting late enough that its visible portion
+>     // before midnight is small (e.g. a cross-midnight event at 23:20+, clipped
+      // by the day's bottom edge). Based on the room ON THIS DAY, not the full
+      // duration — a 23:30→01:45 event has only 30 min of room on its start day.
+      const durationMin = (displayEnd.getTime() - event.start.getTime()) / 60000;
+      const minutesToMidnight =
+
+src\ui\calendar\EventBlock.tsx : line 135
+------------------------------------------------------------
+      // before midnight is small (e.g. a cross-midnight event at 23:20+, clipped
+      // by the day's bottom edge). Based on the room ON THIS DAY, not the full
+      // duration — a 23:30→01:45 event has only 30 min of room on its start day.
+      const durationMin = (displayEnd.getTime() - event.start.getTime()) / 60000;
+>     const minutesToMidnight =
+          24 * 60 - (event.start.getHours() * 60 + event.start.getMinutes());
+      const onDayMinutes = Math.min(durationMin, minutesToMidnight);
+      const isShort = !compact && !event.allDay && onDayMinutes <= 40;
+      // A multi-day timed event renders as a thin bar in the all-day band
+
+src\ui\calendar\EventBlock.tsx : line 137
+------------------------------------------------------------
+      // duration — a 23:30→01:45 event has only 30 min of room on its start day.
+      const durationMin = (displayEnd.getTime() - event.start.getTime()) / 60000;
+      const minutesToMidnight =
+          24 * 60 - (event.start.getHours() * 60 + event.start.getMinutes());
+>     const onDayMinutes = Math.min(durationMin, minutesToMidnight);
+      const isShort = !compact && !event.allDay && onDayMinutes <= 40;
+      // A multi-day timed event renders as a thin bar in the all-day band
+      // (compact + timed). There its title and time range share one line, like a
+      // short grid event.
+
+src\ui\calendar\EventPanel.tsx : line 765
+------------------------------------------------------------
+          () => computeDuration(form.startTime, form.endTime),
+          [form.startTime, form.endTime]
+      );
+      const dateLabel = useMemo(() => formatDateLong(form.date), [form.date]);
+>     // End date, shown only when the event crosses midnight (endTime < startTime
+      // means it ends the next day) — Notion shows both start and end dates.
+      const endDateLabel = useMemo(() => {
+          if (form.allDay || !form.startTime || !form.endTime) return "";
+          if (form.endTime >= form.startTime) return "";
+
+src\ui\calendar\TimeGrid.tsx : line 51
+------------------------------------------------------------
+          map.get(key)!.push(e);
+      };
+      for (const event of events) {
+          if (!filter(event)) continue;
+>         // The event lives on its start day (its block is clipped at midnight by
+          // the day column's overflow:hidden).
+          push(event.start.toDateString(), event);
+          // If it crosses midnight, add a read-only continuation on each
+          // subsequent day it touches, starting at 00:00, keeping the original
+
+src\ui\calendar\TimeGrid.tsx : line 54
+------------------------------------------------------------
+          if (!filter(event)) continue;
+          // The event lives on its start day (its block is clipped at midnight by
+          // the day column's overflow:hidden).
+          push(event.start.toDateString(), event);
+>         // If it crosses midnight, add a read-only continuation on each
+          // subsequent day it touches, starting at 00:00, keeping the original
+          // start time as the label (Notion-style).
+          let dayStart = startOfDay(addDays(event.start, 1));
+          while (dayStart.getTime() < event.end.getTime()) {
+
+src\ui\calendar\TimeGridSections.tsx : line 628
+------------------------------------------------------------
+      const today = isToday(date);
+      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+  
+      // The slice of a [a, b] time range that falls on THIS column's day. Lets a
+>     // cross-day selection/draft render as: start day from its time to midnight,
+      // whole middle days, end day from midnight to its time (Notion-style).
+      // `hasEnd` marks the column that holds the range's actual end (for the
+      // draft's resize handle).
+      const dayPortion = (aMs: number, bMs: number) => {
+
+src\ui\calendar\TimeGridSections.tsx : line 629
+------------------------------------------------------------
+      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+  
+      // The slice of a [a, b] time range that falls on THIS column's day. Lets a
+      // cross-day selection/draft render as: start day from its time to midnight,
+>     // whole middle days, end day from midnight to its time (Notion-style).
+      // `hasEnd` marks the column that holds the range's actual end (for the
+      // draft's resize handle).
+      const dayPortion = (aMs: number, bMs: number) => {
+          const s = Math.min(aMs, bMs);
+
+src\ui\calendar\useDraftEvent.ts : line 183
+------------------------------------------------------------
+                      }
+                  );
+                  // Cross-day timed selection (Notion-style): when the drag ends on
+                  // a later day, carry the end day so it becomes a multi-day event
+>                 // instead of a same-day one whose end time wraps past midnight.
+                  const endDay = DateTime.fromJSDate(draftSlot.end).toISODate();
+                  if (endDay && endDay !== startDate) newEvent.endDate = endDay;
+              } else {
+                  const endDate = DateTime.fromJSDate(draftSlot.end)
+
+================================================================================
+PATTERN: nc-draft-preview-resize
+================================================================================
+
+apps\android\src\mobile.css : line 1515
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize {
+      position: absolute !important;
+      z-index: 20 !important;
+  
+      display: block !important;
+
+apps\android\src\mobile.css : line 1545
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize-top {
+      top: -8px !important;
+      right: auto !important;
+      bottom: auto !important;
+      left: 10px !important;
+
+apps\android\src\mobile.css : line 1554
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize-bottom {
+      top: auto !important;
+      right: 10px !important;
+      bottom: -8px !important;
+      left: auto !important;
+
+apps\android\src\mobile.css : line 1563
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+
+apps\android\src\mobile.css : line 1743
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize {
+      z-index: 74 !important;
+      width: 20px !important;
+      min-width: 20px !important;
+      height: 20px !important;
+
+apps\android\src\mobile.css : line 1755
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize-top {
+      top: -10px !important;
+      left: 9px !important;
+  }
+  
+
+apps\android\src\mobile.css : line 1762
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize-bottom {
+      right: 9px !important;
+      bottom: -10px !important;
+  }
+  
+
+apps\android\src\mobile.css : line 1769
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize::after {
+      width: 50px !important;
+      height: 50px !important;
+  }
+  
+
+apps\android\src\mobile.css : line 1947
+------------------------------------------------------------
+  
+  /* Reliable and comfortable resize handles. */
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize {
+      z-index: 90 !important;
+  
+      width: 20px !important;
+      min-width: 20px !important;
+
+apps\android\src\mobile.css : line 1963
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize::after {
+      width: 54px !important;
+      height: 54px !important;
+  
+      pointer-events: auto !important;
+
+apps\android\src\mobile.css : line 2288
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize {
+      z-index: 130 !important;
+  
+      width: 22px !important;
+      min-width: 22px !important;
+
+apps\android\src\mobile.css : line 2304
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+
+apps\android\src\mobile.css : line 2337
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize {
+      position: absolute !important;
+      z-index: 150 !important;
+  
+      display: block !important;
+
+apps\android\src\mobile.css : line 2375
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize-top {
+      top: -11px !important;
+      right: auto !important;
+      bottom: auto !important;
+      left: 9px !important;
+
+apps\android\src\mobile.css : line 2384
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize-bottom {
+      top: auto !important;
+      right: 9px !important;
+      bottom: -11px !important;
+      left: auto !important;
+
+apps\android\src\mobile.css : line 2393
+------------------------------------------------------------
+  }
+  
+  body.nc-platform-android
+      .nc-selection-mirror[data-draft-preview="true"]
+>     .nc-draft-preview-resize::after,
+  body.nc-platform-android
+      .nc-event-block.nc-android-event-resize-selected
+      .nc-event-resize-handle::after,
+  body.nc-platform-android
+
+src\ui\calendar\TimeGridSections.tsx : line 748
+------------------------------------------------------------
+                      }}
+                  >
+                      {draftPortion.hasStart && (
+                          <div
+>                             className="nc-draft-preview-resize nc-draft-preview-resize-top"
+                              data-neo-resize-edge="top"
+                              onPointerDown={(event) =>
+                                  handleDraftResizeStart(event, "top")
+                              }
+
+src\ui\calendar\TimeGridSections.tsx : line 757
+------------------------------------------------------------
+                          />
+                      )}
+                      {draftPortion.hasEnd && (
+                          <div
+>                             className="nc-draft-preview-resize nc-draft-preview-resize-bottom"
+                              data-neo-resize-edge="bottom"
+                              onPointerDown={(event) =>
+                                  handleDraftResizeStart(event, "bottom")
+                              }
+
+================================================================================
+PATTERN: handleDraftResizeStart
+================================================================================
+
+src\ui\calendar\TimeGrid.tsx : line 198
+------------------------------------------------------------
+          () => [...events, ...(allDayEvents ?? [])].filter((e) => e.selected),
+          onEventUnschedule
+      );
+  
+>     const { resizePreview, handleResizeStart, handleDraftResizeStart } =
+          useTimeGridResize(events, onEventResize, draftSlot, onResizeDraft);
+  
+      const {
+          selection,
+
+src\ui\calendar\TimeGrid.tsx : line 538
+------------------------------------------------------------
+                              onEventClick={onEventClick}
+                              onContextMenu={onContextMenu}
+                              onToggleTask={onToggleTask}
+                              handleResizeStart={handleResizeStart}
+>                             handleDraftResizeStart={handleDraftResizeStart}
+                              handleMouseDown={handleMouseDown}
+                              handleDoubleClick={handleDoubleClick}
+                              handleEmptyContext={handleEmptyContext}
+                              contextLine={contextLine}
+
+src\ui\calendar\TimeGridSections.tsx : line 587
+------------------------------------------------------------
+          eventId: string,
+          startY: number,
+          edge: "top" | "bottom"
+      ) => void;
+>     handleDraftResizeStart: (
+          e: React.PointerEvent,
+          edge: "top" | "bottom"
+      ) => void;
+      handleMouseDown: (
+
+src\ui\calendar\TimeGridSections.tsx : line 617
+------------------------------------------------------------
+      onEventClick,
+      onContextMenu,
+      onToggleTask,
+      handleResizeStart,
+>     handleDraftResizeStart,
+      handleMouseDown,
+      handleDoubleClick,
+      handleEmptyContext,
+  }: DayColumnProps) {
+
+src\ui\calendar\TimeGridSections.tsx : line 751
+------------------------------------------------------------
+                          <div
+                              className="nc-draft-preview-resize nc-draft-preview-resize-top"
+                              data-neo-resize-edge="top"
+                              onPointerDown={(event) =>
+>                                 handleDraftResizeStart(event, "top")
+                              }
+                          />
+                      )}
+                      {draftPortion.hasEnd && (
+
+src\ui\calendar\TimeGridSections.tsx : line 760
+------------------------------------------------------------
+                          <div
+                              className="nc-draft-preview-resize nc-draft-preview-resize-bottom"
+                              data-neo-resize-edge="bottom"
+                              onPointerDown={(event) =>
+>                                 handleDraftResizeStart(event, "bottom")
+                              }
+                          />
+                      )}
+                  </div>
+
+src\ui\calendar\TimeGridSections.tsx : line 817
+------------------------------------------------------------
+          eventId: string,
+          startY: number,
+          edge: "top" | "bottom"
+      ) => void;
+>     handleDraftResizeStart: (
+          e: React.PointerEvent,
+          edge: "top" | "bottom"
+      ) => void;
+      handleMouseDown: (
+
+src\ui\calendar\TimeGridSections.tsx : line 849
+------------------------------------------------------------
+      onEventClick,
+      onContextMenu,
+      onToggleTask,
+      handleResizeStart,
+>     handleDraftResizeStart,
+      handleMouseDown,
+      handleDoubleClick,
+      handleEmptyContext,
+      contextLine,
+
+src\ui\calendar\TimeGridSections.tsx : line 882
+------------------------------------------------------------
+                      onEventClick={onEventClick}
+                      onContextMenu={onContextMenu}
+                      onToggleTask={onToggleTask}
+                      handleResizeStart={handleResizeStart}
+>                     handleDraftResizeStart={handleDraftResizeStart}
+                      handleMouseDown={handleMouseDown}
+                      handleDoubleClick={handleDoubleClick}
+                      handleEmptyContext={handleEmptyContext}
+                  />
+
+src\ui\calendar\useTimeGridResize.ts : line 310
+------------------------------------------------------------
+          handleResizeMove,
+          handleResizeEnd,
+      ]);
+  
+>     const handleDraftResizeStart =
+          useCallback(
+              (
+                  event:
+                      React.PointerEvent,
+
+src\ui\calendar\useTimeGridResize.ts : line 550
+------------------------------------------------------------
+      return {
+          resizeState,
+          resizePreview,
+          handleResizeStart,
+>         handleDraftResizeStart,
+      };
+  }
+
+================================================================================
+PATTERN: pointerdown
+================================================================================
+
+apps\android\src\androidDraftSelection.ts : line 331
+------------------------------------------------------------
+          true
+      );
+  
+      window.addEventListener(
+>         "pointerdown",
+          (event) => {
+              if (
+                  !isAndroidRuntime()
+              ) {
+
+src\ui\calendar\EventBlock.tsx : line 93
+------------------------------------------------------------
+          },
+          [event.id, onResizeStart]
+      );
+  
+>     const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
+          // Prevent dnd-kit drag from starting when grabbing the resize handle
+          e.stopPropagation();
+      }, []);
+  
+
+src\ui\calendar\EventBlock.tsx : line 199
+------------------------------------------------------------
+                  <>
+                      {/* Top edge: drag to move the START time (Notion-style). */}
+                      <div
+                          className="nc-event-resize-handle-top"
+>                         onPointerDown={handleResizePointerDown}
+                          onMouseDown={(e) => handleResizeMouseDown(e, "top")}
+                      />
+                      {/* Bottom edge: drag to move the END time. */}
+                      <div
+
+src\ui\calendar\EventBlock.tsx : line 206
+------------------------------------------------------------
+                      {/* Bottom edge: drag to move the END time. */}
+                      <div
+                          ref={resizeRef}
+                          className="nc-event-resize-handle"
+>                         onPointerDown={handleResizePointerDown}
+                          onMouseDown={(e) => handleResizeMouseDown(e, "bottom")}
+                      />
+                  </>
+              )}
+
+src\ui\calendar\TimeGridSections.tsx : line 666
+------------------------------------------------------------
+                  isWeekend ? "nc-weekend" : ""
+              }`}
+              data-day-index={dateIdx}
+              data-date={date.toISOString()}
+>             onPointerDown={(e) => handleMouseDown(e, date, dateIdx)}
+              onDoubleClick={(e) => handleDoubleClick(e, date)}
+              onContextMenu={(e) => handleEmptyContext(e, date)}
+          >
+              {hours.map((hour) => (
+
+src\ui\calendar\TimeGridSections.tsx : line 750
+------------------------------------------------------------
+                      {draftPortion.hasStart && (
+                          <div
+                              className="nc-draft-preview-resize nc-draft-preview-resize-top"
+                              data-neo-resize-edge="top"
+>                             onPointerDown={(event) =>
+                                  handleDraftResizeStart(event, "top")
+                              }
+                          />
+                      )}
+
+src\ui\calendar\TimeGridSections.tsx : line 759
+------------------------------------------------------------
+                      {draftPortion.hasEnd && (
+                          <div
+                              className="nc-draft-preview-resize nc-draft-preview-resize-bottom"
+                              data-neo-resize-edge="bottom"
+>                             onPointerDown={(event) =>
+                                  handleDraftResizeStart(event, "bottom")
+                              }
+                          />
+                      )}
+
+================================================================================
+PATTERN: pointerup
+================================================================================
+
+apps\android\src\androidTimeGridBoundary.ts : line 152
+------------------------------------------------------------
+                  requestClamp
+              );
+  
+              activeScroller.removeEventListener(
+>                 "pointerup",
+                  requestClamp
+              );
+          }
+  
+
+apps\android\src\androidTimeGridBoundary.ts : line 193
+------------------------------------------------------------
+              }
+          );
+  
+          activeScroller.addEventListener(
+>             "pointerup",
+              requestClamp,
+              {
+                  passive: true,
+              }
+
+src\ui\calendar\useTimeGridResize.ts : line 273
+------------------------------------------------------------
+              }
+          );
+  
+          window.addEventListener(
+>             "pointerup",
+              handleResizeEnd,
+              {
+                  passive: false,
+              }
+
+src\ui\calendar\useTimeGridResize.ts : line 295
+------------------------------------------------------------
+                  handleResizeMove
+              );
+  
+              window.removeEventListener(
+>                 "pointerup",
+                  handleResizeEnd
+              );
+  
+              window.removeEventListener(
+
+src\ui\calendar\useTimeGridResize.ts : line 373
+------------------------------------------------------------
+                          true
+                      );
+  
+                      window.removeEventListener(
+>                         "pointerup",
+                          onEnd,
+                          true
+                      );
+  
+
+src\ui\calendar\useTimeGridResize.ts : line 518
+------------------------------------------------------------
+                      }
+                  );
+  
+                  window.addEventListener(
+>                     "pointerup",
+                      onEnd,
+                      {
+                          capture: true,
+                          passive: false,
+
+src\ui\calendar\useTimeGridSelection.ts : line 125
+------------------------------------------------------------
+                      true
+                  );
+  
+                  document.removeEventListener(
+>                     "pointerup",
+                      onUp,
+                      true
+                  );
+  
+
+src\ui\calendar\useTimeGridSelection.ts : line 336
+------------------------------------------------------------
+                  true
+              );
+  
+              document.addEventListener(
+>                 "pointerup",
+                  onUp,
+                  true
+              );
+  
+
+================================================================================
+PATTERN: onResizeDraft
+================================================================================
+
+src\ui\calendar\TimeGrid.tsx : line 92
+------------------------------------------------------------
+          allDayEvents,
+          onEmptyContextMenu,
+          draftSlot,
+          draftColor,
+>         onResizeDraft,
+          onShiftDays,
+          contextLine,
+          externalPreview,
+          onEventUnschedule,
+
+src\ui\calendar\TimeGrid.tsx : line 199
+------------------------------------------------------------
+          onEventUnschedule
+      );
+  
+      const { resizePreview, handleResizeStart, handleDraftResizeStart } =
+>         useTimeGridResize(events, onEventResize, draftSlot, onResizeDraft);
+  
+      const {
+          selection,
+          handleMouseDown,
+
+src\ui\calendar\TimeGrid.types.ts : line 39
+------------------------------------------------------------
+      allDayEvents?: DisplayEvent[];
+      onEmptyContextMenu?: (date: Date, mouseEvent: MouseEvent) => void;
+      draftSlot?: { start: Date; end: Date; allDay: boolean } | null;
+      draftColor?: string;
+>     onResizeDraft?: (newStart: Date, newEnd?: Date) => void;
+      onShiftDays?: (days: number) => void;
+      contextLine?: { date: Date; top: number } | null;
+      /** Cadre d'atterrissage pilote de l'exterieur (drag venu du panneau). */
+      externalPreview?: DragPreview | null;
+
+src\ui\calendar\useTimeGridResize.ts : line 27
+------------------------------------------------------------
+          newStart: Date,
+          newEnd: Date
+      ) => Promise<boolean>,
+      draftSlot: DraftSlot | null | undefined,
+>     onResizeDraft?: ResizeDraftCallback
+  ) {
+      const [resizeState, setResizeState] =
+          useState<ResizeState | null>(null);
+  
+
+src\ui\calendar\useTimeGridResize.ts : line 440
+------------------------------------------------------------
+  
+                      lastEndMs =
+                          nextEndMs;
+  
+>                     if (onResizeDraft) {
+                          onResizeDraft(
+                              result.newStart,
+                              result.newEnd
+                          );
+
+src\ui\calendar\useTimeGridResize.ts : line 441
+------------------------------------------------------------
+                      lastEndMs =
+                          nextEndMs;
+  
+                      if (onResizeDraft) {
+>                         onResizeDraft(
+                              result.newStart,
+                              result.newEnd
+                          );
+                      } else {
+
+src\ui\calendar\useTimeGridResize.ts : line 484
+------------------------------------------------------------
+                              pointerEvent.clientY -
+                                  startClientY
+                          );
+  
+>                     if (onResizeDraft) {
+                          onResizeDraft(
+                              result.newStart,
+                              result.newEnd
+                          );
+
+src\ui\calendar\useTimeGridResize.ts : line 485
+------------------------------------------------------------
+                                  startClientY
+                          );
+  
+                      if (onResizeDraft) {
+>                         onResizeDraft(
+                              result.newStart,
+                              result.newEnd
+                          );
+                      } else {
+
+src\ui\calendar\useTimeGridResize.ts : line 541
+------------------------------------------------------------
+                  );
+              },
+              [
+                  draftSlot,
+>                 onResizeDraft,
+                  computeSnapped,
+              ]
+          );
+  
+
+================================================================================
+PATTERN: setDraftSlot
+================================================================================
+
+src\ui\calendar\useDraftEvent.ts : line 48
+------------------------------------------------------------
+      /** Lu au moment de la selection, pas au montage : l'appelant peut declarer
+          le calendrier par defaut apres ce hook dans son corps de composant. */
+      getDefaultCalendarId?: () => string;
+  }) {
+>     const [draftSlot, setDraftSlot] = useState<DraftSlot | null>(null);
+  
+      // NEO_ANDROID_DRAFT_BRIDGE_START
+      useNeoAndroidDraftEffect(() => {
+          const androidWindow = window as Window & {
+
+src\ui\calendar\useDraftEvent.ts : line 89
+------------------------------------------------------------
+              ) {
+                  return;
+              }
+  
+>             setDraftSlot((current) => {
+                  if (!current || current.allDay) {
+                      return current;
+                  }
+  
+
+src\ui\calendar\useDraftEvent.ts : line 133
+------------------------------------------------------------
+                  editableCalendars,
+                  getDefaultCalendarId?.()
+              ) as any;
+              clearPanelEventId();
+>             setDraftSlot({ start, end, allDay, calendarId: calendar.id });
+              requestAnimationFrame(() => {
+                  requestAnimationFrame(() => {
+                      setDraftAnchor();
+                  });
+
+src\ui\calendar\useDraftEvent.ts : line 215
+------------------------------------------------------------
+          (
+              newStartOrEnd: Date,
+              newEnd?: Date
+          ) => {
+>             setDraftSlot((previous) => {
+                  if (!previous) {
+                      return previous;
+                  }
+  
+
+src\ui\calendar\useDraftEvent.ts : line 238
+------------------------------------------------------------
+          []
+      );
+  
+      const discardDraft = useCallback(() => {
+>         setDraftSlot(null);
+      }, []);
+  
+      return {
+          draftSlot,
+
+================================================================================
+PATTERN: data-draft-preview
+================================================================================
+
+apps\android\src\mobile.css : line 1472
+------------------------------------------------------------
+      }
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"] {
+      --nc-android-draft-color: #4db6ff;
+  
+      isolation: isolate;
+      overflow: visible !important;
+
+apps\android\src\mobile.css : line 1496
+------------------------------------------------------------
+          0 4px 12px rgba(0, 0, 0, 0.22) !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]::before {
+      content: "";
+      position: absolute;
+      z-index: 0;
+      inset: 0;
+
+apps\android\src\mobile.css : line 1514
+------------------------------------------------------------
+      will-change: opacity;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize {
+      position: absolute !important;
+      z-index: 20 !important;
+  
+
+apps\android\src\mobile.css : line 1544
+------------------------------------------------------------
+      transform: none !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize-top {
+      top: -8px !important;
+      right: auto !important;
+      bottom: auto !important;
+
+apps\android\src\mobile.css : line 1553
+------------------------------------------------------------
+      left: 10px !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize-bottom {
+      top: auto !important;
+      right: 10px !important;
+      bottom: -8px !important;
+
+apps\android\src\mobile.css : line 1562
+------------------------------------------------------------
+      left: auto !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+
+apps\android\src\mobile.css : line 1576
+------------------------------------------------------------
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+      body.nc-platform-android
+>         .nc-selection-mirror[data-draft-preview="true"]::before {
+          animation: none !important;
+          opacity: 0.28;
+      }
+  }
+
+apps\android\src\mobile.css : line 1736
+------------------------------------------------------------
+      padding-left: 26px !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"] {
+      z-index: 70 !important;
+      overflow: visible !important;
+  }
+  
+
+apps\android\src\mobile.css : line 1742
+------------------------------------------------------------
+      overflow: visible !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize {
+      z-index: 74 !important;
+      width: 20px !important;
+      min-width: 20px !important;
+
+apps\android\src\mobile.css : line 1754
+------------------------------------------------------------
+      background: #202124 !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize-top {
+      top: -10px !important;
+      left: 9px !important;
+  }
+
+apps\android\src\mobile.css : line 1761
+------------------------------------------------------------
+      left: 9px !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize-bottom {
+      right: 9px !important;
+      bottom: -10px !important;
+  }
+
+apps\android\src\mobile.css : line 1768
+------------------------------------------------------------
+      bottom: -10px !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize::after {
+      width: 50px !important;
+      height: 50px !important;
+  }
+
+apps\android\src\mobile.css : line 1946
+------------------------------------------------------------
+  }
+  
+  /* Reliable and comfortable resize handles. */
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize {
+      z-index: 90 !important;
+  
+      width: 20px !important;
+
+apps\android\src\mobile.css : line 1962
+------------------------------------------------------------
+      -webkit-user-select: none !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize::after {
+      width: 54px !important;
+      height: 54px !important;
+  
+
+apps\android\src\mobile.css : line 2281
+------------------------------------------------------------
+      display: none !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"] {
+      z-index: 100 !important;
+      overflow: visible !important;
+  }
+  
+
+apps\android\src\mobile.css : line 2287
+------------------------------------------------------------
+      overflow: visible !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize {
+      z-index: 130 !important;
+  
+      width: 22px !important;
+
+apps\android\src\mobile.css : line 2303
+------------------------------------------------------------
+      -webkit-user-select: none !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+
+apps\android\src\mobile.css : line 2331
+------------------------------------------------------------
+  
+  /* === NEO ANDROID NATIVE TOUCH RESIZE V7.1 START === */
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"] {
+      overflow: visible !important;
+  }
+  
+  body.nc-platform-android
+
+apps\android\src\mobile.css : line 2336
+------------------------------------------------------------
+      overflow: visible !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize {
+      position: absolute !important;
+      z-index: 150 !important;
+  
+
+apps\android\src\mobile.css : line 2374
+------------------------------------------------------------
+      -webkit-user-select: none !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize-top {
+      top: -11px !important;
+      right: auto !important;
+      bottom: auto !important;
+
+apps\android\src\mobile.css : line 2383
+------------------------------------------------------------
+      left: 9px !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize-bottom {
+      top: auto !important;
+      right: 9px !important;
+      bottom: -11px !important;
+
+apps\android\src\mobile.css : line 2392
+------------------------------------------------------------
+      left: auto !important;
+  }
+  
+  body.nc-platform-android
+>     .nc-selection-mirror[data-draft-preview="true"]
+      .nc-draft-preview-resize::after,
+  body.nc-platform-android
+      .nc-event-block.nc-android-event-resize-selected
+      .nc-event-resize-handle::after,
+
+src\ui\calendar\EventPanel.tsx : line 344
+------------------------------------------------------------
+                  `[data-event-id="${CSS.escape(eventId)}"]`
+              );
+              if (el) return el.getBoundingClientRect();
+          }
+>         const draftEl = document.querySelector("[data-draft-preview]");
+          if (draftEl) return draftEl.getBoundingClientRect();
+          return anchorRect;
+      }, [eventId, anchorRect]);
+  
+
+src\ui\calendar\TimeGridSections.tsx : line 506
+------------------------------------------------------------
+                                      draftSlot.allDay &&
+                                      isSameDay(draftSlot.start, date) && (
+                                          <div
+                                              className="nc-selection-mirror nc-allday-draft"
+>                                             data-draft-preview="true"
+                                              style={{
+                                                  top: 1,
+                                                  height: ALLDAY_ROW_HEIGHT - 2,
+                                                  backgroundColor: draftColor
+
+src\ui\calendar\TimeGridSections.tsx : line 737
+------------------------------------------------------------
+  
+              {draftPortion && (
+                  <div
+                      className="nc-selection-mirror"
+>                     data-draft-preview="true"
+                      style={{
+                          top: draftPortion.top,
+                          height: draftPortion.height,
+                          backgroundColor: draftColor
+
+src\ui\calendar\useTimeGridSelection.ts : line 82
+------------------------------------------------------------
+              const target = event.target as HTMLElement;
+  
+              if (
+                  target.closest(".nc-event-block") ||
+>                 target.closest("[data-draft-preview]") ||
+                  target.closest(".nc-event-popup")
+              ) {
+                  return;
+              }

@@ -1,0 +1,1787 @@
+diff --git a/src/ui/calendar/EventPanel.tsx b/src/ui/calendar/EventPanel.tsx
+index 248e745..2df8dd5 100644
+--- a/src/ui/calendar/EventPanel.tsx
++++ b/src/ui/calendar/EventPanel.tsx
+@@ -31,6 +31,24 @@ import { FileTextIcon } from "./EventPanelIcons";
+ import { defaultRecurrence } from "./recurrence";
+ import { mergeForSave } from "./eventScheduling";
+ 
++/* NEO_ANDROID_RUNTIME_HELPER_V3_START */
++function isNeoAndroidRuntime(): boolean {
++    return (
++        Boolean(
++            (window as Window & { NeoAndroid?: unknown }).NeoAndroid
++        ) ||
++        document.documentElement.classList.contains(
++            "nc-platform-android"
++        ) ||
++        document.body.classList.contains(
++            "nc-platform-android"
++        ) ||
++        document.documentElement.dataset.neoCalendarPlatform ===
++            "android"
++    );
++}
++/* NEO_ANDROID_RUNTIME_HELPER_V3_END */
++
+ export interface DraftInfo {
+     start: Date;
+     end: Date;
+@@ -252,6 +270,61 @@ export default function EventPanel({
+         currentCalendarId: stableCalInfo.currentId,
+     });
+ 
++    // NEO_ANDROID_DRAFT_LIVE_TIME_V7_2_START
++    useEffect(() => {
++        if (
++            !isDraft ||
++            !draft ||
++            draft.allDay
++        ) {
++            return;
++        }
++
++        const pad = (value: number) =>
++            String(value).padStart(2, "0");
++
++        const dateValue =
++            `${draft.start.getFullYear()}-` +
++            `${pad(draft.start.getMonth() + 1)}-` +
++            `${pad(draft.start.getDate())}`;
++
++        const startValue =
++            `${pad(draft.start.getHours())}:` +
++            `${pad(draft.start.getMinutes())}`;
++
++        const endValue =
++            `${pad(draft.end.getHours())}:` +
++            `${pad(draft.end.getMinutes())}`;
++
++        if (form.date !== dateValue) {
++            form.setDate(dateValue);
++        }
++
++        if (
++            form.startTime !==
++            startValue
++        ) {
++            form.setStartTime(
++                startValue
++            );
++        }
++
++        if (
++            form.endTime !==
++            endValue
++        ) {
++            form.setEndTime(
++                endValue
++            );
++        }
++    }, [
++        isDraft,
++        draft?.start.getTime(),
++        draft?.end.getTime(),
++        draft?.allDay,
++    ]);
++    // NEO_ANDROID_DRAFT_LIVE_TIME_V7_2_END
++
+     // ── Popup behavior ────────────────────────────────────────
+ 
+     // The clicked anchor's CURRENT geometry, re-read live from the DOM (the
+@@ -329,23 +402,56 @@ export default function EventPanel({
+ 
+     usePopupDismiss({ visible, popupRef, menuRef, onClose });
+ 
++// NEO_ANDROID_NOTION_DRAFT_FOCUS_START
+     useEffect(() => {
+-        if (isDraft && visible && titleInputRef.current) {
+-            titleInputRef.current.focus();
++        if (!isDraft || !visible) return;
++
++        if (isNeoAndroidRuntime()) {
++            const active = document.activeElement;
++
++            if (active instanceof HTMLElement) {
++                active.blur();
++            }
++
++            titleInputRef.current?.blur();
++
++            window.setTimeout(() => {
++                const current = document.activeElement;
++
++                if (current instanceof HTMLElement) {
++                    current.blur();
++                }
++
++                titleInputRef.current?.blur();
++            }, 80);
++
++            return;
+         }
++
++        titleInputRef.current?.focus();
+     }, [isDraft, visible]);
++    // NEO_ANDROID_NOTION_DRAFT_FOCUS_END
+ 
+     // Refocus title input after draft commits (draft→edit transition)
+     const justCommittedDraftRef = useRef(false);
+ 
++// NEO_ANDROID_NOTION_COMMIT_FOCUS_START
+     useEffect(() => {
+-        if (justCommittedDraftRef.current && eventId && visible) {
+-            justCommittedDraftRef.current = false;
+-            requestAnimationFrame(() => {
+-                titleInputRef.current?.focus();
+-            });
++        if (!justCommittedDraftRef.current || !eventId || !visible) {
++            return;
+         }
++
++        justCommittedDraftRef.current = false;
++
++        if (isNeoAndroidRuntime()) {
++            return;
++        }
++
++        requestAnimationFrame(() => {
++            titleInputRef.current?.focus();
++        });
+     }, [eventId, visible]);
++    // NEO_ANDROID_NOTION_COMMIT_FOCUS_END
+ 
+     // ── Menu / delete ─────────────────────────────────────────
+ 
+@@ -678,10 +784,17 @@ export default function EventPanel({
+     // it the containing block for fixed descendants — so a popup rendered inside
+     // it would be offset by the leaf's origin (the width of Obsidian's left
+     // sidebar), landing several columns off. Body-level escapes that.
++    // NEO_ANDROID_PORTAL_TARGET_V3_START
++    const androidDraft = isDraft && isNeoAndroidRuntime();
++    const portalTarget = androidDraft
++        ? document.getElementById("root") ?? document.body
++        : document.body;
++    // NEO_ANDROID_PORTAL_TARGET_V3_END
++
+     return ReactDOM.createPortal(
+         <div
+             ref={popupRef}
+-            className={`nc-event-popup nc-placement-${position.placement}`}
++            className={`nc-event-popup nc-placement-${position.placement}${isDraft ? " nc-event-popup--draft" : ""}${androidDraft ? " nc-event-popup--android-draft" : ""}`}
+             role="dialog"
+             aria-label={isDraft ? "New event" : "Event details"}
+             style={{
+@@ -861,6 +974,6 @@ export default function EventPanel({
+                 </div>
+             )}
+         </div>,
+-        document.body
++        portalTarget
+     );
+ }
+diff --git a/src/ui/calendar/TimeGrid.tsx b/src/ui/calendar/TimeGrid.tsx
+index 54f0715..ab0e2df 100644
+--- a/src/ui/calendar/TimeGrid.tsx
++++ b/src/ui/calendar/TimeGrid.tsx
+@@ -242,19 +242,116 @@ export default function TimeGrid(props: TimeGridProps) {
+     );
+ 
+     const showAllDay = true;
++    // NEO_ANDROID_INITIAL_SCROLL_V7_4_START
++    // On Android, keep several hours of context above the current time.
++    // At 23:59 this shows roughly 18:00-00:00 instead of opening at 23:00.
++    useLayoutEffect(() => {
++        const element = scrollRootRef.current;
+ 
+-    // ── Scroll to current time on mount ─────────────────────
++        if (!element) {
++            return;
++        }
+ 
+-    useLayoutEffect(() => {
+-        const el = scrollRootRef.current;
+-        if (!el) return;
+-        const now = new Date();
+-        const scrollTo = Math.max(
+-            0,
+-            (now.getHours() - 1 + now.getMinutes() / 60) * HOUR_HEIGHT
+-        );
+-        el.scrollTop = scrollTo;
++        let firstFrame = 0;
++        let secondFrame = 0;
++        let settleTimer = 0;
++
++        const isAndroidRuntime = () => {
++            const androidWindow = window as Window & {
++                NeoAndroid?: unknown;
++            };
++
++            return (
++                Boolean(androidWindow.NeoAndroid) ||
++                document.documentElement.classList.contains(
++                    "nc-platform-android"
++                ) ||
++                document.body?.classList.contains(
++                    "nc-platform-android"
++                ) === true
++            );
++        };
++
++        const applyInitialScroll = () => {
++            const current = new Date();
++
++            const currentHour =
++                current.getHours() +
++                current.getMinutes() / 60 +
++                current.getSeconds() / 3600;
++
++            const viewportHours =
++                element.clientHeight > 0
++                    ? element.clientHeight / HOUR_HEIGHT
++                    : 8;
++
++            const hoursAboveCurrent =
++                isAndroidRuntime()
++                    ? Math.min(
++                          6,
++                          Math.max(
++                              3.5,
++                              viewportHours * 0.68
++                          )
++                      )
++                    : 1;
++
++            const requestedScroll =
++                Math.max(
++                    0,
++                    (
++                        currentHour -
++                        hoursAboveCurrent
++                    ) * HOUR_HEIGHT
++                );
++
++            const maximumScroll =
++                Math.max(
++                    0,
++                    element.scrollHeight -
++                        element.clientHeight
++                );
++
++            element.scrollTop =
++                Math.min(
++                    requestedScroll,
++                    maximumScroll
++                );
++        };
++
++        applyInitialScroll();
++
++        firstFrame =
++            window.requestAnimationFrame(() => {
++                applyInitialScroll();
++
++                secondFrame =
++                    window.requestAnimationFrame(
++                        applyInitialScroll
++                    );
++            });
++
++        settleTimer =
++            window.setTimeout(
++                applyInitialScroll,
++                220
++            );
++
++        return () => {
++            window.cancelAnimationFrame(
++                firstFrame
++            );
++
++            window.cancelAnimationFrame(
++                secondFrame
++            );
++
++            window.clearTimeout(
++                settleTimer
++            );
++        };
+     }, []);
++    // NEO_ANDROID_INITIAL_SCROLL_V7_4_END
+ 
+     // Compensate scrollTop when the all-day section's height changes between
+     // renders. Without this, any change to the visible lane count (e.g. when a
+diff --git a/src/ui/calendar/TimeGrid.types.ts b/src/ui/calendar/TimeGrid.types.ts
+index ae6dbfa..fe9534b 100644
+--- a/src/ui/calendar/TimeGrid.types.ts
++++ b/src/ui/calendar/TimeGrid.types.ts
+@@ -36,7 +36,7 @@ export interface TimeGridProps {
+     onEmptyContextMenu?: (date: Date, mouseEvent: MouseEvent) => void;
+     draftSlot?: { start: Date; end: Date; allDay: boolean } | null;
+     draftColor?: string;
+-    onResizeDraft?: (newEnd: Date) => void;
++    onResizeDraft?: (newStart: Date, newEnd?: Date) => void;
+     onShiftDays?: (days: number) => void;
+     contextLine?: { date: Date; top: number } | null;
+     /** Cadre d'atterrissage pilote de l'exterieur (drag venu du panneau). */
+diff --git a/src/ui/calendar/TimeGridSections.tsx b/src/ui/calendar/TimeGridSections.tsx
+index 72ef5a1..218a85a 100644
+--- a/src/ui/calendar/TimeGridSections.tsx
++++ b/src/ui/calendar/TimeGridSections.tsx
+@@ -584,9 +584,12 @@ interface DayColumnProps {
+         startY: number,
+         edge: "top" | "bottom"
+     ) => void;
+-    handleDraftResizeStart: (e: React.MouseEvent) => void;
++    handleDraftResizeStart: (
++        e: React.PointerEvent,
++        edge: "top" | "bottom"
++    ) => void;
+     handleMouseDown: (
+-        e: React.MouseEvent,
++        e: React.PointerEvent,
+         date: Date,
+         dayIndex: number
+     ) => void;
+@@ -641,6 +644,7 @@ function DayColumn({
+         return {
+             top: getEventTop(new Date(ps), dayStart),
+             height: ((pe - ps) / 3600000) * HOUR_HEIGHT,
++            hasStart: s >= dayStartMs && s < dayEndMs,
+             hasEnd: e > dayStartMs && e <= dayEndMs,
+         };
+     };
+@@ -659,7 +663,7 @@ function DayColumn({
+             }`}
+             data-day-index={dateIdx}
+             data-date={date.toISOString()}
+-            onMouseDown={(e) => handleMouseDown(e, date, dateIdx)}
++            onPointerDown={(e) => handleMouseDown(e, date, dateIdx)}
+             onDoubleClick={(e) => handleDoubleClick(e, date)}
+             onContextMenu={(e) => handleEmptyContext(e, date)}
+         >
+@@ -739,10 +743,22 @@ function DayColumn({
+                             : undefined,
+                     }}
+                 >
++                    {draftPortion.hasStart && (
++                        <div
++                            className="nc-draft-preview-resize nc-draft-preview-resize-top"
++                            data-neo-resize-edge="top"
++                            onPointerDown={(event) =>
++                                handleDraftResizeStart(event, "top")
++                            }
++                        />
++                    )}
+                     {draftPortion.hasEnd && (
+                         <div
+-                            className="nc-draft-preview-resize"
+-                            onMouseDown={handleDraftResizeStart}
++                            className="nc-draft-preview-resize nc-draft-preview-resize-bottom"
++                            data-neo-resize-edge="bottom"
++                            onPointerDown={(event) =>
++                                handleDraftResizeStart(event, "bottom")
++                            }
+                         />
+                     )}
+                 </div>
+@@ -798,9 +814,12 @@ interface DaysAreaProps {
+         startY: number,
+         edge: "top" | "bottom"
+     ) => void;
+-    handleDraftResizeStart: (e: React.MouseEvent) => void;
++    handleDraftResizeStart: (
++        e: React.PointerEvent,
++        edge: "top" | "bottom"
++    ) => void;
+     handleMouseDown: (
+-        e: React.MouseEvent,
++        e: React.PointerEvent,
+         date: Date,
+         dayIndex: number
+     ) => void;
+diff --git a/src/ui/calendar/useDraftEvent.ts b/src/ui/calendar/useDraftEvent.ts
+index 099696b..8db0972 100644
+--- a/src/ui/calendar/useDraftEvent.ts
++++ b/src/ui/calendar/useDraftEvent.ts
+@@ -1,3 +1,4 @@
++import { useEffect as useNeoAndroidDraftEffect } from "react";
+ import { useState, useCallback } from "react";
+ import { DateTime } from "luxon";
+ import { NeoEvent } from "../../types";
+@@ -46,6 +47,72 @@ export function useDraftEvent({
+ }) {
+     const [draftSlot, setDraftSlot] = useState<DraftSlot | null>(null);
+ 
++    // NEO_ANDROID_DRAFT_BRIDGE_START
++    useNeoAndroidDraftEffect(() => {
++        const androidWindow = window as Window & {
++            __neoCalendarAndroidDraftState?: {
++                startMs: number;
++                endMs: number;
++                allDay: boolean;
++            } | null;
++        };
++
++        androidWindow.__neoCalendarAndroidDraftState = draftSlot
++            ? {
++                  startMs: draftSlot.start.getTime(),
++                  endMs: draftSlot.end.getTime(),
++                  allDay: draftSlot.allDay,
++              }
++            : null;
++    }, [draftSlot]);
++
++    useNeoAndroidDraftEffect(() => {
++        const handleAndroidDraftResize = (event: Event) => {
++            const detail = (
++                event as CustomEvent<{
++                    startMs?: number;
++                    endMs?: number;
++                }>
++            ).detail;
++
++            const startMs = Number(detail?.startMs);
++            const endMs = Number(detail?.endMs);
++
++            if (
++                !Number.isFinite(startMs) ||
++                !Number.isFinite(endMs) ||
++                endMs - startMs < 15 * 60 * 1000
++            ) {
++                return;
++            }
++
++            setDraftSlot((current) => {
++                if (!current || current.allDay) {
++                    return current;
++                }
++
++                return {
++                    ...current,
++                    start: new Date(startMs),
++                    end: new Date(endMs),
++                };
++            });
++        };
++
++        window.addEventListener(
++            "neo-calendar-android-draft-resize",
++            handleAndroidDraftResize
++        );
++
++        return () => {
++            window.removeEventListener(
++                "neo-calendar-android-draft-resize",
++                handleAndroidDraftResize
++            );
++        };
++    }, []);
++    // NEO_ANDROID_DRAFT_BRIDGE_END
++
+     const handleSelectRange = useCallback(
+         (start: Date, end: Date, allDay: boolean) => {
+             const editableCalendars = Array.from(
+@@ -140,9 +207,32 @@ export function useDraftEvent({
+         [cache, draftSlot, settings]
+     );
+ 
+-    const resizeDraft = useCallback((newEnd: Date) => {
+-        setDraftSlot((prev) => (prev ? { ...prev, end: newEnd } : prev));
+-    }, []);
++    const resizeDraft = useCallback(
++        (
++            newStartOrEnd: Date,
++            newEnd?: Date
++        ) => {
++            setDraftSlot((previous) => {
++                if (!previous) {
++                    return previous;
++                }
++
++                if (newEnd) {
++                    return {
++                        ...previous,
++                        start: newStartOrEnd,
++                        end: newEnd,
++                    };
++                }
++
++                return {
++                    ...previous,
++                    end: newStartOrEnd,
++                };
++            });
++        },
++        []
++    );
+ 
+     const discardDraft = useCallback(() => {
+         setDraftSlot(null);
+diff --git a/src/ui/calendar/useTimeGridResize.ts b/src/ui/calendar/useTimeGridResize.ts
+index d479db5..2af3299 100644
+--- a/src/ui/calendar/useTimeGridResize.ts
++++ b/src/ui/calendar/useTimeGridResize.ts
+@@ -3,6 +3,19 @@ import { HOUR_HEIGHT } from "./CalendarUtils";
+ import { DisplayEvent } from "../types";
+ import { ResizeState } from "./TimeGrid.types";
+ 
++type ResizeEdge = "top" | "bottom";
++
++type DraftSlot = {
++    start: Date;
++    end: Date;
++    allDay: boolean;
++};
++
++type ResizeDraftCallback = (
++    newStart: Date,
++    newEnd?: Date
++) => void;
++
+ export function useTimeGridResize(
+     events: DisplayEvent[],
+     onEventResize: (
+@@ -10,162 +23,525 @@ export function useTimeGridResize(
+         newStart: Date,
+         newEnd: Date
+     ) => Promise<boolean>,
+-    draftSlot: { start: Date; end: Date; allDay: boolean } | null | undefined,
+-    onResizeDraft?: (newEnd: Date) => void
++    draftSlot: DraftSlot | null | undefined,
++    onResizeDraft?: ResizeDraftCallback
+ ) {
+-    const [resizeState, setResizeState] = useState<ResizeState | null>(null);
+-    const [resizePreview, setResizePreview] = useState<{
+-        eventId: string;
+-        newStart: Date;
+-        newEnd: Date;
+-    } | null>(null);
+-
+-    // Snap the dragged edge to the nearest quarter-hour and clamp it so the
+-    // event keeps a 15-min minimum. "top" moves the start (bounded by end−15m),
+-    // "bottom" moves the end (bounded by start+15m); the other edge is fixed.
++    const [resizeState, setResizeState] =
++        useState<ResizeState | null>(null);
++
++    const [resizePreview, setResizePreview] =
++        useState<{
++            eventId: string;
++            newStart: Date;
++            newEnd: Date;
++        } | null>(null);
++
+     const computeSnapped = useCallback(
+         (
+-            edge: "top" | "bottom",
++            edge: ResizeEdge,
+             originalStart: Date,
+             originalEnd: Date,
+             deltaY: number
+-        ): { newStart: Date; newEnd: Date } => {
+-            const pxPerQuarter = HOUR_HEIGHT / 4;
+-            const snappedDeltaPx =
+-                Math.round(deltaY / pxPerQuarter) * pxPerQuarter;
+-            const deltaMs = (snappedDeltaPx / HOUR_HEIGHT) * 3600000;
++        ): {
++            newStart: Date;
++            newEnd: Date;
++        } => {
++            const pixelsPerQuarter =
++                HOUR_HEIGHT / 4;
++
++            const snappedDeltaPixels =
++                Math.round(
++                    deltaY /
++                        pixelsPerQuarter
++                ) *
++                pixelsPerQuarter;
++
++            const deltaMs =
++                (
++                    snappedDeltaPixels /
++                    HOUR_HEIGHT
++                ) *
++                3600000;
++
+             if (edge === "top") {
+-                let newStart = new Date(originalStart.getTime() + deltaMs);
+-                const maxStart = new Date(originalEnd.getTime() - 15 * 60000);
+-                if (newStart.getTime() > maxStart.getTime())
+-                    newStart = maxStart;
+-                return { newStart, newEnd: originalEnd };
+-            }
+-            let newEnd = new Date(originalEnd.getTime() + deltaMs);
+-            const minEnd = new Date(originalStart.getTime() + 15 * 60000);
+-            if (newEnd.getTime() < minEnd.getTime()) newEnd = minEnd;
+-            return { newStart: originalStart, newEnd };
+-        },
+-        []
+-    );
++                let newStart =
++                    new Date(
++                        originalStart.getTime() +
++                            deltaMs
++                    );
+ 
+-    const handleResizeStart = useCallback(
+-        (
+-            eventId: string,
+-            startY: number,
+-            edge: "top" | "bottom" = "bottom"
+-        ) => {
+-            const ev = events.find((e) => e.id === eventId);
+-            if (!ev) return;
+-            setResizeState({
+-                eventId,
+-                startY,
+-                edge,
+-                originalStart: ev.start,
+-                originalEnd: ev.end,
+-                dayDate: ev.start,
+-            });
+-            setResizePreview({ eventId, newStart: ev.start, newEnd: ev.end });
+-        },
+-        [events]
+-    );
++                const maximumStart =
++                    new Date(
++                        originalEnd.getTime() -
++                            15 * 60000
++                    );
+ 
+-    const handleResizeMouseMove = useCallback(
+-        (e: MouseEvent) => {
+-            if (!resizeState) return;
+-            const deltaY = e.clientY - resizeState.startY;
+-            const { newStart, newEnd } = computeSnapped(
+-                resizeState.edge,
+-                resizeState.originalStart,
+-                resizeState.originalEnd,
+-                deltaY
+-            );
+-            setResizePreview((prev) => {
+                 if (
+-                    prev &&
+-                    prev.newStart.getTime() === newStart.getTime() &&
+-                    prev.newEnd.getTime() === newEnd.getTime()
++                    newStart.getTime() >
++                    maximumStart.getTime()
+                 ) {
+-                    return prev;
++                    newStart =
++                        maximumStart;
+                 }
+-                return { eventId: resizeState.eventId, newStart, newEnd };
+-            });
+-        },
+-        [resizeState, computeSnapped]
+-    );
+ 
+-    const handleResizeMouseUp = useCallback(
+-        (e: MouseEvent) => {
+-            if (!resizeState) return;
+-            const deltaY = e.clientY - resizeState.startY;
+-            const { newStart, newEnd } = computeSnapped(
+-                resizeState.edge,
+-                resizeState.originalStart,
+-                resizeState.originalEnd,
+-                deltaY
+-            );
+-            const changed =
+-                newStart.getTime() !== resizeState.originalStart.getTime() ||
+-                newEnd.getTime() !== resizeState.originalEnd.getTime();
+-            if (changed) {
+-                onEventResize(resizeState.eventId, newStart, newEnd);
++                return {
++                    newStart,
++                    newEnd:
++                        originalEnd,
++                };
+             }
+-            setResizeState(null);
+-            setResizePreview(null);
+-        },
+-        [resizeState, onEventResize, computeSnapped]
+-    );
+ 
+-    useEffect(() => {
+-        if (resizeState) {
+-            window.addEventListener("mousemove", handleResizeMouseMove);
+-            window.addEventListener("mouseup", handleResizeMouseUp);
+-            return () => {
+-                window.removeEventListener("mousemove", handleResizeMouseMove);
+-                window.removeEventListener("mouseup", handleResizeMouseUp);
++            let newEnd =
++                new Date(
++                    originalEnd.getTime() +
++                        deltaMs
++                );
++
++            const minimumEnd =
++                new Date(
++                    originalStart.getTime() +
++                        15 * 60000
++                );
++
++            if (
++                newEnd.getTime() <
++                minimumEnd.getTime()
++            ) {
++                newEnd =
++                    minimumEnd;
++            }
++
++            return {
++                newStart:
++                    originalStart,
++                newEnd,
+             };
+-        }
+-    }, [resizeState, handleResizeMouseMove, handleResizeMouseUp]);
+-
+-    // Draft resize
+-    const [draftResize, setDraftResize] = useState<{
+-        startY: number;
+-        originalEnd: Date;
+-    } | null>(null);
+-
+-    const handleDraftResizeStart = useCallback(
+-        (e: React.MouseEvent) => {
+-            if (!draftSlot) return;
+-            e.stopPropagation();
+-            e.preventDefault();
+-            setDraftResize({
+-                startY: e.clientY,
+-                originalEnd: draftSlot.end,
+-            });
+         },
+-        [draftSlot]
++        []
+     );
+ 
++    const handleResizeStart =
++        useCallback(
++            (
++                eventId: string,
++                startY: number,
++                edge:
++                    ResizeEdge =
++                    "bottom"
++            ) => {
++                const event =
++                    events.find(
++                        (candidate) =>
++                            candidate.id ===
++                            eventId
++                    );
++
++                if (!event) {
++                    return;
++                }
++
++                setResizeState({
++                    eventId,
++                    startY,
++                    edge,
++                    originalStart:
++                        event.start,
++                    originalEnd:
++                        event.end,
++                    dayDate:
++                        event.start,
++                });
++
++                setResizePreview({
++                    eventId,
++                    newStart:
++                        event.start,
++                    newEnd:
++                        event.end,
++                });
++            },
++            [events]
++        );
++
++    const handleResizeMove =
++        useCallback(
++            (
++                event: PointerEvent
++            ) => {
++                if (!resizeState) {
++                    return;
++                }
++
++                event.preventDefault();
++
++                const result =
++                    computeSnapped(
++                        resizeState.edge,
++                        resizeState.originalStart,
++                        resizeState.originalEnd,
++                        event.clientY -
++                            resizeState.startY
++                    );
++
++                setResizePreview(
++                    (previous) => {
++                        if (
++                            previous &&
++                            previous.newStart.getTime() ===
++                                result.newStart.getTime() &&
++                            previous.newEnd.getTime() ===
++                                result.newEnd.getTime()
++                        ) {
++                            return previous;
++                        }
++
++                        return {
++                            eventId:
++                                resizeState.eventId,
++                            newStart:
++                                result.newStart,
++                            newEnd:
++                                result.newEnd,
++                        };
++                    }
++                );
++            },
++            [
++                resizeState,
++                computeSnapped,
++            ]
++        );
++
++    const handleResizeEnd =
++        useCallback(
++            (
++                event: PointerEvent
++            ) => {
++                if (!resizeState) {
++                    return;
++                }
++
++                event.preventDefault();
++
++                const result =
++                    computeSnapped(
++                        resizeState.edge,
++                        resizeState.originalStart,
++                        resizeState.originalEnd,
++                        event.clientY -
++                            resizeState.startY
++                    );
++
++                const changed =
++                    result.newStart.getTime() !==
++                        resizeState.originalStart.getTime() ||
++                    result.newEnd.getTime() !==
++                        resizeState.originalEnd.getTime();
++
++                if (changed) {
++                    void onEventResize(
++                        resizeState.eventId,
++                        result.newStart,
++                        result.newEnd
++                    );
++                }
++
++                setResizeState(null);
++                setResizePreview(null);
++            },
++            [
++                resizeState,
++                onEventResize,
++                computeSnapped,
++            ]
++        );
++
+     useEffect(() => {
+-        if (!draftResize || !draftSlot) return;
+-        const onMove = (e: MouseEvent) => {
+-            const deltaY = e.clientY - draftResize.startY;
+-            const pxPerQuarter = HOUR_HEIGHT / 4;
+-            const snapped = Math.round(deltaY / pxPerQuarter) * pxPerQuarter;
+-            const deltaMs = (snapped / HOUR_HEIGHT) * 3600000;
+-            let newEnd = new Date(draftResize.originalEnd.getTime() + deltaMs);
+-            const minEnd = new Date(draftSlot.start.getTime() + 15 * 60000);
+-            if (newEnd.getTime() < minEnd.getTime()) newEnd = minEnd;
+-            if (onResizeDraft) onResizeDraft(newEnd);
+-        };
+-        const onUp = () => setDraftResize(null);
+-        window.addEventListener("mousemove", onMove);
+-        window.addEventListener("mouseup", onUp);
++        if (!resizeState) {
++            return;
++        }
++
++        window.addEventListener(
++            "pointermove",
++            handleResizeMove,
++            {
++                passive: false,
++            }
++        );
++
++        window.addEventListener(
++            "pointerup",
++            handleResizeEnd,
++            {
++                passive: false,
++            }
++        );
++
++        window.addEventListener(
++            "pointercancel",
++            handleResizeEnd,
++            {
++                passive: false,
++            }
++        );
++
+         return () => {
+-            window.removeEventListener("mousemove", onMove);
+-            window.removeEventListener("mouseup", onUp);
++            window.removeEventListener(
++                "pointermove",
++                handleResizeMove
++            );
++
++            window.removeEventListener(
++                "pointerup",
++                handleResizeEnd
++            );
++
++            window.removeEventListener(
++                "pointercancel",
++                handleResizeEnd
++            );
+         };
+-    }, [draftResize, draftSlot, onResizeDraft]);
++    }, [
++        resizeState,
++        handleResizeMove,
++        handleResizeEnd,
++    ]);
++
++    const handleDraftResizeStart =
++        useCallback(
++            (
++                event:
++                    React.PointerEvent,
++                edge: ResizeEdge
++            ) => {
++                if (
++                    !draftSlot ||
++                    draftSlot.allDay
++                ) {
++                    return;
++                }
++
++                event.stopPropagation();
++                event.preventDefault();
++                event.nativeEvent.stopImmediatePropagation();
++
++                const pointerId =
++                    event.pointerId;
++
++                const handle =
++                    event.currentTarget as HTMLElement;
++
++                const startClientY =
++                    event.clientY;
++
++                const originalStart =
++                    new Date(
++                        draftSlot.start
++                    );
++
++                const originalEnd =
++                    new Date(
++                        draftSlot.end
++                    );
++
++                let lastStartMs =
++                    originalStart.getTime();
++
++                let lastEndMs =
++                    originalEnd.getTime();
++
++                document.documentElement.classList.add(
++                    "nc-android-draft-resizing"
++                );
++
++                try {
++                    handle.setPointerCapture(
++                        pointerId
++                    );
++                } catch {
++                    // Pointer capture is optional.
++                }
++
++                const cleanup = () => {
++                    window.removeEventListener(
++                        "pointermove",
++                        onMove,
++                        true
++                    );
++
++                    window.removeEventListener(
++                        "pointerup",
++                        onEnd,
++                        true
++                    );
++
++                    window.removeEventListener(
++                        "pointercancel",
++                        onEnd,
++                        true
++                    );
++
++                    document.documentElement.classList.remove(
++                        "nc-android-draft-resizing"
++                    );
++
++                    try {
++                        handle.releasePointerCapture(
++                            pointerId
++                        );
++                    } catch {
++                        // WebView may already have released capture.
++                    }
++                };
++
++                const onMove = (
++                    pointerEvent: PointerEvent
++                ) => {
++                    if (
++                        pointerEvent.pointerId !==
++                        pointerId
++                    ) {
++                        return;
++                    }
++
++                    pointerEvent.preventDefault();
++                    pointerEvent.stopImmediatePropagation();
++
++                    const result =
++                        computeSnapped(
++                            edge,
++                            originalStart,
++                            originalEnd,
++                            pointerEvent.clientY -
++                                startClientY
++                        );
++
++                    const nextStartMs =
++                        result.newStart.getTime();
++
++                    const nextEndMs =
++                        result.newEnd.getTime();
++
++                    if (
++                        nextStartMs ===
++                            lastStartMs &&
++                        nextEndMs ===
++                            lastEndMs
++                    ) {
++                        return;
++                    }
++
++                    lastStartMs =
++                        nextStartMs;
++
++                    lastEndMs =
++                        nextEndMs;
++
++                    if (onResizeDraft) {
++                        onResizeDraft(
++                            result.newStart,
++                            result.newEnd
++                        );
++                    } else {
++                        window.dispatchEvent(
++                            new CustomEvent(
++                                "neo-calendar-android-draft-resize",
++                                {
++                                    detail: {
++                                        startMs:
++                                            nextStartMs,
++                                        endMs:
++                                            nextEndMs,
++                                    },
++                                }
++                            )
++                        );
++                    }
++                };
++
++                const onEnd = (
++                    pointerEvent: PointerEvent
++                ) => {
++                    if (
++                        pointerEvent.pointerId !==
++                        pointerId
++                    ) {
++                        return;
++                    }
++
++                    pointerEvent.preventDefault();
++                    pointerEvent.stopImmediatePropagation();
++
++                    const result =
++                        computeSnapped(
++                            edge,
++                            originalStart,
++                            originalEnd,
++                            pointerEvent.clientY -
++                                startClientY
++                        );
++
++                    if (onResizeDraft) {
++                        onResizeDraft(
++                            result.newStart,
++                            result.newEnd
++                        );
++                    } else {
++                        window.dispatchEvent(
++                            new CustomEvent(
++                                "neo-calendar-android-draft-resize",
++                                {
++                                    detail: {
++                                        startMs:
++                                            result.newStart.getTime(),
++                                        endMs:
++                                            result.newEnd.getTime(),
++                                    },
++                                }
++                            )
++                        );
++                    }
++
++                    cleanup();
++                };
++
++                window.addEventListener(
++                    "pointermove",
++                    onMove,
++                    {
++                        capture: true,
++                        passive: false,
++                    }
++                );
++
++                window.addEventListener(
++                    "pointerup",
++                    onEnd,
++                    {
++                        capture: true,
++                        passive: false,
++                    }
++                );
++
++                window.addEventListener(
++                    "pointercancel",
++                    onEnd,
++                    {
++                        capture: true,
++                        passive: false,
++                    }
++                );
++
++                console.info(
++                    `[NeoDraftResizeV72] start edge=${edge}`
++                );
++            },
++            [
++                draftSlot,
++                onResizeDraft,
++                computeSnapped,
++            ]
++        );
+ 
+     return {
+         resizeState,
+@@ -173,4 +549,4 @@ export function useTimeGridResize(
+         handleResizeStart,
+         handleDraftResizeStart,
+     };
+-}
++}
+\ No newline at end of file
+diff --git a/src/ui/calendar/useTimeGridSelection.ts b/src/ui/calendar/useTimeGridSelection.ts
+index 3096df7..82790a1 100644
+--- a/src/ui/calendar/useTimeGridSelection.ts
++++ b/src/ui/calendar/useTimeGridSelection.ts
+@@ -8,180 +8,449 @@ interface UseTimeGridSelectionParams {
+     onEmptyContextMenu?: (date: Date, mouseEvent: MouseEvent) => void;
+ }
+ 
+-// NOTE on geometry: every handler below derives the clicked time from
+-// `clientY - dayColumn.getBoundingClientRect().top`. The day column is a
+-// normal-flow descendant of the vertical scroller (.nc-main-scroller), so its
+-// rect top already tracks scroll. That difference is therefore the
+-// content-relative Y measured from hour 0 — exactly what positionToDate wants.
+-// Adding scrollTop on top would double-count the scroll offset.
++function isAndroidRuntime(): boolean {
++    const androidWindow = window as Window & {
++        NeoAndroid?: unknown;
++    };
++
++    return (
++        Boolean(androidWindow.NeoAndroid) ||
++        document.documentElement.classList.contains(
++            "nc-platform-android"
++        ) ||
++        document.body?.classList.contains(
++            "nc-platform-android"
++        ) === true
++    );
++}
++
++function snappedHalfHour(date: Date): {
++    start: Date;
++    end: Date;
++} {
++    const start = new Date(date);
++
++    start.setMinutes(
++        Math.round(start.getMinutes() / 15) * 15,
++        0,
++        0
++    );
++
++    return {
++        start,
++        end: new Date(start.getTime() + 30 * 60000),
++    };
++}
++
+ export function useTimeGridSelection({
+     gridRef,
+     onSelectRange,
+     onEmptyContextMenu,
+ }: UseTimeGridSelectionParams) {
+-    const [selection, setSelection] = useState<SelectionState | null>(null);
++    const [selection, setSelection] =
++        useState<SelectionState | null>(null);
++
+     const selectionRef = useRef<{
+         isSelecting: boolean;
++        pointerId: number;
+         dayIndex: number;
+         dayDate: Date;
+         startDate: Date;
++        startClientX: number;
++        startClientY: number;
++        moved: boolean;
+     } | null>(null);
+ 
+     const handleMouseDown = useCallback(
+-        (e: React.MouseEvent, date: Date, dayIndex: number) => {
+-            if (e.button !== 0) return;
+-            // Shift+drag is the multi-event marquee selection (handled at the
+-            // CalendarApp level) — don't start a draft-creation drag for it.
+-            if (e.shiftKey) return;
+-            const target = e.target as HTMLElement;
+-            if (target.closest(".nc-event-block")) return;
+-            if (target.closest("[data-draft-preview]")) return;
+-
+-            const dayColumn = target.closest(".nc-timegrid-day");
+-            if (!dayColumn) return;
+-
+-            const dayRect = dayColumn.getBoundingClientRect();
+-            const y = e.clientY - dayRect.top;
+-            const startDate = positionToDate(y, date);
++        (
++            event: React.PointerEvent,
++            date: Date,
++            dayIndex: number
++        ) => {
++            if (event.button !== 0) {
++                return;
++            }
++
++            if (event.shiftKey) {
++                return;
++            }
++
++            const target = event.target as HTMLElement;
++
++            if (
++                target.closest(".nc-event-block") ||
++                target.closest("[data-draft-preview]") ||
++                target.closest(".nc-event-popup")
++            ) {
++                return;
++            }
++
++            const dayColumn = target.closest(
++                ".nc-timegrid-day"
++            );
++
++            if (!dayColumn) {
++                return;
++            }
++
++            const dayRect =
++                dayColumn.getBoundingClientRect();
++
++            const startDate = positionToDate(
++                event.clientY - dayRect.top,
++                date
++            );
+ 
+             selectionRef.current = {
+                 isSelecting: true,
++                pointerId: event.pointerId,
+                 dayIndex,
+                 dayDate: date,
+                 startDate,
++                startClientX: event.clientX,
++                startClientY: event.clientY,
++                moved: false,
+             };
+-            // Do NOT show selection rect yet — only on actual drag movement
+-
+-            // Prevent DndContext from processing this as a drag start
+-            e.preventDefault();
+-
+-            const onMove = (ev: PointerEvent) => {
+-                if (!selectionRef.current?.isSelecting) return;
+-                const { dayIndex, dayDate, startDate } = selectionRef.current;
+-
+-                // Notion-style cross-day selection: the END day follows the
+-                // column under the pointer, not the start column. So dragging
+-                // sideways onto another day extends the selection across days.
+-                const overEl = document.elementFromPoint(
+-                    ev.clientX,
+-                    ev.clientY
+-                ) as HTMLElement | null;
+-                const overCol = overEl?.closest(
+-                    ".nc-timegrid-day"
+-                ) as HTMLElement | null;
+ 
+-                let endDayDate = dayDate;
+-                let col: Element | null = overCol;
+-                if (overCol?.dataset.date) {
+-                    endDayDate = new Date(overCol.dataset.date);
++            event.preventDefault();
++
++            const cleanup = () => {
++                document.removeEventListener(
++                    "pointermove",
++                    onMove,
++                    true
++                );
++
++                document.removeEventListener(
++                    "pointerup",
++                    onUp,
++                    true
++                );
++
++                document.removeEventListener(
++                    "pointercancel",
++                    onCancel,
++                    true
++                );
++            };
++
++            const onMove = (
++                pointerEvent: PointerEvent
++            ) => {
++                const current =
++                    selectionRef.current;
++
++                if (
++                    !current?.isSelecting ||
++                    pointerEvent.pointerId !==
++                        current.pointerId
++                ) {
++                    return;
++                }
++
++                if (!current.moved) {
++                    const distance = Math.hypot(
++                        pointerEvent.clientX -
++                            current.startClientX,
++                        pointerEvent.clientY -
++                            current.startClientY
++                    );
++
++                    if (distance < 10) {
++                        return;
++                    }
++
++                    current.moved = true;
++                }
++
++                const overElement =
++                    document.elementFromPoint(
++                        pointerEvent.clientX,
++                        pointerEvent.clientY
++                    ) as HTMLElement | null;
++
++                const overColumn =
++                    overElement?.closest(
++                        ".nc-timegrid-day"
++                    ) as HTMLElement | null;
++
++                let endDayDate =
++                    current.dayDate;
++
++                let column: Element | null =
++                    overColumn;
++
++                if (overColumn?.dataset.date) {
++                    endDayDate = new Date(
++                        overColumn.dataset.date
++                    );
+                 } else {
+-                    // Pointer outside any column (e.g. above/below the grid):
+-                    // keep the END on the start day and just track the time.
+-                    col =
++                    column =
+                         gridRef.current?.querySelector(
+-                            `[data-day-index="${dayIndex}"]`
++                            `[data-day-index="${current.dayIndex}"]`
+                         ) ?? null;
+                 }
+-                if (!col) return;
+ 
+-                const rect = col.getBoundingClientRect();
+-                const yy = ev.clientY - rect.top;
+-                const endDate = positionToDate(yy, endDayDate);
++                if (!column) {
++                    return;
++                }
++
++                const rect =
++                    column.getBoundingClientRect();
+ 
+-                setSelection((prev) => {
+-                    if (!prev) {
+-                        // First real movement — initialize the selection mirror
++                const endDate =
++                    positionToDate(
++                        pointerEvent.clientY -
++                            rect.top,
++                        endDayDate
++                    );
++
++                setSelection((previous) => {
++                    if (!previous) {
+                         return {
+-                            startDate,
++                            startDate:
++                                current.startDate,
+                             endDate,
+-                            dayIndex,
++                            dayIndex:
++                                current.dayIndex,
+                         };
+                     }
+-                    return { ...prev, endDate };
++
++                    return {
++                        ...previous,
++                        endDate,
++                    };
+                 });
+             };
+ 
+-            const onUp = (ev: PointerEvent) => {
+-                if (!selectionRef.current?.isSelecting) return;
+-                selectionRef.current.isSelecting = false;
++            const onUp = (
++                pointerEvent: PointerEvent
++            ) => {
++                const current =
++                    selectionRef.current;
+ 
+-                setSelection((prev) => {
+-                    if (prev) {
+-                        const { startDate, endDate } = prev;
+-                        const diffMs = Math.abs(
+-                            endDate.getTime() - startDate.getTime()
++                if (
++                    !current?.isSelecting ||
++                    pointerEvent.pointerId !==
++                        current.pointerId
++                ) {
++                    return;
++                }
++
++                current.isSelecting = false;
++
++                if (
++                    !current.moved &&
++                    isAndroidRuntime()
++                ) {
++                    pointerEvent.preventDefault();
++                    pointerEvent.stopImmediatePropagation();
++
++                    const range =
++                        snappedHalfHour(
++                            current.startDate
+                         );
+-                        if (diffMs >= 15 * 60000) {
+-                            const start = new Date(
+-                                Math.min(startDate.getTime(), endDate.getTime())
++
++                    setSelection(null);
++                    selectionRef.current = null;
++                    cleanup();
++
++                    onSelectRange(
++                        range.start,
++                        range.end,
++                        false
++                    );
++
++                    return;
++                }
++
++                setSelection((previous) => {
++                    if (previous) {
++                        const difference =
++                            Math.abs(
++                                previous.endDate.getTime() -
++                                    previous.startDate.getTime()
+                             );
+-                            const end = new Date(
+-                                Math.max(startDate.getTime(), endDate.getTime())
++
++                        if (
++                            difference >=
++                            15 * 60000
++                        ) {
++                            const start =
++                                new Date(
++                                    Math.min(
++                                        previous.startDate.getTime(),
++                                        previous.endDate.getTime()
++                                    )
++                                );
++
++                            const end =
++                                new Date(
++                                    Math.max(
++                                        previous.startDate.getTime(),
++                                        previous.endDate.getTime()
++                                    )
++                                );
++
++                            onSelectRange(
++                                start,
++                                end,
++                                false
+                             );
+-                            onSelectRange(start, end, false);
+                         }
+                     }
++
+                     return null;
+                 });
++
+                 selectionRef.current = null;
+-                document.removeEventListener("pointermove", onMove, true);
+-                document.removeEventListener("pointerup", onUp, true);
++                cleanup();
+             };
+ 
+-            // Use pointer events on document with capture phase to fire
+-            // before @dnd-kit's PointerSensor can intercept them
+-            document.addEventListener("pointermove", onMove, true);
+-            document.addEventListener("pointerup", onUp, true);
++            const onCancel = (
++                pointerEvent: PointerEvent
++            ) => {
++                const current =
++                    selectionRef.current;
++
++                if (
++                    current &&
++                    pointerEvent.pointerId !==
++                        current.pointerId
++                ) {
++                    return;
++                }
++
++                selectionRef.current = null;
++                setSelection(null);
++                cleanup();
++            };
++
++            document.addEventListener(
++                "pointermove",
++                onMove,
++                true
++            );
++
++            document.addEventListener(
++                "pointerup",
++                onUp,
++                true
++            );
++
++            document.addEventListener(
++                "pointercancel",
++                onCancel,
++                true
++            );
+         },
+-        [onSelectRange]
++        [gridRef, onSelectRange]
+     );
+ 
+     const handleDoubleClick = useCallback(
+-        (e: React.MouseEvent, date: Date) => {
+-            const target = e.target as HTMLElement;
+-            if (target.closest(".nc-event-block")) return;
+-            const dayColumn = target.closest(".nc-timegrid-day");
+-            if (!dayColumn) return;
+-            const dayRect = dayColumn.getBoundingClientRect();
+-            const y = e.clientY - dayRect.top;
+-            const clicked = positionToDate(y, date);
+-            // Snap to nearest 15 min
+-            const start = new Date(clicked);
+-            start.setMinutes(Math.round(start.getMinutes() / 15) * 15, 0, 0);
+-            const end = new Date(start.getTime() + 30 * 60000);
+-            // Abort any pending selection from the preceding mousedown/up pair
++        (
++            event: React.MouseEvent,
++            date: Date
++        ) => {
++            if (isAndroidRuntime()) {
++                return;
++            }
++
++            const target =
++                event.target as HTMLElement;
++
++            if (
++                target.closest(
++                    ".nc-event-block"
++                )
++            ) {
++                return;
++            }
++
++            const dayColumn =
++                target.closest(
++                    ".nc-timegrid-day"
++                );
++
++            if (!dayColumn) {
++                return;
++            }
++
++            const rect =
++                dayColumn.getBoundingClientRect();
++
++            const range =
++                snappedHalfHour(
++                    positionToDate(
++                        event.clientY -
++                            rect.top,
++                        date
++                    )
++                );
++
+             selectionRef.current = null;
+             setSelection(null);
+-            onSelectRange(start, end, false);
++
++            onSelectRange(
++                range.start,
++                range.end,
++                false
++            );
+         },
+         [onSelectRange]
+     );
+ 
+     const handleEmptyContext = useCallback(
+-        (e: React.MouseEvent, day: Date) => {
+-            // Right-clicking an event must not fall through to the empty-slot
+-            // menu — the event block's own context menu handles that.
+-            if ((e.target as HTMLElement).closest(".nc-event-block")) return;
+-            e.preventDefault();
+-            if (onEmptyContextMenu) {
+-                const dayColumn = (e.target as HTMLElement).closest(
++        (
++            event: React.MouseEvent,
++            day: Date
++        ) => {
++            if (
++                (
++                    event.target as HTMLElement
++                ).closest(".nc-event-block")
++            ) {
++                return;
++            }
++
++            event.preventDefault();
++
++            if (!onEmptyContextMenu) {
++                return;
++            }
++
++            const dayColumn =
++                (
++                    event.target as HTMLElement
++                ).closest(
+                     ".nc-timegrid-day"
+                 );
+-                if (dayColumn) {
+-                    const dayRect = dayColumn.getBoundingClientRect();
+-                    const y = e.clientY - dayRect.top;
+-                    const clicked = positionToDate(y, day);
+-                    // Snap to nearest 15 min
+-                    const start = new Date(clicked);
+-                    start.setMinutes(
+-                        Math.round(start.getMinutes() / 15) * 15,
+-                        0,
+-                        0
++
++            if (dayColumn) {
++                const rect =
++                    dayColumn.getBoundingClientRect();
++
++                const clicked =
++                    positionToDate(
++                        event.clientY -
++                            rect.top,
++                        day
+                     );
+-                    onEmptyContextMenu(start, e.nativeEvent);
+-                } else {
+-                    onEmptyContextMenu(day, e.nativeEvent);
+-                }
++
++                const start =
++                    snappedHalfHour(
++                        clicked
++                    ).start;
++
++                onEmptyContextMenu(
++                    start,
++                    event.nativeEvent
++                );
++            } else {
++                onEmptyContextMenu(
++                    day,
++                    event.nativeEvent
++                );
+             }
+         },
+         [onEmptyContextMenu]
+@@ -193,4 +462,4 @@ export function useTimeGridSelection({
+         handleDoubleClick,
+         handleEmptyContext,
+     };
+-}
++}
+\ No newline at end of file

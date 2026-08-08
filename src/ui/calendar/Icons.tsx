@@ -1,5 +1,24 @@
 import * as React from "react";
 
+/** The desktop's side panel: a frame with its left column marked. */
+export function PanelLeftIcon() {
+    return (
+        <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <rect x="3" y="4" width="18" height="16" rx="2.5" />
+            <path d="M9.5 4v16" />
+        </svg>
+    );
+}
+
 export function SidebarToggleIcon() {
     return (
         <svg

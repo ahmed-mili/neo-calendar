@@ -85,8 +85,9 @@ describe("hidden calendar identity", () => {
 
 describe("calendar removal wording", () => {
     it("removes the calendar from the list without presenting a file delete action", () => {
-        expect(component).toContain('label: "Remove from list"');
+        expect(component).toContain('label: t("Remove from list")');
         expect(component).toContain("icon: <ListXIcon />");
+        expect(component).not.toContain('label: t("Delete")');
         expect(component).not.toContain('label: "Delete"');
     });
 });

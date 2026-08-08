@@ -75,6 +75,32 @@ function groupEventsByDate(
  *  momentum flings can report a scrollTop past either end for a frame; feeding
  *  that straight into clip-path cuts away a visible slice of the grid, which is
  *  what made an earlier attempt at a transparent header band look broken. */
+/** Can the pinned panels follow the scroll on their own, off the main thread?
+ *
+ *  Where they can, CalendarGrid.css owns their transforms and the grid's top
+ *  clip, and the JS mirror below must keep its hands off all three. */
+const PANELS_RIDE_SCROLL =
+    typeof CSS !== "undefined" &&
+    typeof CSS.supports === "function" &&
+    CSS.supports("animation-timeline: --nc-grid-scroll");
+
+/** How far the pinned panels travel end to end: the scroller's scroll ranges.
+ *
+ *  The timelines hand their animations a 0→1 progress, so these are what turn it
+ *  back into pixels. They only change when the layout does — never per frame.
+ *  Published on the wrapper because the hours rail is the scroller's SIBLING and
+ *  would never inherit them from the scroller itself. */
+function publishScrollTravel(
+    scroller: HTMLElement,
+    host: HTMLElement | null
+): void {
+    if (!host) return;
+    const down = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+    const across = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    host.style.setProperty("--nc-rail-travel", `${down}px`);
+    host.style.setProperty("--nc-allday-travel", `${across}px`);
+}
+
 function clampScrollTop(scroller: HTMLElement): number {
     const maximum = Math.max(
         0,
@@ -183,7 +209,12 @@ export default function TimeGrid(props: TimeGridProps) {
     useLayoutEffect(() => {
         const el = scrollRootRef.current;
         if (!el) return;
-        const measure = () => setMainWidth(el.clientWidth);
+        const measure = () => {
+            setMainWidth(el.clientWidth);
+            // A shorter viewport (the keyboard, a rotation) lengthens the scroll
+            // range, and the panels' travels are those ranges.
+            publishScrollTravel(el, gridRef.current);
+        };
         measure();
         const ro = new ResizeObserver(measure);
         ro.observe(el);
@@ -385,17 +416,22 @@ export default function TimeGrid(props: TimeGridProps) {
         prevAllDayHeightRef.current = newHeight;
     }, [allDayVisibleRows]);
 
-    // Drive sync between the main scroller and the two pinned panels. The
-    // hours column (left rail) lives outside the horizontal scroller, so only Y
-    // must follow (translateY). The all-day row is pinned to the viewport-left
-    // by counter-translating it +scrollLeft (sticky-left is unreliable for a
-    // flex-column child here), which keeps its vertical scrollbar on-screen;
-    // its inner track then translates -scrollLeft so day cells realign with the
-    // day columns. Both are GPU-cheap and tolerant of the 1-frame rAF lag.
+    // The fallback path for everything the scroll timelines drive: the hours
+    // rail's translateY, the grid's top clip, and the all-day band's pair of
+    // counter-translations (the band by +scrollLeft to stay pinned at the
+    // viewport's left edge — sticky-left is unreliable for a flex-column child
+    // here — and its inner track by -scrollLeft so day cells realign with their
+    // columns).
+    //
+    // Mirroring a scroll position through a listener costs a main-thread round
+    // trip the scroll itself never waits for, which the finger reads as the
+    // panels sliding against the grid. Where the timelines exist, CSS does all
+    // of this on the render cycle instead and none of the code below runs.
     useLayoutEffect(() => {
         const main = scrollRootRef.current;
         const scrollable = leftScrollableRef.current;
         if (!main || !scrollable) return;
+        if (PANELS_RIDE_SCROLL) return;
         let frame = 0;
         const update = () => {
             frame = 0;
@@ -438,6 +474,12 @@ export default function TimeGrid(props: TimeGridProps) {
     useLayoutEffect(() => {
         const main = scrollRootRef.current;
         if (!main) return;
+        // The content's own size changes without the scroller resizing — a
+        // taller all-day band, another view, a different hour height, a day
+        // added to the range. The travels are the timelines' only input, so they
+        // are republished on every render whichever path is in use.
+        publishScrollTravel(main, gridRef.current);
+        if (PANELS_RIDE_SCROLL) return;
         const x = main.scrollLeft;
         main.style.setProperty("--nc-scroll-y", `${clampScrollTop(main)}px`);
         if (allDayRowRef.current) {

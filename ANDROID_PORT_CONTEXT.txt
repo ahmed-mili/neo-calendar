@@ -1,0 +1,20 @@
+Neo Calendar Android source snapshot
+
+Source:
+C:\dev\neo-calendar
+
+Created:
+2026-08-05 04:01:32
+
+Excluded:
+.git
+.worktrees
+node_modules
+dist
+build
+target
+coverage
+cache folders
+
+Goal:
+Create an installable Android version while preserving the Windows version.

@@ -101,7 +101,9 @@ function PanelCardBody({
                     className={`nc-cep-badge nc-cep-badge-${event.taskStatus}`}
                 >
                     <span className="nc-cep-badge-dot" />
-                    {event.taskStatus === "complete" ? "Complete" : "To do"}
+                    {event.taskStatus === "complete"
+                        ? t("Complete")
+                        : t("To do")}
                 </span>
             )}
         </>
@@ -127,15 +129,15 @@ type OpenMenu = "more" | "settings" | null;
 type SettingsPage = "root" | "status" | "date" | "period";
 
 const STATUS_OPTIONS: { value: PanelStatusFilter; label: string }[] = [
-    { value: "all", label: "All" },
+    { value: "all", label: t("All") },
     { value: "todo", label: t("To do") },
     { value: "complete", label: t("Complete") },
 ];
 
 const DATE_OPTIONS: { value: PanelDateFilter; label: string }[] = [
-    { value: "all", label: "All" },
-    { value: "scheduled", label: "Scheduled" },
-    { value: "unscheduled", label: "Unscheduled" },
+    { value: "all", label: t("All") },
+    { value: "scheduled", label: t("Scheduled") },
+    { value: "unscheduled", label: t("Unscheduled") },
 ];
 
 export default function CalendarEventsPanel({
@@ -177,14 +179,17 @@ export default function CalendarEventsPanel({
 
     React.useEffect(() => {
         if (!openMenu) return;
-        const close = (event: MouseEvent) => {
+        const close = (event: Event) => {
             if (!panelRef.current?.contains(event.target as Node)) {
                 setOpenMenu(null);
                 setSettingsPage("root");
             }
         };
-        document.addEventListener("mousedown", close);
-        return () => document.removeEventListener("mousedown", close);
+        // Pointer events, not mouse events: the grid cancels its `pointerdown`,
+        // which suppresses the compatibility mouse events, so a press on the
+        // calendar never produces a `mousedown` to dismiss on.
+        document.addEventListener("pointerdown", close);
+        return () => document.removeEventListener("pointerdown", close);
     }, [openMenu]);
 
     React.useEffect(() => {
@@ -310,7 +315,7 @@ export default function CalendarEventsPanel({
                             className={`nc-cep-icon-btn${
                                 pinned ? " nc-active" : ""
                             }`}
-                            title={pinned ? "Unpin panel" : "Pin panel"}
+                            title={pinned ? t("Unpin panel") : t("Pin panel")}
                             aria-pressed={pinned}
                             onClick={onTogglePinned}
                         >
@@ -419,7 +424,7 @@ export default function CalendarEventsPanel({
                         >
                             <EyeIcon size={15} />
                             <span className="nc-cep-menu-label">
-                                Show only this view
+                                {t("Show only this view")}
                             </span>
                         </button>
                         <button
@@ -433,7 +438,7 @@ export default function CalendarEventsPanel({
                         >
                             <ChartColumnIcon size={15} />
                             <span className="nc-cep-menu-label">
-                                Show totals
+                                {t("Show totals")}
                             </span>
                             <span className="nc-cep-menu-check">
                                 {showTotals && <CheckIcon size={14} />}
@@ -450,7 +455,7 @@ export default function CalendarEventsPanel({
                         >
                             <ListXIcon size={15} />
                             <span className="nc-cep-menu-label">
-                                Remove view from list
+                                {t("Remove view from list")}
                             </span>
                         </button>
                     </div>
@@ -487,7 +492,7 @@ export default function CalendarEventsPanel({
                                 >
                                     <SlidersIcon size={15} />
                                     <span className="nc-cep-menu-label">
-                                        Status
+                                        {t("Status")}
                                     </span>
                                     <span className="nc-cep-menu-value">
                                         {STATUS_OPTIONS.find(

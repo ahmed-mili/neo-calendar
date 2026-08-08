@@ -366,7 +366,6 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                 onToggleSidebar={onToggleSidebar}
                 onOpenSearch={onOpenSearch}
                 onOpenSettings={onOpenSettings}
-                onNewEvent={onNewEvent}
             />
             {panelMounted && (lastCalendarRef.current || selectedCalendar) && (
                 <CalendarEventsPanel

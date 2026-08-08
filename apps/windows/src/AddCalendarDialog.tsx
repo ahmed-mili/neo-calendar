@@ -272,7 +272,7 @@ export default function AddCalendarDialog({
 
                     {kind === "ical" && (
                         <label className="nc-add-calendar-dialog__field">
-                            <span>URL du calendrie</span>
+                            <span>URL du calendrier</span>
                             <input
                                 ref={inputRef}
                                 value={url}

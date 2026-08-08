@@ -8,6 +8,59 @@ interface UsePopupDismissParams {
     onMenuToggle?: (open: boolean) => void;
 }
 
+/** What a press landing outside the popup should do to it. */
+export type PressOutcome = "keep" | "dismiss" | "dismiss-and-swallow";
+
+/** Just the part of an element the decision needs, so it can be read without a DOM. */
+export interface PressTarget {
+    closest(selectors: string): unknown;
+}
+
+/**
+ * Presses that are not "I am leaving the editor", each for its own reason.
+ *
+ * The portaled ones (menus, date picker, link results) render at body level, as
+ * siblings of the popup rather than inside it, so `popup.contains()` says no
+ * even though they belong to the editor. Closing on them would unmount the
+ * editor before the option could register its click.
+ *
+ * The surrounding chrome — our sidebar, Obsidian's side panels and ribbon — is
+ * the app being used around an open event: folding the sidebar or jumping a
+ * month is not leaving the editor.
+ */
+const KEEP_OPEN_SELECTORS = [
+    "[data-event-id]",
+    "[data-draft-preview]",
+    // Obsidian's own suggestion dropdown for the calendar selector.
+    ".suggestion-container",
+    ".nc-cal-select-menu",
+    ".nc-datepicker",
+    ".nc-select-menu",
+    "[data-nc-popup-portal='true']",
+    ".nc-link-results-popover",
+    ".nc-sidebar",
+    ".mod-left-split",
+    ".mod-right-split",
+    ".workspace-ribbon",
+];
+
+/**
+ * A press on a day column is what starts drawing an event. Dismissing alone
+ * would leave that press to the grid, so the click meant to leave the editor
+ * would draw a new event under it — and there would be no way out at all, each
+ * attempt leaving one more behind. Only the grid surface is swallowed: the
+ * toolbar lives inside the same `.nc-main`, and eating presses there would cost
+ * the first click on "Today" or on the view menu while an event is open.
+ */
+const SWALLOW_SELECTOR = ".nc-timegrid-day";
+
+export function pressOutcome(target: PressTarget): PressOutcome {
+    for (const selector of KEEP_OPEN_SELECTORS) {
+        if (target.closest(selector)) return "keep";
+    }
+    return target.closest(SWALLOW_SELECTOR) ? "dismiss-and-swallow" : "dismiss";
+}
+
 export function usePopupDismiss({
     visible,
     popupRef,
@@ -24,50 +77,31 @@ export function usePopupDismiss({
         return () => window.removeEventListener("keydown", handler);
     }, [visible, onClose]);
 
-    // Close on outside click
+    // Close on an outside press.
+    //
+    // Pointer events, not mouse events: the grid takes its presses on
+    // `pointerdown` and cancels them (useTimeGridSelection), which suppresses
+    // the compatibility mouse events that would have followed. A dismissal
+    // listening for `mousedown` therefore never hears a press on the calendar —
+    // the panel stayed open forever, whatever you clicked.
     useEffect(() => {
         if (!visible) return;
-        const handler = (e: MouseEvent) => {
+        const handler = (e: Event) => {
             if (!popupRef.current) return;
-            if (popupRef.current.contains(e.target as Node)) return;
-            const target = e.target as HTMLElement;
-            if (target.closest("[data-event-id]")) return;
-            if (target.closest("[data-draft-preview]")) return;
-            // Obsidian renders the calendar selector's suggestion dropdown in a
-            // portal at the body level, outside the popup. Clicking an option
-            // must not be treated as an outside click (which would close the
-            // panel before the selection registers).
-            if (target.closest(".suggestion-container")) return;
-            // Same for our own portaled menus (calendar dropdown), rendered at
-            // body level as siblings of the popup.
-            if (target.closest(".nc-cal-select-menu")) return;
-            // …and our other body-portaled submenus: the date picker and the
-            // recurrence dropdowns (freq / monthly-mode). Clicking inside one
-            // must not be read as an outside click that closes the panel under it.
-            if (target.closest(".nc-datepicker")) return;
-            if (target.closest(".nc-select-menu")) return;
-            // The links/attachments result list is also rendered in a portal
-            // attached to document.body. Treat clicks on its results as part of
-            // the event editor; otherwise the editor unmounts on mousedown
-            // before the result button can receive its click.
-            if (target.closest("[data-nc-popup-portal='true']")) return;
-            if (target.closest(".nc-link-results-popover")) return;
-            // The plugin's own in-view sidebar (mini-calendar, calendar list,
-            // and its collapse/expand toggle): clicking it — e.g. to fold the
-            // sidebar or jump months — must not close the event editor.
-            if (target.closest(".nc-sidebar")) return;
-            // Obsidian's own chrome around the calendar — its left/right side
-            // panels (file explorer, a docked calendar sidebar, backlinks) and
-            // the ribbon — are not "leave the editor" clicks. The user navigates
-            // Obsidian's UI while editing an event; the panel should persist.
-            // Only a click on the calendar surface itself (or Escape / the close
-            // button / another event) dismisses it.
-            if (target.closest(".mod-left-split")) return;
-            if (target.closest(".mod-right-split")) return;
-            if (target.closest(".workspace-ribbon")) return;
+            const target = e.target as HTMLElement | null;
+            if (!target) return;
+            if (popupRef.current.contains(target)) return;
+            const outcome = pressOutcome(target);
+            if (outcome === "keep") return;
             onClose();
+            if (outcome === "dismiss-and-swallow") {
+                e.preventDefault();
+                e.stopPropagation();
+            }
         };
-        window.addEventListener("mousedown", handler);
-        return () => window.removeEventListener("mousedown", handler);
+        // Capture: the grid must not hear this press before we have decided
+        // whether it belongs to it.
+        window.addEventListener("pointerdown", handler, true);
+        return () => window.removeEventListener("pointerdown", handler, true);
     }, [visible, onClose, popupRef]);
 }

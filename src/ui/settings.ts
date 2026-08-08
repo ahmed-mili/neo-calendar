@@ -176,11 +176,38 @@ function addMenuSelect(
 ///
 
 /** Folders directly inside `root` — a calendar's folder is never nested deeper. */
+/* NEO_HIDDEN_FOLDER_HELPER_V3_START */
+const hasHiddenDescendantFolder = (
+    path: string,
+    selectedRoot?: string
+): boolean => {
+    const normalized = path.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+    const root = selectedRoot
+        ?.replace(/\\/g, "/")
+        .replace(/^\/+|\/+$/g, "");
+
+    const relative =
+        root &&
+        (normalized === root || normalized.startsWith(root + "/"))
+            ? normalized.slice(root.length).replace(/^\/+/, "")
+            : normalized;
+
+    return relative
+        .split("/")
+        .filter(Boolean)
+        .some((part) => part.startsWith("."));
+};
+/* NEO_HIDDEN_FOLDER_HELPER_V3_END */
+
 const foldersUnder = (app: App, root?: string): string[] => {
     const all = app.vault
         .getAllLoadedFiles()
         .filter((f): f is TFolder => f instanceof TFolder)
-        .map((f) => f.path);
+        .map((f) => f.path)
+        .filter(
+            (path) =>
+                !hasHiddenDescendantFolder(path, root)
+        );
 
     if (!root) {
         return all;

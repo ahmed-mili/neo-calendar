@@ -219,7 +219,7 @@ export function TimezonePicker({
                             value={query}
                             autoFocus
                             spellCheck={false}
-                            placeholder="Time zone…"
+                            placeholder={t("Time zone…")}
                             onChange={(event) => setQuery(event.target.value)}
                             onBlur={() => setAdding(false)}
                             onKeyDown={(event) => {

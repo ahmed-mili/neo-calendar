@@ -2,10 +2,9 @@ import * as React from "react";
 import { CalendarSource, DisplayEvent, ViewType } from "../types";
 import MiniCalendar from "./MiniCalendar";
 import {
-    SidebarToggleIcon,
+    PanelLeftIcon,
     SearchIcon,
     SettingsIcon,
-    NewEventIcon,
     PlusIcon,
     RssIcon,
     EyeIcon,
@@ -62,7 +61,6 @@ interface CalendarSidebarProps {
     onToggleSidebar: () => void;
     onOpenSearch: () => void;
     onOpenSettings: () => void;
-    onNewEvent: () => void;
 }
 
 export default function CalendarSidebar(props: CalendarSidebarProps) {
@@ -98,7 +96,6 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         onToggleSidebar,
         onOpenSearch,
         onOpenSettings,
-        onNewEvent,
     } = props;
 
     const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -221,14 +218,14 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
             key: "solo",
             label:
                 soloCalendarId === source.id
-                    ? "Show previously visible calendars"
-                    : "Show only this calendar",
+                    ? t("Show previously visible calendars")
+                    : t("Show only this calendar"),
             icon: soloCalendarId === source.id ? <EyeIcon /> : <EyeOffIcon />,
             onClick: () => onShowOnly(source.id),
         });
         items.push({
             key: "remove",
-            label: "Remove from list",
+            label: t("Remove from list"),
             icon: <ListXIcon />,
             danger: true,
             onClick: () => onDeleteCalendar(source.id),
@@ -253,9 +250,10 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                     <button
                         className="nc-sidebar-top-btn"
                         onClick={onToggleSidebar}
-                        title="Toggle sidebar"
+                        title={t("Toggle sidebar")}
+                        aria-label={t("Toggle sidebar")}
                     >
-                        <SidebarToggleIcon />
+                        <PanelLeftIcon />
                     </button>
                 )}
                 <div className="nc-sidebar-top-right">
@@ -271,21 +269,17 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                             <SearchIcon />
                         </button>
                     )}
-                    <button
-                        className="nc-sidebar-top-btn nc-sidebar-settings-btn"
-                        onClick={onOpenSettings}
-                        title={t("Settings")}
-                        aria-label={t("Settings")}
-                    >
-                        <SettingsIcon size={17} />
-                    </button>
-                    {!isAndroid && (
+                    {/* Elsewhere the toolbar already carries settings, and an
+                        event is made on the grid where it belongs — a second
+                        pair of buttons up here was only ever a duplicate. */}
+                    {isAndroid && (
                         <button
-                            className="nc-sidebar-top-btn nc-sidebar-new-event-btn"
-                            onClick={onNewEvent}
-                            title={t("Create event")}
+                            className="nc-sidebar-top-btn nc-sidebar-settings-btn"
+                            onClick={onOpenSettings}
+                            title={t("Settings")}
+                            aria-label={t("Settings")}
                         >
-                            <NewEventIcon />
+                            <SettingsIcon size={17} />
                         </button>
                     )}
                 </div>
@@ -428,7 +422,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                         >
                             <span className="nc-sidebar-title-label">
                                 <span className="nc-sidebar-title">
-                                    Calendars
+                                    {t("Calendars")}
                                 </span>
                                 <span
                                     className={`nc-sidebar-title-chevron${
@@ -598,10 +592,14 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                 }}
                                                 title={
                                                     isAndroidRuntime()
-                                                        ? "Change colour"
+                                                        ? t("Change colour")
                                                         : source.editable
-                                                        ? "Set as default (shift-click to change colour)"
-                                                        : "Shift-click to change colour"
+                                                        ? t(
+                                                              "Set as default (shift-click to change colour)"
+                                                          )
+                                                        : t(
+                                                              "Shift-click to change colour"
+                                                          )
                                                 }
                                             >
                                                 <span
@@ -696,7 +694,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                     </span>
                                                     {isDefault && (
                                                         <span className="nc-calendar-default-label">
-                                                            Default
+                                                            {t("Default")}
                                                         </span>
                                                     )}
                                                     <div className="nc-calendar-actions">
@@ -725,8 +723,8 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                             }}
                                                             title={
                                                                 hidden
-                                                                    ? "Show"
-                                                                    : "Hide"
+                                                                    ? t("Show")
+                                                                    : t("Hide")
                                                             }
                                                         >
                                                             {hidden ? (

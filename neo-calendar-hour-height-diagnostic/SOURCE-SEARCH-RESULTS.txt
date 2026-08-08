@@ -1,0 +1,1052 @@
+
+==============================================================================
+PATTERN: \bHOUR_HEIGHT\b
+==============================================================================
+
+src\ui\calendar\calendarConstants.ts : line 2
+------------------------------------------------------------
+  // Layout constants for the calendar time grid
+> export const HOUR_HEIGHT = 60; // px per hour
+  export const SLOT_HEIGHT = 30; // px per 30-min slot
+  export const OVERLAP_COL_GAP = 16; // px right-trim on every event
+  export const EVENT_VGAP = 4; // px vertical gap between back-to-back events
+  
+
+src\ui\calendar\CalendarUtils.ts : line 5
+------------------------------------------------------------
+  import { DateTime } from "luxon";
+  import { NeoEvent } from "../../types";
+  import { DisplayEvent, CalendarSource } from "../types";
+  
+> import { HOUR_HEIGHT, SLOT_HEIGHT } from "./calendarConstants";
+  import { startOfDay as startOfDayFn } from "./calendarDateUtils";
+  
+  // Re-export constants, date utils, formatters, and event expansion
+  export {
+
+src\ui\calendar\CalendarUtils.ts : line 10
+------------------------------------------------------------
+  import { startOfDay as startOfDayFn } from "./calendarDateUtils";
+  
+  // Re-export constants, date utils, formatters, and event expansion
+  export {
+>     HOUR_HEIGHT,
+      SLOT_HEIGHT,
+      OVERLAP_COL_GAP,
+      EVENT_VGAP,
+      ALLDAY_ROW_HEIGHT,
+
+src\ui\calendar\CalendarUtils.ts : line 73
+------------------------------------------------------------
+      // Clamp to the day's own range [00:00, 24:00]. Dragging the pointer below
+      // the grid otherwise yields hours >= 24, which setHours rolls over into the
+      // NEXT day (e.g. 25:00 → 01:00) — so a downward drag "stuck" at 01:00
+      // instead of reaching midnight. 24:00 resolves to next-day 00:00 = midnight.
+>     const clampedY = Math.max(0, Math.min(yPosition, 24 * HOUR_HEIGHT));
+      const totalMinutes = (clampedY / HOUR_HEIGHT) * 60;
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = Math.round((totalMinutes % 60) / 15) * 15;
+      const date = new Date(dayDate);
+
+src\ui\calendar\CalendarUtils.ts : line 74
+------------------------------------------------------------
+      // the grid otherwise yields hours >= 24, which setHours rolls over into the
+      // NEXT day (e.g. 25:00 → 01:00) — so a downward drag "stuck" at 01:00
+      // instead of reaching midnight. 24:00 resolves to next-day 00:00 = midnight.
+      const clampedY = Math.max(0, Math.min(yPosition, 24 * HOUR_HEIGHT));
+>     const totalMinutes = (clampedY / HOUR_HEIGHT) * 60;
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = Math.round((totalMinutes % 60) / 15) * 15;
+      const date = new Date(dayDate);
+      date.setHours(hours, minutes, 0, 0);
+
+src\ui\calendar\CalendarUtils.ts : line 87
+------------------------------------------------------------
+      const hours =
+          start.getHours() -
+          dayStart.getHours() +
+          (start.getMinutes() - dayStart.getMinutes()) / 60;
+>     return Math.max(0, hours * HOUR_HEIGHT);
+  }
+  
+  export function getEventHeight(start: Date, end: Date): number {
+      const durationMs = end.getTime() - start.getTime();
+
+src\ui\calendar\CalendarUtils.ts : line 93
+------------------------------------------------------------
+  
+  export function getEventHeight(start: Date, end: Date): number {
+      const durationMs = end.getTime() - start.getTime();
+      const hours = durationMs / (1000 * 60 * 60);
+>     return Math.max(SLOT_HEIGHT, hours * HOUR_HEIGHT);
+  }
+  
+  /** Pick black or white text for legibility over a solid hex background. */
+  // readableTextColor vit desormais dans ./color, avec le reste du parsing des
+
+src\ui\calendar\dragProjection.test.ts : line 15
+------------------------------------------------------------
+      projectGridDrag,
+      dayShiftBetween,
+  } from "./dragProjection";
+  
+> // HOUR_HEIGHT vaut 60 px : une heure = 60 px, un cran de 15 min = 15 px.
+  const geo = (over: Partial<GridGeometry> = {}): GridGeometry => ({
+      daysRowTop: 100,
+      allDayBand: { top: 40, bottom: 80 },
+      columns: [
+
+src\ui\calendar\dragProjection.ts : line 1
+------------------------------------------------------------
+> import { HOUR_HEIGHT, startOfDay, isMultiDayTimed } from "./CalendarUtils";
+  
+  /** Pas de snap vertical, en minutes. Partage par le drag interne et le drag
+      venu du panneau, pour que les deux tombent sur les memes creneaux. */
+  export const SNAP_MINUTES = 15;
+
+src\ui\calendar\dragProjection.ts : line 174
+------------------------------------------------------------
+      geo: GridGeometry,
+      pointerY: number | null
+  ): number {
+      if (geo.daysRowTop === null || pointerY === null) return FALLBACK_DROP_HOUR;
+>     const hours = (pointerY - geo.daysRowTop) / HOUR_HEIGHT;
+      const snapped = Math.round((hours * 60) / SNAP_MINUTES) * SNAP_MINUTES;
+      const lastSlot = 23 * 60 + (60 - SNAP_MINUTES);
+      return Math.max(0, Math.min(lastSlot, snapped)) / 60;
+  }
+
+src\ui\calendar\dragProjection.ts : line 325
+------------------------------------------------------------
+  
+      // Deplacement timed ordinaire, duree conservee.
+      const duration = ev.end.getTime() - ev.start.getTime();
+      const snappedMinutes =
+>         Math.round(((delta.y / HOUR_HEIGHT) * 60) / SNAP_MINUTES) *
+          SNAP_MINUTES;
+      const start = new Date(ev.start);
+      start.setDate(start.getDate() + shift);
+      start.setTime(start.getTime() + snappedMinutes * 60000);
+
+src\ui\calendar\NowIndicator.tsx : line 2
+------------------------------------------------------------
+  import { useEffect, useState } from "react";
+> import { HOUR_HEIGHT } from "./CalendarUtils";
+  
+  export interface NowPosition {
+      top: number;
+      label: string;
+
+src\ui\calendar\NowIndicator.tsx : line 18
+------------------------------------------------------------
+          const interval = setInterval(() => setNow(new Date()), 60000);
+          return () => clearInterval(interval);
+      }, []);
+  
+>     const top = (now.getHours() + now.getMinutes() / 60) * HOUR_HEIGHT;
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const label = timeFormat24h
+          ? `${hours.toString().padStart(2, "0")}:${minutes
+
+src\ui\calendar\TimeGrid.tsx : line 6
+------------------------------------------------------------
+  import * as ReactDOM from "react-dom";
+  import { useRef, useLayoutEffect, useMemo, useState } from "react";
+  import { DndContext, DragOverlay, closestCenter } from "@dnd-kit/core";
+  import {
+>     HOUR_HEIGHT,
+      ALLDAY_ROW_HEIGHT,
+      ALLDAY_MAX_ROWS,
+      addDays,
+      startOfDay,
+
+src\ui\calendar\TimeGrid.tsx : line 285
+------------------------------------------------------------
+                  current.getSeconds() / 3600;
+  
+              const viewportHours =
+                  element.clientHeight > 0
+>                     ? element.clientHeight / HOUR_HEIGHT
+                      : 8;
+  
+              const hoursAboveCurrent =
+                  isAndroidRuntime()
+
+src\ui\calendar\TimeGrid.tsx : line 305
+------------------------------------------------------------
+                      0,
+                      (
+                          currentHour -
+                          hoursAboveCurrent
+>                     ) * HOUR_HEIGHT
+                  );
+  
+              const maximumScroll =
+                  Math.max(
+
+src\ui\calendar\TimeGridSections.tsx : line 4
+------------------------------------------------------------
+  import * as React from "react";
+  import { DateTime } from "luxon";
+  import {
+>     HOUR_HEIGHT,
+      OVERLAP_COL_GAP,
+      EVENT_VGAP,
+      ALLDAY_ROW_HEIGHT,
+      ALLDAY_MAX_ROWS,
+
+src\ui\calendar\TimeGridSections.tsx : line 171
+------------------------------------------------------------
+                          {hours.map((hour) => (
+                              <div
+                                  key={hour}
+                                  className="nc-timegrid-hour"
+>                                 style={{ height: HOUR_HEIGHT }}
+                              >
+                                  <span className="nc-timegrid-hour-label">
+                                      {homeHourLabel(hour)}
+                                  </span>
+
+src\ui\calendar\TimeGridSections.tsx : line 646
+------------------------------------------------------------
+          const pe = Math.min(e, dayEndMs);
+          if (pe <= ps) return null;
+          return {
+              top: getEventTop(new Date(ps), dayStart),
+>             height: ((pe - ps) / 3600000) * HOUR_HEIGHT,
+              hasStart: s >= dayStartMs && s < dayEndMs,
+              hasEnd: e > dayStartMs && e <= dayEndMs,
+          };
+      };
+
+src\ui\calendar\TimezoneColumn.tsx : line 4
+------------------------------------------------------------
+  import * as React from "react";
+  import { ArrowLeft, Globe2, Pencil, Trash2 } from "lucide-react";
+  import { DateTime } from "luxon";
+> import { HOUR_HEIGHT } from "./CalendarUtils";
+  import ContextMenu, { ContextMenuItem } from "./ContextMenu";
+  
+  /** Actions for the timezone context menu, provided by CalendarApp via context. */
+  export interface TimezoneMenuActions {
+
+src\ui\calendar\TimezoneColumn.tsx : line 146
+------------------------------------------------------------
+                  return (
+                      <div
+                          key={hour}
+                          className="nc-tz-label"
+>                         style={{ top: hour * HOUR_HEIGHT }}
+                      >
+                          {label}
+                      </div>
+                  );
+
+src\ui\calendar\useTimeGridDrag.ts : line 335
+------------------------------------------------------------
+              // No-op only when the shared projection lands the event exactly
+              // where it already is. This has to be read off the projected result
+              // rather than measured again on the raw delta: the projection snaps
+              // to the nearest 15-min slot, so it already shows a one-slot move
+>             // half a slot in (7.5px at HOUR_HEIGHT=60). A separate threshold on
+              // the raw delta disagreed with it between 7.5px and 15px and threw
+              // away a move the preview was visibly committed to.
+              if (
+                  !bandSourced &&
+
+src\ui\calendar\useTimeGridResize.ts : line 2
+------------------------------------------------------------
+  import { useState, useEffect, useCallback } from "react";
+> import { HOUR_HEIGHT } from "./CalendarUtils";
+  import { DisplayEvent } from "../types";
+  import { ResizeState } from "./TimeGrid.types";
+  
+  type ResizeEdge = "top" | "bottom";
+
+src\ui\calendar\useTimeGridResize.ts : line 50
+------------------------------------------------------------
+              newStart: Date;
+              newEnd: Date;
+          } => {
+              const pixelsPerQuarter =
+>                 HOUR_HEIGHT / 4;
+  
+              const snappedDeltaPixels =
+                  Math.round(
+                      deltaY /
+
+src\ui\calendar\useTimeGridResize.ts : line 62
+------------------------------------------------------------
+  
+              const deltaMs =
+                  (
+                      snappedDeltaPixels /
+>                     HOUR_HEIGHT
+                  ) *
+                  3600000;
+  
+              if (edge === "top") {
+
+==============================================================================
+PATTERN: \bSLOT_HEIGHT\b
+==============================================================================
+
+src\ui\calendar\calendarConstants.ts : line 3
+------------------------------------------------------------
+  // Layout constants for the calendar time grid
+  export const HOUR_HEIGHT = 60; // px per hour
+> export const SLOT_HEIGHT = 30; // px per 30-min slot
+  export const OVERLAP_COL_GAP = 16; // px right-trim on every event
+  export const EVENT_VGAP = 4; // px vertical gap between back-to-back events
+  
+  // All-day section: each all-day event occupies one stacked "lane" row. The
+
+src\ui\calendar\CalendarUtils.ts : line 5
+------------------------------------------------------------
+  import { DateTime } from "luxon";
+  import { NeoEvent } from "../../types";
+  import { DisplayEvent, CalendarSource } from "../types";
+  
+> import { HOUR_HEIGHT, SLOT_HEIGHT } from "./calendarConstants";
+  import { startOfDay as startOfDayFn } from "./calendarDateUtils";
+  
+  // Re-export constants, date utils, formatters, and event expansion
+  export {
+
+src\ui\calendar\CalendarUtils.ts : line 11
+------------------------------------------------------------
+  
+  // Re-export constants, date utils, formatters, and event expansion
+  export {
+      HOUR_HEIGHT,
+>     SLOT_HEIGHT,
+      OVERLAP_COL_GAP,
+      EVENT_VGAP,
+      ALLDAY_ROW_HEIGHT,
+      ALLDAY_MAX_ROWS,
+
+src\ui\calendar\CalendarUtils.ts : line 93
+------------------------------------------------------------
+  
+  export function getEventHeight(start: Date, end: Date): number {
+      const durationMs = end.getTime() - start.getTime();
+      const hours = durationMs / (1000 * 60 * 60);
+>     return Math.max(SLOT_HEIGHT, hours * HOUR_HEIGHT);
+  }
+  
+  /** Pick black or white text for legibility over a solid hex background. */
+  // readableTextColor vit desormais dans ./color, avec le reste du parsing des
+
+==============================================================================
+PATTERN: --nc-hour-height
+==============================================================================
+
+src\ui\calendar\CalendarGrid.css : line 504
+------------------------------------------------------------
+  
+  /* ── Days row ──────────────────────────────────────────────── */
+  
+  .nc-days-row {
+>     min-height: calc(24 * var(--nc-hour-height));
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      /* Clip the bleed at the source instead of masking it with an opaque fill,
+
+src\ui\calendar\CalendarGrid.css : line 533
+------------------------------------------------------------
+  }
+  
+  .nc-timegrid-hour {
+      position: relative;
+>     height: var(--nc-hour-height);
+  }
+  
+  .nc-timegrid-hour-label {
+      position: absolute;
+
+src\ui\calendar\CalendarGrid.css : line 571
+------------------------------------------------------------
+  
+  /* Time slots (hour and half-hour lines) */
+  .nc-timegrid-slot {
+      position: relative;
+>     height: var(--nc-hour-height);
+  }
+  
+  .nc-timegrid-slot-line {
+      position: absolute;
+
+src\ui\calendar\CalendarVariables.css : line 67
+------------------------------------------------------------
+      --nc-spacing-lg: 24px;
+      --nc-spacing-xl: 32px;
+  
+      /* Grid */
+>     --nc-hour-height: 60px;
+      --nc-slot-height: 30px;
+      --nc-day-min-width: 140px;
+      --nc-event-gap: 2px;
+      --nc-event-radius: 8px;
+
+apps\android\src\mobile.css : line 679
+------------------------------------------------------------
+  
+  /* === NEO ANDROID NATIVE SHELL V5 START === */
+  
+  body.nc-platform-android {
+>     --nc-hour-height: 84px;
+      --nc-day-min-width: 0px;
+  }
+  
+  /* Keep the theme wallpaper visible through the Android calendar surfaces. */
+
+apps\android\src\mobile.css : line 2550
+------------------------------------------------------------
+  body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-scrollable {
+      box-sizing: border-box !important;
+>     height: calc(24 * var(--nc-hour-height)) !important;
+      min-height: calc(24 * var(--nc-hour-height)) !important;
+      max-height: calc(24 * var(--nc-hour-height)) !important;
+  }
+  
+
+apps\android\src\mobile.css : line 2551
+------------------------------------------------------------
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-scrollable {
+      box-sizing: border-box !important;
+      height: calc(24 * var(--nc-hour-height)) !important;
+>     min-height: calc(24 * var(--nc-hour-height)) !important;
+      max-height: calc(24 * var(--nc-hour-height)) !important;
+  }
+  
+  /* A clear final boundary at midnight. */
+
+apps\android\src\mobile.css : line 2552
+------------------------------------------------------------
+  body.nc-platform-android .nc-left-rail-scrollable {
+      box-sizing: border-box !important;
+      height: calc(24 * var(--nc-hour-height)) !important;
+      min-height: calc(24 * var(--nc-hour-height)) !important;
+>     max-height: calc(24 * var(--nc-hour-height)) !important;
+  }
+  
+  /* A clear final boundary at midnight. */
+  body.nc-platform-android .nc-timegrid-day::after,
+
+==============================================================================
+PATTERN: --nc-day-height
+==============================================================================
+NO MATCHES
+
+==============================================================================
+PATTERN: \.nc-main-scroller
+==============================================================================
+
+src\ui\calendar\CalendarGrid.css : line 308
+------------------------------------------------------------
+  }
+  
+  /* ── Main scroller (the only horizontal/vertical scroller) ── */
+  
+> .nc-main-scroller {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+      overscroll-behavior-x: contain;
+
+src\ui\calendar\CalendarGrid.css : line 321
+------------------------------------------------------------
+         covers the Chromium Obsidian runs on. */
+      scrollbar-width: none;
+  }
+  
+> .nc-main-scroller::-webkit-scrollbar {
+      display: none;
+  }
+  
+  .nc-main-content {
+
+src\ui\calendar\CalendarLayout.css : line 5
+------------------------------------------------------------
+  /* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  
+  /* The React app is mounted into a bare <div> inside Obsidian's
+     .view-content. Give that container a real height so .nc-layout's
+>    height:100% resolves and .nc-main-scroller becomes the single internal
+     scroller â€” otherwise .view-content scrolls the whole view and the sticky
+     day headers + all-day bar scroll out of sight. The compound selector
+     outranks core/theme .view-content padding & overflow. */
+  .view-content.nc-view-content {
+
+src\ui\calendar\dragProjection.ts : line 47
+------------------------------------------------------------
+      daysRowTop: number | null;
+      /** Bande all-day, si elle est montee. */
+      allDayBand: { top: number; bottom: number } | null;
+      columns: ColumnRect[];
+>     /** Zone reellement visible de la grille (`.nc-main-scroller`). Les rects des
+          colonnes sont geometriques et debordent de cette zone : les jours de
+          buffer vivent a gauche du bord visible, sous le rail des heures et sous
+          le panneau. */
+      viewport: Rect | null;
+
+src\ui\calendar\dragProjection.ts : line 80
+------------------------------------------------------------
+      if (!gridEl) return EMPTY;
+      const daysEl = gridEl.querySelector(".nc-days-row") as HTMLElement | null;
+      const bandEl = gridEl.querySelector(".nc-allday-row") as HTMLElement | null;
+      const scrollerEl = gridEl.querySelector(
+>         ".nc-main-scroller"
+      ) as HTMLElement | null;
+      // Le panneau est un frere de la grille, hors du DndContext : introuvable
+      // depuis gridEl, donc lu sur le document. Absent du DOM = panneau ferme.
+      const panelEl = document.querySelector(".nc-cep") as HTMLElement | null;
+
+src\ui\calendar\EventPanel.tsx : line 357
+------------------------------------------------------------
+      const position = useMemo(() => {
+          const liveAnchor = getAnchorRect();
+          // In time-grid views, read the day-column geometry so the panel can dock
+          // into the adjacent column. Absent (month/list) → float beside anchor.
+>         const scroller = document.querySelector(".nc-main-scroller");
+          const colEls = scroller?.querySelectorAll(".nc-timegrid-day");
+          if (scroller && colEls && colEls.length) {
+              const columns = Array.from(colEls).map((el) => {
+                  const r = el.getBoundingClientRect();
+
+src\ui\calendar\EventPanel.tsx : line 389
+------------------------------------------------------------
+      // layoutTick → `position` recomputes from the live column geometry, and the
+      // (un-dragged) panel slides to stay beside its event.
+      useEffect(() => {
+          if (!visible) return;
+>         const scroller = document.querySelector(".nc-main-scroller");
+          const bump = () => setLayoutTick((t) => t + 1);
+          let ro: ResizeObserver | null = null;
+          if (scroller && typeof ResizeObserver !== "undefined") {
+              ro = new ResizeObserver(bump);
+
+apps\android\src\mobile.css : line 393
+------------------------------------------------------------
+  body.nc-platform-android .nc-event-time {
+      font-size: 11px;
+  }
+  
+> body.nc-platform-android .nc-main-scroller {
+      overscroll-behavior: contain;
+      scroll-behavior: auto;
+  }
+  
+
+apps\android\src\mobile.css : line 701
+------------------------------------------------------------
+  body.nc-platform-android .nc-main,
+  body.nc-platform-android .nc-content,
+  body.nc-platform-android .nc-timegrid-wrapper,
+  body.nc-platform-android .nc-timegrid-main,
+> body.nc-platform-android .nc-main-scroller,
+  body.nc-platform-android .nc-days-row {
+      background: transparent !important;
+  }
+  
+
+apps\android\src\mobile.css : line 1189
+------------------------------------------------------------
+      display: none !important;
+  }
+  
+  /* Leave room behind the fixed bottom agenda dock. */
+> body.nc-platform-android .nc-main-scroller,
+  body.nc-platform-android .nc-left-rail-window {
+      padding-bottom: 78px;
+  }
+  
+
+apps\android\src\mobile.css : line 1805
+------------------------------------------------------------
+  body.nc-platform-android .nc-main,
+  body.nc-platform-android .nc-content,
+  body.nc-platform-android .nc-timegrid-wrapper,
+  body.nc-platform-android .nc-timegrid-main,
+> body.nc-platform-android .nc-main-scroller,
+  body.nc-platform-android .nc-days-row,
+  body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-window,
+
+apps\android\src\mobile.css : line 2536
+------------------------------------------------------------
+  /*
+   * This old padding was the reason the time grid could continue scrolling
+   * below the end of the 24-hour day.
+   */
+> body.nc-platform-android .nc-main-scroller,
+  body.nc-platform-android .nc-left-rail-window {
+      box-sizing: border-box !important;
+      padding-bottom: 0 !important;
+      overscroll-behavior-y: none !important;
+
+==============================================================================
+PATTERN: \.nc-days-row
+==============================================================================
+
+src\ui\calendar\CalendarGrid.css : line 344
+------------------------------------------------------------
+     column / header / all-day cell. Drop the latter so we get a single 1px
+     line at the rail/scroller seam, regardless of which row. */
+  .nc-headers-row > :first-child,
+  .nc-allday-cells > :first-child,
+> .nc-days-row > :first-child {
+      border-left: none;
+  }
+  
+  /* ── Headers row ──────────────────────────────────────────── */
+
+src\ui\calendar\CalendarGrid.css : line 503
+------------------------------------------------------------
+  }
+  
+  /* ── Days row ──────────────────────────────────────────────── */
+  
+> .nc-days-row {
+      min-height: calc(24 * var(--nc-hour-height));
+      display: flex;
+      align-items: stretch;
+      position: relative;
+
+src\ui\calendar\CalendarVariables.css : line 18
+------------------------------------------------------------
+     to `transparent`, which is REQUIRED — the calendar must let the Obsidian
+     translucency / wallpaper show through. Moving this block to `body` makes the
+     source vars resolve and turns the whole calendar opaque (rejected). The event
+     bleed that a transparent sticky all-day row / header would otherwise show is
+>    killed structurally by the scroll-driven clip-path on .nc-days-row (see
+     CalendarGrid.css), not by an opaque fill. */
+  :root {
+      /* Colors (mapped to Obsidian theme vars) */
+      --nc-bg-primary: var(--background-primary);
+
+src\ui\calendar\dragProjection.ts : line 42
+------------------------------------------------------------
+  /** Geometrie de la grille lue a un instant donne, en coordonnees viewport.
+      Toutes les fonctions de projection travaillent sur cet objet et jamais sur
+      le DOM : c'est ce qui les rend testables sans navigateur. */
+  export interface GridGeometry {
+>     /** Haut de `.nc-days-row`, origine verticale des colonnes horaires. */
+      daysRowTop: number | null;
+      /** Bande all-day, si elle est montee. */
+      allDayBand: { top: number; bottom: number } | null;
+      columns: ColumnRect[];
+
+src\ui\calendar\dragProjection.ts : line 77
+------------------------------------------------------------
+  /** Lit la geometrie courante de la grille. Seule fonction du module qui touche
+      au DOM ; a rappeler a chaque mouvement, la grille scrolle. */
+  export function readGridGeometry(gridEl: HTMLElement | null): GridGeometry {
+      if (!gridEl) return EMPTY;
+>     const daysEl = gridEl.querySelector(".nc-days-row") as HTMLElement | null;
+      const bandEl = gridEl.querySelector(".nc-allday-row") as HTMLElement | null;
+      const scrollerEl = gridEl.querySelector(
+          ".nc-main-scroller"
+      ) as HTMLElement | null;
+
+src\ui\calendar\TimeGrid.tsx : line 390
+------------------------------------------------------------
+          const update = () => {
+              frame = 0;
+              const x = main.scrollLeft;
+              scrollable.style.transform = `translateY(${-main.scrollTop}px)`;
+>             // Drive the vertical clip on .nc-days-row: clipping its top by
+              // scrollTop keeps the grid from painting behind the transparent
+              // sticky header/all-day band. Set on the scroller (ancestor) so it
+              // inherits to the row. See .nc-days-row in CalendarGrid.css.
+              main.style.setProperty("--nc-scroll-y", `${main.scrollTop}px`);
+
+src\ui\calendar\TimeGrid.tsx : line 393
+------------------------------------------------------------
+              scrollable.style.transform = `translateY(${-main.scrollTop}px)`;
+              // Drive the vertical clip on .nc-days-row: clipping its top by
+              // scrollTop keeps the grid from painting behind the transparent
+              // sticky header/all-day band. Set on the scroller (ancestor) so it
+>             // inherits to the row. See .nc-days-row in CalendarGrid.css.
+              main.style.setProperty("--nc-scroll-y", `${main.scrollTop}px`);
+              if (allDayRowRef.current) {
+                  allDayRowRef.current.style.transform = `translateX(${x}px)`;
+              }
+
+src\ui\calendar\usePanelDrag.ts : line 42
+------------------------------------------------------------
+  }
+  
+  /** Ou est la grille horaire dans le document. Le panneau est un frere de la
+      vue, il n'a pas de ref vers elle ; le selecteur est la meme convention que
+>     celle deja utilisee dans useTimeGridDrag pour .nc-days-row et
+      .nc-allday-row. */
+  const findGrid = () =>
+      document.querySelector(".nc-timegrid-wrapper") as HTMLElement | null;
+  
+
+apps\android\src\mobile.css : line 702
+------------------------------------------------------------
+  body.nc-platform-android .nc-content,
+  body.nc-platform-android .nc-timegrid-wrapper,
+  body.nc-platform-android .nc-timegrid-main,
+  body.nc-platform-android .nc-main-scroller,
+> body.nc-platform-android .nc-days-row {
+      background: transparent !important;
+  }
+  
+  body.nc-platform-android .nc-left-rail-fixed,
+
+apps\android\src\mobile.css : line 1806
+------------------------------------------------------------
+  body.nc-platform-android .nc-content,
+  body.nc-platform-android .nc-timegrid-wrapper,
+  body.nc-platform-android .nc-timegrid-main,
+  body.nc-platform-android .nc-main-scroller,
+> body.nc-platform-android .nc-days-row,
+  body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-window,
+  body.nc-platform-android .nc-timegrid-day,
+
+apps\android\src\mobile.css : line 2544
+------------------------------------------------------------
+      overscroll-behavior-y: none !important;
+  }
+  
+  /* Lock every time surface to exactly 24 hours. */
+> body.nc-platform-android .nc-days-row,
+  body.nc-platform-android .nc-timegrid-day,
+  body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-scrollable {
+
+==============================================================================
+PATTERN: \.nc-timegrid-day
+==============================================================================
+
+src\ui\calendar\CalendarGrid.css : line 551
+------------------------------------------------------------
+      position: relative;
+  }
+  
+  /* Day columns */
+> .nc-timegrid-day {
+      flex: 1;
+      min-width: var(--nc-day-min-width);
+      position: relative;
+      padding-left: 2px;
+
+src\ui\calendar\CalendarGrid.css : line 561
+------------------------------------------------------------
+      overflow: hidden;
+      transform: translateZ(0);
+  }
+  
+> .nc-timegrid-day.nc-today {
+  }
+  
+  .nc-timegrid-day.nc-weekend:not(.nc-today) {
+      background: rgba(255, 255, 255, 0.015);
+
+src\ui\calendar\CalendarGrid.css : line 564
+------------------------------------------------------------
+  
+  .nc-timegrid-day.nc-today {
+  }
+  
+> .nc-timegrid-day.nc-weekend:not(.nc-today) {
+      background: rgba(255, 255, 255, 0.015);
+  }
+  
+  /* Time slots (hour and half-hour lines) */
+
+src\ui\calendar\CalendarPanel.css : line 18
+------------------------------------------------------------
+     Mesure en paysage apres coup : grille de 609 -> 829 px. */
+  @media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+      /* La largeur mini d'une colonne se regle SUR LA VARIABLE, jamais classe par
+         classe : en-tetes, cellules all-day et colonnes horaires la partagent, et
+>        n'en rebaisser qu'une (ce que faisait l'ancien `.nc-timegrid-day {
+         min-width: 100px }`) desaligne la bande all-day de la grille.
+  
+         Elle est posee sur le wrapper et non sur :root, parce qu'elle se deduit
+         de --nc-visible-grid-width, publiee la par TimeGrid. Les trois familles de
+
+src\ui\calendar\CalendarTouch.css : line 184
+------------------------------------------------------------
+         double-tap de zoom. Le calendrier n'utilise pas le double-tap au doigt,
+         donc chaque tap peut agir tout de suite. */
+      .nc-event-block,
+      .nc-month-event,
+>     .nc-timegrid-day,
+      .nc-allday-cell,
+      button {
+          touch-action: manipulation;
+      }
+
+src\ui\calendar\dragProjection.ts : line 87
+------------------------------------------------------------
+      // depuis gridEl, donc lu sur le document. Absent du DOM = panneau ferme.
+      const panelEl = document.querySelector(".nc-cep") as HTMLElement | null;
+      const bandRect = bandEl?.getBoundingClientRect();
+      const columns: ColumnRect[] = [];
+>     for (const col of Array.from(gridEl.querySelectorAll(".nc-timegrid-day"))) {
+          const iso = (col as HTMLElement).dataset.date;
+          if (!iso) continue;
+          const rect = col.getBoundingClientRect();
+          columns.push({
+
+src\ui\calendar\EventPanel.tsx : line 358
+------------------------------------------------------------
+          const liveAnchor = getAnchorRect();
+          // In time-grid views, read the day-column geometry so the panel can dock
+          // into the adjacent column. Absent (month/list) → float beside anchor.
+          const scroller = document.querySelector(".nc-main-scroller");
+>         const colEls = scroller?.querySelectorAll(".nc-timegrid-day");
+          if (scroller && colEls && colEls.length) {
+              const columns = Array.from(colEls).map((el) => {
+                  const r = el.getBoundingClientRect();
+                  return { left: r.left, right: r.right, width: r.width };
+
+src\ui\calendar\useInfiniteScroll.ts : line 43
+------------------------------------------------------------
+      const measure = () => {
+          const el = scrollRef.current;
+          if (!el || daysPerView <= 0) return;
+          const dayCol = el.querySelector(
+>             ".nc-timegrid-day"
+          ) as HTMLElement | null;
+          if (dayCol && dayCol.offsetWidth > 0) {
+              dayWidthRef.current = dayCol.offsetWidth;
+          } else {
+
+src\ui\calendar\useTimeGridSelection.ts : line 89
+------------------------------------------------------------
+                  return;
+              }
+  
+              const dayColumn = target.closest(
+>                 ".nc-timegrid-day"
+              );
+  
+              if (!dayColumn) {
+                  return;
+
+src\ui\calendar\useTimeGridSelection.ts : line 174
+------------------------------------------------------------
+                      ) as HTMLElement | null;
+  
+                  const overColumn =
+                      overElement?.closest(
+>                         ".nc-timegrid-day"
+                      ) as HTMLElement | null;
+  
+                  let endDayDate =
+                      current.dayDate;
+
+src\ui\calendar\useTimeGridSelection.ts : line 372
+------------------------------------------------------------
+              }
+  
+              const dayColumn =
+                  target.closest(
+>                     ".nc-timegrid-day"
+                  );
+  
+              if (!dayColumn) {
+                  return;
+
+src\ui\calendar\useTimeGridSelection.ts : line 426
+------------------------------------------------------------
+              const dayColumn =
+                  (
+                      event.target as HTMLElement
+                  ).closest(
+>                     ".nc-timegrid-day"
+                  );
+  
+              if (dayColumn) {
+                  const rect =
+
+apps\android\src\mobile.css : line 718
+------------------------------------------------------------
+      backdrop-filter: blur(14px) saturate(1.06);
+      -webkit-backdrop-filter: blur(14px) saturate(1.06);
+  }
+  
+> body.nc-platform-android .nc-timegrid-day {
+      background: color-mix(
+          in srgb,
+          var(--nc-bg-primary, #11111b) 69%,
+          transparent
+
+apps\android\src\mobile.css : line 726
+------------------------------------------------------------
+          transparent
+      ) !important;
+  }
+  
+> body.nc-platform-android .nc-timegrid-day.nc-weekend:not(.nc-today) {
+      background: color-mix(
+          in srgb,
+          var(--nc-bg-secondary, #181825) 67%,
+          transparent
+
+apps\android\src\mobile.css : line 944
+------------------------------------------------------------
+      ) !important;
+  }
+  
+  body.nc-platform-android .nc-timegrid-slot-line,
+> body.nc-platform-android .nc-timegrid-day,
+  body.nc-platform-android .nc-left-rail-window {
+      border-color: rgba(155, 160, 185, 0.17) !important;
+  }
+  
+
+apps\android\src\mobile.css : line 1810
+------------------------------------------------------------
+  body.nc-platform-android .nc-days-row,
+  body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-window,
+> body.nc-platform-android .nc-timegrid-day,
+  body.nc-platform-android
+      .nc-timegrid-day.nc-weekend:not(.nc-today) {
+      background: transparent !important;
+      background-color: transparent !important;
+
+apps\android\src\mobile.css : line 1812
+------------------------------------------------------------
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-window,
+  body.nc-platform-android .nc-timegrid-day,
+  body.nc-platform-android
+>     .nc-timegrid-day.nc-weekend:not(.nc-today) {
+      background: transparent !important;
+      background-color: transparent !important;
+  }
+  
+
+apps\android\src\mobile.css : line 2545
+------------------------------------------------------------
+  }
+  
+  /* Lock every time surface to exactly 24 hours. */
+  body.nc-platform-android .nc-days-row,
+> body.nc-platform-android .nc-timegrid-day,
+  body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-scrollable {
+      box-sizing: border-box !important;
+
+apps\android\src\mobile.css : line 2556
+------------------------------------------------------------
+      max-height: calc(24 * var(--nc-hour-height)) !important;
+  }
+  
+  /* A clear final boundary at midnight. */
+> body.nc-platform-android .nc-timegrid-day::after,
+  body.nc-platform-android .nc-timegrid-hours::after,
+  body.nc-platform-android .nc-tz-column::after {
+      content: "";
+      position: absolute;
+
+==============================================================================
+PATTERN: \.nc-timegrid-hours
+==============================================================================
+
+src\ui\calendar\CalendarGrid.css : line 525
+------------------------------------------------------------
+         over the sticky band, whatever z-index a future feature assigns. */
+      isolation: isolate;
+  }
+  
+> .nc-timegrid-hours {
+      width: 64px;
+      flex-shrink: 0;
+      position: relative;
+  }
+
+apps\android\src\mobile.css : line 903
+------------------------------------------------------------
+      }
+  }
+  
+  /* Fixed rail and headers more closely match the compact Android reference. */
+> body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column {
+      width: 54px !important;
+  }
+  
+
+apps\android\src\mobile.css : line 1807
+------------------------------------------------------------
+  body.nc-platform-android .nc-timegrid-wrapper,
+  body.nc-platform-android .nc-timegrid-main,
+  body.nc-platform-android .nc-main-scroller,
+  body.nc-platform-android .nc-days-row,
+> body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-window,
+  body.nc-platform-android .nc-timegrid-day,
+  body.nc-platform-android
+
+apps\android\src\mobile.css : line 2546
+------------------------------------------------------------
+  
+  /* Lock every time surface to exactly 24 hours. */
+  body.nc-platform-android .nc-days-row,
+  body.nc-platform-android .nc-timegrid-day,
+> body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+  body.nc-platform-android .nc-left-rail-scrollable {
+      box-sizing: border-box !important;
+      height: calc(24 * var(--nc-hour-height)) !important;
+
+apps\android\src\mobile.css : line 2557
+------------------------------------------------------------
+  }
+  
+  /* A clear final boundary at midnight. */
+  body.nc-platform-android .nc-timegrid-day::after,
+> body.nc-platform-android .nc-timegrid-hours::after,
+  body.nc-platform-android .nc-tz-column::after {
+      content: "";
+      position: absolute;
+      z-index: 2;
+
+==============================================================================
+PATTERN: \.nc-left-rail-scrollable
+==============================================================================
+
+src\ui\calendar\CalendarGrid.css : line 297
+------------------------------------------------------------
+      position: relative;
+      border-right: 1px solid rgba(128, 128, 128, 0.5);
+  }
+  
+> .nc-left-rail-scrollable {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+
+apps\android\src\mobile.css : line 2548
+------------------------------------------------------------
+  body.nc-platform-android .nc-days-row,
+  body.nc-platform-android .nc-timegrid-day,
+  body.nc-platform-android .nc-timegrid-hours,
+  body.nc-platform-android .nc-tz-column,
+> body.nc-platform-android .nc-left-rail-scrollable {
+      box-sizing: border-box !important;
+      height: calc(24 * var(--nc-hour-height)) !important;
+      min-height: calc(24 * var(--nc-hour-height)) !important;
+      max-height: calc(24 * var(--nc-hour-height)) !important;

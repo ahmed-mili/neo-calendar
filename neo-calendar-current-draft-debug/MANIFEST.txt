@@ -1,0 +1,15 @@
+Current Neo Calendar draft diagnostics
+
+Reported bugs:
+- Draft needs two taps instead of one
+- Top and bottom handles do not resize duration
+
+Included files:
+apps\android\src\main.tsx
+apps\android\src\mobile.css
+apps\android\src\androidDraftSelection.ts
+src\ui\calendar\useDraftEvent.ts
+src\ui\calendar\useTimeGridSelection.ts
+src\ui\calendar\useTimeGridResize.ts
+src\ui\calendar\TimeGrid.tsx
+src\ui\calendar\EventPanel.tsx

@@ -35,20 +35,29 @@ describe("panel date labels", () => {
     const card = (e: DisplayEvent) =>
         formatCardDate(e, true, formatTime, addDays, 2026);
 
+    // The panel used to format its dates through the en-US locale while the rest
+    // of the calendar read the dictionary, so a French calendar showed
+    // "Sat Aug 8" above French labels. These read the language in force, which
+    // the tests leave at its default.
     it("omits the year inside the current year", () => {
         expect(formatPanelDay(new Date("2026-11-01T00:00:00"), 2026)).toBe(
-            "Sun Nov 1"
+            "dim. 1 nov."
         );
     });
 
     it("adds the year once the date leaves the current one", () => {
         expect(formatPanelDay(new Date("2027-01-01T00:00:00"), 2026)).toBe(
-            "Fri Jan 1, 2027"
+            "ven. 1 janv. 2027"
         );
         expect(formatPanelDay(new Date("2025-12-25T00:00:00"), 2026)).toBe(
-            "Thu Dec 25, 2025"
+            "jeu. 25 déc. 2025"
         );
     });
+
+    // English is not asserted here: the day and month names are read once, when
+    // the module loads, because the language is chosen at start-up and a change
+    // reloads the view. Switching it mid-test would swap the word order without
+    // swapping the names.
 
     it("labels an all-day event with its day", () => {
         const holiday = event({
@@ -57,7 +66,7 @@ describe("panel date labels", () => {
             end: new Date("2027-03-29T00:00:00"),
             isTask: false,
         });
-        expect(card(holiday)).toBe("Sun Mar 28, 2027");
+        expect(card(holiday)).toBe("dim. 28 mars 2027");
     });
 
     it("carries the year onto both ends of a range that crosses years", () => {
@@ -67,7 +76,7 @@ describe("panel date labels", () => {
             end: new Date("2027-01-03T00:00:00"),
             isTask: false,
         });
-        expect(card(spanning)).toBe("Dec 31 → Jan 2, 2027");
+        expect(card(spanning)).toBe("31 déc. → 2 janv. 2027");
     });
 
     it("keeps times alongside the dated label", () => {
@@ -75,14 +84,14 @@ describe("panel date labels", () => {
             start: new Date("2027-02-03T09:00:00"),
             end: new Date("2027-02-03T10:30:00"),
         });
-        expect(card(timed)).toBe("Wed Feb 3, 2027, 09:00 – 10:30");
+        expect(card(timed)).toBe("mer. 3 févr. 2027, 09:00 – 10:30");
     });
 });
 
 describe("calendar events panel helpers", () => {
     it("renders a stable fallback for blank event titles", () => {
-        expect(getDisplayTitle("")).toBe("Untitled");
-        expect(getDisplayTitle("   ")).toBe("Untitled");
+        expect(getDisplayTitle("")).toBe("Sans titre");
+        expect(getDisplayTitle("   ")).toBe("Sans titre");
         expect(getDisplayTitle("Planning")).toBe("Planning");
     });
 
@@ -217,13 +226,13 @@ describe("calendar events panel helpers", () => {
     });
 
     it("labels the active period", () => {
-        expect(formatPanelPeriod("all", null)).toBe("All dates");
-        expect(formatPanelPeriod("scheduled", null)).toBe("Scheduled");
+        expect(formatPanelPeriod("all", null)).toBe("Toutes les dates");
+        expect(formatPanelPeriod("scheduled", null)).toBe("Planifiés");
         expect(
             formatPanelPeriod("period", {
                 start: "2026-07-01",
                 end: "2026-07-31",
             })
-        ).toBe("Jul 1 – Jul 31, 2026");
+        ).toBe("1 juil. – 31 juil. 2026");
     });
 });

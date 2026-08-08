@@ -22,6 +22,9 @@ import {
     ChevronRightIcon,
     CheckIcon as CheckMarkIcon,
     CopyIcon,
+    DuplicateIcon,
+    TrashIcon,
+    FileTextIcon as NoteIcon,
 } from "./Icons";
 import {
     addDays,
@@ -43,6 +46,7 @@ import {
 } from "./EventPanelIcons";
 import { t } from "../i18n";
 import { isAndroidRuntime } from "./CalendarUtils";
+import { swallowNextClick } from "./swallowNextClick";
 
 function getEventPanelPortalTarget(): HTMLElement {
     const isAndroid =
@@ -96,6 +100,7 @@ interface PanelHeaderProps {
     onHeaderMouseDown: (e: React.MouseEvent) => void;
     onToggleMenu: () => void;
     onOpenFile: (id: string) => void;
+    onDuplicate?: (id: string) => void;
     onDeleteClick: () => void;
     onClose: () => void;
     /** The grab area on a touch screen — see useSheetDrag. */
@@ -112,9 +117,11 @@ export function PanelHeader({
     onHeaderMouseDown,
     onToggleMenu,
     onOpenFile,
+    onDuplicate,
     onDeleteClick,
     onClose,
 }: PanelHeaderProps) {
+    const android = isAndroidRuntime();
     return (
         <div
             className="nc-panel-header"
@@ -134,22 +141,43 @@ export function PanelHeader({
                     </button>
                     {menuOpen && (
                         <div className="nc-panel-menu">
-                            {!isDraft && eventId && (
+                            {/* The sheet already carries a "View note" button at
+                                its foot on a phone, and opening the note is not
+                                what the menu gets used for there. The slot goes
+                                to duplicating instead, which has no other way in
+                                without a keyboard or a right click. */}
+                            {!isDraft && eventId && !android && (
                                 <button
                                     type="button"
                                     className="nc-panel-menu-item"
                                     onClick={() => onOpenFile(eventId)}
                                 >
-                                    Open note
+                                    <NoteIcon size={15} />
+                                    <span>{t("Open note")}</span>
                                 </button>
                             )}
+                            {!isDraft &&
+                                editable &&
+                                eventId &&
+                                android &&
+                                onDuplicate && (
+                                    <button
+                                        type="button"
+                                        className="nc-panel-menu-item"
+                                        onClick={() => onDuplicate(eventId)}
+                                    >
+                                        <DuplicateIcon size={15} />
+                                        <span>{t("Duplicate")}</span>
+                                    </button>
+                                )}
                             {!isDraft && editable && eventId && (
                                 <button
                                     type="button"
                                     className="nc-panel-menu-item nc-danger"
                                     onClick={onDeleteClick}
                                 >
-                                    Delete event
+                                    <TrashIcon size={15} />
+                                    <span>{t("Delete event")}</span>
                                 </button>
                             )}
                         </div>
@@ -166,6 +194,13 @@ export function PanelHeader({
                   * one looked like it had done something else entirely.
                   * Pointer-up is delivered to the element the press began on,
                   * whatever moved in between.
+                  *
+                  * Closing that early is what makes the guard below necessary:
+                  * the sheet is gone by the time the tap's click is delivered,
+                  * and the corner it occupied belongs to the calendar's app bar
+                  * — the search icon and the today badge sit at exactly these
+                  * coordinates. Until the guard, closing the sheet opened the
+                  * search bar.
                   */}
                 <button
                     type="button"
@@ -175,6 +210,7 @@ export function PanelHeader({
                         isAndroidRuntime()
                             ? (event) => {
                                   event.preventDefault();
+                                  swallowNextClick();
                                   onClose();
                               }
                             : undefined
@@ -567,7 +603,7 @@ export function DateRow({
                             className={`nc-chip ${allDay ? "nc-active" : ""}`}
                             onClick={toggleAllDay}
                         >
-                            All-day
+                            {t("All-day")}
                         </button>
                         <button
                             type="button"
@@ -576,7 +612,7 @@ export function DateRow({
                             }`}
                             onClick={toggleRecurring}
                         >
-                            Repeat
+                            {t("Repeat")}
                         </button>
                     </div>
                 )}
@@ -727,9 +763,9 @@ interface RecurrenceRowProps {
 
 const PRESETS: { key: PresetKey; label: string }[] = [
     { key: "daily", label: t("Daily") },
-    { key: "weekly", label: "Weekly" },
-    { key: "monthly", label: "Monthly" },
-    { key: "yearly", label: "Yearly" },
+    { key: "weekly", label: t("Weekly") },
+    { key: "monthly", label: t("Monthly") },
+    { key: "yearly", label: t("Yearly") },
     { key: "custom", label: t("Custom") },
 ];
 
@@ -815,10 +851,10 @@ export function RecurrenceRow({
                                 className="nc-recur-freq"
                                 value={recurrence.freq}
                                 options={[
-                                    { value: "daily", label: "day(s)" },
-                                    { value: "weekly", label: "week(s)" },
-                                    { value: "monthly", label: "month(s)" },
-                                    { value: "yearly", label: "year(s)" },
+                                    { value: "daily", label: t("day(s)") },
+                                    { value: "weekly", label: t("week(s)") },
+                                    { value: "monthly", label: t("month(s)") },
+                                    { value: "yearly", label: t("year(s)") },
                                 ]}
                                 onChange={(v) => {
                                     const freq = v as Freq;
@@ -1064,11 +1100,12 @@ export function CalendarRow({
     }, [open]);
 
     type Cal = CalendarRowProps["editableCalendars"][number];
-    const nameFor = (cal: Cal) => cal.name || "Daily notes";
+    const nameFor = (cal: Cal) => cal.name || t("Daily notes");
     // The calendar's storage type, shown muted after the name (Notion shows
     // "Table"; ours shows the vault-source kind: a note per event, or a daily
     // note). Mirrors CalendarInfo["type"].
-    const typeFor = (cal: Cal) => (cal.type === "dailynote" ? "Daily" : "Note");
+    const typeFor = (cal: Cal) =>
+        cal.type === "dailynote" ? t("Daily") : t("Note");
     const editableCurrent =
         editableCalendars[calendarIndex] || editableCalendars[0];
     // A read-only event shows its own calendar, and no storage badge: "Note"
@@ -1193,10 +1230,10 @@ export function StatusRow({ taskStatus, editable, setStatus }: StatusRowProps) {
                     pill keeps a constant size when toggling. */}
                 <span className="nc-status-pill-label">
                     <span className={status === "todo" ? "is-on" : ""}>
-                        To do
+                        {t("To do")}
                     </span>
                     <span className={status === "complete" ? "is-on" : ""}>
-                        Complete
+                        {t("Complete")}
                     </span>
                 </span>
             </button>
@@ -1725,8 +1762,8 @@ export function LinksAttachmentsRow({
                     disabled={disabled}
                     aria-label={
                         disabled
-                            ? "Available once the event is created"
-                            : "Add links and attachments"
+                            ? t("Available once the event is created")
+                            : t("Add links and attachments")
                     }
                     aria-expanded={open}
                     onMouseDown={handleTriggerMouseDown}
@@ -1740,8 +1777,8 @@ export function LinksAttachmentsRow({
                     </span>
                     <span className="nc-panel-row-label">
                         {items.length > 0
-                            ? "Add another link or attachment"
-                            : "Add links and attachments"}
+                            ? t("Add another link or attachment")
+                            : t("Add links and attachments")}
                     </span>
                 </button>
             ) : (

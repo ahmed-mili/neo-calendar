@@ -1,6 +1,12 @@
 import { NeoEvent } from "../../types";
 import { DisplayEvent } from "../types";
 import { normalizeColor } from "../../utils/color";
+import {
+    appendYear,
+    formatDatedDay,
+    formatDatedDayWithYear,
+} from "./calendarFormatters";
+import { t } from "../i18n";
 
 export type PanelStatusFilter = "all" | "todo" | "complete";
 export type PanelDateFilter = "all" | "scheduled" | "unscheduled" | "period";
@@ -16,7 +22,7 @@ export interface PanelSummary {
 }
 
 export function getDisplayTitle(title: string): string {
-    return title.trim() || "Untitled";
+    return title.trim() || t("Untitled");
 }
 
 const sameDay = (a: Date, b: Date) =>
@@ -25,32 +31,17 @@ const sameDay = (a: Date, b: Date) =>
     a.getDate() === b.getDate();
 
 /**
- * A day as the panel labels it: "Sun Nov 1", Notion-style — plus the year once
- * the date leaves the current one ("Fri Jan 1, 2027"), so a list that scrolls
- * years ahead never leaves you guessing which one you are looking at.
+ * A day as the panel labels it: "Sun Nov 1" / "dim. 1 nov.", plus the year once
+ * the date leaves the current one, so a list that scrolls years ahead never
+ * leaves you guessing which one you are looking at.
  */
 export function formatPanelDay(date: Date, currentYear: number): string {
-    const label = date
-        .toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-        })
-        .replace(",", "");
-    return date.getFullYear() === currentYear
-        ? label
-        : `${label}, ${date.getFullYear()}`;
+    return formatDatedDayWithYear(date, currentYear);
 }
 
 /** The same day without its weekday, for the two ends of a range. */
 function formatRangeEnd(date: Date, currentYear: number): string {
-    const label = date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-    });
-    return date.getFullYear() === currentYear
-        ? label
-        : `${label}, ${date.getFullYear()}`;
+    return formatDatedDayWithYear(date, currentYear, { weekday: false });
 }
 
 /** The date line under an event's title in the panel list. */
@@ -173,23 +164,20 @@ export function formatTotalMinutes(totalMinutes: number): string {
 function formatPeriodDate(value: string, includeYear: boolean): string {
     const date = parseLocalDate(value);
     if (!date) return value;
-    return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        ...(includeYear ? { year: "numeric" } : {}),
-    });
+    const label = formatDatedDay(date, { weekday: false });
+    return includeYear ? appendYear(label, date.getFullYear()) : label;
 }
 
 export function formatPanelPeriod(
     filter: PanelDateFilter,
     period: PanelPeriod | null
 ): string {
-    if (filter === "scheduled") return "Scheduled";
-    if (filter === "unscheduled") return "Unscheduled";
-    if (filter !== "period" || !period) return "All dates";
+    if (filter === "scheduled") return t("Scheduled");
+    if (filter === "unscheduled") return t("Unscheduled");
+    if (filter !== "period" || !period) return t("All dates");
     const start = parseLocalDate(period.start);
     const end = parseLocalDate(period.end);
-    if (!start || !end) return "Custom period";
+    if (!start || !end) return t("Custom period");
     const sameYear = start.getFullYear() === end.getFullYear();
     return `${formatPeriodDate(period.start, !sameYear)} – ${formatPeriodDate(
         period.end,

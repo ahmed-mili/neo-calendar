@@ -345,7 +345,11 @@ function CalendarAppInner(props: CalendarAppProps) {
             setSelectedIds(ids);
         };
 
-        const onMouseDown = (e: MouseEvent) => {
+        // Pointer events, not mouse events: the grid cancels its `pointerdown`,
+        // which suppresses the compatibility mouse events. A press on the
+        // calendar surface therefore never produced a `mousedown` — and a click
+        // on empty space stopped clearing the multi-selection.
+        const onPress = (e: PointerEvent) => {
             if (e.button !== 0 || e.ctrlKey || e.metaKey) return;
             const t = e.target as HTMLElement;
             if (isInteractive(t)) return;
@@ -366,7 +370,7 @@ function CalendarAppInner(props: CalendarAppProps) {
                 const ly0 = vy0 - cb.top;
                 setMarquee({ x0: lx0, y0: ly0, x1: lx0, y1: ly0 });
                 selectInBox(vx0, vy0, vx0, vy0);
-                const onMove = (ev: MouseEvent) => {
+                const onMove = (ev: PointerEvent) => {
                     setMarquee({
                         x0: lx0,
                         y0: ly0,
@@ -376,12 +380,12 @@ function CalendarAppInner(props: CalendarAppProps) {
                     selectInBox(vx0, vy0, ev.clientX, ev.clientY);
                 };
                 const onUp = () => {
-                    window.removeEventListener("mousemove", onMove, true);
-                    window.removeEventListener("mouseup", onUp, true);
+                    window.removeEventListener("pointermove", onMove, true);
+                    window.removeEventListener("pointerup", onUp, true);
                     setMarquee(null);
                 };
-                window.addEventListener("mousemove", onMove, true);
-                window.addEventListener("mouseup", onUp, true);
+                window.addEventListener("pointermove", onMove, true);
+                window.addEventListener("pointerup", onUp, true);
                 return;
             }
             clearMultiSelection();
@@ -396,12 +400,12 @@ function CalendarAppInner(props: CalendarAppProps) {
         };
         const onBlur = () => setShiftHeld(false);
 
-        el.addEventListener("mousedown", onMouseDown);
+        el.addEventListener("pointerdown", onPress);
         window.addEventListener("keydown", onKeyDown);
         window.addEventListener("keyup", onKeyUp);
         window.addEventListener("blur", onBlur);
         return () => {
-            el.removeEventListener("mousedown", onMouseDown);
+            el.removeEventListener("pointerdown", onPress);
             window.removeEventListener("keydown", onKeyDown);
             window.removeEventListener("keyup", onKeyUp);
             window.removeEventListener("blur", onBlur);
@@ -1504,6 +1508,7 @@ function CalendarAppInner(props: CalendarAppProps) {
                     }}
                     onDraftCommit={handleDraftCommit}
                     onOpenFile={(id) => props.onOpenFile(id)}
+                    onDuplicate={(id) => void duplicateEvent(id)}
                     onDelete={async (id) => {
                         await props.onDeleteEvent(id);
                     }}

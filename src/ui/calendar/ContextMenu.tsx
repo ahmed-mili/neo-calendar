@@ -32,7 +32,7 @@ export default function ContextMenu({
     useEffect(() => {
         if (!visible) return;
 
-        const onClick = (e: MouseEvent) => {
+        const onPress = (e: Event) => {
             if (
                 menuRef.current &&
                 !menuRef.current.contains(e.target as Node)
@@ -43,10 +43,13 @@ export default function ContextMenu({
         const onKey = (e: KeyboardEvent) => {
             if (e.key === "Escape") onDismiss();
         };
-        document.addEventListener("mousedown", onClick);
+        // Pointer events, not mouse events: the grid cancels its `pointerdown`,
+        // which suppresses the compatibility mouse events, so a press on the
+        // calendar never produces a `mousedown` to dismiss on.
+        document.addEventListener("pointerdown", onPress);
         document.addEventListener("keydown", onKey);
         return () => {
-            document.removeEventListener("mousedown", onClick);
+            document.removeEventListener("pointerdown", onPress);
             document.removeEventListener("keydown", onKey);
         };
     }, [visible, onDismiss]);

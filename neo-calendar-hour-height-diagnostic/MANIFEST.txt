@@ -1,0 +1,20 @@
+Neo Calendar hour-height diagnostic
+
+Purpose: locate the real HOUR_HEIGHT source and every CSS/scroll constraint.
+
+No project source file was modified.
+
+Copied files:
+src\ui\calendar\CalendarUtils.ts
+src\ui\calendar\calendarConstants.ts
+src\ui\calendar\CalendarVariables.css
+src\ui\calendar\CalendarGrid.css
+src\ui\calendar\TimeGrid.tsx
+src\ui\calendar\TimeGridSections.tsx
+src\ui\calendar\useTimeGridResize.ts
+src\ui\calendar\useTimeGridSelection.ts
+apps\android\src\mobile.css
+package.json
+apps\android\package.json
+
+Latest prior diagnostic: C:\dev\neo-calendar\android-backups\midnight-pinch-v7-5-1-20260806-003655\CalendarUtils-HOUR_HEIGHT-context.txt

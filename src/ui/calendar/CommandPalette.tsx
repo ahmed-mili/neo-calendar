@@ -403,7 +403,7 @@ export default function CommandPalette({
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Search events or type a command..."
+                    placeholder={t("Search events or type a command…")}
                 />
                 <div className="nc-command-palette-list">
                     {filtered.length === 0 && (

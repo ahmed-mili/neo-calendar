@@ -9,6 +9,7 @@ import {
     SettingsIcon,
     CheckIcon,
     SidebarToggleIcon,
+    PanelLeftIcon,
     SearchIcon,
 } from "./Icons";
 import { t } from "../i18n";
@@ -43,18 +44,18 @@ const DAY_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 function viewLabel(viewType: ViewType, dayCount: number): string {
     if (viewType === "days") {
-        return dayCount === 1 ? "1 day" : `${dayCount} days`;
+        return dayCount === 1 ? t("1 day") : `${dayCount} ${t("days")}`;
     }
     return (
         (
             {
-                day: "Day",
-                week: "Week",
-                month: "Month",
-                list: "List",
-                "3days": "3 Days",
+                day: t("Day"),
+                week: t("Week"),
+                month: t("Month"),
+                list: t("List"),
+                "3days": t("3 days"),
             } as Record<string, string>
-        )[viewType] ?? "Week"
+        )[viewType] ?? t("Week")
     );
 }
 
@@ -222,7 +223,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                     title={t("Calendars")}
                     aria-label={t("Calendars")}
                 >
-                    <SidebarToggleIcon />
+                    <PanelLeftIcon />
                 </button>
             </div>
             <div className="nc-header-right">
@@ -336,8 +337,10 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                                     </span>
                                                     <span>
                                                         {n === 1
-                                                            ? "1 day"
-                                                            : `${n} days`}
+                                                            ? t("1 day")
+                                                            : `${n} ${t(
+                                                                  "days"
+                                                              )}`}
                                                     </span>
                                                 </button>
                                             );
@@ -351,7 +354,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                                     type="number"
                                                     min={1}
                                                     max={60}
-                                                    placeholder="Daysâ€¦"
+                                                    placeholder={t("Days…")}
                                                     onKeyDown={(event) => {
                                                         if (
                                                             event.key ===
@@ -446,7 +449,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                     )}
                 </div>
                 <button className="nc-btn nc-btn-today" onClick={onGoToday}>
-                    Today
+                    {t("Today")}
                 </button>
                 <div className="nc-header-nav">
                     <button
