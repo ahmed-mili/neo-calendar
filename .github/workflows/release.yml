@@ -144,8 +144,13 @@ jobs:
                   key: cargo-${{ runner.os }}-${{ hashFiles('apps/windows/src-tauri/Cargo.lock') }}
                   restore-keys: cargo-${{ runner.os }}-
 
+            # Les deux applications typent les écrans partagés de `src/`, dont
+            # les imports — obsidian, luxon, react — se résolvent depuis la
+            # racine. Installer la seule `apps/windows` laisse tsc sans eux.
             - name: Installer les dépendances
-              run: npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
+              run: |
+                  npm install --no-audit --no-fund
+                  npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
 
             # `package` compile le front, puis Tauri, puis rend à l'installateur
             # le nom que porte un installateur de bureau.
