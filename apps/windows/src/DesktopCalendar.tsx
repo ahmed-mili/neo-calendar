@@ -2797,14 +2797,18 @@ export default function DesktopCalendar({
                      *
                      * This used to divert to the default on Android, because
                      * the panel was a second column whose close button ended up
-                     * under the status bar — a list with no way out. It comes
-                     * up as a sheet there instead, dismissed by its backdrop,
-                     * by a downward drag, or by a button now padded clear of
-                     * the status bar. One control, one meaning, both platforms.
+                     * under the status bar — a list with no way out. It slides
+                     * in from the right there instead, clear of the status bar
+                     * and leaving a strip of calendar that closes it.
                      */
-                    setSelectedCalendarId((current) =>
-                        current === calendarId ? null : calendarId
-                    );
+                    const opening = selectedCalendarId !== calendarId;
+                    setSelectedCalendarId(opening ? calendarId : null);
+                    /*
+                     * Two drawers over one screen is one too many. The list has
+                     * said what it was for the moment it is tapped, so it gets
+                     * out of the way and lets the panel have the foreground.
+                     */
+                    if (isAndroid && opening) setSidebarVisible(false);
                 }}
                 selectedCalendar={selectedCalendar}
                 panelEvents={panelEvents}
