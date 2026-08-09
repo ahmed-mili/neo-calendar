@@ -45,6 +45,7 @@ import {
     Check,
     ChevronDown,
     Copy,
+    Columns2,
     FileText,
     Flag,
     FolderOpen,
@@ -675,6 +676,14 @@ export default function DesktopSettings({
                         patchPreferences({
                             clickToCreateEventFromMonthView: checked,
                         })
+                    }
+                />
+                <SettingsToggleRow
+                    label={t("Free scrolling between days")}
+                    icon={<Columns2 size={18} />}
+                    checked={preferences.freeScroll}
+                    onChange={(checked) =>
+                        patchPreferences({ freeScroll: checked })
                     }
                 />
                 <SettingsChoiceRow

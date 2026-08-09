@@ -134,6 +134,33 @@ export function stillGliding(velocity: number): boolean {
     return Math.abs(velocity) >= MIN_GLIDE_VELOCITY;
 }
 
+/** How long the grid takes to slide back onto whole days. */
+export const SETTLE_MS = 220;
+
+/** Fast at first, easing in at the end, like something coming to rest. */
+export function easeOutCubic(progress: number): number {
+    const left = 1 - progress;
+    return 1 - left * left * left;
+}
+
+/**
+ * Where a grid left between two days should come to rest.
+ *
+ * Half a column of Saturday next to half a column of Monday is nobody's week:
+ * the days are the unit, so that is what the grid stops on.
+ */
+export function snappedScroll(
+    scrollLeft: number,
+    columnWidth: number,
+    maxScroll: number
+): number {
+    if (!(columnWidth > 0)) return clampScroll(scrollLeft, maxScroll);
+    return clampScroll(
+        Math.round(scrollLeft / columnWidth) * columnWidth,
+        maxScroll
+    );
+}
+
 export interface Span {
     /** Distance between the two fingers. */
     length: number;
@@ -209,17 +236,27 @@ export function claimsGesture<T extends GestureNode>(
     return false;
 }
 
+export interface AxisLockOptions {
+    /** How many day columns fill the viewport. 0 leaves the grid unsnapped. */
+    daysPerView?: number;
+    /** Let the grid rest between two days instead of on whole ones. */
+    freeScroll?: boolean;
+    /** Called when a pinch has changed the hour height, inside the frame that
+        changed it, for anything measured in pixels that a render would
+        otherwise have refreshed. */
+    onScaleChange?: () => void;
+}
+
 export function useAxisLock(
     ref: React.RefObject<HTMLElement>,
     hostRef: React.RefObject<HTMLElement>,
     enabled = true,
-    /** Called when a pinch has changed the hour height, inside the frame that
-        changed it, for anything measured in pixels that a render would
-        otherwise have refreshed. */
-    onScaleChange?: () => void
+    options: AxisLockOptions = {}
 ): void {
-    const onScaleChangeRef = useRef(onScaleChange);
-    onScaleChangeRef.current = onScaleChange;
+    // Read through a ref so a changed setting never has to tear down and
+    // rebind the listeners mid-gesture.
+    const optionsRef = useRef(options);
+    optionsRef.current = options;
 
     useEffect(() => {
         const element = ref.current;
@@ -320,7 +357,39 @@ export function useAxisLock(
                 element.scrollHeight - element.clientHeight
             );
 
-            onScaleChangeRef.current?.();
+            optionsRef.current.onScaleChange?.();
+        };
+
+        /**
+         * Slides the grid back onto whole days once it has come to rest.
+         *
+         * Only ever horizontal: the hours are continuous, there is nothing to
+         * land on there. Runs after everything else has stopped, so it never
+         * competes with a finger or a fling.
+         */
+        const settleOnDays = () => {
+            const { daysPerView = 0, freeScroll = false } = optionsRef.current;
+            if (freeScroll || daysPerView <= 0) return;
+
+            const columnWidth = element.clientWidth / daysPerView;
+            const from = element.scrollLeft;
+            const to = snappedScroll(
+                from,
+                columnWidth,
+                element.scrollWidth - element.clientWidth
+            );
+            // Under half a pixel is already home; animating it would only cost
+            // a frame and a flicker.
+            if (Math.abs(to - from) < 0.5) return;
+
+            const startedAt = performance.now();
+            const step = (now: number) => {
+                const progress = Math.min(1, (now - startedAt) / SETTLE_MS);
+                element.scrollLeft =
+                    from + (to - from) * easeOutCubic(progress);
+                frame = progress < 1 ? requestAnimationFrame(step) : 0;
+            };
+            frame = requestAnimationFrame(step);
         };
 
         const glide = (on: ScrollAxis, initial: number) => {
@@ -345,6 +414,7 @@ export function useAxisLock(
                 }
                 frame = 0;
                 delete host.dataset.ncGliding;
+                settleOnDays();
             };
 
             frame = requestAnimationFrame(step);
@@ -447,10 +517,18 @@ export function useAxisLock(
             const last = samples[samples.length - 1];
             // A finger that came to rest before lifting was placing the grid,
             // not throwing it.
-            if (!last || event.timeStamp - last.at > FLING_TIMEOUT_MS) return;
+            const thrown =
+                last && event.timeStamp - last.at <= FLING_TIMEOUT_MS;
+            const velocity = thrown ? velocityFrom(samples) : 0;
 
-            const velocity = velocityFrom(samples);
-            if (stillGliding(velocity)) glide(releasing, velocity);
+            if (stillGliding(velocity)) {
+                glide(releasing, velocity);
+                return;
+            }
+
+            // Whichever way the gesture went, the grid has stopped moving and
+            // has to be looking at whole days when it does.
+            settleOnDays();
         };
 
         const onTouchCancel = () => {

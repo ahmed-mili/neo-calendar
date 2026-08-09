@@ -1390,6 +1390,7 @@ function CalendarAppInner(props: CalendarAppProps) {
                     visibleDates={visibleDates}
                     firstDay={settings.firstDay}
                     timeFormat24h={settings.timeFormat24h}
+                    freeScroll={settings.freeScroll}
                     sidebarVisible={sidebarVisible}
                     onToggleSidebar={() => setSidebarVisible((v) => !v)}
                     onEventClick={handleEventSelect}
