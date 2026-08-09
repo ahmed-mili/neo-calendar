@@ -12,14 +12,20 @@ import { useEffect } from "react";
  * Asking the browser to scroll and then putting the other axis back does not
  * work, and it is worth saying why: a touch scroll runs on the compositor
  * thread. By the time a `scroll` event reaches us the frame is already drawn,
- * and the gesture still in progress overwrites whatever we assign. `touch-action`
- * can constrain an axis, but it is latched when the gesture begins — before
- * there is any direction to read — so it cannot be chosen per gesture either.
+ * and the gesture still in progress overwrites whatever we assign.
+ * `touch-action` can constrain an axis, but it is latched when the gesture
+ * begins — before there is any direction to read — so it cannot be chosen per
+ * gesture either.
  *
  * So on the phone the grid does its own scrolling. `touch-action: none` keeps
  * the browser out of it, the first few pixels of the gesture decide the axis,
  * and only that axis moves — during the drag and during the glide that follows
  * it. Nothing can push the other one, because nothing else is driving.
+ *
+ * Everything that moves the grid moves it once per frame, from inside a frame:
+ * touches arrive faster than the screen refreshes, and writing a scroll offset
+ * per touch spends the extra writes on nothing while the reads between them
+ * force layout. The extents are measured once per gesture for the same reason.
  *
  * The offsets are read fresh from the element every frame rather than tracked
  * here, so the day-shifting of the infinite scroll and the midnight clamp stay
@@ -30,13 +36,16 @@ import { useEffect } from "react";
 export const AXIS_LOCK_PX = 8;
 
 /** What is left of the glide's speed after one frame. */
-export const FRICTION_PER_FRAME = 0.94;
+export const FRICTION_PER_FRAME = 0.96;
 
-/** Slower than this (px/ms) and the glide is over — about 40px per second. */
-export const MIN_GLIDE_VELOCITY = 0.04;
+/** Slower than this (px/ms) and the glide is over — about 30px per second. */
+export const MIN_GLIDE_VELOCITY = 0.03;
 
 /** A finger that paused this long before lifting was placing, not throwing. */
 export const FLING_TIMEOUT_MS = 90;
+
+/** How far back a fling's speed is measured. */
+export const VELOCITY_WINDOW_MS = 80;
 
 const FRAME_MS = 16.7;
 
@@ -59,6 +68,37 @@ export function clampScroll(value: number, max: number): number {
     return Math.min(Math.max(value, 0), max);
 }
 
+export interface TravelSample {
+    /** Where the finger was along the locked axis. */
+    position: number;
+    at: number;
+}
+
+/**
+ * How fast the finger was moving when it left, in px/ms.
+ *
+ * Measured across the last `windowMs` rather than from the newest pair: touch
+ * points arrive irregularly, and a single short interval turns one jittery
+ * sample into a fling. A finger that came to rest before lifting has nothing
+ * inside the window but its final position, and gets no speed at all.
+ */
+export function velocityFrom(
+    samples: readonly TravelSample[],
+    windowMs = VELOCITY_WINDOW_MS
+): number {
+    if (samples.length < 2) return 0;
+
+    const last = samples[samples.length - 1];
+    let oldest = last;
+    for (let index = samples.length - 2; index >= 0; index--) {
+        if (last.at - samples[index].at > windowMs) break;
+        oldest = samples[index];
+    }
+
+    const elapsed = last.at - oldest.at;
+    return elapsed > 0 ? (last.position - oldest.position) / elapsed : 0;
+}
+
 /**
  * What a glide's speed has decayed to after `elapsedMs`.
  *
@@ -77,16 +117,16 @@ export function stillGliding(velocity: number): boolean {
     return Math.abs(velocity) >= MIN_GLIDE_VELOCITY;
 }
 
+export interface GestureNode {
+    readonly parentElement: GestureNode | null;
+}
+
 /**
  * Whether the gesture belongs to something the finger landed on rather than to
  * the grid underneath it. A resize grip declares `touch-action: none` to claim
  * the gesture for itself; scrolling the grid under it would fight the very drag
  * it asked for.
  */
-export interface GestureNode {
-    readonly parentElement: GestureNode | null;
-}
-
 export function claimsGesture<T extends GestureNode>(
     target: T | null,
     scroller: GestureNode,
@@ -118,18 +158,20 @@ export function useAxisLock(
         let tracking = false;
         let startX = 0;
         let startY = 0;
-        let lastX = 0;
-        let lastY = 0;
-        let lastMoveAt = 0;
-        let velocity = 0;
+        /** Where the finger is now, along the locked axis. */
+        let pointer = 0;
+        /** Where the grid has been scrolled to answer it. */
+        let answered = 0;
+        let extent = 0;
+        let samples: TravelSample[] = [];
         let frame = 0;
 
-        const stopGlide = () => {
+        const stopFrame = () => {
             if (frame) cancelAnimationFrame(frame);
             frame = 0;
         };
 
-        const maxScroll = (on: ScrollAxis) =>
+        const measureExtent = (on: ScrollAxis) =>
             on === "y"
                 ? element.scrollHeight - element.clientHeight
                 : element.scrollWidth - element.clientWidth;
@@ -137,14 +179,24 @@ export function useAxisLock(
         /** Moves one axis; false once it has nothing left to give. */
         const scrollAxisBy = (on: ScrollAxis, distance: number): boolean => {
             const from = on === "y" ? element.scrollTop : element.scrollLeft;
-            const to = clampScroll(from + distance, maxScroll(on));
+            const to = clampScroll(from + distance, extent);
             if (on === "y") element.scrollTop = to;
             else element.scrollLeft = to;
             return to !== from;
         };
 
-        const glide = (on: ScrollAxis) => {
+        const drawDrag = () => {
+            frame = 0;
+            if (!axis) return;
+            const travel = pointer - answered;
+            answered = pointer;
+            scrollAxisBy(axis, -travel);
+        };
+
+        const glide = (on: ScrollAxis, initial: number) => {
+            let velocity = initial;
             let previous = performance.now();
+
             const step = (now: number) => {
                 // A long gap — a backgrounded tab, a stalled frame — would
                 // otherwise be paid off in one jump.
@@ -157,13 +209,14 @@ export function useAxisLock(
                         ? requestAnimationFrame(step)
                         : 0;
             };
+
             frame = requestAnimationFrame(step);
         };
 
         const onTouchStart = (event: TouchEvent) => {
-            stopGlide();
+            stopFrame();
             axis = null;
-            velocity = 0;
+            samples = [];
             tracking =
                 event.touches.length === 1 &&
                 !claimsGesture(
@@ -175,18 +228,17 @@ export function useAxisLock(
             if (!tracking) return;
 
             const touch = event.touches[0];
-            startX = lastX = touch.clientX;
-            startY = lastY = touch.clientY;
-            lastMoveAt = event.timeStamp;
+            startX = touch.clientX;
+            startY = touch.clientY;
         };
 
         const onTouchMove = (event: TouchEvent) => {
             if (!tracking) return;
             // A second finger is a pinch, not a scroll; hand it back untouched.
             if (event.touches.length !== 1) {
+                stopFrame();
                 tracking = false;
                 axis = null;
-                velocity = 0;
                 return;
             }
 
@@ -198,30 +250,20 @@ export function useAxisLock(
                     touch.clientY - startY
                 );
                 if (!axis) return;
-                // Measure from where the gesture was recognised, so the pixels
+                extent = measureExtent(axis);
+                // Start from where the gesture was recognised, so the pixels
                 // spent deciding are not also scrolled through.
-                lastX = touch.clientX;
-                lastY = touch.clientY;
-                lastMoveAt = event.timeStamp;
+                pointer = answered =
+                    axis === "y" ? touch.clientY : touch.clientX;
+                samples = [{ position: pointer, at: event.timeStamp }];
                 return;
             }
 
-            const travel =
-                axis === "y" ? touch.clientY - lastY : touch.clientX - lastX;
-            const elapsed = event.timeStamp - lastMoveAt;
+            pointer = axis === "y" ? touch.clientY : touch.clientX;
+            samples.push({ position: pointer, at: event.timeStamp });
+            if (samples.length > 8) samples.shift();
 
-            scrollAxisBy(axis, -travel);
-
-            if (elapsed > 0) {
-                const instant = travel / elapsed;
-                // Weighted towards the newest sample: a fling should follow how
-                // the finger was moving as it left, not how it started.
-                velocity = velocity === 0 ? instant : velocity * 0.2 + instant * 0.8;
-            }
-
-            lastX = touch.clientX;
-            lastY = touch.clientY;
-            lastMoveAt = event.timeStamp;
+            if (!frame) frame = requestAnimationFrame(drawDrag);
         };
 
         const onTouchEnd = (event: TouchEvent) => {
@@ -230,16 +272,25 @@ export function useAxisLock(
             axis = null;
             if (!releasing) return;
 
+            // Whatever the finger asked for last is owed before it is let go.
+            stopFrame();
+            const travel = pointer - answered;
+            answered = pointer;
+            scrollAxisBy(releasing, -travel);
+
+            const last = samples[samples.length - 1];
             // A finger that came to rest before lifting was placing the grid,
-            // not throwing it — the last measured speed is stale.
-            if (event.timeStamp - lastMoveAt > FLING_TIMEOUT_MS) return;
-            if (stillGliding(velocity)) glide(releasing);
+            // not throwing it.
+            if (!last || event.timeStamp - last.at > FLING_TIMEOUT_MS) return;
+
+            const velocity = velocityFrom(samples);
+            if (stillGliding(velocity)) glide(releasing, velocity);
         };
 
         const onTouchCancel = () => {
+            stopFrame();
             tracking = false;
             axis = null;
-            velocity = 0;
         };
 
         element.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -250,7 +301,7 @@ export function useAxisLock(
         });
 
         return () => {
-            stopGlide();
+            stopFrame();
             element.style.touchAction = inheritedTouchAction;
             element.removeEventListener("touchstart", onTouchStart);
             element.removeEventListener("touchmove", onTouchMove);

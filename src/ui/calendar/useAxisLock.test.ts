@@ -6,8 +6,10 @@ import {
     claimsGesture,
     clampScroll,
     decayedVelocity,
+    VELOCITY_WINDOW_MS,
     lockedAxis,
     stillGliding,
+    velocityFrom,
 } from "./useAxisLock";
 
 describe("lockedAxis", () => {
@@ -127,5 +129,53 @@ describe("claimsGesture", () => {
         const { scroller } = build();
         const stray: GestureNode = { parentElement: null };
         expect(claimsGesture(stray, scroller, styled([]))).toBe(false);
+    });
+});
+
+describe("velocityFrom", () => {
+    it("has no speed to report from a single touch", () => {
+        expect(velocityFrom([])).toBe(0);
+        expect(velocityFrom([{ position: 100, at: 0 }])).toBe(0);
+    });
+
+    it("measures across the window, not the newest pair", () => {
+        // Steady 1px/ms with one jittery sample at the end: reading only the
+        // last pair would call this a fling four times too fast.
+        const samples = [
+            { position: 0, at: 0 },
+            { position: 20, at: 20 },
+            { position: 40, at: 40 },
+            { position: 64, at: 46 },
+        ];
+        expect(velocityFrom(samples)).toBeCloseTo(64 / 46, 5);
+    });
+
+    it("ignores samples older than the window", () => {
+        const samples = [
+            { position: 0, at: 0 },
+            { position: 500, at: VELOCITY_WINDOW_MS + 40 },
+            { position: 540, at: VELOCITY_WINDOW_MS + 80 },
+        ];
+        expect(velocityFrom(samples)).toBeCloseTo(1, 5);
+    });
+
+    it("gives no speed to a finger that came to rest", () => {
+        // Everything but the last position is outside the window, so there is
+        // no interval left to divide by.
+        const samples = [
+            { position: 0, at: 0 },
+            { position: 300, at: 300 },
+            { position: 300, at: 300 + VELOCITY_WINDOW_MS + 1 },
+        ];
+        expect(velocityFrom(samples)).toBe(0);
+    });
+
+    it("keeps the direction of travel", () => {
+        expect(
+            velocityFrom([
+                { position: 200, at: 0 },
+                { position: 100, at: 50 },
+            ])
+        ).toBeCloseTo(-2, 5);
     });
 });
