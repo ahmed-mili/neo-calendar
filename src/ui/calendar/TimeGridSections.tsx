@@ -898,9 +898,6 @@ export function TimeGridDays({
                     }}
                 />
             )}
-            {todayInRange && (
-                <div className="nc-now-line" style={{ top: nowTop }} />
-            )}
         </div>
     );
 }

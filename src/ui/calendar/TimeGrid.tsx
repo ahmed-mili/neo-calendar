@@ -13,6 +13,7 @@ import {
     getEventHeight,
     isToday,
     isMultiDayTimed,
+    isAndroidRuntime as onAndroid,
 } from "./CalendarUtils";
 import { withAlpha } from "../../utils/color";
 import { DisplayEvent } from "../types";
@@ -22,6 +23,7 @@ import { useTimeGridDrag } from "./useTimeGridDrag";
 import { useTimeGridResize } from "./useTimeGridResize";
 import { useTimeGridSelection } from "./useTimeGridSelection";
 import { useAllDayLanes } from "./useAllDayLanes";
+import { useAxisLock } from "./useAxisLock";
 import { useNowPosition } from "./NowIndicator";
 import {
     LeftRail,
@@ -166,6 +168,10 @@ export default function TimeGrid(props: TimeGridProps) {
         }
         return [...prefix, ...dates, ...suffix];
     }, [dates]);
+
+    // One direction at a time. Only on the phone: a mouse wheel and a trackpad
+    // already scroll one axis at a time, and holding the other would fight them.
+    useAxisLock(scrollRootRef, onAndroid());
 
     useInfiniteScroll({
         scrollRef: scrollRootRef,
