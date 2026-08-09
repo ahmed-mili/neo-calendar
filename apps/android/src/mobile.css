@@ -1124,8 +1124,7 @@ body.nc-platform-android .nc-timegrid-hour-label {
 }
 
 body.nc-platform-android .nc-timegrid-slot-line,
-body.nc-platform-android .nc-timegrid-day,
-body.nc-platform-android .nc-left-rail-window {
+body.nc-platform-android .nc-timegrid-day {
     border-color: rgba(155, 160, 185, 0.17) !important;
 }
 

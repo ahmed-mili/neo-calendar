@@ -292,7 +292,11 @@
     flex: 1;
     overflow: hidden;
     position: relative;
-    border-right: 1px solid rgba(128, 128, 128, 0.5);
+    /* No border here. The rail is as tall as the view, so a rule on its edge
+       ran on past the day columns as one unbroken line, next to a second one:
+       the first day column already draws a border-left, in the grid's own line
+       colour. That one closes the table at its left edge and stops where the
+       table stops, which is what the line is for. */
 }
 
 .nc-left-rail-scrollable {
