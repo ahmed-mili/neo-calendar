@@ -271,6 +271,24 @@ export function isAndroidRuntime(): boolean {
     );
 }
 
+/**
+ * Whether a month name needs the smaller type in the phone's app bar.
+ *
+ * The bar holds the month, the week number, and three controls across 412px.
+ * "août" left room to spare; "septembre" did not, and the title ran over the
+ * week beside it. Rather than shrink every month to fit the longest, the long
+ * ones step down a size — the row keeps its proportions eleven months of the
+ * year and stops colliding in the twelfth.
+ *
+ * The threshold is the name's own length because that is what actually runs
+ * out of room, which also carries to whatever language the phone is set to.
+ */
+export const LONG_MONTH_NAME = 8;
+
+export function needsCompactMonthType(monthName: string): boolean {
+    return monthName.trim().length >= LONG_MONTH_NAME;
+}
+
 /** How the header's date badge should read, given what the grid is showing.
     The names describe the move that would bring today back on screen: "back"
     when the view sits after today, "forward" when it sits before it. */
