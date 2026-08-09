@@ -2622,11 +2622,15 @@ body.nc-platform-android {
     --nc-android-dock-height: 78px;
 
     /*
-     * JavaScript positions events with HOUR_HEIGHT = 60.
-     * Android previously forced 84px in CSS, which made the visual day longer
-     * than the logical day and created the apparent hours after midnight.
+     * The height of one hour, and the only place it is written down: the grid
+     * measures itself through this same variable. They were once set apart —
+     * 60 in JavaScript, 84 here — and the visual day came out longer than the
+     * logical one, with phantom hours after midnight.
+     *
+     * This is the resting value, not a floor: pinching the grid writes the
+     * variable on the grid itself, which is why nothing here is !important.
      */
-    --nc-hour-height: 60px !important;
+    --nc-hour-height: 60px;
 
     width: 100% !important;
     height: 100% !important;

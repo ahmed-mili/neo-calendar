@@ -3,7 +3,7 @@ import * as ReactDOM from "react-dom";
 import { useRef, useLayoutEffect, useMemo, useState } from "react";
 import { DndContext, DragOverlay, closestCenter } from "@dnd-kit/core";
 import {
-    HOUR_HEIGHT,
+    currentHourHeight,
     ALLDAY_ROW_HEIGHT,
     ALLDAY_MAX_ROWS,
     addDays,
@@ -169,9 +169,23 @@ export default function TimeGrid(props: TimeGridProps) {
         return [...prefix, ...dates, ...suffix];
     }, [dates]);
 
-    // One direction at a time. Only on the phone: a mouse wheel and a trackpad
-    // already scroll one axis at a time, and holding the other would fight them.
-    useAxisLock(scrollRootRef, onAndroid());
+    // One direction at a time, and pinch to zoom. Only on the phone: a mouse
+    // wheel and a trackpad already scroll one axis at a time, and holding the
+    // other would fight them.
+    // The variable goes on the wrapper, not on the body: the hours rail is a
+    // sibling of the scroller, so both have to be able to read it, and nothing
+    // outside the grid has any business being re-styled by a pinch.
+    const republishScrollTravel = React.useCallback(() => {
+        const main = scrollRootRef.current;
+        if (main) publishScrollTravel(main, gridRef.current);
+    }, []);
+
+    useAxisLock(
+        scrollRootRef,
+        gridRef,
+        onAndroid(),
+        republishScrollTravel
+    );
 
     useInfiniteScroll({
         scrollRef: scrollRootRef,
@@ -333,7 +347,7 @@ export default function TimeGrid(props: TimeGridProps) {
 
             const viewportHours =
                 element.clientHeight > 0
-                    ? element.clientHeight / HOUR_HEIGHT
+                    ? element.clientHeight / currentHourHeight()
                     : 8;
 
             const hoursAboveCurrent =
@@ -353,7 +367,7 @@ export default function TimeGrid(props: TimeGridProps) {
                     (
                         currentHour -
                         hoursAboveCurrent
-                    ) * HOUR_HEIGHT
+                    ) * currentHourHeight()
                 );
 
             const maximumScroll =

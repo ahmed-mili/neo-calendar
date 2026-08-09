@@ -1,7 +1,6 @@
 import * as React from "react";
 import { DateTime } from "luxon";
 import {
-    HOUR_HEIGHT,
     OVERLAP_COL_GAP,
     EVENT_VGAP,
     ALLDAY_ROW_HEIGHT,
@@ -10,8 +9,10 @@ import {
     formatHour,
     isToday,
     isSameDay,
-    getEventTop,
-    getEventHeight,
+    eventTopHours,
+    eventDurationHours,
+    scaledPx,
+    scaledHeightPx,
     computeOverlapGroups,
     startOfDay,
 } from "./CalendarUtils";
@@ -55,7 +56,7 @@ interface LeftRailProps {
     onToggleAllDayCollapsed?: () => void;
     referenceDate: Date | undefined;
     todayInRange: boolean;
-    nowTop: number;
+    nowTop: string;
     nowLabel: string;
     now: Date;
     scrollableRef: React.RefObject<HTMLDivElement>;
@@ -169,7 +170,7 @@ export function LeftRail({
                             <div
                                 key={hour}
                                 className="nc-timegrid-hour"
-                                style={{ height: HOUR_HEIGHT }}
+                                style={{ height: scaledPx(1) }}
                             >
                                 <span className="nc-timegrid-hour-label">
                                     {homeHourLabel(hour)}
@@ -576,7 +577,7 @@ interface DayColumnProps {
     draftSlot?: { start: Date; end: Date; allDay: boolean } | null;
     draftColor?: string;
     selection: SelectionState | null;
-    nowTop?: number;
+    nowTop?: string;
     onEventClick: (id: string) => void;
     onContextMenu: (id: string, e: MouseEvent) => void;
     onToggleTask: (id: string, done: boolean) => Promise<boolean>;
@@ -643,8 +644,8 @@ function DayColumn({
         const pe = Math.min(e, dayEndMs);
         if (pe <= ps) return null;
         return {
-            top: getEventTop(new Date(ps), dayStart),
-            height: ((pe - ps) / 3600000) * HOUR_HEIGHT,
+            top: scaledPx(eventTopHours(new Date(ps), dayStart)),
+            height: scaledPx((pe - ps) / 3600000),
             hasStart: s >= dayStartMs && s < dayEndMs,
             hasEnd: e > dayStartMs && e <= dayEndMs,
         };
@@ -685,10 +686,14 @@ function DayColumn({
                         : undefined;
                     const effStart = previewStart ?? event.start;
                     const effEnd = previewEnd ?? event.end;
-                    const top =
-                        getEventTop(effStart, dayStart) + EVENT_VGAP / 2;
-                    const height =
-                        getEventHeight(effStart, effEnd) - EVENT_VGAP;
+                    const top = scaledPx(
+                        eventTopHours(effStart, dayStart),
+                        EVENT_VGAP / 2
+                    );
+                    const height = scaledHeightPx(
+                        eventDurationHours(effStart, effEnd),
+                        -EVENT_VGAP
+                    );
                     const colWidthCalc = `calc(100% / ${totalColumns} - ${OVERLAP_COL_GAP}px)`;
                     const leftCalc = `calc(${column} * 100% / ${totalColumns})`;
 
@@ -724,8 +729,12 @@ function DayColumn({
                         key={p.event.id}
                         className="nc-drop-preview"
                         style={{
-                            top: getEventTop(p.newStart, dayStart),
-                            height: getEventHeight(p.newStart, p.newEnd),
+                            top: scaledPx(
+                                eventTopHours(p.newStart, dayStart)
+                            ),
+                            height: scaledHeightPx(
+                                eventDurationHours(p.newStart, p.newEnd)
+                            ),
                             color: p.event.color,
                         }}
                     />
@@ -800,7 +809,7 @@ interface DaysAreaProps {
     scrollerWidthStyle: string;
     timeFormat24h: boolean;
     todayInRange: boolean;
-    nowTop: number;
+    nowTop: string;
     resizePreview: ResizePreview | null;
     dragPreview: DragPreview | null;
     dragPreviews?: DragPreview[];

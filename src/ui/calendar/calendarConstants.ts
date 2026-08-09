@@ -1,6 +1,65 @@
 // Layout constants for the calendar time grid
-export const HOUR_HEIGHT = 60; // px per hour
+export const HOUR_HEIGHT = 60; // px per hour, at rest
 export const SLOT_HEIGHT = 30; // px per 30-min slot
+
+/* ── How tall an hour is right now ───────────────────────────────
+   Pinching the grid on the phone changes it, so this is a value and not a
+   constant. There is exactly one of it, and the stylesheet reads the same
+   number through `--nc-hour-height`: the two used to be set apart — 60 in
+   JavaScript, 84 in the Android CSS — and the visual day came out longer than
+   the logical one, with phantom hours after midnight. Anything that measures
+   the grid must go through here.
+
+   The bounds are where the grid stops being a calendar: the whole day barely
+   fits at the bottom, one hour fills the screen at the top. */
+export const MIN_HOUR_HEIGHT = 32;
+export const MAX_HOUR_HEIGHT = 320;
+
+export function clampHourHeight(px: number): number {
+    return Math.min(Math.max(px, MIN_HOUR_HEIGHT), MAX_HOUR_HEIGHT);
+}
+
+let hourHeight: number = HOUR_HEIGHT;
+
+export const currentHourHeight = (): number => hourHeight;
+
+/** Returns what was actually set, which may be a bound rather than the ask. */
+export function setHourHeight(px: number): number {
+    hourHeight = clampHourHeight(px);
+    return hourHeight;
+}
+
+/**
+ * A vertical measure written in hours, so it follows the zoom on its own.
+ *
+ * Anything laid out this way is re-measured by the browser when the variable
+ * changes — no re-render, nothing to keep in step. That is what makes a pinch
+ * cost one number per frame instead of a React pass over every event.
+ */
+export function scaledPx(hours: number, offsetPx = 0): string {
+    const offset =
+        offsetPx === 0
+            ? ""
+            : offsetPx > 0
+              ? ` + ${offsetPx}px`
+              : ` - ${-offsetPx}px`;
+    return `calc(var(--nc-hour-height, ${HOUR_HEIGHT}px) * ${hours}${offset})`;
+}
+
+/** Same, for a height that must not collapse below `minPx`. */
+export function scaledHeightPx(
+    hours: number,
+    offsetPx = 0,
+    minPx = SLOT_HEIGHT
+): string {
+    return `calc(max(${minPx}px, var(--nc-hour-height, ${HOUR_HEIGHT}px) * ${hours})${
+        offsetPx === 0
+            ? ""
+            : offsetPx > 0
+              ? ` + ${offsetPx}px`
+              : ` - ${-offsetPx}px`
+    })`;
+}
 export const OVERLAP_COL_GAP = 16; // px right-trim on every event
 export const EVENT_VGAP = 4; // px vertical gap between back-to-back events
 

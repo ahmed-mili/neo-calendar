@@ -1,4 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import {
+    HOUR_HEIGHT,
+    clampHourHeight,
+    currentHourHeight,
+    setHourHeight,
+} from "./CalendarUtils";
 
 /**
  * One direction at a time in the time grid.
@@ -30,6 +36,14 @@ import { useEffect } from "react";
  * The offsets are read fresh from the element every frame rather than tracked
  * here, so the day-shifting of the infinite scroll and the midnight clamp stay
  * in charge of where the grid actually sits.
+ *
+ * A second finger is a pinch. Zooming costs one number per frame — the height
+ * of an hour, written on the grid as `--nc-hour-height` — because every
+ * vertical measure in the grid is laid out in terms of it. Nothing re-renders
+ * while the fingers move; the browser re-measures what it already knows how to
+ * re-measure, which is the whole reason a pinch can keep up with a hand. What
+ * the frame does spend is one scroll correction, so the hour under the fingers
+ * stays under the fingers instead of sliding away as everything grows.
  */
 
 /** Travel before the gesture has said which way it is going. */
@@ -46,6 +60,9 @@ export const FLING_TIMEOUT_MS = 90;
 
 /** How far back a fling's speed is measured. */
 export const VELOCITY_WINDOW_MS = 80;
+
+/** Two fingers closer together than this are treated as one point. */
+export const MIN_PINCH_SPAN_PX = 24;
 
 const FRAME_MS = 16.7;
 
@@ -117,6 +134,58 @@ export function stillGliding(velocity: number): boolean {
     return Math.abs(velocity) >= MIN_GLIDE_VELOCITY;
 }
 
+export interface Span {
+    /** Distance between the two fingers. */
+    length: number;
+    /** Halfway between them, in viewport coordinates. */
+    midY: number;
+}
+
+export function spanOf(a: Touch, b: Touch): Span {
+    return {
+        length: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+        midY: (a.clientY + b.clientY) / 2,
+    };
+}
+
+/**
+ * How tall an hour becomes when two fingers that started `from` apart are now
+ * `to` apart.
+ *
+ * Fingers too close together are ignored rather than divided by: two touch
+ * points a few pixels apart are mostly noise, and the ratio between two small
+ * numbers swings wildly.
+ */
+export function pinchedHourHeight(
+    startHourHeight: number,
+    from: number,
+    to: number
+): number {
+    if (from < MIN_PINCH_SPAN_PX || to < MIN_PINCH_SPAN_PX) {
+        return clampHourHeight(startHourHeight);
+    }
+    return clampHourHeight((startHourHeight * to) / from);
+}
+
+/**
+ * Where to scroll so the moment under the fingers stays under the fingers.
+ *
+ * Without this the grid zooms around its top edge and the hour being looked at
+ * slides away, which is what makes a pinch feel like it is fighting back.
+ *
+ * @param anchorHours the hour of the day that was under the fingers when the
+ *                    pinch began
+ * @param offsetY     how far the fingers sit below the top of the viewport
+ */
+export function scrollForAnchor(
+    anchorHours: number,
+    hourHeight: number,
+    offsetY: number,
+    maxScroll: number
+): number {
+    return clampScroll(anchorHours * hourHeight - offsetY, maxScroll);
+}
+
 export interface GestureNode {
     readonly parentElement: GestureNode | null;
 }
@@ -142,11 +211,20 @@ export function claimsGesture<T extends GestureNode>(
 
 export function useAxisLock(
     ref: React.RefObject<HTMLElement>,
-    enabled = true
+    hostRef: React.RefObject<HTMLElement>,
+    enabled = true,
+    /** Called when a pinch has changed the hour height, inside the frame that
+        changed it, for anything measured in pixels that a render would
+        otherwise have refreshed. */
+    onScaleChange?: () => void
 ): void {
+    const onScaleChangeRef = useRef(onScaleChange);
+    onScaleChangeRef.current = onScaleChange;
+
     useEffect(() => {
         const element = ref.current;
-        if (!enabled || !element) return;
+        const host = hostRef.current;
+        if (!enabled || !element || !host) return;
 
         // Set here rather than in the stylesheet so the two can never disagree:
         // the browser only stops scrolling this element while the code that
@@ -165,6 +243,15 @@ export function useAxisLock(
         let extent = 0;
         let samples: TravelSample[] = [];
         let frame = 0;
+
+        /** Set for as long as two fingers are on the grid. */
+        let pinch: {
+            startSpan: number;
+            startHourHeight: number;
+            anchorHours: number;
+            top: number;
+            midY: number;
+        } | null = null;
 
         const stopFrame = () => {
             if (frame) cancelAnimationFrame(frame);
@@ -193,6 +280,48 @@ export function useAxisLock(
             scrollAxisBy(axis, -travel);
         };
 
+        const beginPinch = (touches: TouchList) => {
+            stopFrame();
+            tracking = false;
+            axis = null;
+
+            const span = spanOf(touches[0], touches[1]);
+            const top = element.getBoundingClientRect().top;
+            const hourHeight = currentHourHeight();
+
+            pinch = {
+                startSpan: span.length,
+                startHourHeight: hourHeight,
+                // The moment the fingers came down on, which is what has to
+                // stay put while everything around it grows.
+                anchorHours:
+                    (element.scrollTop + span.midY - top) / hourHeight,
+                top,
+                midY: span.midY,
+            };
+        };
+
+        /** One number written, one scroll corrected, once per frame. */
+        const drawPinch = () => {
+            frame = 0;
+            if (!pinch) return;
+
+            const hourHeight = currentHourHeight();
+            host.style.setProperty("--nc-hour-height", `${hourHeight}px`);
+
+            // Reading the height back settles the layout the line above just
+            // invalidated — deliberately, and exactly once, because the scroll
+            // correction below has to be measured against the new day.
+            element.scrollTop = scrollForAnchor(
+                pinch.anchorHours,
+                hourHeight,
+                pinch.midY - pinch.top,
+                element.scrollHeight - element.clientHeight
+            );
+
+            onScaleChangeRef.current?.();
+        };
+
         const glide = (on: ScrollAxis, initial: number) => {
             let velocity = initial;
             let previous = performance.now();
@@ -217,6 +346,13 @@ export function useAxisLock(
             stopFrame();
             axis = null;
             samples = [];
+
+            if (event.touches.length >= 2) {
+                beginPinch(event.touches);
+                return;
+            }
+
+            pinch = null;
             tracking =
                 event.touches.length === 1 &&
                 !claimsGesture(
@@ -233,14 +369,26 @@ export function useAxisLock(
         };
 
         const onTouchMove = (event: TouchEvent) => {
-            if (!tracking) return;
-            // A second finger is a pinch, not a scroll; hand it back untouched.
-            if (event.touches.length !== 1) {
-                stopFrame();
-                tracking = false;
-                axis = null;
+            if (event.touches.length >= 2) {
+                // A second finger arriving mid-scroll turns the gesture into a
+                // pinch from where it stands.
+                if (!pinch) beginPinch(event.touches);
+                else {
+                    const span = spanOf(event.touches[0], event.touches[1]);
+                    pinch.midY = span.midY;
+                    setHourHeight(
+                        pinchedHourHeight(
+                            pinch.startHourHeight,
+                            pinch.startSpan,
+                            span.length
+                        )
+                    );
+                    if (!frame) frame = requestAnimationFrame(drawPinch);
+                }
                 return;
             }
+
+            if (!tracking) return;
 
             const touch = event.touches[0];
 
@@ -267,6 +415,16 @@ export function useAxisLock(
         };
 
         const onTouchEnd = (event: TouchEvent) => {
+            if (pinch) {
+                // A finger lifted out of a pinch leaves the other one resting
+                // on the grid, not scrolling with it. Nothing moves again until
+                // the hand comes off and a fresh gesture starts.
+                if (event.touches.length === 0) pinch = null;
+                tracking = false;
+                axis = null;
+                return;
+            }
+
             const releasing = axis;
             tracking = false;
             axis = null;
@@ -291,6 +449,7 @@ export function useAxisLock(
             stopFrame();
             tracking = false;
             axis = null;
+            pinch = null;
         };
 
         element.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -303,10 +462,14 @@ export function useAxisLock(
         return () => {
             stopFrame();
             element.style.touchAction = inheritedTouchAction;
+            // Both together, or the grid would measure itself in hours of one
+            // height and lay itself out in hours of another.
+            host.style.removeProperty("--nc-hour-height");
+            setHourHeight(HOUR_HEIGHT);
             element.removeEventListener("touchstart", onTouchStart);
             element.removeEventListener("touchmove", onTouchMove);
             element.removeEventListener("touchend", onTouchEnd);
             element.removeEventListener("touchcancel", onTouchCancel);
         };
-    }, [ref, enabled]);
+    }, [ref, hostRef, enabled]);
 }

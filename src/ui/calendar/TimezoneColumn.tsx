@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ArrowLeft, Globe2, Pencil, Trash2 } from "lucide-react";
 import { DateTime } from "luxon";
-import { HOUR_HEIGHT } from "./CalendarUtils";
+import { scaledPx } from "./CalendarUtils";
 import ContextMenu, { ContextMenuItem } from "./ContextMenu";
 import { t } from "../i18n";
 
@@ -103,7 +103,7 @@ interface TimezoneColumnProps {
     timeFormat24h: boolean;
     referenceDate: Date;
     showNow?: boolean;
-    nowTop?: number;
+    nowTop?: string;
     now?: Date;
 }
 
@@ -144,7 +144,7 @@ export default function TimezoneColumn({
                     <div
                         key={hour}
                         className="nc-tz-label"
-                        style={{ top: hour * HOUR_HEIGHT }}
+                        style={{ top: scaledPx(hour) }}
                     >
                         {label}
                     </div>
