@@ -1,0 +1,46 @@
+# Renomme toutes les releases déjà publiées d'après la règle courante.
+#
+# Le workflow de release nomme correctement ce qu'il publie ; celui-ci sert
+# aux versions sorties avant la règle, et à rattraper des titres qui auraient
+# dérivé pour une raison ou une autre. Manuel uniquement : rien ici ne doit
+# partir tout seul.
+#
+# Sans risque à relancer : le titre est recalculé depuis les paquets que
+# chaque release porte, et une release déjà bien nommée n'est pas touchée.
+name: Renommer les releases
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    rename:
+        name: Renommer
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Appliquer la règle de nommage
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  gh release list --limit 200 --json tagName --jq '.[].tagName' \
+                    > tags.txt
+
+                  while read -r tag; do
+                    [ -n "$tag" ] || continue
+
+                    current=$(gh release view "$tag" --json name --jq '.name')
+                    title=$(gh release view "$tag" --json assets \
+                      --jq '.assets[].name' | node scripts/releaseTitle.mjs "$tag")
+
+                    if [ "$current" = "$title" ]; then
+                      echo "$tag : déjà « $title »"
+                      continue
+                    fi
+
+                    echo "$tag : « $current » → « $title »"
+                    gh release edit "$tag" --title "$title"
+                  done < tags.txt
