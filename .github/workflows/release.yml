@@ -6,6 +6,12 @@
 # release elle-même, ce qui dépanne quand on ne peut pousser que des branches).
 # Le déclenchement manuel, lui, construit sans publier : de quoi vérifier que la
 # chaîne tient toujours.
+#
+# Une version ne reconstruit que les applications qu'elle a changées. Le reste
+# du temps on republiait un installateur Windows identique au précédent pour un
+# correctif Android — douze minutes de compilation, et un fichier de plus sur la
+# page qui n'apporte rien. Une release peut donc ne porter qu'un seul paquet :
+# l'autre n'a pas disparu, il n'a simplement pas bougé depuis sa dernière.
 name: Release
 
 on:
@@ -26,6 +32,63 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    # Ce que cette version a vraiment changé. Presque toutes ne bougent qu'une
+    # des deux applications : reconstruire l'installateur Windows pour un
+    # correctif Android coûte douze minutes de Rust et publie un fichier
+    # identique au précédent, ce qui ne dit rien à qui le télécharge.
+    #
+    # Le partage n'est pas celui que suggèrent les dossiers : `apps/windows/src`
+    # nourrit LES DEUX applications, la coque Android affichant les écrans du
+    # bureau. `scripts/releaseScope.mjs` porte la règle, et ses tests avec.
+    scope:
+        name: Ce qui a change
+        runs-on: ubuntu-latest
+        outputs:
+            android: ${{ steps.decide.outputs.android }}
+            windows: ${{ steps.decide.outputs.windows }}
+        steps:
+            # Tout l'historique : la comparaison remonte à l'étiquette
+            # précédente, que le clone superficiel par défaut n'aurait pas.
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Comparer à la version précédente
+              id: decide
+              run: |
+                  # Un déclenchement manuel sert à vérifier que la chaîne tient
+                  # encore : il construit donc tout, sans rien trier.
+                  if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+                    echo "Déclenchement manuel : on construit tout."
+                    printf 'android=true\nwindows=true\n' >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+
+                  previous=$(git tag --list 'v*' --sort=-v:refname \
+                    --merged "$GITHUB_SHA" | grep -v "^${GITHUB_REF_NAME#release/}$" | head -1)
+
+                  if [ -z "$previous" ]; then
+                    echo "Aucune version précédente : on construit tout."
+                    printf 'android=true\nwindows=true\n' >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+
+                  echo "Depuis $previous :"
+                  git diff --name-only "$previous" "$GITHUB_SHA" | tee changed.txt
+
+                  node scripts/releaseScope.mjs < changed.txt >> "$GITHUB_OUTPUT"
+
+                  {
+                    echo "### Depuis $previous"
+                    echo
+                    grep -q '^android=true$' "$GITHUB_OUTPUT" \
+                      && echo "- APK Android : construit" \
+                      || echo "- APK Android : inchangé, non reconstruit"
+                    grep -q '^windows=true$' "$GITHUB_OUTPUT" \
+                      && echo "- Installateur Windows : construit" \
+                      || echo "- Installateur Windows : inchangé, non reconstruit"
+                  } >> "$GITHUB_STEP_SUMMARY"
+
     tests:
         name: Tests
         runs-on: ubuntu-latest
@@ -42,7 +105,8 @@ jobs:
 
     android:
         name: APK Android
-        needs: tests
+        needs: [scope, tests]
+        if: needs.scope.outputs.android == 'true'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -120,7 +184,8 @@ jobs:
 
     windows:
         name: Installateur Windows
-        needs: tests
+        needs: [scope, tests]
+        if: needs.scope.outputs.windows == 'true'
         runs-on: windows-latest
         steps:
             - uses: actions/checkout@v4
@@ -179,10 +244,15 @@ jobs:
 
     publish:
         name: Publier la release
-        needs: [android, windows]
+        needs: [scope, android, windows]
+        # `always()` parce qu'un paquet saute dès que son application n'a pas
+        # bougé : sans lui, un travail ignoré emporterait la publication avec
+        # lui. `!failure() && !cancelled()` garde en revanche l'échec d'un
+        # paquet réellement construit — un travail ignoré n'est pas un échec.
         if: >-
-            startsWith(github.ref, 'refs/tags/v') ||
-            startsWith(github.ref, 'refs/heads/release/v')
+            always() && !failure() && !cancelled() &&
+            (startsWith(github.ref, 'refs/tags/v') ||
+            startsWith(github.ref, 'refs/heads/release/v'))
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -203,7 +273,18 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   tag="${GITHUB_REF_NAME#release/}"
+
+                  # Seuls les paquets effectivement construits. `nullglob` pour
+                  # que le motif d'une application ignorée disparaisse au lieu
+                  # de se retrouver dans la liste tel quel.
+                  shopt -s nullglob
                   packages=(artifacts/android/*.apk artifacts/windows/*.exe)
+                  shopt -u nullglob
+
+                  if [ ${#packages[@]} -eq 0 ]; then
+                    echo "Aucune application n'a changé : rien à publier."
+                    exit 0
+                  fi
 
                   if gh release view "$tag" > /dev/null 2>&1; then
                     echo "Release $tag déjà publiée : mise à jour des paquets."

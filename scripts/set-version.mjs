@@ -39,6 +39,24 @@ const CARGO_MANIFEST = "apps/windows/src-tauri/Cargo.toml";
 const CARGO_LOCK = "apps/windows/src-tauri/Cargo.lock";
 const GRADLE_MODULE = "apps/android/native/app/build.gradle.kts";
 
+/**
+ * Every file this script rewrites — the ones that change on a release because
+ * a release happened, not because anything was built differently.
+ *
+ * Exported so `releaseScope.mjs` can subtract them when it works out which
+ * platforms a release actually touched. Kept here rather than copied there so
+ * the two can never drift: whatever the bump writes is exactly what is not
+ * evidence of a change.
+ */
+export const VERSION_FILES = [
+    ...PACKAGES,
+    ...LOCKFILES,
+    TAURI_CONFIG,
+    CARGO_MANIFEST,
+    CARGO_LOCK,
+    GRADLE_MODULE,
+];
+
 export function isVersion(value) {
     return /^\d+\.\d+\.\d+$/.test(value);
 }
