@@ -109,6 +109,12 @@ const FR: Record<string, string> = {
     Type: "Type",
     Task: "Tâche",
     Tasks: "Tâches",
+    // The task panel's three sections, plus its empty state and add button.
+    "No date": "Sans date",
+    Completed: "Terminées",
+    Overdue: "En retard",
+    "No tasks yet": "Aucune tâche",
+    "Add task": "+ Ajouter une tâche",
     Description: "Description",
     Empty: "Vide",
     Date: "Date",

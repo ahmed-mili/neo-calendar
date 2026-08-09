@@ -1,6 +1,8 @@
 import * as React from "react";
 import { CalendarSource, DisplayEvent, ViewType } from "../types";
 import MiniCalendar from "./MiniCalendar";
+import TasksPanel from "./TasksPanel";
+import { TaskItem } from "../tasks/taskList";
 import {
     PanelLeftIcon,
     SearchIcon,
@@ -44,9 +46,10 @@ interface CalendarSidebarProps {
     soloCalendarId: string | null;
     onSetDefaultCalendar: (calendarId: string) => void;
     onShowOnly: (calendarId: string) => void;
-    somedayEvents: DisplayEvent[];
+    tasks: TaskItem[];
+    today: string;
     onEventClick: (eventId: string) => void;
-    onAddSomeday: () => void;
+    onAddTask: () => void;
     onToggleTask: (eventId: string, isDone: boolean) => Promise<boolean>;
     onAddCalendar: () => void;
     onRenameCalendar: (calendarId: string, newName: string) => Promise<void>;
@@ -81,7 +84,10 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         soloCalendarId,
         onSetDefaultCalendar,
         onShowOnly,
+        tasks,
+        today,
         onEventClick,
+        onAddTask,
         onToggleTask,
         onAddCalendar,
         onRenameCalendar,
@@ -109,6 +115,8 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
     // Collapse toggle for the calendar list (chevron next to the "Calendars"
     // header), mirroring Notion's collapsible section.
     const [calendarsCollapsed, setCalendarsCollapsed] = React.useState(false);
+    // Same collapse affordance for the task list below it.
+    const [tasksCollapsed, setTasksCollapsed] = React.useState(false);
     // Custom themed colour picker (replaces the OS-native <input type=color">):
     // which calendar it's editing + where to anchor it (the clicked swatch).
     const [colorPicker, setColorPicker] = React.useState<{
@@ -740,6 +748,52 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                     );
                                 })}
                             </div>
+                        )}
+                    </div>
+
+                    {/* Tasks live below the calendars: the grid answers where
+                        you have to be, this answers what you have to get done —
+                        including the tasks whose date has already slipped by,
+                        which the grid buries in a month nobody scrolls to. */}
+                    <div className="nc-sidebar-section">
+                        <div
+                            className="nc-sidebar-title-row"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setTasksCollapsed((v) => !v)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setTasksCollapsed((v) => !v);
+                                }
+                            }}
+                            title={
+                                tasksCollapsed
+                                    ? "Expand tasks"
+                                    : "Collapse tasks"
+                            }
+                        >
+                            <span className="nc-sidebar-title-label">
+                                <span className="nc-sidebar-title">
+                                    {t("Tasks")}
+                                </span>
+                                <span
+                                    className={`nc-sidebar-title-chevron${
+                                        tasksCollapsed ? " nc-collapsed" : ""
+                                    }`}
+                                >
+                                    <ChevronDownIcon size={14} />
+                                </span>
+                            </span>
+                        </div>
+                        {!tasksCollapsed && (
+                            <TasksPanel
+                                tasks={tasks}
+                                today={today}
+                                onTaskClick={onEventClick}
+                                onAddTask={onAddTask}
+                                onToggleTask={onToggleTask}
+                            />
                         )}
                     </div>
                 </>

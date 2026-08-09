@@ -27,15 +27,22 @@
     color: var(--nc-text-faint);
 }
 
-/* ── Someday Panel (Plan C) ──────────────────────────────────── */
+/* ── Tasks panel ─────────────────────────────────────────────── */
 
-.nc-someday-panel {
+.nc-tasks-panel {
     padding: var(--nc-spacing-sm);
     overflow-y: auto;
     flex: 1;
 }
 
-.nc-someday-group-title {
+.nc-tasks-section + .nc-tasks-section {
+    margin-top: 10px;
+}
+
+.nc-tasks-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -44,7 +51,30 @@
     margin: 8px 0 4px;
 }
 
-.nc-someday-item {
+/* Only the completed section folds; it gets a pointer, the others do not. */
+.nc-tasks-section-title.nc-tasks-collapsible {
+    cursor: pointer;
+    user-select: none;
+}
+
+.nc-tasks-chevron {
+    display: inline-flex;
+    align-items: center;
+    /* Points right when closed, down when open. */
+    transform: rotate(-90deg);
+    transition: transform var(--nc-transition-fast);
+}
+
+.nc-tasks-chevron.nc-open {
+    transform: rotate(0deg);
+}
+
+.nc-tasks-count {
+    font-weight: 500;
+    color: var(--nc-text-faint);
+}
+
+.nc-tasks-item {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -55,15 +85,19 @@
     transition: background var(--nc-transition-fast);
 }
 
-.nc-someday-item:hover {
+.nc-tasks-item:hover {
     background: var(--nc-bg-hover);
 }
 
-.nc-someday-item.nc-task-completed {
+.nc-tasks-item.nc-task-completed {
     opacity: 0.6;
 }
 
-.nc-someday-checkbox {
+.nc-tasks-item.nc-task-completed .nc-tasks-title {
+    text-decoration: line-through;
+}
+
+.nc-tasks-checkbox {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -74,14 +108,49 @@
     flex-shrink: 0;
 }
 
-.nc-someday-title {
+.nc-tasks-checkbox:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+
+/* The calendar's colour, so a task still says which calendar it came from
+   once it has left the grid. */
+.nc-tasks-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.nc-tasks-title {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.nc-someday-add-btn {
+.nc-tasks-date {
+    font-size: 11px;
+    color: var(--nc-text-faint);
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Overdue is the one thing this panel exists to surface, so it is the one
+   thing that gets a colour. */
+.nc-tasks-late {
+    color: var(--color-red, #e5534b);
+    font-weight: 600;
+}
+
+.nc-tasks-empty {
+    padding: 12px 8px;
+    font-size: 12px;
+    color: var(--nc-text-faint);
+    text-align: center;
+}
+
+.nc-tasks-add-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -97,7 +166,7 @@
     transition: var(--nc-transition-paint);
 }
 
-.nc-someday-add-btn:hover {
+.nc-tasks-add-btn:hover {
     border-color: var(--nc-accent);
     color: var(--nc-accent);
     background: var(--nc-bg-hover);

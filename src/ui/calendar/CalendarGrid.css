@@ -813,7 +813,7 @@
 .nc-task-checkbox svg,
 .nc-month-task-btn svg,
 .nc-list-task-btn svg,
-.nc-someday-checkbox svg {
+.nc-tasks-checkbox svg {
     background: none;
 }
 
@@ -828,7 +828,7 @@
 .nc-list-task-btn,
 .nc-list-checkbox,
 .nc-month-checkbox,
-.nc-someday-checkbox {
+.nc-tasks-checkbox {
     width: 14px;
     height: 14px;
 }

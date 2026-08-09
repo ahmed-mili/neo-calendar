@@ -10,6 +10,7 @@ import {
 import { NeoEvent } from "../../types";
 import { EditableCalendar } from "../../calendars/EditableCalendar";
 import { getTaskStatus, isTask } from "../tasks";
+import { collectTasks, todayISO } from "../tasks/taskList";
 import {
     ScissorsIcon,
     CopyIcon,
@@ -606,6 +607,26 @@ function CalendarAppInner(props: CalendarAppProps) {
         return out;
     }, [selectedCalendarId, cache, cacheVersion, somedayEvents]);
 
+    // ── Tasks, for the sidebar panel ────────────────────────────────
+    // Read straight from the cache rather than from the windowed
+    // `displayEvents`: an overdue task is precisely one whose date sits
+    // outside the months currently on screen, so a window would hide exactly
+    // what the panel exists to show.
+    const tasks = useMemo(
+        () =>
+            collectTasks(
+                cache.getAllEvents().map((source: any) => ({
+                    id: source.id,
+                    name: cache.getCalendarById(source.id)?.name || source.id,
+                    color: source.color,
+                    editable: source.editable,
+                    events: source.events,
+                }))
+            ),
+        [cache, cacheVersion]
+    );
+    const today = todayISO();
+
     const selectedCalendar = selectedCalendarId
         ? calendarSources.find((s) => s.id === selectedCalendarId) || null
         : null;
@@ -1090,6 +1111,13 @@ function CalendarAppInner(props: CalendarAppProps) {
         [calendarSources, cache, setPanelEventId]
     );
 
+    // The tasks panel has no calendar of its own to add to, so new tasks land
+    // in the default calendar — which already falls back to the first editable
+    // one, so this cannot aim at a read-only calendar.
+    const handleAddTask = useCallback(() => {
+        if (defaultCalendarId) handleAddPanelEvent(defaultCalendarId);
+    }, [defaultCalendarId, handleAddPanelEvent]);
+
     const handleEmptyContextMenu = useCallback(
         (date: Date, mouseEvent: MouseEvent) => {
             mouseEvent.preventDefault();
@@ -1389,8 +1417,9 @@ function CalendarAppInner(props: CalendarAppProps) {
                     soloCalendarId={soloCalendarId}
                     onSetDefaultCalendar={handleSetDefaultCalendar}
                     onShowOnly={handleShowOnlyCalendar}
-                    somedayEvents={somedayEvents}
-                    onAddSomeday={props.onAddSomeday || (() => {})}
+                    tasks={tasks}
+                    today={today}
+                    onAddTask={handleAddTask}
                     onAddCalendar={handleAddCalendar}
                     onRenameCalendar={handleRenameCalendar}
                     onEditCalendarLink={handleEditCalendarLink}

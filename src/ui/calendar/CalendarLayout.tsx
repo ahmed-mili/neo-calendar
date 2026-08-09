@@ -1,5 +1,6 @@
 import * as React from "react";
 import { DisplayEvent, CalendarSource, ViewType } from "../types";
+import { TaskItem } from "../tasks/taskList";
 import { NeoEvent, CalendarInfo } from "../../types";
 import { formatMonthTitle, isAndroidRuntime } from "./CalendarUtils";
 import CalendarHeader from "./CalendarHeader";
@@ -59,8 +60,9 @@ interface CalendarLayoutProps {
     soloCalendarId: string | null;
     onSetDefaultCalendar: (calendarId: string) => void;
     onShowOnly: (calendarId: string) => void;
-    somedayEvents: DisplayEvent[];
-    onAddSomeday: () => void;
+    tasks: TaskItem[];
+    today: string;
+    onAddTask: () => void;
     onQuickAdd: (partialEvent: Partial<NeoEvent>) => void;
     onOpenSearch: () => void;
     onAddCalendar: () => void;
@@ -148,8 +150,9 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         soloCalendarId,
         onSetDefaultCalendar,
         onShowOnly,
-        somedayEvents,
-        onAddSomeday,
+        tasks,
+        today,
+        onAddTask,
         onQuickAdd,
         onOpenSearch,
         onAddCalendar,
@@ -349,9 +352,10 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                 soloCalendarId={soloCalendarId}
                 onSetDefaultCalendar={onSetDefaultCalendar}
                 onShowOnly={onShowOnly}
-                somedayEvents={somedayEvents}
+                tasks={tasks}
+                today={today}
                 onEventClick={onEventClick}
-                onAddSomeday={onAddSomeday}
+                onAddTask={onAddTask}
                 onToggleTask={onToggleTask}
                 onAddCalendar={onAddCalendar}
                 onRenameCalendar={onRenameCalendar}
