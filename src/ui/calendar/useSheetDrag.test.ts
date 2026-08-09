@@ -4,6 +4,7 @@ import {
     restOffsetFor,
     settleSheet,
     dragsSheetFromBody,
+    rubberBand,
 } from "./useSheetDrag";
 
 /** A sheet 600px tall whose resting position is 240px down from the top. */
@@ -169,5 +170,38 @@ describe("dragsSheetFromBody", () => {
 
     it("tolere un scrollTop negatif du rebond elastique", () => {
         expect(dragsSheetFromBody(-8, 20)).toBe(true);
+    });
+});
+
+// ── La resistance elastique ────────────────────────────────
+
+describe("rubberBand", () => {
+    it("ne bouge pas tant qu'on ne depasse pas", () => {
+        expect(rubberBand(0, 800)).toBe(0);
+        expect(rubberBand(-30, 800)).toBe(0);
+    });
+
+    it("suit le doigt, mais moins loin que lui", () => {
+        // C'est toute la sensation : ca cede, mais pas autant qu'on tire.
+        const moved = rubberBand(100, 800);
+        expect(moved).toBeGreaterThan(0);
+        expect(moved).toBeLessThan(100);
+    });
+
+    it("cede de moins en moins a mesure qu'on force", () => {
+        // Le deuxieme centimetre doit rendre moins que le premier, sinon la
+        // resistance ne se sent pas.
+        const premier = rubberBand(100, 800);
+        const second = rubberBand(200, 800) - premier;
+        expect(second).toBeLessThan(premier);
+    });
+
+    it("n'atteint jamais la dimension, meme tire tres loin", () => {
+        // C'est ce qui fait qu'on sent toujours tirer contre quelque chose.
+        expect(rubberBand(100000, 800)).toBeLessThan(800);
+    });
+
+    it("reste sur une dimension nulle", () => {
+        expect(rubberBand(100, 0)).toBe(0);
     });
 });

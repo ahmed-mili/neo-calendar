@@ -135,6 +135,27 @@ export function scrollTopUnder(
     return 0;
 }
 
+/**
+ * How far the sheet actually moves once it is pulled past an anchor.
+ *
+ * A hard stop at the anchor reads as breakage: the finger keeps going and the
+ * sheet is simply stuck to it, so the gesture feels dropped. Letting it follow
+ * freely is worse — the sheet leaves a gap under it with nothing in it.
+ *
+ * So it follows, but grudgingly, giving way less and less the harder it is
+ * pulled: elastic rather than either rigid or loose. The return never reaches
+ * `dimension` however far the finger travels, which is what makes it feel
+ * anchored — you can always tell you are pulling against something.
+ */
+export function rubberBand(
+    overshoot: number,
+    dimension: number,
+    factor = 0.55
+): number {
+    if (overshoot <= 0 || dimension <= 0) return 0;
+    return (1 - 1 / ((overshoot * factor) / dimension + 1)) * dimension;
+}
+
 interface Gesture {
     /** Started off the header, so it must prove it is not a scroll. */
     fromBody: boolean;
@@ -377,12 +398,16 @@ export function useSheetDrag({
                 gesture.lastTime = event.timeStamp;
             }
 
-            // Never above the top anchor: a sheet that can be pulled past the
-            // screen leaves a gap under it with nothing in it.
-            gesture.offset = Math.min(
-                height,
-                Math.max(0, gesture.startOffset + dy)
-            );
+            // Past either anchor the sheet gives way elastically instead of
+            // sticking to the finger: it still cannot be pulled off the screen,
+            // but the limit is something you feel rather than something you hit.
+            const raw = gesture.startOffset + dy;
+            gesture.offset =
+                raw < 0
+                    ? -rubberBand(-raw, height)
+                    : raw > height
+                    ? height + rubberBand(raw - height, height)
+                    : raw;
             schedule(gesture.offset);
 
             if (event.cancelable) event.preventDefault();
