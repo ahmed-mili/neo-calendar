@@ -61,6 +61,78 @@ export function useTimeGridSelection({
         moved: boolean;
     } | null>(null);
 
+    /**
+     * A tap on the all-day band, told apart from a swipe across it.
+     *
+     * The band rides inside the horizontal scroller, so a finger dragged over
+     * it moves the grid — and since the grid does its own scrolling, nothing
+     * cancels the pointer sequence any more: the browser would still deliver a
+     * click at the end and an event would appear from a gesture that was only
+     * ever a scroll. So the same three questions are asked here as on the grid
+     * below: did the grid move, did the finger travel, was the grid already
+     * gliding when the hand came down.
+     */
+    const handleAllDayPointerDown = useCallback(
+        (event: React.PointerEvent, date: Date) => {
+            if (event.button !== 0 || !isAndroidRuntime()) return;
+
+            const target = event.target as HTMLElement;
+            if (
+                target.closest(".nc-event-block") ||
+                target.closest("[data-draft-preview]")
+            ) {
+                return;
+            }
+
+            // A hand put down on a grid still gliding is a brake, not a tap.
+            if (gridRef.current?.dataset.ncGliding) return;
+
+            const { pointerId, clientX, clientY } = event;
+            let travelled = false;
+
+            const cleanup = () => {
+                document.removeEventListener("pointermove", onMove, true);
+                document.removeEventListener("pointerup", onUp, true);
+                document.removeEventListener("pointercancel", onGone, true);
+                document.removeEventListener("scroll", onScrolled, true);
+            };
+
+            const onMove = (moveEvent: PointerEvent) => {
+                if (moveEvent.pointerId !== pointerId) return;
+                if (
+                    Math.hypot(
+                        moveEvent.clientX - clientX,
+                        moveEvent.clientY - clientY
+                    ) >= 10
+                ) {
+                    travelled = true;
+                }
+            };
+
+            const onGone = (upEvent: PointerEvent) => {
+                if (upEvent.pointerId !== pointerId) return;
+                cleanup();
+            };
+
+            const onScrolled = () => {
+                travelled = true;
+            };
+
+            const onUp = (upEvent: PointerEvent) => {
+                if (upEvent.pointerId !== pointerId) return;
+                cleanup();
+                if (travelled) return;
+                onSelectRange(date, date, true);
+            };
+
+            document.addEventListener("pointermove", onMove, true);
+            document.addEventListener("pointerup", onUp, true);
+            document.addEventListener("pointercancel", onGone, true);
+            document.addEventListener("scroll", onScrolled, true);
+        },
+        [gridRef, onSelectRange]
+    );
+
     const handleMouseDown = useCallback(
         (
             event: React.PointerEvent,
@@ -507,6 +579,7 @@ export function useTimeGridSelection({
     return {
         selection,
         handleMouseDown,
+        handleAllDayPointerDown,
         handleDoubleClick,
         handleEmptyContext,
     };

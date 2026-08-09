@@ -297,6 +297,9 @@ interface AllDayProps {
     onContextMenu: (id: string, e: MouseEvent) => void;
     onToggleTask: (id: string, done: boolean) => Promise<boolean>;
     onSelectRange: (start: Date, end: Date, allDay: boolean) => void;
+    /** A single tap on the band, on the phone. Absent on the desktop, where a
+        double click is the gesture. */
+    onAllDayPointerDown?: (event: React.PointerEvent, date: Date) => void;
     draftSlot?: { start: Date; end: Date; allDay: boolean } | null;
     draftColor?: string;
     dragPreview?: DragPreview | null;
@@ -320,6 +323,7 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
             onContextMenu,
             onToggleTask,
             onSelectRange,
+            onAllDayPointerDown,
             draftSlot,
             draftColor,
             dragPreview,
@@ -498,6 +502,9 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                 className="nc-allday-cell"
                                 onDoubleClick={() =>
                                     onSelectRange(date, date, true)
+                                }
+                                onPointerDown={(event) =>
+                                    onAllDayPointerDown?.(event, date)
                                 }
                             >
                                 {draftSlot &&

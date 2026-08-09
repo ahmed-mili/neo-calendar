@@ -267,6 +267,7 @@ export default function TimeGrid(props: TimeGridProps) {
         selection,
         handleMouseDown,
         handleDoubleClick,
+        handleAllDayPointerDown,
         handleEmptyContext,
     } = useTimeGridSelection({
         gridRef,
@@ -589,6 +590,7 @@ export default function TimeGrid(props: TimeGridProps) {
                             onContextMenu={onContextMenu}
                             onToggleTask={onToggleTask}
                             onSelectRange={onSelectRange}
+                            onAllDayPointerDown={handleAllDayPointerDown}
                             draftSlot={draftSlot}
                             draftColor={draftColor}
                             dragPreview={dragPreview}
