@@ -4808,3 +4808,31 @@ body.nc-platform-android .nc-mobile-new-event {
 body.nc-platform-android .nc-mobile-new-event:active {
     transition: transform 90ms ease-out !important;
 }
+
+/* ── The calendar's event list is never see-through ──────────
+   It inherited --cep-bg, which resolves through the theme to a translucent
+   surface — fine as a column beside the grid on a desktop, wrong as a panel
+   ON TOP of it here: the grid's own events read straight through the list of
+   events, and neither is legible.
+
+   Same treatment as the event sheet and the header before it. Anything that
+   covers the calendar rather than sitting beside it has to be opaque. */
+
+body.nc-platform-android .nc-cep-slot .nc-cep,
+body.nc-platform-android .nc-cep-slot .nc-cep-header,
+body.nc-platform-android .nc-cep-slot .nc-cep-body {
+    background: var(--background-primary) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* The popup's own entry animation is for a popover anchored to a click: it
+   scales up from a corner and fades. A sheet does neither — it comes up from
+   the edge it lives on. Left in place its keyframes also fight the sheet
+   transform for the same property, so the slide is the single entry now. */
+
+body.nc-platform-android .nc-event-popup,
+body.nc-platform-android #nc-android-overlay-root .nc-event-popup {
+    animation: none !important;
+}
