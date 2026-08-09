@@ -1,6 +1,13 @@
 /*
  * Monte la version partout d'un seul geste : `npm run version 1.0.3`.
  *
+ * Le numéro suit celui des applications du téléphone — GitHub en 1.270.0,
+ * Notion Calendar en 1.48.0 : c'est le MINEUR qui monte à chaque version
+ * publiée, sans jamais se remettre à zéro. Le majeur ne bouge que si
+ * l'application devient autre chose, et le correctif ne sert qu'à une rustine
+ * posée sur une version déjà sortie. Une livraison ordinaire va donc de 1.6.0
+ * à 1.7.0, pas à 1.6.1.
+ *
  * Six fichiers portent le même numéro, et l'un d'eux — le `versionCode` du
  * module Android — doit en plus être strictement croissant, sans quoi le
  * téléphone refuse la mise à jour. Le tenir à la main, c'est en oublier un.

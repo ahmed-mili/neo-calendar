@@ -132,6 +132,12 @@ export function useTimeGridSelection({
                     onCancel,
                     true
                 );
+
+                document.removeEventListener(
+                    "scroll",
+                    onScrolled,
+                    true
+                );
             };
 
             const onMove = (
@@ -325,6 +331,27 @@ export function useTimeGridSelection({
                 setSelection(null);
                 cleanup();
             };
+
+            /* A finger that scrolled the grid was never selecting anything in
+               it. The browser used to say so itself: starting a touch scroll
+               cancelled the pointer sequence, and onCancel cleaned up. On
+               Android the grid now scrolls itself, one axis at a time, so that
+               cancellation has to be spoken here — otherwise a swipe down the
+               hours ends as a new event covering everything it passed. Any
+               scroll will do; it does not matter who caused it. */
+            const onScrolled = () => {
+                selectionRef.current = null;
+                setSelection(null);
+                cleanup();
+            };
+
+            if (isAndroidRuntime()) {
+                document.addEventListener(
+                    "scroll",
+                    onScrolled,
+                    true
+                );
+            }
 
             document.addEventListener(
                 "pointermove",
