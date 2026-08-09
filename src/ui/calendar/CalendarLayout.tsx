@@ -269,27 +269,6 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         }
     };
 
-    // Pulled up into a panel (Notion-style): collapsed it announces the next
-    // event, expanded it lists what is left today. State is per session on
-    // purpose — the bar always starts collapsed, over the grid.
-    const [agendaExpanded, setAgendaExpanded] = React.useState(false);
-
-    const remainingToday = React.useMemo(() => {
-        const now = Date.now();
-        const endOfDay = new Date();
-        endOfDay.setHours(23, 59, 59, 999);
-        return events
-            .filter(
-                (event) =>
-                    !event.isSomeday &&
-                    event.end.getTime() >= now &&
-                    event.start.getTime() <= endOfDay.getTime()
-            )
-            .sort(
-                (left, right) => left.start.getTime() - right.start.getTime()
-            );
-    }, [events]);
-
     // On Android the drawer follows the finger, and closing it plays the
     // opening backwards instead of cutting to nothing.
     const drawerSwipe = useDrawerSwipe({
@@ -300,32 +279,11 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         },
     });
 
-    const nextUpcomingEvent = React.useMemo(() => {
-        const now = Date.now();
-        return (
-            events
-                .filter(
-                    (event) => !event.isSomeday && event.end.getTime() >= now
-                )
-                .sort(
-                    (left, right) =>
-                        left.start.getTime() - right.start.getTime()
-                )[0] ?? null
-        );
-    }, [events]);
-
-    const nextEventTime = nextUpcomingEvent
-        ? nextUpcomingEvent.start.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-          })
-        : null;
-
     return (
         <div
             className={`nc-layout${
                 sidebarVisible ? " nc-layout--sidebar-open" : ""
-            }${agendaExpanded ? " nc-layout--agenda-open" : ""}`}
+            }`}
         >
             {sidebarVisible && (
                 <button
@@ -416,93 +374,6 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                     {formatMonthTitle(currentDate)}
                 </div>
                 <div className="nc-content">{renderView()}</div>
-                <div
-                    className={`nc-mobile-agenda-bar${
-                        agendaExpanded ? " nc-mobile-agenda-bar--open" : ""
-                    }`}
-                >
-                    <button
-                        type="button"
-                        className="nc-mobile-agenda-handle"
-                        aria-expanded={agendaExpanded}
-                        aria-label={
-                            agendaExpanded
-                                ? "Collapse today's agenda"
-                                : "Expand today's agenda"
-                        }
-                        onClick={() => setAgendaExpanded((value) => !value)}
-                    >
-                        <span
-                            className="nc-mobile-agenda-grip"
-                            aria-hidden="true"
-                        />
-                    </button>
-
-                    <div className="nc-mobile-agenda-head">
-                        <div className="nc-mobile-agenda-copy" role="status">
-                            <strong>
-                                {nextUpcomingEvent
-                                    ? nextUpcomingEvent.title
-                                    : "No upcoming meeting"}
-                            </strong>
-                            {nextUpcomingEvent && (
-                                <small>
-                                    {nextEventTime} ·{" "}
-                                    {nextUpcomingEvent.calendarName}
-                                </small>
-                            )}
-                        </div>
-                        <button
-                            type="button"
-                            className="nc-mobile-agenda-add"
-                            aria-label={t("Create a new event")}
-                            title={t("New event")}
-                            onClick={onNewEvent}
-                        >
-                            <PlusIcon size={25} />
-                        </button>
-                    </div>
-
-                    {agendaExpanded && (
-                        <ul className="nc-mobile-agenda-list">
-                            {remainingToday.length === 0 && (
-                                <li className="nc-mobile-agenda-empty">
-                                    Nothing left today
-                                </li>
-                            )}
-                            {remainingToday.map((event) => (
-                                <li key={event.id}>
-                                    <button
-                                        type="button"
-                                        className="nc-mobile-agenda-item"
-                                        onClick={() => onEventClick(event.id)}
-                                    >
-                                        <span
-                                            className="nc-mobile-agenda-dot"
-                                            style={{ background: event.color }}
-                                            aria-hidden="true"
-                                        />
-                                        <span className="nc-mobile-agenda-item-copy">
-                                            <strong>{event.title}</strong>
-                                            <small>
-                                                {event.allDay
-                                                    ? "All day"
-                                                    : event.start.toLocaleTimeString(
-                                                          [],
-                                                          {
-                                                              hour: "2-digit",
-                                                              minute: "2-digit",
-                                                          }
-                                                      )}{" "}
-                                                · {event.calendarName}
-                                            </small>
-                                        </span>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
             </div>
             <div id="nc-android-overlay-root" />
             <button

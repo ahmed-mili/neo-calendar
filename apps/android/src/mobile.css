@@ -4732,3 +4732,26 @@ body.nc-platform-android .nc-mobile-agenda-bar {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
+
+/* ── Back to a plain "+" ─────────────────────────────────────
+   The bottom dock announced the next event and carried a "+". It is gone, and
+   the floating button it had replaced comes back — it was still in the markup
+   all along, only hidden.
+
+   Google Calendar makes the same call. Its "+" then asks Event / Task /
+   Birthday, which we do NOT copy: Google has to ask up front because its tasks
+   live in a different app and can never change kind afterwards. Here the choice
+   is a row inside the panel, made later and reversible, so the button has
+   nothing to ask. It just opens the panel. */
+
+body.nc-platform-android .nc-mobile-new-event {
+    display: grid !important;
+}
+
+/* The dock reserved 78px of scroll room under the grid. Only the button is
+   left, and it floats, so the grid gets that space back — just enough that the
+   last event of the day is not sitting under it. */
+body.nc-platform-android .nc-main-scroller,
+body.nc-platform-android .nc-left-rail-window {
+    padding-bottom: 12px;
+}
