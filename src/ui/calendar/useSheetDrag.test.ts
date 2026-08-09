@@ -3,6 +3,7 @@ import {
     offsetForAnchor,
     restOffsetFor,
     settleSheet,
+    dragsSheetFromBody,
 } from "./useSheetDrag";
 
 /** A sheet 600px tall whose resting position is 240px down from the top. */
@@ -10,9 +11,9 @@ const SHEET = { height: 600, halfOffset: 240 };
 
 describe("settleSheet", () => {
     it("settles back to rest when barely moved", () => {
-        expect(
-            settleSheet({ ...SHEET, offset: 250, velocity: 0 })
-        ).toBe("half");
+        expect(settleSheet({ ...SHEET, offset: 250, velocity: 0 })).toBe(
+            "half"
+        );
     });
 
     it("fills the screen when pulled most of the way up", () => {
@@ -20,15 +21,15 @@ describe("settleSheet", () => {
     });
 
     it("dismisses when dragged past halfway to the bottom", () => {
-        expect(
-            settleSheet({ ...SHEET, offset: 500, velocity: 0 })
-        ).toBe("closed");
+        expect(settleSheet({ ...SHEET, offset: 500, velocity: 0 })).toBe(
+            "closed"
+        );
     });
 
     it("stays open when dragged down but not far enough", () => {
-        expect(
-            settleSheet({ ...SHEET, offset: 330, velocity: 0 })
-        ).toBe("half");
+        expect(settleSheet({ ...SHEET, offset: 330, velocity: 0 })).toBe(
+            "half"
+        );
     });
 
     // A flick moves the sheet one step in the direction it was thrown. Throwing
@@ -145,5 +146,28 @@ describe("restOffsetFor", () => {
 
         expect(offset).toBeGreaterThanOrEqual(0);
         expect(offset).toBeLessThanOrEqual(300);
+    });
+});
+
+// ── Tirer la feuille depuis son corps ──────────────────────
+
+describe("dragsSheetFromBody", () => {
+    it("tire la feuille quand la liste est deja en haut", () => {
+        // Plus rien a remonter : le doigt voulait la feuille.
+        expect(dragsSheetFromBody(0, 20)).toBe(true);
+    });
+
+    it("laisse defiler quand la liste a du contenu au-dessus", () => {
+        // Voler ce geste, c'est rendre la liste impossible a remonter.
+        expect(dragsSheetFromBody(120, 20)).toBe(false);
+    });
+
+    it("ne prend jamais un geste vers le haut", () => {
+        // Vers le haut, on lit la suite de la liste.
+        expect(dragsSheetFromBody(0, -20)).toBe(false);
+    });
+
+    it("tolere un scrollTop negatif du rebond elastique", () => {
+        expect(dragsSheetFromBody(-8, 20)).toBe(true);
     });
 });
