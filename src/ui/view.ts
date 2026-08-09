@@ -6,7 +6,14 @@ import NeoCalendarPlugin from "../main";
 import { NeoCalendarError, NeoEvent } from "../types";
 import { renderOnboarding } from "./onboard";
 import { openFileForEvent } from "./actions";
-import { cycleTaskStatus, isTask } from "src/ui/tasks";
+import {
+    cycleTaskStatus,
+    isTask,
+    isSeries,
+    parseOccurrenceId,
+    getOccurrenceStatus,
+    setOccurrenceStatus,
+} from "src/ui/tasks";
 import CalendarApp from "./calendar/CalendarApp";
 
 export const NEO_CALENDAR_VIEW_TYPE = "neo-calendar-view";
@@ -203,11 +210,21 @@ export class CalendarView extends ItemView {
         if (!event || !isTask(event)) {
             return false;
         }
+        // A series has many occurrences and one field, so the tick has to name
+        // a day. Expansion put that day in the display id, and only a series
+        // may read it that way — a stored id can legitimately end in digits.
+        const occurrence = isSeries(event) ? parseOccurrenceId(id) : null;
+        const next = occurrence
+            ? setOccurrenceStatus(
+                  event,
+                  occurrence.date,
+                  getOccurrenceStatus(event, occurrence.date) === "complete"
+                      ? "todo"
+                      : "complete"
+              )
+            : cycleTaskStatus(event);
         try {
-            await this.plugin.cache.updateEventWithId(
-                id,
-                cycleTaskStatus(event)
-            );
+            await this.plugin.cache.updateEventWithId(id, next);
             return true;
         } catch (e) {
             if (e instanceof NeoCalendarError) {

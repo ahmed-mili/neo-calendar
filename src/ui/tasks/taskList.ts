@@ -1,5 +1,5 @@
 import { NeoEvent } from "../../types";
-import { TaskStatus, getTaskStatus, isTask } from "./index";
+import { TaskStatus, getTaskStatus, isTask, isSeries } from "./index";
 
 /**
  * The task list, and the three questions it answers.
@@ -20,9 +20,13 @@ import { TaskStatus, getTaskStatus, isTask } from "./index";
  *               through" is a question worth answering, but collapsed by
  *               default because it is not work any more.
  *
- * Recurring series never appear here: the schema gives `completed` to `single`
- * and `someday` only, so a series has nowhere to record "done" and `isTask`
- * rejects it.
+ * Recurring series stay out of this list, and that is a choice rather than a
+ * limitation — they CAN be tasks now, ticked occurrence by occurrence on the
+ * grid. A series has no last occurrence, so it has an unbounded supply of
+ * outstanding ones; listing them would bury every real task under an infinite
+ * tail of future waterings. And a missed one does not accumulate: skipping last
+ * week's watering does not mean owing two this week. The grid is where a
+ * recurring task is answered, on the day it comes round.
  */
 
 export interface TaskItem {
@@ -69,6 +73,11 @@ export function collectTasks(sources: TaskSource[]): TaskItem[] {
     for (const source of sources) {
         for (const { id, event } of source.events) {
             if (!isTask(event)) continue;
+            // A series answers "is it done" per occurrence, not as a whole, so
+            // `getTaskStatus` has nothing to return for one — which is exactly
+            // the filter this list wants. Kept explicit so it reads as the
+            // deliberate exclusion it is, not an accident of a null check.
+            if (isSeries(event)) continue;
             const status = getTaskStatus(event);
             if (!status) continue;
             // `completed` is the finish timestamp only once complete: while

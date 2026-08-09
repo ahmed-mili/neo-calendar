@@ -8,10 +8,7 @@ import React, {
 import CalendarLayout from "../../../src/ui/calendar/CalendarLayout";
 import CommandPalette from "../../../src/ui/calendar/CommandPalette";
 import { invoke } from "@tauri-apps/api/core";
-import {
-    buildWidgetPayload,
-    readWidgetTheme,
-} from "./platform/androidWidget";
+import { buildWidgetPayload, readWidgetTheme } from "./platform/androidWidget";
 import { buildReminders } from "./platform/androidReminders";
 import ContextMenu, {
     ContextMenuItem,
@@ -32,6 +29,12 @@ import {
     findMisfiledEvents,
     asPlainEvent,
 } from "../../../src/ui/tasks/misfiledEvents";
+import {
+    isTask,
+    isSeries,
+    parseOccurrenceId,
+    setOccurrenceStatus,
+} from "../../../src/ui/tasks";
 import {
     addDays,
     getEventTop,
@@ -1791,7 +1794,10 @@ export default function DesktopCalendar({
         if (!calendarId) return;
         // Always a task: this is what the task panel's add button calls, and a
         // dateless entry that is not a task would never appear in that list.
-        const id = await addEvent(calendarId, createUnscheduledPanelEvent(true));
+        const id = await addEvent(
+            calendarId,
+            createUnscheduledPanelEvent(true)
+        );
         openExistingEvent(id);
     }, [activeCalendarId, addEvent, openExistingEvent]);
 
@@ -1848,12 +1854,23 @@ export default function DesktopCalendar({
         async (eventId: string, done: boolean): Promise<boolean> => {
             const record = findStoredEvent(recordsRef.current, eventId);
             if (!record || record.readOnly) return false;
-            if (
-                record.event.type !== "single" &&
-                record.event.type !== "someday"
-            ) {
-                return false;
+
+            // A series records completion per occurrence, so the tick has to
+            // name a day. Expansion put it in the display id, and only a series
+            // may read it that way — a stored id can end in digits by chance.
+            if (isSeries(record.event)) {
+                const occurrence = parseOccurrenceId(eventId);
+                if (!occurrence || !isTask(record.event)) return false;
+                return updateEvent(
+                    eventId,
+                    setOccurrenceStatus(
+                        record.event,
+                        occurrence.date,
+                        done ? "complete" : "todo"
+                    )
+                );
             }
+
             return updateEvent(eventId, {
                 ...record.event,
                 completed: done ? new Date().toISOString() : false,
