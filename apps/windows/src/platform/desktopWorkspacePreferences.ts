@@ -71,7 +71,11 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         firstDay: 1,
         timeFormat24h: true,
         clickToCreateEventFromMonthView: true,
-        defaultEventsAsTasks: true,
+        // An entry is an event unless you say otherwise: most of what goes on
+        // a grid happens at a time rather than waiting to be done. The event
+        // panel's Type row switches either way, so this is only the start.
+        // Kept in step with the plugin's default in src/ui/settings.ts.
+        defaultEventsAsTasks: false,
         reminderMinutes: 10,
         externalCalendars: [],
     };

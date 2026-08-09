@@ -115,6 +115,13 @@ const FR: Record<string, string> = {
     Overdue: "En retard",
     "No tasks yet": "Aucune tâche",
     "Add task": "+ Ajouter une tâche",
+    // One-off repair for entries the `completed: false` bug filed as tasks.
+    "Convert timed tasks back to events":
+        "Reconvertir les tâches horaires en événements",
+    Convert: "Convertir",
+    "entries converted back to events.": "entrées reconverties en événements.",
+    "entries have both a start and an end time, which is the shape of an event rather than a task. They will lose their checkbox. All-day tasks and anything already completed are left untouched.":
+        "entrées ont une heure de début et une heure de fin, ce qui est la forme d'un événement et non d'une tâche. Elles perdront leur case à cocher. Les tâches sur toute la journée et celles déjà terminées ne sont pas touchées.",
     Description: "Description",
     Empty: "Vide",
     Date: "Date",

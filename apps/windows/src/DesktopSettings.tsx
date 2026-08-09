@@ -4,6 +4,7 @@ import { getTheme, THEMES } from "./themes/registry";
 import ThemeColorPicker from "./ThemeColorPicker";
 import ThemeWallpaperPicker from "./ThemeWallpaperPicker";
 import WallpaperEffectsControls from "./WallpaperEffectsControls";
+import ConfirmDialog from "./ConfirmDialog";
 import { isWallpaperId, type WallpaperId } from "./themes/wallpapers";
 import { ThemeId } from "./themes/types";
 import {
@@ -149,6 +150,10 @@ export interface DesktopSettingsProps {
     themeId: ThemeId;
     preferences: DesktopWorkspacePreferences;
     calendars: DesktopSettingsCalendar[];
+    /** Timed entries still marked as tasks by the old `completed: false` bug. */
+    misfiledEventCount: number;
+    /** Converts them back to plain events; resolves with how many landed. */
+    onConvertMisfiledEvents: () => Promise<number>;
     onThemeChange: (themeId: ThemeId) => Promise<void>;
     onPreferencesChange: (
         patch: Partial<DesktopWorkspacePreferences>
@@ -226,6 +231,8 @@ export default function DesktopSettings({
     themeId,
     preferences,
     calendars,
+    misfiledEventCount,
+    onConvertMisfiledEvents,
     onThemeChange,
     onPreferencesChange,
     onClose,
@@ -254,6 +261,10 @@ export default function DesktopSettings({
         null
     );
     const [calendarName, setCalendarName] = useState("");
+    // The one-off repair for the `completed: false` bug: confirmation first,
+    // then how many entries actually came back as events.
+    const [convertOpen, setConvertOpen] = useState(false);
+    const [convertedCount, setConvertedCount] = useState<number | null>(null);
     const [themePickerOpen, setThemePickerOpen] = useState(false);
     const themePickerRef = useRef<HTMLDivElement>(null);
     const importThemeInputRef = useRef<HTMLInputElement>(null);
@@ -691,6 +702,27 @@ export default function DesktopSettings({
                         patchPreferences({ defaultEventsAsTasks: checked })
                     }
                 />
+                {/* Only offered when there is something to repair: a row
+                    reading "0" invites you to press it for nothing. */}
+                {misfiledEventCount > 0 && (
+                    <SettingsRow
+                        label={t("Convert timed tasks back to events")}
+                        icon={<Check size={18} />}
+                        value={String(misfiledEventCount)}
+                        onClick={() => {
+                            setConvertedCount(null);
+                            setConvertOpen(true);
+                        }}
+                        navigates
+                    />
+                )}
+                {convertedCount !== null && (
+                    <p className="nc-set-group__note">
+                        {`${convertedCount} ${t(
+                            "entries converted back to events."
+                        )}`}
+                    </p>
+                )}
             </SettingsGroup>
 
             {/* Colour mode sits directly under the theme rather than inside
@@ -1481,6 +1513,20 @@ export default function DesktopSettings({
                     )}
                 </div>
             </section>
+
+            <ConfirmDialog
+                open={convertOpen}
+                title={t("Convert timed tasks back to events")}
+                message={`${misfiledEventCount} ${t(
+                    "entries have both a start and an end time, which is the shape of an event rather than a task. They will lose their checkbox. All-day tasks and anything already completed are left untouched."
+                )}`}
+                confirmLabel={t("Convert")}
+                onClose={() => setConvertOpen(false)}
+                onConfirm={async () => {
+                    setConvertedCount(await onConvertMisfiledEvents());
+                    setConvertOpen(false);
+                }}
+            />
         </div>
     );
 

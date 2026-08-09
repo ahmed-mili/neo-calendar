@@ -29,6 +29,10 @@ import {
     TaskSource,
 } from "../../../src/ui/tasks/taskList";
 import {
+    findMisfiledEvents,
+    asPlainEvent,
+} from "../../../src/ui/tasks/misfiledEvents";
+import {
     addDays,
     getEventTop,
     getWeekStart,
@@ -1411,6 +1415,41 @@ export default function DesktopCalendar({
         return collectTasks([...sources.values()]);
     }, [calendarById, hiddenCalendars, storedEvents]);
     const today = todayISO();
+
+    // Timed entries still carrying `completed: false` from the old bug — the
+    // flights and meetings that would otherwise crowd the task list as
+    // overdue. Hidden calendars are NOT filtered here: this is a repair over
+    // the whole vault, not a view.
+    const misfiledEvents = useMemo(
+        () =>
+            findMisfiledEvents(
+                [...calendarById.values()].map((calendar) => ({
+                    editable: calendar.editable,
+                    events: storedEvents
+                        .filter((r) => r.calendarId === calendar.id)
+                        .map((r) => ({ id: r.id, event: r.event })),
+                }))
+            ),
+        [calendarById, storedEvents]
+    );
+
+    // Turn those entries back into plain events, one write each.
+    //
+    // Sequential rather than Promise.all: these go through the same file layer
+    // as every other edit, and firing hundreds of concurrent writes at a vault
+    // is how you get half-written notes. A failure on one entry must not abort
+    // the rest either — the count reported back is what actually landed.
+    const convertMisfiledEvents = useCallback(async () => {
+        let converted = 0;
+        for (const { id, event } of misfiledEvents) {
+            try {
+                if (await updateEvent(id, asPlainEvent(event))) converted += 1;
+            } catch {
+                // Left as a task; the user can still flip it by hand.
+            }
+        }
+        return converted;
+    }, [misfiledEvents, updateEvent]);
 
     const panelEvents = useMemo(() => {
         if (!selectedCalendarId) return [];
@@ -2960,6 +2999,8 @@ export default function DesktopCalendar({
                 isScanningVaults={isScanningVaults}
                 preferences={preferences}
                 calendars={settingsCalendars}
+                misfiledEventCount={misfiledEvents.length}
+                onConvertMisfiledEvents={convertMisfiledEvents}
                 onPreferencesChange={updateWorkspacePreferences}
                 onClose={() => {
                     setSettingsOpen(false);
