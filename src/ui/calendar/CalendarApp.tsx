@@ -612,18 +612,23 @@ function CalendarAppInner(props: CalendarAppProps) {
     // `displayEvents`: an overdue task is precisely one whose date sits
     // outside the months currently on screen, so a window would hide exactly
     // what the panel exists to show.
+    // A hidden calendar stays hidden here too — hiding it means "not now".
     const tasks = useMemo(
         () =>
             collectTasks(
-                cache.getAllEvents().map((source: any) => ({
-                    id: source.id,
-                    name: cache.getCalendarById(source.id)?.name || source.id,
-                    color: source.color,
-                    editable: source.editable,
-                    events: source.events,
-                }))
+                cache
+                    .getAllEvents()
+                    .filter((source: any) => !hiddenCalendars.has(source.id))
+                    .map((source: any) => ({
+                        id: source.id,
+                        name:
+                            cache.getCalendarById(source.id)?.name || source.id,
+                        color: source.color,
+                        editable: source.editable,
+                        events: source.events,
+                    }))
             ),
-        [cache, cacheVersion]
+        [cache, cacheVersion, hiddenCalendars]
     );
     const today = todayISO();
 

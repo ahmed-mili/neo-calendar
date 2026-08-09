@@ -24,6 +24,11 @@ import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { open } from "@tauri-apps/plugin-dialog";
 import { createUnscheduledPanelEvent } from "../../../src/ui/calendar/CalendarEventsPanel.helpers";
 import {
+    collectTasks,
+    todayISO,
+    TaskSource,
+} from "../../../src/ui/tasks/taskList";
+import {
     addDays,
     getEventTop,
     getWeekStart,
@@ -1380,6 +1385,33 @@ export default function DesktopCalendar({
         [calendarById, hiddenCalendars, panelEventId, selectedIds, storedEvents]
     );
 
+    // Every task, for the sidebar's task list. Built from the stored records
+    // rather than from the windowed display events, so a task whose date has
+    // long passed still shows up — which is the whole point of the list.
+    // A hidden calendar stays hidden here too.
+    const tasks = useMemo(() => {
+        const sources = new Map<string, TaskSource>();
+        for (const record of storedEvents) {
+            if (hiddenCalendars.has(record.calendarId)) continue;
+            const calendar = calendarById.get(record.calendarId);
+            if (!calendar) continue;
+            let source = sources.get(calendar.id);
+            if (!source) {
+                source = {
+                    id: calendar.id,
+                    name: calendar.name,
+                    color: calendar.color,
+                    editable: calendar.editable,
+                    events: [],
+                };
+                sources.set(calendar.id, source);
+            }
+            source.events.push({ id: record.id, event: record.event });
+        }
+        return collectTasks([...sources.values()]);
+    }, [calendarById, hiddenCalendars, storedEvents]);
+    const today = todayISO();
+
     const panelEvents = useMemo(() => {
         if (!selectedCalendarId) return [];
         const calendar = calendarById.get(selectedCalendarId);
@@ -1718,10 +1750,9 @@ export default function DesktopCalendar({
     const createSomeday = useCallback(async () => {
         const calendarId = activeCalendarId();
         if (!calendarId) return;
-        const id = await addEvent(
-            calendarId,
-            createUnscheduledPanelEvent(false)
-        );
+        // Always a task: this is what the task panel's add button calls, and a
+        // dateless entry that is not a task would never appear in that list.
+        const id = await addEvent(calendarId, createUnscheduledPanelEvent(true));
         openExistingEvent(id);
     }, [activeCalendarId, addEvent, openExistingEvent]);
 
@@ -1730,7 +1761,7 @@ export default function DesktopCalendar({
             if (!calendarById.get(calendarId)?.editable) return;
             const id = await addEvent(
                 calendarId,
-                createUnscheduledPanelEvent(false)
+                createUnscheduledPanelEvent(true)
             );
             setPanelAnchor(null);
             setPanelEventId(id);
@@ -2671,8 +2702,9 @@ export default function DesktopCalendar({
                 soloCalendarId={soloCalendarId}
                 onSetDefaultCalendar={setDefaultCalendar}
                 onShowOnly={showOnlyCalendar}
-                somedayEvents={somedayEvents}
-                onAddSomeday={() => void createSomeday()}
+                tasks={tasks}
+                today={today}
+                onAddTask={() => void createSomeday()}
                 onQuickAdd={(partial: Partial<NeoEvent>) =>
                     void quickAdd(partial)
                 }
