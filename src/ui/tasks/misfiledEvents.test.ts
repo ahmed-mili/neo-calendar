@@ -51,6 +51,12 @@ describe("isMisfiledEvent", () => {
         ).toBe(false);
     });
 
+    it("laisse une tache portant une echeance", () => {
+        // Le bug n'ecrivait que `completed`. Une echeance a ete saisie a la
+        // main : c'est donc une vraie tache, meme avec des horaires.
+        expect(isMisfiledEvent(timed({ due: "2026-08-30" }))).toBe(false);
+    });
+
     it("laisse une tache en cours", () => {
         expect(isMisfiledEvent(timed({ completed: "in-progress" }))).toBe(
             false
@@ -104,6 +110,13 @@ describe("asPlainEvent", () => {
 
     it("le resultat n'est plus une tache", () => {
         expect(isTask(asPlainEvent(timed()))).toBe(false);
+    });
+
+    it("retire aussi l'echeance", () => {
+        // Un evenement n'a pas d'echeance : la laisser serait une cle orpheline
+        // decrivant une promesse que l'entree ne peut plus tenir.
+        const after = asPlainEvent(timed({ due: "2026-08-30" }));
+        expect("due" in (after as object)).toBe(false);
     });
 
     it("ne modifie pas l'objet d'origine", () => {

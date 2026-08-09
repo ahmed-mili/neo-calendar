@@ -1,4 +1,4 @@
-import { completedFor } from "./useEventFormState";
+import { completedFor, dueFor } from "./useEventFormState";
 import { isTask } from "../tasks";
 import { NeoEvent } from "../../types";
 
@@ -29,6 +29,26 @@ describe("completedFor", () => {
         expect(completedFor("complete", () => "2026-08-09T04:00:00")).toBe(
             "2026-08-09T04:00:00"
         );
+    });
+});
+
+describe("dueFor", () => {
+    it("garde l'echeance d'une tache", () => {
+        expect(dueFor("todo", "2026-08-30")).toBe("2026-08-30");
+    });
+
+    it("garde l'echeance d'une tache terminee", () => {
+        expect(dueFor("complete", "2026-08-30")).toBe("2026-08-30");
+    });
+
+    it("ne pose rien quand la tache n'a pas d'echeance", () => {
+        expect(dueFor("todo", null)).toBeUndefined();
+    });
+
+    it("laisse tomber l'echeance quand ce n'est plus une tache", () => {
+        // Un evenement n'a pas d'echeance : il EST sa date. Basculer en
+        // evenement ne doit pas laisser une cle orpheline dans la note.
+        expect(dueFor(null, "2026-08-30")).toBeUndefined();
     });
 });
 

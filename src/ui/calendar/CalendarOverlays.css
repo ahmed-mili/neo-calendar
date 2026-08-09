@@ -136,6 +136,13 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* A deadline is a different promise from a day set aside for the work, so it
+   is flagged rather than left to look like an ordinary date. */
+.nc-tasks-due-mark {
+    margin-right: 3px;
+    opacity: 0.75;
+}
+
 /* Overdue is the one thing this panel exists to surface, so it is the one
    thing that gets a colour. */
 .nc-tasks-late {

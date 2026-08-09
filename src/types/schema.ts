@@ -29,6 +29,21 @@ const CompletedSchema = ParsedDate.or(z.literal(false))
     .or(z.literal(null))
     .optional();
 
+/**
+ * `due` is a task's deadline — the day it has to be DONE by.
+ *
+ * It is not the same thing as `date`, and that is the whole point. An event has
+ * no deadline: it *is* its date, and when the hour passes it is over. A task
+ * has two separate days that rarely coincide — the one you set aside to do it
+ * ("jeudi 14h, écrire le rapport") and the one it is owed by ("vendredi"). The
+ * calendar can only hold the first; without this field the second has nowhere
+ * to live, and lateness has to be guessed from the wrong day.
+ *
+ * Only the task-capable types carry it. On a plain event it would be
+ * meaningless, and the UI only offers it once an entry is a task.
+ */
+const DueSchema = ParsedDate.or(z.literal(null)).optional();
+
 /** Time facet: all-day events carry no clock times; timed ones carry both. */
 export const TimeSchema = z.discriminatedUnion("allDay", [
     z.object({ allDay: z.literal(true) }),
@@ -55,6 +70,7 @@ export const EventSchema = z.discriminatedUnion("type", [
         date: ParsedDate,
         endDate: ParsedDate.nullable().default(null),
         completed: CompletedSchema,
+        due: DueSchema,
     }),
     z.object({
         type: z.literal("recurring"),
@@ -76,6 +92,7 @@ export const EventSchema = z.discriminatedUnion("type", [
     z.object({
         type: z.literal("someday"),
         completed: CompletedSchema,
+        due: DueSchema,
     }),
 ]);
 
@@ -96,6 +113,7 @@ export const TYPE_DISCRIMINANT_KEYS = [
     "date",
     "endDate",
     "completed",
+    "due",
     "daysOfWeek",
     "startRecur",
     "endRecur",

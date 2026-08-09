@@ -1,6 +1,11 @@
 import * as React from "react";
 import { TaskCheckbox } from "./TaskCheckbox";
-import { TaskItem, buildTaskSections, isOverdue } from "../tasks/taskList";
+import {
+    TaskItem,
+    buildTaskSections,
+    isOverdue,
+    effectiveDue,
+} from "../tasks/taskList";
 import { formatDatedDayWithYear } from "./calendarFormatters";
 import { ChevronDownIcon } from "./Icons";
 import { t } from "../i18n";
@@ -39,6 +44,11 @@ function TaskRow({
 }) {
     const done = task.status === "complete";
     const late = isOverdue(task, today);
+    // The day shown is the day the task is answerable for: its deadline when it
+    // has one. Showing `date` instead would put a reassuring day next to a task
+    // that is actually late, which is the confusion this panel exists to end.
+    const day = effectiveDue(task);
+    const hasDeadline = task.due !== null;
     return (
         <div
             className={`nc-tasks-item${done ? " nc-task-completed" : ""}`}
@@ -64,13 +74,24 @@ function TaskRow({
             <span className="nc-tasks-title">
                 {task.title || t("Untitled")}
             </span>
-            {task.date && (
+            {day && (
                 <span
                     className={`nc-tasks-date${late ? " nc-tasks-late" : ""}`}
-                    title={late ? t("Overdue") : undefined}
+                    title={
+                        late
+                            ? t("Overdue")
+                            : hasDeadline
+                            ? t("Deadline")
+                            : undefined
+                    }
                 >
+                    {/* A deadline reads differently from a day set aside for
+                        the work, so it is marked rather than left ambiguous. */}
+                    {hasDeadline && (
+                        <span className="nc-tasks-due-mark">⚑</span>
+                    )}
                     {formatDatedDayWithYear(
-                        isoToLocalDate(task.date),
+                        isoToLocalDate(day),
                         isoToLocalDate(today).getFullYear()
                     )}
                 </span>

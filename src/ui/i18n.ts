@@ -113,6 +113,10 @@ const FR: Record<string, string> = {
     "No date": "Sans date",
     Completed: "Terminées",
     Overdue: "En retard",
+    // A task's deadline, kept distinct from the day set aside for the work.
+    Deadline: "Échéance",
+    "Add deadline": "Ajouter une échéance",
+    "Remove deadline": "Retirer l'échéance",
     "No tasks yet": "Aucune tâche",
     "Add task": "+ Ajouter une tâche",
     // One-off repair for entries the `completed: false` bug filed as tasks.

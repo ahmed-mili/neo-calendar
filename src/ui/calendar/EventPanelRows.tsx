@@ -36,6 +36,7 @@ import {
 } from "./CalendarUtils";
 import {
     ClockIcon,
+    CalendarIcon,
     CheckIcon,
     DocIcon,
     LinesIcon,
@@ -1196,6 +1197,86 @@ export function CalendarRow({
                     </div>,
                     getEventPanelPortalTarget()
                 )}
+        </div>
+    );
+}
+
+// ── Deadline row ───────────────────────────────────────────
+
+interface DueRowProps {
+    due: string | null;
+    editable: boolean;
+    firstDay: number;
+    /** Suggested day when adding a deadline to a task that has none. */
+    fallbackDate: string;
+    setDue: (value: string | null) => void;
+    onAutoSave: () => void;
+}
+
+/**
+ * A task's deadline — the day it is owed by, not the day set aside for it.
+ *
+ * Kept a separate row from Date on purpose. They answer different questions
+ * ("when will I do this" vs "when must this be done"), they disagree often, and
+ * collapsing them is what forces lateness to be judged from the wrong day. The
+ * row only appears once an entry is a task: an event has no deadline, it *is*
+ * its date.
+ *
+ * Optional by design — most tasks never need one, so an unset deadline shows a
+ * quiet "add" affordance rather than a date pretending to be meaningful.
+ */
+export function DueRow({
+    due,
+    editable,
+    firstDay,
+    fallbackDate,
+    setDue,
+    onAutoSave,
+}: DueRowProps) {
+    return (
+        <div className="nc-panel-row nc-panel-row-inline">
+            <span className="nc-panel-row-icon">
+                <CalendarIcon />
+            </span>
+            <div className="nc-panel-row-label">{t("Deadline")}</div>
+            {due ? (
+                <span className="nc-panel-due-value">
+                    <DateField
+                        date={due}
+                        label={formatDateLong(due)}
+                        editable={editable}
+                        firstDay={firstDay}
+                        setDate={(value) => setDue(value)}
+                        onAutoSave={onAutoSave}
+                    />
+                    {editable && (
+                        <button
+                            type="button"
+                            className="nc-panel-due-clear"
+                            title={t("Remove deadline")}
+                            aria-label={t("Remove deadline")}
+                            onClick={() => {
+                                setDue(null);
+                                onAutoSave();
+                            }}
+                        >
+                            <XIcon />
+                        </button>
+                    )}
+                </span>
+            ) : (
+                <button
+                    type="button"
+                    className="nc-panel-due-add"
+                    disabled={!editable}
+                    onClick={() => {
+                        setDue(fallbackDate);
+                        onAutoSave();
+                    }}
+                >
+                    {t("Add deadline")}
+                </button>
+            )}
         </div>
     );
 }

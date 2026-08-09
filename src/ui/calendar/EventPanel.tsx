@@ -25,6 +25,7 @@ import {
     RecurrenceRow,
     CalendarRow,
     TypeRow,
+    DueRow,
     StatusRow,
     LinksAttachmentsRow,
     DescriptionRow,
@@ -969,6 +970,21 @@ export default function EventPanel({
                             form.setTaskStatus(next ? "todo" : null);
                             scheduleAutoSave();
                         }}
+                    />
+                )}
+
+                {isTask && !form.isRecurring && (
+                    <DueRow
+                        due={form.due}
+                        editable={stableCalInfo.editable}
+                        firstDay={firstDay}
+                        // A deadline added to a dated task starts on its own
+                        // day; a dateless one has nothing to borrow, so today.
+                        fallbackDate={
+                            form.date || new Date().toISOString().slice(0, 10)
+                        }
+                        setDue={form.setDue}
+                        onAutoSave={scheduleAutoSave}
                     />
                 )}
 
