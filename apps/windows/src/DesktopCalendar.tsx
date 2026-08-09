@@ -2792,18 +2792,16 @@ export default function DesktopCalendar({
                 onOpenRootFolder={() => void openDesktopPath(dataFolder)}
                 onCalendarClick={(calendarId: string) => {
                     /*
-                     * The events panel is a second column, and a phone has room
-                     * for one. Opening it there covered the calendar with a list
-                     * that had no way out — its close button sat under the status
-                     * bar — so tapping a calendar in the drawer now makes it the
-                     * default one, which is the decision that list is really for.
-                     * Its colour is one tap away on the swatch, and finding a
-                     * particular event is the magnifier's job.
+                     * The same everywhere now: the row opens the calendar's
+                     * events, the swatch beside it sets the default.
+                     *
+                     * This used to divert to the default on Android, because
+                     * the panel was a second column whose close button ended up
+                     * under the status bar — a list with no way out. It comes
+                     * up as a sheet there instead, dismissed by its backdrop,
+                     * by a downward drag, or by a button now padded clear of
+                     * the status bar. One control, one meaning, both platforms.
                      */
-                    if (isAndroid) {
-                        setDefaultCalendar(calendarId);
-                        return;
-                    }
                     setSelectedCalendarId((current) =>
                         current === calendarId ? null : calendarId
                     );

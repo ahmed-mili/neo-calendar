@@ -2,7 +2,8 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { DisplayEvent } from "../types";
 import { CalendarInfo } from "../../types";
-import { formatTime, addDays } from "./CalendarUtils";
+import { formatTime, addDays, isAndroidRuntime } from "./CalendarUtils";
+import { useSheetDrag } from "./useSheetDrag";
 import ColorPicker from "./ColorPicker";
 import { usePanelDrag, PanelDropTarget } from "./usePanelDrag";
 import {
@@ -163,6 +164,17 @@ export default function CalendarEventsPanel({
         onTargetChange: onPanelDragTarget,
     });
     const panelRef = React.useRef<HTMLDivElement>(null);
+    const headerRef = React.useRef<HTMLDivElement>(null);
+    // A phone has room for one column, so this arrives as a sheet over the
+    // calendar rather than beside it.
+    const onPhone = isAndroidRuntime();
+    useSheetDrag({
+        enabled: onPhone && open,
+        sheetRef: panelRef,
+        handleRef: headerRef,
+        variant: "sheet",
+        onClose,
+    });
     const colorRowRef = React.useRef<HTMLButtonElement>(null);
     const [openMenu, setOpenMenu] = React.useState<OpenMenu>(null);
     const [settingsPage, setSettingsPage] =
@@ -262,8 +274,20 @@ export default function CalendarEventsPanel({
                 pinned ? " nc-cep-pinned" : ""
             }`}
         >
+            {/* This panel was switched off on Android because its close button
+                ended up under the status bar, leaving a list with no way out.
+                So on a phone it comes back with three ways out — tap the
+                backdrop, drag it down, or press the button — and no single
+                layout slip can trap anyone again. */}
+            {onPhone && (
+                <div
+                    className="nc-cep-backdrop"
+                    onClick={onClose}
+                    aria-hidden="true"
+                />
+            )}
             <div className="nc-cep" ref={panelRef}>
-                <div className="nc-cep-header">
+                <div className="nc-cep-header" ref={headerRef}>
                     <div className="nc-cep-header-title">
                         <span
                             className="nc-cep-header-icon"
@@ -356,7 +380,10 @@ export default function CalendarEventsPanel({
                 </div>
 
                 {showTotals && (
-                    <div className="nc-cep-summary" aria-label={t("Event totals")}>
+                    <div
+                        className="nc-cep-summary"
+                        aria-label={t("Event totals")}
+                    >
                         <div className="nc-cep-summary-metric">
                             <span>{t("Total time")}</span>
                             <strong>
@@ -391,7 +418,9 @@ export default function CalendarEventsPanel({
                                 className="nc-cep-menu-swatch"
                                 style={{ backgroundColor: calendar.color }}
                             />
-                            <span className="nc-cep-menu-label">{t("Color")}</span>
+                            <span className="nc-cep-menu-label">
+                                {t("Color")}
+                            </span>
                             <span className="nc-cep-menu-value">
                                 {getCalendarColorName(calendar.color)}
                             </span>
