@@ -4777,13 +4777,17 @@ body.nc-platform-android .nc-mobile-new-event {
    applied, which is why the grid has always ended flush against the last hour.
    This one carries the flag it needs to count.
 
-   One full hour row plus whatever the navigation bar takes: the 23:00 row can
-   then be scrolled entirely clear of it, which is the actual requirement — the
-   button floating nearby is incidental, and Google lets it overlap too. */
+   Sized as the navigation bar plus a few pixels, and nothing more. The grid
+   already contains its 24 hours; the only thing missing was clearance so that
+   midnight is not drawn behind the system bar. Reserving a whole extra hour on
+   top of that — the first attempt at this — left an empty band under midnight
+   instead.
+
+   No floor under the safe-area value on purpose: where the inset is 0 the app
+   is not drawing beneath the bar at all, so a few pixels are all that is
+   needed. The reserve follows the device rather than guessing at it. */
 
 body.nc-platform-android .nc-main-scroller,
 body.nc-platform-android .nc-left-rail-window {
-    padding-bottom: calc(
-        var(--nc-hour-height, 60px) + var(--nc-mobile-safe-bottom, 0px)
-    ) !important;
+    padding-bottom: calc(var(--nc-mobile-safe-bottom, 0px) + 10px) !important;
 }
