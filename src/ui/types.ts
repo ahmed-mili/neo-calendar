@@ -89,7 +89,6 @@ export interface CalendarAppProps {
     onDeleteEvents?: (ids: string[]) => Promise<void>;
     onToggleTask: (id: string, isDone: boolean) => Promise<boolean>;
     onContextMenu?: (eventId: string, mouseEvent: MouseEvent) => void;
-    onAddSomeday?: () => void;
 }
 
 // ── Event Position (computed for grid layout) ──────────────

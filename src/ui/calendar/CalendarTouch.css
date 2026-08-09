@@ -128,12 +128,12 @@
        ligne et pas au-dela, sinon elle mordrait sur l'evenement voisin. */
     .nc-month-task-btn,
     .nc-list-task-btn,
-    .nc-someday-checkbox {
+    .nc-tasks-checkbox {
         position: relative;
     }
 
     .nc-list-task-btn::after,
-    .nc-someday-checkbox::after,
+    .nc-tasks-checkbox::after,
     .nc-month-task-btn::after {
         content: "";
         position: absolute;

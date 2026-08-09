@@ -117,7 +117,6 @@ export class CalendarView extends ItemView {
             onEventClick: () => {},
             onSelectRange: () => {},
             onContextMenu: () => {},
-            onAddSomeday: () => {},
         });
     }
 
