@@ -301,6 +301,7 @@ const FR: Record<string, string> = {
     "24-hour time": "Format 24 heures",
     "Create an event by tapping a day of the month":
         "Créer un événement en cliquant un jour du mois",
+    "Free scrolling between days": "Défilement libre entre les jours",
     "New events created as tasks": "Nouveaux événements créés comme des tâches",
     Appearance: "Apparence",
     Theme: "Thème",

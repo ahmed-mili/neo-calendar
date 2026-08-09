@@ -9,6 +9,8 @@ interface ThreeDayViewProps {
     visibleDates: Date[];
     firstDay: number;
     timeFormat24h: boolean;
+    /** Let the day grid come to rest between two days instead of on whole ones. */
+    freeScroll?: boolean;
     secondaryTimezones?: string[];
     onAddTimezone: (tz: string) => void;
     onRemoveTimezone: (tz: string) => void;
@@ -52,6 +54,7 @@ export default function ThreeDayView(props: ThreeDayViewProps) {
                 dates={props.visibleDates.slice(0, 3)}
                 events={timedEvents}
                 timeFormat24h={props.timeFormat24h}
+                freeScroll={props.freeScroll}
                 secondaryTimezones={props.secondaryTimezones}
                 onAddTimezone={props.onAddTimezone}
                 onRemoveTimezone={props.onRemoveTimezone}

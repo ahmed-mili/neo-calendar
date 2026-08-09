@@ -35,6 +35,8 @@ export interface NeoCalendarSettings {
     };
     timeFormat24h: boolean;
     clickToCreateEventFromMonthView: boolean;
+    /** Let the day grid come to rest between two days instead of on whole ones. */
+    freeScroll: boolean;
     hiddenCalendars: string[];
     secondaryTimezones: string[];
     /** The main hours column's zone. Undefined means the system's own. */
@@ -64,6 +66,7 @@ export const DEFAULT_SETTINGS: NeoCalendarSettings = {
     },
     timeFormat24h: false,
     clickToCreateEventFromMonthView: true,
+    freeScroll: false,
     hiddenCalendars: [],
     secondaryTimezones: [],
     timezoneLabels: {},
@@ -455,6 +458,11 @@ export class NeoCalendarSettingTab extends PluginSettingTab {
                 "Click on a day in month view to create event",
                 "Switch off to open day view on click instead.",
                 "clickToCreateEventFromMonthView",
+            ],
+            [
+                "Free scrolling",
+                "Off, the grid settles on whole days, so you are never left looking at two half columns. On, it stays wherever you leave it.",
+                "freeScroll",
             ],
             [
                 "New events are tasks by default",

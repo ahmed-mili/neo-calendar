@@ -6,6 +6,8 @@ import {
     claimsGesture,
     clampScroll,
     decayedVelocity,
+    easeOutCubic,
+    snappedScroll,
     VELOCITY_WINDOW_MS,
     lockedAxis,
     pinchedHourHeight,
@@ -224,5 +226,47 @@ describe("scrollForAnchor", () => {
         // scroll to, however far down the fingers are.
         expect(scrollForAnchor(1, 32, 600, 0)).toBe(0);
         expect(scrollForAnchor(23, 320, 0, 4000)).toBe(4000);
+    });
+});
+
+describe("snappedScroll", () => {
+    /** Two days across a 400px viewport. */
+    const column = 200;
+    const max = 1000;
+
+    it("goes to the nearer day", () => {
+        expect(snappedScroll(80, column, max)).toBe(0);
+        expect(snappedScroll(120, column, max)).toBe(200);
+        expect(snappedScroll(410, column, max)).toBe(400);
+    });
+
+    it("leaves a grid already on a day alone", () => {
+        expect(snappedScroll(400, column, max)).toBe(400);
+        expect(snappedScroll(0, column, max)).toBe(0);
+    });
+
+    it("never lands outside the content", () => {
+        // The last day is not a whole column from the end, so rounding up
+        // would scroll past everything there is.
+        expect(snappedScroll(980, column, 950)).toBe(950);
+        expect(snappedScroll(-40, column, max)).toBe(0);
+    });
+
+    it("gives up rather than divide by a column of no width", () => {
+        expect(snappedScroll(137, 0, max)).toBe(137);
+        expect(snappedScroll(137, Number.NaN, max)).toBe(137);
+    });
+});
+
+describe("easeOutCubic", () => {
+    it("runs from where it started to where it is going", () => {
+        expect(easeOutCubic(0)).toBe(0);
+        expect(easeOutCubic(1)).toBe(1);
+    });
+
+    it("is most of the way there at the halfway point", () => {
+        // Fast first, easing in at the end — the shape of something settling.
+        expect(easeOutCubic(0.5)).toBeCloseTo(0.875, 5);
+        expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
     });
 });

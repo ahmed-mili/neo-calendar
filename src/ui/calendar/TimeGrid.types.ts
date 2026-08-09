@@ -24,6 +24,8 @@ export interface TimeGridProps {
     dates: Date[];
     events: DisplayEvent[];
     timeFormat24h: boolean;
+    /** Let the day grid come to rest between two days instead of on whole ones. */
+    freeScroll?: boolean;
     secondaryTimezones?: string[];
     onAddTimezone?: (tz: string) => void;
     onRemoveTimezone?: (tz: string) => void;

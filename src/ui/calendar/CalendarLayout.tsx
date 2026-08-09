@@ -35,6 +35,8 @@ interface CalendarLayoutProps {
     visibleDates: Date[];
     firstDay: number;
     timeFormat24h: boolean;
+    /** Let the day grid come to rest between two days instead of on whole ones. */
+    freeScroll?: boolean;
     sidebarVisible: boolean;
     onToggleSidebar: () => void;
     onEventClick: (eventId: string) => void;
@@ -133,6 +135,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         visibleDates,
         firstDay,
         timeFormat24h,
+        freeScroll,
         sidebarVisible,
         onToggleSidebar,
         onEventClick,
@@ -220,6 +223,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         visibleDates,
         firstDay,
         timeFormat24h,
+        freeScroll,
         secondaryTimezones,
         onAddTimezone,
         onRemoveTimezone,

@@ -136,6 +136,7 @@ export default function TimeGrid(props: TimeGridProps) {
         contextLine,
         externalPreview,
         onEventUnschedule,
+        freeScroll = false,
     } = props;
 
     const gridRef = useRef<HTMLDivElement>(null);
@@ -180,12 +181,11 @@ export default function TimeGrid(props: TimeGridProps) {
         if (main) publishScrollTravel(main, gridRef.current);
     }, []);
 
-    useAxisLock(
-        scrollRootRef,
-        gridRef,
-        onAndroid(),
-        republishScrollTravel
-    );
+    useAxisLock(scrollRootRef, gridRef, onAndroid(), {
+        daysPerView: dates.length,
+        freeScroll,
+        onScaleChange: republishScrollTravel,
+    });
 
     useInfiniteScroll({
         scrollRef: scrollRootRef,

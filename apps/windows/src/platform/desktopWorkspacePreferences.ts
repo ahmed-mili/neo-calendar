@@ -26,6 +26,8 @@ export interface DesktopWorkspacePreferences {
     firstDay: number;
     timeFormat24h: boolean;
     clickToCreateEventFromMonthView: boolean;
+    /** Let the day grid come to rest between two days instead of on whole ones. */
+    freeScroll: boolean;
     defaultEventsAsTasks: boolean;
     /** Minutes before an event to be reminded. 0 means no reminder at all. */
     reminderMinutes: number;
@@ -71,6 +73,9 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         firstDay: 1,
         timeFormat24h: true,
         clickToCreateEventFromMonthView: true,
+        // The grid settles on whole days unless asked otherwise: half a column
+        // of Saturday next to half a column of Monday is nobody's week.
+        freeScroll: false,
         // An entry is an event unless you say otherwise: most of what goes on
         // a grid happens at a time rather than waiting to be done. The event
         // panel's Type row switches either way, so this is only the start.
@@ -294,6 +299,7 @@ export function parseDesktopWorkspacePreferences(
             source.clickToCreateEventFromMonthView,
             defaults.clickToCreateEventFromMonthView
         ),
+        freeScroll: bool(source.freeScroll, defaults.freeScroll),
         defaultEventsAsTasks: bool(
             source.defaultEventsAsTasks,
             defaults.defaultEventsAsTasks

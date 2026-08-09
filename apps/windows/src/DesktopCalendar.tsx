@@ -2708,6 +2708,7 @@ export default function DesktopCalendar({
                 visibleDates={visibleDates}
                 firstDay={preferences.firstDay}
                 timeFormat24h={preferences.timeFormat24h}
+                freeScroll={preferences.freeScroll}
                 sidebarVisible={sidebarVisible}
                 onToggleSidebar={toggleSidebar}
                 onEventClick={selectEvent}
