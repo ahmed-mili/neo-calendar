@@ -265,13 +265,21 @@ export function useSheetDrag({
          * computed value to move from — so it cannot flash at the anchor first.
          */
         const height = sheet.getBoundingClientRect().height;
-        let entry = 0;
         if (height) {
             sheet.style.setProperty(OFFSET_PROPERTY, height + "px");
-            entry = window.requestAnimationFrame(() => {
-                entry = 0;
-                sheet.style.removeProperty(OFFSET_PROPERTY);
-            });
+            /*
+             * Force the off-screen position to be COMPUTED before releasing it.
+             *
+             * Reading a layout property flushes pending style, which is what
+             * gives the transition a "from" to run out of. Scheduling the
+             * release on the next animation frame instead — the first attempt —
+             * is not reliable here: the sheet is portaled and mounted in the
+             * same commit, and the frame could resolve with the browser having
+             * never settled on the starting value, so it jumped straight to the
+             * anchor with nothing to animate.
+             */
+            void sheet.offsetHeight;
+            sheet.style.removeProperty(OFFSET_PROPERTY);
         }
         // The keyboard and a rotation both change what "half the screen" means.
         window.addEventListener("resize", place);
@@ -296,9 +304,6 @@ export function useSheetDrag({
         }
 
         return () => {
-            // A sheet dismissed before its entry frame ran would otherwise be
-            // released from off-screen after it had already gone.
-            if (entry) window.cancelAnimationFrame(entry);
             window.removeEventListener("resize", place);
             observer?.disconnect();
             /*
