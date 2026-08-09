@@ -50,7 +50,6 @@
    stays common. They remain inert on Windows/Obsidian and are activated by the
    Android bundle's final mobile stylesheet. */
 .nc-mobile-sidebar-scrim,
-.nc-mobile-new-event,
-.nc-mobile-agenda-bar {
+.nc-mobile-new-event {
     display: none;
 }
