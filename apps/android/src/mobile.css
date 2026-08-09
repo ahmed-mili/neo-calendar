@@ -4660,3 +4660,19 @@ body.nc-platform-android .nc-cep-body {
     padding-bottom: calc(16px + var(--nc-mobile-safe-bottom, 0px));
     overscroll-behavior: contain;
 }
+
+/* ── The event sheet is opaque here ──────────────────────────
+   The panel is a ~90% "glass" over a blur, which reads as a subtle tint on a
+   desktop's flat background. Over a photo wallpaper on a phone it just reads as
+   see-through — the city skyline came straight through the sheet resting at the
+   bottom of the screen, and a surface you can read the wallpaper through does
+   not look like a surface.
+
+   The draft variant was already forced opaque; this is the same treatment for
+   an existing event, which had been left behind. */
+
+body.nc-platform-android .nc-event-popup {
+    background: var(--background-primary) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
