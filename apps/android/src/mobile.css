@@ -965,6 +965,12 @@ body.nc-platform-android .nc-android-search-btn:active {
 
 body.nc-platform-android .nc-android-month-button {
     min-width: 0;
+    /* Gives way rather than growing over what is next to it. The bar has to
+       hold a month, a week number and three controls across 412px, and it used
+       to have no upper bound at all: "septembre" simply ran on over "Semaine
+       36" and the menu beside it. */
+    flex: 0 1 auto;
+    overflow: hidden;
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -979,6 +985,20 @@ body.nc-platform-android .nc-android-month-button {
     text-transform: capitalize;
 }
 
+/* The long names — septembre, décembre, novembre, février — step down a size
+   instead of every month shrinking to fit the longest one. */
+body.nc-platform-android .nc-android-month-button--long {
+    font-size: 24px;
+    letter-spacing: -0.05em;
+}
+
+body.nc-platform-android .nc-android-month-button > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 body.nc-platform-android .nc-android-month-button:active,
 body.nc-platform-android .nc-android-month-button.nc-open {
     background: rgba(255, 255, 255, 0.09);
@@ -987,6 +1007,9 @@ body.nc-platform-android .nc-android-month-button.nc-open {
 body.nc-platform-android .nc-android-month-button svg {
     width: 15px;
     height: 15px;
+    /* The chevron is the button's affordance: it keeps its size while the name
+       beside it gives way. */
+    flex: 0 0 auto;
     transition: transform 160ms ease;
 }
 
@@ -3858,7 +3881,12 @@ so
 
 /* Week number next to the month, from the reference's app bar. */
 body.nc-platform-android .nc-android-week-label {
-    flex: 0 0 auto;
+    /* Shrinkable too, and the smaller of the two, so a bar that runs out of
+       room takes it from here before it takes it from the month. */
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     /* Clear of the month button, which carries its own chevron on the right. */
     margin-left: 14px;
     color: var(--nc-text-faint, #6c7086);

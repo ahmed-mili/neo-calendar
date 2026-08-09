@@ -1,6 +1,11 @@
 import * as React from "react";
 import { ViewType } from "../types";
-import { getISOWeek, isAndroidRuntime, todayBadgeState } from "./CalendarUtils";
+import {
+    getISOWeek,
+    isAndroidRuntime,
+    needsCompactMonthType,
+    todayBadgeState,
+} from "./CalendarUtils";
 import MiniCalendar from "./MiniCalendar";
 import {
     ChevronDownIcon,
@@ -155,6 +160,10 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                         type="button"
                         className={`nc-android-month-button${
                             monthPanelOpen ? " nc-open" : ""
+                        }${
+                            needsCompactMonthType(monthName)
+                                ? " nc-android-month-button--long"
+                                : ""
                         }`}
                         aria-expanded={monthPanelOpen}
                         onClick={() => setMonthPanelOpen((value) => !value)}
