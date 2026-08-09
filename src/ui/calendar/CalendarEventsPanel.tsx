@@ -3,7 +3,6 @@ import * as ReactDOM from "react-dom";
 import { DisplayEvent } from "../types";
 import { CalendarInfo } from "../../types";
 import { formatTime, addDays, isAndroidRuntime } from "./CalendarUtils";
-import { useSheetDrag } from "./useSheetDrag";
 import ColorPicker from "./ColorPicker";
 import { usePanelDrag, PanelDropTarget } from "./usePanelDrag";
 import {
@@ -164,17 +163,9 @@ export default function CalendarEventsPanel({
         onTargetChange: onPanelDragTarget,
     });
     const panelRef = React.useRef<HTMLDivElement>(null);
-    const headerRef = React.useRef<HTMLDivElement>(null);
-    // A phone has room for one column, so this arrives as a sheet over the
-    // calendar rather than beside it.
+    // On a phone this slides in from the right over the calendar, the same
+    // movement it makes on a desktop — just covering rather than sharing.
     const onPhone = isAndroidRuntime();
-    useSheetDrag({
-        enabled: onPhone && open,
-        sheetRef: panelRef,
-        handleRef: headerRef,
-        variant: "sheet",
-        onClose,
-    });
     const colorRowRef = React.useRef<HTMLButtonElement>(null);
     const [openMenu, setOpenMenu] = React.useState<OpenMenu>(null);
     const [settingsPage, setSettingsPage] =
@@ -276,9 +267,9 @@ export default function CalendarEventsPanel({
         >
             {/* This panel was switched off on Android because its close button
                 ended up under the status bar, leaving a list with no way out.
-                So on a phone it comes back with three ways out — tap the
-                backdrop, drag it down, or press the button — and no single
-                layout slip can trap anyone again. */}
+                It keeps a strip of calendar visible beside it, exactly as the
+                drawer does on the other edge, and that strip closes it — so
+                there are two ways out even if the button ever misbehaves. */}
             {onPhone && (
                 <div
                     className="nc-cep-backdrop"
@@ -287,7 +278,7 @@ export default function CalendarEventsPanel({
                 />
             )}
             <div className="nc-cep" ref={panelRef}>
-                <div className="nc-cep-header" ref={headerRef}>
+                <div className="nc-cep-header">
                     <div className="nc-cep-header-title">
                         <span
                             className="nc-cep-header-icon"
