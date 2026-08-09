@@ -186,6 +186,17 @@ const FR: Record<string, string> = {
     Color: "Couleur",
     Icon: "Icône",
     Kind: "Type",
+    // Named for what you get, not for how it is stored: "Full note" told you
+    // nothing about what the calendar would do.
+    "Notes folder": "Dossier de notes",
+    "One Markdown file per event, in a folder you pick.":
+        "Un fichier Markdown par événement, dans un dossier que vous choisissez.",
+    "Online subscription": "Abonnement en ligne",
+    "Read-only, from a webcal or HTTPS address.":
+        "En lecture seule, depuis une adresse webcal ou HTTPS.",
+    "Public holidays": "Jours fériés",
+    "Read-only, worked out on the device.":
+        "En lecture seule, calculés sur l'appareil.",
     "Full note": "Note complète",
     "Remote ICS": "ICS distant",
     "Auto calendar": "Calendrier automatique",
