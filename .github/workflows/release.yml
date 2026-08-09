@@ -290,8 +290,35 @@ jobs:
                     echo "Release $tag déjà publiée : mise à jour des paquets."
                     gh release upload "$tag" "${packages[@]}" --clobber
                   else
+                    # Jamais `--prerelease` : une version publiée ici est une
+                    # version qu'on installe. Il n'y a pas de canal d'essai.
+                    # Le titre définitif est posé à l'étape suivante, une fois
+                    # que l'on sait ce que la release porte.
                     gh release create "$tag" "${packages[@]}" \
                       --target "$GITHUB_SHA" \
-                      --title "Neo Calendar $tag" \
+                      --title "$tag" \
                       --generate-notes
                   fi
+
+            # Le nom d'une release est son numéro, et rien d'autre — sauf
+            # quand elle ne porte qu'une des deux applications, auquel cas elle
+            # le dit. La règle vit dans `scripts/releaseTitle.mjs`, avec ses
+            # tests : le workflow de maintenance s'en sert aussi, et deux
+            # copies en bash auraient fini par diverger.
+            #
+            # Le titre se lit sur les paquets que la release porte VRAIMENT,
+            # pas sur ceux que cette exécution vient de construire : relancer
+            # le seul travail Windows sur une release qui a déjà son APK ne
+            # doit pas la rebaptiser « windows ».
+            - name: Nommer la release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  tag="${GITHUB_REF_NAME#release/}"
+                  gh release view "$tag" > /dev/null 2>&1 || exit 0
+
+                  title=$(gh release view "$tag" --json assets \
+                    --jq '.assets[].name' | node scripts/releaseTitle.mjs "$tag")
+
+                  echo "Titre : $title"
+                  gh release edit "$tag" --title "$title"
