@@ -1296,74 +1296,6 @@ body.nc-platform-android .nc-calendar-item {
     border-radius: 9px !important;
 }
 
-/* Bottom agenda dock from the Android reference. */
-body.nc-platform-android .nc-mobile-agenda-bar {
-    position: absolute;
-    left: max(8px, calc(var(--nc-mobile-safe-left) + 4px));
-    right: max(8px, calc(var(--nc-mobile-safe-right) + 4px));
-    bottom: max(0px, var(--nc-mobile-safe-bottom));
-    z-index: 48;
-    min-height: 78px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 11px 12px 12px 20px;
-    border: 1px solid rgba(255, 255, 255, 0.055);
-    border-bottom: 0;
-    border-radius: 18px 18px 0 0;
-    background: color-mix(
-        in srgb,
-        var(--nc-bg-secondary, #181825) 94%,
-        transparent
-    );
-    box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.24);
-    backdrop-filter: blur(20px) saturate(1.08);
-    -webkit-backdrop-filter: blur(20px) saturate(1.08);
-}
-
-body.nc-platform-android .nc-mobile-agenda-copy {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-body.nc-platform-android .nc-mobile-agenda-copy strong {
-    overflow: hidden;
-    color: var(--nc-text-secondary, #a6adc8);
-    font-size: 14px;
-    font-weight: 550;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-body.nc-platform-android .nc-mobile-agenda-copy small {
-    overflow: hidden;
-    color: var(--nc-text-faint, #6c7086);
-    font-size: 11px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-body.nc-platform-android .nc-mobile-agenda-add {
-    width: 46px;
-    min-width: 46px;
-    height: 46px;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    color: var(--nc-text-primary, #cdd6f4);
-    background: rgba(255, 255, 255, 0.15);
-}
-
-body.nc-platform-android .nc-mobile-agenda-add:active {
-    transform: scale(0.94);
-    background: rgba(255, 255, 255, 0.22);
-}
-
 body.nc-platform-android .nc-mobile-new-event {
     display: none !important;
 }
@@ -1406,11 +1338,6 @@ body.nc-platform-android .nc-left-rail-window {
         overflow-y: auto;
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 18px;
-    }
-
-    body.nc-platform-android .nc-mobile-agenda-bar {
-        left: auto;
-        width: min(400px, 52vw);
     }
 }
 
@@ -2627,9 +2554,7 @@ body.nc-platform-android
 body.nc-platform-android
     .nc-header,
 body.nc-platform-android
-    .nc-header.nc-header--android,
-body.nc-platform-android
-    .nc-mobile-agenda-bar {
+    .nc-header.nc-header--android {
     background:
         var(
             --nc-chrome-container-background,
@@ -2755,83 +2680,6 @@ body.nc-platform-android .nc-content {
     width: 100% !important;
     height: auto !important;
     overflow: hidden !important;
-}
-
-/* The existing bottom agenda bar now participates in layout. */
-body.nc-platform-android .nc-mobile-agenda-bar {
-    position: relative !important;
-    inset: auto !important;
-    grid-row: 3 !important;
-    z-index: 40 !important;
-
-    box-sizing: border-box !important;
-    width: 100% !important;
-    height: calc(
-        var(--nc-android-dock-height) +
-        var(--nc-safe-bottom)
-    ) !important;
-    min-height: calc(
-        var(--nc-android-dock-height) +
-        var(--nc-safe-bottom)
-    ) !important;
-
-    margin: 0 !important;
-    padding:
-        10px
-        16px
-        calc(10px + var(--nc-safe-bottom))
-        20px !important;
-
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 14px !important;
-
-    border: 0 !important;
-    border-top: 1px solid var(--background-modifier-border) !important;
-    border-radius: 18px 18px 0 0 !important;
-
-    background:
-        var(
-            --nc-chrome-container-background,
-            color-mix(
-                in srgb,
-                var(--background-primary) 88%,
-                transparent
-            )
-        ) !important;
-
-    box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.22) !important;
-    backdrop-filter: blur(16px) saturate(1.08) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(1.08) !important;
-}
-
-body.nc-platform-android .nc-mobile-agenda-copy,
-body.nc-platform-android .nc-mobile-agenda-add {
-    transform: none !important;
-}
-
-body.nc-platform-android .nc-mobile-agenda-copy {
-    min-width: 0 !important;
-    display: grid !important;
-    gap: 3px !important;
-}
-
-body.nc-platform-android .nc-mobile-agenda-copy strong,
-body.nc-platform-android .nc-mobile-agenda-copy small {
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-}
-
-body.nc-platform-android .nc-mobile-agenda-add {
-    width: var(--nc-touch-target) !important;
-    height: var(--nc-touch-target) !important;
-    min-width: var(--nc-touch-target) !important;
-    min-height: var(--nc-touch-target) !important;
-    flex: 0 0 var(--nc-touch-target) !important;
-    border-radius: 999px !important;
-    touch-action: manipulation !important;
 }
 
 body.nc-platform-android .nc-mobile-new-event {
@@ -3980,138 +3828,23 @@ body.nc-platform-android
 /* === NEO ANDROID AGENDA SHEET V8.9 START === */
 
 /*
- * The bottom bar becomes a pull-up panel, like the reference: collapsed it
- * announces the next event, expanded it lists what is left today. A grip on
+ * The bottom bar becomes a pull-up panel,
+like the reference: collapsed it
+ * announces the next event,
+expanded it lists what is left today. A grip on
  * top makes the affordance visible instead of leaving it to be guessed.
  */
 /*
- * The dock is a fixed-height grid row (see "participates in layout" above), so
+ * The dock is a fixed-height grid row (see "participates in layout" above),
+so
  * expanding it cannot rely on max-height alone: its `height` has to grow too,
- * and the grid row must not push the grid off-screen. Collapsed it keeps the
- * dock height; expanded it becomes an overlay panel anchored to the bottom, so
- * the calendar behind it never reflows.
- */
-body.nc-platform-android .nc-mobile-agenda-bar {
+* and the grid row must not push the grid off-screen. Collapsed it keeps the
+ * dock height; expanded it becomes an overlay panel anchored to the bottom {
     flex-direction: column !important;
     align-items: stretch !important;
     justify-content: flex-start !important;
     gap: 0 !important;
     padding: 0 0 var(--nc-safe-bottom, 0px) !important;
-}
-
-body.nc-platform-android .nc-mobile-agenda-bar--open {
-    position: absolute !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    /* Above the grid and its events, below the app bar (60). */
-    z-index: 49 !important;
-    /* Opaque once it is a real panel: at the dock's own translucency the grid
-       and the events showed straight through the list, making it unreadable. */
-    background: var(--background-primary) !important;
-    background-image: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    box-shadow: 0 -14px 34px rgba(0, 0, 0, 0.42) !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: min(
-        42dvh,
-        calc(100dvh - var(--nc-safe-top, 0px) - 120px)
-    ) !important;
-    overflow-y: auto !important;
-    overscroll-behavior: contain !important;
-}
-
-body.nc-platform-android .nc-mobile-agenda-handle {
-    flex: 0 0 auto;
-    display: flex;
-    justify-content: center;
-    width: 100%;
-    /* Tall enough to be a comfortable touch target while the visible grip
-       stays small, so the panel keeps its slim look. */
-    padding: 9px 0 5px;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    touch-action: manipulation;
-}
-
-body.nc-platform-android .nc-mobile-agenda-grip {
-    width: 42px;
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.3);
-}
-
-body.nc-platform-android .nc-mobile-agenda-head {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 62px;
-    padding: 0 12px 12px 20px;
-}
-
-body.nc-platform-android .nc-mobile-agenda-list {
-    margin: 0;
-    /* The bar itself already reserves the navigation-bar inset. */
-    padding: 0 10px 12px;
-    list-style: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-body.nc-platform-android .nc-mobile-agenda-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    min-height: 52px;
-    padding: 8px 10px;
-    border: 0;
-    border-radius: 12px;
-    background: transparent;
-    text-align: left;
-    cursor: pointer;
-}
-
-body.nc-platform-android .nc-mobile-agenda-item:active {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-body.nc-platform-android .nc-mobile-agenda-dot {
-    flex: 0 0 auto;
-    width: 9px;
-    height: 9px;
-    border-radius: 3px;
-}
-
-body.nc-platform-android .nc-mobile-agenda-item-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-
-body.nc-platform-android .nc-mobile-agenda-item-copy strong {
-    overflow: hidden;
-    color: var(--nc-text-primary, #cdd6f4);
-    font-size: 14px;
-    font-weight: 550;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-body.nc-platform-android .nc-mobile-agenda-item-copy small {
-    color: var(--nc-text-faint, #6c7086);
-    font-size: 11px;
-}
-
-body.nc-platform-android .nc-mobile-agenda-empty {
-    padding: 16px 12px 20px;
-    color: var(--nc-text-faint, #6c7086);
-    font-size: 13px;
-    text-align: center;
 }
 
 /* The standalone floating "+" is already hidden on Android (the dock carries
@@ -4711,26 +4444,6 @@ body.nc-sheet-dragging.nc-platform-android
     #nc-android-overlay-root
     .nc-event-popup.nc-event-popup--android-draft {
     transition: none !important;
-}
-
-/* ── The bottom agenda bar is opaque ─────────────────────────
-   It was grouped with the top header under one "translucent chrome" rule, at
-   48% — which never had its variable defined, so the fallback always won. On
-   an empty strip at the top, translucency reads as depth. On this bar it reads
-   as a hole: the wallpaper runs straight through the one line telling you what
-   is next, which is the whole reason the bar is there.
-
-   Notion Calendar's is opaque for the same reason, and its bar carries the same
-   kind of line ("Aucune réunion à l'horizon"). Kept opaque expanded too, where
-   it lists the rest of the day and has even more to say. */
-
-body.nc-platform-android .nc-mobile-agenda-bar {
-    background: var(--nc-bg-secondary, #181825) !important;
-    background-image: none !important;
-    /* Nothing left to blur behind an opaque surface — the filter would only
-       cost a compositing pass on every frame the bar moves. */
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
 }
 
 /* ── Back to a plain "+" ─────────────────────────────────────

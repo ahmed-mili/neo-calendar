@@ -249,20 +249,17 @@ export function useSheetDrag({
         place();
 
         /*
-         * Arrive rather than appear.
+         * It comes up from the bottom, and that is the whole of it.
          *
-         * The sheet used to be painted straight at its resting anchor, so it
-         * simply materialised there — the panel's own fade was all that played,
-         * and a fade at the destination reads as abrupt. Worse, the fade's
-         * keyframes animate `transform`, which the sheet layout overrides with
-         * `!important`, so the one property that could have carried movement
-         * was the one being ignored.
+         * Opening at the RESTING anchor made the sheet stop half way, so it
+         * slid out and then parked somewhere in between — one movement read as
+         * two, which is what made it feel odd. Opening full is also what the
+         * sheet did before it could slide at all, so nothing about arriving
+         * changes where it arrives.
          *
-         * This runs in a layout effect, before the first paint: the sheet is
-         * placed off the bottom of the screen, then released on the next frame
-         * so the existing 300ms transition carries it up to its anchor. No
-         * transition fires on the first assignment — there is no previous
-         * computed value to move from — so it cannot flash at the anchor first.
+         * The resting anchor is not lost: it is where a downward drag settles,
+         * one step before dismissal. It is a destination for the gesture, not
+         * for the opening.
          */
         const height = sheet.getBoundingClientRect().height;
         if (height) {
@@ -275,11 +272,11 @@ export function useSheetDrag({
              * release on the next animation frame instead — the first attempt —
              * is not reliable here: the sheet is portaled and mounted in the
              * same commit, and the frame could resolve with the browser having
-             * never settled on the starting value, so it jumped straight to the
-             * anchor with nothing to animate.
+             * never settled on the starting value, so it jumped straight to its
+             * destination with nothing to animate.
              */
             void sheet.offsetHeight;
-            sheet.style.removeProperty(OFFSET_PROPERTY);
+            sheet.style.setProperty(OFFSET_PROPERTY, "0px");
         }
         // The keyboard and a rotation both change what "half the screen" means.
         window.addEventListener("resize", place);
