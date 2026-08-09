@@ -4748,13 +4748,6 @@ body.nc-platform-android .nc-mobile-new-event {
     display: grid !important;
 }
 
-/* The dock reserved 78px of scroll room under the grid. Only the button is
-   left, and it floats, so the grid gets that space back — just enough that the
-   last event of the day is not sitting under it. */
-body.nc-platform-android .nc-main-scroller,
-body.nc-platform-android .nc-left-rail-window {
-    padding-bottom: 12px;
-}
 
 /* Less rounded, and unmistakably the accent.
 
@@ -4771,4 +4764,26 @@ body.nc-platform-android .nc-mobile-new-event {
     border-radius: 16px !important;
     background: var(--nc-accent) !important;
     color: var(--nc-accent-text, #fff) !important;
+}
+
+/* ── Room to scroll past the last hour ───────────────────────
+   The grid stopped dead at the bottom of 23:00, so the final hour of the day
+   sat behind the system navigation bar and no amount of scrolling brought it
+   out. Google Calendar reserves that room; this matches it.
+
+   Two earlier attempts at this reserve — 78px for the old dock, then 12px when
+   the dock went — were both written WITHOUT `!important`, while the layout
+   block above resets the scroller with `padding: 0 !important`. Neither ever
+   applied, which is why the grid has always ended flush against the last hour.
+   This one carries the flag it needs to count.
+
+   One full hour row plus whatever the navigation bar takes: the 23:00 row can
+   then be scrolled entirely clear of it, which is the actual requirement — the
+   button floating nearby is incidental, and Google lets it overlap too. */
+
+body.nc-platform-android .nc-main-scroller,
+body.nc-platform-android .nc-left-rail-window {
+    padding-bottom: calc(
+        var(--nc-hour-height, 60px) + var(--nc-mobile-safe-bottom, 0px)
+    ) !important;
 }
