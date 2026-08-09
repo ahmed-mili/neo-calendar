@@ -91,19 +91,55 @@ export function offsetForAnchor({
 
 /** The header carries the close and menu buttons; a touch on one of them is
     that button's, or the sheet would swallow every tap on its own controls. */
-const CONTROL_SELECTOR =
-    "button, a, input, textarea, select, [role='button']";
+const CONTROL_SELECTOR = "button, a, input, textarea, select, [role='button']";
 
 /** A touch that lands on a control is that control's, not the sheet's. */
 export function isDragHandleTarget(target: EventTarget | null): boolean {
     // Duck-typed rather than `instanceof Element`: the constructor only exists
     // where a DOM does, and this decision is worth testing without one.
-    const element = target as { closest?: (selector: string) => unknown } | null;
+    const element = target as {
+        closest?: (selector: string) => unknown;
+    } | null;
     if (!element || typeof element.closest !== "function") return false;
     return !element.closest(CONTROL_SELECTOR);
 }
 
+/**
+ * Whether a drag that began OUTSIDE the header should move the sheet.
+ *
+ * A sheet you can only move by its thin header does not feel like a sheet; it
+ * feels like a header with a list glued underneath. So the whole surface drags
+ * — but only where that cannot steal a scroll: downward, and only once the
+ * content is already at its top. Push down on a list that has more above it and
+ * you meant to scroll it back; push down on one already at the top and there is
+ * nothing left to scroll, so you meant the sheet.
+ */
+export const dragsSheetFromBody = (scrollTop: number, dy: number): boolean =>
+    scrollTop <= 0 && dy > 0;
+
+/**
+ * How far the scroller under this touch has been scrolled.
+ *
+ * Walks up to the sheet looking for whatever actually scrolls; a touch landing
+ * on a non-scrolling row still has to answer for the list containing it.
+ */
+export function scrollTopUnder(
+    target: EventTarget | null,
+    sheet: HTMLElement
+): number {
+    let node = target as HTMLElement | null;
+    while (node && node !== sheet.parentElement) {
+        if (node.scrollHeight > node.clientHeight + 1) return node.scrollTop;
+        node = node.parentElement;
+    }
+    return 0;
+}
+
 interface Gesture {
+    /** Started off the header, so it must prove it is not a scroll. */
+    fromBody: boolean;
+    /** Where the scroller stood when the finger landed. */
+    startScrollTop: number;
     startY: number;
     startOffset: number;
     lastY: number;
@@ -192,8 +228,29 @@ export function useSheetDrag({
         place();
         // The keyboard and a rotation both change what "half the screen" means.
         window.addEventListener("resize", place);
+
+        /*
+         * The sheet's own content changes height too, and that used to move it.
+         *
+         * The resting anchor is a number of PIXELS worked out from the height
+         * the sheet had when it opened. Grow the content — switch an entry from
+         * Event to Task and two rows appear, add a deadline and a date field
+         * replaces a button — and that number is suddenly wrong for the new
+         * height, so the sheet slid up under its own weight. Tapping a control
+         * appeared to shove the panel around.
+         *
+         * A transform never changes layout, so re-placing from here cannot feed
+         * back into another resize.
+         */
+        let observer: ResizeObserver | null = null;
+        if (typeof ResizeObserver === "function") {
+            observer = new ResizeObserver(place);
+            observer.observe(sheet);
+        }
+
         return () => {
             window.removeEventListener("resize", place);
+            observer?.disconnect();
             /*
              * The anchor is deliberately left in place.
              *
@@ -271,7 +328,12 @@ export function useSheetDrag({
 
             measure();
             const touch = event.touches[0];
+            const fromBody = !handle.contains(event.target as Node);
             gesture = {
+                fromBody,
+                startScrollTop: fromBody
+                    ? scrollTopUnder(event.target, sheet)
+                    : 0,
                 startY: touch.clientY,
                 startOffset: readOffset(sheet),
                 lastY: touch.clientY,
@@ -294,6 +356,15 @@ export function useSheetDrag({
 
             if (!gesture.dragging) {
                 if (Math.abs(dy) < DIRECTION_LOCK_PX) return;
+                // A drag off the header only takes over once it is clear it
+                // is not a scroll; otherwise hand the finger back to the list.
+                if (
+                    gesture.fromBody &&
+                    !dragsSheetFromBody(gesture.startScrollTop, dy)
+                ) {
+                    gesture = null;
+                    return;
+                }
                 gesture.dragging = true;
                 body.classList.add(DRAGGING_CLASS);
                 sheet.style.transition = "none";
@@ -343,7 +414,7 @@ export function useSheetDrag({
             if (wasDragging) settleAt("half");
         };
 
-        handle.addEventListener("touchstart", onTouchStart, { passive: true });
+        sheet.addEventListener("touchstart", onTouchStart, { passive: true });
         document.addEventListener("touchmove", onTouchMove, { passive: false });
         document.addEventListener("touchend", onTouchEnd, { passive: true });
         document.addEventListener("touchcancel", onTouchCancel, {
@@ -351,7 +422,7 @@ export function useSheetDrag({
         });
 
         return () => {
-            handle.removeEventListener("touchstart", onTouchStart);
+            sheet.removeEventListener("touchstart", onTouchStart);
             document.removeEventListener("touchmove", onTouchMove);
             document.removeEventListener("touchend", onTouchEnd);
             document.removeEventListener("touchcancel", onTouchCancel);
