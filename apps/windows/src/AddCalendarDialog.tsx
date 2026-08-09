@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { folderDisplayName, isReadablePath } from "./platform/folderLabel";
 import { createPortal } from "react-dom";
 import { FileText, Flag, Folder, Plus, Wifi, X } from "lucide-react";
 import {
@@ -32,18 +33,18 @@ const TYPE_OPTIONS: Array<{
 }> = [
     {
         value: "local",
-        label: t("Full note"),
-        description: t("Each event is one Markdown file."),
+        label: t("Notes folder"),
+        description: t("One Markdown file per event, in a folder you pick."),
     },
     {
         value: "ical",
-        label: "Remote (.ics format)",
-        description: t("Read-only subscription to a webcal or HTTPS URL."),
+        label: t("Online subscription"),
+        description: t("Read-only, from a webcal or HTTPS address."),
     },
     {
         value: "auto",
-        label: "Auto (public holidays)",
-        description: t("Read-only events, computed locally from rules."),
+        label: t("Public holidays"),
+        description: t("Read-only, worked out on the device."),
     },
 ];
 
@@ -70,11 +71,6 @@ export default function AddCalendarDialog({
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
-
-    const selectedType = useMemo(
-        () => TYPE_OPTIONS.find((item) => item.value === kind)!,
-        [kind]
-    );
 
     useEffect(() => {
         if (!open) return;
@@ -137,7 +133,9 @@ export default function AddCalendarDialog({
                 return;
             }
             if (!/^(webcal|https?):\/\//i.test(trimmedUrl)) {
-                setError("Enter a webcal://, https:// or http:// calendar URL.");
+                setError(
+                    "Enter a webcal://, https:// or http:// calendar URL."
+                );
                 return;
             }
             request = {
@@ -173,7 +171,9 @@ export default function AddCalendarDialog({
                 },
             ])[0];
             if (!source || source.type !== "auto") {
-                setError(t("The JSON must contain id, name and a valid rules array."));
+                setError(
+                    t("The JSON must contain id, name and a valid rules array.")
+                );
                 return;
             }
             if (duplicateName(source.name)) {
@@ -193,9 +193,6 @@ export default function AddCalendarDialog({
         }
     };
 
-    const TypeIcon =
-        kind === "local" ? FileText : kind === "ical" ? Wifi : Flag;
-
     const content = (
         <div
             className="nc-add-calendar-backdrop"
@@ -210,7 +207,9 @@ export default function AddCalendarDialog({
                 aria-labelledby="nc-add-calendar-title"
             >
                 <header className="nc-add-calendar-dialog__header">
-                    <span className="nc-add-calendar-dialog__tag">Calendrier</span>
+                    <span className="nc-add-calendar-dialog__tag">
+                        Calendrier
+                    </span>
                     <button
                         type="button"
                         className="nc-add-calendar-dialog__close"
@@ -225,29 +224,47 @@ export default function AddCalendarDialog({
                 <div className="nc-add-calendar-dialog__root">
                     <Folder size={18} />
                     <div>
-                        <strong>{rootFolder.split(/[\\/]/).pop() || rootFolder}</strong>
-                        <span>{rootFolder}</span>
+                        <strong>{folderDisplayName(rootFolder)}</strong>
+                        {/* A content:// handle says nothing you could act on;
+                            printing it only makes the dialog look broken. */}
+                        {isReadablePath(rootFolder) && (
+                            <span>{rootFolder}</span>
+                        )}
                     </div>
                 </div>
 
                 <form onSubmit={submit}>
-                    <label className="nc-add-calendar-dialog__field">
-                        <span>Type de calendrier</span>
-                        <select
-                            value={kind}
-                            onChange={(event) => {
-                                setKind(event.target.value as CalendarKind);
-                                setError(null);
-                            }}
-                            disabled={submitting}
-                        >
-                            {TYPE_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                    {/* Cards rather than a dropdown. A dropdown hides two of
+                        the three answers behind a tap, and this is the one
+                        decision in the dialog that changes what everything
+                        below it means — so all three say what they are, side
+                        by side. It also drops the native select, the one piece
+                        of OS chrome in an otherwise themed dialog. */}
+                    <div
+                        className="nc-add-calendar-dialog__types"
+                        role="radiogroup"
+                        aria-label={t("Calendar type")}
+                    >
+                        {TYPE_OPTIONS.map((option) => (
+                            <button
+                                key={option.value}
+                                type="button"
+                                role="radio"
+                                aria-checked={kind === option.value}
+                                className={`nc-add-calendar-dialog__type-card${
+                                    kind === option.value ? " is-selected" : ""
+                                }`}
+                                disabled={submitting}
+                                onClick={() => {
+                                    setKind(option.value);
+                                    setError(null);
+                                }}
+                            >
+                                <strong>{option.label}</strong>
+                                <span>{option.description}</span>
+                            </button>
+                        ))}
+                    </div>
 
                     {kind !== "auto" || autoPreset === "FR" ? (
                         <label className="nc-add-calendar-dialog__input-row">
@@ -294,12 +311,16 @@ export default function AddCalendarDialog({
                                 <select
                                     value={autoPreset}
                                     onChange={(event) => {
-                                        setAutoPreset(event.target.value as AutoPreset);
+                                        setAutoPreset(
+                                            event.target.value as AutoPreset
+                                        );
                                         setError(null);
                                     }}
                                 >
                                     <option value="FR">France</option>
-                                    <option value="custom">Importer un JSON de règles</option>
+                                    <option value="custom">
+                                        Importer un JSON de règles
+                                    </option>
                                 </select>
                             </label>
                             {autoPreset === "custom" && (
@@ -325,22 +346,19 @@ export default function AddCalendarDialog({
                             <input
                                 type="color"
                                 value={color}
-                                onChange={(event) => setColor(event.target.value)}
+                                onChange={(event) =>
+                                    setColor(event.target.value)
+                                }
                             />
                             <code>{color}</code>
                         </label>
                     )}
 
-                    <div className="nc-add-calendar-dialog__type">
-                        <TypeIcon size={16} />
-                        <div>
-                            <strong>{selectedType.label}</strong>
-                            <span>{selectedType.description}</span>
-                        </div>
-                    </div>
-
                     {error && (
-                        <p className="nc-add-calendar-dialog__error" role="alert">
+                        <p
+                            className="nc-add-calendar-dialog__error"
+                            role="alert"
+                        >
                             {error}
                         </p>
                     )}

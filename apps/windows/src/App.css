@@ -4116,3 +4116,64 @@ body:not(.nc-platform-android).nc-settings-closing
         transition: none !important;
     }
 }
+
+/* ── Add-calendar: the type is a choice, not a dropdown ──────
+   Three cards side by side rather than a native <select>. A dropdown hides two
+   of the three answers behind a tap, and this is the one decision in the
+   dialog that changes what every field under it means — so all three say what
+   they are at once, description included. It also removes the last piece of
+   OS-drawn chrome from an otherwise themed dialog. */
+
+.nc-add-calendar-dialog__types {
+    display: grid;
+    gap: 8px;
+    margin: 14px 18px 4px;
+}
+
+.nc-add-calendar-dialog__type-card {
+    display: grid;
+    gap: 3px;
+    padding: 11px 13px;
+    text-align: left;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 12px;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+    transition: border-color 140ms ease, background 140ms ease;
+}
+
+.nc-add-calendar-dialog__type-card:hover:not(:disabled) {
+    background: var(--background-modifier-hover);
+}
+
+/* The selected card carries the accent on its border and a tint, so the choice
+   reads from the shape rather than from a tick you have to look for. */
+.nc-add-calendar-dialog__type-card.is-selected {
+    border-color: var(--nc-accent, var(--interactive-accent));
+    background: color-mix(
+        in srgb,
+        var(--nc-accent, var(--interactive-accent)) 14%,
+        transparent
+    );
+}
+
+.nc-add-calendar-dialog__type-card strong {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.nc-add-calendar-dialog__type-card span {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted);
+    /* Wraps: these descriptions are the point of the cards, and a single
+       ellipsised line would say less than the label already does. */
+    white-space: normal;
+}
+
+.nc-add-calendar-dialog__type-card:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
