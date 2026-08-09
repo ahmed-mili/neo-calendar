@@ -2755,7 +2755,14 @@ body.nc-platform-android .nc-android-appbar {
         max(7px, var(--nc-safe-left, 0px)) !important;
 }
 
-body.nc-platform-android .nc-android-appbar button,
+/* Every icon button in the bar is a 48px touch target — but the month is not
+   an icon button, and `.nc-android-appbar button` is MORE specific than
+   `.nc-android-month-button` (two classes and an element against two classes).
+   Its `width: auto !important` lost, and the month lived in a 48px square with
+   its content centred: "août" very nearly fitted, "Septembre" spilled out of
+   both sides and painted over the menu and the week number. The exclusion is
+   the fix; the bounds below are only a safety net. */
+body.nc-platform-android .nc-android-appbar button:not(.nc-android-month-button),
 body.nc-platform-android .nc-header .nc-btn-icon,
 body.nc-platform-android .nc-android-date-badge {
     box-sizing: border-box !important;
@@ -3887,8 +3894,9 @@ body.nc-platform-android .nc-android-week-label {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    /* Clear of the month button, which carries its own chevron on the right. */
-    margin-left: 14px;
+    /* Clear of the month button, which carries its own chevron on the right.
+       The bar's own gap adds to this. */
+    margin-left: 8px;
     color: var(--nc-text-faint, #6c7086);
     font-size: 13px;
     white-space: nowrap;
