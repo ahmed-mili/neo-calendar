@@ -292,11 +292,11 @@
     flex: 1;
     overflow: hidden;
     position: relative;
-    /* No border here. The rail is as tall as the view, so a rule on its edge
-       ran on past the day columns as one unbroken line, next to a second one:
-       the first day column already draws a border-left, in the grid's own line
-       colour. That one closes the table at its left edge and stops where the
-       table stops, which is what the line is for. */
+    /* The line that closes the grid on the left is NOT here. This is the rail's
+       window — a fixed frame as tall as the view — so a rule on its edge ran
+       from the band down through the scroll reserve below midnight, past both
+       ends of the table it was supposed to close. It belongs on the scrolling
+       part, below. */
 }
 
 .nc-left-rail-scrollable {
@@ -306,6 +306,12 @@
     right: 0;
     display: flex;
     will-change: transform;
+    /* The grid's left edge. This element is exactly the 24 hours tall and is
+       the piece that moves with the scroll, so the line begins at 00:00, ends
+       at 24:00, and travels with the hours it belongs to. Same colour as the
+       lines between the days: it is one side of that table, not a separator
+       between the rail and it. */
+    border-right: 1px solid var(--nc-grid-line);
 }
 
 /* The hours follow the grid on the compositor, off the main thread.
