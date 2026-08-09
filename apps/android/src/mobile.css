@@ -4581,3 +4581,116 @@ body.nc-platform-android .nc-timegrid-hour-label {
         transform: translate3d(0, 0, 0);
     }
 }
+
+/* ── Calendar events panel, as a sheet ────────────────────────
+   On a desktop this panel is a second column beside the calendar. A phone has
+   room for one, so here it comes up over the calendar instead — the same sheet
+   vocabulary as the event popup, driven by the same gesture.
+
+   It used to be switched off on Android entirely, because as a column its
+   header (and so its close button) sat under the status bar and the list had no
+   way out. It now has three: the backdrop, the downward drag, and the button —
+   which is also padded clear of the status bar below. */
+
+body.nc-platform-android .nc-cep-slot {
+    position: fixed;
+    inset: 0;
+    width: auto !important;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    pointer-events: none;
+}
+
+/* Closed, the whole thing is inert: an invisible backdrop must never eat taps
+   meant for the calendar underneath. */
+body.nc-platform-android .nc-cep-slot:not(.nc-cep-open) {
+    display: none;
+}
+
+body.nc-platform-android .nc-cep-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.42);
+    pointer-events: auto;
+    animation: nc-cep-fade-in 200ms ease-out;
+}
+
+@keyframes nc-cep-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+body.nc-platform-android .nc-cep-slot .nc-cep {
+    position: relative;
+    width: 100%;
+    /* Laid out at its tall anchor and pushed down to the resting one, so both
+       are the same element at two translations — see useSheetDrag. */
+    height: calc(100dvh - var(--nc-mobile-safe-top, 0px) - 24px);
+    max-height: none;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.34);
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    --nc-sheet-rest-fallback: 39%;
+    transform: translate3d(
+        0,
+        var(
+            --nc-sheet-offset,
+            var(--nc-sheet-rest-offset, var(--nc-sheet-rest-fallback))
+        ),
+        0
+    );
+    transition: transform 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
+    will-change: transform;
+}
+
+body.nc-sheet-dragging.nc-platform-android .nc-cep-slot .nc-cep {
+    transition: none !important;
+}
+
+/* The grab area, and the one place the status bar could hide a control. The
+   padding is what keeps the close button reachable. */
+body.nc-platform-android .nc-cep-header {
+    position: relative;
+    min-height: 54px;
+    padding: calc(18px + var(--nc-mobile-safe-top, 0px)) 12px 8px;
+    touch-action: none;
+}
+
+body.nc-platform-android .nc-cep-header::before {
+    position: absolute;
+    top: calc(7px + var(--nc-mobile-safe-top, 0px));
+    left: 50%;
+    width: 38px;
+    height: 4px;
+    border-radius: 999px;
+    background: color-mix(
+        in srgb,
+        var(--nc-text-faint, var(--text-faint)) 58%,
+        transparent
+    );
+    content: "";
+    transform: translateX(-50%);
+}
+
+body.nc-platform-android .nc-cep-icon-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+}
+
+/* The list is what scrolls; the sheet only takes the gesture over once this is
+   already at its top (see dragsSheetFromBody). */
+body.nc-platform-android .nc-cep-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: calc(16px + var(--nc-mobile-safe-bottom, 0px));
+    overscroll-behavior: contain;
+}

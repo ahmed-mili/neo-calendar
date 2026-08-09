@@ -383,7 +383,9 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                             min={1}
                                             max={60}
                                             value={customDayCount}
-                                            aria-label={t("Custom number of days")}
+                                            aria-label={t(
+                                                "Custom number of days"
+                                            )}
                                             onChange={(event) =>
                                                 setCustomDayCount(
                                                     Number(
@@ -393,7 +395,9 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                 )
                                             }
                                         />
-                                        <button type="submit">{t("Apply")}</button>
+                                        <button type="submit">
+                                            {t("Apply")}
+                                        </button>
                                     </form>
                                 </div>
                             )}
@@ -569,23 +573,17 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                     // double-click used to fire
                                                     // the plain onClick first and
                                                     // reset the default every time.
-                                                    // There is no shift on a
-                                                    // touch screen, so the
-                                                    // colour was simply out of
-                                                    // reach there. On a phone
-                                                    // the swatch IS the colour:
-                                                    // it opens the picker, and
-                                                    // the row beside it sets the
-                                                    // default - so recolouring a
-                                                    // calendar never moves the
-                                                    // default with it.
-                                                    if (isAndroidRuntime()) {
-                                                        openColorPicker(
-                                                            source.id,
-                                                            source.color
-                                                        );
-                                                        return;
-                                                    }
+                                                    // The swatch is now the ONE
+                                                    // way to set the default,
+                                                    // on every platform: one
+                                                    // control, one meaning. The
+                                                    // colour keeps its own
+                                                    // route through the row's
+                                                    // "..." menu, which is
+                                                    // where a phone reaches it
+                                                    // — the row itself is for
+                                                    // opening the calendar's
+                                                    // events.
                                                     if (e.shiftKey) {
                                                         openColorPicker(
                                                             source.id,
@@ -599,12 +597,8 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                         );
                                                 }}
                                                 title={
-                                                    isAndroidRuntime()
-                                                        ? t("Change colour")
-                                                        : source.editable
-                                                        ? t(
-                                                              "Set as default (shift-click to change colour)"
-                                                          )
+                                                    source.editable
+                                                        ? t("Set as default")
                                                         : t(
                                                               "Shift-click to change colour"
                                                           )
@@ -716,7 +710,9 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                                     source.id
                                                                 );
                                                             }}
-                                                            title={t("More options")}
+                                                            title={t(
+                                                                "More options"
+                                                            )}
                                                         >
                                                             <MoreHorizontalIcon />
                                                         </button>
