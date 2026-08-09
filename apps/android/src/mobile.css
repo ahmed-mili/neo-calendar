@@ -4755,3 +4755,20 @@ body.nc-platform-android .nc-main-scroller,
 body.nc-platform-android .nc-left-rail-window {
     padding-bottom: 12px;
 }
+
+/* Less rounded, and unmistakably the accent.
+
+   The "+" you saw before this was the dock's own button: a translucent grey
+   circle. This one is a rounded square on a solid fill, at the 16px Google
+   gives a 56px button — squarer than a squircle, still soft.
+
+   The blue needs no matching: --nc-accent is the same variable the settings
+   toggles turn on with, so the two cannot drift apart. Stated with the fallback
+   dropped, since anything that left the variable unset would be a theme bug
+   worth seeing rather than papering over. */
+
+body.nc-platform-android .nc-mobile-new-event {
+    border-radius: 16px !important;
+    background: var(--nc-accent) !important;
+    color: var(--nc-accent-text, #fff) !important;
+}
