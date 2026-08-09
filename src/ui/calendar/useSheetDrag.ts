@@ -247,6 +247,32 @@ export function useSheetDrag({
         // should open it.
         sheet.style.removeProperty(OFFSET_PROPERTY);
         place();
+
+        /*
+         * Arrive rather than appear.
+         *
+         * The sheet used to be painted straight at its resting anchor, so it
+         * simply materialised there — the panel's own fade was all that played,
+         * and a fade at the destination reads as abrupt. Worse, the fade's
+         * keyframes animate `transform`, which the sheet layout overrides with
+         * `!important`, so the one property that could have carried movement
+         * was the one being ignored.
+         *
+         * This runs in a layout effect, before the first paint: the sheet is
+         * placed off the bottom of the screen, then released on the next frame
+         * so the existing 300ms transition carries it up to its anchor. No
+         * transition fires on the first assignment — there is no previous
+         * computed value to move from — so it cannot flash at the anchor first.
+         */
+        const height = sheet.getBoundingClientRect().height;
+        let entry = 0;
+        if (height) {
+            sheet.style.setProperty(OFFSET_PROPERTY, height + "px");
+            entry = window.requestAnimationFrame(() => {
+                entry = 0;
+                sheet.style.removeProperty(OFFSET_PROPERTY);
+            });
+        }
         // The keyboard and a rotation both change what "half the screen" means.
         window.addEventListener("resize", place);
 
@@ -270,6 +296,9 @@ export function useSheetDrag({
         }
 
         return () => {
+            // A sheet dismissed before its entry frame ran would otherwise be
+            // released from off-screen after it had already gone.
+            if (entry) window.cancelAnimationFrame(entry);
             window.removeEventListener("resize", place);
             observer?.disconnect();
             /*

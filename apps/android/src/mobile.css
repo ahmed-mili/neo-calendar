@@ -4791,3 +4791,20 @@ body.nc-platform-android .nc-main-scroller,
 body.nc-platform-android .nc-left-rail-window {
     padding-bottom: calc(var(--nc-mobile-safe-bottom, 0px) + 10px) !important;
 }
+
+/* ── The press has to be felt ────────────────────────────────
+   The button already shrank to 0.94 while held, with nothing to carry it
+   there: it snapped down and snapped back, which reads as a glitch rather than
+   as a press. Quick down, slower up — the release is what confirms the tap
+   landed, so it is the half worth seeing.
+
+   Only transform and box-shadow move here, so this stays on the compositor. */
+
+body.nc-platform-android .nc-mobile-new-event {
+    transition: transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1),
+        box-shadow 260ms ease !important;
+}
+
+body.nc-platform-android .nc-mobile-new-event:active {
+    transition: transform 90ms ease-out !important;
+}
