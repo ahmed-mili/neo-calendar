@@ -4712,3 +4712,23 @@ body.nc-sheet-dragging.nc-platform-android
     .nc-event-popup.nc-event-popup--android-draft {
     transition: none !important;
 }
+
+/* ── The bottom agenda bar is opaque ─────────────────────────
+   It was grouped with the top header under one "translucent chrome" rule, at
+   48% — which never had its variable defined, so the fallback always won. On
+   an empty strip at the top, translucency reads as depth. On this bar it reads
+   as a hole: the wallpaper runs straight through the one line telling you what
+   is next, which is the whole reason the bar is there.
+
+   Notion Calendar's is opaque for the same reason, and its bar carries the same
+   kind of line ("Aucune réunion à l'horizon"). Kept opaque expanded too, where
+   it lists the rest of the day and has even more to say. */
+
+body.nc-platform-android .nc-mobile-agenda-bar {
+    background: var(--nc-bg-secondary, #181825) !important;
+    background-image: none !important;
+    /* Nothing left to blur behind an opaque surface — the filter would only
+       cost a compositing pass on every frame the bar moves. */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
