@@ -922,17 +922,10 @@
 
 /* ── Now Indicator ──────────────────────────────────────────── */
 
-/* Ligne semi-transparente sur toute la largeur des jours (style Notion). */
-.nc-now-line {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 1px;
-    /* Same canonical "today" red as the tick/label, at 50% (unified). */
-    background: color-mix(in srgb, var(--nc-today) 50%, transparent);
-    pointer-events: none;
-    z-index: 5;
-}
+/* No faint line across the other days. "Now" is a fact about today, and drawn
+   over tomorrow it says something false — it also ran on past the day columns
+   into the rail on the left, which is what made it read as unstoppable. The
+   solid line below is confined to the today column, where it belongs. */
 
 /* Ligne épaisse avec contour noir sur la colonne "today" uniquement. */
 .nc-now-today-line {
