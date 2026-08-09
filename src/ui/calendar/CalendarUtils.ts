@@ -2,13 +2,20 @@ import { DateTime } from "luxon";
 import { NeoEvent } from "../../types";
 import { DisplayEvent, CalendarSource } from "../types";
 
-import { HOUR_HEIGHT, SLOT_HEIGHT } from "./calendarConstants";
+import { SLOT_HEIGHT, currentHourHeight } from "./calendarConstants";
 import { startOfDay as startOfDayFn } from "./calendarDateUtils";
 
 // Re-export constants, date utils, formatters, and event expansion
 export {
     HOUR_HEIGHT,
     SLOT_HEIGHT,
+    MIN_HOUR_HEIGHT,
+    MAX_HOUR_HEIGHT,
+    clampHourHeight,
+    currentHourHeight,
+    setHourHeight,
+    scaledPx,
+    scaledHeightPx,
     OVERLAP_COL_GAP,
     EVENT_VGAP,
     ALLDAY_ROW_HEIGHT,
@@ -70,8 +77,9 @@ export function positionToDate(yPosition: number, dayDate: Date): Date {
     // the grid otherwise yields hours >= 24, which setHours rolls over into the
     // NEXT day (e.g. 25:00 → 01:00) — so a downward drag "stuck" at 01:00
     // instead of reaching midnight. 24:00 resolves to next-day 00:00 = midnight.
-    const clampedY = Math.max(0, Math.min(yPosition, 24 * HOUR_HEIGHT));
-    const totalMinutes = (clampedY / HOUR_HEIGHT) * 60;
+    const hourHeight = currentHourHeight();
+    const clampedY = Math.max(0, Math.min(yPosition, 24 * hourHeight));
+    const totalMinutes = (clampedY / hourHeight) * 60;
     const hours = Math.floor(totalMinutes / 60);
     const minutes = Math.round((totalMinutes % 60) / 15) * 15;
     const date = new Date(dayDate);
@@ -79,18 +87,29 @@ export function positionToDate(yPosition: number, dayDate: Date): Date {
     return date;
 }
 
-export function getEventTop(start: Date, dayStart: Date): number {
+/** How far into the day an event starts, in hours. */
+export function eventTopHours(start: Date, dayStart: Date): number {
     const hours =
         start.getHours() -
         dayStart.getHours() +
         (start.getMinutes() - dayStart.getMinutes()) / 60;
-    return Math.max(0, hours * HOUR_HEIGHT);
+    return Math.max(0, hours);
+}
+
+/** How long an event lasts, in hours. */
+export function eventDurationHours(start: Date, end: Date): number {
+    return (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+}
+
+export function getEventTop(start: Date, dayStart: Date): number {
+    return eventTopHours(start, dayStart) * currentHourHeight();
 }
 
 export function getEventHeight(start: Date, end: Date): number {
-    const durationMs = end.getTime() - start.getTime();
-    const hours = durationMs / (1000 * 60 * 60);
-    return Math.max(SLOT_HEIGHT, hours * HOUR_HEIGHT);
+    return Math.max(
+        SLOT_HEIGHT,
+        eventDurationHours(start, end) * currentHourHeight()
+    );
 }
 
 /** Pick black or white text for legibility over a solid hex background. */

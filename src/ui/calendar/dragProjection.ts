@@ -1,4 +1,8 @@
-import { HOUR_HEIGHT, startOfDay, isMultiDayTimed } from "./CalendarUtils";
+import {
+    currentHourHeight,
+    startOfDay,
+    isMultiDayTimed,
+} from "./CalendarUtils";
 
 /** Pas de snap vertical, en minutes. Partage par le drag interne et le drag
     venu du panneau, pour que les deux tombent sur les memes creneaux. */
@@ -171,7 +175,7 @@ export function computeDropHour(
     pointerY: number | null
 ): number {
     if (geo.daysRowTop === null || pointerY === null) return FALLBACK_DROP_HOUR;
-    const hours = (pointerY - geo.daysRowTop) / HOUR_HEIGHT;
+    const hours = (pointerY - geo.daysRowTop) / currentHourHeight();
     const snapped = Math.round((hours * 60) / SNAP_MINUTES) * SNAP_MINUTES;
     const lastSlot = 23 * 60 + (60 - SNAP_MINUTES);
     return Math.max(0, Math.min(lastSlot, snapped)) / 60;
@@ -322,7 +326,7 @@ export function projectGridDrag(
     // Deplacement timed ordinaire, duree conservee.
     const duration = ev.end.getTime() - ev.start.getTime();
     const snappedMinutes =
-        Math.round(((delta.y / HOUR_HEIGHT) * 60) / SNAP_MINUTES) *
+        Math.round(((delta.y / currentHourHeight()) * 60) / SNAP_MINUTES) *
         SNAP_MINUTES;
     const start = new Date(ev.start);
     start.setDate(start.getDate() + shift);

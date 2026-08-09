@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { HOUR_HEIGHT } from "./CalendarUtils";
+import { scaledPx } from "./CalendarUtils";
 
 export interface NowPosition {
-    top: number;
+    /** A CSS length in hours, so the line follows a pinch without re-rendering. */
+    top: string;
     label: string;
     now: Date;
 }
@@ -15,7 +16,7 @@ export function useNowPosition(timeFormat24h: boolean): NowPosition {
         return () => clearInterval(interval);
     }, []);
 
-    const top = (now.getHours() + now.getMinutes() / 60) * HOUR_HEIGHT;
+    const top = scaledPx(now.getHours() + now.getMinutes() / 60);
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const label = timeFormat24h

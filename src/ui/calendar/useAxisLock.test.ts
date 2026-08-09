@@ -8,9 +8,12 @@ import {
     decayedVelocity,
     VELOCITY_WINDOW_MS,
     lockedAxis,
+    pinchedHourHeight,
+    scrollForAnchor,
     stillGliding,
     velocityFrom,
 } from "./useAxisLock";
+import { MAX_HOUR_HEIGHT, MIN_HOUR_HEIGHT } from "./calendarConstants";
 
 describe("lockedAxis", () => {
     it("waits while the gesture is still short in both directions", () => {
@@ -177,5 +180,49 @@ describe("velocityFrom", () => {
                 { position: 100, at: 50 },
             ])
         ).toBeCloseTo(-2, 5);
+    });
+});
+
+describe("pinchedHourHeight", () => {
+    it("grows and shrinks the hour with the fingers", () => {
+        expect(pinchedHourHeight(60, 100, 200)).toBe(120);
+        expect(pinchedHourHeight(120, 200, 100)).toBe(60);
+    });
+
+    it("stops at the ends of the range instead of running past them", () => {
+        expect(pinchedHourHeight(60, 100, 10000)).toBe(MAX_HOUR_HEIGHT);
+        expect(pinchedHourHeight(60, 10000, 100)).toBe(MIN_HOUR_HEIGHT);
+    });
+
+    it("holds still rather than divide by two fingers on top of each other", () => {
+        // Two touch points a few pixels apart are mostly noise, and the ratio
+        // between two small numbers swings wildly.
+        expect(pinchedHourHeight(60, 4, 200)).toBe(60);
+        expect(pinchedHourHeight(60, 200, 4)).toBe(60);
+        expect(pinchedHourHeight(60, 0, 0)).toBe(60);
+    });
+
+    it("reports the bound it settled on, even when asked to hold", () => {
+        // A pinch that begins outside the range must not preserve the outside
+        // value just because the fingers were too close to read.
+        expect(pinchedHourHeight(9000, 4, 4)).toBe(MAX_HOUR_HEIGHT);
+    });
+});
+
+describe("scrollForAnchor", () => {
+    /** 09:00 sits 200px below the top of the viewport. */
+    const anchor = 9;
+    const offset = 200;
+
+    it("keeps the anchored hour where the fingers are", () => {
+        expect(scrollForAnchor(anchor, 60, offset, 5000)).toBe(9 * 60 - 200);
+        expect(scrollForAnchor(anchor, 120, offset, 5000)).toBe(9 * 120 - 200);
+    });
+
+    it("never scrolls past the ends of the day", () => {
+        // Zooming right out puts the whole day on screen: there is nowhere to
+        // scroll to, however far down the fingers are.
+        expect(scrollForAnchor(1, 32, 600, 0)).toBe(0);
+        expect(scrollForAnchor(23, 320, 0, 4000)).toBe(4000);
     });
 });

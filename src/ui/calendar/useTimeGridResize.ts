@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { HOUR_HEIGHT } from "./CalendarUtils";
+import { currentHourHeight } from "./CalendarUtils";
 import { DisplayEvent } from "../types";
 import { DraftRange, ResizeState } from "./TimeGrid.types";
 
@@ -46,7 +46,7 @@ export function useTimeGridResize(
             newEnd: Date;
         } => {
             const pixelsPerQuarter =
-                HOUR_HEIGHT / 4;
+                currentHourHeight() / 4;
 
             const snappedDeltaPixels =
                 Math.round(
@@ -58,7 +58,7 @@ export function useTimeGridResize(
             const deltaMs =
                 (
                     snappedDeltaPixels /
-                    HOUR_HEIGHT
+                    currentHourHeight()
                 ) *
                 3600000;
 
