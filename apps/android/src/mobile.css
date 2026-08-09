@@ -3847,7 +3847,31 @@ body.nc-platform-android
     flex-direction: column !important;
     border-radius: 22px 22px 0 0 !important;
     border-bottom: 0 !important;
-    transform: none !important;
+
+    /*
+     * This transform IS the sliding, and it used to say `none`.
+     *
+     * useSheetDrag writes --nc-sheet-offset onto this element frame by frame;
+     * that is the whole gesture. Killing the transform did not disable the
+     * drag — the listeners ran, the offset was written, and the sheet simply
+     * never moved. The panel read as fixed while quietly answering every touch.
+     *
+     * The rest of this block's intent is untouched: full width, opaque,
+     * content at the top so the keyboard fills the space underneath. It is
+     * laid out at its tall anchor and pushed down to its resting one, so both
+     * are the same box at two translations — nothing is resized mid-gesture.
+     */
+    --nc-sheet-rest-fallback: 39%;
+    transform: translate3d(
+        0,
+        var(
+            --nc-sheet-offset,
+            var(--nc-sheet-rest-offset, var(--nc-sheet-rest-fallback))
+        ),
+        0
+    ) !important;
+    transition: transform 300ms cubic-bezier(0.05, 0.7, 0.1, 1) !important;
+    will-change: transform;
 
     /* The sheet itself scrolls, so the footer travels with the content. */
     overflow-x: hidden !important;
@@ -4675,4 +4699,16 @@ body.nc-platform-android .nc-event-popup {
     background: var(--background-primary) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+}
+
+/* While a finger is down the sheet must sit exactly where the finger is; a
+   transition would drag it a step behind. Carries the #id, because the layout
+   it overrides is itself declared with one — a class-only selector loses. */
+body.nc-sheet-dragging.nc-platform-android
+    #nc-android-overlay-root
+    .nc-event-popup,
+body.nc-sheet-dragging.nc-platform-android
+    #nc-android-overlay-root
+    .nc-event-popup.nc-event-popup--android-draft {
+    transition: none !important;
 }
