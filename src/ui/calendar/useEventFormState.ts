@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { DateTime } from "luxon";
 import { NeoEvent } from "../../types";
-import { getTaskStatus, TaskStatus } from "../tasks";
+import { getTaskStatus, isTask, TaskStatus } from "../tasks";
 import type { DraftInfo } from "./EventPanel";
 import {
     RecurrenceState,
@@ -60,6 +60,18 @@ export function dueFor(
     return due;
 }
 
+/**
+ * The `completed` field for a SERIES.
+ *
+ * On a series the field is a marker and nothing more — it says "this is a
+ * task", never "it is finished", because a series as a whole never is. The
+ * finished occurrences live in `completedDates`. So there are only two states
+ * here, and a finish timestamp is not one of them.
+ */
+export function completedForSeries(isTask: boolean): false | undefined {
+    return isTask ? false : undefined;
+}
+
 function toISOTime(d: Date): string {
     return (
         DateTime.fromJSDate(d).toISOTime({
@@ -94,6 +106,12 @@ export function useEventFormState({
     // A task's deadline, independent of its date. Null when it has none —
     // most tasks never need one.
     const [due, setDue] = useState<string | null>(null);
+    // Carried through untouched: the panel edits the series, while the ticks
+    // happen on the grid. Dropping it here would erase every occurrence ever
+    // ticked the next time the title was edited.
+    const [completedDates, setCompletedDates] = useState<string[] | undefined>(
+        undefined
+    );
 
     const lastKeyRef = useRef<string | null>(null);
     // Tracks the event's last-seen PERSISTED task status, so the sync effect
@@ -120,6 +138,7 @@ export function useEventFormState({
                 setRecurrence(r.recurrence);
                 setTaskStatus(getTaskStatus(event));
                 setDue(event.due ?? null);
+                setCompletedDates(undefined);
             } else if (event.type === "recurring") {
                 setDate(event.startRecur || "");
                 setStartTime(!event.allDay ? event.startTime || "" : "");
@@ -127,8 +146,9 @@ export function useEventFormState({
                 const r = eventToRecurrenceState(event, event.startRecur || "");
                 setIsRecurring(r.isRecurring);
                 setRecurrence(r.recurrence);
-                setTaskStatus(null);
+                setTaskStatus(isTask(event) ? "todo" : null);
                 setDue(null);
+                setCompletedDates(event.completedDates);
             } else if (event.type === "rrule") {
                 setDate(event.startDate || "");
                 setStartTime(!event.allDay ? event.startTime || "" : "");
@@ -136,8 +156,9 @@ export function useEventFormState({
                 const r = eventToRecurrenceState(event, event.startDate || "");
                 setIsRecurring(r.isRecurring);
                 setRecurrence(r.recurrence);
-                setTaskStatus(null);
+                setTaskStatus(isTask(event) ? "todo" : null);
                 setDue(null);
+                setCompletedDates(event.completedDates);
             } else {
                 setDate("");
                 setEndDate(undefined);
@@ -149,6 +170,7 @@ export function useEventFormState({
                 );
                 setTaskStatus(getTaskStatus(event));
                 setDue((event as { due?: string | null }).due ?? null);
+                setCompletedDates(undefined);
             }
 
             const idx = editableCalendars.findIndex(
@@ -173,6 +195,7 @@ export function useEventFormState({
             setRecurrence(defaultRecurrence(startDate));
             setTaskStatus(draft.defaultAsTask ? "todo" : null);
             setDue(null);
+            setCompletedDates(undefined);
 
             const idx = editableCalendars.findIndex(
                 (c) => c.id === currentCalendarId
@@ -191,6 +214,7 @@ export function useEventFormState({
             );
             setTaskStatus(null);
             setDue(null);
+            setCompletedDates(undefined);
         }
 
         lastKeyRef.current = key;
@@ -221,7 +245,13 @@ export function useEventFormState({
                 ? { allDay: true }
                 : { allDay: false, startTime: startTime || "", endTime }),
             ...(isRecurring
-                ? recurrenceToEventFields(recurrence, date || "")
+                ? {
+                      ...recurrenceToEventFields(recurrence, date || ""),
+                      completed: completedForSeries(taskStatus !== null),
+                      // Ticked occurrences are the series' only record of what
+                      // is done; they must survive an unrelated edit.
+                      ...(completedDates ? { completedDates } : {}),
+                  }
                 : date
                 ? {
                       type: "single",
@@ -248,6 +278,7 @@ export function useEventFormState({
         endDate,
         taskStatus,
         due,
+        completedDates,
         description,
     ]);
 

@@ -38,17 +38,10 @@ import { mergeForSave } from "./eventScheduling";
 /* NEO_ANDROID_RUNTIME_HELPER_V3_START */
 function isNeoAndroidRuntime(): boolean {
     return (
-        Boolean(
-            (window as Window & { NeoAndroid?: unknown }).NeoAndroid
-        ) ||
-        document.documentElement.classList.contains(
-            "nc-platform-android"
-        ) ||
-        document.body.classList.contains(
-            "nc-platform-android"
-        ) ||
-        document.documentElement.dataset.neoCalendarPlatform ===
-            "android"
+        Boolean((window as Window & { NeoAndroid?: unknown }).NeoAndroid) ||
+        document.documentElement.classList.contains("nc-platform-android") ||
+        document.body.classList.contains("nc-platform-android") ||
+        document.documentElement.dataset.neoCalendarPlatform === "android"
     );
 }
 /* NEO_ANDROID_RUNTIME_HELPER_V3_END */
@@ -279,16 +272,11 @@ export default function EventPanel({
 
     // NEO_ANDROID_DRAFT_LIVE_TIME_V7_2_START
     useEffect(() => {
-        if (
-            !isDraft ||
-            !draft ||
-            draft.allDay
-        ) {
+        if (!isDraft || !draft || draft.allDay) {
             return;
         }
 
-        const pad = (value: number) =>
-            String(value).padStart(2, "0");
+        const pad = (value: number) => String(value).padStart(2, "0");
 
         const dateValue =
             `${draft.start.getFullYear()}-` +
@@ -300,36 +288,20 @@ export default function EventPanel({
             `${pad(draft.start.getMinutes())}`;
 
         const endValue =
-            `${pad(draft.end.getHours())}:` +
-            `${pad(draft.end.getMinutes())}`;
+            `${pad(draft.end.getHours())}:` + `${pad(draft.end.getMinutes())}`;
 
         if (form.date !== dateValue) {
             form.setDate(dateValue);
         }
 
-        if (
-            form.startTime !==
-            startValue
-        ) {
-            form.setStartTime(
-                startValue
-            );
+        if (form.startTime !== startValue) {
+            form.setStartTime(startValue);
         }
 
-        if (
-            form.endTime !==
-            endValue
-        ) {
-            form.setEndTime(
-                endValue
-            );
+        if (form.endTime !== endValue) {
+            form.setEndTime(endValue);
         }
-    }, [
-        isDraft,
-        draft?.start.getTime(),
-        draft?.end.getTime(),
-        draft?.allDay,
-    ]);
+    }, [isDraft, draft?.start.getTime(), draft?.end.getTime(), draft?.allDay]);
     // NEO_ANDROID_DRAFT_LIVE_TIME_V7_2_END
 
     // ── Popup behavior ────────────────────────────────────────
@@ -421,7 +393,7 @@ export default function EventPanel({
         onClose,
     });
 
-// NEO_ANDROID_NOTION_DRAFT_FOCUS_START
+    // NEO_ANDROID_NOTION_DRAFT_FOCUS_START
     useEffect(() => {
         if (!isDraft || !visible) return;
 
@@ -454,7 +426,7 @@ export default function EventPanel({
     // Refocus title input after draft commits (draft→edit transition)
     const justCommittedDraftRef = useRef(false);
 
-// NEO_ANDROID_NOTION_COMMIT_FOCUS_START
+    // NEO_ANDROID_NOTION_COMMIT_FOCUS_START
     useEffect(() => {
         if (!justCommittedDraftRef.current || !eventId || !visible) {
             return;
@@ -809,15 +781,16 @@ export default function EventPanel({
     // NEO_ANDROID_PORTAL_TARGET_V3_START
     const androidDraft = isDraft && isNeoAndroidRuntime();
     const portalTarget = isNeoAndroidRuntime()
-        ? document.getElementById("nc-android-overlay-root") ??
-          document.body
+        ? document.getElementById("nc-android-overlay-root") ?? document.body
         : document.body;
     // NEO_ANDROID_PORTAL_TARGET_V3_END
 
     return ReactDOM.createPortal(
         <div
             ref={popupRef}
-            className={`nc-event-popup nc-placement-${position.placement}${isDraft ? " nc-event-popup--draft" : ""}${androidDraft ? " nc-event-popup--android-draft" : ""}`}
+            className={`nc-event-popup nc-placement-${position.placement}${
+                isDraft ? " nc-event-popup--draft" : ""
+            }${androidDraft ? " nc-event-popup--android-draft" : ""}`}
             role="dialog"
             aria-label={isDraft ? "New event" : "Event details"}
             style={{
@@ -924,10 +897,10 @@ export default function EventPanel({
                         form.setIsRecurring(next);
                         if (next) {
                             form.setRecurrence(defaultRecurrence(form.date));
-                            // A series has nowhere to record "done" — the
-                            // payload drops `completed`, so drop the form's
-                            // task state with it rather than leave it stale.
-                            form.setTaskStatus(null);
+                            // Task-ness survives: a series records completion
+                            // per occurrence. Only the deadline goes, since it
+                            // would describe one day for an endless list.
+                            form.setDue(null);
                         }
                         scheduleAutoSave();
                     }}
@@ -960,18 +933,18 @@ export default function EventPanel({
                     onAutoSave={autoSave}
                 />
 
-                {!form.isRecurring && (
-                    <TypeRow
-                        isTask={isTask}
-                        editable={stableCalInfo.editable}
-                        setIsTask={(next) => {
-                            // Switching to a task starts it outstanding;
-                            // switching back drops `completed` entirely.
-                            form.setTaskStatus(next ? "todo" : null);
-                            scheduleAutoSave();
-                        }}
-                    />
-                )}
+                {/* A series can be a task now: `completedDates` holds the
+                    per-occurrence answer, so the choice is no longer barred. */}
+                <TypeRow
+                    isTask={isTask}
+                    editable={stableCalInfo.editable}
+                    setIsTask={(next) => {
+                        // Switching to a task starts it outstanding;
+                        // switching back drops `completed` entirely.
+                        form.setTaskStatus(next ? "todo" : null);
+                        scheduleAutoSave();
+                    }}
+                />
 
                 {isTask && !form.isRecurring && (
                     <DueRow

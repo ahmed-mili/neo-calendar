@@ -44,6 +44,25 @@ const CompletedSchema = ParsedDate.or(z.literal(false))
  */
 const DueSchema = ParsedDate.or(z.literal(null)).optional();
 
+/**
+ * `completedDates` records WHICH occurrences of a series have been done.
+ *
+ * A series cannot use `completed` for that: there is one field and many
+ * occurrences, so ticking Tuesday the 12th would tick every other Tuesday
+ * with it. The per-occurrence truth needs a list, exactly as `skipDates`
+ * already holds the occurrences that were detached.
+ *
+ * `completed` still appears on a series, but only as the marker that says the
+ * series IS a task; its value is never a finish date there, because a series
+ * as a whole is never finished.
+ *
+ * Optional rather than defaulted: a default would materialise
+ * `completedDates: []` on every series the app parses, and the next write would
+ * stamp that empty key into notes that have nothing to do with tasks. The key
+ * appears the first time an occurrence is actually ticked, and not before.
+ */
+const CompletedDatesSchema = z.array(ParsedDate).optional();
+
 /** Time facet: all-day events carry no clock times; timed ones carry both. */
 export const TimeSchema = z.discriminatedUnion("allDay", [
     z.object({ allDay: z.literal(true) }),
@@ -75,6 +94,8 @@ export const EventSchema = z.discriminatedUnion("type", [
     z.object({
         type: z.literal("recurring"),
         daysOfWeek: z.array(z.enum(["U", "M", "T", "W", "R", "F", "S"])),
+        completed: CompletedSchema,
+        completedDates: CompletedDatesSchema,
         startRecur: ParsedDate.optional(),
         endRecur: ParsedDate.optional(),
         // Dates this series does NOT occur on — how a single occurrence gets
@@ -88,6 +109,8 @@ export const EventSchema = z.discriminatedUnion("type", [
         startDate: ParsedDate,
         rrule: z.string(),
         skipDates: z.array(ParsedDate),
+        completed: CompletedSchema,
+        completedDates: CompletedDatesSchema,
     }),
     z.object({
         type: z.literal("someday"),
@@ -120,6 +143,7 @@ export const TYPE_DISCRIMINANT_KEYS = [
     "rrule",
     "startDate",
     "skipDates",
+    "completedDates",
 ] as const;
 
 /**

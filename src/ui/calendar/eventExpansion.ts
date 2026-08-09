@@ -3,7 +3,7 @@ import { rrulestr } from "rrule";
 import { NeoEvent } from "../../types";
 import { DisplayEvent } from "../types";
 import { getDisplayTitle } from "./CalendarEventsPanel.helpers";
-import { getTaskStatus, TaskStatus } from "../tasks";
+import { getTaskStatus, isTask, TaskStatus } from "../tasks";
 import { addDays, startOfDay } from "./calendarDateUtils";
 
 /**
@@ -216,6 +216,8 @@ function expandRecurring(
     // own). Without this the detached date would come back on the next read and
     // sit on top of the copy that was moved away.
     const skipSet = new Set(event.skipDates || []);
+    const seriesIsTask = isTask(event);
+    const doneDays = new Set(event.completedDates || []);
 
     const results: DisplayEvent[] = [];
     let current = startOfDay(new Date(startMs));
@@ -246,9 +248,14 @@ function expandRecurring(
                         start: times.start,
                         end: times.end,
                         allDay: !!event.allDay,
-                        isTask: false,
-                        taskCompleted: false,
-                        taskStatus: "todo" as TaskStatus,
+                        // Each occurrence answers for itself: the series says
+                        // whether it is a task, `completedDates` says which
+                        // days are done.
+                        isTask: seriesIsTask,
+                        taskCompleted: doneDays.has(dateStr),
+                        taskStatus: (doneDays.has(dateStr)
+                            ? "complete"
+                            : "todo") as TaskStatus,
                         isRecurring: true,
                         isMultiDay: false,
                     })
@@ -286,6 +293,8 @@ function expandRrule(
     }
 
     const skipSet = new Set(event.skipDates || []);
+    const seriesIsTask = isTask(event);
+    const doneDays = new Set(event.completedDates || []);
 
     return dates.flatMap((d) => {
         const dateStr = DateTime.fromJSDate(d, { zone: "utc" }).toISODate();
@@ -309,9 +318,11 @@ function expandRrule(
                 start: times.start,
                 end: times.end,
                 allDay: !!event.allDay,
-                isTask: false,
-                taskCompleted: false,
-                taskStatus: "todo" as TaskStatus,
+                isTask: seriesIsTask,
+                taskCompleted: doneDays.has(dateStr),
+                taskStatus: (doneDays.has(dateStr)
+                    ? "complete"
+                    : "todo") as TaskStatus,
                 isRecurring: true,
                 isMultiDay: false,
             }),
