@@ -44,6 +44,22 @@ export function completedFor(
     return taskStatus === "complete" ? now() : false;
 }
 
+/**
+ * The `due` field a form should be saved with.
+ *
+ * A deadline only means something on a task: an event has none, it *is* its
+ * date. So switching an entry back to Event drops any deadline it was carrying
+ * rather than leaving an orphan key in the note — the same reasoning that makes
+ * a non-task carry no `completed`.
+ */
+export function dueFor(
+    taskStatus: TaskStatus | null,
+    due: string | null
+): string | undefined {
+    if (taskStatus === null || !due) return undefined;
+    return due;
+}
+
 function toISOTime(d: Date): string {
     return (
         DateTime.fromJSDate(d).toISOTime({
@@ -75,6 +91,9 @@ export function useEventFormState({
     );
     const [calendarIndex, setCalendarIndex] = useState(0);
     const [taskStatus, setTaskStatus] = useState<TaskStatus | null>(null);
+    // A task's deadline, independent of its date. Null when it has none —
+    // most tasks never need one.
+    const [due, setDue] = useState<string | null>(null);
 
     const lastKeyRef = useRef<string | null>(null);
     // Tracks the event's last-seen PERSISTED task status, so the sync effect
@@ -100,6 +119,7 @@ export function useEventFormState({
                 setIsRecurring(r.isRecurring);
                 setRecurrence(r.recurrence);
                 setTaskStatus(getTaskStatus(event));
+                setDue(event.due ?? null);
             } else if (event.type === "recurring") {
                 setDate(event.startRecur || "");
                 setStartTime(!event.allDay ? event.startTime || "" : "");
@@ -108,6 +128,7 @@ export function useEventFormState({
                 setIsRecurring(r.isRecurring);
                 setRecurrence(r.recurrence);
                 setTaskStatus(null);
+                setDue(null);
             } else if (event.type === "rrule") {
                 setDate(event.startDate || "");
                 setStartTime(!event.allDay ? event.startTime || "" : "");
@@ -116,6 +137,7 @@ export function useEventFormState({
                 setIsRecurring(r.isRecurring);
                 setRecurrence(r.recurrence);
                 setTaskStatus(null);
+                setDue(null);
             } else {
                 setDate("");
                 setEndDate(undefined);
@@ -126,6 +148,7 @@ export function useEventFormState({
                     defaultRecurrence(new Date().toISOString().slice(0, 10))
                 );
                 setTaskStatus(getTaskStatus(event));
+                setDue((event as { due?: string | null }).due ?? null);
             }
 
             const idx = editableCalendars.findIndex(
@@ -149,6 +172,7 @@ export function useEventFormState({
             setIsRecurring(false);
             setRecurrence(defaultRecurrence(startDate));
             setTaskStatus(draft.defaultAsTask ? "todo" : null);
+            setDue(null);
 
             const idx = editableCalendars.findIndex(
                 (c) => c.id === currentCalendarId
@@ -166,6 +190,7 @@ export function useEventFormState({
                 defaultRecurrence(new Date().toISOString().slice(0, 10))
             );
             setTaskStatus(null);
+            setDue(null);
         }
 
         lastKeyRef.current = key;
@@ -203,10 +228,12 @@ export function useEventFormState({
                       date,
                       endDate: endDate || null,
                       completed: completedFor(taskStatus),
+                      due: dueFor(taskStatus, due),
                   }
                 : {
                       type: "someday",
                       completed: completedFor(taskStatus),
+                      due: dueFor(taskStatus, due),
                   }),
             ...(description ? { description } : {}),
         } as NeoEvent;
@@ -220,6 +247,7 @@ export function useEventFormState({
         date,
         endDate,
         taskStatus,
+        due,
         description,
     ]);
 
@@ -246,6 +274,8 @@ export function useEventFormState({
         setCalendarIndex,
         taskStatus,
         setTaskStatus,
+        due,
+        setDue,
         buildPayload,
         resetLastKey: () => {
             lastKeyRef.current = null;

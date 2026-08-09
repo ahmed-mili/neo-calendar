@@ -30,6 +30,8 @@ export interface TaskItem {
     title: string;
     /** ISO `YYYY-MM-DD`, or null when the task carries no date at all. */
     date: string | null;
+    /** The deadline, when one is set. Independent of `date`. */
+    due: string | null;
     status: TaskStatus;
     /** ISO timestamp of when it was finished; null while outstanding. */
     completedAt: string | null;
@@ -77,6 +79,7 @@ export function collectTasks(sources: TaskSource[]): TaskItem[] {
                 id,
                 title: event.title,
                 date: event.type === "single" ? event.date : null,
+                due: (event as { due?: string | null }).due ?? null,
                 status,
                 completedAt:
                     status === "complete" && typeof completed === "string"
@@ -93,14 +96,28 @@ export function collectTasks(sources: TaskSource[]): TaskItem[] {
 }
 
 /**
- * Outstanding, and its day has passed.
+ * The day a task is judged against: its deadline if it has one, else its date.
+ *
+ * A task can carry two days that mean different things — the one you set aside
+ * to do it, and the one it is owed by. Lateness is about the second. A report
+ * you planned to write on Monday but that is not due until Friday is not late
+ * on Tuesday, and judging it by `date` alone would say it was.
+ */
+export const effectiveDue = (task: TaskItem): string | null =>
+    task.due ?? task.date;
+
+/**
+ * Outstanding, and the day it was owed by has passed.
  *
  * `today` is an ISO `YYYY-MM-DD`; ISO dates sort lexicographically, so a plain
  * string compare is both correct and free of timezone drift — parsing to Date
  * would reintroduce the midnight-boundary bugs this format exists to avoid.
  */
-export const isOverdue = (task: TaskItem, today: string): boolean =>
-    task.status === "todo" && task.date !== null && task.date < today;
+export const isOverdue = (task: TaskItem, today: string): boolean => {
+    if (task.status !== "todo") return false;
+    const day = effectiveDue(task);
+    return day !== null && day < today;
+};
 
 /** Split the flat list into the three sections, each in its reading order. */
 export function buildTaskSections(
@@ -113,15 +130,19 @@ export function buildTaskSections(
 
     for (const task of tasks) {
         if (task.status === "complete") done.push(task);
-        else if (task.date) todo.push(task);
+        // A deadline is enough to make a task answerable, even with no day set
+        // aside for it: "renouveler le permis avant le 30" belongs with the
+        // work that can run late, not on the someday pile.
+        else if (effectiveDue(task)) todo.push(task);
         else undated.push(task);
     }
 
-    // Oldest date first, so whatever is most overdue leads the list.
+    // Oldest day owed first, so whatever is most overdue leads the list.
     todo.sort(
         (a, b) =>
-            (a.date as string).localeCompare(b.date as string) ||
-            a.title.localeCompare(b.title)
+            (effectiveDue(a) as string).localeCompare(
+                effectiveDue(b) as string
+            ) || a.title.localeCompare(b.title)
     );
     // Most recently finished first. A task completed before the plugin started
     // recording timestamps has no `completedAt`; those sink to the bottom

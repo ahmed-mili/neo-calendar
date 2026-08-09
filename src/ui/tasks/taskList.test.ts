@@ -2,6 +2,7 @@ import {
     collectTasks,
     buildTaskSections,
     isOverdue,
+    effectiveDue,
     todayISO,
     TaskItem,
     TaskSource,
@@ -14,6 +15,7 @@ const task = (over: Partial<TaskItem> = {}): TaskItem => ({
     id: "t1",
     title: "Rappeler le proprietaire",
     date: null,
+    due: null,
     status: "todo",
     completedAt: null,
     calendarId: "local::Perso",
@@ -143,6 +145,48 @@ describe("collectTasks", () => {
             status: "todo",
             completedAt: null,
         });
+    });
+
+    it("ramasse l'echeance quand la tache en porte une", () => {
+        const tasks = collectTasks([
+            source([
+                {
+                    id: "e1",
+                    event: {
+                        type: "single",
+                        title: "Ecrire le rapport",
+                        date: "2026-08-03",
+                        endDate: null,
+                        allDay: false,
+                        startTime: "14:00",
+                        endTime: "17:00",
+                        completed: false,
+                        due: "2026-08-07",
+                    } as NeoEvent,
+                },
+            ]),
+        ]);
+        expect(tasks[0]).toMatchObject({
+            date: "2026-08-03",
+            due: "2026-08-07",
+        });
+    });
+
+    it("met l'echeance a null quand il n'y en a pas", () => {
+        const tasks = collectTasks([
+            source([
+                {
+                    id: "e1",
+                    event: {
+                        type: "someday",
+                        title: "Apprendre le piano",
+                        allDay: true,
+                        completed: false,
+                    } as NeoEvent,
+                },
+            ]),
+        ]);
+        expect(tasks[0].due).toBeNull();
     });
 
     it("ignore les series recurrentes, qui ne peuvent pas etre des taches", () => {
@@ -282,6 +326,76 @@ describe("buildTaskSections", () => {
             TODAY
         );
         expect(sections.undated.map((t) => t.id)).toEqual(["z", "a"]);
+    });
+});
+
+// ── L'echeance, distincte de la date ───────────────────────
+
+describe("effectiveDue", () => {
+    it("prend l'echeance quand il y en a une", () => {
+        expect(
+            effectiveDue(task({ date: "2026-08-03", due: "2026-08-30" }))
+        ).toBe("2026-08-30");
+    });
+
+    it("retombe sur la date quand il n'y a pas d'echeance", () => {
+        expect(effectiveDue(task({ date: "2026-08-03" }))).toBe("2026-08-03");
+    });
+
+    it("accepte une echeance sans date", () => {
+        // "Renouveler le permis avant le 30" : rien de prevu, mais c'est du.
+        expect(effectiveDue(task({ date: null, due: "2026-08-30" }))).toBe(
+            "2026-08-30"
+        );
+    });
+
+    it("renvoie null quand il n'y a ni l'un ni l'autre", () => {
+        expect(effectiveDue(task())).toBeNull();
+    });
+});
+
+describe("isOverdue avec une echeance", () => {
+    it("n'est pas en retard tant que l'echeance n'est pas passee", () => {
+        // Prevu le 3, du le 30 : le 9, ce n'est pas en retard. Juger sur la
+        // date seule le declarerait a tort.
+        expect(
+            isOverdue(task({ date: "2026-08-03", due: "2026-08-30" }), TODAY)
+        ).toBe(false);
+    });
+
+    it("est en retard une fois l'echeance passee", () => {
+        expect(
+            isOverdue(task({ date: "2026-08-01", due: "2026-08-05" }), TODAY)
+        ).toBe(true);
+    });
+
+    it("est en retard sur une echeance sans date", () => {
+        expect(isOverdue(task({ date: null, due: "2026-08-05" }), TODAY)).toBe(
+            true
+        );
+    });
+});
+
+describe("buildTaskSections avec une echeance", () => {
+    it("classe une tache sans date mais avec echeance dans les a faire", () => {
+        const sections = buildTaskSections(
+            [task({ id: "permis", date: null, due: "2026-08-30" })],
+            TODAY
+        );
+        expect(sections.undated).toEqual([]);
+        expect(sections.todo.map((t) => t.id)).toEqual(["permis"]);
+    });
+
+    it("trie sur l'echeance, pas sur la date", () => {
+        // "tot" est prevu plus tard mais du plus tot : c'est lui qui presse.
+        const sections = buildTaskSections(
+            [
+                task({ id: "tard", date: "2026-08-01", due: "2026-12-01" }),
+                task({ id: "tot", date: "2026-08-20", due: "2026-08-25" }),
+            ],
+            TODAY
+        );
+        expect(sections.todo.map((t) => t.id)).toEqual(["tot", "tard"]);
     });
 });
 

@@ -34,21 +34,27 @@ export function isMisfiledEvent(event: NeoEvent): boolean {
     // Strictly `false`: not a finish timestamp, not the in-progress marker,
     // and not an absent field (already a plain event).
     if ((event as { completed?: unknown }).completed !== false) return false;
+    // A deadline is never written by accident — the bug only ever set
+    // `completed`. Someone typed this one in, which settles it: real task.
+    if ((event as { due?: string | null }).due) return false;
     if (event.allDay) return false;
     const timed = event as { startTime?: string; endTime?: string | null };
     return Boolean(timed.startTime) && Boolean(timed.endTime);
 }
 
 /**
- * The same entry as a plain event: everything kept, `completed` removed.
+ * The same entry as a plain event: everything kept, the task fields removed.
  *
- * The key is DELETED rather than set to undefined — `completed` is one of the
- * type-discriminant keys, which the frontmatter writer drops only when the
- * replacement object no longer carries it.
+ * `due` goes with `completed`. Both only mean something on a task, and leaving
+ * a deadline on an event would be an orphan key describing a promise the entry
+ * can no longer hold. The keys are DELETED rather than set to undefined —
+ * they are type-discriminant keys, which the frontmatter writer drops only when
+ * the replacement object no longer carries them.
  */
 export function asPlainEvent(event: NeoEvent): NeoEvent {
     const copy = { ...(event as Record<string, unknown>) };
     delete copy.completed;
+    delete copy.due;
     return copy as NeoEvent;
 }
 
