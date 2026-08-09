@@ -256,6 +256,7 @@ export function useAxisLock(
         const stopFrame = () => {
             if (frame) cancelAnimationFrame(frame);
             frame = 0;
+            delete host.dataset.ncGliding;
         };
 
         const measureExtent = (on: ScrollAxis) =>
@@ -326,6 +327,11 @@ export function useAxisLock(
             let velocity = initial;
             let previous = performance.now();
 
+            // Published so a press landing on the moving grid can be read as
+            // the brake it is, rather than as a tap on whatever hour happened
+            // to be sliding past.
+            host.dataset.ncGliding = "true";
+
             const step = (now: number) => {
                 // A long gap — a backgrounded tab, a stalled frame — would
                 // otherwise be paid off in one jump.
@@ -333,10 +339,12 @@ export function useAxisLock(
                 previous = now;
                 const moved = scrollAxisBy(on, -velocity * elapsed);
                 velocity = decayedVelocity(velocity, elapsed);
-                frame =
-                    moved && stillGliding(velocity)
-                        ? requestAnimationFrame(step)
-                        : 0;
+                if (moved && stillGliding(velocity)) {
+                    frame = requestAnimationFrame(step);
+                    return;
+                }
+                frame = 0;
+                delete host.dataset.ncGliding;
             };
 
             frame = requestAnimationFrame(step);
@@ -464,6 +472,7 @@ export function useAxisLock(
             element.style.touchAction = inheritedTouchAction;
             // Both together, or the grid would measure itself in hours of one
             // height and lay itself out in hours of another.
+            delete host.dataset.ncGliding;
             host.style.removeProperty("--nc-hour-height");
             setHourHeight(HOUR_HEIGHT);
             element.removeEventListener("touchstart", onTouchStart);

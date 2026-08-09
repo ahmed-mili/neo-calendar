@@ -93,6 +93,12 @@ export function useTimeGridSelection({
                 return;
             }
 
+            /* A hand put down on a grid still gliding from the last fling is
+               a brake, not a tap. Nobody aims at an hour that is moving. */
+            if (gridRef.current?.dataset.ncGliding) {
+                return;
+            }
+
             const dayRect =
                 dayColumn.getBoundingClientRect();
 
@@ -167,6 +173,21 @@ export function useTimeGridSelection({
                     }
 
                     current.moved = true;
+
+                    /* On the phone a finger that travels is scrolling the
+                       grid — there is no drag-to-select there, only tap. The
+                       companion rule below watches for the grid moving, which
+                       is not enough on its own: at the very top and the very
+                       bottom the grid has nowhere left to go, so a swipe emits
+                       no scroll at all and used to end as a new event. The
+                       gesture is the same either way, so it is the gesture
+                       that is read. */
+                    if (isAndroidRuntime()) {
+                        selectionRef.current = null;
+                        setSelection(null);
+                        cleanup();
+                        return;
+                    }
                 }
 
                 const overElement =
