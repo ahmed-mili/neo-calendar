@@ -1,6 +1,7 @@
 import * as React from "react";
 import { DisplayEvent } from "../types";
 import { DropSlot, projectPanelDrop, readGridGeometry } from "./dragProjection";
+import { panelTouchGestureOwner } from "./panelTouchGesture";
 import {
     SCHEDULED_DROP_DURATION_MS,
     canScheduleByDrag,
@@ -62,6 +63,7 @@ export function usePanelDrag({ onDrop, onTargetChange }: Options) {
     const gesture = React.useRef<{
         event: DisplayEvent;
         pointerId: number;
+        pointerType: string;
         originX: number;
         originY: number;
         offsetX: number;
@@ -126,6 +128,7 @@ export function usePanelDrag({ onDrop, onTargetChange }: Options) {
             gesture.current = {
                 event,
                 pointerId: e.pointerId,
+                pointerType: e.pointerType,
                 originX: e.clientX,
                 originY: e.clientY,
                 // Offset de saisie conserve : le ghost ne se recentre pas sous
@@ -148,6 +151,17 @@ export function usePanelDrag({ onDrop, onTargetChange }: Options) {
             if (!g.armed) {
                 const dx = e.clientX - g.originX;
                 const dy = e.clientY - g.originY;
+                // Touch gestures have three owners: vertical motion scrolls
+                // the list, rightward motion closes the panel, and only a
+                // leftward horizontal motion drags an event onto the grid.
+                // Mouse/pen behavior is unchanged.
+                if (
+                    g.pointerType === "touch" &&
+                    panelTouchGestureOwner(dx, dy) !== "event-drag"
+                ) {
+                    gesture.current = null;
+                    return;
+                }
                 if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
                 g.armed = true;
             }

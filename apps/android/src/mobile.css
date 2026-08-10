@@ -4155,17 +4155,27 @@ body.nc-platform-android .nc-search-screen .nc-command-palette-empty {
 /* === NEO ANDROID DRAWER GESTURE V10 START === */
 
 /*
- * The drawer follows the finger. Its position comes from a single custom
- * property, --nc-drawer-progress, written by useDrawerSwipe: 0 is closed, 1 is
- * fully open. Going through React on every frame of a drag made the panel
- * stutter, so React only hears about the two end states.
+ * The drawer follows the finger. useDrawerSwipe writes transform directly on
+ * this one composited element; React only hears the two resting states.
  */
 
-body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
+body.nc-platform-android .nc-sidebar {
     /* The drag writes this transform straight onto the element; the value here
        is only the resting state. Driving it from a custom property on <body>
        cost a style invalidation of the entire document per frame. */
-    transform: translate3d(0, 0, 0);
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 90 !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: var(--nc-android-drawer-width) !important;
+    max-width: var(--nc-android-drawer-width) !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    transform: translate3d(-100%, 0, 0);
 
     /* Promoted once and for all. Asking for the layer only when the finger
        lands means paying for the promotion during the very frames that have to
@@ -4176,7 +4186,14 @@ body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
        old 24px nudge read as the panel simply appearing. The curve decelerates
        hard at the end — a panel this size arriving in a straight line reads as
        a jump, however long it takes. */
-    animation: nc-drawer-slide-in 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
+    /* One transition owns button, scrim and gesture changes. The old entry
+       keyframe was re-applied when nc-drawer-gesture disappeared, which made
+       the drawer visibly enter a second time after some gestures. */
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        transform 300ms cubic-bezier(0.05, 0.7, 0.1, 1),
+        visibility 0s linear 300ms;
 
     /* Opaque on purpose. Translucency meant the calendar showed through the
        panel, which had to be cut out underneath it, and a backdrop blur that
@@ -4194,17 +4211,28 @@ body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
     -webkit-backdrop-filter: none !important;
 }
 
-/* While a finger is down the panel must sit exactly where the finger is; a
-   transition would drag it along a step behind. */
-/* A gesture owns the panel outright: the entry animation would fight it for the
-   transform, and would replay the instant the finger lifted. */
-body.nc-platform-android.nc-drawer-gesture
-    .nc-sidebar:not(.nc-sidebar-collapsed) {
-    animation: none !important;
+body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed) {
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    pointer-events: auto;
+    background: var(--background-secondary, #181825) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition:
+        transform 300ms cubic-bezier(0.05, 0.7, 0.1, 1),
+        visibility 0s linear 0s;
 }
 
-body.nc-platform-android.nc-drawer-dragging
-    .nc-sidebar:not(.nc-sidebar-collapsed) {
+/* While a finger is down the panel must sit exactly where the finger is; a
+   transition would drag it along a step behind. */
+/* A gesture keeps the closed panel visible while its inline transform brings
+   it under the finger. */
+body.nc-platform-android.nc-drawer-gesture .nc-sidebar {
+    visibility: visible;
+}
+
+body.nc-platform-android.nc-drawer-dragging .nc-sidebar {
     transition: none !important;
 }
 
@@ -4300,7 +4328,7 @@ body.nc-platform-android .nc-sidebar-top-bar {
    panel is fully out it hides the button on its own. */
 
 @media (prefers-reduced-motion: reduce) {
-    body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed),
+    body.nc-platform-android .nc-sidebar,
     body.nc-platform-android .nc-mobile-sidebar-scrim {
         transition: none !important;
     }
@@ -4387,16 +4415,6 @@ body.nc-platform-android .nc-timegrid-header-date:not(.nc-today-date) {
 
 /* === NEO ANDROID DRAWER GESTURE V10 END === */
 
-/* A full slide from off-screen, so opening by the button reads like the drag. */
-@keyframes nc-drawer-slide-in {
-    from {
-        transform: translate3d(-100%, 0, 0);
-    }
-    to {
-        transform: translate3d(0, 0, 0);
-    }
-}
-
 /* ── Calendar events panel, sliding in from the right ────────
    Same movement as on a desktop, where it opens as a second column beside the
    calendar. A phone has no room to share, so it covers instead — but it slides
@@ -4427,6 +4445,7 @@ body.nc-platform-android .nc-cep-backdrop {
     opacity: 0;
     pointer-events: none;
     transition: opacity 260ms cubic-bezier(0.2, 0, 0, 1);
+    will-change: opacity;
 }
 
 body.nc-platform-android .nc-cep-slot.nc-cep-open .nc-cep-backdrop {
@@ -4448,6 +4467,7 @@ body.nc-platform-android .nc-cep-slot .nc-cep {
     pointer-events: auto;
     display: flex;
     flex-direction: column;
+    touch-action: pan-y;
     transform: translate3d(100%, 0, 0);
     transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
     will-change: transform;

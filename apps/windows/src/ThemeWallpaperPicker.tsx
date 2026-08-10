@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 import {
@@ -8,6 +14,7 @@ import {
     WallpaperDefinition,
     WallpaperId,
 } from "./themes/wallpapers";
+import { placeFlyout } from "../../../src/ui/calendar/flyoutPlacement";
 import { t } from "../../../src/ui/i18n";
 
 interface ThemeWallpaperPickerProps {
@@ -17,6 +24,23 @@ interface ThemeWallpaperPickerProps {
     /** Applied the moment it is picked — there is nothing to confirm. */
     onChange: (value: WallpaperId) => void;
 }
+
+interface MenuPosition {
+    top: number | null;
+    bottom: number | null;
+    left: number;
+    width: number;
+    maxHeight: number;
+}
+
+/** Espace entre le champ et le menu de bureau. */
+const MENU_GAP = 6;
+/** Marge minimale conservée contre le bord de l'écran. */
+const MENU_MARGIN = 12;
+/** En dessous de cette hauteur, le menu bascule au-dessus du champ. */
+const MENU_MIN_HEIGHT = 200;
+/** Un menu plus étroit que ça écraserait la vignette et son libellé. */
+const MENU_MIN_WIDTH = 280;
 
 function WallpaperPreview({
     wallpaper,
@@ -62,11 +86,54 @@ export default function ThemeWallpaperPicker({
     const triggerRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
+    const [position, setPosition] = useState<MenuPosition | null>(null);
     const current = getWallpaper(value);
 
     // Only what this screen can actually show. A landscape photo cropped to a
     // phone is a strip of its middle; a portrait one on a desktop is two bars.
-    const wallpapers = getWallpapersForRuntime(currentWallpaperRuntime());
+    const runtime = currentWallpaperRuntime();
+    const wallpapers = getWallpapersForRuntime(runtime);
+
+    // La feuille modale plein écran est un geste de téléphone : sur PC le choix
+    // se fait dans un menu ancré sous le champ, comme le sélecteur de thème et
+    // celui de couleur du même panneau.
+    const anchored = runtime === "pc";
+
+    const updatePosition = useCallback(() => {
+        const rect = triggerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        const placement = placeFlyout(rect, window.innerHeight, {
+            gap: MENU_GAP,
+            margin: MENU_MARGIN,
+            minHeight: MENU_MIN_HEIGHT,
+        });
+        const width = Math.max(rect.width, MENU_MIN_WIDTH);
+
+        setPosition({
+            top: placement.top,
+            bottom: placement.bottom,
+            left: Math.max(
+                MENU_MARGIN,
+                Math.min(rect.left, window.innerWidth - width - MENU_MARGIN)
+            ),
+            width,
+            maxHeight: placement.maxHeight,
+        });
+    }, []);
+
+    // Le panneau de réglages défile : sans réancrage le menu resterait où le
+    // champ était.
+    useLayoutEffect(() => {
+        if (!open || !anchored) return;
+        updatePosition();
+        window.addEventListener("resize", updatePosition);
+        window.addEventListener("scroll", updatePosition, true);
+        return () => {
+            window.removeEventListener("resize", updatePosition);
+            window.removeEventListener("scroll", updatePosition, true);
+        };
+    }, [open, anchored, updatePosition]);
 
     useEffect(() => {
         if (!open) return;
@@ -95,6 +162,33 @@ export default function ThemeWallpaperPicker({
         };
     }, [open]);
 
+    const options = wallpapers.map((wallpaper) => (
+        <button
+            key={wallpaper.id}
+            type="button"
+            role="option"
+            aria-selected={wallpaper.id === value}
+            className="nc-wallpaper-option"
+            onClick={() => {
+                onChange(wallpaper.id);
+                setOpen(false);
+            }}
+        >
+            <WallpaperPreview
+                wallpaper={wallpaper}
+                accent={accent}
+                surface={surface}
+                className="nc-wallpaper-option__image"
+            />
+            <span className="nc-wallpaper-option__label">
+                {wallpaper.label}
+            </span>
+            {wallpaper.id === value && (
+                <Check size={18} className="nc-wallpaper-option__check" />
+            )}
+        </button>
+    ));
+
     return (
         <div className="nc-theme-studio__row nc-theme-wallpaper-row">
             <span>Image de fond</span>
@@ -102,6 +196,7 @@ export default function ThemeWallpaperPicker({
                 ref={triggerRef}
                 className="nc-wallpaper-picker__trigger"
                 type="button"
+                aria-haspopup="listbox"
                 aria-expanded={open}
                 onClick={() => setOpen((currentOpen) => !currentOpen)}
             >
@@ -113,10 +208,36 @@ export default function ThemeWallpaperPicker({
                 <span>
                     <strong>{current.label}</strong>
                 </span>
-                <ChevronDown size={16} />
+                <ChevronDown
+                    size={16}
+                    className={open ? "nc-open" : undefined}
+                />
             </button>
 
             {open &&
+                anchored &&
+                position &&
+                createPortal(
+                    <div
+                        ref={menuRef}
+                        className="nc-wallpaper-menu"
+                        style={{
+                            top: position.top ?? undefined,
+                            bottom: position.bottom ?? undefined,
+                            left: position.left,
+                            width: position.width,
+                            maxHeight: position.maxHeight,
+                        }}
+                        role="listbox"
+                        aria-label={t("Wallpapers")}
+                    >
+                        {options}
+                    </div>,
+                    document.body
+                )}
+
+            {open &&
+                !anchored &&
                 createPortal(
                     <div
                         className="nc-wallpaper-sheet"
@@ -136,35 +257,7 @@ export default function ThemeWallpaperPicker({
                             role="listbox"
                             aria-label={t("Wallpapers")}
                         >
-                            {wallpapers.map((wallpaper) => (
-                                <button
-                                    key={wallpaper.id}
-                                    type="button"
-                                    role="option"
-                                    aria-selected={wallpaper.id === value}
-                                    className="nc-wallpaper-option"
-                                    onClick={() => {
-                                        onChange(wallpaper.id);
-                                        setOpen(false);
-                                    }}
-                                >
-                                    <WallpaperPreview
-                                        wallpaper={wallpaper}
-                                        accent={accent}
-                                        surface={surface}
-                                        className="nc-wallpaper-option__image"
-                                    />
-                                    <span className="nc-wallpaper-option__label">
-                                        {wallpaper.label}
-                                    </span>
-                                    {wallpaper.id === value && (
-                                        <Check
-                                            size={18}
-                                            className="nc-wallpaper-option__check"
-                                        />
-                                    )}
-                                </button>
-                            ))}
+                            {options}
                         </div>
                     </div>,
                     document.body

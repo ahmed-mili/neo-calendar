@@ -1,6 +1,9 @@
+import { readFileSync } from "fs";
+import { resolve } from "path";
 import {
     canStartDrawerGesture,
     drawerDragProgress,
+    drawerVisualProgress,
     isVerticalGesture,
     settleDrawerOpen,
     EDGE_ZONE_PX,
@@ -97,6 +100,31 @@ describe("drawerDragProgress", () => {
             })
         ).toBeCloseTo(0.5);
     });
+
+    it("continues from an interrupted partial settle without jumping", () => {
+        expect(
+            drawerDragProgress({
+                startX: 100,
+                currentX: 130,
+                drawerWidth: WIDTH,
+                startProgress: 0.4,
+            })
+        ).toBeCloseTo(0.5);
+    });
+});
+
+describe("drawerVisualProgress", () => {
+    it("maps the off-screen, partial and open positions", () => {
+        expect(drawerVisualProgress(-WIDTH, WIDTH)).toBe(0);
+        expect(drawerVisualProgress(-WIDTH / 2, WIDTH)).toBe(0.5);
+        expect(drawerVisualProgress(0, WIDTH)).toBe(1);
+    });
+
+    it("clamps overshoot and rejects an invalid width", () => {
+        expect(drawerVisualProgress(40, WIDTH)).toBe(1);
+        expect(drawerVisualProgress(-WIDTH * 2, WIDTH)).toBe(0);
+        expect(drawerVisualProgress(-10, 0)).toBe(0);
+    });
 });
 
 describe("settleDrawerOpen", () => {
@@ -118,5 +146,28 @@ describe("settleDrawerOpen", () => {
 
     it("ignores a slow drift that never reaches the flick threshold", () => {
         expect(settleDrawerOpen({ progress: 0.8, velocity: -0.1 })).toBe(true);
+    });
+});
+
+describe("Android drawer animation ownership", () => {
+    it("uses one transition and never re-attaches an entry keyframe", () => {
+        const css = readFileSync(
+            resolve(__dirname, "../../../apps/android/src/mobile.css"),
+            "utf8"
+        );
+        const gestureCss = css.slice(
+            css.indexOf("NEO ANDROID DRAWER GESTURE V10 START"),
+            css.indexOf("NEO ANDROID DRAWER GESTURE V10 END")
+        );
+        expect(gestureCss).not.toContain("animation: nc-drawer-slide-in");
+        expect(gestureCss).toContain("visibility 0s linear 300ms");
+
+        const openRule = gestureCss.match(
+            /body\.nc-platform-android \.nc-sidebar:not\(\.nc-sidebar-collapsed\) \{([\s\S]*?)\}/
+        )?.[1];
+        expect(openRule).toContain(
+            "background: var(--background-secondary, #181825) !important"
+        );
+        expect(openRule).toContain("backdrop-filter: none !important");
     });
 });

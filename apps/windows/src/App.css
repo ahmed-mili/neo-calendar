@@ -1393,6 +1393,40 @@ button.nc-settings__theme-card:focus-visible {
     backdrop-filter: blur(14px) brightness(1.08);
     -webkit-backdrop-filter: blur(14px) brightness(1.08);
     font-size: 12px;
+    transform-origin: 50% 100%;
+    will-change: opacity, transform;
+    animation: nc-linked-file-tooltip-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1)
+        both;
+}
+
+.nc-linked-file-tooltip.is-closing {
+    pointer-events: none;
+    animation: nc-linked-file-tooltip-out 140ms cubic-bezier(0.4, 0, 1, 1)
+        both;
+}
+
+@keyframes nc-linked-file-tooltip-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes nc-linked-file-tooltip-out {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(4px) scale(0.99);
+    }
 }
 
 .nc-linked-file-tooltip-target {
@@ -1425,6 +1459,17 @@ button.nc-settings__theme-card:focus-visible {
     color: var(--nc-text-primary, var(--text-normal));
     background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
     outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nc-linked-file-tooltip,
+    .nc-linked-file-tooltip.is-closing {
+        animation: none;
+    }
+
+    .nc-linked-file-tooltip.is-closing {
+        opacity: 0;
+    }
 }
 
 .nc-linked-files + .nc-panel-row-link-attachments {
@@ -3224,6 +3269,15 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     gap: 2px;
 }
 
+.nc-wallpaper-picker__trigger > svg:last-child {
+    color: var(--text-muted);
+    transition: transform 140ms ease;
+}
+
+.nc-wallpaper-picker__trigger > svg:last-child.nc-open {
+    transform: rotate(180deg);
+}
+
 .nc-wallpaper-preview {
     position: relative;
     width: 74px;
@@ -3331,6 +3385,46 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 
 .nc-wallpaper-option__check {
     color: var(--nc-accent);
+}
+
+/*
+ * Le menu de bureau.
+ *
+ * La feuille modale ci-dessus est un geste de telephone : sur PC elle
+ * recouvrait d'un scrim les reglages qu'on venait justement consulter. Ici le
+ * choix se fait dans un menu ancre sous le champ, comme le selecteur de theme
+ * et celui de couleur du meme panneau. Porte sur le body et positionne en
+ * fixed : le panneau de reglages defile (overflow-y: auto), un menu en
+ * position: absolute y serait coupe des que le champ approche du bas.
+ */
+.nc-wallpaper-menu {
+    position: fixed;
+    z-index: 80000;
+    display: grid;
+    gap: 2px;
+    padding: 6px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--background-primary) 97%, transparent);
+    box-shadow: 0 22px 56px rgba(0, 0, 0, 0.46), 0 3px 10px rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(16px) saturate(1.08);
+    -webkit-backdrop-filter: blur(16px) saturate(1.08);
+    font-family: var(--nc-ui-font) !important;
+}
+
+/* Vignettes paysage : les fonds proposes a un ecran large le sont, un cadre
+   portrait n'en montrerait qu'une bande centrale. */
+.nc-wallpaper-menu .nc-wallpaper-option {
+    grid-template-columns: 96px minmax(0, 1fr) 18px;
+    gap: 10px;
+    padding: 6px;
+}
+
+.nc-wallpaper-menu .nc-wallpaper-option__image {
+    width: 96px;
+    height: 54px;
 }
 
 @media (max-width: 760px) {

@@ -5,6 +5,7 @@ import { CalendarInfo } from "../../types";
 import { formatTime, addDays, isAndroidRuntime } from "./CalendarUtils";
 import ColorPicker from "./ColorPicker";
 import { usePanelDrag, PanelDropTarget } from "./usePanelDrag";
+import { useCalendarEventsPanelSwipe } from "./useCalendarEventsPanelSwipe";
 import {
     PanelDateFilter,
     PanelPeriod,
@@ -168,9 +169,17 @@ export default function CalendarEventsPanel({
         onTargetChange: onPanelDragTarget,
     });
     const panelRef = React.useRef<HTMLDivElement>(null);
+    const backdropRef = React.useRef<HTMLDivElement>(null);
     // On a phone this slides in from the right over the calendar, the same
     // movement it makes on a desktop — just covering rather than sharing.
     const onPhone = isAndroidRuntime();
+    const panelSwipe = useCalendarEventsPanelSwipe({
+        enabled: onPhone && !!onBack,
+        open,
+        panelRef,
+        backdropRef,
+        onBack: onBack ?? onClose,
+    });
     const colorRowRef = React.useRef<HTMLButtonElement>(null);
     const [openMenu, setOpenMenu] = React.useState<OpenMenu>(null);
     const [settingsPage, setSettingsPage] =
@@ -286,6 +295,7 @@ export default function CalendarEventsPanel({
                 whatever else changes here, this strip stays. */}
             {onPhone && (
                 <div
+                    ref={backdropRef}
                     className="nc-cep-backdrop"
                     onClick={onClose}
                     aria-hidden="true"
@@ -348,7 +358,9 @@ export default function CalendarEventsPanel({
                                 className={`nc-cep-icon-btn${
                                     pinned ? " nc-active" : ""
                                 }`}
-                                title={pinned ? t("Unpin panel") : t("Pin panel")}
+                                title={
+                                    pinned ? t("Unpin panel") : t("Pin panel")
+                                }
                                 aria-pressed={pinned}
                                 onClick={onTogglePinned}
                             >
@@ -365,10 +377,20 @@ export default function CalendarEventsPanel({
                         <button
                             type="button"
                             className="nc-cep-icon-btn"
-                            title={onPhone ? t("Back to calendars") : t("Collapse")}
-                            onClick={onPhone && onBack ? onBack : onClose}
+                            title={
+                                onPhone ? t("Back to calendars") : t("Collapse")
+                            }
+                            onClick={
+                                onPhone && onBack
+                                    ? panelSwipe.requestBack
+                                    : onClose
+                            }
                         >
-                            {onPhone ? <ChevronLeftIcon /> : <ChevronsLeftIcon />}
+                            {onPhone ? (
+                                <ChevronLeftIcon />
+                            ) : (
+                                <ChevronsLeftIcon />
+                            )}
                         </button>
                     </div>
                 </div>
@@ -720,7 +742,9 @@ export default function CalendarEventsPanel({
                                        week's without being read. */
                                     (() => {
                                         const when = panelTimeframe(event, now);
-                                        return when ? ` nc-cep-card--${when}` : "";
+                                        return when
+                                            ? ` nc-cep-card--${when}`
+                                            : "";
                                     })()
                                 }`}
                             >
