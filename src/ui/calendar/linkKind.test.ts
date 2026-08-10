@@ -54,3 +54,37 @@ describe("linkKind, the marks that were added with them", () => {
         expect(linkKind("https://redd.it/abc")).toBe("reddit");
     });
 });
+
+describe("linkKind, Google's services", () => {
+    it("tells them apart by their subdomain", () => {
+        expect(linkKind("https://docs.google.com/document/d/a")).toBe(
+            "googledocs"
+        );
+        expect(linkKind("https://drive.google.com/file/d/a")).toBe(
+            "googledrive"
+        );
+        expect(linkKind("https://calendar.google.com/r/day")).toBe(
+            "googlecalendar"
+        );
+        expect(linkKind("https://mail.google.com/mail/u/0")).toBe("gmail");
+    });
+
+    it("leaves the rest of Google as an ordinary web page", () => {
+        // A search result is a page like any other; there is no entry for
+        // google.com itself, on purpose.
+        expect(linkKind("https://www.google.com/search?q=a")).toBe("web");
+        expect(linkKind("https://google.com")).toBe("web");
+    });
+});
+
+describe("linkKind, the apps a link on an event tends to point at", () => {
+    it("knows each by its own hosts", () => {
+        expect(linkKind("https://www.notion.so/a-page")).toBe("notion");
+        expect(linkKind("https://discord.gg/abc")).toBe("discord");
+        expect(linkKind("https://t.me/someone")).toBe("telegram");
+        expect(linkKind("https://www.twitch.tv/someone")).toBe("twitch");
+        expect(linkKind("https://www.figma.com/file/abc")).toBe("figma");
+        expect(linkKind("https://store.steampowered.com/app/1")).toBe("steam");
+        expect(linkKind("https://signal.me/#p/+33")).toBe("signal");
+    });
+});
