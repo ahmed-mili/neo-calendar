@@ -58,6 +58,28 @@ function sanitizeForFilename(name: string): string {
 const filenameForEvent = (event: NeoEvent): string =>
     `${sanitizeForFilename(baseNameForEvent(event))}.md`;
 
+/**
+ * The title an untitled event's file name is worth.
+ *
+ * A file name is not a title: it is a title with something we generated in
+ * front of it — a date, a recurrence, "(Someday)". For an event that never had
+ * a title, that prefix is the whole name, and using it as a fallback showed
+ * the event's own type back at it. A calendar of undated tasks read
+ * "(Someday)", "(Someday)", "(Someday)".
+ *
+ * So the prefix comes off first, and what is left is the title. Nothing left
+ * means there never was one, and the interface says so in its own words rather
+ * than in ours.
+ */
+export function titleFromBaseName(baseName: string, event: NeoEvent): string {
+    const prefix = sanitizeForFilename(
+        baseNameForEvent({ ...event, title: "" })
+    );
+    return prefix && baseName.startsWith(prefix)
+        ? baseName.slice(prefix.length).trim()
+        : baseName;
+}
+
 /** The given name if free, otherwise the first "name (n).md" that is. */
 function findAvailablePath(
     app: ObsidianInterface,
@@ -255,9 +277,10 @@ export default class FullNoteCalendar extends EditableCalendar {
         if (!event) {
             return [];
         }
-        // An untitled event falls back to its file name.
+        // An untitled event falls back to its file name — minus the part of
+        // that name we generated ourselves.
         if (!event.title) {
-            event.title = file.basename;
+            event.title = titleFromBaseName(file.basename, event);
         }
         return [[event, { file, lineNumber: undefined }]];
     }

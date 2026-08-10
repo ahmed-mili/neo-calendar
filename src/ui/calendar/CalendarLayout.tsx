@@ -344,6 +344,14 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                     pinned={panelPinned}
                     onEventClick={onPanelEventClick}
                     onClose={onCloseEventsPanel}
+                    /* Back to where this panel was opened from. On the phone a
+                       calendar is reached through the drawer, so closing the
+                       panel to a bare grid loses the place you were in — the
+                       list you were picking from. */
+                    onBack={() => {
+                        onCloseEventsPanel();
+                        if (!sidebarVisible) onToggleSidebar();
+                    }}
                     onTogglePinned={() => setPanelPinned((value) => !value)}
                     onAddEvent={onAddPanelEvent}
                     onSetDefault={onSetDefaultCalendar}

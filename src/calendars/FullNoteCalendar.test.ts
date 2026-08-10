@@ -128,7 +128,10 @@ describe("reading events", () => {
         expect(fromFile[0][0]).toEqual(event);
     });
 
-    it("falls back to the file name for an untitled event", async () => {
+    it("falls back to the file name for an untitled event, minus what we put there", async () => {
+        // The name of a note is a title with something we generated in front
+        // of it. Handing the whole thing back showed the date twice — once as
+        // the event's date, once inside its title.
         const { obsidian, calendar } = withNotes([
             {
                 filename: "2022-01-01 Fallback.md",
@@ -141,7 +144,24 @@ describe("reading events", () => {
         )!;
         const [[event]] = await calendar.getEventsInFile(file);
 
-        expect(event.title).toBe("2022-01-01 Fallback");
+        expect(event.title).toBe("Fallback");
+    });
+
+    it("leaves nothing behind when the name was only the prefix", async () => {
+        // An undated task never named: the file is called "(Someday)", so the
+        // fallback used to show the event its own type back. Empty here means
+        // the interface says "Sans titre" in its own words.
+        const { obsidian, calendar } = withNotes([
+            {
+                filename: "(Someday).md",
+                event: { title: "", type: "someday", allDay: true },
+            },
+        ]);
+
+        const file = obsidian.getFileByPath(`${DIRECTORY}/(Someday).md`)!;
+        const [[event]] = await calendar.getEventsInFile(file);
+
+        expect(event.title).toBe("");
     });
 });
 

@@ -1,0 +1,128 @@
+import { findUrl, isInlineMarkdownLink, labelFor, urlMarkdown } from "./linkInput";
+
+describe("urlMarkdown", () => {
+    it("takes the links a phone actually hands you", () => {
+        expect(urlMarkdown("https://youtu.be/dQw4w9WgXcQ?si=abc")).toBe(
+            "[youtu.be](https://youtu.be/dQw4w9WgXcQ?si=abc)"
+        );
+        expect(
+            urlMarkdown("https://www.instagram.com/reel/Cxyz/?igsh=1")
+        ).toBe("[instagram.com](https://www.instagram.com/reel/Cxyz/?igsh=1)");
+        expect(urlMarkdown("https://vm.tiktok.com/ZMabc/")).toBe(
+            "[vm.tiktok.com](https://vm.tiktok.com/ZMabc/)"
+        );
+    });
+
+    it("adds the scheme a bare address obviously meant", () => {
+        // Typed by hand, or copied from an address bar that hides the scheme.
+        expect(urlMarkdown("youtube.com/watch?v=abc")).toBe(
+            "[youtube.com](https://youtube.com/watch?v=abc)"
+        );
+        expect(urlMarkdown("www.tiktok.com/@someone")).toBe(
+            "[tiktok.com](https://www.tiktok.com/@someone)"
+        );
+    });
+
+    it("finds the link inside the text an app shares", () => {
+        expect(
+            urlMarkdown("Regarde ça https://vm.tiktok.com/ZMabc/ via TikTok")
+        ).toBe("[vm.tiktok.com](https://vm.tiktok.com/ZMabc/)");
+    });
+
+    it("leaves a link already written as markdown alone", () => {
+        expect(urlMarkdown("[Ma note](https://example.com/a)")).toBe(
+            "[Ma note](https://example.com/a)"
+        );
+        expect(urlMarkdown("![image](https://example.com/a.png)")).toBe(
+            "![image](https://example.com/a.png)"
+        );
+    });
+
+    it("keeps schemes that address something", () => {
+        expect(urlMarkdown("mailto:someone@example.com")).toBe(
+            "[someone@example.com](mailto:someone@example.com)"
+        );
+        expect(urlMarkdown("obsidian://open?vault=notes")).toBe(
+            "[obsidian://open?vault=notes](obsidian://open?vault=notes)"
+        );
+        expect(urlMarkdown("tel:+33123456789")).toBe(
+            "[+33123456789](tel:+33123456789)"
+        );
+    });
+
+    it("does not turn a word with a colon in it into a link", () => {
+        // The looser the rule, the more ordinary text it swallows. A scheme
+        // needs its slashes, or to be one of the two that never had any.
+        expect(urlMarkdown("note:important")).toBeNull();
+        expect(urlMarkdown("Réunion: demain")).toBeNull();
+    });
+
+    it("refuses the schemes that run instead of address", () => {
+        // A note is opened by a click; nothing shared from an app is one of
+        // these, and one written into a note would be waiting to be tapped.
+        expect(urlMarkdown("javascript:alert(1)")).toBeNull();
+        expect(urlMarkdown("JavaScript:alert(1)")).toBeNull();
+        expect(urlMarkdown("data:text/html,<script>alert(1)</script>")).toBeNull();
+        expect(urlMarkdown("vbscript:msgbox(1)")).toBeNull();
+    });
+
+    it("has nothing to offer for text that holds no link", () => {
+        expect(urlMarkdown("")).toBeNull();
+        expect(urlMarkdown("   ")).toBeNull();
+        expect(urlMarkdown("réunion avec Marie")).toBeNull();
+    });
+});
+
+describe("findUrl", () => {
+    it("drops the punctuation that ended the sentence, not the link", () => {
+        expect(findUrl("va voir https://example.com/a.")).toBe(
+            "https://example.com/a"
+        );
+        expect(findUrl("« https://example.com/a »")).toBe(
+            "https://example.com/a"
+        );
+    });
+
+    it("keeps a bracket the link itself opened", () => {
+        expect(findUrl("https://fr.wikipedia.org/wiki/Vague_(film)")).toBe(
+            "https://fr.wikipedia.org/wiki/Vague_(film)"
+        );
+    });
+
+    it("drops a bracket that was closing the sentence", () => {
+        expect(findUrl("(voir https://example.com/a)")).toBe(
+            "https://example.com/a"
+        );
+    });
+
+    it("does not mistake ordinary words for an address", () => {
+        expect(findUrl("réunion demain")).toBeNull();
+        expect(findUrl("3.5 heures")).toBeNull();
+    });
+});
+
+describe("labelFor", () => {
+    it("shows the host, without the www", () => {
+        expect(labelFor("https://www.youtube.com/watch?v=abc")).toBe(
+            "youtube.com"
+        );
+    });
+
+    it("shows the address itself when there is no host to show", () => {
+        expect(labelFor("mailto:a@b.com")).toBe("a@b.com");
+        expect(labelFor("spotify:track:1")).toBe("spotify:track:1");
+    });
+});
+
+describe("isInlineMarkdownLink", () => {
+    it("recognises a link and an embed", () => {
+        expect(isInlineMarkdownLink("[a](b)")).toBe(true);
+        expect(isInlineMarkdownLink("![a](b)")).toBe(true);
+    });
+
+    it("is not fooled by half of one", () => {
+        expect(isInlineMarkdownLink("[a]")).toBe(false);
+        expect(isInlineMarkdownLink("(b)")).toBe(false);
+        expect(isInlineMarkdownLink("[a]()")).toBe(false);
+    });
+});
