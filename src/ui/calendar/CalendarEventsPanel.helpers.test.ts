@@ -6,6 +6,7 @@ import {
     formatPanelDay,
     formatPanelPeriod,
     formatTotalMinutes,
+    panelTimeframe,
     getCalendarColorName,
     getDisplayTitle,
     summarizePanelEvents,
@@ -234,5 +235,77 @@ describe("calendar events panel helpers", () => {
                 end: "2026-07-31",
             })
         ).toBe("1 juil. – 31 juil. 2026");
+    });
+});
+
+describe("panelTimeframe", () => {
+    const now = new Date("2026-08-10T14:00:00");
+    const at = (iso: string) => new Date(iso);
+
+    it("calls an event that has ended past", () => {
+        expect(
+            panelTimeframe(
+                { start: at("2026-08-10T10:00:00"), end: at("2026-08-10T11:00:00") },
+                now
+            )
+        ).toBe("past");
+    });
+
+    it("calls an event that has not started future", () => {
+        expect(
+            panelTimeframe(
+                { start: at("2026-08-10T15:00:00"), end: at("2026-08-10T16:00:00") },
+                now
+            )
+        ).toBe("future");
+    });
+
+    it("calls an event that is running now", () => {
+        expect(
+            panelTimeframe(
+                { start: at("2026-08-10T13:30:00"), end: at("2026-08-10T14:30:00") },
+                now
+            )
+        ).toBe("now");
+    });
+
+    it("counts today's all-day event as now, all day", () => {
+        // An all-day event runs to the following midnight, which is what makes
+        // "today" and "happening now" the same thing for something untimed.
+        expect(
+            panelTimeframe(
+                { start: at("2026-08-10T00:00:00"), end: at("2026-08-11T00:00:00") },
+                now
+            )
+        ).toBe("now");
+        expect(
+            panelTimeframe(
+                { start: at("2026-08-09T00:00:00"), end: at("2026-08-10T00:00:00") },
+                now
+            )
+        ).toBe("past");
+    });
+
+    it("treats the instant an event ends as over", () => {
+        expect(
+            panelTimeframe(
+                { start: at("2026-08-10T13:00:00"), end: at("2026-08-10T14:00:00") },
+                now
+            )
+        ).toBe("past");
+    });
+
+    it("has nothing to say about an undated event", () => {
+        // Waiting is not late.
+        expect(
+            panelTimeframe(
+                {
+                    start: at("2026-01-01T00:00:00"),
+                    end: at("2026-01-01T00:00:00"),
+                    isSomeday: true,
+                },
+                now
+            )
+        ).toBeNull();
     });
 });

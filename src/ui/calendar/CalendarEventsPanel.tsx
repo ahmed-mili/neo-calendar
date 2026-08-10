@@ -14,6 +14,7 @@ import {
     formatPanelPeriod,
     formatTotalMinutes,
     getCalendarColorName,
+    panelTimeframe,
     getDisplayTitle,
     summarizePanelEvents,
 } from "./CalendarEventsPanel.helpers";
@@ -179,6 +180,14 @@ export default function CalendarEventsPanel({
     const [searchQuery, setSearchQuery] = React.useState("");
     const [showTotals, setShowTotals] = React.useState(false);
     const [colorAnchor, setColorAnchor] = React.useState<DOMRect | null>(null);
+
+    // Re-read every minute so a row stops being "now" while the panel is open,
+    // rather than at the next time something else happens to re-render it.
+    const [now, setNow] = React.useState(() => new Date());
+    React.useEffect(() => {
+        const tick = window.setInterval(() => setNow(new Date()), 60000);
+        return () => window.clearInterval(tick);
+    }, []);
 
     React.useEffect(() => {
         if (!openMenu) return;
@@ -688,6 +697,14 @@ export default function CalendarEventsPanel({
                                     dragState?.event.id === event.id
                                         ? " nc-cep-card-dragging"
                                         : ""
+                                }${
+                                    /* Which of the three a row is, so a list of
+                                       forty episodes says which one is this
+                                       week's without being read. */
+                                    (() => {
+                                        const when = panelTimeframe(event, now);
+                                        return when ? ` nc-cep-card--${when}` : "";
+                                    })()
                                 }`}
                             >
                                 <PanelCardBody

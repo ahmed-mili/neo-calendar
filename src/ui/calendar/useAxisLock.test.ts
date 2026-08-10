@@ -12,6 +12,10 @@ import {
     lockedAxis,
     PAGE_COMMIT_FRACTION,
     PAGE_FLICK_VELOCITY,
+    MIN_PAGE_MS,
+    MAX_PAGE_MS,
+    PAGE_BASE_SPEED,
+    pageDuration,
     pagedStep,
     pageWidthFor,
     resistedTravel,
@@ -350,5 +354,36 @@ describe("pageWidthFor", () => {
         expect(pageWidthFor(412, 0)).toBe(0);
         expect(pageWidthFor(412, -1)).toBe(0);
         expect(pageWidthFor(0, 3)).toBe(0);
+    });
+});
+
+describe("pageDuration", () => {
+    it("takes less time for less distance", () => {
+        // Released a hair from the edge, the last few pixels used to take the
+        // same full animation as a whole page, which is what made it heavy.
+        const nearlyThere = pageDuration(12, 0);
+        const wholePage = pageDuration(206, 0);
+        expect(nearlyThere).toBeLessThan(wholePage);
+    });
+
+    it("keeps up with a hand that threw it", () => {
+        const thrown = pageDuration(206, 3);
+        const dragged = pageDuration(206, 0);
+        expect(thrown).toBeLessThan(dragged);
+    });
+
+    it("never crawls and never drags on", () => {
+        expect(pageDuration(1, 0)).toBe(MIN_PAGE_MS);
+        expect(pageDuration(4000, 0)).toBe(MAX_PAGE_MS);
+        expect(pageDuration(206, 40)).toBe(MIN_PAGE_MS);
+    });
+
+    it("reads a page going backwards the same as one going forwards", () => {
+        expect(pageDuration(-206, -3)).toBe(pageDuration(206, 3));
+    });
+
+    it("gives a page with no speed behind it a sensible pace", () => {
+        // One day of a two-day view on a 412px screen, dragged and let go.
+        expect(pageDuration(206, 0)).toBeCloseTo(206 / PAGE_BASE_SPEED, 5);
     });
 });
