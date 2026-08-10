@@ -77,6 +77,34 @@ export function formatCardDate(
 
 // Exportee : le panneau des raccourcis filtre avec la meme normalisation que le
 // panneau d'evenements, pour que les deux se comportent pareil sur les accents.
+/** Where an event sits relative to now, for the panel's list. */
+export type PanelTimeframe = "past" | "now" | "future";
+
+/**
+ * Whether an event has been, is, or is still to come.
+ *
+ * The panel lists a calendar's whole contents in one column, and until now
+ * every row looked identical: a list of forty episodes said nothing about
+ * which one is this week's. Three states are enough to read it at a glance,
+ * and they are the ones anybody would name.
+ *
+ * An all-day event runs to the following midnight, so today's counts as
+ * happening now for the whole day, which is what "today" means for something
+ * with no time on it.
+ *
+ * An undated event has no answer: it is waiting, not late.
+ */
+export function panelTimeframe(
+    event: { start: Date; end: Date; isSomeday?: boolean },
+    now: Date
+): PanelTimeframe | null {
+    if (event.isSomeday) return null;
+    const at = now.getTime();
+    if (event.end.getTime() <= at) return "past";
+    if (event.start.getTime() > at) return "future";
+    return "now";
+}
+
 export function normalizeSearch(value: string): string {
     return value
         .normalize("NFD")

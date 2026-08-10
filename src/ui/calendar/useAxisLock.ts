@@ -42,9 +42,10 @@ import {
  * grid moves one day at a time and the drag is held to that day, with what is
  * dragged past it felt but not followed. A day rather than a screenful: in the
  * one-day view the two are the same, but in a two-day view a screenful moves
- * two days at once and half the alignments can never be reached. Free scrolling that tidies itself
- * up afterwards was the first attempt; a carousel is what a day view actually
- * is. The setting turns it back into a scroll for anyone who wants that.
+ * two days at once and half the alignments can never be reached. Free scrolling
+ * that tidies itself up afterwards was the first attempt; a carousel is what a
+ * day view actually is. The setting turns it back into a scroll for anyone who
+ * wants that.
  *
  * The page animation moves the grid by a difference each frame rather than
  * towards a position, and so does the drag. The infinite scroll re-bases
@@ -152,8 +153,12 @@ export function stillGliding(velocity: number): boolean {
 /** How long the grid takes to slide back onto whole days. */
 export const SETTLE_MS = 220;
 
-/** How long a page takes to come in from the side. */
-export const PAGE_MS = 280;
+/** The shortest and longest a page turn may take. */
+export const MIN_PAGE_MS = 90;
+export const MAX_PAGE_MS = 320;
+
+/** The slowest a page will travel, px/ms, when the finger gave it no speed. */
+export const PAGE_BASE_SPEED = 1.2;
 
 /** How far into the next page a drag must reach for the release to keep going. */
 export const PAGE_COMMIT_FRACTION = 0.25;
@@ -185,6 +190,24 @@ export function snappedScroll(
     return clampScroll(
         Math.round(scrollLeft / columnWidth) * columnWidth,
         maxScroll
+    );
+}
+
+/**
+ * How long a page turn should take, given what is left to travel and how fast
+ * the finger was going when it let go.
+ *
+ * A fixed duration is what makes a carousel feel heavy: released a hair from
+ * the edge, the last few pixels still took the full animation, and a hard
+ * flick was slowed down to the same pace as a lazy drag. Distance over speed
+ * keeps the grid moving at roughly the rate the hand asked for, and the floor
+ * on speed stops a page with nowhere to go from crawling.
+ */
+export function pageDuration(distance: number, velocity: number): number {
+    const speed = Math.max(Math.abs(velocity), PAGE_BASE_SPEED);
+    return Math.min(
+        MAX_PAGE_MS,
+        Math.max(MIN_PAGE_MS, Math.abs(distance) / speed)
     );
 }
 
@@ -513,7 +536,7 @@ export function useAxisLock(
          * absolute offset would finish somewhere else entirely. It lands on a
          * whole day at the end, which also absorbs the rounding.
          */
-        const turnPage = (distance: number) => {
+        const turnPage = (distance: number, velocity: number) => {
             const { daysPerView = 0 } = optionsRef.current;
             const columnWidth =
                 daysPerView > 0 ? element.clientWidth / daysPerView : 0;
@@ -535,10 +558,11 @@ export function useAxisLock(
 
             host.dataset.ncGliding = "true";
             const startedAt = performance.now();
+            const duration = pageDuration(distance, velocity);
             let moved = 0;
 
             const step = (now: number) => {
-                const progress = Math.min(1, (now - startedAt) / PAGE_MS);
+                const progress = Math.min(1, (now - startedAt) / duration);
                 const wanted = distance * easeOutCubic(progress);
                 scrollAxisBy("x", wanted - moved);
                 moved = wanted;
@@ -716,7 +740,7 @@ export function useAxisLock(
                     turning.width > 0 ? wanted / turning.width : 0,
                     -velocity
                 );
-                turnPage(step * turning.width - wanted);
+                turnPage(step * turning.width - wanted, -velocity);
                 return;
             }
 

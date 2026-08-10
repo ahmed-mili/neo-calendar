@@ -559,6 +559,46 @@
     box-shadow: rgba(0, 0, 0, 0.08) 0 2px 4px 0 !important;
 }
 
+/* ── Passé, en cours, à venir ─────────────────────────────────
+   Le panneau liste tout un calendrier dans une seule colonne, et chaque ligne
+   y avait exactement le meme poids : quarante episodes sans rien qui dise
+   lequel est celui de la semaine.
+
+   Ce qui est passe s'efface — c'est la seule des trois qui n'a plus rien a
+   demander. Ce qui est en cours porte un bord accentue et un fond legerement
+   plus clair : un seul element a la fois, donc il peut se permettre d'etre le
+   plus fort de la liste. Ce qui vient reste tel quel : c'est l'etat normal
+   d'un calendrier, il n'a pas besoin d'etre decore pour se distinguer une fois
+   que les deux autres le sont. */
+
+.nc-cep-card--past {
+    /* Sur la carte entiere plutot que sur le texte : la date porte la couleur
+       du calendrier en style inline, qu'aucune regle de classe ne peut
+       reprendre. L'opacite, elle, s'applique a tout d'un coup. */
+    opacity: 0.45;
+}
+
+.nc-cep-card--past:hover {
+    opacity: 0.75;
+}
+
+.nc-cep-card--now {
+    position: relative;
+    background: rgba(255, 255, 255, 0.055);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.nc-cep-card--now::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--nc-accent, var(--interactive-accent, #7aa2f7));
+}
+
 /* Carte source pendant son propre drag : elle reste en place, estompee. */
 .nc-cep-card-dragging {
     opacity: 0.4;
