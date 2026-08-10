@@ -38,6 +38,26 @@
        (#f07167 / #dc2626 / #eb5757 / rgba(240,113,103)). */
     --nc-today: #f15550;
 
+    /* Text on the grid itself, which has no background of its own.
+     *
+     * Every theme picks --text-muted and --text-faint against an opaque
+     * panel. The grid is deliberately transparent so the wallpaper shows
+     * through (see the top of this file), so that contrast was never really
+     * there — and outdoors, with the screen's own contrast collapsing under
+     * sunlight, what is left is unreadable. Google Calendar and Notion are
+     * both legible in the same conditions because both sit on a solid fill.
+     *
+     * Two answers, because colour alone cannot do it: lift the ink toward
+     * white, and put a shadow under it so the contrast survives whatever the
+     * wallpaper happens to put behind a given glyph. Every theme here is
+     * dark, so white is the right direction for all of them.
+     *
+     * Consumers must give a literal fallback: --text-normal bakes empty off
+     * :root, which makes the mix invalid and sends them to it. */
+    --nc-text-legible: color-mix(in srgb, var(--text-normal) 72%, #ffffff);
+    --nc-legible-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.62), 0 0 6px rgba(0, 0, 0, 0.32);
+
     /* One hairline weight for grid lines (Notion-light). Literal → scope-safe.
        Lighter than the old rgba(128,128,128,0.5) so the grid reads airy, not
        like a spreadsheet. */
