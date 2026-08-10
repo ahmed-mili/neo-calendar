@@ -2,7 +2,9 @@ import {
     MAX_TITLE_LENGTH,
     TITLE_SCAN_BYTES,
     decodeEntities,
+    oembedUrlFor,
     pageTitleFrom,
+    titleFromOembed,
     safeLabel,
     withDeadline,
 } from "./linkTitle";
@@ -116,5 +118,56 @@ describe("withDeadline", () => {
         const result = withDeadline(late, 1, immediately, () => {});
         release("trop tard");
         await expect(result).resolves.toBeNull();
+    });
+});
+
+describe("oembedUrlFor", () => {
+    it("asks the sites that publish an answer", () => {
+        expect(oembedUrlFor("https://vm.tiktok.com/ZMabc/")).toBe(
+            "https://www.tiktok.com/oembed?url=https%3A%2F%2Fvm.tiktok.com%2FZMabc%2F"
+        );
+        expect(oembedUrlFor("https://youtu.be/abc")).toBe(
+            "https://www.youtube.com/oembed?format=json&url=https%3A%2F%2Fyoutu.be%2Fabc"
+        );
+    });
+
+    it("covers a site's subdomains and its short form", () => {
+        expect(oembedUrlFor("https://m.youtube.com/watch?v=a")).toContain(
+            "youtube.com/oembed"
+        );
+        expect(oembedUrlFor("https://open.spotify.com/track/1")).toContain(
+            "spotify.com/oembed"
+        );
+    });
+
+    it("has nothing to ask for a site that publishes nothing", () => {
+        expect(oembedUrlFor("https://example.com/a")).toBeNull();
+        expect(oembedUrlFor("https://nottiktok.com/a")).toBeNull();
+        expect(oembedUrlFor("mailto:a@b.com")).toBeNull();
+        expect(oembedUrlFor("not a url")).toBeNull();
+    });
+});
+
+describe("titleFromOembed", () => {
+    it("takes the title of the thing, not of the site", () => {
+        // The whole point: TikTok's page says "TikTok - Make Your Day"; its
+        // oEmbed says what the video is.
+        expect(
+            titleFromOembed('{"title":"une recette de pain","author_name":"x"}')
+        ).toBe("une recette de pain");
+    });
+
+    it("treats anything that is not the answer as no answer", () => {
+        expect(titleFromOembed("<html>error</html>")).toBeNull();
+        expect(titleFromOembed("null")).toBeNull();
+        expect(titleFromOembed("[]")).toBeNull();
+        expect(titleFromOembed('{"title":42}')).toBeNull();
+        expect(titleFromOembed('{"title":"   "}')).toBeNull();
+    });
+
+    it("shortens an answer that is really a caption", () => {
+        const long = "b".repeat(MAX_TITLE_LENGTH + 30);
+        const title = titleFromOembed(JSON.stringify({ title: long }))!;
+        expect(title).toHaveLength(MAX_TITLE_LENGTH);
     });
 });

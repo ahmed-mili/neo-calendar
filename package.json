@@ -1,6 +1,6 @@
 {
   "name": "neo-calendar-desktop",
-  "version": "1.29.0",
+  "version": "1.30.0",
   "description": "Neo Calendar standalone desktop application",
   "scripts": {
     "dev": "npm --prefix apps/windows run tauri -- dev",
