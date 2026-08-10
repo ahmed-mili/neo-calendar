@@ -25,7 +25,7 @@ describe("unnamed events", () => {
     it("keeps a dateless event unscheduled until a date is selected", () => {
         expect(form).toContain('type: "someday"');
         expect(form).toContain('type: "single"');
-        expect(rows).toContain('label || date || "Add date"');
+        expect(rows).toContain("label || date || t(\"Add date\")");
     });
 
     it("does not persist an unnamed grid draft from a simple click", () => {

@@ -51,6 +51,9 @@ interface CalendarEventsPanelProps {
     pinned: boolean;
     onEventClick: (eventId: string) => void;
     onClose: () => void;
+    /** Back to the list this panel was opened from. Phone only; the desktop
+        never left it. */
+    onBack?: () => void;
     onTogglePinned: () => void;
     onAddEvent: (calendarId: string) => void;
     onSetDefault: (calendarId: string) => void;
@@ -94,7 +97,7 @@ function PanelCardBody({
             </div>
             <div className="nc-cep-card-date" style={{ color: calendarColor }}>
                 {event.isSomeday
-                    ? "Add date"
+                    ? t("Add date")
                     : formatCardDate(event, timeFormat24h, formatTime, addDays)}
             </div>
             {event.isTask && (
@@ -149,6 +152,7 @@ export default function CalendarEventsPanel({
     pinned,
     onEventClick,
     onClose,
+    onBack,
     onTogglePinned,
     onAddEvent,
     onSetDefault,
@@ -335,38 +339,37 @@ export default function CalendarEventsPanel({
                         >
                             <PlusIcon size={16} />
                         </button>
-                        {/* Neither of these means anything on a phone. Pinning
-                            keeps the panel open beside the calendar, which is a
-                            two-column idea on a screen that has room for one;
-                            and collapsing is what the strip of calendar beside
-                            the panel already does, with a bigger target. */}
+                        {/* Pinning means nothing on a phone: it keeps the
+                            panel open beside the calendar, which is a
+                            two-column idea on a screen with room for one. */}
                         {!onPhone && (
-                            <>
-                                <button
-                                    type="button"
-                                    className={`nc-cep-icon-btn${
-                                        pinned ? " nc-active" : ""
-                                    }`}
-                                    title={
-                                        pinned
-                                            ? t("Unpin panel")
-                                            : t("Pin panel")
-                                    }
-                                    aria-pressed={pinned}
-                                    onClick={onTogglePinned}
-                                >
-                                    <PinIcon />
-                                </button>
-                                <button
-                                    type="button"
-                                    className="nc-cep-icon-btn"
-                                    title={t("Collapse")}
-                                    onClick={onClose}
-                                >
-                                    <ChevronsLeftIcon />
-                                </button>
-                            </>
+                            <button
+                                type="button"
+                                className={`nc-cep-icon-btn${
+                                    pinned ? " nc-active" : ""
+                                }`}
+                                title={pinned ? t("Unpin panel") : t("Pin panel")}
+                                aria-pressed={pinned}
+                                onClick={onTogglePinned}
+                            >
+                                <PinIcon />
+                            </button>
                         )}
+                        {/* The same button says two different things on the two
+                            platforms, because the panel is reached two
+                            different ways. A desktop shows it beside a calendar
+                            that never went anywhere, so this collapses it. A
+                            phone reaches it through the drawer, one calendar at
+                            a time, so this goes back to that list — closing to
+                            a bare grid would drop the place you were in. */}
+                        <button
+                            type="button"
+                            className="nc-cep-icon-btn"
+                            title={onPhone ? t("Back to calendars") : t("Collapse")}
+                            onClick={onPhone && onBack ? onBack : onClose}
+                        >
+                            {onPhone ? <ChevronLeftIcon /> : <ChevronsLeftIcon />}
+                        </button>
                     </div>
                 </div>
 

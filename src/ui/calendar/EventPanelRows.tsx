@@ -34,6 +34,7 @@ import {
     DAYS_MIN,
     MONTHS_SHORT,
 } from "./CalendarUtils";
+import { urlMarkdown } from "./linkInput";
 import {
     ClockIcon,
     CalendarIcon,
@@ -424,7 +425,7 @@ function DateField({
                 disabled={!editable}
                 onClick={() => (open ? setOpen(false) : openMenu())}
             >
-                {label || date || "Add date"}
+                {label || date || t("Add date")}
             </button>
             {open &&
                 pos &&
@@ -1472,33 +1473,6 @@ function linkedItemFileName(item: LinkedFileItem): string {
     return name || item.label || "Linked file";
 }
 
-function isInlineMarkdownLink(value: string): boolean {
-    const labelStart = value.startsWith("![")
-        ? 2
-        : value.startsWith("[")
-          ? 1
-          : -1;
-    if (labelStart < 0 || !value.endsWith(")")) return false;
-
-    const destinationStart = value.indexOf("](", labelStart);
-    return destinationStart >= labelStart && destinationStart + 2 < value.length - 1;
-}
-
-function urlMarkdown(value: string): string | null {
-    const trimmed = value.trim();
-    if (isInlineMarkdownLink(trimmed)) {
-        return trimmed;
-    }
-    try {
-        const url = new URL(trimmed);
-        if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-        const label = url.hostname.replace(/^www\./, "") || "Link";
-        return `[${label}](${url.toString()})`;
-    } catch {
-        return null;
-    }
-}
-
 function LinkedFileRow({
     item,
     eventId,
@@ -1834,7 +1808,14 @@ export function LinksAttachmentsRow({
             return;
         }
         const markdown = urlMarkdown(query);
-        if (markdown) void addMarkdown(markdown);
+        if (markdown) {
+            void addMarkdown(markdown);
+            return;
+        }
+        // Saying nothing was the worst part of this: the field kept what you
+        // typed, the link never appeared, and there was no way to tell which
+        // of the two had happened.
+        if (query.trim()) setError(t("That does not look like a link"));
     }, [addMarkdown, highlightedIndex, query, results]);
 
     const handleTrigger = () => {
