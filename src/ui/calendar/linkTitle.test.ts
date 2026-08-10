@@ -1,7 +1,9 @@
 import {
     MAX_TITLE_LENGTH,
     TITLE_SCAN_BYTES,
+    canonicalUrlFrom,
     decodeEntities,
+    isFrontDoorTitle,
     oembedUrlFor,
     pageTitleFrom,
     titleFromOembed,
@@ -169,5 +171,61 @@ describe("titleFromOembed", () => {
         const long = "b".repeat(MAX_TITLE_LENGTH + 30);
         const title = titleFromOembed(JSON.stringify({ title: long }))!;
         expect(title).toHaveLength(MAX_TITLE_LENGTH);
+    });
+});
+
+describe("canonicalUrlFrom", () => {
+    it("takes the address the page says it lives at", () => {
+        // The short link is a note saying where to go; oEmbed answers about
+        // the place, not about the note.
+        expect(
+            canonicalUrlFrom(
+                '<meta property="og:url" content="https://www.tiktok.com/@a/video/123">'
+            )
+        ).toBe("https://www.tiktok.com/@a/video/123");
+    });
+
+    it("falls back to the canonical link tag", () => {
+        expect(
+            canonicalUrlFrom('<link rel="canonical" href="https://a.example/b">')
+        ).toBe("https://a.example/b");
+    });
+
+    it("has nothing to give when the page does not say", () => {
+        expect(canonicalUrlFrom("<html><head></head></html>")).toBeNull();
+        expect(canonicalUrlFrom('<meta property="og:url" content="  ">')).toBeNull();
+    });
+});
+
+describe("isFrontDoorTitle", () => {
+    it("recognises the words a site uses when it tells you nothing", () => {
+        // Two different videos both called this is what the bug looked like.
+        expect(
+            isFrontDoorTitle("TikTok - Make Your Day", "https://vm.tiktok.com/a/")
+        ).toBe(true);
+        expect(isFrontDoorTitle("tiktok", "https://www.tiktok.com/@a/video/1")).toBe(
+            true
+        );
+        expect(isFrontDoorTitle("Instagram", "https://instagram.com/reel/a")).toBe(
+            true
+        );
+    });
+
+    it("leaves a real title alone, even one naming the site", () => {
+        expect(
+            isFrontDoorTitle(
+                "ma recette de pain — TikTok",
+                "https://vm.tiktok.com/a/"
+            )
+        ).toBe(false);
+    });
+
+    it("only applies the words to the site they belong to", () => {
+        // A page elsewhere genuinely called "TikTok" is a real title.
+        expect(isFrontDoorTitle("TikTok", "https://example.com/a")).toBe(false);
+    });
+
+    it("says nothing about something that is not an address", () => {
+        expect(isFrontDoorTitle("TikTok", "not a url")).toBe(false);
     });
 });

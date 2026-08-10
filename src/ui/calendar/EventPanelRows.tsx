@@ -37,6 +37,8 @@ import {
 import { urlMarkdown } from "./linkInput";
 import { LinkKind, linkKind } from "./linkKind";
 import {
+    canonicalUrlFrom,
+    isFrontDoorTitle,
     oembedUrlFor,
     pageTitleFrom,
     safeLabel,
@@ -1876,10 +1878,27 @@ export function LinksAttachmentsRow({
             const target = /\]\(([^)]+)\)\s*$/.exec(markdown)?.[1];
             if (!target || !/^https?:\/\//i.test(target)) return markdown;
 
-            // The site's own answer first, where it publishes one: a page's
-            // <title> is the name of the site for anything that is not a page,
-            // which is how a TikTok video came back called "TikTok".
-            const oembed = oembedUrlFor(target);
+            /*
+             * The page first, then the site's own answer about it.
+             *
+             * A shared link is rarely the canonical one — vm.tiktok.com/ZM…
+             * is a note saying where to go — and oEmbed refuses to answer
+             * about the note. That refusal fell back to reading the page, and
+             * the page a plain client is shown is the front door: two
+             * different videos, one title.
+             *
+             * So the page is fetched once, which also tells us the address it
+             * really lives at; oEmbed is asked about THAT. The page's own
+             * title is the fallback, minus the words a site uses when it is
+             * telling you nothing.
+             */
+            const html = await withDeadline(
+                onFetchPage(target),
+                TITLE_DEADLINE_MS
+            );
+
+            const canonical = (html && canonicalUrlFrom(html)) || target;
+            const oembed = oembedUrlFor(canonical);
             let title: string | null = null;
 
             if (oembed) {
@@ -1890,13 +1909,14 @@ export function LinksAttachmentsRow({
                 title = json ? titleFromOembed(json) : null;
             }
 
-            if (!title) {
-                const html = await withDeadline(
-                    onFetchPage(target),
-                    TITLE_DEADLINE_MS
-                );
-                title = html ? pageTitleFrom(html) : null;
+            if (!title && html) {
+                const fromPage = pageTitleFrom(html);
+                title =
+                    fromPage && !isFrontDoorTitle(fromPage, canonical)
+                        ? fromPage
+                        : null;
             }
+
             const label = title ? safeLabel(title) : "";
             return label ? `[${label}](${target})` : markdown;
         },

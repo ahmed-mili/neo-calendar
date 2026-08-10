@@ -212,3 +212,69 @@ export function titleFromOembed(json: string): string | null {
         ? text.slice(0, MAX_TITLE_LENGTH - 1).trimEnd() + "…"
         : text;
 }
+
+/**
+ * The address a page says it really lives at.
+ *
+ * A shared link is rarely the canonical one: `vm.tiktok.com/ZM…` is a note
+ * saying where to go, and the place it points to is what the site will answer
+ * questions about. Asking oEmbed about the short form gets a refusal, which is
+ * how two different videos ended up with one title — the refusal fell back to
+ * reading the page, and the page a plain client is shown is the front door.
+ *
+ * `og:url` first, then the canonical link tag: both are the page stating its
+ * own address, which is exactly what is needed.
+ */
+export function canonicalUrlFrom(html: string): string | null {
+    const head = html.slice(0, TITLE_SCAN_BYTES);
+
+    const fromMeta = meta(head, "og:url");
+    if (fromMeta) return fromMeta.trim() || null;
+
+    const link = /<link[^>]+rel\s*=\s*["']canonical["'][^>]*>/i.exec(head)?.[0];
+    const href = link
+        ? /href\s*=\s*["']([^"']+)["']/i.exec(link)?.[1]
+        : undefined;
+    return href?.trim() || null;
+}
+
+/**
+ * Titles that mean "we are not telling you".
+ *
+ * These are not a guess at what a bad title looks like: they are the exact
+ * words these sites put on the page they show a client they do not recognise.
+ * Writing one into a note is worse than writing nothing, because it looks like
+ * an answer — two different videos both called "TikTok - Make Your Day" read as
+ * a bug in this app rather than as a refusal from theirs.
+ *
+ * Keyed by host so a video legitimately called "TikTok" on some other site is
+ * left alone.
+ */
+const FRONT_DOORS: ReadonlyArray<readonly [string, readonly string[]]> = [
+    [
+        "tiktok.com",
+        ["tiktok", "tiktok - make your day", "tiktok - trending videos"],
+    ],
+    ["instagram.com", ["instagram"]],
+    ["x.com", ["x", "x (formerly twitter)"]],
+    ["twitter.com", ["twitter"]],
+    ["facebook.com", ["facebook", "facebook - log in or sign up"]],
+    ["threads.net", ["threads"]],
+];
+
+export function isFrontDoorTitle(title: string, target: string): boolean {
+    let host: string;
+    try {
+        host = new URL(target).hostname.toLowerCase().replace(/^www\./, "");
+    } catch {
+        return false;
+    }
+
+    const said = title.toLowerCase().replace(/\s+/g, " ").trim();
+    for (const [domain, doors] of FRONT_DOORS) {
+        if (host === domain || host.endsWith(`.${domain}`)) {
+            return doors.includes(said);
+        }
+    }
+    return false;
+}
