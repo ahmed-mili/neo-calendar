@@ -39,8 +39,10 @@ import {
  *
  * Across the days is a page turn rather than a scroll. A swipe is a decision
  * between three days — the one before, the one shown, the one after — so the
- * grid moves a screenful at a time and the drag is held to one page, with what
- * is dragged past it felt but not followed. Free scrolling that tidies itself
+ * grid moves one day at a time and the drag is held to that day, with what is
+ * dragged past it felt but not followed. A day rather than a screenful: in the
+ * one-day view the two are the same, but in a two-day view a screenful moves
+ * two days at once and half the alignments can never be reached. Free scrolling that tidies itself
  * up afterwards was the first attempt; a carousel is what a day view actually
  * is. The setting turns it back into a scroll for anyone who wants that.
  *
@@ -184,6 +186,25 @@ export function snappedScroll(
         Math.round(scrollLeft / columnWidth) * columnWidth,
         maxScroll
     );
+}
+
+/**
+ * How wide one page of the carousel is: one day, whatever the view.
+ *
+ * In the one-day view a day and a screenful are the same thing, which is where
+ * the idea came from. They are not the same anywhere else: in a two-day view a
+ * screenful moves two days per swipe, and half the alignments become
+ * unreachable — starting on Monday-Tuesday, Tuesday-Wednesday can never be
+ * shown. The day is the unit the grid is made of, so it is the unit it turns.
+ *
+ * Zero means there is nothing to page: a view with no days in it yet.
+ */
+export function pageWidthFor(
+    viewportWidth: number,
+    daysPerView: number
+): number {
+    if (!(daysPerView > 0) || !(viewportWidth > 0)) return 0;
+    return viewportWidth / daysPerView;
 }
 
 /**
@@ -625,13 +646,22 @@ export function useAxisLock(
 
                 // Across the days is a page turn, not a scroll — unless free
                 // scrolling is on, where it stays a scroll.
+                //
+                // A page is a DAY, not a screenful. In the one-day view they
+                // are the same thing, which is where the idea came from; in a
+                // two- or three-day view a screenful jumps that many days at
+                // once, and every alignment in between becomes unreachable —
+                // starting on Monday-Tuesday you could never see
+                // Tuesday-Wednesday.
+                const pageWidth = pageWidthFor(
+                    element.clientWidth,
+                    optionsRef.current.daysPerView ?? 0
+                );
                 page =
-                    axis === "x" && !optionsRef.current.freeScroll
-                        ? {
-                              width: element.clientWidth,
-                              asked: 0,
-                              applied: 0,
-                          }
+                    axis === "x" &&
+                    !optionsRef.current.freeScroll &&
+                    pageWidth > 0
+                        ? { width: pageWidth, asked: 0, applied: 0 }
                         : null;
                 return;
             }

@@ -13,6 +13,7 @@ import {
     PAGE_COMMIT_FRACTION,
     PAGE_FLICK_VELOCITY,
     pagedStep,
+    pageWidthFor,
     resistedTravel,
     pinchedHourHeight,
     scrollForAnchor,
@@ -331,5 +332,23 @@ describe("resistedTravel", () => {
 
     it("gives up rather than divide by a page of no width", () => {
         expect(resistedTravel(120, 0)).toBe(120);
+    });
+});
+
+describe("pageWidthFor", () => {
+    it("turns one day at a time, whatever the view shows", () => {
+        // 1-day view: a page and a screenful are the same thing.
+        expect(pageWidthFor(412, 1)).toBe(412);
+        // 2-day and 3-day views: still one day per swipe, so every pairing of
+        // days can be reached. A screenful here would skip half of them.
+        expect(pageWidthFor(412, 2)).toBe(206);
+        expect(pageWidthFor(420, 3)).toBe(140);
+        expect(pageWidthFor(700, 7)).toBe(100);
+    });
+
+    it("says there is nothing to page rather than divide by nothing", () => {
+        expect(pageWidthFor(412, 0)).toBe(0);
+        expect(pageWidthFor(412, -1)).toBe(0);
+        expect(pageWidthFor(0, 3)).toBe(0);
     });
 });
