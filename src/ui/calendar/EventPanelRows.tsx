@@ -34,7 +34,7 @@ import {
     DAYS_MIN,
     MONTHS_SHORT,
 } from "./CalendarUtils";
-import { urlMarkdown } from "./linkInput";
+import { sameTarget, urlMarkdown } from "./linkInput";
 import { LinkKind, linkKind } from "./linkKind";
 import {
     canonicalUrlFrom,
@@ -1933,6 +1933,18 @@ export function LinksAttachmentsRow({
     const addMarkdown = React.useCallback(
         async (markdown: string) => {
             if (!eventId || !onAddLink || !markdown.trim() || saving) return;
+
+            /* A link added twice by accident: say so, and keep it.
+               The note is a list, and appending the same address again would
+               leave the second one nowhere — the list is keyed by target, so
+               the duplicate is dropped on reading and the row never changes.
+               Silently doing nothing looks exactly like a failure to add. */
+            const target = /\]\(([^)]+)\)\s*$/.exec(markdown.trim())?.[1];
+            if (target && items.some((item) => sameTarget(item.target, target))) {
+                setError(t("This link is already here"));
+                return;
+            }
+
             setSaving(true);
             setError(null);
             try {
@@ -1946,7 +1958,7 @@ export function LinksAttachmentsRow({
                 setSaving(false);
             }
         },
-        [closePicker, eventId, onAddLink, saving, titled]
+        [closePicker, eventId, items, onAddLink, saving, titled]
     );
 
     const submitInput = React.useCallback(() => {

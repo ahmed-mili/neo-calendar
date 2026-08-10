@@ -126,3 +126,29 @@ export function urlMarkdown(value: string): string | null {
     const target = scheme === null ? `https://${found}` : found;
     return `[${labelFor(target)}](${target})`;
 }
+
+/**
+ * Whether two link targets are the same place.
+ *
+ * Compared as addresses rather than as text: the scheme and host are
+ * case-insensitive and a trailing slash means nothing, so "TikTok.com/a" and
+ * "https://tiktok.com/a/" are one link written twice. The path and query keep
+ * their case, because on most servers they are the only part that does.
+ *
+ * Anything that is not an address — a note inside the vault — is compared as
+ * the path it is, trimmed.
+ */
+export function sameTarget(a: string, b: string): boolean {
+    return normaliseTarget(a) === normaliseTarget(b);
+}
+
+function normaliseTarget(value: string): string {
+    const trimmed = value.trim();
+    try {
+        const url = new URL(trimmed);
+        const path = url.pathname.replace(/\/+$/, "");
+        return `${url.protocol.toLowerCase()}//${url.host.toLowerCase()}${path}${url.search}`;
+    } catch {
+        return trimmed.replace(/\/+$/, "");
+    }
+}

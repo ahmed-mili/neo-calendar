@@ -1,4 +1,10 @@
-import { findUrl, isInlineMarkdownLink, labelFor, urlMarkdown } from "./linkInput";
+import {
+    findUrl,
+    isInlineMarkdownLink,
+    labelFor,
+    sameTarget,
+    urlMarkdown,
+} from "./linkInput";
 
 describe("urlMarkdown", () => {
     it("takes the links a phone actually hands you", () => {
@@ -124,5 +130,45 @@ describe("isInlineMarkdownLink", () => {
         expect(isInlineMarkdownLink("[a]")).toBe(false);
         expect(isInlineMarkdownLink("(b)")).toBe(false);
         expect(isInlineMarkdownLink("[a]()")).toBe(false);
+    });
+});
+
+describe("sameTarget", () => {
+    it("sees one link written twice", () => {
+        expect(
+            sameTarget(
+                "https://vm.tiktok.com/ZN8RmLXNp/",
+                "https://vm.tiktok.com/ZN8RmLXNp"
+            )
+        ).toBe(true);
+        // The scheme and host do not care about case; a trailing slash is not
+        // a different place.
+        expect(
+            sameTarget("https://TikTok.com/@a/video/1", "https://tiktok.com/@a/video/1")
+        ).toBe(true);
+    });
+
+    it("keeps the case of the part that carries meaning", () => {
+        // Most servers treat a path as case-sensitive, so these are two pages.
+        expect(
+            sameTarget("https://example.com/Photo", "https://example.com/photo")
+        ).toBe(false);
+    });
+
+    it("tells two different links apart", () => {
+        expect(
+            sameTarget(
+                "https://vm.tiktok.com/ZN8RmLXNp/",
+                "https://vm.tiktok.com/ZMother12/"
+            )
+        ).toBe(false);
+        expect(
+            sameTarget("https://example.com/a?v=1", "https://example.com/a?v=2")
+        ).toBe(false);
+    });
+
+    it("compares a vault path as the path it is", () => {
+        expect(sameTarget("Notes/Réunion.md", " Notes/Réunion.md ")).toBe(true);
+        expect(sameTarget("Notes/A.md", "Notes/B.md")).toBe(false);
     });
 });
