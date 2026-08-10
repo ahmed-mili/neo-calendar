@@ -161,6 +161,7 @@ const FR: Record<string, string> = {
     Untitled: "Sans titre",
     "Back to calendars": "Retour aux calendriers",
     "That does not look like a link": "Ça ne ressemble pas à un lien",
+    "This link is already here": "Ce lien est déjà là",
     "No event scheduled": "Aucun événement prévu",
 
     // ── Reminders ────────────────────────────────────────────
