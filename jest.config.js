@@ -11,10 +11,18 @@ const SNAPSHOT_COPIES = [
     "/neo-calendar-scroll-draft-runtime/",
 ];
 
+// The version the two apps bake into their bundles at build time. Defined here
+// too, from the same place, so a component that shows it renders under test
+// exactly as it does in the app.
+const { version } = require("./package.json");
+
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
     preset: "ts-jest",
     testEnvironment: "node",
+    globals: {
+        __NEO_VERSION__: version,
+    },
     testPathIgnorePatterns: [
         "/node_modules/",
         "/\\.claude/",
