@@ -65,23 +65,17 @@ import {
 } from "./EventPanelIcons";
 import { t } from "../i18n";
 import { isAndroidRuntime } from "./CalendarUtils";
+import { decideLinkedFileTap, LinkedFileTap } from "./linkedFileTap";
 import { swallowNextClick } from "./swallowNextClick";
 
 function getEventPanelPortalTarget(): HTMLElement {
     const isAndroid =
-        document.documentElement.classList.contains(
-            "nc-platform-android"
-        ) ||
-        document.body.classList.contains(
-            "nc-platform-android"
-        ) ||
-        document.documentElement.dataset.neoCalendarPlatform ===
-            "android";
+        document.documentElement.classList.contains("nc-platform-android") ||
+        document.body.classList.contains("nc-platform-android") ||
+        document.documentElement.dataset.neoCalendarPlatform === "android";
 
     return isAndroid
-        ? document.getElementById(
-              "nc-android-overlay-root"
-          ) ?? document.body
+        ? document.getElementById("nc-android-overlay-root") ?? document.body
         : document.body;
 }
 function ObsidianColorIcon() {
@@ -203,24 +197,24 @@ export function PanelHeader({
                     )}
                 </div>
                 {/*
-                  * On a phone this closes on pointer-up rather than on click.
-                  *
-                  * The first tap on a sheet that has a focused field spends
-                  * itself dismissing the keyboard: the layout shifts under the
-                  * finger between press and release, the release no longer
-                  * lands on the button it started on, and the browser never
-                  * synthesises a click. The X needed two taps, and the first
-                  * one looked like it had done something else entirely.
-                  * Pointer-up is delivered to the element the press began on,
-                  * whatever moved in between.
-                  *
-                  * Closing that early is what makes the guard below necessary:
-                  * the sheet is gone by the time the tap's click is delivered,
-                  * and the corner it occupied belongs to the calendar's app bar
-                  * — the search icon and the today badge sit at exactly these
-                  * coordinates. Until the guard, closing the sheet opened the
-                  * search bar.
-                  */}
+                 * On a phone this closes on pointer-up rather than on click.
+                 *
+                 * The first tap on a sheet that has a focused field spends
+                 * itself dismissing the keyboard: the layout shifts under the
+                 * finger between press and release, the release no longer
+                 * lands on the button it started on, and the browser never
+                 * synthesises a click. The X needed two taps, and the first
+                 * one looked like it had done something else entirely.
+                 * Pointer-up is delivered to the element the press began on,
+                 * whatever moved in between.
+                 *
+                 * Closing that early is what makes the guard below necessary:
+                 * the sheet is gone by the time the tap's click is delivered,
+                 * and the corner it occupied belongs to the calendar's app bar
+                 * — the search icon and the today badge sit at exactly these
+                 * coordinates. Until the guard, closing the sheet opened the
+                 * search bar.
+                 */}
                 <button
                     type="button"
                     className="nc-panel-icon-btn"
@@ -933,7 +927,9 @@ export function RecurrenceRow({
                         )}
 
                         <div className="nc-recur-end">
-                            <span className="nc-panel-subrow-label">{t("Ends")}</span>
+                            <span className="nc-panel-subrow-label">
+                                {t("Ends")}
+                            </span>
                             <label>
                                 <input
                                     type="radio"
@@ -1178,7 +1174,9 @@ export function CalendarRow({
                             maxHeight: menuPos.maxHeight,
                         }}
                     >
-                        <div className="nc-cal-select-heading">{t("Calendar")}</div>
+                        <div className="nc-cal-select-heading">
+                            {t("Calendar")}
+                        </div>
                         {editableCalendars.map((cal, i) => (
                             <button
                                 key={cal.id}
@@ -1417,6 +1415,8 @@ interface LinkedFileItem {
 
 /** How long adding a link waits for the page to name itself. */
 const TITLE_DEADLINE_MS = 2500;
+const LINK_TOOLTIP_HIDE_DELAY_MS = 120;
+const LINK_TOOLTIP_EXIT_MS = 140;
 
 interface LinksAttachmentsRowProps {
     eventId: string | null;
@@ -1533,11 +1533,13 @@ function LinkedFileRow({
     eventId,
     onRemoveLink,
     onOpenLink,
+    tapTrackerRef,
 }: {
     item: LinkedFileItem;
     eventId: string | null;
     onRemoveLink?: (eventId: string, target: string) => Promise<void>;
     onOpenLink?: (item: LinkedFileItem) => Promise<void> | void;
+    tapTrackerRef: React.MutableRefObject<LinkedFileTap | null>;
 }) {
     const rowRef = React.useRef<HTMLDivElement>(null);
     const hideTimerRef = React.useRef<number | null>(null);
@@ -1546,31 +1548,32 @@ function LinkedFileRow({
         left: number;
         width: number;
     } | null>(null);
+    const [tooltipClosing, setTooltipClosing] = React.useState(false);
     const [copied, setCopied] = React.useState(false);
     const [removing, setRemoving] = React.useState(false);
     const [opening, setOpening] = React.useState(false);
     const [hovered, setHovered] = React.useState(false);
     const displayName = React.useMemo(() => linkedItemFileName(item), [item]);
 
-    const cancelHide = React.useCallback(() => {
+    const clearHideTimer = React.useCallback(() => {
         if (hideTimerRef.current !== null) {
             window.clearTimeout(hideTimerRef.current);
             hideTimerRef.current = null;
         }
     }, []);
 
-    /**
-     * On a phone, the first tap shows the address and the next one follows it.
-     *
-     * A pointer reveals the address by arriving; a finger has no way to arrive
-     * without also pressing. So the first tap does the arriving — and since the
-     * second tap is what opens, a double tap opens straight away. That is the
-     * same rule, not a second one.
-     *
-     * Reset when the address is dismissed, so coming back to a row behaves the
-     * way it did the first time.
-     */
+    const cancelHide = React.useCallback(() => {
+        clearHideTimer();
+        setTooltipClosing(false);
+    }, [clearHideTimer]);
+
+    /** On Android, a single tap toggles the address; only a double tap opens. */
     const revealedRef = React.useRef(false);
+
+    const resetTapTracker = React.useCallback(() => {
+        if (tapTrackerRef.current?.itemId === item.id)
+            tapTrackerRef.current = null;
+    }, [item.id, tapTrackerRef]);
 
     const showTooltip = React.useCallback(() => {
         cancelHide();
@@ -1590,26 +1593,48 @@ function LinkedFileRow({
         setTooltip({ top, left, width });
     }, [cancelHide]);
 
-    const scheduleHide = React.useCallback(() => {
-        setHovered(false);
-        cancelHide();
-        hideTimerRef.current = window.setTimeout(() => {
-            setTooltip(null);
-            setCopied(false);
+    const hideTooltip = React.useCallback(
+        (delay = 0) => {
+            setHovered(false);
             revealedRef.current = false;
-        }, 120);
-    }, [cancelHide]);
+            cancelHide();
+
+            const startExit = () => {
+                setTooltipClosing(true);
+                hideTimerRef.current = window.setTimeout(() => {
+                    hideTimerRef.current = null;
+                    setTooltip(null);
+                    setTooltipClosing(false);
+                    setCopied(false);
+                    revealedRef.current = false;
+                    resetTapTracker();
+                }, LINK_TOOLTIP_EXIT_MS);
+            };
+
+            hideTimerRef.current = window.setTimeout(
+                startExit,
+                Math.max(0, delay)
+            );
+        },
+        [cancelHide, resetTapTracker]
+    );
+
+    const scheduleHide = React.useCallback(
+        () => hideTooltip(LINK_TOOLTIP_HIDE_DELAY_MS),
+        [hideTooltip]
+    );
 
     React.useEffect(
         () => () => {
-            cancelHide();
+            clearHideTimer();
         },
-        [cancelHide]
+        [clearHideTimer]
     );
 
     const copyTarget = async (event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
         event.stopPropagation();
+        resetTapTracker();
         await navigator.clipboard.writeText(item.target);
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1200);
@@ -1621,8 +1646,11 @@ function LinkedFileRow({
         if (!eventId || !onRemoveLink || removing) return;
         setRemoving(true);
         try {
+            resetTapTracker();
             await onRemoveLink(eventId, item.target);
+            setHovered(false);
             setTooltip(null);
+            revealedRef.current = false;
         } finally {
             setRemoving(false);
         }
@@ -1631,6 +1659,8 @@ function LinkedFileRow({
     const openLinkedItem = async () => {
         if (!onOpenLink || opening) return;
         cancelHide();
+        resetTapTracker();
+        revealedRef.current = false;
         setHovered(false);
         setTooltip(null);
         rowRef.current?.blur();
@@ -1642,22 +1672,42 @@ function LinkedFileRow({
         }
     };
 
-
     const activateLinkedItem = (
-        event: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>
+        event:
+            | React.MouseEvent<HTMLDivElement>
+            | React.KeyboardEvent<HTMLDivElement>
     ) => {
         const target = event.target as HTMLElement | null;
         if (target?.closest("button")) return;
         event.preventDefault();
         event.stopPropagation();
 
-        if (isAndroidRuntime() && !revealedRef.current) {
+        if (isAndroidRuntime() && event.type === "click") {
+            const decision = decideLinkedFileTap(
+                tapTrackerRef.current,
+                item.id,
+                event.timeStamp,
+                revealedRef.current
+            );
+            tapTrackerRef.current = decision.nextTap;
+
+            if (decision.action === "open") {
+                void openLinkedItem();
+                return;
+            }
+
+            if (decision.action === "hide-preview") {
+                hideTooltip();
+                return;
+            }
+
             revealedRef.current = true;
             showTooltip();
             return;
         }
 
         revealedRef.current = false;
+        resetTapTracker();
         void openLinkedItem();
     };
 
@@ -1671,12 +1721,20 @@ function LinkedFileRow({
                 tabIndex={onOpenLink ? 0 : undefined}
                 aria-label={onOpenLink ? `Open ${displayName}` : undefined}
                 aria-busy={opening || undefined}
-                onPointerEnter={showTooltip}
-                onPointerLeave={scheduleHide}
+                onPointerEnter={(event) => {
+                    if (!isAndroidRuntime() || event.pointerType !== "touch") {
+                        showTooltip();
+                    }
+                }}
+                onPointerLeave={(event) => {
+                    if (!isAndroidRuntime() || event.pointerType !== "touch") {
+                        scheduleHide();
+                    }
+                }}
                 onPointerCancel={scheduleHide}
                 onMouseDown={(event) => {
                     const target = event.target as HTMLElement | null;
-                    if (!target?.closest("button")) {
+                    if (!isAndroidRuntime() && !target?.closest("button")) {
                         // Mouse activation must never leave a sticky focus/hover
                         // appearance behind. Keyboard focus remains available via Tab.
                         event.preventDefault();
@@ -1716,7 +1774,9 @@ function LinkedFileRow({
             {tooltip &&
                 ReactDOM.createPortal(
                     <div
-                        className="nc-linked-file-tooltip"
+                        className={`nc-linked-file-tooltip${
+                            tooltipClosing ? " is-closing" : ""
+                        }`}
                         style={{
                             top: tooltip.top,
                             left: tooltip.left,
@@ -1775,7 +1835,12 @@ export function LinksAttachmentsRow({
     const inputRef = React.useRef<HTMLInputElement>(null);
     const shellRef = React.useRef<HTMLDivElement>(null);
     const popoverRef = React.useRef<HTMLDivElement>(null);
+    const tapTrackerRef = React.useRef<LinkedFileTap | null>(null);
     const supportsPicker = Boolean(onSearch && onAddLink);
+
+    React.useEffect(() => {
+        tapTrackerRef.current = null;
+    }, [eventId]);
 
     const closePicker = React.useCallback(() => {
         setOpen(false);
@@ -1791,14 +1856,20 @@ export function LinksAttachmentsRow({
         const rect = shell.getBoundingClientRect();
         const viewportGap = 8;
         const preferredWidth = Math.max(rect.width, 500);
-        const width = Math.min(preferredWidth, window.innerWidth - viewportGap * 2);
+        const width = Math.min(
+            preferredWidth,
+            window.innerWidth - viewportGap * 2
+        );
         const left = Math.max(
             viewportGap,
             Math.min(rect.left, window.innerWidth - width - viewportGap)
         );
         const roomBelow = window.innerHeight - rect.bottom - viewportGap;
         const roomAbove = rect.top - viewportGap;
-        const maxHeight = Math.max(150, Math.min(300, Math.max(roomBelow, roomAbove)));
+        const maxHeight = Math.max(
+            150,
+            Math.min(300, Math.max(roomBelow, roomAbove))
+        );
         const openAbove = roomBelow < 180 && roomAbove > roomBelow;
         const top = openAbove
             ? Math.max(viewportGap, rect.top - maxHeight - 4)
@@ -1837,27 +1908,32 @@ export function LinksAttachmentsRow({
     React.useEffect(() => {
         if (!open || !onSearch) return;
         let active = true;
-        const timer = window.setTimeout(() => {
-            setLoading(true);
-            setError(null);
-            void onSearch(query.trim())
-                .then((next) => {
-                    if (!active) return;
-                    setResults(next);
-                    setHighlightedIndex(0);
-                    window.requestAnimationFrame(updatePosition);
-                })
-                .catch((reason) => {
-                    if (!active) return;
-                    setResults([]);
-                    setError(
-                        reason instanceof Error ? reason.message : String(reason)
-                    );
-                })
-                .finally(() => {
-                    if (active) setLoading(false);
-                });
-        }, query.trim() ? 120 : 0);
+        const timer = window.setTimeout(
+            () => {
+                setLoading(true);
+                setError(null);
+                void onSearch(query.trim())
+                    .then((next) => {
+                        if (!active) return;
+                        setResults(next);
+                        setHighlightedIndex(0);
+                        window.requestAnimationFrame(updatePosition);
+                    })
+                    .catch((reason) => {
+                        if (!active) return;
+                        setResults([]);
+                        setError(
+                            reason instanceof Error
+                                ? reason.message
+                                : String(reason)
+                        );
+                    })
+                    .finally(() => {
+                        if (active) setLoading(false);
+                    });
+            },
+            query.trim() ? 120 : 0
+        );
 
         return () => {
             active = false;
@@ -1961,7 +2037,10 @@ export function LinksAttachmentsRow({
                Silently doing nothing looks exactly like a failure to add. */
             const raw = markdown.trim();
             const pasted = /\]\(([^)]+)\)\s*$/.exec(raw)?.[1];
-            if (pasted && items.some((item) => sameTarget(item.target, pasted))) {
+            if (
+                pasted &&
+                items.some((item) => sameTarget(item.target, pasted))
+            ) {
                 setError(t("This link is already here"));
                 return;
             }
@@ -1984,7 +2063,11 @@ export function LinksAttachmentsRow({
                     items.some((item) => sameDestination(item.target, target))
                 ) {
                     setNotice(null);
-                    setError(t("This link leads to the same place as one already here"));
+                    setError(
+                        t(
+                            "This link leads to the same place as one already here"
+                        )
+                    );
                     return;
                 }
 
@@ -2045,13 +2128,17 @@ export function LinksAttachmentsRow({
                 closePicker();
             })
             .catch((reason) =>
-                setError(reason instanceof Error ? reason.message : String(reason))
+                setError(
+                    reason instanceof Error ? reason.message : String(reason)
+                )
             )
             .finally(() => setSaving(false));
     };
 
     const showWebLink =
-        query.trim().length > 0 && results.length === 0 && Boolean(urlMarkdown(query));
+        query.trim().length > 0 &&
+        results.length === 0 &&
+        Boolean(urlMarkdown(query));
 
     return (
         <div className="nc-links-attachments">
@@ -2064,6 +2151,7 @@ export function LinksAttachmentsRow({
                             eventId={eventId}
                             onRemoveLink={onRemoveLink}
                             onOpenLink={onOpenLink}
+                            tapTrackerRef={tapTrackerRef}
                         />
                     ))}
                 </div>
@@ -2132,9 +2220,8 @@ export function LinksAttachmentsRow({
                                never fires a keydown for it, so the handler
                                below never runs — and the line break lands in a
                                field that is one line long. */
-                            const inputType = (
-                                event.nativeEvent as InputEvent
-                            ).inputType;
+                            const inputType = (event.nativeEvent as InputEvent)
+                                .inputType;
                             if (
                                 inputType === "insertLineBreak" ||
                                 inputType === "insertParagraph"
@@ -2147,11 +2234,16 @@ export function LinksAttachmentsRow({
                             if (event.key === "ArrowDown") {
                                 event.preventDefault();
                                 setHighlightedIndex((current) =>
-                                    Math.min(current + 1, Math.max(0, results.length - 1))
+                                    Math.min(
+                                        current + 1,
+                                        Math.max(0, results.length - 1)
+                                    )
                                 );
                             } else if (event.key === "ArrowUp") {
                                 event.preventDefault();
-                                setHighlightedIndex((current) => Math.max(0, current - 1));
+                                setHighlightedIndex((current) =>
+                                    Math.max(0, current - 1)
+                                );
                             } else if (event.key === "Enter") {
                                 event.preventDefault();
                                 submitInput();
@@ -2199,9 +2291,8 @@ export function LinksAttachmentsRow({
                             </div>
                         ) : results.length > 0 ? (
                             results.map((result, index) => {
-                                const { fileName, parentPath } = splitLinkSearchPath(
-                                    result.relativePath
-                                );
+                                const { fileName, parentPath } =
+                                    splitLinkSearchPath(result.relativePath);
                                 const accessibleLabel = `${fileName} — ${result.vaultName}`;
 
                                 return (
@@ -2209,9 +2300,13 @@ export function LinksAttachmentsRow({
                                         type="button"
                                         role="option"
                                         aria-label={accessibleLabel}
-                                        aria-selected={index === highlightedIndex}
+                                        aria-selected={
+                                            index === highlightedIndex
+                                        }
                                         className={`nc-link-result${
-                                            index === highlightedIndex ? " is-highlighted" : ""
+                                            index === highlightedIndex
+                                                ? " is-highlighted"
+                                                : ""
                                         }`}
                                         key={result.id}
                                         title={fileName}
@@ -2228,7 +2323,9 @@ export function LinksAttachmentsRow({
                                             event.preventDefault();
                                             event.stopPropagation();
                                             if (event.detail === 0) {
-                                                void addMarkdown(result.markdown);
+                                                void addMarkdown(
+                                                    result.markdown
+                                                );
                                             }
                                         }}
                                     >
@@ -2271,11 +2368,17 @@ export function LinksAttachmentsRow({
                                     if (event.detail === 0) submitInput();
                                 }}
                             >
-                                <span className="nc-link-result-path">{t("Add web link")}</span>
-                                <span className="nc-link-result-vault">{query.trim()}</span>
+                                <span className="nc-link-result-path">
+                                    {t("Add web link")}
+                                </span>
+                                <span className="nc-link-result-vault">
+                                    {query.trim()}
+                                </span>
                             </button>
                         ) : loading ? null : (
-                            <div className="nc-link-empty">{t("No matching notes")}</div>
+                            <div className="nc-link-empty">
+                                {t("No matching notes")}
+                            </div>
                         )}
                         {error && (
                             <div className="nc-link-picker-error" role="alert">

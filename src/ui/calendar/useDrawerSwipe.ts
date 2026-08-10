@@ -32,7 +32,10 @@ const SETTLE_MS = 300;
     reads as a jump however long it is given. Matched in mobile.css. */
 const EASING = "cubic-bezier(0.05, 0.7, 0.1, 1)";
 
-const PANEL_SELECTOR = ".nc-sidebar:not(.nc-sidebar-collapsed)";
+// The Android drawer stays mounted off-screen when it is closed. Keeping one
+// element alive lets CSS transition both directions without re-attaching an
+// entry keyframe after a finger-driven gesture settles.
+const PANEL_SELECTOR = ".nc-sidebar";
 const CALENDAR_SELECTOR = ".nc-main";
 
 /** Strength of the overlay that dims the calendar with the drawer fully out. */
@@ -65,14 +68,17 @@ export function drawerDragProgress({
     currentX,
     drawerWidth,
     startedOpen,
+    startProgress,
 }: {
     startX: number;
     currentX: number;
     drawerWidth: number;
-    startedOpen: boolean;
+    startedOpen?: boolean;
+    startProgress?: number;
 }): number {
     const travelled = (currentX - startX) / drawerWidth;
-    const progress = startedOpen ? 1 + travelled : travelled;
+    const origin = startProgress ?? (startedOpen ? 1 : 0);
+    const progress = origin + travelled;
     return Math.min(1, Math.max(0, progress));
 }
 
@@ -92,6 +98,7 @@ interface Gesture {
     startX: number;
     startY: number;
     startedOpen: boolean;
+    startProgress: number;
     lastX: number;
     lastTime: number;
     velocity: number;
@@ -108,9 +115,19 @@ function readDrawerWidth(): number {
     return Math.min(window.innerWidth * 0.88, 360);
 }
 
+/** Reads the composited position when a new gesture interrupts a settle. This
+    runs once at direction lock, never during frame-by-frame movement. */
+export function drawerVisualProgress(
+    left: number,
+    drawerWidth: number
+): number {
+    if (!Number.isFinite(left) || drawerWidth <= 0) return 0;
+    return Math.min(1, Math.max(0, 1 + left / drawerWidth));
+}
+
 export interface DrawerSwipeControls {
-    /** Slides the panel out before React unmounts it, so closing by tapping the
-        calendar looks like the opening run backwards instead of a cut. */
+    /** Slides out before React switches to the closed resting state, so a tap
+        on the calendar never cuts the transition short. */
     requestClose: () => void;
 }
 
@@ -153,7 +170,7 @@ export function useDrawerSwipe({
         let width = 0;
         let frame = 0;
         let pending = 0;
-        let closingTimer = 0;
+        let settleTimer = 0;
 
         const findElements = () => {
             panel = document.querySelector(PANEL_SELECTOR);
@@ -215,6 +232,28 @@ export function useDrawerSwipe({
             frame = 0;
         };
 
+        /** Freezes an in-flight transition at the exact composited position.
+            A forced layout is intentional here: it happens only when a gesture
+            reverses an animation, and prevents the next transition coalescing
+            with the freeze into a visible jump. */
+        const freezeAtCurrentPosition = () => {
+            cancelFrame();
+            findElements();
+            width = readDrawerWidth();
+            const progress = panel
+                ? drawerVisualProgress(
+                      panel.getBoundingClientRect().left,
+                      width
+                  )
+                : openRef.current
+                ? 1
+                : 0;
+            if (panel) panel.style.transition = "none";
+            paint(progress);
+            if (panel) void panel.offsetWidth;
+            return progress;
+        };
+
         const clearVisualState = () => {
             cancelFrame();
             release();
@@ -222,17 +261,11 @@ export function useDrawerSwipe({
             body.classList.remove(GESTURE_CLASS);
         };
 
-        const abandon = () => {
-            gesture = null;
-            clearVisualState();
-        };
-
         /** Runs the opening animation backwards, then lets React unmount. */
         const glideClosed = () => {
-            if (closingTimer) return;
-
-            cancelFrame();
-            findElements();
+            if (settleTimer) window.clearTimeout(settleTimer);
+            settleTimer = 0;
+            freezeAtCurrentPosition();
             if (!panel) {
                 changeRef.current(false);
                 return;
@@ -240,21 +273,48 @@ export function useDrawerSwipe({
 
             body.classList.add(GESTURE_CLASS);
             body.classList.remove(DRAGGING_CLASS);
-            width = readDrawerWidth();
             glide(0);
 
-            closingTimer = window.setTimeout(() => {
-                closingTimer = 0;
-                clearVisualState();
+            settleTimer = window.setTimeout(() => {
+                settleTimer = 0;
                 changeRef.current(false);
+                clearVisualState();
             }, SETTLE_MS);
+        };
+
+        const glideOpen = () => {
+            if (settleTimer) window.clearTimeout(settleTimer);
+            settleTimer = 0;
+            freezeAtCurrentPosition();
+            body.classList.add(GESTURE_CLASS);
+            body.classList.remove(DRAGGING_CLASS);
+            if (!openRef.current) changeRef.current(true);
+            glide(1);
+
+            settleTimer = window.setTimeout(() => {
+                settleTimer = 0;
+                if (!gesture) clearVisualState();
+            }, SETTLE_MS);
+        };
+
+        /** Multi-touch and pointer cancellation return to the side where the
+            gesture began. They never leave an inline transform or timer behind. */
+        const cancelGesture = () => {
+            if (!gesture) return;
+            const restoreOpen = gesture.startedOpen;
+            const wasDragging = gesture.dragging;
+            gesture = null;
+            if (!wasDragging) return;
+            cancelFrame();
+            if (restoreOpen) glideOpen();
+            else glideClosed();
         };
 
         closeRef.current = glideClosed;
 
         const onTouchStart = (event: TouchEvent) => {
             if (event.touches.length !== 1) {
-                abandon();
+                cancelGesture();
                 return;
             }
 
@@ -262,7 +322,7 @@ export function useDrawerSwipe({
             if (
                 !canStartDrawerGesture({
                     x: touch.clientX,
-                    isOpen: openRef.current,
+                    isOpen: openRef.current || !!settleTimer,
                 })
             ) {
                 return;
@@ -273,6 +333,7 @@ export function useDrawerSwipe({
                 startX: touch.clientX,
                 startY: touch.clientY,
                 startedOpen: openRef.current,
+                startProgress: openRef.current ? 1 : 0,
                 lastX: touch.clientX,
                 lastTime: event.timeStamp,
                 velocity: 0,
@@ -285,7 +346,7 @@ export function useDrawerSwipe({
             if (!gesture) return;
 
             if (event.touches.length !== 1) {
-                abandon();
+                cancelGesture();
                 return;
             }
 
@@ -302,17 +363,27 @@ export function useDrawerSwipe({
                 }
 
                 if (isVerticalGesture(dx, dy)) {
-                    abandon();
+                    gesture = null;
                     return;
                 }
 
-                gesture.dragging = true;
-                body.classList.add(DRAGGING_CLASS);
+                if (settleTimer) window.clearTimeout(settleTimer);
+                settleTimer = 0;
                 body.classList.add(GESTURE_CLASS);
+                body.classList.add(DRAGGING_CLASS);
 
-                // The drawer's contents only mount once React believes it is
-                // open, so an opening drag has to say so straight away — the
-                // panel is held under the finger from here on.
+                // Re-sample at direction lock, not touch-down. If a previous
+                // settle moved during those first 8px, continuing from the old
+                // position would produce a visible jump.
+                gesture.startProgress = freezeAtCurrentPosition();
+                gesture.progress = gesture.startProgress;
+                gesture.startX = touch.clientX;
+                gesture.lastX = touch.clientX;
+                gesture.lastTime = event.timeStamp;
+                gesture.velocity = 0;
+                gesture.dragging = true;
+
+                // React only hears the two resting states, never every frame.
                 if (!gesture.startedOpen) changeRef.current(true);
             }
 
@@ -327,7 +398,7 @@ export function useDrawerSwipe({
                 startX: gesture.startX,
                 currentX: touch.clientX,
                 drawerWidth: width,
-                startedOpen: gesture.startedOpen,
+                startProgress: gesture.startProgress,
             });
 
             schedule(gesture.progress);
@@ -350,7 +421,7 @@ export function useDrawerSwipe({
             cancelFrame();
 
             if (!wasDragging) {
-                clearVisualState();
+                // A tap during a running settle must not cancel that settle.
                 return;
             }
 
@@ -359,21 +430,11 @@ export function useDrawerSwipe({
                 return;
             }
 
-            // Let it fall the rest of the way open on its own rather than
-            // snapping to wherever the finger let go.
-            body.classList.remove(DRAGGING_CLASS);
-            glide(1);
-
-            window.setTimeout(() => {
-                if (!gesture && !closingTimer) clearVisualState();
-            }, SETTLE_MS);
+            glideOpen();
         };
 
         const onTouchCancel = () => {
-            if (!gesture) return;
-            const wasOpen = gesture.startedOpen;
-            abandon();
-            if (openRef.current !== wasOpen) changeRef.current(wasOpen);
+            cancelGesture();
         };
 
         document.addEventListener("touchstart", onTouchStart, {
@@ -390,7 +451,7 @@ export function useDrawerSwipe({
             document.removeEventListener("touchmove", onTouchMove);
             document.removeEventListener("touchend", onTouchEnd);
             document.removeEventListener("touchcancel", onTouchCancel);
-            if (closingTimer) window.clearTimeout(closingTimer);
+            if (settleTimer) window.clearTimeout(settleTimer);
             clearVisualState();
         };
     }, [enabled]);
