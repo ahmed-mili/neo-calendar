@@ -131,3 +131,84 @@ export function withDeadline<T>(
             });
     });
 }
+
+/*
+ * ── Asking the site directly ──────────────────────────────────
+ *
+ * Reading a page's <title> works for a page. It does not work for a video:
+ * TikTok hands a plain HTTP client its front door, so every link came back
+ * called "TikTok - Make Your Day", which is the name of the company and not of
+ * anything you saved.
+ *
+ * The usual workaround is to pretend to be a browser by sending its
+ * User-Agent. That is a lie told to get a different answer, it needs native
+ * code on both platforms to send a header, and it breaks whenever the site
+ * decides to look harder.
+ *
+ * These sites already answer the question honestly, at an address published
+ * for it: oEmbed. It is a small piece of JSON, no key, no pretending, and it
+ * gives the title of the thing rather than of the site. Where a site has one,
+ * it is asked first; everything else still reads the page.
+ */
+
+const OEMBED: ReadonlyArray<readonly [string, (url: string) => string]> = [
+    ["tiktok.com", (url) => `https://www.tiktok.com/oembed?url=${url}`],
+    [
+        "youtube.com",
+        (url) => `https://www.youtube.com/oembed?format=json&url=${url}`,
+    ],
+    [
+        "youtu.be",
+        (url) => `https://www.youtube.com/oembed?format=json&url=${url}`,
+    ],
+    ["vimeo.com", (url) => `https://vimeo.com/api/oembed.json?url=${url}`],
+    ["open.spotify.com", (url) => `https://open.spotify.com/oembed?url=${url}`],
+    ["reddit.com", (url) => `https://www.reddit.com/oembed?url=${url}`],
+];
+
+/** Where to ask a site what a link of its own is called, if it says. */
+export function oembedUrlFor(target: string): string | null {
+    let host: string;
+    try {
+        const parsed = new URL(target);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return null;
+        }
+        host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    } catch {
+        return null;
+    }
+
+    for (const [domain, build] of OEMBED) {
+        if (host === domain || host.endsWith(`.${domain}`)) {
+            return build(encodeURIComponent(target));
+        }
+    }
+    return null;
+}
+
+/**
+ * The title inside an oEmbed answer.
+ *
+ * Anything that is not the JSON we asked for — an error page, a redirect to a
+ * login, a rate limit — is no title rather than a crash.
+ */
+export function titleFromOembed(json: string): string | null {
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(json);
+    } catch {
+        return null;
+    }
+    if (typeof parsed !== "object" || parsed === null) return null;
+
+    const title = (parsed as { title?: unknown }).title;
+    if (typeof title !== "string") return null;
+
+    const text = title.replace(/\s+/g, " ").trim();
+    if (!text) return null;
+
+    return text.length > MAX_TITLE_LENGTH
+        ? text.slice(0, MAX_TITLE_LENGTH - 1).trimEnd() + "…"
+        : text;
+}

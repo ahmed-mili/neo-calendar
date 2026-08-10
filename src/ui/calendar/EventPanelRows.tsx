@@ -36,7 +36,13 @@ import {
 } from "./CalendarUtils";
 import { urlMarkdown } from "./linkInput";
 import { LinkKind, linkKind } from "./linkKind";
-import { pageTitleFrom, safeLabel, withDeadline } from "./linkTitle";
+import {
+    oembedUrlFor,
+    pageTitleFrom,
+    safeLabel,
+    titleFromOembed,
+    withDeadline,
+} from "./linkTitle";
 import { BrandIcon } from "./BrandIcons";
 import {
     ClockIcon,
@@ -1870,11 +1876,27 @@ export function LinksAttachmentsRow({
             const target = /\]\(([^)]+)\)\s*$/.exec(markdown)?.[1];
             if (!target || !/^https?:\/\//i.test(target)) return markdown;
 
-            const html = await withDeadline(
-                onFetchPage(target),
-                TITLE_DEADLINE_MS
-            );
-            const title = html ? pageTitleFrom(html) : null;
+            // The site's own answer first, where it publishes one: a page's
+            // <title> is the name of the site for anything that is not a page,
+            // which is how a TikTok video came back called "TikTok".
+            const oembed = oembedUrlFor(target);
+            let title: string | null = null;
+
+            if (oembed) {
+                const json = await withDeadline(
+                    onFetchPage(oembed),
+                    TITLE_DEADLINE_MS
+                );
+                title = json ? titleFromOembed(json) : null;
+            }
+
+            if (!title) {
+                const html = await withDeadline(
+                    onFetchPage(target),
+                    TITLE_DEADLINE_MS
+                );
+                title = html ? pageTitleFrom(html) : null;
+            }
             const label = title ? safeLabel(title) : "";
             return label ? `[${label}](${target})` : markdown;
         },
