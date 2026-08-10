@@ -822,6 +822,11 @@ export default function DesktopSettings({
                     onClick={() => openPage({ kind: "section", id: "sync" })}
                 />
             </SettingsGroup>
+
+            {/* At the foot of the page, where every app puts it. It is the
+                first thing anyone needs when something is wrong, and the only
+                thing that cannot be read off the screen otherwise. */}
+            <p className="nc-set-version">{__NEO_VERSION__}</p>
         </div>
     );
 
