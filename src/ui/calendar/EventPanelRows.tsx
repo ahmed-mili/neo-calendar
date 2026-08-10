@@ -1538,6 +1538,19 @@ function LinkedFileRow({
         }
     }, []);
 
+    /**
+     * On a phone, the first tap shows the address and the next one follows it.
+     *
+     * A pointer reveals the address by arriving; a finger has no way to arrive
+     * without also pressing. So the first tap does the arriving — and since the
+     * second tap is what opens, a double tap opens straight away. That is the
+     * same rule, not a second one.
+     *
+     * Reset when the address is dismissed, so coming back to a row behaves the
+     * way it did the first time.
+     */
+    const revealedRef = React.useRef(false);
+
     const showTooltip = React.useCallback(() => {
         cancelHide();
         setHovered(true);
@@ -1562,6 +1575,7 @@ function LinkedFileRow({
         hideTimerRef.current = window.setTimeout(() => {
             setTooltip(null);
             setCopied(false);
+            revealedRef.current = false;
         }, 120);
     }, [cancelHide]);
 
@@ -1607,6 +1621,7 @@ function LinkedFileRow({
         }
     };
 
+
     const activateLinkedItem = (
         event: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>
     ) => {
@@ -1614,6 +1629,14 @@ function LinkedFileRow({
         if (target?.closest("button")) return;
         event.preventDefault();
         event.stopPropagation();
+
+        if (isAndroidRuntime() && !revealedRef.current) {
+            revealedRef.current = true;
+            showTooltip();
+            return;
+        }
+
+        revealedRef.current = false;
         void openLinkedItem();
     };
 
