@@ -36,6 +36,7 @@ import {
 } from "./CalendarUtils";
 import { urlMarkdown } from "./linkInput";
 import { LinkKind, linkKind } from "./linkKind";
+import { pageTitleFrom, safeLabel, withDeadline } from "./linkTitle";
 import { BrandIcon } from "./BrandIcons";
 import {
     ClockIcon,
@@ -1404,8 +1405,14 @@ interface LinkedFileItem {
     kind: "note" | "attachment" | "web";
 }
 
+/** How long adding a link waits for the page to name itself. */
+const TITLE_DEADLINE_MS = 2500;
+
 interface LinksAttachmentsRowProps {
     eventId: string | null;
+    /** Fetches a page's source, off the WebView so no site can refuse it for
+        being cross-origin. Absent where there is no such way. */
+    onFetchPage?: (url: string) => Promise<string>;
     disabled: boolean;
     vaults: LinkVaultOption[];
     items: LinkedFileItem[];
@@ -1703,6 +1710,7 @@ export function LinksAttachmentsRow({
     items,
     onOpenNote,
     onSearch,
+    onFetchPage,
     onAddLink,
     onRemoveLink,
     onOpenLink,
@@ -1811,13 +1819,41 @@ export function LinksAttachmentsRow({
         };
     }, [open, onSearch, query, updatePosition]);
 
+    /**
+     * Names a web link after the page it points at, if the page will say and
+     * says so quickly.
+     *
+     * Read once, here, and written into the note as the link's label, so the
+     * row reads the same offline for ever after. Everything about this is
+     * optional: no network, a site that refuses, a page with no title, or
+     * simply an answer that takes too long, and the link is added with its host
+     * as the label exactly as before.
+     */
+    const titled = React.useCallback(
+        async (markdown: string): Promise<string> => {
+            if (!onFetchPage) return markdown;
+
+            const target = /\]\(([^)]+)\)\s*$/.exec(markdown)?.[1];
+            if (!target || !/^https?:\/\//i.test(target)) return markdown;
+
+            const html = await withDeadline(
+                onFetchPage(target),
+                TITLE_DEADLINE_MS
+            );
+            const title = html ? pageTitleFrom(html) : null;
+            const label = title ? safeLabel(title) : "";
+            return label ? `[${label}](${target})` : markdown;
+        },
+        [onFetchPage]
+    );
+
     const addMarkdown = React.useCallback(
         async (markdown: string) => {
             if (!eventId || !onAddLink || !markdown.trim() || saving) return;
             setSaving(true);
             setError(null);
             try {
-                await onAddLink(eventId, markdown.trim());
+                await onAddLink(eventId, (await titled(markdown.trim())).trim());
                 closePicker();
             } catch (reason) {
                 setError(
@@ -1827,7 +1863,7 @@ export function LinksAttachmentsRow({
                 setSaving(false);
             }
         },
-        [closePicker, eventId, onAddLink, saving]
+        [closePicker, eventId, onAddLink, saving, titled]
     );
 
     const submitInput = React.useCallback(() => {

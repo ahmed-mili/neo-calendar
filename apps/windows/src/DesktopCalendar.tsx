@@ -70,6 +70,7 @@ import {
     deleteDesktopCalendarFolder,
     deleteDesktopEventFile,
     fetchDesktopIcs,
+    fetchDesktopPage,
     loadDesktopWorkspace,
     openDesktopExternalTarget,
     openDesktopLinkedPath,
@@ -2934,6 +2935,7 @@ export default function DesktopCalendar({
                     name: folderName(path),
                 }))}
                 onSearchEventLinks={searchEventLinks}
+                onFetchPage={fetchDesktopPage}
                 linkedItems={panelLinkedItems}
                 onAddEventLink={appendEventBody}
                 onRemoveEventLink={removeEventBodyLink}

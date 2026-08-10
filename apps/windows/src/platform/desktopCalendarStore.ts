@@ -189,3 +189,19 @@ export async function copyDesktopAttachment(
 export async function fetchDesktopIcs(url: string): Promise<string> {
     return invoke<string>("fetch_desktop_ics", { url });
 }
+
+/**
+ * Fetches a page's source, for naming a link after what it points at.
+ *
+ * Goes through the same native command the calendar subscriptions use: it is a
+ * plain HTTP GET made outside the WebView, which is the point — a request made
+ * inside it is refused by every site that has not chosen to allow this one.
+ * The command's name is about the first thing it was asked to fetch, not about
+ * what it does.
+ *
+ * It reads the whole response, so this is worth doing once per link and never
+ * on a loop. The caller stops waiting long before the request itself gives up.
+ */
+export async function fetchDesktopPage(url: string): Promise<string> {
+    return invoke<string>("fetch_desktop_ics", { url });
+}
