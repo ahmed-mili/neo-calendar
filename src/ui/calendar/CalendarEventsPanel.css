@@ -36,6 +36,12 @@
     --cep-text-faint: var(--nc-text-faint, var(--text-faint));
     --cep-hover: var(--nc-bg-hover, var(--background-modifier-hover));
 
+    /* How far down the header ends. The menus hang from it and are positioned
+       against this panel, not against the header, so they need the number —
+       and the phone changes it, by pushing the header down past the status
+       bar. Named here so the two cannot drift apart silently. */
+    --cep-header-height: 45px;
+
     position: absolute;
     top: 0;
     bottom: 0;
@@ -304,7 +310,7 @@
 .nc-cep-popover {
     position: absolute;
     z-index: 4;
-    top: 45px;
+    top: var(--cep-header-height);
     right: 8px;
     left: 8px;
     display: flex;

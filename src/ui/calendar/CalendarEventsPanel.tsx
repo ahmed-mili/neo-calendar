@@ -274,11 +274,12 @@ export default function CalendarEventsPanel({
                 pinned ? " nc-cep-pinned" : ""
             }`}
         >
-            {/* This panel was switched off on Android because its close button
-                ended up under the status bar, leaving a list with no way out.
-                It keeps a strip of calendar visible beside it, exactly as the
-                drawer does on the other edge, and that strip closes it — so
-                there are two ways out even if the button ever misbehaves. */}
+            {/* The way out, and now the only one: the close button is gone
+                from the phone's header, where it meant the same thing as the
+                strip with a target a fifth the size. This panel was once
+                switched off on Android entirely because that button ended up
+                under the status bar, leaving a list with no way out — so
+                whatever else changes here, this strip stays. */}
             {onPhone && (
                 <div
                     className="nc-cep-backdrop"
@@ -334,25 +335,38 @@ export default function CalendarEventsPanel({
                         >
                             <PlusIcon size={16} />
                         </button>
-                        <button
-                            type="button"
-                            className={`nc-cep-icon-btn${
-                                pinned ? " nc-active" : ""
-                            }`}
-                            title={pinned ? t("Unpin panel") : t("Pin panel")}
-                            aria-pressed={pinned}
-                            onClick={onTogglePinned}
-                        >
-                            <PinIcon />
-                        </button>
-                        <button
-                            type="button"
-                            className="nc-cep-icon-btn"
-                            title={t("Collapse")}
-                            onClick={onClose}
-                        >
-                            <ChevronsLeftIcon />
-                        </button>
+                        {/* Neither of these means anything on a phone. Pinning
+                            keeps the panel open beside the calendar, which is a
+                            two-column idea on a screen that has room for one;
+                            and collapsing is what the strip of calendar beside
+                            the panel already does, with a bigger target. */}
+                        {!onPhone && (
+                            <>
+                                <button
+                                    type="button"
+                                    className={`nc-cep-icon-btn${
+                                        pinned ? " nc-active" : ""
+                                    }`}
+                                    title={
+                                        pinned
+                                            ? t("Unpin panel")
+                                            : t("Pin panel")
+                                    }
+                                    aria-pressed={pinned}
+                                    onClick={onTogglePinned}
+                                >
+                                    <PinIcon />
+                                </button>
+                                <button
+                                    type="button"
+                                    className="nc-cep-icon-btn"
+                                    title={t("Collapse")}
+                                    onClick={onClose}
+                                >
+                                    <ChevronsLeftIcon />
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
 
