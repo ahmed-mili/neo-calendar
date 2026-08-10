@@ -2,9 +2,9 @@ import {
     MAX_TITLE_LENGTH,
     TITLE_SCAN_BYTES,
     canonicalUrlFrom,
+    confirmedTarget,
     decodeEntities,
     isFrontDoorTitle,
-    isTakenTitle,
     oembedAnswersFor,
     oembedUrlFor,
     pageTitleFrom,
@@ -280,27 +280,52 @@ describe("oembedAnswersFor", () => {
     });
 });
 
-describe("isTakenTitle", () => {
-    it("refuses a title another link on the event already wears", () => {
-        // Exactly what was seen: two different videos, one title between them.
-        expect(isTakenTitle("une recette de pain", ["une recette de pain"])).toBe(
-            true
+describe("confirmedTarget", () => {
+    const shared = "https://vm.tiktok.com/ZN8RmLXNp/";
+    const real = "https://www.tiktok.com/@qoranioff/video/7671974074775784707";
+    const answer = JSON.stringify({
+        title: "une vidéo",
+        html: '<blockquote data-video-id="7671974074775784707"></blockquote>',
+    });
+
+    it("keeps the address the link really goes to", () => {
+        // Two short codes for one video is what a share does; stored by where
+        // they lead, they are visibly the same link.
+        expect(confirmedTarget(shared, real, answer)).toBe(real);
+    });
+
+    it("drops the tracking the share was carrying", () => {
+        expect(
+            confirmedTarget(shared, `${real}?_t=ZS-R1dmcg&_r=1`, answer)
+        ).toBe(real);
+    });
+
+    it("refuses a front door offering itself as the address", () => {
+        // The interstitial a plain client is shown says og:url is the
+        // homepage. Believing it would move the link to the homepage.
+        expect(
+            confirmedTarget(shared, "https://www.tiktok.com/", answer)
+        ).toBe(shared);
+    });
+
+    it("never lets a page send the link to another site", () => {
+        expect(
+            confirmedTarget(shared, "https://evil.example/7671974074775784707", answer)
+        ).toBe(shared);
+        expect(confirmedTarget(shared, "javascript:alert(1)", answer)).toBe(
+            shared
         );
     });
 
-    it("does not care about case or spacing, which a site varies freely", () => {
-        expect(isTakenTitle("Une  Recette", ["une recette"])).toBe(true);
-    });
-
-    it("lets a genuinely different title through", () => {
-        expect(isTakenTitle("un autre plat", ["une recette de pain"])).toBe(
-            false
+    it("wants the site's own answer to confirm the address", () => {
+        expect(confirmedTarget(shared, real, '{"title":"autre chose"}')).toBe(
+            shared
         );
-        expect(isTakenTitle("une recette", [])).toBe(false);
+        expect(confirmedTarget(shared, real, null)).toBe(shared);
+        expect(confirmedTarget(shared, null, answer)).toBe(shared);
     });
 
-    it("says nothing about an empty title", () => {
-        // There is no title here to be a duplicate of anything.
-        expect(isTakenTitle("   ", ["", "vm.tiktok.com"])).toBe(false);
+    it("leaves an address it cannot read alone", () => {
+        expect(confirmedTarget("not a url", real, answer)).toBe("not a url");
     });
 });

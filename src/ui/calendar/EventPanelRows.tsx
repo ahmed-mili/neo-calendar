@@ -34,12 +34,12 @@ import {
     DAYS_MIN,
     MONTHS_SHORT,
 } from "./CalendarUtils";
-import { sameTarget, urlMarkdown } from "./linkInput";
+import { sameDestination, sameTarget, urlMarkdown } from "./linkInput";
 import { LinkKind, linkKind } from "./linkKind";
 import {
     canonicalUrlFrom,
+    confirmedTarget,
     isFrontDoorTitle,
-    isTakenTitle,
     oembedAnswersFor,
     oembedUrlFor,
     pageTitleFrom,
@@ -1886,15 +1886,9 @@ export function LinksAttachmentsRow({
              * The page first, then the site's own answer about it.
              *
              * A shared link is rarely the canonical one — vm.tiktok.com/ZM…
-             * is a note saying where to go — and oEmbed refuses to answer
-             * about the note. That refusal fell back to reading the page, and
-             * the page a plain client is shown is the front door: two
-             * different videos, one title.
-             *
-             * So the page is fetched once, which also tells us the address it
-             * really lives at; oEmbed is asked about THAT. The page's own
-             * title is the fallback, minus the words a site uses when it is
-             * telling you nothing.
+             * is a note saying where to go. The page it leads to says where
+             * that is, so it is fetched once for both the address and the
+             * title, and oEmbed is asked about the address it gave.
              */
             const html = await withDeadline(
                 onFetchPage(target),
@@ -1903,25 +1897,19 @@ export function LinksAttachmentsRow({
 
             const canonical = (html && canonicalUrlFrom(html)) || target;
             let title: string | null = null;
+            /* What gets stored: the canonical address once the site has
+               confirmed it, so two shares of one video are one link. */
+            let destination = target;
 
             /*
-             * Both addresses are worth asking about, and the answer has to
-             * name the one it was asked about.
+             * Both addresses are worth asking about.
              *
              * The canonical one is what a site will answer for; the shared one
              * is what we know is right. When the page comes back without
              * having resolved — a challenge, a throttle, an interstitial — the
-             * canonical read off it is somebody else's, and the answer that
-             * follows is about somebody else's link. Asking about both and
-             * keeping only an answer that names its own link means a bad
-             * resolution costs a request rather than a wrong title.
+             * canonical read off it is not this link's, so an answer only
+             * counts when it names the address it was asked about.
              */
-            /* Names already on this event. A title that arrives wearing one of
-               them is the stale answer, not a coincidence. */
-            const taken = items.map((item) => item.label);
-            const keep = (found: string | null): string | null =>
-                found && !isTakenTitle(found, taken) ? found : null;
-
             const addresses =
                 canonical === target ? [target] : [canonical, target];
             for (const about of addresses) {
@@ -1932,32 +1920,34 @@ export function LinksAttachmentsRow({
                     onFetchPage(oembed),
                     TITLE_DEADLINE_MS
                 );
-                if (json && oembedAnswersFor(json, about)) {
-                    title = keep(titleFromOembed(json));
-                    if (title) break;
-                }
+                if (!json || !oembedAnswersFor(json, about)) continue;
+
+                destination = confirmedTarget(target, canonical, json);
+                title = titleFromOembed(json);
+                if (title) break;
             }
 
             if (!title && html) {
                 const fromPage = pageTitleFrom(html);
-                title = keep(
+                title =
                     fromPage && !isFrontDoorTitle(fromPage, canonical)
                         ? fromPage
-                        : null
-                );
+                        : null;
             }
 
             const label = title ? safeLabel(title) : "";
-            if (label) return `[${label}](${target})`;
+            if (label) return `[${label}](${destination})`;
 
             /* The link is added either way — a title was never a condition —
                but silence here reads as the feature not existing. A site that
                would not say is worth a word, because trying again in a moment
                often works. */
             setNotice(t("The site did not give a title for this link"));
-            return markdown;
+            return destination === target
+                ? markdown
+                : markdown.replace(`(${target})`, `(${destination})`);
         },
-        [items, onFetchPage]
+        [onFetchPage]
     );
 
     const addMarkdown = React.useCallback(
@@ -1969,8 +1959,9 @@ export function LinksAttachmentsRow({
                leave the second one nowhere — the list is keyed by target, so
                the duplicate is dropped on reading and the row never changes.
                Silently doing nothing looks exactly like a failure to add. */
-            const target = /\]\(([^)]+)\)\s*$/.exec(markdown.trim())?.[1];
-            if (target && items.some((item) => sameTarget(item.target, target))) {
+            const raw = markdown.trim();
+            const pasted = /\]\(([^)]+)\)\s*$/.exec(raw)?.[1];
+            if (pasted && items.some((item) => sameTarget(item.target, pasted))) {
                 setError(t("This link is already here"));
                 return;
             }
@@ -1979,7 +1970,25 @@ export function LinksAttachmentsRow({
             setError(null);
             setNotice(null);
             try {
-                await onAddLink(eventId, (await titled(markdown.trim())).trim());
+                const resolved = (await titled(raw)).trim();
+
+                /* The same thing reached by another road. Two shares of one
+                   video are two different addresses, so this can only be seen
+                   once the site has said where each one goes — which is here,
+                   and not a moment earlier. Worth its own words: "already
+                   here" about an address you have never seen before reads as
+                   the app being wrong. */
+                const target = /\]\(([^)]+)\)\s*$/.exec(resolved)?.[1];
+                if (
+                    target &&
+                    items.some((item) => sameDestination(item.target, target))
+                ) {
+                    setNotice(null);
+                    setError(t("This link leads to the same place as one already here"));
+                    return;
+                }
+
+                await onAddLink(eventId, resolved);
                 closePicker();
             } catch (reason) {
                 setError(
