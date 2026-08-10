@@ -288,10 +288,15 @@ export function isFrontDoorTitle(title: string, target: string): boolean {
  * which link it describes — so the link's own identifier is looked for inside
  * it.
  *
- * The identifier is the distinctive part of the address: the numeric video id
- * a canonical URL ends with, or the short code a shared link is made of. Every
+ * The identifier is the numeric video id a canonical address ends with. Every
  * oEmbed answer repeats it — in the embed markup, in the thumbnail, in the
  * author's address — so its absence means the answer is about something else.
+ *
+ * A shared link's short code is deliberately NOT used here, and asking for it
+ * was a bug: `vm.tiktok.com/ZM…` is a note saying where to go, and the answer
+ * describes the place, never the note. The code appears nowhere in it, so
+ * requiring it refused every correct answer and left every shared link with no
+ * title at all — which is what shipping this check did.
  *
  * Unknown shapes are trusted rather than rejected: this guards against a wrong
  * answer, not against every answer.
@@ -299,21 +304,39 @@ export function isFrontDoorTitle(title: string, target: string): boolean {
 export function oembedAnswersFor(json: string, url: string): boolean {
     let path: string;
     try {
-        const parsed = new URL(url);
-        path = parsed.pathname;
+        path = new URL(url).pathname;
     } catch {
         return true;
     }
 
-    const segments = path.split("/").filter(Boolean);
-    const identifier =
-        // A canonical video address ends with its id.
-        segments.reverse().find((part) => /^\d{6,}$/.test(part)) ??
-        // A shared link is one opaque code and nothing else.
-        (segments.length === 1 && /^[A-Za-z0-9_-]{6,}$/.test(segments[0])
-            ? segments[0]
-            : null);
+    const identifier = path
+        .split("/")
+        .filter(Boolean)
+        .reverse()
+        .find((part) => /^\d{6,}$/.test(part));
 
     if (!identifier) return true;
     return json.includes(identifier);
+}
+
+/**
+ * Whether a title is already the name of another link on this event.
+ *
+ * The last defence, and the one that matches what was actually seen: two
+ * different videos, one title between them. Nothing in a single answer says it
+ * is stale — it is well-formed, it names a real video, it simply names the one
+ * asked about a moment earlier. What gives it away is the row above already
+ * wearing it.
+ *
+ * Refusing is safe in a way that accepting is not. Two links on one event that
+ * genuinely share a title is rare, and the cost of getting it wrong is a row
+ * labelled with its host, which is where every link started. The cost of the
+ * other mistake is a note that says something untrue.
+ */
+export function isTakenTitle(title: string, taken: readonly string[]): boolean {
+    const said = title.toLowerCase().replace(/\s+/g, " ").trim();
+    if (!said) return false;
+    return taken.some(
+        (other) => other.toLowerCase().replace(/\s+/g, " ").trim() === said
+    );
 }
