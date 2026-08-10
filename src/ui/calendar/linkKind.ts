@@ -20,6 +20,7 @@ export type LinkKind =
     | "github"
     | "spotify"
     | "whatsapp"
+    | "reddit"
     | "mail"
     | "phone"
     | "web";
@@ -37,6 +38,8 @@ const HOSTS: ReadonlyArray<readonly [string, LinkKind]> = [
     ["spotify.com", "spotify"],
     ["whatsapp.com", "whatsapp"],
     ["wa.me", "whatsapp"],
+    ["reddit.com", "reddit"],
+    ["redd.it", "reddit"],
 ];
 
 const hostOf = (target: string): string | null => {

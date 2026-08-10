@@ -152,14 +152,9 @@ export const ArrowRightIcon = () => (
    Every linked row wore the same document icon, so a note in the vault, a
    video and an email address looked alike until you read the text.
 
-   These are drawn here rather than taken from a set, because the icon library
-   this project uses ships no brand marks. That sets an honest limit: a shape
-   is only used where the real mark IS simple geometry — a play triangle in a
-   rounded rectangle, a camera outline with a circle in it, a ring with three
-   arcs. Where it is not, the link gets the globe rather than a bad drawing
-   pretending to be a logo. */
-
-const brand = (color: string) => ({ color });
+   The brands live in BrandIcons.tsx, as their real marks. What is left here is
+   the three destinations that belong to nobody: a website, an address, a
+   number. */
 
 export const GlobeIcon = () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -173,93 +168,6 @@ export const GlobeIcon = () => (
             strokeWidth="1.3"
         />
         <path d="M2.6 6.2h10.8M2.6 9.8h10.8" stroke="currentColor" strokeWidth="1.3" />
-    </svg>
-);
-
-/** The vault's own mark is a faceted gem; this is that shape, in its colour. */
-export const VaultIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={brand("#a68cf0")}>
-        <path
-            d="M8 1.8 13 5v6L8 14.2 3 11V5z"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            strokeLinejoin="round"
-        />
-        <path
-            d="M8 1.8 5.6 8 8 14.2M13 5 5.6 8M3 5l2.6 3"
-            stroke="currentColor"
-            strokeWidth="1.1"
-            strokeLinejoin="round"
-        />
-    </svg>
-);
-
-export const YoutubeIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={brand("#ff0033")}>
-        <rect
-            x="1.4"
-            y="3.4"
-            width="13.2"
-            height="9.2"
-            rx="2.8"
-            fill="currentColor"
-        />
-        <path d="M6.6 6.2 10.6 8l-4 1.8z" fill="#fff" />
-    </svg>
-);
-
-export const InstagramIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={brand("#e1306c")}>
-        <rect
-            x="2.2"
-            y="2.2"
-            width="11.6"
-            height="11.6"
-            rx="3.4"
-            stroke="currentColor"
-            strokeWidth="1.4"
-        />
-        <circle cx="8" cy="8" r="2.9" stroke="currentColor" strokeWidth="1.4" />
-        <circle cx="11.5" cy="4.5" r="0.85" fill="currentColor" />
-    </svg>
-);
-
-/** Named for the site, not for the shape: XIcon is already the close button. */
-export const XSiteIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path
-            d="M3.4 3.4 12.6 12.6M12.6 3.4 3.4 12.6"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-        />
-    </svg>
-);
-
-export const SpotifyIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={brand("#1db954")}>
-        <circle cx="8" cy="8" r="6.2" stroke="currentColor" strokeWidth="1.4" />
-        <path
-            d="M4.9 6.2c2-.5 4.2-.3 6.1.7M5.4 8.4c1.6-.4 3.4-.2 4.9.6M5.9 10.5c1.2-.3 2.6-.2 3.7.5"
-            stroke="currentColor"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-        />
-    </svg>
-);
-
-export const WhatsappIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={brand("#25d366")}>
-        <path
-            d="M2.6 13.4l.8-2.7A5.5 5.5 0 1 1 5.6 12.8z"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            strokeLinejoin="round"
-        />
-        <path
-            d="M6.2 6c.3 1.9 1.9 3.5 3.8 3.8l.7-1 1.2.6-.3 1.1c-2.6.4-5.4-2.4-5.1-5l1.1-.3.6 1.2z"
-            fill="currentColor"
-        />
     </svg>
 );
 
