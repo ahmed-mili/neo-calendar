@@ -39,6 +39,7 @@ import { LinkKind, linkKind } from "./linkKind";
 import {
     canonicalUrlFrom,
     isFrontDoorTitle,
+    oembedAnswersFor,
     oembedUrlFor,
     pageTitleFrom,
     safeLabel,
@@ -1906,7 +1907,13 @@ export function LinksAttachmentsRow({
                     onFetchPage(oembed),
                     TITLE_DEADLINE_MS
                 );
-                title = json ? titleFromOembed(json) : null;
+                // And only if the answer is about the link we asked about: a
+                // title belonging to something else reads as an answer, which
+                // is worse than none.
+                title =
+                    json && oembedAnswersFor(json, canonical)
+                        ? titleFromOembed(json)
+                        : null;
             }
 
             if (!title && html) {
