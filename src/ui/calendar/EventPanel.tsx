@@ -379,11 +379,21 @@ export default function EventPanel({
         };
     }, [visible, eventId, draft]);
 
-    usePopupDismiss({ visible, popupRef, menuRef, onClose });
+    // Dismissing by tapping outside leaves the same way as the X does. The
+    // indirection is because the sheet hook is set up just below and owns the
+    // movement — reading it through a closure keeps the order of declaration
+    // from deciding how the panel behaves.
+    const closeRef = React.useRef<() => void>(onClose);
+    usePopupDismiss({
+        visible,
+        popupRef,
+        menuRef,
+        onClose: React.useCallback(() => closeRef.current(), []),
+    });
 
     // The grab handle across the top of the sheet is only drawn on Android, so
     // that is the only place the gesture belongs.
-    useSheetDrag({
+    const { requestClose } = useSheetDrag({
         enabled: visible && isNeoAndroidRuntime(),
         sheetRef: popupRef,
         handleRef: headerRef,
@@ -392,6 +402,7 @@ export default function EventPanel({
         variant: isDraft ? "draft" : "sheet",
         onClose,
     });
+    closeRef.current = requestClose;
 
     // NEO_ANDROID_NOTION_DRAFT_FOCUS_START
     useEffect(() => {
@@ -468,7 +479,7 @@ export default function EventPanel({
     const handleDeleteClick = () => {
         if (!eventId) return;
         onDelete(eventId);
-        onClose();
+        requestClose();
     };
 
     // Track original calendar to detect moves
@@ -809,7 +820,7 @@ export default function EventPanel({
             onMouseDown={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
                 if (e.key === "Escape") {
-                    onClose();
+                    requestClose();
                 }
                 e.stopPropagation();
             }}
@@ -835,7 +846,7 @@ export default function EventPanel({
                               // the original hides the thing just made.
                               setMenuOpen(false);
                               onDuplicate(id);
-                              onClose();
+                              requestClose();
                           }
                         : undefined
                 }
@@ -843,7 +854,7 @@ export default function EventPanel({
                     setMenuOpen(false);
                     handleDeleteClick();
                 }}
-                onClose={onClose}
+                onClose={requestClose}
             />
 
             <form

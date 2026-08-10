@@ -10,15 +10,7 @@ import {
     snappedScroll,
     VELOCITY_WINDOW_MS,
     lockedAxis,
-    PAGE_COMMIT_FRACTION,
-    PAGE_FLICK_VELOCITY,
-    MIN_PAGE_MS,
-    MAX_PAGE_MS,
-    PAGE_BASE_SPEED,
-    pageDuration,
-    pagedStep,
     pageWidthFor,
-    resistedTravel,
     pinchedHourHeight,
     scrollForAnchor,
     stillGliding,
@@ -280,65 +272,6 @@ describe("easeOutCubic", () => {
     });
 });
 
-describe("pagedStep", () => {
-    it("stays put when the swipe barely moved", () => {
-        expect(pagedStep(0, 0)).toBe(0);
-        expect(pagedStep(0.2, 0)).toBe(0);
-        expect(pagedStep(-0.2, 0)).toBe(0);
-    });
-
-    it("keeps going once the page is a quarter of the way over", () => {
-        expect(pagedStep(PAGE_COMMIT_FRACTION, 0)).toBe(1);
-        expect(pagedStep(-PAGE_COMMIT_FRACTION, 0)).toBe(-1);
-        expect(pagedStep(0.9, 0)).toBe(1);
-    });
-
-    it("turns the page on a flick, however short it was", () => {
-        // A quick swipe across a corner of the screen is still someone asking
-        // for the next day.
-        expect(pagedStep(0.02, PAGE_FLICK_VELOCITY)).toBe(1);
-        expect(pagedStep(-0.02, -PAGE_FLICK_VELOCITY)).toBe(-1);
-    });
-
-    it("never goes more than one page, however far the drag went", () => {
-        // The resistance keeps the drag near one page, but a fast flick over a
-        // wide screen must not be able to cross a week.
-        expect(pagedStep(4, 12)).toBe(1);
-        expect(pagedStep(-4, -12)).toBe(-1);
-    });
-
-    it("follows the flick when it contradicts the drag", () => {
-        // Dragged forward, thrown back: the throw is the last thing said.
-        expect(pagedStep(0.6, -PAGE_FLICK_VELOCITY)).toBe(-1);
-    });
-});
-
-describe("resistedTravel", () => {
-    const PAGE = 400;
-
-    it("follows the finger for the first page", () => {
-        expect(resistedTravel(0, PAGE)).toBe(0);
-        expect(resistedTravel(180, PAGE)).toBe(180);
-        expect(resistedTravel(-400, PAGE)).toBe(-400);
-    });
-
-    it("keeps only a fraction of what is dragged past a page", () => {
-        expect(resistedTravel(500, PAGE, 0.35)).toBeCloseTo(400 + 35, 5);
-        expect(resistedTravel(-500, PAGE, 0.35)).toBeCloseTo(-(400 + 35), 5);
-    });
-
-    it("keeps moving rather than stopping dead", () => {
-        // Held, not blocked: a wall at exactly one page reads as broken.
-        const held = resistedTravel(900, PAGE);
-        expect(held).toBeGreaterThan(PAGE);
-        expect(held).toBeLessThan(900);
-    });
-
-    it("gives up rather than divide by a page of no width", () => {
-        expect(resistedTravel(120, 0)).toBe(120);
-    });
-});
-
 describe("pageWidthFor", () => {
     it("turns one day at a time, whatever the view shows", () => {
         // 1-day view: a page and a screenful are the same thing.
@@ -357,33 +290,3 @@ describe("pageWidthFor", () => {
     });
 });
 
-describe("pageDuration", () => {
-    it("takes less time for less distance", () => {
-        // Released a hair from the edge, the last few pixels used to take the
-        // same full animation as a whole page, which is what made it heavy.
-        const nearlyThere = pageDuration(12, 0);
-        const wholePage = pageDuration(206, 0);
-        expect(nearlyThere).toBeLessThan(wholePage);
-    });
-
-    it("keeps up with a hand that threw it", () => {
-        const thrown = pageDuration(206, 3);
-        const dragged = pageDuration(206, 0);
-        expect(thrown).toBeLessThan(dragged);
-    });
-
-    it("never crawls and never drags on", () => {
-        expect(pageDuration(1, 0)).toBe(MIN_PAGE_MS);
-        expect(pageDuration(4000, 0)).toBe(MAX_PAGE_MS);
-        expect(pageDuration(206, 40)).toBe(MIN_PAGE_MS);
-    });
-
-    it("reads a page going backwards the same as one going forwards", () => {
-        expect(pageDuration(-206, -3)).toBe(pageDuration(206, 3));
-    });
-
-    it("gives a page with no speed behind it a sensible pace", () => {
-        // One day of a two-day view on a 412px screen, dragged and let go.
-        expect(pageDuration(206, 0)).toBeCloseTo(206 / PAGE_BASE_SPEED, 5);
-    });
-});

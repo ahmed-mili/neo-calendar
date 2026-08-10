@@ -224,24 +224,6 @@ export const InstagramIcon = () => (
     </svg>
 );
 
-/** A note, which is what the mark is — the exact curve of it is not geometry. */
-export const TiktokIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={brand("#25f4ee")}>
-        <path
-            d="M9.4 2.2v7.6a2.6 2.6 0 1 1-2.2-2.57"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-        />
-        <path
-            d="M9.4 2.6c.5 1.7 1.7 2.7 3.4 2.9"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-        />
-    </svg>
-);
-
 /** Named for the site, not for the shape: XIcon is already the close button. */
 export const XSiteIcon = () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

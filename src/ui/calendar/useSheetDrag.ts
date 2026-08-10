@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useEffect, useLayoutEffect } from "react";
 
 /**
@@ -215,6 +216,22 @@ export function restOffsetFor({
     return Math.max(0, Math.min(height, height - restHeight));
 }
 
+export interface SheetDrag {
+    /**
+     * Closes the sheet the way a downward drag does: it leaves.
+     *
+     * A drag to dismiss already slid the sheet out and closed it when it had
+     * gone; every other way out called onClose straight away, so the same
+     * sheet left differently depending on how you dismissed it — and the
+     * common way, the X, was the one that vanished. Nothing here should change
+     * state without a transition.
+     *
+     * Falls back to closing at once where there is no sheet to slide: the
+     * desktop, and the moment before the first layout.
+     */
+    requestClose: () => void;
+}
+
 export function useSheetDrag({
     enabled,
     sheetRef,
@@ -227,7 +244,10 @@ export function useSheetDrag({
     handleRef: React.RefObject<HTMLElement>;
     variant: keyof typeof REST_SHARE;
     onClose: () => void;
-}): void {
+}): SheetDrag {
+    // Filled by the effect below while a sheet is on screen; the ref survives
+    // the renders between, and is what the X and the backdrop call.
+    const slideOutRef = React.useRef<(() => void) | null>(null);
     // Laid out before the first paint, so the sheet is never seen at its full
     // height for a frame before dropping to its resting one.
     useLayoutEffect(() => {
@@ -358,6 +378,17 @@ export function useSheetDrag({
             paint(offset);
         };
 
+        // The same movement a downward drag ends with, offered to every other
+        // way out so the sheet always leaves the way it arrived.
+        slideOutRef.current = () => {
+            if (closingTimer) return;
+            glideTo(height);
+            closingTimer = window.setTimeout(() => {
+                closingTimer = 0;
+                onClose();
+            }, SETTLE_MS);
+        };
+
         const settleAt = (anchor: SheetAnchor) => {
             if (anchor === "closed") {
                 glideTo(height);
@@ -483,8 +514,17 @@ export function useSheetDrag({
             document.removeEventListener("touchend", onTouchEnd);
             document.removeEventListener("touchcancel", onTouchCancel);
             if (closingTimer) window.clearTimeout(closingTimer);
+            slideOutRef.current = null;
             cancelFrame();
             body.classList.remove(DRAGGING_CLASS);
         };
     }, [enabled, handleRef, onClose, sheetRef, variant]);
+
+    return {
+        requestClose: React.useCallback(() => {
+            const slideOut = slideOutRef.current;
+            if (slideOut) slideOut();
+            else onClose();
+        }, [onClose]),
+    };
 }

@@ -37,21 +37,15 @@ import {
  * here, so the day-shifting of the infinite scroll and the midnight clamp stay
  * in charge of where the grid actually sits.
  *
- * Across the days is a page turn rather than a scroll. A swipe is a decision
- * between three days — the one before, the one shown, the one after — so the
- * grid moves one day at a time and the drag is held to that day, with what is
- * dragged past it felt but not followed. A day rather than a screenful: in the
- * one-day view the two are the same, but in a two-day view a screenful moves
- * two days at once and half the alignments can never be reached. Free scrolling
- * that tidies itself up afterwards was the first attempt; a carousel is what a
- * day view actually is. The setting turns it back into a scroll for anyone who
- * wants that.
+ * Across the days the finger is free, and the grid lands on a day.
  *
- * The page animation moves the grid by a difference each frame rather than
- * towards a position, and so does the drag. The infinite scroll re-bases
- * scrollLeft whenever it shifts the day range, which it does mid-flight: an
- * animation aimed at an absolute offset would be measured from a page that had
- * moved under it. A whole-day snap at the end absorbs the rounding.
+ * A carousel came first — one swipe, one day, held there. It was wrong in the
+ * hand: a hard flick could not cross a week, and the hold read as the grid
+ * being stuck rather than as it being decisive. So the drag follows the finger
+ * with nothing in its way, a throw carries the same momentum the hours have,
+ * and what the movement always does is come to rest on a whole day. That last
+ * part is what the carousel was actually worth: half a Saturday beside half a
+ * Monday is nobody's week. The setting drops even that.
  *
  * Nothing here ever teleports. Every movement of this grid is a difference
  * applied inside a frame, never a position assigned — including the corrections
@@ -161,22 +155,6 @@ export function stillGliding(velocity: number): boolean {
 /** How long the grid takes to slide back onto whole days. */
 export const SETTLE_MS = 220;
 
-/** The shortest and longest a page turn may take. */
-export const MIN_PAGE_MS = 90;
-export const MAX_PAGE_MS = 320;
-
-/** The slowest a page will travel, px/ms, when the finger gave it no speed. */
-export const PAGE_BASE_SPEED = 1.2;
-
-/** How far into the next page a drag must reach for the release to keep going. */
-export const PAGE_COMMIT_FRACTION = 0.25;
-
-/** A flick this fast (px/ms of scroll) turns the page whatever it travelled. */
-export const PAGE_FLICK_VELOCITY = 0.35;
-
-/** What is left of a drag once it is already a page from where it started. */
-export const PAGE_RESISTANCE = 0.35;
-
 /** Fast at first, easing in at the end, like something coming to rest. */
 export function easeOutCubic(progress: number): number {
     const left = 1 - progress;
@@ -202,33 +180,9 @@ export function snappedScroll(
 }
 
 /**
- * How long a page turn should take, given what is left to travel and how fast
- * the finger was going when it let go.
+ * How wide one day is, for when the columns cannot be measured directly.
  *
- * A fixed duration is what makes a carousel feel heavy: released a hair from
- * the edge, the last few pixels still took the full animation, and a hard
- * flick was slowed down to the same pace as a lazy drag. Distance over speed
- * keeps the grid moving at roughly the rate the hand asked for, and the floor
- * on speed stops a page with nowhere to go from crawling.
- */
-export function pageDuration(distance: number, velocity: number): number {
-    const speed = Math.max(Math.abs(velocity), PAGE_BASE_SPEED);
-    return Math.min(
-        MAX_PAGE_MS,
-        Math.max(MIN_PAGE_MS, Math.abs(distance) / speed)
-    );
-}
-
-/**
- * How wide one page of the carousel is: one day, whatever the view.
- *
- * In the one-day view a day and a screenful are the same thing, which is where
- * the idea came from. They are not the same anywhere else: in a two-day view a
- * screenful moves two days per swipe, and half the alignments become
- * unreachable — starting on Monday-Tuesday, Tuesday-Wednesday can never be
- * shown. The day is the unit the grid is made of, so it is the unit it turns.
- *
- * Zero means there is nothing to page: a view with no days in it yet.
+ * Zero means there is nothing to land on: a view with no days in it yet.
  */
 export function pageWidthFor(
     viewportWidth: number,
@@ -236,51 +190,6 @@ export function pageWidthFor(
 ): number {
     if (!(daysPerView > 0) || !(viewportWidth > 0)) return 0;
     return viewportWidth / daysPerView;
-}
-
-/**
- * Which page a swipe lands on, relative to the one it started from.
- *
- * The days move a screenful at a time, like turning a page, rather than
- * scrolling freely and being tidied up afterwards: a swipe is a decision
- * between three days, not a distance.
- *
- * A flick decides on its own, however short — a quick one across a corner of
- * the screen is still someone asking for the next day. Otherwise it is how far
- * the page came: a quarter of the way over and it keeps going, less than that
- * and it falls back where it was.
- *
- * @param travelFraction how far the page moved, as a share of its width, in
- *                       scroll terms — positive is towards later days
- * @param velocity       the same direction, in px/ms
- */
-export function pagedStep(
-    travelFraction: number,
-    velocity: number
-): -1 | 0 | 1 {
-    if (velocity >= PAGE_FLICK_VELOCITY) return 1;
-    if (velocity <= -PAGE_FLICK_VELOCITY) return -1;
-    if (travelFraction >= PAGE_COMMIT_FRACTION) return 1;
-    if (travelFraction <= -PAGE_COMMIT_FRACTION) return -1;
-    return 0;
-}
-
-/**
- * A drag held to one page, with the rest of it felt but not followed.
- *
- * Past a full page the finger keeps moving and the days barely do. Stopping
- * dead there would read as broken; letting it run would let one swipe cross a
- * week, which is the thing being replaced.
- */
-export function resistedTravel(
-    travel: number,
-    pageWidth: number,
-    resistance = PAGE_RESISTANCE
-): number {
-    if (pageWidth <= 0) return travel;
-    const beyond = Math.abs(travel) - pageWidth;
-    if (beyond <= 0) return travel;
-    return Math.sign(travel) * (pageWidth + beyond * resistance);
 }
 
 export interface Span {
@@ -404,15 +313,6 @@ export function useAxisLock(
         let samples: TravelSample[] = [];
         let frame = 0;
 
-        /** Set while a horizontal drag is turning pages rather than scrolling. */
-        let page: {
-            width: number;
-            /** How far the drag has asked to move, before resistance. */
-            asked: number;
-            /** How far the grid has actually been moved for it. */
-            applied: number;
-        } | null = null;
-
         /** Set for as long as two fingers are on the grid. */
         let pinch: {
             startSpan: number;
@@ -479,17 +379,6 @@ export function useAxisLock(
         const drawDrag = () => {
             frame = 0;
             if (!axis) return;
-
-            if (page) {
-                // Held to one page, and moved by the difference each frame
-                // rather than to a position: the infinite scroll re-bases
-                // scrollLeft under us whenever it shifts the day range, and an
-                // absolute target would be measured from a page that moved.
-                const wanted = resistedTravel(page.asked, page.width);
-                scrollAxisBy("x", wanted - page.applied);
-                page.applied = wanted;
-                return;
-            }
 
             const travel = pointer - answered;
             answered = pointer;
@@ -573,72 +462,6 @@ export function useAxisLock(
                 moved = wanted;
                 frame = progress < 1 ? requestAnimationFrame(step) : 0;
             };
-            frame = requestAnimationFrame(step);
-        };
-
-        /**
-         * Carries the grid the rest of the way to a page, or back to the one it
-         * came from.
-         *
-         * Relative, frame by frame, for the same reason the drag is: the day
-         * range can be re-based mid-flight, and an animation aimed at an
-         * absolute offset would finish somewhere else entirely. It lands on a
-         * whole day at the end, which also absorbs the rounding.
-         */
-        const turnPage = (
-            distance: number,
-            velocity: number,
-            /** A correction already lands on a day; re-snapping it would loop. */
-            correcting = false
-        ) => {
-            const columnWidth = measureColumn();
-
-            const land = () => {
-                frame = 0;
-                delete host.dataset.ncGliding;
-                if (correcting) return;
-
-                const residual =
-                    snappedScroll(
-                        element.scrollLeft,
-                        columnWidth,
-                        element.scrollWidth - element.clientWidth
-                    ) - element.scrollLeft;
-
-                // Rounding is applied; anything larger is movement, and
-                // movement is animated. This is what the day-shifting leaves
-                // behind when it re-bases the grid mid-flight — assigning it
-                // outright is the jump that used to end a swipe.
-                if (Math.abs(residual) < 0.5) {
-                    scrollAxisBy("x", residual);
-                    return;
-                }
-                turnPage(residual, 0, true);
-            };
-
-            if (Math.abs(distance) < 0.5) {
-                land();
-                return;
-            }
-
-            host.dataset.ncGliding = "true";
-            const startedAt = performance.now();
-            const duration = pageDuration(distance, velocity);
-            let moved = 0;
-
-            const step = (now: number) => {
-                const progress = Math.min(1, (now - startedAt) / duration);
-                const wanted = distance * easeOutCubic(progress);
-                scrollAxisBy("x", wanted - moved);
-                moved = wanted;
-
-                if (progress < 1) {
-                    frame = requestAnimationFrame(step);
-                    return;
-                }
-                land();
-            };
-
             frame = requestAnimationFrame(step);
         };
 
@@ -733,35 +556,12 @@ export function useAxisLock(
                     axis === "y" ? touch.clientY : touch.clientX;
                 samples = [{ position: pointer, at: event.timeStamp }];
 
-                // Across the days is a page turn, not a scroll — unless free
-                // scrolling is on, where it stays a scroll.
-                //
-                // A page is a DAY, not a screenful. In the one-day view they
-                // are the same thing, which is where the idea came from; in a
-                // two- or three-day view a screenful jumps that many days at
-                // once, and every alignment in between becomes unreachable —
-                // starting on Monday-Tuesday you could never see
-                // Tuesday-Wednesday.
-                const pageWidth = pageWidthFor(
-                    element.clientWidth,
-                    optionsRef.current.daysPerView ?? 0
-                );
-                page =
-                    axis === "x" &&
-                    !optionsRef.current.freeScroll &&
-                    pageWidth > 0
-                        ? { width: pageWidth, asked: 0, applied: 0 }
-                        : null;
                 return;
             }
 
             pointer = axis === "y" ? touch.clientY : touch.clientX;
             samples.push({ position: pointer, at: event.timeStamp });
             if (samples.length > 8) samples.shift();
-
-            // Scroll runs the other way to the finger: a page comes in from the
-            // right when the hand goes left.
-            if (page) page.asked = answered - pointer;
 
             if (!frame) frame = requestAnimationFrame(drawDrag);
         };
@@ -778,10 +578,8 @@ export function useAxisLock(
             }
 
             const releasing = axis;
-            const turning = page;
             tracking = false;
             axis = null;
-            page = null;
             if (!releasing) return;
 
             // Whatever the finger asked for last is owed before it is let go.
@@ -794,20 +592,6 @@ export function useAxisLock(
                 last && event.timeStamp - last.at <= FLING_TIMEOUT_MS;
             // Finger speed; scroll runs the other way.
             const velocity = thrown ? velocityFrom(samples) : 0;
-
-            if (turning) {
-                turning.asked = answered - pointer;
-                const wanted = resistedTravel(turning.asked, turning.width);
-                scrollAxisBy("x", wanted - turning.applied);
-                turning.applied = wanted;
-
-                const step = pagedStep(
-                    turning.width > 0 ? wanted / turning.width : 0,
-                    -velocity
-                );
-                turnPage(step * turning.width - wanted, -velocity);
-                return;
-            }
 
             const travel = pointer - answered;
             answered = pointer;
@@ -827,7 +611,6 @@ export function useAxisLock(
             stopFrame();
             tracking = false;
             axis = null;
-            page = null;
             pinch = null;
             settleOnDays();
         };
