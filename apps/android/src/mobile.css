@@ -4461,6 +4461,17 @@ body.nc-platform-android .nc-panel-drag-hint {
     bottom: calc(24px + var(--nc-mobile-safe-bottom, 0px));
 }
 
+/* The bubble showing a link's full address, opaque.
+   96% of a colour and a blur reads as a tint on a desktop's flat background.
+   Here it sits over the event sheet, which sits over a photo, and the rows
+   underneath came straight through it — "Statut / À faire" was legible
+   through the address. Same treatment the sheet itself already has. */
+body.nc-platform-android .nc-linked-file-tooltip {
+    background: var(--nc-bg-secondary, var(--background-secondary)) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
 body.nc-platform-android .nc-cep-icon-btn {
     width: 40px;
     height: 40px;

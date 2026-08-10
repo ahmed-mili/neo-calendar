@@ -51,7 +51,6 @@ import {
     VaultIcon,
     YoutubeIcon,
     InstagramIcon,
-    TiktokIcon,
     XSiteIcon,
     SpotifyIcon,
     WhatsappIcon,
@@ -1489,7 +1488,9 @@ const LINK_GLYPHS: Record<LinkKind, () => JSX.Element> = {
     vault: VaultIcon,
     youtube: YoutubeIcon,
     instagram: InstagramIcon,
-    tiktok: TiktokIcon,
+    // Drawn from memory it looked like neither a note nor the mark; the globe
+    // says less and claims nothing.
+    tiktok: GlobeIcon,
     x: XSiteIcon,
     github: GlobeIcon,
     spotify: SpotifyIcon,
