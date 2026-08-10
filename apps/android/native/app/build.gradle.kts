@@ -7,8 +7,8 @@ android {
   applicationId = "com.ahmed.neocalendar"
   minSdk = 26
   targetSdk = 35
-  versionCode = 36
-  versionName = "1.16.0"
+  versionCode = 37
+  versionName = "1.17.0"
  }
 
  // Android n'accepte une mise à jour que si elle porte la même signature que la
