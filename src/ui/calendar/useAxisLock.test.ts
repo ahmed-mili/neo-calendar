@@ -10,6 +10,10 @@ import {
     snappedScroll,
     VELOCITY_WINDOW_MS,
     lockedAxis,
+    PAGE_COMMIT_FRACTION,
+    PAGE_FLICK_VELOCITY,
+    pagedStep,
+    resistedTravel,
     pinchedHourHeight,
     scrollForAnchor,
     stillGliding,
@@ -268,5 +272,64 @@ describe("easeOutCubic", () => {
         // Fast first, easing in at the end — the shape of something settling.
         expect(easeOutCubic(0.5)).toBeCloseTo(0.875, 5);
         expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
+    });
+});
+
+describe("pagedStep", () => {
+    it("stays put when the swipe barely moved", () => {
+        expect(pagedStep(0, 0)).toBe(0);
+        expect(pagedStep(0.2, 0)).toBe(0);
+        expect(pagedStep(-0.2, 0)).toBe(0);
+    });
+
+    it("keeps going once the page is a quarter of the way over", () => {
+        expect(pagedStep(PAGE_COMMIT_FRACTION, 0)).toBe(1);
+        expect(pagedStep(-PAGE_COMMIT_FRACTION, 0)).toBe(-1);
+        expect(pagedStep(0.9, 0)).toBe(1);
+    });
+
+    it("turns the page on a flick, however short it was", () => {
+        // A quick swipe across a corner of the screen is still someone asking
+        // for the next day.
+        expect(pagedStep(0.02, PAGE_FLICK_VELOCITY)).toBe(1);
+        expect(pagedStep(-0.02, -PAGE_FLICK_VELOCITY)).toBe(-1);
+    });
+
+    it("never goes more than one page, however far the drag went", () => {
+        // The resistance keeps the drag near one page, but a fast flick over a
+        // wide screen must not be able to cross a week.
+        expect(pagedStep(4, 12)).toBe(1);
+        expect(pagedStep(-4, -12)).toBe(-1);
+    });
+
+    it("follows the flick when it contradicts the drag", () => {
+        // Dragged forward, thrown back: the throw is the last thing said.
+        expect(pagedStep(0.6, -PAGE_FLICK_VELOCITY)).toBe(-1);
+    });
+});
+
+describe("resistedTravel", () => {
+    const PAGE = 400;
+
+    it("follows the finger for the first page", () => {
+        expect(resistedTravel(0, PAGE)).toBe(0);
+        expect(resistedTravel(180, PAGE)).toBe(180);
+        expect(resistedTravel(-400, PAGE)).toBe(-400);
+    });
+
+    it("keeps only a fraction of what is dragged past a page", () => {
+        expect(resistedTravel(500, PAGE, 0.35)).toBeCloseTo(400 + 35, 5);
+        expect(resistedTravel(-500, PAGE, 0.35)).toBeCloseTo(-(400 + 35), 5);
+    });
+
+    it("keeps moving rather than stopping dead", () => {
+        // Held, not blocked: a wall at exactly one page reads as broken.
+        const held = resistedTravel(900, PAGE);
+        expect(held).toBeGreaterThan(PAGE);
+        expect(held).toBeLessThan(900);
+    });
+
+    it("gives up rather than divide by a page of no width", () => {
+        expect(resistedTravel(120, 0)).toBe(120);
     });
 });
