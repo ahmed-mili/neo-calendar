@@ -47,3 +47,10 @@ describe("linkKind", () => {
         expect(linkKind("   ")).toBe("web");
     });
 });
+
+describe("linkKind, the marks that were added with them", () => {
+    it("knows Reddit by either of its hosts", () => {
+        expect(linkKind("https://www.reddit.com/r/a/comments/b")).toBe("reddit");
+        expect(linkKind("https://redd.it/abc")).toBe("reddit");
+    });
+});

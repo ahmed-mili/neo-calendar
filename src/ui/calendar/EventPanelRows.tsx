@@ -36,6 +36,7 @@ import {
 } from "./CalendarUtils";
 import { urlMarkdown } from "./linkInput";
 import { LinkKind, linkKind } from "./linkKind";
+import { BrandIcon } from "./BrandIcons";
 import {
     ClockIcon,
     CalendarIcon,
@@ -48,12 +49,6 @@ import {
     FileTextIcon,
     ArrowRightIcon,
     GlobeIcon,
-    VaultIcon,
-    YoutubeIcon,
-    InstagramIcon,
-    XSiteIcon,
-    SpotifyIcon,
-    WhatsappIcon,
     MailIcon,
     PhoneIcon,
 } from "./EventPanelIcons";
@@ -1483,18 +1478,23 @@ function linkedItemFileName(item: LinkedFileItem): string {
     return name || item.label || "Linked file";
 }
 
-/** The glyph for where a link goes. See linkKind.ts for the matching. */
+/**
+ * The glyph for where a link goes. See linkKind.ts for the matching.
+ *
+ * The brands are their real marks (BrandIcons); the three that are not brands —
+ * a website, an address, a number — are drawn here, because a globe and an
+ * envelope belong to nobody.
+ */
 const LINK_GLYPHS: Record<LinkKind, () => JSX.Element> = {
-    vault: VaultIcon,
-    youtube: YoutubeIcon,
-    instagram: InstagramIcon,
-    // Drawn from memory it looked like neither a note nor the mark; the globe
-    // says less and claims nothing.
-    tiktok: GlobeIcon,
-    x: XSiteIcon,
-    github: GlobeIcon,
-    spotify: SpotifyIcon,
-    whatsapp: WhatsappIcon,
+    vault: () => <BrandIcon brand="obsidian" />,
+    youtube: () => <BrandIcon brand="youtube" />,
+    instagram: () => <BrandIcon brand="instagram" />,
+    tiktok: () => <BrandIcon brand="tiktok" />,
+    x: () => <BrandIcon brand="x" />,
+    github: () => <BrandIcon brand="github" />,
+    spotify: () => <BrandIcon brand="spotify" />,
+    whatsapp: () => <BrandIcon brand="whatsapp" />,
+    reddit: () => <BrandIcon brand="reddit" />,
     mail: MailIcon,
     phone: PhoneIcon,
     web: GlobeIcon,
