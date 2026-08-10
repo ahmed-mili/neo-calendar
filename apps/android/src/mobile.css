@@ -4467,9 +4467,16 @@ body.nc-platform-android .nc-panel-drag-hint {
    underneath came straight through it — "Statut / À faire" was legible
    through the address. Same treatment the sheet itself already has. */
 body.nc-platform-android .nc-linked-file-tooltip {
-    background: var(--nc-bg-secondary, var(--background-secondary)) !important;
+    /* `--background-primary`, and not `--nc-bg-secondary`: the --nc-* variables
+       are deliberately left EMPTY on Android so surfaces elsewhere can show the
+       wallpaper through them. Naming one here painted nothing at all, which is
+       why this bubble stayed see-through after being told not to be. Every
+       other opaque surface on this platform uses the Obsidian variable
+       directly, and so does this one now. */
+    background: var(--background-primary, #11131d) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55) !important;
 }
 
 body.nc-platform-android .nc-cep-icon-btn {
