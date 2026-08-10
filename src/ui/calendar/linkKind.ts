@@ -21,6 +21,17 @@ export type LinkKind =
     | "spotify"
     | "whatsapp"
     | "reddit"
+    | "notion"
+    | "discord"
+    | "telegram"
+    | "twitch"
+    | "figma"
+    | "gmail"
+    | "googledocs"
+    | "googlecalendar"
+    | "googledrive"
+    | "steam"
+    | "signal"
     | "mail"
     | "phone"
     | "web";
@@ -40,6 +51,25 @@ const HOSTS: ReadonlyArray<readonly [string, LinkKind]> = [
     ["wa.me", "whatsapp"],
     ["reddit.com", "reddit"],
     ["redd.it", "reddit"],
+    ["notion.so", "notion"],
+    ["notion.site", "notion"],
+    ["discord.com", "discord"],
+    ["discord.gg", "discord"],
+    ["t.me", "telegram"],
+    ["telegram.org", "telegram"],
+    ["twitch.tv", "twitch"],
+    ["figma.com", "figma"],
+    // Google's services are told apart by their subdomain, so each is listed
+    // in full. There is deliberately no entry for google.com itself: a search
+    // result is a web page like any other.
+    ["mail.google.com", "gmail"],
+    ["docs.google.com", "googledocs"],
+    ["calendar.google.com", "googlecalendar"],
+    ["drive.google.com", "googledrive"],
+    ["store.steampowered.com", "steam"],
+    ["steamcommunity.com", "steam"],
+    ["signal.me", "signal"],
+    ["signal.group", "signal"],
 ];
 
 const hostOf = (target: string): string | null => {
