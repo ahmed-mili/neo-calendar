@@ -278,3 +278,42 @@ export function isFrontDoorTitle(title: string, target: string): boolean {
     }
     return false;
 }
+
+/**
+ * Whether an oEmbed answer is about the link we asked about.
+ *
+ * A title that belongs to something else is worse than no title: it reads as
+ * an answer. Two different videos arriving with one title between them is what
+ * that looks like from the outside, and nothing in the shape of the JSON says
+ * which link it describes — so the link's own identifier is looked for inside
+ * it.
+ *
+ * The identifier is the distinctive part of the address: the numeric video id
+ * a canonical URL ends with, or the short code a shared link is made of. Every
+ * oEmbed answer repeats it — in the embed markup, in the thumbnail, in the
+ * author's address — so its absence means the answer is about something else.
+ *
+ * Unknown shapes are trusted rather than rejected: this guards against a wrong
+ * answer, not against every answer.
+ */
+export function oembedAnswersFor(json: string, url: string): boolean {
+    let path: string;
+    try {
+        const parsed = new URL(url);
+        path = parsed.pathname;
+    } catch {
+        return true;
+    }
+
+    const segments = path.split("/").filter(Boolean);
+    const identifier =
+        // A canonical video address ends with its id.
+        segments.reverse().find((part) => /^\d{6,}$/.test(part)) ??
+        // A shared link is one opaque code and nothing else.
+        (segments.length === 1 && /^[A-Za-z0-9_-]{6,}$/.test(segments[0])
+            ? segments[0]
+            : null);
+
+    if (!identifier) return true;
+    return json.includes(identifier);
+}

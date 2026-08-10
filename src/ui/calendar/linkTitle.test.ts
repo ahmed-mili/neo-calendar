@@ -4,6 +4,7 @@ import {
     canonicalUrlFrom,
     decodeEntities,
     isFrontDoorTitle,
+    oembedAnswersFor,
     oembedUrlFor,
     pageTitleFrom,
     titleFromOembed,
@@ -227,5 +228,50 @@ describe("isFrontDoorTitle", () => {
 
     it("says nothing about something that is not an address", () => {
         expect(isFrontDoorTitle("TikTok", "not a url")).toBe(false);
+    });
+});
+
+describe("oembedAnswersFor", () => {
+    const about = (id: string) =>
+        JSON.stringify({
+            title: "une vidéo",
+            author_url: "https://www.tiktok.com/@someone",
+            html: `<blockquote data-video-id="${id}"></blockquote>`,
+        });
+
+    it("accepts an answer that names the video it was asked about", () => {
+        expect(
+            oembedAnswersFor(
+                about("7123456789012345678"),
+                "https://www.tiktok.com/@someone/video/7123456789012345678"
+            )
+        ).toBe(true);
+    });
+
+    it("refuses an answer about a different video", () => {
+        // This is the shape of the bug: a real title, for something else.
+        expect(
+            oembedAnswersFor(
+                about("7000000000000000000"),
+                "https://www.tiktok.com/@someone/video/7123456789012345678"
+            )
+        ).toBe(false);
+    });
+
+    it("checks a shared link by its code", () => {
+        expect(
+            oembedAnswersFor(about("ZN8RmLXNp"), "https://vm.tiktok.com/ZN8RmLXNp/")
+        ).toBe(true);
+        expect(
+            oembedAnswersFor(about("ZMother12"), "https://vm.tiktok.com/ZN8RmLXNp/")
+        ).toBe(false);
+    });
+
+    it("trusts an address with nothing distinctive to check", () => {
+        // The guard is against a wrong answer, not against every answer.
+        expect(oembedAnswersFor('{"title":"a"}', "https://example.com/")).toBe(
+            true
+        );
+        expect(oembedAnswersFor('{"title":"a"}', "not a url")).toBe(true);
     });
 });
