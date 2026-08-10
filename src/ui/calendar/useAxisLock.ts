@@ -53,6 +53,14 @@ import {
  * animation aimed at an absolute offset would be measured from a page that had
  * moved under it. A whole-day snap at the end absorbs the rounding.
  *
+ * Nothing here ever teleports. Every movement of this grid is a difference
+ * applied inside a frame, never a position assigned — including the corrections
+ * that end an animation. Two things make that a rule rather than a preference:
+ * the day range is re-based under us whenever the infinite scroll shifts it, so
+ * an absolute target is measured from a page that has since moved; and a state
+ * reached without a transition reads as a fault even when the state is right.
+ * A residual larger than rounding is movement, and movement is animated.
+ *
  * A second finger is a pinch. Zooming costs one number per frame — the height
  * of an hour, written on the grid as `--nc-hour-height` — because every
  * vertical measure in the grid is laid out in terms of it. Nothing re-renders
@@ -391,7 +399,8 @@ export function useAxisLock(
         let pointer = 0;
         /** Where the grid has been scrolled to answer it. */
         let answered = 0;
-        let extent = 0;
+        /** Measured once per axis per gesture: reading them forces layout. */
+        let extents: { x?: number; y?: number } = {};
         let samples: TravelSample[] = [];
         let frame = 0;
 
@@ -419,15 +428,49 @@ export function useAxisLock(
             delete host.dataset.ncGliding;
         };
 
+        /**
+         * How wide one day is, measured the way the infinite scroll measures
+         * it — same element, same fallback.
+         *
+         * Two notions of a day's width in one feature is how they come to
+         * disagree: the scroll re-bases scrollLeft by whole days of ITS width,
+         * and a snap to whole days of a slightly different width then has
+         * somewhere to pull to. That pull is a jump.
+         */
+        const measureColumn = () => {
+            const day = element.querySelector<HTMLElement>(".nc-timegrid-day");
+            if (day && day.offsetWidth > 0) return day.offsetWidth;
+            return pageWidthFor(
+                element.clientWidth,
+                optionsRef.current.daysPerView ?? 0
+            );
+        };
+
         const measureExtent = (on: ScrollAxis) =>
             on === "y"
                 ? element.scrollHeight - element.clientHeight
                 : element.scrollWidth - element.clientWidth;
 
-        /** Moves one axis; false once it has nothing left to give. */
+        const extentFor = (on: ScrollAxis): number =>
+            (extents[on] ??= measureExtent(on));
+
+        /** Anything that changes the layout invalidates both. */
+        const forgetExtents = () => {
+            extents = {};
+        };
+
+        /**
+         * Moves one axis; false once it has nothing left to give.
+         *
+         * The extent is the one belonging to the axis being moved, and not
+         * whichever the gesture locked. They are not interchangeable: settling
+         * the days runs after a vertical swipe too, and clamping a horizontal
+         * offset against the height of a day put the grid somewhere it had
+         * never been asked to go.
+         */
         const scrollAxisBy = (on: ScrollAxis, distance: number): boolean => {
             const from = on === "y" ? element.scrollTop : element.scrollLeft;
-            const to = clampScroll(from + distance, extent);
+            const to = clampScroll(from + distance, extentFor(on));
             if (on === "y") element.scrollTop = to;
             else element.scrollLeft = to;
             return to !== from;
@@ -485,6 +528,7 @@ export function useAxisLock(
             // Reading the height back settles the layout the line above just
             // invalidated — deliberately, and exactly once, because the scroll
             // correction below has to be measured against the new day.
+            forgetExtents();
             element.scrollTop = scrollForAnchor(
                 pinch.anchorHours,
                 hourHeight,
@@ -506,22 +550,27 @@ export function useAxisLock(
             const { daysPerView = 0, freeScroll = false } = optionsRef.current;
             if (freeScroll || daysPerView <= 0) return;
 
-            const columnWidth = element.clientWidth / daysPerView;
-            const from = element.scrollLeft;
+            const columnWidth = measureColumn();
             const to = snappedScroll(
-                from,
+                element.scrollLeft,
                 columnWidth,
                 element.scrollWidth - element.clientWidth
             );
             // Under half a pixel is already home; animating it would only cost
             // a frame and a flicker.
-            if (Math.abs(to - from) < 0.5) return;
+            const distance = to - element.scrollLeft;
+            if (Math.abs(distance) < 0.5) return;
 
+            // Relative, like everything else that moves this grid: an
+            // animation aimed at an absolute offset is measured from a page
+            // that the day-shifting can move out from under it mid-flight.
             const startedAt = performance.now();
+            let moved = 0;
             const step = (now: number) => {
                 const progress = Math.min(1, (now - startedAt) / SETTLE_MS);
-                element.scrollLeft =
-                    from + (to - from) * easeOutCubic(progress);
+                const wanted = distance * easeOutCubic(progress);
+                scrollAxisBy("x", wanted - moved);
+                moved = wanted;
                 frame = progress < 1 ? requestAnimationFrame(step) : 0;
             };
             frame = requestAnimationFrame(step);
@@ -536,19 +585,35 @@ export function useAxisLock(
          * absolute offset would finish somewhere else entirely. It lands on a
          * whole day at the end, which also absorbs the rounding.
          */
-        const turnPage = (distance: number, velocity: number) => {
-            const { daysPerView = 0 } = optionsRef.current;
-            const columnWidth =
-                daysPerView > 0 ? element.clientWidth / daysPerView : 0;
+        const turnPage = (
+            distance: number,
+            velocity: number,
+            /** A correction already lands on a day; re-snapping it would loop. */
+            correcting = false
+        ) => {
+            const columnWidth = measureColumn();
 
             const land = () => {
                 frame = 0;
                 delete host.dataset.ncGliding;
-                element.scrollLeft = snappedScroll(
-                    element.scrollLeft,
-                    columnWidth,
-                    element.scrollWidth - element.clientWidth
-                );
+                if (correcting) return;
+
+                const residual =
+                    snappedScroll(
+                        element.scrollLeft,
+                        columnWidth,
+                        element.scrollWidth - element.clientWidth
+                    ) - element.scrollLeft;
+
+                // Rounding is applied; anything larger is movement, and
+                // movement is animated. This is what the day-shifting leaves
+                // behind when it re-bases the grid mid-flight — assigning it
+                // outright is the jump that used to end a swipe.
+                if (Math.abs(residual) < 0.5) {
+                    scrollAxisBy("x", residual);
+                    return;
+                }
+                turnPage(residual, 0, true);
             };
 
             if (Math.abs(distance) < 0.5) {
@@ -609,6 +674,7 @@ export function useAxisLock(
             stopFrame();
             axis = null;
             samples = [];
+            forgetExtents();
 
             if (event.touches.length >= 2) {
                 beginPinch(event.touches);
@@ -661,7 +727,6 @@ export function useAxisLock(
                     touch.clientY - startY
                 );
                 if (!axis) return;
-                extent = measureExtent(axis);
                 // Start from where the gesture was recognised, so the pixels
                 // spent deciding are not also scrolled through.
                 pointer = answered =

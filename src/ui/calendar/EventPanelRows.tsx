@@ -1929,12 +1929,39 @@ export function LinksAttachmentsRow({
                         ref={inputRef}
                         className="nc-link-search-input"
                         type="text"
+                        /* A phone's keyboard decides what its return key does
+                           from these. Left unsaid, it offers a newline — which
+                           this field has no use for and which some keyboards
+                           deliver as an edit rather than as a key press, so
+                           pressing it did nothing at all. */
+                        inputMode="url"
+                        enterKeyHint="done"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
                         value={query}
                         placeholder={t("Paste a link, or search the vault")}
                         disabled={saving}
                         aria-label={t("Paste a link, or search the vault")}
                         aria-expanded={Boolean(position)}
                         onChange={(event) => setQuery(event.target.value)}
+                        onBeforeInput={(event) => {
+                            /* The other half of the same key. A keyboard that
+                               reports its return as an inserted line break
+                               never fires a keydown for it, so the handler
+                               below never runs — and the line break lands in a
+                               field that is one line long. */
+                            const inputType = (
+                                event.nativeEvent as InputEvent
+                            ).inputType;
+                            if (
+                                inputType === "insertLineBreak" ||
+                                inputType === "insertParagraph"
+                            ) {
+                                event.preventDefault();
+                                submitInput();
+                            }
+                        }}
                         onKeyDown={(event) => {
                             if (event.key === "ArrowDown") {
                                 event.preventDefault();
@@ -1985,7 +2012,9 @@ export function LinksAttachmentsRow({
                     >
                         {vaults.length === 0 ? (
                             <div className="nc-link-empty">
-                                Add Obsidian vaults in Settings → General to search notes.
+                                {t(
+                                    "Add Obsidian vaults in Settings to search notes."
+                                )}
                             </div>
                         ) : results.length > 0 ? (
                             results.map((result, index) => {

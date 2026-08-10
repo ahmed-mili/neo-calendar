@@ -149,6 +149,8 @@ const FR: Record<string, string> = {
     "Paste a link, or search the vault":
         "Coller un lien, ou chercher dans le coffre",
     "No matching notes": "Aucune note correspondante",
+    "Add Obsidian vaults in Settings to search notes.":
+        "Ajoutez des coffres Obsidian dans les Réglages pour chercher des notes.",
     "Open note": "Ouvrir la note",
     "Go to note": "Ouvrir la note",
     "View note": "Ouvrir la note",
