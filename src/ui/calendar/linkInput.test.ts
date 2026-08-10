@@ -2,6 +2,7 @@ import {
     findUrl,
     isInlineMarkdownLink,
     labelFor,
+    sameDestination,
     sameTarget,
     urlMarkdown,
 } from "./linkInput";
@@ -170,5 +171,61 @@ describe("sameTarget", () => {
     it("compares a vault path as the path it is", () => {
         expect(sameTarget("Notes/Réunion.md", " Notes/Réunion.md ")).toBe(true);
         expect(sameTarget("Notes/A.md", "Notes/B.md")).toBe(false);
+    });
+});
+
+describe("sameDestination", () => {
+    const video = (id: string, who = "qoranioff") =>
+        `https://www.tiktok.com/@${who}/video/${id}`;
+
+    it("sees two shares of one video as one link", () => {
+        // This is what the whole thing was about: a site mints a new short
+        // code per share, so two rows nobody could tell apart pointed at the
+        // same video.
+        expect(
+            sameDestination(
+                video("7671974074775784707"),
+                `${video("7671974074775784707")}?_t=ZS-R1dmcg`
+            )
+        ).toBe(true);
+    });
+
+    it("does not mind which account's page it was reached through", () => {
+        expect(
+            sameDestination(
+                video("7671974074775784707"),
+                video("7671974074775784707", "someone-else")
+            )
+        ).toBe(true);
+    });
+
+    it("still tells two different videos apart", () => {
+        expect(
+            sameDestination(video("7671974074775784707"), video("7000000000000000000"))
+        ).toBe(false);
+    });
+
+    it("never joins two sites that happen to number things alike", () => {
+        expect(
+            sameDestination(
+                video("7671974074775784707"),
+                "https://example.com/7671974074775784707"
+            )
+        ).toBe(false);
+    });
+
+    it("falls back to the address when there is no item to compare", () => {
+        // Unresolved short codes say nothing about where they lead, so they
+        // are only equal to themselves.
+        expect(
+            sameDestination(
+                "https://vm.tiktok.com/ZN8RmLXNp/",
+                "https://vm.tiktok.com/ZN8Rmue8u/"
+            )
+        ).toBe(false);
+        expect(
+            sameDestination("https://vm.tiktok.com/ZN8RmLXNp/", "https://vm.tiktok.com/ZN8RmLXNp")
+        ).toBe(true);
+        expect(sameDestination("Notes/A.md", "Notes/A.md")).toBe(true);
     });
 });

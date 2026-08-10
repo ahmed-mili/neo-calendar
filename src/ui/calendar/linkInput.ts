@@ -142,6 +142,38 @@ export function sameTarget(a: string, b: string): boolean {
     return normaliseTarget(a) === normaliseTarget(b);
 }
 
+/**
+ * Whether two links lead to the same thing.
+ *
+ * Not the same question as being the same address. A site hands out a new
+ * short code every time something is shared — two codes, one video — so two
+ * rows that look unrelated can point at one place. Once each has been resolved
+ * to the address it really goes to, the item's own id is what they have in
+ * common, and it is the only part of either address that is about the thing
+ * rather than about the sharing.
+ */
+export function sameDestination(a: string, b: string): boolean {
+    if (sameTarget(a, b)) return true;
+    const here = itemOf(a);
+    return here !== null && here === itemOf(b);
+}
+
+/** A site and the id of one item on it: what two shares of it agree about. */
+function itemOf(value: string): string | null {
+    try {
+        const url = new URL(value.trim());
+        const id = url.pathname
+            .split("/")
+            .filter(Boolean)
+            .reverse()
+            .find((part) => /^\d{6,}$/.test(part));
+        if (!id) return null;
+        return `${url.hostname.toLowerCase().split(".").slice(-2).join(".")}/${id}`;
+    } catch {
+        return null;
+    }
+}
+
 function normaliseTarget(value: string): string {
     const trimmed = value.trim();
     try {

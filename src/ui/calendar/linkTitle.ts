@@ -309,34 +309,69 @@ export function oembedAnswersFor(json: string, url: string): boolean {
         return true;
     }
 
-    const identifier = path
-        .split("/")
-        .filter(Boolean)
-        .reverse()
-        .find((part) => /^\d{6,}$/.test(part));
-
+    const identifier = itemIdIn(path);
     if (!identifier) return true;
     return json.includes(identifier);
 }
 
 /**
- * Whether a title is already the name of another link on this event.
+ * The address to keep for a link, once the site has said where it really goes.
  *
- * The last defence, and the one that matches what was actually seen: two
- * different videos, one title between them. Nothing in a single answer says it
- * is stale — it is well-formed, it names a real video, it simply names the one
- * asked about a moment earlier. What gives it away is the row above already
- * wearing it.
+ * There was never a stale-answer bug. Two rows came back with one title
+ * because the two shared links were two short codes for the same video —
+ * TikTok mints a fresh one per share, per session, per device — and the title
+ * they shared was simply correct. What was missing was any way to see that,
+ * because a short code says nothing about where it leads.
  *
- * Refusing is safe in a way that accepting is not. Two links on one event that
- * genuinely share a title is rare, and the cost of getting it wrong is a row
- * labelled with its host, which is where every link started. The cost of the
- * other mistake is a note that says something untrue.
+ * So the canonical address replaces the shared one, and the link is stored by
+ * what it points at rather than by the note that pointed there. Two shares of
+ * one video then become visibly the same link, the row shows the real address,
+ * and nothing has to be fetched again to know it.
+ *
+ * A canonical address is only believed when it cannot send the link somewhere
+ * else: same site as the link itself, carrying a real item id, and that id
+ * confirmed by the answer the site gave. A front door offering its own
+ * homepage as `og:url` fails all three. The query is dropped with it — the
+ * `_t=…` on a share is what made two identical links look different.
  */
-export function isTakenTitle(title: string, taken: readonly string[]): boolean {
-    const said = title.toLowerCase().replace(/\s+/g, " ").trim();
-    if (!said) return false;
-    return taken.some(
-        (other) => other.toLowerCase().replace(/\s+/g, " ").trim() === said
+export function confirmedTarget(
+    target: string,
+    canonical: string | null,
+    json: string | null
+): string {
+    if (!canonical || !json) return target;
+
+    let shared: URL;
+    let claimed: URL;
+    try {
+        shared = new URL(target);
+        claimed = new URL(canonical);
+    } catch {
+        return target;
+    }
+    if (claimed.protocol !== "http:" && claimed.protocol !== "https:") {
+        return target;
+    }
+    if (siteOf(shared.hostname) !== siteOf(claimed.hostname)) return target;
+
+    const id = itemIdIn(claimed.pathname);
+    if (!id || !json.includes(id)) return target;
+
+    return `${claimed.protocol}//${claimed.host.toLowerCase()}${claimed.pathname}`;
+}
+
+/** Enough of a host to tell one site from another. */
+export function siteOf(host: string): string {
+    return host.toLowerCase().split(".").slice(-2).join(".");
+}
+
+/** The numeric id a canonical address ends with, if it has one. */
+export function itemIdIn(path: string): string | null {
+    return (
+        path
+            .split("/")
+            .filter(Boolean)
+            .reverse()
+            .find((part) => /^\d{6,}$/.test(part)) ?? null
     );
 }
