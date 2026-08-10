@@ -475,7 +475,8 @@
     text-align: center;
     padding: 8px 4px;
     font-size: 12px;
-    color: var(--nc-text-secondary, var(--text-muted));
+    color: var(--nc-text-legible, #dfe4f5);
+    text-shadow: var(--nc-legible-shadow, 0 1px 2px rgba(0, 0, 0, 0.62));
     border-bottom: 1px solid var(--nc-grid-line);
 }
 
@@ -524,7 +525,8 @@
 .nc-timegrid-header-date {
     font-size: 13px;
     font-weight: 500;
-    color: var(--nc-text-primary, var(--text-normal));
+    color: var(--nc-text-legible, #dfe4f5);
+    text-shadow: var(--nc-legible-shadow, 0 1px 2px rgba(0, 0, 0, 0.62));
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -538,6 +540,8 @@
     background: var(--nc-today);
     color: #ffffff;
     font-weight: 600;
+    /* It has a fill of its own; the halo would only smudge it. */
+    text-shadow: none;
 }
 
 /* ── All-day area ──────────────────────────────────────────── */
@@ -651,7 +655,10 @@
     right: 10px;
     top: -6px;
     font-size: 11px;
-    color: var(--nc-text-faint, var(--text-faint));
+    /* The most-read text on the grid, and the least helped by a theme's
+       faint ink. See --nc-text-legible in CalendarVariables.css. */
+    color: var(--nc-text-legible, #dfe4f5);
+    text-shadow: var(--nc-legible-shadow, 0 1px 2px rgba(0, 0, 0, 0.62));
 }
 
 .nc-tz-column {

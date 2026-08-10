@@ -1139,11 +1139,9 @@ body.nc-platform-android .nc-timegrid-hour-label {
     right: 8px !important;
     top: -5px;
     font-size: 10px !important;
-    color: color-mix(
-        in srgb,
-        var(--nc-text-faint, #6c7086) 86%,
-        transparent
-    ) !important;
+    /* Colour is set once, at the end of this file, with the rest of the
+       grid's text. Fading it toward transparent here is what made the hours
+       disappear in sunlight. */
 }
 
 body.nc-platform-android .nc-timegrid-slot-line,
@@ -4363,8 +4361,28 @@ body.nc-platform-android
  */
 body.nc-platform-android .nc-tz-primary,
 body.nc-platform-android .nc-android-week-label,
-body.nc-platform-android .nc-timegrid-hour-label {
-    color: var(--nc-text-secondary, #a6adc8) !important;
+/*
+ * The grid's text, outdoors.
+ *
+ * This is the phone the app is actually used on, in sunlight, with a
+ * wallpaper behind a deliberately transparent grid. A theme's --text-muted
+ * was chosen against an opaque panel and has nothing left to give here; both
+ * Google Calendar and Notion stay readable in the same light because both
+ * sit on a solid fill, which this grid gives up on purpose.
+ *
+ * So: lifted ink, and a shadow so the contrast does not depend on which part
+ * of the wallpaper a glyph happens to land on.
+ */
+body.nc-platform-android .nc-timegrid-hour-label,
+body.nc-platform-android .nc-tz-label,
+body.nc-platform-android .nc-timegrid-header,
+body.nc-platform-android .nc-timegrid-header-day,
+body.nc-platform-android .nc-timegrid-header-date:not(.nc-today-date) {
+    color: var(--nc-text-legible, #dfe4f5) !important;
+    text-shadow: var(
+        --nc-legible-shadow,
+        0 1px 2px rgba(0, 0, 0, 0.62)
+    ) !important;
 }
 
 /* === NEO ANDROID DRAWER GESTURE V10 END === */
