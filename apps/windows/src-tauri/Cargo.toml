@@ -1,6 +1,6 @@
 [package]
 name = "neo-calendar-windows"
-version = "1.33.0"
+version = "1.34.0"
 edition = "2021"
 
 [lib]

@@ -1213,6 +1213,13 @@ button.nc-settings__theme-card:focus-visible {
     color: var(--text-error);
 }
 
+/* The link was added; only its name is missing. Muted, not alarming. */
+.nc-link-notice {
+    padding: 2px 10px 6px;
+    font-size: 11px;
+    color: var(--text-faint, #8b8fa3);
+}
+
 @media (max-width: 700px) {
     .nc-settings__section-heading {
         flex-direction: column;

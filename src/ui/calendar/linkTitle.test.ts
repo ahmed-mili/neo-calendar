@@ -4,6 +4,7 @@ import {
     canonicalUrlFrom,
     decodeEntities,
     isFrontDoorTitle,
+    isTakenTitle,
     oembedAnswersFor,
     oembedUrlFor,
     pageTitleFrom,
@@ -258,13 +259,16 @@ describe("oembedAnswersFor", () => {
         ).toBe(false);
     });
 
-    it("checks a shared link by its code", () => {
+    it("accepts an answer about a shared link, which never repeats its code", () => {
+        // The short link is a note saying where to go; the answer describes
+        // the place. Requiring the code shipped once and left every shared
+        // link with no title at all.
         expect(
-            oembedAnswersFor(about("ZN8RmLXNp"), "https://vm.tiktok.com/ZN8RmLXNp/")
+            oembedAnswersFor(
+                about("7123456789012345678"),
+                "https://vm.tiktok.com/ZN8RmLXNp/"
+            )
         ).toBe(true);
-        expect(
-            oembedAnswersFor(about("ZMother12"), "https://vm.tiktok.com/ZN8RmLXNp/")
-        ).toBe(false);
     });
 
     it("trusts an address with nothing distinctive to check", () => {
@@ -273,5 +277,30 @@ describe("oembedAnswersFor", () => {
             true
         );
         expect(oembedAnswersFor('{"title":"a"}', "not a url")).toBe(true);
+    });
+});
+
+describe("isTakenTitle", () => {
+    it("refuses a title another link on the event already wears", () => {
+        // Exactly what was seen: two different videos, one title between them.
+        expect(isTakenTitle("une recette de pain", ["une recette de pain"])).toBe(
+            true
+        );
+    });
+
+    it("does not care about case or spacing, which a site varies freely", () => {
+        expect(isTakenTitle("Une  Recette", ["une recette"])).toBe(true);
+    });
+
+    it("lets a genuinely different title through", () => {
+        expect(isTakenTitle("un autre plat", ["une recette de pain"])).toBe(
+            false
+        );
+        expect(isTakenTitle("une recette", [])).toBe(false);
+    });
+
+    it("says nothing about an empty title", () => {
+        // There is no title here to be a duplicate of anything.
+        expect(isTakenTitle("   ", ["", "vm.tiktok.com"])).toBe(false);
     });
 });

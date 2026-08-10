@@ -39,6 +39,7 @@ import { LinkKind, linkKind } from "./linkKind";
 import {
     canonicalUrlFrom,
     isFrontDoorTitle,
+    isTakenTitle,
     oembedAnswersFor,
     oembedUrlFor,
     pageTitleFrom,
@@ -1762,6 +1763,8 @@ export function LinksAttachmentsRow({
     const [open, setOpen] = React.useState(false);
     const [query, setQuery] = React.useState("");
     const [results, setResults] = React.useState<LinkSearchTarget[]>([]);
+    /** Said after the link is added, unlike an error, which stops it. */
+    const [notice, setNotice] = React.useState<string | null>(null);
     const [loading, setLoading] = React.useState(false);
     const [saving, setSaving] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
@@ -1899,35 +1902,62 @@ export function LinksAttachmentsRow({
             );
 
             const canonical = (html && canonicalUrlFrom(html)) || target;
-            const oembed = oembedUrlFor(canonical);
             let title: string | null = null;
 
-            if (oembed) {
+            /*
+             * Both addresses are worth asking about, and the answer has to
+             * name the one it was asked about.
+             *
+             * The canonical one is what a site will answer for; the shared one
+             * is what we know is right. When the page comes back without
+             * having resolved — a challenge, a throttle, an interstitial — the
+             * canonical read off it is somebody else's, and the answer that
+             * follows is about somebody else's link. Asking about both and
+             * keeping only an answer that names its own link means a bad
+             * resolution costs a request rather than a wrong title.
+             */
+            /* Names already on this event. A title that arrives wearing one of
+               them is the stale answer, not a coincidence. */
+            const taken = items.map((item) => item.label);
+            const keep = (found: string | null): string | null =>
+                found && !isTakenTitle(found, taken) ? found : null;
+
+            const addresses =
+                canonical === target ? [target] : [canonical, target];
+            for (const about of addresses) {
+                const oembed = oembedUrlFor(about);
+                if (!oembed) continue;
+
                 const json = await withDeadline(
                     onFetchPage(oembed),
                     TITLE_DEADLINE_MS
                 );
-                // And only if the answer is about the link we asked about: a
-                // title belonging to something else reads as an answer, which
-                // is worse than none.
-                title =
-                    json && oembedAnswersFor(json, canonical)
-                        ? titleFromOembed(json)
-                        : null;
+                if (json && oembedAnswersFor(json, about)) {
+                    title = keep(titleFromOembed(json));
+                    if (title) break;
+                }
             }
 
             if (!title && html) {
                 const fromPage = pageTitleFrom(html);
-                title =
+                title = keep(
                     fromPage && !isFrontDoorTitle(fromPage, canonical)
                         ? fromPage
-                        : null;
+                        : null
+                );
             }
 
             const label = title ? safeLabel(title) : "";
-            return label ? `[${label}](${target})` : markdown;
+            if (label) return `[${label}](${target})`;
+
+            /* The link is added either way — a title was never a condition —
+               but silence here reads as the feature not existing. A site that
+               would not say is worth a word, because trying again in a moment
+               often works. */
+            setNotice(t("The site did not give a title for this link"));
+            return markdown;
         },
-        [onFetchPage]
+        [items, onFetchPage]
     );
 
     const addMarkdown = React.useCallback(
@@ -1947,6 +1977,7 @@ export function LinksAttachmentsRow({
 
             setSaving(true);
             setError(null);
+            setNotice(null);
             try {
                 await onAddLink(eventId, (await titled(markdown.trim())).trim());
                 closePicker();
@@ -2026,6 +2057,15 @@ export function LinksAttachmentsRow({
                             onOpenLink={onOpenLink}
                         />
                     ))}
+                </div>
+            )}
+
+            {/* Not an error: the link is there, it just kept its host for a
+                name. Said once, under the list it is about, and gone as soon
+                as another link is added. */}
+            {notice && (
+                <div className="nc-link-notice" role="status">
+                    {notice}
                 </div>
             )}
 
