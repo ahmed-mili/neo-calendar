@@ -101,6 +101,8 @@ interface EventPanelProps {
     onDelete: (id: string) => void;
     firstDay: number;
     linkVaults?: EventLinkVault[];
+    /** Fetches a page's source so a link can be named after it. */
+    onFetchPage?: (url: string) => Promise<string>;
     onSearchEventLinks?: (
         query: string,
         vaultPath?: string
@@ -204,6 +206,7 @@ export default function EventPanel({
     onDelete,
     firstDay,
     linkVaults = [],
+    onFetchPage,
     onSearchEventLinks,
     linkedItems = [],
     onAddEventLink,
@@ -991,6 +994,7 @@ export default function EventPanel({
                         items={linkedItems}
                         onOpenNote={() => eventId && onOpenFile(eventId)}
                         onSearch={onSearchEventLinks}
+                        onFetchPage={onFetchPage}
                         onAddLink={onAddEventLink}
                         onRemoveLink={onRemoveEventLink}
                         onOpenLink={onOpenEventLink}
