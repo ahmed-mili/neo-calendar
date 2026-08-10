@@ -35,6 +35,7 @@ import {
     MONTHS_SHORT,
 } from "./CalendarUtils";
 import { urlMarkdown } from "./linkInput";
+import { LinkKind, linkKind } from "./linkKind";
 import {
     ClockIcon,
     CalendarIcon,
@@ -46,6 +47,16 @@ import {
     XIcon,
     FileTextIcon,
     ArrowRightIcon,
+    GlobeIcon,
+    VaultIcon,
+    YoutubeIcon,
+    InstagramIcon,
+    TiktokIcon,
+    XSiteIcon,
+    SpotifyIcon,
+    WhatsappIcon,
+    MailIcon,
+    PhoneIcon,
 } from "./EventPanelIcons";
 import { t } from "../i18n";
 import { isAndroidRuntime } from "./CalendarUtils";
@@ -1473,6 +1484,21 @@ function linkedItemFileName(item: LinkedFileItem): string {
     return name || item.label || "Linked file";
 }
 
+/** The glyph for where a link goes. See linkKind.ts for the matching. */
+const LINK_GLYPHS: Record<LinkKind, () => JSX.Element> = {
+    vault: VaultIcon,
+    youtube: YoutubeIcon,
+    instagram: InstagramIcon,
+    tiktok: TiktokIcon,
+    x: XSiteIcon,
+    github: GlobeIcon,
+    spotify: SpotifyIcon,
+    whatsapp: WhatsappIcon,
+    mail: MailIcon,
+    phone: PhoneIcon,
+    web: GlobeIcon,
+};
+
 function LinkedFileRow({
     item,
     eventId,
@@ -1614,7 +1640,9 @@ function LinkedFileRow({
                 }}
             >
                 <span className="nc-linked-file-icon" aria-hidden="true">
-                    <FileTextIcon />
+                    {React.createElement(
+                        LINK_GLYPHS[linkKind(item.target, item.kind)]
+                    )}
                 </span>
                 <span className="nc-linked-file-name">{displayName}</span>
                 {eventId && onRemoveLink && (
