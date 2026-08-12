@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import {
     COLUMN_SEAM_PX,
     measureColumnWidth,
+    offsetToDay,
     scrollLeftForDay,
 } from "./gridColumns";
 
@@ -60,8 +61,18 @@ export function useInfiniteScroll(opts: Options): void {
             el.scrollLeft -= pendingShiftRef.current * dw;
             pendingShiftRef.current = 0;
         } else {
-            // External navigation: open on the first real day, against the rail.
-            el.scrollLeft = scrollLeftForDay(bufferDays, dw);
+            // External navigation: open on the first real day, against the
+            // rail. Measured off that column rather than counted in day widths
+            // (see offsetToDay) — the arithmetic was a few pixels out, and a few
+            // pixels here is the grid opening on two lines instead of one. The
+            // count is the fallback for the first paint, before there is a
+            // column to measure.
+            const measured = offsetToDay(el, bufferDays);
+            if (measured === null) {
+                el.scrollLeft = scrollLeftForDay(bufferDays, dw);
+            } else {
+                el.scrollLeft += measured;
+            }
         }
     }, [dateKey, bufferDays]);
 

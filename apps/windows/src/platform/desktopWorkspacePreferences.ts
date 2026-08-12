@@ -73,8 +73,8 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         firstDay: 1,
         timeFormat24h: true,
         clickToCreateEventFromMonthView: true,
-        // The grid settles on whole days unless asked otherwise: half a column
-        // of Saturday next to half a column of Monday is nobody's week.
+        // One swipe turns one day unless asked otherwise: half a column of
+        // Saturday next to half a column of Monday is nobody's week.
         freeScroll: false,
         // An entry is an event unless you say otherwise: most of what goes on
         // a grid happens at a time rather than waiting to be done. The event

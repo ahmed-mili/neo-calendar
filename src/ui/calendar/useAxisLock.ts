@@ -5,7 +5,7 @@ import {
     currentHourHeight,
     setHourHeight,
 } from "./CalendarUtils";
-import { COLUMN_SEAM_PX, measureColumnWidth } from "./gridColumns";
+import { measureColumnWidth, offsetToNearestDay } from "./gridColumns";
 
 /**
  * One direction at a time in the time grid.
@@ -38,15 +38,21 @@ import { COLUMN_SEAM_PX, measureColumnWidth } from "./gridColumns";
  * here, so the day-shifting of the infinite scroll and the midnight clamp stay
  * in charge of where the grid actually sits.
  *
- * Across the days the finger is free, and the grid lands on a day.
+ * Across the days one swipe is one day, and the grid never goes anywhere it
+ * will have to come back from.
  *
- * A carousel came first — one swipe, one day, held there. It was wrong in the
- * hand: a hard flick could not cross a week, and the hold read as the grid
- * being stuck rather than as it being decisive. So the drag follows the finger
- * with nothing in its way, a throw carries the same momentum the hours have,
- * and what the movement always does is come to rest on a whole day. That last
- * part is what the carousel was actually worth: half a Saturday beside half a
- * Monday is nobody's week. The setting drops even that.
+ * Free scrolling with a snap at the end was tried, and it is the snap that was
+ * wrong in the hand: a throw went where its momentum took it — a day and a
+ * half, two and a bit — and the grid then walked BACKWARDS to the nearest day.
+ * Every swipe risked ending in a small reversal, which reads as the grid
+ * arguing with the hand that moved it. So the drag follows the finger as far as
+ * the day it is turning to and no further, the release carries on in the same
+ * direction, and nothing is ever given back. Half a Saturday beside half a
+ * Monday is still nobody's week; it is simply no longer arrived at first. The
+ * setting drops the paging entirely for anyone who wants the days loose.
+ *
+ * Down the hours nothing has changed: the finger is free, a throw carries its
+ * momentum, and there is nothing to land on because an hour is not a page.
  *
  * Nothing here ever teleports. Every movement of this grid is a difference
  * applied inside a frame, never a position assigned — including the corrections
@@ -162,28 +168,68 @@ export function easeOutCubic(progress: number): number {
     return 1 - left * left * left;
 }
 
+/** How much of a day a swipe has to cover before it turns the page. */
+export const PAGE_COMMIT_RATIO = 0.2;
+
+/** A flick faster than this (px/ms) turns the page however short it was. */
+export const PAGE_FLING_VELOCITY = 0.25;
+
 /**
- * Where a grid left between two days should come to rest.
+ * How far the grid is allowed to follow one swipe: one day, and not a pixel
+ * more.
  *
- * Half a column of Saturday next to half a column of Monday is nobody's week:
- * the days are the unit, so that is what the grid stops on.
- *
- * A day comes to rest against the hours rail, and the rail already draws the
- * line that closes the grid there — so the resting places are whole days plus
- * the seam, not whole days (see COLUMN_SEAM_PX). Snapping to the bare multiple
- * left the day a pixel short of the rail and drew its own border beside it.
+ * Everything past that would have to be given back, and giving it back is the
+ * thing to avoid — see `pagesTurnedBy`. The finger keeps going; the grid has
+ * already arrived where the gesture is taking it.
  */
-export function snappedScroll(
-    scrollLeft: number,
-    columnWidth: number,
-    maxScroll: number,
-    seam: number = COLUMN_SEAM_PX
+export function cappedPageStep(
+    travelled: number,
+    step: number,
+    pageWidth: number
 ): number {
-    if (!(columnWidth > 0)) return clampScroll(scrollLeft, maxScroll);
-    return clampScroll(
-        Math.round((scrollLeft - seam) / columnWidth) * columnWidth + seam,
-        maxScroll
-    );
+    if (!(pageWidth > 0)) return step;
+    const wanted = travelled + step;
+    const capped = Math.min(pageWidth, Math.max(-pageWidth, wanted));
+    return capped - travelled;
+}
+
+/**
+ * How many days one swipe turns: one, or none.
+ *
+ * A carousel came first here, then free scrolling with a snap at the end, and
+ * the snap is what was wrong in the hand. A throw went where its momentum took
+ * it — a day and a half, two and a bit — and the grid then walked BACKWARDS to
+ * the nearest day. Every swipe risked ending in a small reversal, which reads
+ * as the grid arguing with the hand that moved it. Notion Calendar never does
+ * that, and the reason is that it never goes anywhere it will have to come back
+ * from: a swipe is a decision to turn the page, so the page turns, once, and
+ * the movement only ever runs in the direction the finger asked for.
+ *
+ * What decides is the intent, not the distance covered: a short flick counts,
+ * and so does a slow, deliberate drag past a fifth of the day. Anything less
+ * was hesitation, and the day it started on is where it stays.
+ *
+ * `travel` and `velocity` are in scroll space — positive is forward through the
+ * days — so the caller flips the sign of the finger, which moves the other way.
+ */
+export function pagesTurnedBy(
+    travel: number,
+    velocity: number,
+    pageWidth: number,
+    commitRatio = PAGE_COMMIT_RATIO,
+    flingVelocity = PAGE_FLING_VELOCITY
+): -1 | 0 | 1 {
+    if (!(pageWidth > 0)) return 0;
+
+    const flung = Math.abs(velocity) >= flingVelocity;
+    const dragged = Math.abs(travel) >= pageWidth * commitRatio;
+    if (!flung && !dragged) return 0;
+
+    // A flick says which way better than the distance does: the last thing the
+    // hand did is the thing it meant. Without one, the ground covered decides.
+    const direction = flung ? Math.sign(velocity) : Math.sign(travel);
+    if (direction === 0) return 0;
+    return direction > 0 ? 1 : -1;
 }
 
 export interface Span {
@@ -306,6 +352,16 @@ export function useAxisLock(
         let extents: { x?: number; y?: number } = {};
         let samples: TravelSample[] = [];
         let frame = 0;
+        /** How far across the days this gesture has taken the grid so far, and
+            how wide the day it is turning is. Both are the gesture's own: the
+            page it lands on is decided from what the FINGER did, never from an
+            offset read back off the element — the day range is re-based under
+            us mid-gesture, and an absolute reading would be a day out. */
+        let pageTravel = 0;
+        let pageWidth = 0;
+        /** How far off a whole day the grid already was when the finger landed
+            — nothing, unless the gesture interrupted the last one settling. */
+        let pageResidual = 0;
 
         /** Set for as long as two fingers are on the grid. */
         let pinch: {
@@ -351,7 +407,8 @@ export function useAxisLock(
         };
 
         /**
-         * Moves one axis; false once it has nothing left to give.
+         * Moves one axis, and says how far it actually went — zero once it has
+         * nothing left to give.
          *
          * The extent is the one belonging to the axis being moved, and not
          * whichever the gesture locked. They are not interchangeable: settling
@@ -359,12 +416,18 @@ export function useAxisLock(
          * offset against the height of a day put the grid somewhere it had
          * never been asked to go.
          */
-        const scrollAxisBy = (on: ScrollAxis, distance: number): boolean => {
+        const scrollAxisBy = (on: ScrollAxis, distance: number): number => {
             const from = on === "y" ? element.scrollTop : element.scrollLeft;
             const to = clampScroll(from + distance, extentFor(on));
             if (on === "y") element.scrollTop = to;
             else element.scrollLeft = to;
-            return to !== from;
+            return to - from;
+        };
+
+        /** Are the days turned a page at a time, or scrolled through freely? */
+        const paging = () => {
+            const { daysPerView = 0, freeScroll = false } = optionsRef.current;
+            return !freeScroll && daysPerView > 0;
         };
 
         const drawDrag = () => {
@@ -373,6 +436,18 @@ export function useAxisLock(
 
             const travel = pointer - answered;
             answered = pointer;
+
+            if (axis === "x" && paging()) {
+                // The grid follows the finger up to the day it is turning to,
+                // and stops there. Past that it would only be carried somewhere
+                // it has to be brought back from.
+                pageTravel += scrollAxisBy(
+                    axis,
+                    cappedPageStep(pageTravel, -travel, pageWidth)
+                );
+                return;
+            }
+
             scrollAxisBy(axis, -travel);
         };
 
@@ -420,30 +495,14 @@ export function useAxisLock(
         };
 
         /**
-         * Slides the grid back onto whole days once it has come to rest.
+         * Slides the days sideways by `distance`, and runs `andThen` when it
+         * gets there.
          *
-         * Only ever horizontal: the hours are continuous, there is nothing to
-         * land on there. Runs after everything else has stopped, so it never
-         * competes with a finger or a fling.
+         * Relative, like everything else that moves this grid: an animation
+         * aimed at an absolute offset is measured from a page that the
+         * day-shifting can move out from under it mid-flight.
          */
-        const settleOnDays = () => {
-            const { daysPerView = 0, freeScroll = false } = optionsRef.current;
-            if (freeScroll || daysPerView <= 0) return;
-
-            const columnWidth = measureColumn();
-            const to = snappedScroll(
-                element.scrollLeft,
-                columnWidth,
-                element.scrollWidth - element.clientWidth
-            );
-            // Under half a pixel is already home; animating it would only cost
-            // a frame and a flicker.
-            const distance = to - element.scrollLeft;
-            if (Math.abs(distance) < 0.5) return;
-
-            // Relative, like everything else that moves this grid: an
-            // animation aimed at an absolute offset is measured from a page
-            // that the day-shifting can move out from under it mid-flight.
+        const slideDays = (distance: number, andThen?: () => void) => {
             const startedAt = performance.now();
             let moved = 0;
             const step = (now: number) => {
@@ -451,9 +510,64 @@ export function useAxisLock(
                 const wanted = distance * easeOutCubic(progress);
                 scrollAxisBy("x", wanted - moved);
                 moved = wanted;
-                frame = progress < 1 ? requestAnimationFrame(step) : 0;
+                if (progress < 1) {
+                    frame = requestAnimationFrame(step);
+                    return;
+                }
+                frame = 0;
+                andThen?.();
             };
             frame = requestAnimationFrame(step);
+        };
+
+        /**
+         * Puts the grid back on a whole day once it has come to rest.
+         *
+         * Only ever horizontal: the hours are continuous, there is nothing to
+         * land on there. Runs after everything else has stopped, so it never
+         * competes with a finger or a fling.
+         *
+         * The distance is MEASURED off the column that is nearest the rail, not
+         * worked out from a day's width (see offsetToDay): after a page has been
+         * turned there is a fraction of a pixel left at most, and it is that
+         * fraction — not a day — that decides whether the grid opens on one line
+         * or two.
+         */
+        const settleOnDays = () => {
+            if (!paging()) return;
+
+            const distance = offsetToNearestDay(element);
+            // Under half a pixel is already home; animating it would only cost
+            // a frame and a flicker.
+            if (distance === null || Math.abs(distance) < 0.5) return;
+            slideDays(distance);
+        };
+
+        /**
+         * Finishes the swipe: one day on, one day back, or the day it started
+         * on — and always by carrying on the way the finger was already going.
+         */
+        const turnPage = (scrollVelocity: number) => {
+            const turned = pagesTurnedBy(
+                pageTravel,
+                scrollVelocity,
+                pageWidth
+            );
+            // A gesture that interrupted the last one settling started between
+            // two days; the day it is going to is one page from where that one
+            // WOULD have landed, not from where the finger happened to catch it.
+            const remaining = pageResidual + turned * pageWidth - pageTravel;
+            pageTravel = 0;
+            pageResidual = 0;
+
+            // The page is a measured day wide, give or take the fraction a flex
+            // layout keeps to itself, so the grid lands on the day and THEN has
+            // its last fraction of a pixel taken off it.
+            if (Math.abs(remaining) < 0.5) {
+                settleOnDays();
+                return;
+            }
+            slideDays(remaining, settleOnDays);
         };
 
         const glide = (on: ScrollAxis, initial: number) => {
@@ -488,6 +602,7 @@ export function useAxisLock(
             stopFrame();
             axis = null;
             samples = [];
+            pageTravel = 0;
             forgetExtents();
 
             if (event.touches.length >= 2) {
@@ -546,6 +661,15 @@ export function useAxisLock(
                 pointer = answered =
                     axis === "y" ? touch.clientY : touch.clientX;
                 samples = [{ position: pointer, at: event.timeStamp }];
+                // Once per gesture, and only for the one that needs them: both
+                // are layout reads, and the drag is capped against the day's
+                // width on every frame.
+                pageTravel = 0;
+                pageWidth = axis === "x" ? measureColumn() : 0;
+                pageResidual =
+                    axis === "x" && paging()
+                        ? offsetToNearestDay(element) ?? 0
+                        : 0;
 
                 return;
             }
@@ -586,6 +710,18 @@ export function useAxisLock(
 
             const travel = pointer - answered;
             answered = pointer;
+            if (releasing === "x" && paging()) {
+                pageTravel += scrollAxisBy(
+                    releasing,
+                    cappedPageStep(pageTravel, -travel, pageWidth)
+                );
+                // No glide across the days: a throw that carries its own
+                // momentum lands wherever the momentum runs out, and the grid
+                // then has to walk back to the nearest day. The swipe turns one
+                // page instead, in the direction it was already going.
+                turnPage(-velocity);
+                return;
+            }
             scrollAxisBy(releasing, -travel);
 
             if (stillGliding(velocity)) {
@@ -599,10 +735,20 @@ export function useAxisLock(
         };
 
         const onTouchCancel = () => {
+            const releasing = axis;
             stopFrame();
             tracking = false;
             axis = null;
             pinch = null;
+            // A gesture taken away mid-swipe — the system claiming it for a
+            // back-swipe, a call arriving — is still a gesture that asked for
+            // something. It finishes the page it had committed to rather than
+            // being dropped onto whichever day is nearest, which could be the
+            // one it was leaving.
+            if (releasing === "x" && paging()) {
+                turnPage(0);
+                return;
+            }
             settleOnDays();
         };
 

@@ -7,7 +7,8 @@ import {
     clampScroll,
     decayedVelocity,
     easeOutCubic,
-    snappedScroll,
+    cappedPageStep,
+    pagesTurnedBy,
     VELOCITY_WINDOW_MS,
     lockedAxis,
     pinchedHourHeight,
@@ -16,7 +17,6 @@ import {
     velocityFrom,
 } from "./useAxisLock";
 import { MAX_HOUR_HEIGHT, MIN_HOUR_HEIGHT } from "./calendarConstants";
-import { COLUMN_SEAM_PX } from "./gridColumns";
 
 describe("lockedAxis", () => {
     it("waits while the gesture is still short in both directions", () => {
@@ -230,48 +230,64 @@ describe("scrollForAnchor", () => {
     });
 });
 
-describe("snappedScroll", () => {
-    /** Two days across a 400px viewport. */
-    const column = 200;
-    const max = 1000;
-    /** The pure day arithmetic, with the seam taken out of the way. */
-    const flush = 0;
+describe("cappedPageStep", () => {
+    /** A day, on a phone. */
+    const page = 380;
 
-    it("goes to the nearer day", () => {
-        expect(snappedScroll(80, column, max, flush)).toBe(0);
-        expect(snappedScroll(120, column, max, flush)).toBe(200);
-        expect(snappedScroll(410, column, max, flush)).toBe(400);
+    it("follows the finger while there is still day to cover", () => {
+        expect(cappedPageStep(0, 40, page)).toBe(40);
+        expect(cappedPageStep(200, 100, page)).toBe(100);
     });
 
-    it("leaves a grid already on a day alone", () => {
-        expect(snappedScroll(400, column, max, flush)).toBe(400);
-        expect(snappedScroll(0, column, max, flush)).toBe(0);
+    // Everything past a day would have to be given back, and giving it back is
+    // the reversal this exists to remove.
+    it("stops at the day it is turning to", () => {
+        expect(cappedPageStep(300, 200, page)).toBe(80);
+        expect(cappedPageStep(page, 50, page)).toBe(0);
+        expect(cappedPageStep(-300, -200, page)).toBe(-80);
     });
 
-    it("never lands outside the content", () => {
-        // The last day is not a whole column from the end, so rounding up
-        // would scroll past everything there is.
-        expect(snappedScroll(980, column, 950, flush)).toBe(950);
-        expect(snappedScroll(-40, column, max, flush)).toBe(0);
+    it("lets the finger come back the way it went", () => {
+        expect(cappedPageStep(page, -120, page)).toBe(-120);
     });
 
-    it("gives up rather than divide by a column of no width", () => {
-        expect(snappedScroll(137, 0, max, flush)).toBe(137);
-        expect(snappedScroll(137, Number.NaN, max, flush)).toBe(137);
+    it("leaves the movement alone when there is no day to measure", () => {
+        expect(cappedPageStep(0, 40, 0)).toBe(40);
+    });
+});
+
+describe("pagesTurnedBy", () => {
+    const page = 380;
+    const still = 0;
+
+    it("turns the page on a deliberate drag", () => {
+        expect(pagesTurnedBy(page * 0.3, still, page)).toBe(1);
+        expect(pagesTurnedBy(-page * 0.3, still, page)).toBe(-1);
     });
 
-    // The day lands against the hours rail, and the rail already draws the line
-    // that closes the grid there. Resting on the bare multiple leaves the day a
-    // pixel short of it, with a second line of its own beside the first.
-    it("rests on the day, plus the line the rail already draws", () => {
-        expect(snappedScroll(80, column, max)).toBe(COLUMN_SEAM_PX);
-        expect(snappedScroll(120, column, max)).toBe(200 + COLUMN_SEAM_PX);
-        expect(snappedScroll(600, column, max)).toBe(600 + COLUMN_SEAM_PX);
+    it("turns the page on a flick that covered almost nothing", () => {
+        expect(pagesTurnedBy(6, 0.9, page)).toBe(1);
+        expect(pagesTurnedBy(-6, -0.9, page)).toBe(-1);
     });
 
-    it("leaves a grid already against the rail alone", () => {
-        const home = 400 + COLUMN_SEAM_PX;
-        expect(snappedScroll(home, column, max)).toBe(home);
+    it("stays where it was when the hand hesitated", () => {
+        expect(pagesTurnedBy(page * 0.1, 0.05, page)).toBe(0);
+        expect(pagesTurnedBy(0, 0, page)).toBe(0);
+    });
+
+    // The last thing the hand did is the thing it meant: a drag forward that
+    // was flicked back at the end goes back.
+    it("follows the flick rather than the ground covered", () => {
+        expect(pagesTurnedBy(page * 0.4, -0.8, page)).toBe(-1);
+    });
+
+    it("never turns more than one day, however hard the throw", () => {
+        expect(pagesTurnedBy(page, 12, page)).toBe(1);
+        expect(pagesTurnedBy(-page, -12, page)).toBe(-1);
+    });
+
+    it("has no page to turn without a day to measure", () => {
+        expect(pagesTurnedBy(500, 3, 0)).toBe(0);
     });
 });
 
