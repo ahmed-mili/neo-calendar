@@ -1,4 +1,9 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
+import {
+    COLUMN_SEAM_PX,
+    measureColumnWidth,
+    scrollLeftForDay,
+} from "./gridColumns";
 
 interface Options {
     scrollRef: React.RefObject<HTMLElement>;
@@ -39,14 +44,7 @@ export function useInfiniteScroll(opts: Options): void {
     const measure = () => {
         const el = scrollRef.current;
         if (!el || daysPerView <= 0) return;
-        const dayCol = el.querySelector(
-            ".nc-timegrid-day"
-        ) as HTMLElement | null;
-        if (dayCol && dayCol.offsetWidth > 0) {
-            dayWidthRef.current = dayCol.offsetWidth;
-        } else {
-            dayWidthRef.current = el.clientWidth / daysPerView;
-        }
+        dayWidthRef.current = measureColumnWidth(el, daysPerView);
     };
 
     // After dateKey change (external nav or a shift we triggered), restore
@@ -62,8 +60,8 @@ export function useInfiniteScroll(opts: Options): void {
             el.scrollLeft -= pendingShiftRef.current * dw;
             pendingShiftRef.current = 0;
         } else {
-            // External navigation: center on the first real day
-            el.scrollLeft = bufferDays * dw;
+            // External navigation: open on the first real day, against the rail.
+            el.scrollLeft = scrollLeftForDay(bufferDays, dw);
         }
     }, [dateKey, bufferDays]);
 
@@ -76,7 +74,13 @@ export function useInfiniteScroll(opts: Options): void {
             measure();
             const newDw = dayWidthRef.current;
             if (oldDw > 0 && newDw > 0) {
-                el.scrollLeft *= newDw / oldDw;
+                // The seam is a line, not a day: it is the same one pixel at
+                // any column width, so it is taken off before the rescale and
+                // put back after. Scaling it with the rest would drift the
+                // grid off the rail a little more on every resize.
+                el.scrollLeft =
+                    (el.scrollLeft - COLUMN_SEAM_PX) * (newDw / oldDw) +
+                    COLUMN_SEAM_PX;
             }
         });
         ro.observe(el);
@@ -94,7 +98,7 @@ export function useInfiniteScroll(opts: Options): void {
             if (dw <= 0) return;
 
             const sl = el.scrollLeft;
-            const center = bufferDays * dw;
+            const center = scrollLeftForDay(bufferDays, dw);
             const offset = sl - center;
 
             // Shift when the visible range has moved more than (bufferDays - 1)

@@ -1,12 +1,32 @@
 /*
- * Monte la version partout d'un seul geste : `npm run version 1.0.3`.
+ * Monte la version partout d'un seul geste :
  *
- * Le numéro suit celui des applications du téléphone — GitHub en 1.270.0,
- * Notion Calendar en 1.48.0 : c'est le MINEUR qui monte à chaque version
- * publiée, sans jamais se remettre à zéro. Le majeur ne bouge que si
- * l'application devient autre chose, et le correctif ne sert qu'à une rustine
- * posée sur une version déjà sortie. Une livraison ordinaire va donc de 1.6.0
- * à 1.7.0, pas à 1.6.1.
+ *   npm run version:set -- patch     1.37.0 → 1.37.1
+ *   npm run version:set -- minor     1.37.1 → 1.38.0
+ *   npm run version:set -- major     1.38.0 → 2.0.0
+ *   npm run version:set -- 1.42.0    le numéro exact, quand il le faut
+ *
+ * CE QUE DIT UN NUMÉRO. Les trois nombres ne sont pas décoratifs : ils
+ * répondent à « qu'est-ce que ça change pour moi ? », et c'est la seule
+ * question que se pose quelqu'un devant une mise à jour.
+ *
+ *   MAJEUR    l'application devient autre chose : un format de note qui ne se
+ *             relit plus comme avant, un réglage qui disparaît, une habitude
+ *             qui casse. Ce qui se lisait hier ne se lit plus pareil.
+ *   MINEUR    quelque chose de neuf que l'on peut faire et que l'on ne pouvait
+ *             pas : les sous-tâches, une vue, un réglage. Rien ne casse.
+ *   CORRECTIF le dernier nombre. Rien de neuf : ce qui existait déjà marche
+ *             enfin comme il devait. Un décalage de trois pixels rattrapé, un
+ *             panneau qui ne se recharge plus, une bande qui s'anime.
+ *
+ * Il servait de rustine d'urgence et rien d'autre, si bien que toute livraison
+ * — trois corrections comprises — montait le mineur : la version passait de
+ * 1.36.0 à 1.37.0 pour dire « il s'est passé quelque chose », et jamais quoi.
+ * Une suite de 1.x.0 ne distingue plus la version qui répare de celle qui
+ * ajoute, alors que c'est exactement ce qu'un numéro est là pour dire.
+ *
+ * Le mineur ne se remet pas à zéro en changeant de majeur ? Si — c'est ce que
+ * `nextVersion` fait, et c'est la règle commune (semver) : 1.38.0 → 2.0.0.
  *
  * Six fichiers portent le même numéro, et l'un d'eux — le `versionCode` du
  * module Android — doit en plus être strictement croissant, sans quoi le
@@ -59,6 +79,70 @@ export const VERSION_FILES = [
 
 export function isVersion(value) {
     return /^\d+\.\d+\.\d+$/.test(value);
+}
+
+/** Les trois mots qui décrivent une livraison, du plus lourd au plus léger. */
+export const LEVELS = ["major", "minor", "patch"];
+
+/**
+ * Le numéro suivant, à partir de celui d'aujourd'hui et de ce que la livraison
+ * change. Voir l'en-tête pour ce que chaque niveau veut dire.
+ */
+export function nextVersion(current, level) {
+    if (!isVersion(current)) {
+        throw new Error(`Version actuelle illisible : « ${current} ».`);
+    }
+    const [major, minor, patch] = current.split(".").map(Number);
+
+    switch (level) {
+        case "major":
+            return `${major + 1}.0.0`;
+        case "minor":
+            return `${major}.${minor + 1}.0`;
+        case "patch":
+            return `${major}.${minor}.${patch + 1}`;
+        default:
+            throw new Error(
+                `Niveau attendu parmi ${LEVELS.join(", ")}, reçu « ${level} ».`
+            );
+    }
+}
+
+/** Le numéro que porte le dépôt en ce moment. */
+export async function currentVersion() {
+    const manifest = await readFile(
+        path.join(repositoryRoot, "package.json"),
+        "utf8"
+    );
+    const found = manifest.match(/"version": "([^"]+)"/);
+
+    if (!found) {
+        throw new Error("Version introuvable dans package.json.");
+    }
+
+    return found[1];
+}
+
+/**
+ * Ce qui est demandé, résolu en un numéro : « patch » et consorts se lisent à
+ * partir de la version en place, un numéro écrit en toutes lettres passe tel
+ * quel — il reste des cas (une reprise, un alignement) où c'est le seul moyen.
+ */
+export async function resolveVersion(request) {
+    if (!request) {
+        throw new Error(
+            `Attendu : ${LEVELS.join(" | ")} ou un numéro comme 1.42.0.`
+        );
+    }
+    if (LEVELS.includes(request)) {
+        return nextVersion(await currentVersion(), request);
+    }
+    if (isVersion(request)) return request;
+
+    throw new Error(
+        `Attendu : ${LEVELS.join(" | ")} ou un numéro comme 1.42.0, ` +
+            `reçu « ${request} ».`
+    );
 }
 
 async function edit(relativePath, rewrite) {
@@ -209,9 +293,10 @@ const invokedScript = process.argv[1]
     : undefined;
 
 if (invokedScript === import.meta.url) {
-    const [version] = process.argv.slice(2);
+    const [request] = process.argv.slice(2);
 
     try {
+        const version = await resolveVersion(request);
         const touched = await setVersion(version);
         for (const relativePath of touched) {
             console.log(`  ${relativePath}`);

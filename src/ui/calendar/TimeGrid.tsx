@@ -6,12 +6,14 @@ import {
     currentHourHeight,
     ALLDAY_ROW_HEIGHT,
     ALLDAY_MAX_ROWS,
+    ALLDAY_GROW_MS,
     addDays,
     startOfDay,
     computeOverlapGroups,
     formatTime,
     getEventHeight,
     isToday,
+    isSameDay,
     isMultiDayTimed,
     isAndroidRuntime as onAndroid,
 } from "./CalendarUtils";
@@ -23,7 +25,7 @@ import { useTimeGridDrag } from "./useTimeGridDrag";
 import { useTimeGridResize } from "./useTimeGridResize";
 import { useTimeGridSelection } from "./useTimeGridSelection";
 import { useAllDayLanes } from "./useAllDayLanes";
-import { useAxisLock } from "./useAxisLock";
+import { useAxisLock, easeOutCubic } from "./useAxisLock";
 import { useNowPosition } from "./NowIndicator";
 import {
     LeftRail,
@@ -103,6 +105,15 @@ function publishScrollTravel(
     host.style.setProperty("--nc-allday-travel", `${across}px`);
 }
 
+/** Whether the machine has been told to keep movement to a minimum. */
+function prefersReducedMotion(): boolean {
+    return (
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+}
+
 function clampScrollTop(scroller: HTMLElement): number {
     const maximum = Math.max(
         0,
@@ -146,7 +157,6 @@ export default function TimeGrid(props: TimeGridProps) {
     const allDayTrackRef = useRef<HTMLDivElement>(null);
     const leftScrollableRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(0);
-    const [allDayHeight, setAllDayHeight] = useState(0);
     // Visible width of the main scroller — the all-day row is pinned to this
     // (sticky-left) so its vertical scrollbar stays on-screen.
     const [mainWidth, setMainWidth] = useState(0);
@@ -207,20 +217,23 @@ export default function TimeGrid(props: TimeGridProps) {
             ? `calc(100% * ${(dates.length + BUFFER_DAYS * 2) / dates.length})`
             : "100%";
 
-    // Measure header + all-day row heights so the left rail can mirror the
-    // sticky-top region exactly (corner placeholder + all-day label).
+    // Measure the header row so the left rail can mirror the sticky-top region
+    // exactly (corner placeholder above the all-day gutter).
+    //
+    // The all-day band's height is NOT measured: it is animated (see
+    // ALLDAY_GROW_MS), and reading it back would re-render the whole grid on
+    // every frame of that animation, only to hand the rail a height a frame
+    // behind the band's. Both are given the same computed target instead, and
+    // the same transition takes them there together.
     useLayoutEffect(() => {
         const headerEl = headersRowRef.current;
-        const allDayEl = allDayRowRef.current;
         const measure = () => {
             setHeaderHeight(headerEl ? headerEl.offsetHeight : 0);
-            setAllDayHeight(allDayEl ? allDayEl.offsetHeight : 0);
             setContentWidth(headerEl ? headerEl.offsetWidth : 0);
         };
         measure();
         const ro = new ResizeObserver(measure);
         if (headerEl) ro.observe(headerEl);
-        if (allDayEl) ro.observe(allDayEl);
         return () => ro.disconnect();
     }, [extendedDates, allDayEvents]);
 
@@ -284,12 +297,36 @@ export default function TimeGrid(props: TimeGridProps) {
 
     const allDayLanes = useAllDayLanes(allDayEvents, extendedDates);
 
+    // The row a pending all-day draft stands on: under everything its day
+    // already holds, which is where the event itself will land once it is
+    // named (see useAllDayLanes). The band therefore grows the moment the slot
+    // is drawn, rather than jumping a row later when the event appears.
+    const allDayDraftLane = useMemo(() => {
+        if (!draftSlot || !draftSlot.allDay) return null;
+        const idx = extendedDates.findIndex((d) =>
+            isSameDay(d, draftSlot.start)
+        );
+        if (idx === -1) return null;
+        const occupied = allDayLanes.bars
+            .filter((b) => b.startIdx <= idx && idx <= b.startIdx + b.span - 1)
+            .map((b) => b.lane);
+        return occupied.length ? Math.max(...occupied) + 1 : 0;
+    }, [draftSlot, extendedDates, allDayLanes]);
+
+    // Every row the band has to hold, draft included.
+    const allDayContentRows = Math.max(
+        allDayLanes.laneCount,
+        allDayDraftLane === null ? 0 : allDayDraftLane + 1,
+        1
+    );
+
     // Visible (capped) height of the all-day row — the value that pushes the
     // days grid down. Used below to keep the grid from teleporting vertically
     // when the lane count changes during a horizontal shift.
     const allDayVisibleRows = allDayCollapsed
         ? 1
-        : Math.min(Math.max(allDayLanes.laneCount, 1), ALLDAY_MAX_ROWS);
+        : Math.min(allDayContentRows, ALLDAY_MAX_ROWS);
+    const allDayHeight = allDayVisibleRows * ALLDAY_ROW_HEIGHT;
 
     const overlapByDate = useMemo(() => {
         const map = new Map<string, ReturnType<typeof computeOverlapGroups>>();
@@ -425,17 +462,61 @@ export default function TimeGrid(props: TimeGridProps) {
     // days row vertically and teleports the visible grid. The height tracked
     // here must match the capped height set on .nc-allday-row in
     // TimeGridSections.tsx (allDayVisibleRows * ALLDAY_ROW_HEIGHT).
+    //
+    // The band now takes ALLDAY_GROW_MS to change height rather than doing it
+    // between two frames, so the correction is spread over the same time, on
+    // the same curve: a single jump would move the hours out from under the
+    // band while the band was still on its way down. The travels are republished
+    // each frame for the same reason — the scroll range grows with the band, and
+    // the pinned panels ride on it.
     const prevAllDayHeightRef = useRef<number | null>(null);
+    const allDayGrowFrameRef = useRef(0);
+    /** Correction still owed, when a second row arrives before the first has
+        finished landing. Carried into the new run instead of being lost. */
+    const allDayGrowOwedRef = useRef(0);
     useLayoutEffect(() => {
         const el = scrollRootRef.current;
         if (!el) return;
-        const newHeight = allDayVisibleRows * ALLDAY_ROW_HEIGHT;
         const prev = prevAllDayHeightRef.current;
-        if (prev !== null && prev !== newHeight) {
-            el.scrollTop += newHeight - prev;
+        prevAllDayHeightRef.current = allDayHeight;
+        if (prev === null || prev === allDayHeight) return;
+
+        cancelAnimationFrame(allDayGrowFrameRef.current);
+        const distance = allDayHeight - prev + allDayGrowOwedRef.current;
+        allDayGrowOwedRef.current = distance;
+
+        // Someone who has asked for less movement gets the band's height in one
+        // step (CalendarMotion.css cuts every duration to 1ms), so the
+        // correction has to arrive in one step too, or it would be the only
+        // thing still travelling.
+        if (prefersReducedMotion()) {
+            el.scrollTop += distance;
+            allDayGrowOwedRef.current = 0;
+            publishScrollTravel(el, gridRef.current);
+            return;
         }
-        prevAllDayHeightRef.current = newHeight;
-    }, [allDayVisibleRows]);
+
+        const startedAt = performance.now();
+        let moved = 0;
+        const step = (now: number) => {
+            const progress = Math.min(1, (now - startedAt) / ALLDAY_GROW_MS);
+            const wanted = distance * easeOutCubic(progress);
+            // Relative, never absolute: the person may be scrolling while the
+            // band grows, and their scroll must survive the correction.
+            el.scrollTop += wanted - moved;
+            allDayGrowOwedRef.current -= wanted - moved;
+            moved = wanted;
+            publishScrollTravel(el, gridRef.current);
+            if (progress < 1) {
+                allDayGrowFrameRef.current = requestAnimationFrame(step);
+            } else {
+                allDayGrowFrameRef.current = 0;
+                allDayGrowOwedRef.current = 0;
+            }
+        };
+        allDayGrowFrameRef.current = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(allDayGrowFrameRef.current);
+    }, [allDayHeight]);
 
     // The fallback path for everything the scroll timelines drive: the hours
     // rail's translateY, the grid's top clip, and the all-day band's pair of
@@ -544,6 +625,11 @@ export default function TimeGrid(props: TimeGridProps) {
                         // ou le panneau prennent aussi de la place. Mesure a
                         // 412 px avec deux fuseaux : 198 px visibles, pas 348.
                         "--nc-visible-grid-width": `${mainWidth}px`,
+                        // Combien de temps la bande all-day met a grandir ou a
+                        // rendre une ligne. Publiee ici pour que la transition
+                        // CSS et la correction de defilement qui la suit soient
+                        // le meme geste, d'une seule duree (ALLDAY_GROW_MS).
+                        "--nc-allday-grow": `${ALLDAY_GROW_MS}ms`,
                     } as React.CSSProperties
                 }
             >
@@ -578,6 +664,9 @@ export default function TimeGrid(props: TimeGridProps) {
                         <TimeGridAllDay
                             allDayLanes={allDayLanes}
                             extendedDates={extendedDates}
+                            contentRows={allDayContentRows}
+                            visibleHeight={allDayHeight}
+                            draftLane={allDayDraftLane}
                             collapsed={allDayCollapsed}
                             onToggleCollapse={onToggleAllDayCollapsed}
                             stickyTop={headerHeight}

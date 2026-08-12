@@ -33,6 +33,12 @@
 
 .nc-left-rail-allday {
     display: flex;
+    /* The gutter is the band's own height, handed to it by TimeGrid rather than
+       measured off it, and it grows on the same curve over the same time — so
+       the line under the chevron and the line under the bands stay one line
+       throughout, instead of the rail arriving a frame late. */
+    transition: height var(--nc-allday-grow, 220ms)
+        cubic-bezier(0.215, 0.61, 0.355, 1);
     /* Pin the chevron to the TOP-right of the gutter so it never drifts down
        when the section grows (expanded all-day can be many rows tall). The
        1px top offset keeps the 22px button inside the first 24px lane. */
@@ -569,6 +575,13 @@
     /* Hidden scrollbar (Notion-style). The section stays scrollable when it has
        more than ALLDAY_MAX_ROWS lanes; only the visible bar is removed. */
     scrollbar-width: none;
+    /* The band takes on a row, or gives one back, in the open — anchored at its
+       top, so it grows downwards over the grid. The duration is published by
+       TimeGrid (ALLDAY_GROW_MS) and the curve is easeOutCubic, because the
+       scroll correction that holds the hours still underneath runs on exactly
+       that function: two halves of one movement, so they have to match. */
+    transition: height var(--nc-allday-grow, 220ms)
+        cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
 .nc-allday-row::-webkit-scrollbar {
@@ -607,12 +620,43 @@
 
 .nc-allday-lanes > * {
     pointer-events: auto;
+    /* A bar changes rows when the packing changes — an event above it deleted,
+       a longer one arriving. Only the row is animated: the left edge and the
+       width belong to the day columns, and those move with the scroll, where
+       a transition would drag them a frame behind the grid. */
+    transition: top var(--nc-allday-grow, 220ms)
+        cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+/* A bar that has just been added arrives from under the row above, in the time
+   the band takes to make room for it. Mounted nodes only: React keeps the
+   existing bars' elements, so nothing already on screen replays this.
+   No fill mode: an animation's final keyframe outranks an inline style for as
+   long as it is held, and the bars are dragged by their inline transform. */
+.nc-allday-lanes > .nc-event-block {
+    animation: nc-allday-bar-in var(--nc-allday-grow, 220ms)
+        cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+@keyframes nc-allday-bar-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .nc-allday-draft {
     left: 0;
     right: 0;
     border-radius: 4px;
+    /* The slot slides down to the row it will keep, the same way a saved bar
+       would, so naming the event changes nothing about where it sits. */
+    transition: top var(--nc-allday-grow, 220ms)
+        cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
 /* ── Days row ──────────────────────────────────────────────── */

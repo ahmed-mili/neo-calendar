@@ -4,7 +4,6 @@ import {
     OVERLAP_COL_GAP,
     EVENT_VGAP,
     ALLDAY_ROW_HEIGHT,
-    ALLDAY_MAX_ROWS,
     DAYS_SHORT,
     formatHour,
     isToday,
@@ -280,6 +279,13 @@ export const TimeGridHeaders = React.forwardRef<HTMLDivElement, HeadersProps>(
 interface AllDayProps {
     allDayLanes: AllDayLanesResult;
     extendedDates: Date[];
+    /** Rows the band holds, draft included — computed once in TimeGrid so the
+        height, the scroll correction and this layout can never disagree. */
+    contentRows: number;
+    /** Height the band is animating to (the capped rows). */
+    visibleHeight: number;
+    /** Row a pending all-day draft stands on, under its day's own events. */
+    draftLane?: number | null;
     collapsed?: boolean;
     onToggleCollapse?: () => void;
     stickyTop?: number;
@@ -311,6 +317,9 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
         {
             allDayLanes,
             extendedDates,
+            contentRows,
+            visibleHeight,
+            draftLane,
             collapsed,
             onToggleCollapse,
             stickyTop,
@@ -332,8 +341,6 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
         ref
     ) {
         const len = extendedDates.length || 1;
-        const contentRows = Math.max(1, allDayLanes.laneCount);
-        const visibleRows = Math.min(contentRows, ALLDAY_MAX_ROWS);
 
         // One landing frame per all-day event being moved (the dragged one + the
         // rest of the multi-selection), shifted to its projected start day. A
@@ -373,7 +380,7 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                     style={{
                         ...(stickyTop !== undefined ? { top: stickyTop } : {}),
                         width: mainWidth || scrollerWidthStyle,
-                        height: ALLDAY_ROW_HEIGHT,
+                        height: visibleHeight,
                     }}
                 >
                     <div
@@ -483,7 +490,7 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                 style={{
                     ...(stickyTop !== undefined ? { top: stickyTop } : {}),
                     width: mainWidth || scrollerWidthStyle,
-                    height: visibleRows * ALLDAY_ROW_HEIGHT,
+                    height: visibleHeight,
                 }}
             >
                 <div
@@ -514,7 +521,13 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                             className="nc-selection-mirror nc-allday-draft"
                                             data-draft-preview="true"
                                             style={{
-                                                top: 1,
+                                                // On the row it will keep once
+                                                // named: under whatever the day
+                                                // already holds, never over it.
+                                                top:
+                                                    (draftLane ?? 0) *
+                                                        ALLDAY_ROW_HEIGHT +
+                                                    1,
                                                 height: ALLDAY_ROW_HEIGHT - 2,
                                                 backgroundColor: draftColor
                                                     ? draftColor + "25"

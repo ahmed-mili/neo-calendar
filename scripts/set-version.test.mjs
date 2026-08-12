@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { isVersion, nextVersionCode, replaceExactly } from "./set-version.mjs";
+import {
+    isVersion,
+    nextVersion,
+    nextVersionCode,
+    replaceExactly,
+    resolveVersion,
+} from "./set-version.mjs";
 
 test("n'accepte qu'un numéro à trois nombres", () => {
     assert.equal(isVersion("1.0.3"), true);
@@ -41,4 +47,34 @@ test("échoue quand le fichier n'a pas la forme attendue", () => {
         () => replaceExactly("rien ici", /introuvable/, "x", 1, "essai"),
         /0 trouvée/
     );
+});
+
+// Le dernier nombre ne bougeait jamais : toute livraison montait le mineur, si
+// bien qu'une suite de 1.x.0 ne disait plus si la version répare ou ajoute.
+test("une livraison qui ne fait que réparer monte le dernier nombre", () => {
+    assert.equal(nextVersion("1.37.0", "patch"), "1.37.1");
+    assert.equal(nextVersion("1.37.1", "patch"), "1.37.2");
+});
+
+test("une livraison qui ajoute monte le mineur et repart de zéro", () => {
+    assert.equal(nextVersion("1.37.1", "minor"), "1.38.0");
+    assert.equal(nextVersion("1.37.9", "minor"), "1.38.0");
+});
+
+test("une rupture monte le majeur et remet le reste à zéro", () => {
+    assert.equal(nextVersion("1.38.2", "major"), "2.0.0");
+});
+
+test("refuse un niveau qui ne veut rien dire", () => {
+    assert.throws(() => nextVersion("1.0.0", "grand"), /Niveau attendu/);
+    assert.throws(() => nextVersion("1.0", "patch"), /illisible/);
+});
+
+test("un numéro écrit en toutes lettres passe tel quel", async () => {
+    assert.equal(await resolveVersion("1.42.0"), "1.42.0");
+});
+
+test("refuse ce qui n'est ni un niveau ni un numéro", async () => {
+    await assert.rejects(() => resolveVersion("v1.42"), /Attendu/);
+    await assert.rejects(() => resolveVersion(undefined), /Attendu/);
 });
