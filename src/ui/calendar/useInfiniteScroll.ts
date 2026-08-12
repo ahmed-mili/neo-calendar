@@ -3,8 +3,15 @@ import {
     COLUMN_SEAM_PX,
     measureColumnWidth,
     offsetToDay,
+    offsetToNearestDay,
     scrollLeftForDay,
 } from "./gridColumns";
+
+/** The most a re-basing is allowed to nudge the grid back onto its day.
+ *
+ *  Rounding, and nothing else. Anything larger is a real position — a finger
+ *  mid-swipe, a glide still running — and belongs to whoever is moving it. */
+const MAX_RESIDUAL_PX = 2;
 
 interface Options {
     scrollRef: React.RefObject<HTMLElement>;
@@ -60,6 +67,18 @@ export function useInfiniteScroll(opts: Options): void {
         if (pendingShiftRef.current !== 0) {
             el.scrollLeft -= pendingShiftRef.current * dw;
             pendingShiftRef.current = 0;
+            // The subtraction is meant to leave the grid exactly where it
+            // looked a moment ago, and now that a day's width is the distance
+            // between two columns it does. This takes off whatever is left
+            // anyway — a fraction of a pixel, from a layout that rounds — but
+            // ONLY that: a correction bounded to a couple of pixels cannot
+            // fight a finger, and the day it would otherwise pull to is not
+            // this code's to choose. It is what makes the seam self-healing
+            // instead of accumulating one swipe at a time.
+            const residual = offsetToNearestDay(el);
+            if (residual !== null && Math.abs(residual) <= MAX_RESIDUAL_PX) {
+                el.scrollLeft += residual;
+            }
         } else {
             // External navigation: open on the first real day, against the
             // rail. Measured off that column rather than counted in day widths
