@@ -25,3 +25,6 @@
 /* Tout a la fin : la preference de mouvement reduit doit primer sur les durees
    posees par tous les partiels ci-dessus. */
 @import "./CalendarMotion.css";
+/* Inerte tant que <html> ne porte pas `nc-debug-lines` : rien de tout cela
+   n'est peint dans la version que l'on installe. */
+@import "./CalendarDebugLines.css";
