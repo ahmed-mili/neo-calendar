@@ -172,9 +172,13 @@ jobs:
             - name: Nommer l'APK
               run: |
                   version=$(node -p "require('./apps/android/package.json').version")
+                  # Vide, sauf pour une version de diagnostic — voir
+                  # scripts/releaseChannel.mjs. Le nom du fichier est la
+                  # dernière chose que l'on voit avant d'installer.
+                  suffix=$(node scripts/releaseChannel.mjs)
                   mkdir -p artifacts
                   cp apps/android/native/app/build/outputs/apk/release/app-release.apk \
-                     "artifacts/neo-calendar-android-$version.apk"
+                     "artifacts/neo-calendar-android-$version$suffix.apk"
 
             - uses: actions/upload-artifact@v4
               with:
@@ -235,6 +239,13 @@ jobs:
               run: |
                   mkdir -p artifacts
                   cp apps/windows/src-tauri/target/release/bundle/nsis/*Setup*.exe artifacts/
+                  # Même marque que sur l'APK, pour la même raison.
+                  suffix=$(node scripts/releaseChannel.mjs)
+                  if [ -n "$suffix" ]; then
+                    for installer in artifacts/*Setup*.exe; do
+                      mv "$installer" "${installer%.exe}$suffix.exe"
+                    done
+                  fi
 
             - uses: actions/upload-artifact@v4
               with:
@@ -272,7 +283,13 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
-                  tag="${GITHUB_REF_NAME#release/}"
+                  # Une version compilée avec ses diagnostics allumés n'est pas
+                  # une version que l'on installe : elle porte le mot dans son
+                  # étiquette et le drapeau pre-release de GitHub, qui la sort
+                  # du « Latest ». C'est l'application qui le dit, pas le nom de
+                  # la branche : un nom, on oublie de le donner.
+                  suffix=$(node scripts/releaseChannel.mjs)
+                  tag="${GITHUB_REF_NAME#release/}$suffix"
 
                   # Seuls les paquets effectivement construits. `nullglob` pour
                   # que le motif d'une application ignorée disparaisse au lieu
@@ -290,14 +307,22 @@ jobs:
                     echo "Release $tag déjà publiée : mise à jour des paquets."
                     gh release upload "$tag" "${packages[@]}" --clobber
                   else
-                    # Jamais `--prerelease` : une version publiée ici est une
-                    # version qu'on installe. Il n'y a pas de canal d'essai.
-                    # Le titre définitif est posé à l'étape suivante, une fois
-                    # que l'on sait ce que la release porte.
+                    # `--prerelease` pour un diagnostic, et pour lui seul : une
+                    # version ordinaire publiée ici est une version qu'on
+                    # installe, il n'y a pas de canal d'essai. Le titre
+                    # définitif est posé à l'étape suivante, une fois que l'on
+                    # sait ce que la release porte.
+                    # En `if`, pas en `&&` : la coquille s'arrête au premier
+                    # échec, et un `&&` dont la condition est fausse EST un
+                    # échec — la publication d'une version ordinaire serait
+                    # morte là, sur la ligne qui dit qu'elle est ordinaire.
+                    channel=()
+                    if [ -n "$suffix" ]; then channel=(--prerelease); fi
                     gh release create "$tag" "${packages[@]}" \
                       --target "$GITHUB_SHA" \
                       --title "$tag" \
-                      --generate-notes
+                      --generate-notes \
+                      "${channel[@]}"
                   fi
 
             # Le nom d'une release est son numéro, et rien d'autre — sauf
@@ -314,7 +339,7 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
-                  tag="${GITHUB_REF_NAME#release/}"
+                  tag="${GITHUB_REF_NAME#release/}$(node scripts/releaseChannel.mjs)"
                   gh release view "$tag" > /dev/null 2>&1 || exit 0
 
                   title=$(gh release view "$tag" --json assets \

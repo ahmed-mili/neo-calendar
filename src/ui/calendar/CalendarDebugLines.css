@@ -61,6 +61,17 @@ html.nc-debug-lines .nc-timegrid-header {
     user-select: none;
 }
 
+.nc-debug-readout u {
+    display: block;
+    margin-bottom: 3px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+    color: #ff9500;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+}
+
 .nc-debug-readout b {
     color: #00e05a;
     font-weight: 600;
