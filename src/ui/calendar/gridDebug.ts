@@ -82,6 +82,10 @@ export function enableGridLineDebug(host: HTMLElement | null): () => void {
             Math.abs(value) <= tolerance ? "b" : "i";
 
         readout.innerHTML =
+            // Said by the build itself, not only by the page it came from: a
+            // phone that has been carrying this for a week should not have to
+            // be asked which one it is running.
+            `<u>VERSION DEBUG</u>\n` +
             `dpr ${round(window.devicePixelRatio, 2)}  ` +
             `sl ${round(scroller.scrollLeft)}\n` +
             `rail→grid <${flag(gap)}>${round(gap)}</${flag(gap)}>` +
