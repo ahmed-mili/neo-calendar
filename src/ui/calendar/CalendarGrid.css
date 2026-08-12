@@ -452,14 +452,24 @@
     min-width: 0;
 }
 
-/* The left rail's right border doubles the left border of the first day
-   column / header / all-day cell. Drop the latter so we get a single 1px
-   line at the rail/scroller seam, regardless of which row. */
-.nc-headers-row > :first-child,
-.nc-allday-cells > :first-child,
-.nc-days-row > :first-child {
-    border-left: none;
-}
+/* THE FIRST COLUMN KEEPS ITS BORDER, and that is load-bearing.
+
+   It used to lose it, to avoid doubling the rail's line at the seam — which it
+   never actually did: the first column is a BUFFER day, three days off to the
+   left, and the grid opens scrolled past it. What the rule did instead was make
+   that one column a pixel narrower than the other seven, because a border is
+   part of a border-box. Every measurement of "how wide is a day" reads the
+   first column it finds, so every re-basing of the day range moved the grid by
+   a pixel less than it took away, and the day came to rest a pixel short of the
+   rail with its own border showing beside it. Measured on the phone: a pitch of
+   171.3px, a first column of 170.3px, and a day landing at −0.17 instead of −2.
+
+   The columns are now identical, so the width of one IS the distance between
+   two, and the arithmetic that re-bases the range is exact.
+
+   The seam itself is closed by scrolling one column's border past the rail's
+   (COLUMN_SEAM_PX in gridColumns.ts), which works wherever the grid is, and not
+   only on the one column that happened to be first. */
 
 /* ── Headers row ──────────────────────────────────────────── */
 

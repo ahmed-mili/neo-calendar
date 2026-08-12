@@ -9,18 +9,25 @@
  */
 
 /**
- * The width of the line that closes the grid on its left.
+ * How far past the seam a day is parked, so only one line is painted there.
  *
- * The hours rail draws it on its own right edge (`.nc-left-rail-scrollable`),
- * and every day column draws one on its left (`.nc-timegrid-day`). Land a day
- * exactly on the seam and BOTH are painted, a pixel apart: the grid opens on a
- * doubled rule where every other separator is a single one. One pixel further
- * right and the column's own border passes behind the rail's — clipped away by
- * the scroller — leaving the one line the two were always meant to be.
+ * The hours rail draws the grid's left line on its own right edge
+ * (`.nc-left-rail-scrollable`), and every day column draws one on its left
+ * (`.nc-timegrid-day`). Land a day exactly on the seam and BOTH are painted, a
+ * pixel apart: the grid opens on a doubled rule where every other separator is
+ * a single one. Scroll a little further and the column's own border passes
+ * behind the rail's, clipped away by the scroller, leaving the one line the two
+ * were always meant to be.
  *
- * Kept in step with the `border-left` of `.nc-timegrid-day` in CalendarGrid.css.
+ * TWO pixels, not the one the border is wide, and that is measured rather than
+ * reasoned: on a phone at 3× the doubled line was still there with the day at
+ * −0.17, and gone with it at −1.96. A border that ends exactly on the clip is a
+ * boundary case, and a boundary case at a third of a pixel is a coin toss — the
+ * sliver that gets through is thin, but a thin second line is the whole
+ * complaint. The extra pixel costs the first day one pixel of its own content,
+ * off the edge of the screen, where nothing is.
  */
-export const COLUMN_SEAM_PX = 1;
+export const COLUMN_SEAM_PX = 2;
 
 /**
  * How wide one day is, for when the columns cannot be measured directly.
@@ -36,19 +43,34 @@ export function pageWidthFor(
 }
 
 /**
- * How wide one day column really is, in fractional pixels.
+ * How wide one day is: the distance from one column to the next.
  *
- * Never `offsetWidth`: it is rounded to whole pixels, and the position the grid
- * opens on is three columns of it (the buffer). Three roundings the same way put
- * the first day several pixels off the rail — which is exactly the drift this
- * measurement exists to avoid. `getBoundingClientRect` keeps the fraction.
+ * The PITCH, and not the width of a column, even though the two are the same
+ * number as long as every column is identical. They were not: the first one had
+ * its left border dropped, which made it a pixel narrower than the rest, and
+ * this function reads whichever column it finds first. A day's width is used to
+ * re-base the range by whole days, so that pixel came off the grid on every
+ * shift and left the day short of the rail — the doubled line, arriving one
+ * swipe at a time. Two columns cannot lie about the distance between them.
+ *
+ * Never `offsetWidth` either: it is rounded to whole pixels, and the position
+ * the grid opens on is three days of it. `getBoundingClientRect` keeps the
+ * fraction.
  */
 export function measureColumnWidth(
     scroller: HTMLElement,
     daysPerView: number
 ): number {
-    const column = scroller.querySelector<HTMLElement>(".nc-timegrid-day");
-    const measured = column ? column.getBoundingClientRect().width : 0;
+    const columns = scroller.querySelectorAll<HTMLElement>(".nc-timegrid-day");
+    if (columns.length >= 2) {
+        const pitch =
+            columns[1].getBoundingClientRect().left -
+            columns[0].getBoundingClientRect().left;
+        if (pitch > 0) return pitch;
+    }
+    const measured = columns.length
+        ? columns[0].getBoundingClientRect().width
+        : 0;
     if (measured > 0) return measured;
     return pageWidthFor(scroller.clientWidth, daysPerView);
 }

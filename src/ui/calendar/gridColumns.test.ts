@@ -25,34 +25,66 @@ describe("pageWidthFor", () => {
     });
 });
 
-/** A scroller whose one day column measures `width`, fraction included. */
-function scrollerWith(width: number | null, clientWidth = 400): HTMLElement {
+/** A grid whose columns are laid out at `edges` (from the grid's own left
+    edge) and are `widths` wide — the two being allowed to disagree, which is
+    the whole point: a column that has lost a border is narrower than the
+    distance from it to the next one. */
+function gridOfColumns(
+    edges: number[],
+    widths: number[] = edges.map(() => 0),
+    clientWidth = 400,
+    origin = 64
+): HTMLElement {
+    const columns = edges.map(
+        (edge, index) =>
+            ({
+                getBoundingClientRect: () => ({
+                    left: origin + edge,
+                    width: widths[index],
+                }),
+            } as unknown as HTMLElement)
+    );
     return {
         clientWidth,
-        querySelector: () =>
-            width === null
-                ? null
-                : ({
-                      getBoundingClientRect: () => ({ width }),
-                  } as unknown as HTMLElement),
+        getBoundingClientRect: () => ({ left: origin }),
+        querySelectorAll: () => columns,
     } as unknown as HTMLElement;
 }
 
+/** A grid whose columns really are where `edges` says. */
+const gridShowing = (edges: number[], origin = 64) =>
+    gridOfColumns(edges, edges.map(() => 0), 400, origin);
+
 describe("measureColumnWidth", () => {
     it("keeps the fraction a whole-pixel measurement would round away", () => {
-        expect(measureColumnWidth(scrollerWith(137.4), 2)).toBeCloseTo(
+        expect(
+            measureColumnWidth(gridOfColumns([0, 137.4, 274.8]), 2)
+        ).toBeCloseTo(137.4, 5);
+    });
+
+    // The bug, in one assertion: the first column had lost its left border and
+    // was a pixel narrower than the distance from it to the next. A day's width
+    // re-bases the range by whole days, so that pixel came off the grid on
+    // every shift — and the seam opened one swipe at a time.
+    it("measures the distance between two columns, not the width of one", () => {
+        const uneven = gridOfColumns(
+            [0, 171.3, 342.6],
+            [170.3, 171.3, 171.3]
+        );
+        expect(measureColumnWidth(uneven, 2)).toBeCloseTo(171.3, 5);
+    });
+
+    it("falls back to the one column it has, then to the viewport", () => {
+        expect(measureColumnWidth(gridOfColumns([0], [137.4]), 2)).toBeCloseTo(
             137.4,
             5
         );
-    });
-
-    it("falls back to the viewport when there is no column to measure", () => {
-        expect(measureColumnWidth(scrollerWith(null, 412), 2)).toBe(206);
-        expect(measureColumnWidth(scrollerWith(0, 412), 2)).toBe(206);
+        expect(measureColumnWidth(gridOfColumns([], [], 412), 2)).toBe(206);
+        expect(measureColumnWidth(gridOfColumns([0], [0], 412), 2)).toBe(206);
     });
 
     it("has nothing to report when the view holds no days", () => {
-        expect(measureColumnWidth(scrollerWith(null, 412), 0)).toBe(0);
+        expect(measureColumnWidth(gridOfColumns([], [], 412), 0)).toBe(0);
     });
 });
 
@@ -74,21 +106,6 @@ describe("scrollLeftForDay", () => {
     });
 });
 
-/** A grid whose columns really are where `edges` says, relative to its own
-    left edge — the only thing the alignment is allowed to believe. */
-function gridShowing(edges: number[], origin = 64): HTMLElement {
-    return {
-        getBoundingClientRect: () => ({ left: origin }),
-        querySelectorAll: () =>
-            edges.map(
-                (edge) =>
-                    ({
-                        getBoundingClientRect: () => ({ left: origin + edge }),
-                    } as unknown as HTMLElement)
-            ),
-    } as unknown as HTMLElement;
-}
-
 describe("offsetToDay", () => {
     // The column sits 412.2px along, and has to end up one pixel PAST the
     // grid's left edge so its own left border passes behind the rail's.
@@ -107,7 +124,7 @@ describe("offsetToDay", () => {
     // the rail's. Up, always: that is the way that tucks it out of sight.
     it("lands on a whole device pixel, on the side that hides the line", () => {
         const grid = gridShowing([0, 200.4]);
-        expect(offsetToDay(grid, 1)).toBe(202);
+        expect(offsetToDay(grid, 1)).toBe(Math.ceil(200.4 + COLUMN_SEAM_PX));
     });
 
     it("has nothing to measure before the columns are on the page", () => {
