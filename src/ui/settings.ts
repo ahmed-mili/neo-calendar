@@ -461,7 +461,7 @@ export class NeoCalendarSettingTab extends PluginSettingTab {
             ],
             [
                 "Free scrolling",
-                "Off, the grid settles on whole days, so you are never left looking at two half columns. On, it stays wherever you leave it.",
+                "Off, one swipe turns one day and the grid lands on it, so you are never left looking at two half columns. On, the days scroll freely and stay wherever you leave them.",
                 "freeScroll",
             ],
             [

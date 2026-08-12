@@ -53,11 +53,86 @@ export function measureColumnWidth(
     return pageWidthFor(scroller.clientWidth, daysPerView);
 }
 
-/** Where the grid is scrolled for `dayIndex` to sit against the hours rail. */
+/** Where the grid is scrolled for `dayIndex` to sit against the hours rail.
+ *
+ *  The arithmetic answer, for the one moment there is nothing to measure: the
+ *  columns are not in the document yet. Everywhere else, ask them — see
+ *  `offsetToDay` for why the arithmetic is not to be trusted on its own. */
 export function scrollLeftForDay(
     dayIndex: number,
     columnWidth: number
 ): number {
     if (!(columnWidth > 0)) return 0;
     return dayIndex * columnWidth + COLUMN_SEAM_PX;
+}
+
+/**
+ * A day column's left edge, relative to the grid's left edge, for every column
+ * on the page. Empty when the grid holds no days yet.
+ */
+function columnEdges(scroller: HTMLElement): number[] {
+    const columns = scroller.querySelectorAll<HTMLElement>(".nc-timegrid-day");
+    if (!columns.length) return [];
+    const origin = scroller.getBoundingClientRect().left;
+    return Array.from(
+        columns,
+        (column) => column.getBoundingClientRect().left - origin
+    );
+}
+
+/**
+ * Nudged onto a device pixel, on the side that hides the line.
+ *
+ * A screen at 2.75× cannot place a scroll offset on any fraction it is asked
+ * for: the browser lands on a whole device pixel, and rounding the wrong way
+ * leaves a sliver of the day's own border showing beside the rail's — which,
+ * from a hand's distance, is the doubled line all over again, thinner. Rounding
+ * up always moves the grid a hair FURTHER right, which is the direction that
+ * tucks the border away.
+ */
+function ontoDevicePixel(distance: number): number {
+    const ratio =
+        typeof window !== "undefined" && window.devicePixelRatio > 0
+            ? window.devicePixelRatio
+            : 1;
+    return Math.ceil(distance * ratio) / ratio;
+}
+
+/**
+ * How far the grid has to move for `dayIndex` to sit against the hours rail.
+ *
+ * MEASURED, never computed. Where a column actually is depends on things this
+ * module cannot see and should not have to: whether a box counts its border in
+ * its width, a floor width that stops the columns being shared out evenly, the
+ * sub-pixel rounding of a flex layout on the device it is running on. Reading
+ * the arithmetic instead was worth several pixels at the left edge, and every
+ * one of them showed as the grid opening on two lines instead of one.
+ *
+ * Null when there is nothing to measure — the columns are not on the page yet.
+ */
+export function offsetToDay(
+    scroller: HTMLElement,
+    dayIndex: number
+): number | null {
+    const edges = columnEdges(scroller);
+    const edge = edges[dayIndex];
+    if (edge === undefined) return null;
+    return ontoDevicePixel(edge + COLUMN_SEAM_PX);
+}
+
+/**
+ * How far the grid has to move for the NEAREST day to sit against the rail —
+ * the shortest way out of a position between two days.
+ */
+export function offsetToNearestDay(scroller: HTMLElement): number | null {
+    const edges = columnEdges(scroller);
+    if (!edges.length) return null;
+    let shortest: number | null = null;
+    for (const edge of edges) {
+        const distance = edge + COLUMN_SEAM_PX;
+        if (shortest === null || Math.abs(distance) < Math.abs(shortest)) {
+            shortest = distance;
+        }
+    }
+    return shortest === null ? null : ontoDevicePixel(shortest);
 }
