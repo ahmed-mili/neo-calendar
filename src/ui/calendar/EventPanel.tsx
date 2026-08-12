@@ -27,6 +27,7 @@ import {
     TypeRow,
     DueRow,
     StatusRow,
+    SubtasksRow,
     LinksAttachmentsRow,
     DescriptionRow,
 } from "./EventPanelRows";
@@ -271,6 +272,7 @@ export default function EventPanel({
         draft,
         editableCalendars,
         currentCalendarId: stableCalInfo.currentId,
+        committingDraft,
     });
 
     // NEO_ANDROID_DRAFT_LIVE_TIME_V7_2_START
@@ -316,16 +318,31 @@ export default function EventPanel({
     // panel travel WITH its event, so it appears to stay put instead of being
     // stranded at its original viewport coordinates. Falls back to the open-time
     // rect when the element isn't in the DOM (e.g. scrolled out).
+    // The last rect the panel was actually docked to. During the hand-over from
+    // draft to saved event the draft's slot has already been removed and the
+    // event's block is not drawn yet, so for those frames NOTHING is in the DOM
+    // to dock to; falling back to the rect the panel opened on threw it back
+    // across the grid and read as the panel reloading. Cleared whenever the
+    // panel is opened somewhere else (a new anchorRect).
+    const lastAnchorRectRef = useRef<DOMRect | null>(null);
+    useEffect(() => {
+        lastAnchorRectRef.current = null;
+    }, [anchorRect]);
+
     const getAnchorRect = useCallback((): DOMRect | null => {
+        const remember = (rect: DOMRect): DOMRect => {
+            lastAnchorRectRef.current = rect;
+            return rect;
+        };
         if (eventId) {
             const el = document.querySelector(
                 `[data-event-id="${CSS.escape(eventId)}"]`
             );
-            if (el) return el.getBoundingClientRect();
+            if (el) return remember(el.getBoundingClientRect());
         }
         const draftEl = document.querySelector("[data-draft-preview]");
-        if (draftEl) return draftEl.getBoundingClientRect();
-        return anchorRect;
+        if (draftEl) return remember(draftEl.getBoundingClientRect());
+        return lastAnchorRectRef.current ?? anchorRect;
     }, [eventId, anchorRect]);
 
     // Bumped whenever the calendar surface resizes (sidebar toggle / window
@@ -439,6 +456,8 @@ export default function EventPanel({
 
     // Refocus title input after draft commits (draft→edit transition)
     const justCommittedDraftRef = useRef(false);
+    /** The event about to arrive was written from what this form holds. */
+    const committedFromThisFormRef = useRef(false);
 
     // NEO_ANDROID_NOTION_COMMIT_FOCUS_START
     useEffect(() => {
@@ -630,6 +649,7 @@ export default function EventPanel({
         if (!form.date) return;
         if (!hasDraftCreationIntent(form.title)) return;
         justCommittedDraftRef.current = true;
+        committedFromThisFormRef.current = true;
         const payload = form.buildPayload();
         const cal =
             editableCalendars[form.calendarIndex] || editableCalendars[0];
@@ -670,7 +690,16 @@ export default function EventPanel({
             prevEventIdForSaveRef.current = eventId;
             lastSavedPayloadRef.current = "";
             lastSavedCalendarRef.current = null;
-            openBaselineNeededRef.current = true;
+            // An event that has just been written FROM this form is not an
+            // event being opened: the note was written from the title as it
+            // stood when the write began, and typing does not pause for it, so
+            // the panel is usually a character or two ahead of the file. Taking
+            // what it holds as already-saved would strand those characters.
+            // Everything on screen is written out instead — the note was made a
+            // moment ago from this same form, so there is nothing to preserve
+            // by not writing it.
+            openBaselineNeededRef.current = !committedFromThisFormRef.current;
+            committedFromThisFormRef.current = false;
             return;
         }
 
@@ -723,6 +752,7 @@ export default function EventPanel({
         form.calendarIndex,
         form.taskStatus,
         form.description,
+        form.subtasks,
         isDraft,
         stableEvent,
         eventId,
@@ -983,6 +1013,20 @@ export default function EventPanel({
                             form.setTaskStatus(s);
                             scheduleAutoSave();
                         }}
+                    />
+                )}
+
+                {/* The steps belong to a task, like the deadline above: an
+                    event has nothing to be part-way through. A series is left
+                    out for the same reason it has no status row — one list of
+                    steps for every Tuesday would be ticked off once and be
+                    wrong for every week after. */}
+                {isTask && !form.isRecurring && (
+                    <SubtasksRow
+                        subtasks={form.subtasks}
+                        editable={stableCalInfo.editable}
+                        setSubtasks={form.setSubtasks}
+                        onAutoSave={scheduleAutoSave}
                     />
                 )}
 

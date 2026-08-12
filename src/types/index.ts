@@ -1,5 +1,9 @@
 export type { NeoEvent } from "./schema";
-export { validateEvent, TYPE_DISCRIMINANT_KEYS } from "./schema";
+export {
+    validateEvent,
+    TYPE_DISCRIMINANT_KEYS,
+    KEYS_DROPPED_WHEN_ABSENT,
+} from "./schema";
 
 export type { CalendarInfo } from "./calendar_settings";
 export { makeDefaultPartialCalendarSource } from "./calendar_settings";

@@ -1,4 +1,4 @@
-import { completedFor, dueFor } from "./useEventFormState";
+import { completedFor, dueFor, isDraftHandover } from "./useEventFormState";
 import { isTask } from "../tasks";
 import { NeoEvent } from "../../types";
 
@@ -49,6 +49,32 @@ describe("dueFor", () => {
         // Un evenement n'a pas d'echeance : il EST sa date. Basculer en
         // evenement ne doit pas laisser une cle orpheline dans la note.
         expect(dueFor(null, "2026-08-30")).toBeUndefined();
+    });
+});
+
+describe("nommer un brouillon ne recharge pas le panneau", () => {
+    // Regression : au premier caractere, le brouillon part a l'ecriture et le
+    // panneau se retrouve un instant sans brouillon NI identifiant. Recharger
+    // le formulaire sur cet instant-la, c'est le vider puis le remplir — ce que
+    // l'on voyait comme un rechargement du panneau de creation.
+    it("garde ce qui est tape pendant l'ecriture du fichier", () => {
+        expect(isDraftHandover("__draft__", null, true)).toBe(true);
+    });
+
+    it("garde ce qui est tape quand l'identifiant arrive", () => {
+        expect(isDraftHandover("__draft__", "cal::event.md", false)).toBe(true);
+    });
+
+    it("recharge quand le brouillon est abandonne sans etre ecrit", () => {
+        expect(isDraftHandover("__draft__", null, false)).toBe(false);
+    });
+
+    it("recharge quand c'est un autre evenement que l'on ouvre", () => {
+        expect(isDraftHandover("cal::a.md", "cal::b.md", false)).toBe(false);
+        expect(isDraftHandover(null, "cal::b.md", false)).toBe(false);
+        // Meme en pleine ecriture d'un brouillon : ce qui etait affiche avant
+        // n'etait pas ce brouillon-la.
+        expect(isDraftHandover("cal::a.md", null, true)).toBe(false);
     });
 });
 

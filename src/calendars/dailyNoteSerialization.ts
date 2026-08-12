@@ -40,6 +40,13 @@ export const makeListItem = (
     delete attrs.title;
     delete attrs.type;
     delete attrs.date;
+    // A bullet carries its data as `[key:: value]` pairs, which is a line of
+    // text: it has room for a value, not for a list of steps each with a box of
+    // its own — and a `]` inside one would end the pair early and corrupt the
+    // line. So the steps of a task stay in the note-per-event format, where the
+    // frontmatter can hold a list, and a daily note simply writes the event
+    // without them rather than writing something it cannot read back.
+    delete attrs.subtasks;
 
     for (const key of Object.keys(attrs) as (keyof NeoEvent)[]) {
         if (attrs[key] === undefined || attrs[key] === null) {

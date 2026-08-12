@@ -117,6 +117,10 @@ const FR: Record<string, string> = {
     Deadline: "Échéance",
     "Add deadline": "Ajouter une échéance",
     "Remove deadline": "Retirer l'échéance",
+    // The steps a task is made of, listed on the task itself.
+    Steps: "Étapes",
+    "Add a step": "Ajouter une étape",
+    "Remove step": "Supprimer l'étape",
     "No tasks yet": "Aucune tâche",
     "Add task": "+ Ajouter une tâche",
     // One-off repair for entries the `completed: false` bug filed as tasks.

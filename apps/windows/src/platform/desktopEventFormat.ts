@@ -1,7 +1,7 @@
 import { rrulestr } from "rrule";
 import {
     NeoEvent,
-    TYPE_DISCRIMINANT_KEYS,
+    KEYS_DROPPED_WHEN_ABSENT,
     validateEvent,
 } from "../../../../src/types";
 import type { DesktopEventFileDto } from "./desktopCalendarStore";
@@ -17,7 +17,10 @@ export interface DesktopStoredEvent {
     readOnly?: boolean;
 }
 
-const TYPE_EXCLUSIVE_KEYS = new Set<string>(TYPE_DISCRIMINANT_KEYS);
+/** Keys the model takes away rather than leaves behind — the type-exclusive
+    ones, plus `subtasks` once its last step is deleted. Mirrors
+    FullNoteCalendar.modifyFrontmatterString. */
+const DROPPED_WHEN_ABSENT = new Set<string>(KEYS_DROPPED_WHEN_ABSENT);
 
 function unquote(value: string): string {
     if (
@@ -282,7 +285,7 @@ export function serializeEventMarkdown(
             if (
                 (normalized.allDay &&
                     (key === "startTime" || key === "endTime")) ||
-                TYPE_EXCLUSIVE_KEYS.has(key)
+                DROPPED_WHEN_ABSENT.has(key)
             ) {
                 continue;
             }

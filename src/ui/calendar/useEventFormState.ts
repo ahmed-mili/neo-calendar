@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { DateTime } from "luxon";
 import { NeoEvent } from "../../types";
 import { getTaskStatus, isTask, TaskStatus } from "../tasks";
+import { Subtask, readSubtasks, writeSubtasks } from "../tasks/subtasks";
 import type { DraftInfo } from "./EventPanel";
 import {
     RecurrenceState,
@@ -22,6 +23,34 @@ interface Args {
     draft: DraftInfo | null;
     editableCalendars: EditableCalendarRef[];
     currentCalendarId: string;
+    /** The draft is being written to the vault right now — see the hand-over
+        in the reset effect below. */
+    committingDraft?: boolean;
+}
+
+/** The key a draft is remembered under, until it has an id of its own. */
+export const DRAFT_KEY = "__draft__";
+
+/**
+ * Is this key change a draft turning into the event that was written from it?
+ *
+ * Naming a draft creates the event, and for a moment the panel holds neither:
+ * the draft is dropped as the write starts (so the grid does not show a slot and
+ * an event in the same place), and the id only lands when the file does. Both of
+ * those frames are the SAME edit continuing, and the form must not be reloaded
+ * on either — reloading is what emptied the panel on the first character typed
+ * and filled it again a moment later.
+ *
+ * Any other change of key is a different entry being shown, and does reload:
+ * a draft simply abandoned, another event clicked, the panel emptied.
+ */
+export function isDraftHandover(
+    previousKey: string | null,
+    eventId: string | null,
+    committingDraft: boolean
+): boolean {
+    if (previousKey !== DRAFT_KEY) return false;
+    return committingDraft || eventId !== null;
 }
 
 /**
@@ -89,6 +118,7 @@ export function useEventFormState({
     draft,
     editableCalendars,
     currentCalendarId,
+    committingDraft = false,
 }: Args) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -106,6 +136,9 @@ export function useEventFormState({
     // A task's deadline, independent of its date. Null when it has none —
     // most tasks never need one.
     const [due, setDue] = useState<string | null>(null);
+    // The steps the task is made of. Held as objects and written back as lines
+    // (see ui/tasks/subtasks), so the panel never handles the stored syntax.
+    const [subtasks, setSubtasks] = useState<Subtask[]>([]);
     // Carried through untouched: the panel edits the series, while the ticks
     // happen on the grid. Dropping it here would erase every occurrence ever
     // ticked the next time the title was edited.
@@ -120,13 +153,28 @@ export function useEventFormState({
     const prevPersistedStatusRef = useRef<TaskStatus | null>(null);
 
     useEffect(() => {
-        const key = eventId || (draft ? "__draft__" : null);
+        const key = eventId || (draft ? DRAFT_KEY : null);
         if (key === lastKeyRef.current) return;
+
+        // The draft → event hand-over carries the typed state over instead of
+        // loading the form again from the note it just wrote (see
+        // isDraftHandover). Nothing typed while the file was being written is
+        // lost either, for the same reason.
+        if (isDraftHandover(lastKeyRef.current, eventId, committingDraft)) {
+            if (eventId) {
+                lastKeyRef.current = eventId;
+                prevPersistedStatusRef.current = event
+                    ? getTaskStatus(event)
+                    : null;
+            }
+            return;
+        }
 
         if (event) {
             setTitle(event.title);
             setDescription(event.description || "");
             setAllDay(!!event.allDay);
+            setSubtasks(readSubtasks(event));
 
             if (event.type === "single" || event.type === undefined) {
                 setDate(event.date || "");
@@ -195,6 +243,7 @@ export function useEventFormState({
             setRecurrence(defaultRecurrence(startDate));
             setTaskStatus(draft.defaultAsTask ? "todo" : null);
             setDue(null);
+            setSubtasks([]);
             setCompletedDates(undefined);
 
             const idx = editableCalendars.findIndex(
@@ -214,12 +263,13 @@ export function useEventFormState({
             );
             setTaskStatus(null);
             setDue(null);
+            setSubtasks([]);
             setCompletedDates(undefined);
         }
 
         lastKeyRef.current = key;
         prevPersistedStatusRef.current = event ? getTaskStatus(event) : null;
-    }, [eventId, event, draft]);
+    }, [eventId, event, draft, committingDraft]);
 
     // Keep the status pill in sync with the event's PERSISTED status while the
     // panel stays open (same eventId) — e.g. toggling the checkbox on the
@@ -239,8 +289,13 @@ export function useEventFormState({
     }, [event]);
 
     const buildPayload = useCallback((): NeoEvent => {
+        // The steps only belong to a task: switching an entry back to Event
+        // drops them the way it drops the deadline, rather than leaving an
+        // orphan list in the note.
+        const steps = taskStatus === null ? undefined : writeSubtasks(subtasks);
         return {
             title,
+            ...(steps ? { subtasks: steps } : {}),
             ...(allDay
                 ? { allDay: true }
                 : { allDay: false, startTime: startTime || "", endTime }),
@@ -278,6 +333,7 @@ export function useEventFormState({
         endDate,
         taskStatus,
         due,
+        subtasks,
         completedDates,
         description,
     ]);
@@ -307,6 +363,8 @@ export function useEventFormState({
         setTaskStatus,
         due,
         setDue,
+        subtasks,
+        setSubtasks,
         buildPayload,
         resetLastKey: () => {
             lastKeyRef.current = null;
