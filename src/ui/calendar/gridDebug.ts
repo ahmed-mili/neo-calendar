@@ -70,6 +70,21 @@ export function enableGridLineDebug(host: HTMLElement | null): () => void {
         const rail = host.querySelector<HTMLElement>(".nc-left-rail");
         if (!scroller || !rail) return;
 
+        // The band, across the seam: the gutter beside the chevron and the band
+        // of events are two elements that have to agree on where they start and
+        // where they stop, or the rules that close them are drawn at two
+        // different heights and the row reads as crooked.
+        const gutter = host.querySelector<HTMLElement>(".nc-left-rail-allday");
+        const band = host.querySelector<HTMLElement>(".nc-allday-row");
+        const bandTop = gutter && band
+            ? band.getBoundingClientRect().top -
+              gutter.getBoundingClientRect().top
+            : Number.NaN;
+        const bandBottom = gutter && band
+            ? band.getBoundingClientRect().bottom -
+              gutter.getBoundingClientRect().bottom
+            : Number.NaN;
+
         const gridLeft = scroller.getBoundingClientRect().left;
         const railRight = rail.getBoundingClientRect().right;
         const nearest = nearestColumn(scroller);
@@ -94,7 +109,10 @@ export function enableGridLineDebug(host: HTMLElement | null): () => void {
             `<${flag(owed)}>${round(nearest ? nearest.offset : Number.NaN)}` +
             `</${flag(owed)}>   (want ${-COLUMN_SEAM_PX})\n` +
             `owed <${flag(owed)}>${round(owed)}</${flag(owed)}>` +
-            `   (want 0)`;
+            `   (want 0)\n` +
+            `band ▲<${flag(bandTop)}>${round(bandTop)}</${flag(bandTop)}> ` +
+            `▼<${flag(bandBottom)}>${round(bandBottom)}</${flag(bandBottom)}>` +
+            `  (want 0)`;
     };
 
     const schedule = () => {
