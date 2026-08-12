@@ -1,0 +1,73 @@
+/* ──────────────────────────────────────────────────────────────
+   Neo Calendar — the lines at the grid's left edge, told apart
+
+   A diagnostic, off unless `nc-debug-lines` is set on <html> (see
+   gridDebug.ts). Every rule that can be painted near the seam between the
+   hours rail and the first day gets a colour of its own, so a photograph of
+   the screen says which elements are drawing, instead of leaving us to argue
+   about a line two pixels wide.
+
+       RED      the hours rail's own right edge — the line that closes the
+                grid on its left, over the hours
+       ORANGE   the same edge, but beside the all-day band, where it is drawn
+                by a different element in a different colour
+       GREEN    a day column's left edge — the one that is supposed to pass
+                BEHIND the red one when the grid is on a whole day
+       BLUE     an all-day cell's left edge
+       MAGENTA  a day header's left edge
+
+   Only colours change. No width, no padding, no position: a diagnostic that
+   moves what it measures is worth nothing.
+   ────────────────────────────────────────────────────────────── */
+
+html.nc-debug-lines .nc-left-rail-scrollable {
+    border-right-color: #ff2d2d !important;
+}
+
+html.nc-debug-lines .nc-left-rail-allday {
+    border-right-color: #ff9500 !important;
+}
+
+html.nc-debug-lines .nc-timegrid-day {
+    border-left-color: #00e05a !important;
+}
+
+html.nc-debug-lines .nc-allday-cell {
+    border-left-color: #2d7bff !important;
+}
+
+html.nc-debug-lines .nc-timegrid-header {
+    border-left-color: #ff2df7 !important;
+}
+
+/* What the numbers say, next to what the eye sees. Fixed to the viewport and
+   untouchable, so it cannot change a single thing about the layout under it. */
+.nc-debug-readout {
+    position: fixed;
+    /* Away from the left edge, which is the thing being photographed, and
+       above the dock at the bottom of the phone. */
+    right: 8px;
+    bottom: 104px;
+    z-index: 2147483647;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.82);
+    color: #eaeaea;
+    font-family: ui-monospace, "JetBrains Mono", "Geist Mono", monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre;
+    pointer-events: none;
+    user-select: none;
+}
+
+.nc-debug-readout b {
+    color: #00e05a;
+    font-weight: 600;
+}
+
+.nc-debug-readout i {
+    color: #ff6b6b;
+    font-style: normal;
+    font-weight: 600;
+}

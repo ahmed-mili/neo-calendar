@@ -26,6 +26,8 @@ import { useTimeGridResize } from "./useTimeGridResize";
 import { useTimeGridSelection } from "./useTimeGridSelection";
 import { useAllDayLanes } from "./useAllDayLanes";
 import { useAxisLock, easeOutCubic } from "./useAxisLock";
+import { GRID_LINE_DEBUG } from "./debugFlags";
+import { enableGridLineDebug } from "./gridDebug";
 import { useNowPosition } from "./NowIndicator";
 import {
     LeftRail,
@@ -236,6 +238,13 @@ export default function TimeGrid(props: TimeGridProps) {
         if (headerEl) ro.observe(headerEl);
         return () => ro.disconnect();
     }, [extendedDates, allDayEvents]);
+
+    // A build made to look at the grid's left edge; nothing in the one people
+    // install (see debugFlags).
+    useLayoutEffect(() => {
+        if (!GRID_LINE_DEBUG) return;
+        return enableGridLineDebug(gridRef.current);
+    }, []);
 
     // Track the main scroller's visible width so the all-day row can be pinned
     // to it (sticky-left), keeping its vertical scrollbar on-screen.
