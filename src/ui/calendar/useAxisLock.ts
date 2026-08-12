@@ -5,6 +5,7 @@ import {
     currentHourHeight,
     setHourHeight,
 } from "./CalendarUtils";
+import { COLUMN_SEAM_PX, measureColumnWidth } from "./gridColumns";
 
 /**
  * One direction at a time in the time grid.
@@ -166,30 +167,23 @@ export function easeOutCubic(progress: number): number {
  *
  * Half a column of Saturday next to half a column of Monday is nobody's week:
  * the days are the unit, so that is what the grid stops on.
+ *
+ * A day comes to rest against the hours rail, and the rail already draws the
+ * line that closes the grid there — so the resting places are whole days plus
+ * the seam, not whole days (see COLUMN_SEAM_PX). Snapping to the bare multiple
+ * left the day a pixel short of the rail and drew its own border beside it.
  */
 export function snappedScroll(
     scrollLeft: number,
     columnWidth: number,
-    maxScroll: number
+    maxScroll: number,
+    seam: number = COLUMN_SEAM_PX
 ): number {
     if (!(columnWidth > 0)) return clampScroll(scrollLeft, maxScroll);
     return clampScroll(
-        Math.round(scrollLeft / columnWidth) * columnWidth,
+        Math.round((scrollLeft - seam) / columnWidth) * columnWidth + seam,
         maxScroll
     );
-}
-
-/**
- * How wide one day is, for when the columns cannot be measured directly.
- *
- * Zero means there is nothing to land on: a view with no days in it yet.
- */
-export function pageWidthFor(
-    viewportWidth: number,
-    daysPerView: number
-): number {
-    if (!(daysPerView > 0) || !(viewportWidth > 0)) return 0;
-    return viewportWidth / daysPerView;
 }
 
 export interface Span {
@@ -337,14 +331,11 @@ export function useAxisLock(
          * and a snap to whole days of a slightly different width then has
          * somewhere to pull to. That pull is a jump.
          */
-        const measureColumn = () => {
-            const day = element.querySelector<HTMLElement>(".nc-timegrid-day");
-            if (day && day.offsetWidth > 0) return day.offsetWidth;
-            return pageWidthFor(
-                element.clientWidth,
+        const measureColumn = () =>
+            measureColumnWidth(
+                element,
                 optionsRef.current.daysPerView ?? 0
             );
-        };
 
         const measureExtent = (on: ScrollAxis) =>
             on === "y"

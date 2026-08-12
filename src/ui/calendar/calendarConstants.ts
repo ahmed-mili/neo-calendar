@@ -70,6 +70,18 @@ export const EVENT_VGAP = 4; // px vertical gap between back-to-back events
 export const ALLDAY_ROW_HEIGHT = 24; // px per all-day lane row
 export const ALLDAY_MAX_ROWS = 4; // visible rows before the section scrolls
 
+/**
+ * How long the all-day band takes to grow by a row, or give one back.
+ *
+ * A row appearing from one frame to the next reads as the whole grid jumping,
+ * because that is what it does: everything below the band moves down by 24px at
+ * once. Published to the stylesheet as `--nc-allday-grow` so the band's height
+ * transition and the scroll correction that keeps the grid still underneath it
+ * are the same length, and drawn on the same curve as `easeOutCubic` — the JS
+ * side of that correction runs on it.
+ */
+export const ALLDAY_GROW_MS = 220;
+
 // Day/month names, in the language the calendar is set to. Written out in the
 // dictionary rather than taken from toLocaleDateString so the grid reads the
 // same whatever locale the machine happens to be set to.

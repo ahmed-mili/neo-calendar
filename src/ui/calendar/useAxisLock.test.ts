@@ -10,13 +10,13 @@ import {
     snappedScroll,
     VELOCITY_WINDOW_MS,
     lockedAxis,
-    pageWidthFor,
     pinchedHourHeight,
     scrollForAnchor,
     stillGliding,
     velocityFrom,
 } from "./useAxisLock";
 import { MAX_HOUR_HEIGHT, MIN_HOUR_HEIGHT } from "./calendarConstants";
+import { COLUMN_SEAM_PX } from "./gridColumns";
 
 describe("lockedAxis", () => {
     it("waits while the gesture is still short in both directions", () => {
@@ -234,28 +234,44 @@ describe("snappedScroll", () => {
     /** Two days across a 400px viewport. */
     const column = 200;
     const max = 1000;
+    /** The pure day arithmetic, with the seam taken out of the way. */
+    const flush = 0;
 
     it("goes to the nearer day", () => {
-        expect(snappedScroll(80, column, max)).toBe(0);
-        expect(snappedScroll(120, column, max)).toBe(200);
-        expect(snappedScroll(410, column, max)).toBe(400);
+        expect(snappedScroll(80, column, max, flush)).toBe(0);
+        expect(snappedScroll(120, column, max, flush)).toBe(200);
+        expect(snappedScroll(410, column, max, flush)).toBe(400);
     });
 
     it("leaves a grid already on a day alone", () => {
-        expect(snappedScroll(400, column, max)).toBe(400);
-        expect(snappedScroll(0, column, max)).toBe(0);
+        expect(snappedScroll(400, column, max, flush)).toBe(400);
+        expect(snappedScroll(0, column, max, flush)).toBe(0);
     });
 
     it("never lands outside the content", () => {
         // The last day is not a whole column from the end, so rounding up
         // would scroll past everything there is.
-        expect(snappedScroll(980, column, 950)).toBe(950);
-        expect(snappedScroll(-40, column, max)).toBe(0);
+        expect(snappedScroll(980, column, 950, flush)).toBe(950);
+        expect(snappedScroll(-40, column, max, flush)).toBe(0);
     });
 
     it("gives up rather than divide by a column of no width", () => {
-        expect(snappedScroll(137, 0, max)).toBe(137);
-        expect(snappedScroll(137, Number.NaN, max)).toBe(137);
+        expect(snappedScroll(137, 0, max, flush)).toBe(137);
+        expect(snappedScroll(137, Number.NaN, max, flush)).toBe(137);
+    });
+
+    // The day lands against the hours rail, and the rail already draws the line
+    // that closes the grid there. Resting on the bare multiple leaves the day a
+    // pixel short of it, with a second line of its own beside the first.
+    it("rests on the day, plus the line the rail already draws", () => {
+        expect(snappedScroll(80, column, max)).toBe(COLUMN_SEAM_PX);
+        expect(snappedScroll(120, column, max)).toBe(200 + COLUMN_SEAM_PX);
+        expect(snappedScroll(600, column, max)).toBe(600 + COLUMN_SEAM_PX);
+    });
+
+    it("leaves a grid already against the rail alone", () => {
+        const home = 400 + COLUMN_SEAM_PX;
+        expect(snappedScroll(home, column, max)).toBe(home);
     });
 });
 
@@ -271,22 +287,3 @@ describe("easeOutCubic", () => {
         expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
     });
 });
-
-describe("pageWidthFor", () => {
-    it("turns one day at a time, whatever the view shows", () => {
-        // 1-day view: a page and a screenful are the same thing.
-        expect(pageWidthFor(412, 1)).toBe(412);
-        // 2-day and 3-day views: still one day per swipe, so every pairing of
-        // days can be reached. A screenful here would skip half of them.
-        expect(pageWidthFor(412, 2)).toBe(206);
-        expect(pageWidthFor(420, 3)).toBe(140);
-        expect(pageWidthFor(700, 7)).toBe(100);
-    });
-
-    it("says there is nothing to page rather than divide by nothing", () => {
-        expect(pageWidthFor(412, 0)).toBe(0);
-        expect(pageWidthFor(412, -1)).toBe(0);
-        expect(pageWidthFor(0, 3)).toBe(0);
-    });
-});
-

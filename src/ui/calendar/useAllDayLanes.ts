@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { DisplayEvent } from "../types";
 import { isSameDay, startOfDay } from "./CalendarUtils";
 
@@ -16,102 +16,156 @@ export interface AllDayLanesResult {
 
 /**
  * Lays out every all-day event as a horizontal bar and packs them into stacked
- * lanes (rows), like Notion. Events that don't overlap by day share a lane;
- * events on the same day stack into separate lanes. Single-day events span one
- * column; multi-day all-day events span their visible range.
+ * lanes (rows), like Notion. Events that don't share a day share a lane; events
+ * on the same day stack into separate lanes. Single-day events span one column;
+ * multi-day all-day events span their visible range.
+ *
+ * The order events are considered in is the order they ARRIVED (see
+ * `arrivalOf`), and that is the whole of how the band behaves when something is
+ * added: the bars already on screen were placed first, so they keep the lanes
+ * they have, and the new one takes the first lane still free on its own days —
+ * which, on a day that already holds events, is the row under them. A new event
+ * therefore appears below what was there, never above it, and the band grows
+ * downwards by exactly the row it needed.
+ *
+ * The alternative — ordering by date, or by id — is what made a new event land
+ * on top of an existing one and push it down: the packing is deterministic, but
+ * "first" was decided by something that has nothing to do with when the event
+ * was created.
  *
  * All-day events use an EXCLUSIVE end (start + 1 day for a single day, see
  * eventExpansion.ts), so the inclusive last day is `end - 1 day`.
+ */
+export function packAllDayLanes(
+    allDayEvents: DisplayEvent[] | undefined,
+    extendedDates: Date[],
+    arrivalOf: (event: DisplayEvent) => number
+): AllDayLanesResult {
+    if (!allDayEvents || allDayEvents.length === 0 || !extendedDates.length) {
+        return { bars: [], laneCount: 0 };
+    }
+
+    // 1. Place each event on the visible date axis (startIdx + span).
+    type Placed = {
+        event: DisplayEvent;
+        startIdx: number;
+        endIdx: number;
+        span: number;
+    };
+    const placed: Placed[] = [];
+
+    for (const event of allDayEvents) {
+        // Inclusive last day. end − 1ms then truncate to the day: works for
+        // all-day events (end is exclusive midnight) AND multi-day timed
+        // events (end is the real end time on the last day).
+        const lastDay = startOfDay(new Date(event.end.getTime() - 1));
+
+        let startIdx = extendedDates.findIndex((d) =>
+            isSameDay(d, event.start)
+        );
+        if (startIdx === -1) {
+            // Starts before the visible range — clip to first visible day.
+            startIdx = extendedDates.findIndex(
+                (d) => event.start <= d && d <= lastDay
+            );
+            if (startIdx === -1) continue; // entirely outside the range
+        }
+
+        let span = 1;
+        for (let i = startIdx + 1; i < extendedDates.length; i++) {
+            if (
+                extendedDates[i] > lastDay &&
+                !isSameDay(extendedDates[i], lastDay)
+            )
+                break;
+            span++;
+        }
+
+        placed.push({
+            event,
+            startIdx,
+            endIdx: startIdx + span - 1,
+            span,
+        });
+    }
+
+    // 2. Oldest first, so nothing that is already on screen is ever moved by
+    //    something arriving after it. The remaining comparisons only decide
+    //    between events the ranking cannot tell apart, and exist so the layout
+    //    is the same every time it is rebuilt — a selected event re-creates its
+    //    object and can reorder the input array, and an unstable order would
+    //    make its bar jump to another lane just for being clicked.
+    placed.sort(
+        (a, b) =>
+            arrivalOf(a.event) - arrivalOf(b.event) ||
+            a.startIdx - b.startIdx ||
+            b.span - a.span ||
+            a.event.start.getTime() - b.event.start.getTime() ||
+            a.event.id.localeCompare(b.event.id)
+    );
+
+    // 3. Each event goes in the first lane with room for it on its own days.
+    //    The occupied stretches are kept per lane rather than just the last one:
+    //    the events are no longer walked in date order, so "ends before this one
+    //    starts" is not enough to know a lane is free.
+    const laneSpans: Array<Array<[number, number]>> = [];
+    const bars: AllDayLaneBar[] = [];
+    for (const p of placed) {
+        let lane = laneSpans.findIndex((spans) =>
+            spans.every(([from, to]) => p.endIdx < from || p.startIdx > to)
+        );
+        if (lane === -1) {
+            lane = laneSpans.length;
+            laneSpans.push([]);
+        }
+        laneSpans[lane].push([p.startIdx, p.endIdx]);
+        bars.push({
+            event: p.event,
+            startIdx: p.startIdx,
+            span: p.span,
+            lane,
+        });
+    }
+
+    return { bars, laneCount: laneSpans.length };
+}
+
+/**
+ * The lanes, plus the memory of what was already there.
+ *
+ * An event's rank is fixed the first time it is seen and never changes again,
+ * which is what makes "the new one goes underneath" mean anything: the ids the
+ * band already knows keep their places, and only the unseen one is new.
  */
 export function useAllDayLanes(
     allDayEvents: DisplayEvent[] | undefined,
     extendedDates: Date[]
 ): AllDayLanesResult {
+    const arrivals = useRef(new Map<string, number>());
+    const nextArrival = useRef(0);
+
     return useMemo(() => {
-        if (
-            !allDayEvents ||
-            allDayEvents.length === 0 ||
-            !extendedDates.length
-        ) {
-            return { bars: [], laneCount: 0 };
-        }
-
-        // 1. Place each event on the visible date axis (startIdx + span).
-        type Placed = {
-            event: DisplayEvent;
-            startIdx: number;
-            endIdx: number;
-            span: number;
-        };
-        const placed: Placed[] = [];
-
-        for (const event of allDayEvents) {
-            // Inclusive last day. end − 1ms then truncate to the day: works for
-            // all-day events (end is exclusive midnight) AND multi-day timed
-            // events (end is the real end time on the last day).
-            const lastDay = startOfDay(new Date(event.end.getTime() - 1));
-
-            let startIdx = extendedDates.findIndex((d) =>
-                isSameDay(d, event.start)
-            );
-            if (startIdx === -1) {
-                // Starts before the visible range — clip to first visible day.
-                startIdx = extendedDates.findIndex(
-                    (d) => event.start <= d && d <= lastDay
-                );
-                if (startIdx === -1) continue; // entirely outside the range
-            }
-
-            let span = 1;
-            for (let i = startIdx + 1; i < extendedDates.length; i++) {
-                if (
-                    extendedDates[i] > lastDay &&
-                    !isSameDay(extendedDates[i], lastDay)
-                )
-                    break;
-                span++;
-            }
-
-            placed.push({
-                event,
-                startIdx,
-                endIdx: startIdx + span - 1,
-                span,
-            });
-        }
-
-        // 2. Greedy lane assignment (interval partitioning): each event goes in
-        //    the first lane whose last bar ends before this event starts.
-        //    The tiebreaker (start time, then id) must be STABLE and independent
-        //    of the input array order: selecting an event re-creates its object
-        //    and can reorder allDayEvents (cache re-expansion on panel open), and
-        //    without a stable key that reorder would move the bar to a different
-        //    lane — making a selected event visibly jump to the bottom.
-        placed.sort(
-            (a, b) =>
-                a.startIdx - b.startIdx ||
-                b.span - a.span ||
-                a.event.start.getTime() - b.event.start.getTime() ||
-                a.event.id.localeCompare(b.event.id)
+        // A whole batch turning up at once — the first load, a calendar
+        // switched back on, a week scrolled into range — has no order of its
+        // own worth respecting, so it is ranked by date and the band reads
+        // top to bottom in time. Only what appears afterwards is genuinely
+        // newer, and that is the event just created.
+        const unseen = (allDayEvents ?? []).filter(
+            (event) => !arrivals.current.has(event.id)
         );
-        const laneEnds: number[] = []; // last occupied column index per lane
-        const bars: AllDayLaneBar[] = [];
-        for (const p of placed) {
-            let lane = laneEnds.findIndex((end) => end < p.startIdx);
-            if (lane === -1) {
-                lane = laneEnds.length;
-                laneEnds.push(p.endIdx);
-            } else {
-                laneEnds[lane] = p.endIdx;
-            }
-            bars.push({
-                event: p.event,
-                startIdx: p.startIdx,
-                span: p.span,
-                lane,
-            });
+        unseen.sort(
+            (a, b) =>
+                a.start.getTime() - b.start.getTime() ||
+                a.id.localeCompare(b.id)
+        );
+        for (const event of unseen) {
+            arrivals.current.set(event.id, nextArrival.current++);
         }
 
-        return { bars, laneCount: laneEnds.length };
+        return packAllDayLanes(
+            allDayEvents,
+            extendedDates,
+            (event) => arrivals.current.get(event.id) ?? 0
+        );
     }, [allDayEvents, extendedDates]);
 }

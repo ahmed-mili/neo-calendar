@@ -1,6 +1,6 @@
 {
   "name": "neo-calendar-desktop",
-  "version": "1.37.0",
+  "version": "1.37.1",
   "description": "Neo Calendar standalone desktop application",
   "scripts": {
     "dev": "npm --prefix apps/windows run tauri -- dev",
@@ -9,6 +9,9 @@
     "package": "npm --prefix apps/windows run tauri",
     "test": "jest && node --test scripts/*.test.mjs && npm --prefix apps/windows run test:packaging",
     "version:set": "node scripts/set-version.mjs",
+    "version:patch": "node scripts/set-version.mjs patch",
+    "version:minor": "node scripts/set-version.mjs minor",
+    "version:major": "node scripts/set-version.mjs major",
     "lint": "prettier --check \"src/**/*.ts*\" \"apps/windows/src/**/*.ts*\"",
     "fix-lint": "prettier --write \"src/**/*.ts*\" \"apps/windows/src/**/*.ts*\"",
     "android:build": "npm --prefix apps/android run android:build",
