@@ -28,7 +28,12 @@
     /* No background: the hours below live in .nc-left-rail-window, which clips
        them with overflow: hidden, so nothing scrolls behind this corner. */
     z-index: 2;
-    border-bottom: 1px solid var(--nc-border, var(--nc-grid-line));
+    /* NO border here, and that is the point. A border on this block sits BELOW
+       its children and adds a pixel to its height, so the rail's half of the
+       band ended one pixel taller — and one pixel lower — than the grid's. The
+       two lines that close the band were then a pixel apart across the seam,
+       which is what the eye reads as a wonky row. Each line now lives inside
+       the height it belongs to, so both sides measure the same. */
 }
 
 .nc-left-rail-allday {
@@ -46,7 +51,11 @@
     justify-content: flex-end;
     padding-top: 1px;
     padding-right: 4px;
-    border-top: 1px solid var(--nc-border, var(--nc-grid-line));
+    /* The band's own line, and the same one the band draws on its side of the
+       seam — literal colour included (see .nc-allday-row). It was a border-TOP
+       before, which drew the header's line a second time, one pixel below the
+       one the headers had already drawn. */
+    border-bottom: 1px solid rgba(128, 128, 128, 0.5);
     border-right: 1px solid rgba(128, 128, 128, 0.35);
 }
 
@@ -120,6 +129,12 @@
 .nc-left-rail-corner {
     display: flex;
     align-items: stretch;
+    /* The header's line, on the rail's side of the seam. Inside the corner's
+       own height (border-box), so it lands on exactly the pixels the day
+       headers' own bottom border lands on. Same literal colour as theirs: a
+       theme variable that resolves to nothing would drop the line on one side
+       of the seam and keep it on the other. */
+    border-bottom: 1px solid var(--nc-grid-line);
 }
 
 /* One cell per timezone column, aligned (64px) with the hours columns below.
@@ -480,7 +495,12 @@
     /* Deliberately no background: the grid is clipped at its own top edge (see
        .nc-days-row), so nothing ever scrolls behind this band. An opaque fill
        here would read as a darker strip over a translucent grid. */
-    border-bottom: 1px solid var(--nc-border, var(--nc-grid-line));
+    /* No border either: the day headers each draw their own bottom line, and a
+       second one on the row underneath them made the rule two pixels thick on
+       the grid's side of the seam and one on the rail's. The cells' line is the
+       one kept, because its colour is a literal — the variable this one used
+       resolves to nothing in some themes, and a line that exists only
+       sometimes cannot be the one the other side is aligned to. */
     display: flex;
 }
 
