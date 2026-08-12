@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { NeoEvent, TYPE_DISCRIMINANT_KEYS } from "../../types";
+import { NeoEvent, KEYS_DROPPED_WHEN_ABSENT } from "../../types";
 import { DisplayEvent } from "../types";
 
 /** Duree du bloc cree quand un evenement non planifie est depose sur la
@@ -13,10 +13,13 @@ export const SCHEDULED_DROP_DURATION_MS = 30 * 60 * 1000;
     exemple), laissant la note contradictoire. On retire donc les cles
     discriminantes de la base avant la fusion ; le writer de frontmatter
     supprime ensuite les lignes correspondantes. Le jeu de cles vient du schema,
-    source de verite unique partagee avec FullNoteCalendar. */
+    source de verite unique partagee avec FullNoteCalendar. La liste des
+    sous-taches suit la meme regle : quand le formulaire n'en porte plus aucune,
+    c'est que la derniere a ete supprimee, et la base ne doit pas les ressusciter
+    par la fusion. */
 export function mergeForSave(base: NeoEvent, payload: NeoEvent): NeoEvent {
     const stripped = { ...base } as Record<string, unknown>;
-    for (const key of TYPE_DISCRIMINANT_KEYS) delete stripped[key];
+    for (const key of KEYS_DROPPED_WHEN_ABSENT) delete stripped[key];
     const merged = { ...stripped, ...payload } as Record<string, unknown>;
     // Invariant : un evenement all-day ne porte AUCUNE heure. Le payload
     // all-day omet startTime/endTime, mais la fusion les rapporterait depuis la

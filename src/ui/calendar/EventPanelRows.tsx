@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { TaskStatus } from "../tasks";
+import { Subtask, subtaskProgress } from "../tasks/subtasks";
 import { CalendarInfo } from "../../types";
 import { DAY_MAP, formatDateLong } from "./EventPanel.helpers";
 import { placeFlyout } from "./flyoutPlacement";
@@ -52,6 +53,8 @@ import {
     ClockIcon,
     CalendarIcon,
     CheckIcon,
+    ChecklistIcon,
+    PlusIcon,
     DocIcon,
     LinesIcon,
     RepeatIcon,
@@ -1385,6 +1388,176 @@ export function StatusRow({ taskStatus, editable, setStatus }: StatusRowProps) {
                     </span>
                 </span>
             </button>
+        </div>
+    );
+}
+
+// ── Subtasks row ───────────────────────────────────────────
+
+interface SubtasksRowProps {
+    subtasks: Subtask[];
+    editable: boolean;
+    setSubtasks: (next: Subtask[]) => void;
+    /** Called once an edit has settled — a tick, a deletion, a field left. */
+    onAutoSave: () => void;
+}
+
+/**
+ * The steps a task is made of.
+ *
+ * A task is one thing to get done, and most things worth putting on a calendar
+ * are made of several: "move house" is a van, boxes, a landlord to call. Those
+ * are not events — none of them wants an hour on Thursday — so they live here,
+ * on the task, as a list that can be ticked off.
+ *
+ * The list is only offered on a task, for the same reason the deadline is: an
+ * event is over when its hour has passed, and has nothing to be part-way
+ * through.
+ *
+ * Enter adds the next step and moves to it, which is how a list like this is
+ * actually written: one line, then the next, without reaching for the mouse.
+ * Backspace on a step already empty removes it and goes back to the one above,
+ * so a line opened by mistake costs nothing to close.
+ */
+export function SubtasksRow({
+    subtasks,
+    editable,
+    setSubtasks,
+    onAutoSave,
+}: SubtasksRowProps) {
+    const inputRefs = React.useRef<Array<HTMLInputElement | null>>([]);
+    /** Which line to put the caret in once the list has been redrawn. */
+    const [focusIndex, setFocusIndex] = React.useState<number | null>(null);
+
+    React.useEffect(() => {
+        if (focusIndex === null) return;
+        const input = inputRefs.current[focusIndex];
+        if (input) {
+            input.focus();
+            const end = input.value.length;
+            input.setSelectionRange(end, end);
+        }
+        setFocusIndex(null);
+    }, [focusIndex, subtasks.length]);
+
+    const progress = subtaskProgress(subtasks);
+
+    const replace = (index: number, step: Subtask) =>
+        setSubtasks(subtasks.map((s, i) => (i === index ? step : s)));
+
+    const insertAfter = (index: number) => {
+        const next = [...subtasks];
+        next.splice(index + 1, 0, { title: "", done: false });
+        setSubtasks(next);
+        setFocusIndex(index + 1);
+    };
+
+    const removeAt = (index: number, focus: number | null) => {
+        setSubtasks(subtasks.filter((_, i) => i !== index));
+        if (focus !== null) setFocusIndex(focus);
+        onAutoSave();
+    };
+
+    return (
+        <div className="nc-panel-row nc-panel-row-subtasks">
+            <span className="nc-panel-row-icon">
+                <ChecklistIcon />
+            </span>
+            <div className="nc-panel-row-content">
+                <div className="nc-subtasks-head">
+                    <span className="nc-panel-row-label">{t("Steps")}</span>
+                    {progress.total > 0 && (
+                        <span className="nc-subtasks-count">
+                            {progress.done}/{progress.total}
+                        </span>
+                    )}
+                </div>
+
+                {subtasks.map((step, index) => (
+                    <div
+                        key={index}
+                        className={`nc-subtask${
+                            step.done ? " nc-subtask-done" : ""
+                        }`}
+                    >
+                        <button
+                            type="button"
+                            className="nc-subtask-check"
+                            role="checkbox"
+                            aria-checked={step.done}
+                            aria-label={step.title || t("Add a step")}
+                            disabled={!editable}
+                            onClick={() => {
+                                replace(index, {
+                                    ...step,
+                                    done: !step.done,
+                                });
+                                onAutoSave();
+                            }}
+                        >
+                            {step.done && <CheckMarkIcon />}
+                        </button>
+                        <input
+                            ref={(node) => {
+                                inputRefs.current[index] = node;
+                            }}
+                            className="nc-subtask-input"
+                            type="text"
+                            value={step.title}
+                            placeholder={t("Add a step")}
+                            readOnly={!editable}
+                            onChange={(e) =>
+                                replace(index, {
+                                    ...step,
+                                    title: e.target.value,
+                                })
+                            }
+                            onBlur={onAutoSave}
+                            onKeyDown={(e) => {
+                                if (!editable) return;
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    insertAfter(index);
+                                    return;
+                                }
+                                if (
+                                    e.key === "Backspace" &&
+                                    step.title === "" &&
+                                    subtasks.length > 1
+                                ) {
+                                    e.preventDefault();
+                                    removeAt(
+                                        index,
+                                        index > 0 ? index - 1 : null
+                                    );
+                                }
+                            }}
+                        />
+                        {editable && (
+                            <button
+                                type="button"
+                                className="nc-subtask-remove"
+                                title={t("Remove step")}
+                                aria-label={t("Remove step")}
+                                onClick={() => removeAt(index, null)}
+                            >
+                                <XIcon />
+                            </button>
+                        )}
+                    </div>
+                ))}
+
+                {editable && (
+                    <button
+                        type="button"
+                        className="nc-subtask-add"
+                        onClick={() => insertAfter(subtasks.length - 1)}
+                    >
+                        <PlusIcon />
+                        {t("Add a step")}
+                    </button>
+                )}
+            </div>
         </div>
     );
 }

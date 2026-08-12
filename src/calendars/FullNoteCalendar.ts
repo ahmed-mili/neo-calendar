@@ -6,7 +6,7 @@ import {
     NeoEvent,
     EventLocation,
     validateEvent,
-    TYPE_DISCRIMINANT_KEYS,
+    KEYS_DROPPED_WHEN_ABSENT,
 } from "../types";
 import { EditableCalendar, EditableEventResponse } from "./EditableCalendar";
 
@@ -134,16 +134,35 @@ function withFrontmatter(page: string, frontmatter: string): string {
 
 type PrintableAtom = Array<number | string> | number | string | boolean | null;
 
-function stringifyYamlAtom(v: PrintableAtom): string {
+/**
+ * Characters that end a value early INSIDE a list.
+ *
+ * A list is written inline — `[a,b]` — so an item carrying a bracket, a comma
+ * or a colon closes the list where it stands and the line stops being YAML at
+ * all. Nothing wrote such a value until tasks got their steps, each of which
+ * begins with its own `[x]`; unquoted, the first one would take the whole note
+ * down with it, because a note whose frontmatter will not parse is a note the
+ * calendar cannot show.
+ *
+ * Only items are measured against this. A value on a line of its own has none
+ * of that trouble, and quoting one would change bytes that other tools read.
+ */
+const UNSAFE_IN_LIST = /[[\]{},:#"'\n]/;
+
+function stringifyYamlAtom(v: PrintableAtom, inList = false): string {
     if (v === null) {
         return "null";
     }
     if (Array.isArray(v)) {
-        return `[${v.map(stringifyYamlAtom).join(",")}]`;
+        return `[${v.map((item) => stringifyYamlAtom(item, true)).join(",")}]`;
     }
-    // Quote only when YAML would otherwise lose information: empty strings and
-    // strings whose leading/trailing whitespace must survive a round-trip.
-    if (typeof v === "string" && (v === "" || v !== v.trim())) {
+    // Quote only when YAML would otherwise lose information: empty strings,
+    // strings whose leading/trailing whitespace must survive a round-trip, and
+    // list items that would otherwise break the list open.
+    if (
+        typeof v === "string" &&
+        (v === "" || v !== v.trim() || (inList && UNSAFE_IN_LIST.test(v)))
+    ) {
         return `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
     }
     return `${v}`;
@@ -163,12 +182,14 @@ function newFrontmatter(fields: Partial<NeoEvent>): string {
 }
 
 /**
- * Keys owned by exactly one event `type`. On a type change the new event does
- * not carry the previous type's keys, so their lines must be DROPPED — leaving
- * them would produce self-contradictory frontmatter (e.g. `date:` sitting next
- * to `type: rrule`). Sourced from the schema so model and UI cannot drift.
+ * Keys the model takes away rather than leaves behind. Chiefly the ones owned
+ * by exactly one event `type`: on a type change the new event does not carry
+ * the previous type's keys, and leaving them would produce self-contradictory
+ * frontmatter (e.g. `date:` sitting next to `type: rrule`). `subtasks` is there
+ * for the same reason on its own scale — the last step deleted must take the
+ * line with it. Sourced from the schema so model and UI cannot drift.
  */
-const TYPE_EXCLUSIVE_KEYS = new Set<string>(TYPE_DISCRIMINANT_KEYS);
+const DROPPED_WHEN_ABSENT = new Set<string>(KEYS_DROPPED_WHEN_ABSENT);
 
 /**
  * Rewrite a note's frontmatter to match `event`, preserving the order of the
@@ -218,8 +239,9 @@ export function modifyFrontmatterString(
         const value: PrintableAtom | undefined = event[key];
         if (value !== undefined) {
             lines.push(stringifyYamlLine(key, value));
-        } else if (TYPE_EXCLUSIVE_KEYS.has(keyName)) {
-            // The type changed and this key is no longer part of the event.
+        } else if (DROPPED_WHEN_ABSENT.has(keyName)) {
+            // The event no longer carries this key — the type changed, or the
+            // list it held was emptied. Either way the line goes with it.
             continue;
         } else {
             // A key we don't own — leave it exactly as it was.

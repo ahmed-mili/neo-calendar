@@ -245,6 +245,41 @@ describe("compat: NeoEvent → frontmatter (serialize & merge)", () => {
         );
     });
 
+    it("writes the steps of a task as a list", () => {
+        const page = "---\ntitle: Move\nallDay: true\ndate: 2026-08-12\n---" + body;
+        const event = parseEvent({
+            title: "Move",
+            allDay: true,
+            date: "2026-08-12",
+            endDate: null,
+            completed: false,
+            subtasks: ["[x] Book the van", "[ ] Pack"],
+        });
+        expect(modifyFrontmatterString(page, event)).toBe(
+            '---\ntitle: Move\nallDay: true\ndate: 2026-08-12\nsubtasks: ["[x] Book the van","[ ] Pack"]\ntype: single\nendDate: null\ncompleted: false\n---' +
+                body
+        );
+    });
+
+    // The last step deleted has to take the line with it. A merge that only
+    // ever adds and overwrites would hand back the steps just thrown away.
+    it("takes the list away when the last step is deleted", () => {
+        const page =
+            '---\ntitle: Move\nallDay: true\ndate: 2026-08-12\nsubtasks: ["[ ] Pack"]\ntype: single\nendDate: null\ncompleted: false\n---' +
+            body;
+        const event = parseEvent({
+            title: "Move",
+            allDay: true,
+            date: "2026-08-12",
+            endDate: null,
+            completed: false,
+        });
+        expect(modifyFrontmatterString(page, event)).toBe(
+            "---\ntitle: Move\nallDay: true\ndate: 2026-08-12\ntype: single\nendDate: null\ncompleted: false\n---" +
+                body
+        );
+    });
+
     it("drops stale times when an event becomes all-day", () => {
         const page =
             "---\ntitle: T\nallDay: false\nstartTime: 11:00\nendTime: 12:30\ntype: single\ndate: 2022-01-01\nendDate: null\n---" +

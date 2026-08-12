@@ -73,6 +73,23 @@ export const TimeSchema = z.discriminatedUnion("allDay", [
     }),
 ]);
 
+/**
+ * The steps a task is made of, in the order they are to be done.
+ *
+ * Each one is a line of Markdown carrying its own checkbox — `"[x] Book the
+ * van"`, `"[ ] Pack"` — rather than a nested object, and that is deliberate:
+ * frontmatter here is written line by line, values being scalars or flat lists
+ * of them, and a list of objects would need a nested YAML writer in each of the
+ * two persistence layers. A checkbox in front of the text is also exactly how
+ * the same list would be written by hand in the note's body, so a note opened
+ * outside the app still reads as what it is.
+ *
+ * The mark follows the one events already use (see dailyNoteParsing): a space,
+ * `/` or `~` is still to do, anything else is done. A line with no mark at all
+ * is a subtask that has not been started.
+ */
+const SubtasksSchema = z.array(z.string()).optional();
+
 /** Metadata common to every event, regardless of time or kind. */
 export const CommonSchema = z.object({
     title: z.string(),
@@ -80,6 +97,7 @@ export const CommonSchema = z.object({
     location: z.string().optional(),
     description: z.string().optional(),
     attendees: z.array(z.string()).optional(),
+    subtasks: SubtasksSchema,
 });
 
 /** Event-kind facet, discriminated by `type`. */
@@ -144,6 +162,24 @@ export const TYPE_DISCRIMINANT_KEYS = [
     "startDate",
     "skipDates",
     "completedDates",
+] as const;
+
+/**
+ * Keys the model TAKES AWAY when an event stops carrying them, rather than
+ * leaving the old line behind.
+ *
+ * The type-exclusive keys above are the bulk of it, for the reason given there.
+ * `subtasks` joins them on its own account: a task whose last step has been
+ * deleted has no list, and "no list" has to reach the note as the line being
+ * removed — a merge that only ever adds and overwrites would keep the steps
+ * that were just thrown away.
+ *
+ * Everything NOT in this set is left exactly as found when the event does not
+ * mention it, which is what protects keys the app knows nothing about.
+ */
+export const KEYS_DROPPED_WHEN_ABSENT = [
+    ...TYPE_DISCRIMINANT_KEYS,
+    "subtasks",
 ] as const;
 
 /**

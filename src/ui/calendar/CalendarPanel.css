@@ -1306,6 +1306,136 @@
     opacity: 0.6;
 }
 
+/* Steps of a task — a list that reads as a list: one line per step, the box on
+   the left, nothing else drawn around it. The row keeps the panel's own layout
+   (icon, then a column of content) so it sits with the others rather than
+   looking like a widget dropped into the panel. */
+
+.nc-subtasks-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nc-subtasks-count {
+    font-size: var(--nc-text-sm, 12px);
+    font-variant-numeric: tabular-nums;
+    color: var(--nc-text-faint);
+}
+
+.nc-subtask {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 -4px;
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+.nc-subtask:hover {
+    background: var(--nc-bg-hover);
+}
+
+.nc-subtask-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 1px solid var(--nc-border, var(--nc-grid-line));
+    box-shadow: none !important;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #ffffff;
+    transition: var(--nc-transition-paint);
+}
+
+.nc-subtask-check:hover:not(:disabled) {
+    border-color: var(--nc-accent);
+}
+
+.nc-subtask-done .nc-subtask-check {
+    background: var(--nc-accent);
+    border-color: var(--nc-accent);
+}
+
+/* A finished step stays readable — struck through, not faded to nothing: it is
+   still part of the list, and what was done is worth being able to read. */
+.nc-subtask-done .nc-subtask-input {
+    text-decoration: line-through;
+    color: var(--nc-text-faint);
+}
+
+.nc-subtask-input {
+    flex: 1;
+    min-width: 0;
+    padding: 2px 4px;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--nc-text-primary);
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none;
+    caret-color: var(--nc-accent);
+}
+
+.nc-subtask-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    box-shadow: none !important;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--nc-text-faint);
+    opacity: 0;
+    transition: var(--nc-transition-paint);
+}
+
+/* The cross appears on the line being pointed at, or on the one being typed in
+   — a row of crosses down the side would be the loudest thing in the panel. */
+.nc-subtask:hover .nc-subtask-remove,
+.nc-subtask:focus-within .nc-subtask-remove {
+    opacity: 1;
+}
+
+.nc-subtask-remove:hover {
+    background: var(--nc-bg-hover);
+    color: var(--nc-text-primary);
+}
+
+.nc-subtask-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    padding: 2px 6px;
+    margin-left: -6px;
+    font-size: var(--nc-text-sm, 12px);
+    border: none;
+    box-shadow: none !important;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--nc-text-faint);
+    transition: var(--nc-transition-paint);
+}
+
+.nc-subtask-add:hover {
+    background: var(--nc-bg-hover);
+    color: var(--nc-text-primary);
+}
+
 /* Type toggle (event / task) — a segmented control rather than a single
    toggling pill, because both choices must be readable at a glance: this is
    the row that tells you what the thing IS, so neither option may be hidden
