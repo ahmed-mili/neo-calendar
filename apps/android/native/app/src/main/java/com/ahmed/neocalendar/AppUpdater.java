@@ -114,6 +114,34 @@ final class AppUpdater {
    *  square panel behind it and the corners come back as grey wedges. */
   private void showPrompt(Metadata metadata) {
     if (activity.isFinishing() || activity.isDestroyed()) return;
+    try {
+      showStyledPrompt(metadata);
+    } catch (Throwable broken) {
+      // The styled sheet is the only part of this that can fail on a device
+      // and not on a build: an attribute a ROM's theme resolves differently, a
+      // drawable it declines to inflate. It also runs on nobody's screen until
+      // a version NEWER than the installed one exists — so a fault here would
+      // ship quietly and only break the release after it, on every phone at
+      // once, at launch. Falling back to the platform's own dialog keeps that
+      // failure to what it is: an ugly prompt, not a calendar that cannot open.
+      Log.w(TAG, "Styled update prompt failed, falling back", broken);
+      showPlainPrompt(metadata);
+    }
+  }
+
+  private void showPlainPrompt(Metadata metadata) {
+    new AlertDialog.Builder(activity)
+      .setTitle(R.string.update_available)
+      .setMessage(activity.getString(R.string.update_message, metadata.version))
+      .setNegativeButton(R.string.update_later,
+        (dialog, which) -> dismissVersion(metadata.versionCode))
+      .setPositiveButton(R.string.update_install,
+        (dialog, which) -> download(metadata))
+      .setOnCancelListener(ignored -> dismissVersion(metadata.versionCode))
+      .show();
+  }
+
+  private void showStyledPrompt(Metadata metadata) {
     View view = activity.getLayoutInflater().inflate(R.layout.update_dialog, null);
     ((TextView) view.findViewById(R.id.update_message))
       .setText(activity.getString(R.string.update_message, metadata.version));
