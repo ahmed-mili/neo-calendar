@@ -21,7 +21,7 @@ import TimezoneColumn, {
     TimezoneMenuContext,
 } from "./TimezoneColumn";
 import { TimezonePicker } from "./TimezonePicker";
-import { ChevronsUpDownIcon, ChevronsDownUpIcon, XIcon } from "./Icons";
+import { AllDayCollapseChevrons, XIcon } from "./Icons";
 import { AllDayLanesResult } from "./useAllDayLanes";
 import { SelectionState, DragPreview } from "./TimeGrid.types";
 import { t } from "../i18n";
@@ -154,11 +154,10 @@ export function LeftRail({
                             }
                             onClick={onToggleAllDayCollapsed}
                         >
-                            {allDayCollapsed ? (
-                                <ChevronsUpDownIcon size={14} />
-                            ) : (
-                                <ChevronsDownUpIcon size={14} />
-                            )}
+                            <AllDayCollapseChevrons
+                                size={14}
+                                collapsed={!!allDayCollapsed}
+                            />
                         </div>
                     </div>
                 )}

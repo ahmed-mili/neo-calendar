@@ -239,42 +239,48 @@ export function GoTodayIcon({ size = 14 }: { size?: number }) {
     );
 }
 
-/** Chevron up + down (point outward) — unfold/expand. Paths from the
-    user-provided icon-chevron-up-down.svg, recolored via currentColor. */
-export function ChevronsUpDownIcon({ size = 14 }: { size?: number }) {
+/** The all-day band's collapse control, as ONE icon that turns rather than two
+ *  that swap.
+ *
+ *  It used to be a pair — chevrons pointing outward for "unfold", inward for
+ *  "fold" — picked between on every render. They are exact vertical mirrors of
+ *  each other, so the swap threw away the obvious motion: each caret simply
+ *  turns over. (They were also drawn at different scales, 3.2 in a 32 viewBox
+ *  against 2.6 in a 24, so the icon changed weight as it changed state.) Both
+ *  carets are drawn pointing up here and put the other way round by a
+ *  transform, which CSS can then carry from one state to the next — see
+ *  .nc-allday-chevron in CalendarGrid.css. They step apart as they open and
+ *  close up as they fold, so the icon says which way the band is about to go.
+ *
+ *  `collapsed` is the BAND's state, not the button's errand: collapsed shows
+ *  the carets pointing outward (press to open). */
+export function AllDayCollapseChevrons({
+    size = 14,
+    collapsed,
+}: {
+    size?: number;
+    collapsed: boolean;
+}) {
     return (
-        <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            className="nc-allday-chevrons"
+            data-collapsed={collapsed ? "true" : "false"}
+            aria-hidden="true"
+        >
             <path
-                d="M8 12.5L16 5.5L24 12.5"
-                stroke="currentColor"
-                strokeWidth="3.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M8 19.5L16 26.5L24 19.5"
-                stroke="currentColor"
-                strokeWidth="3.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
-}
-
-/** Chevron down + up (point inward) — fold/collapse. Paths from the
-    user-provided icon-chevron-down-up.svg, recolored via currentColor. */
-export function ChevronsDownUpIcon({ size = 14 }: { size?: number }) {
-    return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <path
-                d="M7 5 L12 9.5 L17 5"
+                className="nc-allday-chevron nc-allday-chevron--top"
+                d="M7 9.5 L12 5 L17 9.5"
                 stroke="currentColor"
                 strokeWidth="2.6"
                 strokeLinecap="round"
                 strokeLinejoin="round"
             />
             <path
+                className="nc-allday-chevron nc-allday-chevron--bottom"
                 d="M7 19 L12 14.5 L17 19"
                 stroke="currentColor"
                 strokeWidth="2.6"

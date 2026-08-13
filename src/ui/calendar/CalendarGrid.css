@@ -91,6 +91,53 @@
     color: var(--nc-text-primary, var(--text-normal));
 }
 
+/* The two carets turn over instead of being swapped for their own mirror image
+   (see AllDayCollapseChevrons in Icons.tsx). Both are DRAWN pointing up; the
+   one that has to point the other way is turned by half a revolution about its
+   own centre, and CSS carries it there over the time the band itself takes.
+   They also step 1px apart as they open and 1px together as they fold — the
+   same gesture the band makes, in miniature.
+
+   transform-box is spelled out rather than left to the initial value: the
+   origins below are viewBox units, and a UA that still defaults an SVG child to
+   border-box would resolve them against the 14px rendered box instead and turn
+   each caret about a point somewhere off its own line. */
+.nc-allday-chevron {
+    transform-box: view-box;
+    transition: transform var(--nc-allday-grow, 220ms)
+        cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+/* The midpoint of each caret's own bounding box, so it turns in place instead
+   of swinging across the icon. */
+.nc-allday-chevron--top {
+    transform-origin: 12px 7.25px;
+}
+
+.nc-allday-chevron--bottom {
+    transform-origin: 12px 16.75px;
+}
+
+/* Both states name the same two functions in the same order. A list that
+   matches interpolates function by function, so the caret turns through 90°;
+   mismatched lists fall back to interpolating the matrices, where half a
+   revolution is a decomposition edge case and can come out as a flip. */
+.nc-allday-chevrons[data-collapsed="true"] .nc-allday-chevron--top {
+    transform: translate(0, -1px) rotate(0deg);
+}
+
+.nc-allday-chevrons[data-collapsed="true"] .nc-allday-chevron--bottom {
+    transform: translate(0, 1px) rotate(180deg);
+}
+
+.nc-allday-chevrons[data-collapsed="false"] .nc-allday-chevron--top {
+    transform: translate(0, 1px) rotate(180deg);
+}
+
+.nc-allday-chevrons[data-collapsed="false"] .nc-allday-chevron--bottom {
+    transform: translate(0, -1px) rotate(0deg);
+}
+
 /* Collapsed all-day: one compact label per day, in that day's column. */
 .nc-allday-collapsed-day {
     position: absolute;
@@ -660,24 +707,28 @@
         cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
-/* A bar that has just been added arrives from under the row above, in the time
-   the band takes to make room for it. Mounted nodes only: React keeps the
-   existing bars' elements, so nothing already on screen replays this.
-   No fill mode: an animation's final keyframe outranks an inline style for as
-   long as it is held, and the bars are dragged by their inline transform. */
+/* A bar that has just been added fades up in the room the band is making for
+   it. Mounted nodes only: React keeps the existing bars' elements, so nothing
+   already on screen replays this — except on expand, where the collapsed layout
+   has no lanes layer at all and every bar is therefore new. */
 .nc-allday-lanes > .nc-event-block {
     animation: nc-allday-bar-in var(--nc-allday-grow, 220ms)
         cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
+/* NO `to` keyframe, and that is the whole rule. An unspecified 100% is built
+   from the element's OWN computed value, so each bar fades up to the opacity it
+   is supposed to wear — 0.45 for a past event (see .nc-past-event), 1 for the
+   rest. Written out as `opacity: 1` it was the animation's value that won the
+   cascade for the full 220ms: every past all-day event lit up to full strength
+   while the band grew and dropped back to 0.45 at the end, which read as the
+   band briefly forgetting which of its events were over.
+   Nothing else is animated. A `translateY` here used to bring the bar in from
+   under the row above; on expand that is EVERY bar sliding 6px at once, and it
+   also outranked the inline transform the bars are dragged by. */
 @keyframes nc-allday-bar-in {
     from {
         opacity: 0;
-        transform: translateY(-6px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
     }
 }
 
