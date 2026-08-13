@@ -117,6 +117,11 @@ const FR: Record<string, string> = {
     Deadline: "Échéance",
     "Add deadline": "Ajouter une échéance",
     "Remove deadline": "Retirer l'échéance",
+    // Taking the date off an event, which is what sends it back to the
+    // unscheduled list — the reverse of "Add date" above.
+    "Remove date": "Retirer la date",
+    "Removing the date on a repeating event also removes the repeat. It becomes a single unscheduled entry.":
+        "Retirer la date d'un événement qui se répète supprime aussi la répétition. Il devient une entrée unique non planifiée.",
     // The steps a task is made of, listed on the task itself.
     Steps: "Étapes",
     "Add a step": "Ajouter une étape",

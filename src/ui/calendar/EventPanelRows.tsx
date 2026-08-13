@@ -303,6 +303,9 @@ interface DateRowProps {
     setEndTime: (v: string) => void;
     toggleAllDay: () => void;
     toggleRecurring: () => void;
+    /** Send this event back to the unscheduled list. Absent on a draft, which
+        has no note yet to move anywhere. */
+    onClearDate?: () => void;
     onAutoSave: () => void;
 }
 
@@ -348,6 +351,8 @@ function DateField({
     setDate,
     onAutoSave,
     triggerClassName = "nc-panel-date-btn",
+    onClear,
+    clearConfirm,
 }: {
     date: string;
     label: string;
@@ -356,8 +361,19 @@ function DateField({
     setDate: (v: string) => void;
     onAutoSave: () => void;
     triggerClassName?: string;
+    /** Take the date away entirely, which is what sends an event back to the
+        unscheduled list. Absent where a date is not optional: the recurrence's
+        "ends on" field has no meaning empty, and the deadline clears itself
+        through its own button beside the field (see DueRow). */
+    onClear?: () => void;
+    /** Non-null asks first, and says what else the removal carries off. Empty
+        or null removes on the first press. */
+    clearConfirm?: string | null;
 }) {
     const [open, setOpen] = React.useState(false);
+    // Armed only for as long as the popup stays open — a question asked once is
+    // not an answer kept.
+    const [confirming, setConfirming] = React.useState(false);
     const [pos, setPos] = React.useState<{ top: number; left: number } | null>(
         null
     );
@@ -398,6 +414,7 @@ function DateField({
             setPos({ top, left });
         }
         setViewMonth(new Date(selected.getFullYear(), selected.getMonth(), 1));
+        setConfirming(false);
         setOpen(true);
     };
 
@@ -428,6 +445,24 @@ function DateField({
         onAutoSave();
     };
 
+    /** First press on a field that asks arms the question; the second, and any
+        press on a field that does not ask, removes.
+
+        No onAutoSave() here, unlike pick(). Clearing the date is several state
+        changes at once — the date, the end date, the times, the repeat — and
+        the save that matters is the one the panel's own change-watching effect
+        fires once React has applied them all. Saving from here would write the
+        payload as it stood BEFORE the press, which for a removal is the event
+        unchanged: a wasted round trip to the note, immediately overwritten. */
+    const clear = () => {
+        if (clearConfirm && !confirming) {
+            setConfirming(true);
+            return;
+        }
+        onClear?.();
+        setOpen(false);
+    };
+
     return (
         <span className="nc-panel-date-field">
             <button
@@ -450,69 +485,124 @@ function DateField({
                         ref={menuRef}
                         style={{ top: pos.top, left: pos.left }}
                     >
-                        <div className="nc-datepicker-header">
-                            <button
-                                type="button"
-                                className="nc-datepicker-nav"
-                                title={t("Previous month")}
-                                onClick={() =>
-                                    setViewMonth(new Date(year, month - 1, 1))
-                                }
+                        {/* The question takes the popup over instead of sitting
+                            under the grid: it is asked because the removal
+                            carries off more than the date, and a month grid
+                            still offering days beside it reads as though the
+                            choice were still between dates. It also keeps the
+                            popup roughly its own height, so it does not grow
+                            past the screen edge it was positioned against. */}
+                        {confirming ? (
+                            <div
+                                className="nc-datepicker-confirm"
+                                role="alertdialog"
+                                aria-label={t("Remove date")}
                             >
-                                <ChevronLeftIcon />
-                            </button>
-                            <span className="nc-datepicker-title">
-                                {MONTHS_SHORT[month]} {year}
-                            </span>
-                            <button
-                                type="button"
-                                className="nc-datepicker-nav"
-                                title={t("Next month")}
-                                onClick={() =>
-                                    setViewMonth(new Date(year, month + 1, 1))
-                                }
-                            >
-                                <ChevronRightIcon />
-                            </button>
-                        </div>
-                        <div className="nc-datepicker-grid">
-                            {weekdays.map((w, i) => (
-                                <div
-                                    key={`wd${i}`}
-                                    className="nc-datepicker-weekday"
-                                >
-                                    {w}
-                                </div>
-                            ))}
-                            {days.map((day, i) => {
-                                const out = day.getMonth() !== month;
-                                const today = isToday(day);
-                                const sel = isSameDay(day, selected);
-                                return (
+                                <p className="nc-datepicker-confirm-text">
+                                    {clearConfirm}
+                                </p>
+                                <div className="nc-datepicker-confirm-actions">
                                     <button
                                         type="button"
-                                        key={i}
-                                        className={`nc-datepicker-day${
-                                            out ? " nc-out" : ""
-                                        }${today ? " nc-today" : ""}${
-                                            sel ? " nc-selected" : ""
-                                        }`}
-                                        onClick={() => pick(day)}
+                                        className="nc-datepicker-confirm-cancel"
+                                        onClick={() => setConfirming(false)}
                                     >
-                                        {day.getDate()}
+                                        {t("Cancel")}
                                     </button>
-                                );
-                            })}
-                        </div>
-                        <div className="nc-datepicker-foot">
-                            <button
-                                type="button"
-                                className="nc-datepicker-today-btn"
-                                onClick={() => pick(new Date())}
-                            >
-                                Today
-                            </button>
-                        </div>
+                                    <button
+                                        type="button"
+                                        className="nc-datepicker-confirm-go"
+                                        onClick={clear}
+                                    >
+                                        {t("Remove date")}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="nc-datepicker-header">
+                                    <button
+                                        type="button"
+                                        className="nc-datepicker-nav"
+                                        title={t("Previous month")}
+                                        onClick={() =>
+                                            setViewMonth(
+                                                new Date(year, month - 1, 1)
+                                            )
+                                        }
+                                    >
+                                        <ChevronLeftIcon />
+                                    </button>
+                                    <span className="nc-datepicker-title">
+                                        {MONTHS_SHORT[month]} {year}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="nc-datepicker-nav"
+                                        title={t("Next month")}
+                                        onClick={() =>
+                                            setViewMonth(
+                                                new Date(year, month + 1, 1)
+                                            )
+                                        }
+                                    >
+                                        <ChevronRightIcon />
+                                    </button>
+                                </div>
+                                <div className="nc-datepicker-grid">
+                                    {weekdays.map((w, i) => (
+                                        <div
+                                            key={`wd${i}`}
+                                            className="nc-datepicker-weekday"
+                                        >
+                                            {w}
+                                        </div>
+                                    ))}
+                                    {days.map((day, i) => {
+                                        const out = day.getMonth() !== month;
+                                        const today = isToday(day);
+                                        const sel = isSameDay(day, selected);
+                                        return (
+                                            <button
+                                                type="button"
+                                                key={i}
+                                                className={`nc-datepicker-day${
+                                                    out ? " nc-out" : ""
+                                                }${today ? " nc-today" : ""}${
+                                                    sel ? " nc-selected" : ""
+                                                }`}
+                                                onClick={() => pick(day)}
+                                            >
+                                                {day.getDate()}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <div className="nc-datepicker-foot">
+                                    {/* Only where there is a date to take away, and
+                                only inside the picker: an X beside the field,
+                                the way the deadline clears, puts "send this
+                                back to the unscheduled list" one stray tap
+                                from the date it sits next to. */}
+                                    {onClear && date && (
+                                        <button
+                                            type="button"
+                                            className="nc-datepicker-clear-btn"
+                                            onClick={clear}
+                                        >
+                                            {t("Remove date")}
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        className="nc-datepicker-today-btn"
+                                        onClick={() => pick(new Date())}
+                                    >
+                                        Today
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>,
                     getEventPanelPortalTarget()
                 )}
@@ -536,6 +626,7 @@ export function DateRow({
     setEndTime,
     toggleAllDay,
     toggleRecurring,
+    onClearDate,
     onAutoSave,
 }: DateRowProps) {
     return (
@@ -599,6 +690,20 @@ export function DateRow({
                         editable={editable}
                         firstDay={firstDay}
                         setDate={setDate}
+                        onClear={editable ? onClearDate : undefined}
+                        // Taking the date off a series is not the same act as
+                        // taking it off one event, and it cannot be a quiet
+                        // one: an event that repeats has no single date to
+                        // give back — what it has is a rule, and the rule goes
+                        // with the date. Said plainly here, before the press
+                        // that does it.
+                        clearConfirm={
+                            isRecurring
+                                ? t(
+                                      "Removing the date on a repeating event also removes the repeat. It becomes a single unscheduled entry."
+                                  )
+                                : null
+                        }
                         onAutoSave={onAutoSave}
                     />
                     {endDateLabel && (

@@ -810,7 +810,97 @@
 .nc-datepicker-foot {
     margin-top: 8px;
     display: flex;
+    /* flex-end, NOT space-between. Today has always sat on the right and has to
+       stay there whether or not Remove is beside it — and space-between puts a
+       LONE child at the start, which quietly moved Today to the left on every
+       event that has no date to remove. Those are the unscheduled ones: exactly
+       the events this feature creates. Remove is pushed to the far end by its
+       own margin instead (see .nc-datepicker-clear-btn), so the two opposite
+       acts are never neighbours and Today never moves. */
     justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+}
+
+.nc-datepicker-clear-btn {
+    margin-right: auto;
+    padding: 4px 10px;
+    background: transparent !important;
+    border: none;
+    box-shadow: none !important;
+    border-radius: 6px;
+    /* Not the accent, which on this popup means "the day you are choosing", and
+       not red either — nothing is destroyed here that the same picker cannot
+       put back in one press. */
+    color: var(--nc-text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition:
+        background var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-datepicker-clear-btn:hover {
+    background: var(--nc-bg-hover) !important;
+    color: var(--nc-text-primary);
+}
+
+/* The armed state: the question replaces the grid, so the popup keeps roughly
+   its own height rather than growing past the edge it was placed against. */
+.nc-datepicker-confirm {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 4px 2px;
+}
+
+.nc-datepicker-confirm-text {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--nc-text-secondary);
+}
+
+.nc-datepicker-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.nc-datepicker-confirm-cancel,
+.nc-datepicker-confirm-go {
+    padding: 5px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: none !important;
+    transition: background var(--nc-transition-fast);
+}
+
+.nc-datepicker-confirm-cancel {
+    background: transparent !important;
+    color: var(--nc-text-secondary);
+}
+
+.nc-datepicker-confirm-cancel:hover {
+    background: var(--nc-bg-hover) !important;
+    color: var(--nc-text-primary);
+}
+
+/* The confirming press is the one that carries the repeat away, so it is the
+   one that is filled in. */
+.nc-datepicker-confirm-go {
+    background: var(--nc-accent) !important;
+    color: #ffffff;
+}
+
+.nc-datepicker-confirm-go:hover {
+    filter: brightness(1.08);
 }
 
 .nc-datepicker-today-btn {

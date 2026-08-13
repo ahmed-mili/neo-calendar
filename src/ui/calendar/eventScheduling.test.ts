@@ -227,3 +227,61 @@ describe("mergeForSave", () => {
         expect("endTime" in merged).toBe(false);
     });
 });
+
+/* Retirer la date depuis le panneau (le bouton du selecteur, voir DateField).
+   Ce chemin ne passe PAS par buildUnscheduledPayload : il vide les champs du
+   formulaire, et buildPayload en tire un payload someday. Les tests ci-dessous
+   fixent le seul point qui compte — que les deux chemins ecrivent la meme
+   note — et la raison pour laquelle le retrait doit emporter la repetition. */
+describe("retirer la date depuis le panneau", () => {
+    /** Ce que buildPayload produit une fois le formulaire vide par onClearDate :
+        allDay force (un someday n'a pas d'heure), aucune date, aucune serie. */
+    const cleared = (): NeoEvent =>
+        ({
+            title: "Reviser",
+            allDay: true,
+            type: "someday",
+            completed: false,
+        } as NeoEvent);
+
+    it("ecrit exactement la note du glisser vers le panneau", () => {
+        expect(mergeForSave(single(), cleared())).toEqual(
+            mergeForSave(single(), buildUnscheduledPayload(single()))
+        );
+    });
+
+    it("ne laisse ni date, ni fin, ni heures", () => {
+        const merged = mergeForSave(single(), cleared()) as Record<
+            string,
+            unknown
+        >;
+        expect(merged.type).toBe("someday");
+        expect("date" in merged).toBe(false);
+        expect("endDate" in merged).toBe(false);
+        expect("startTime" in merged).toBe(false);
+        expect("endTime" in merged).toBe(false);
+    });
+
+    /* Le piege que la confirmation annonce, et que setIsRecurring(false) evite.
+       Laisser la repetition debout enverrait buildPayload dans sa branche rrule,
+       qui construit une serie a partir d'une date vide SANS se plaindre — une
+       note dont le depart est "" survivrait a la fusion. Le payload someday est
+       ce qui fait tomber les cles de la serie. */
+    it("emporte la serie avec la date", () => {
+        const series = {
+            ...single(),
+            type: "rrule",
+            startDate: "2026-07-22",
+            rrule: "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=WE",
+            skipDates: [],
+        } as unknown as NeoEvent;
+        const merged = mergeForSave(series, cleared()) as Record<
+            string,
+            unknown
+        >;
+        expect(merged.type).toBe("someday");
+        expect("rrule" in merged).toBe(false);
+        expect("startDate" in merged).toBe(false);
+        expect("skipDates" in merged).toBe(false);
+    });
+});

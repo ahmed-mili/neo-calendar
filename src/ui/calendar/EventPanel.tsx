@@ -948,6 +948,33 @@ export default function EventPanel({
                         }
                         scheduleAutoSave();
                     }}
+                    // Back to the unscheduled list. Every field that only a
+                    // DATED event can carry has to go with the date, because
+                    // buildPayload reads them all: a repeat left standing would
+                    // send the payload down the rrule branch and write a series
+                    // whose start date is the empty string, and times left
+                    // standing would keep `allDay: false` — the one thing a
+                    // someday can never be — leaving stale hours in the note.
+                    //
+                    // The same note the drag-onto-the-panel route writes, by the
+                    // same reasoning: see buildUnscheduledPayload.
+                    //
+                    // Nothing is saved from here. The panel's change-watching
+                    // effect already follows date, allDay, startTime, endTime
+                    // and isRecurring, and fires once React has applied all
+                    // five — one write, of the finished state.
+                    onClearDate={
+                        isDraft
+                            ? undefined
+                            : () => {
+                                  form.setDate("");
+                                  form.setEndDate(undefined);
+                                  form.setIsRecurring(false);
+                                  form.setAllDay(true);
+                                  form.setStartTime("");
+                                  form.setEndTime("");
+                              }
+                    }
                     onAutoSave={autoSave}
                 />
 
