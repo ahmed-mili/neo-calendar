@@ -38,12 +38,11 @@
 
 .nc-left-rail-allday {
     display: flex;
-    /* The gutter is the band's own height, handed to it by TimeGrid rather than
-       measured off it, and it grows on the same curve over the same time — so
-       the line under the chevron and the line under the bands stay one line
-       throughout, instead of the rail arriving a frame late. */
-    transition: height var(--nc-allday-grow, 220ms)
-        cubic-bezier(0.215, 0.61, 0.355, 1);
+    /* No height, and no transition on it: TimeGrid writes this gutter's height
+       and the band's on the same frame, off the same clock as the scroll
+       correction underneath them (see the grow effect there). The line under
+       the chevron and the line under the bands therefore stay one line all the
+       way through, instead of the rail arriving a frame late. */
     /* Pin the chevron to the TOP-right of the gutter so it never drifts down
        when the section grows (expanded all-day can be many rows tall). The
        1px top offset keeps the 22px button inside the first 24px lane. */
@@ -606,12 +605,15 @@
        more than ALLDAY_MAX_ROWS lanes; only the visible bar is removed. */
     scrollbar-width: none;
     /* The band takes on a row, or gives one back, in the open — anchored at its
-       top, so it grows downwards over the grid. The duration is published by
-       TimeGrid (ALLDAY_GROW_MS) and the curve is easeOutCubic, because the
-       scroll correction that holds the hours still underneath runs on exactly
-       that function: two halves of one movement, so they have to match. */
-    transition: height var(--nc-allday-grow, 220ms)
-        cubic-bezier(0.215, 0.61, 0.355, 1);
+       top, so it grows downwards over the grid. That movement is NOT a CSS
+       transition: the height is written frame by frame by TimeGrid, in the same
+       rAF as the scroll correction that holds the hours still underneath and as
+       the scroll range the pinned panels ride on. A transition here would put
+       the band on a second clock — one that starts at the frame's style recalc,
+       while the correction starts at React's commit — and the grid's top clip,
+       which is that range times the render cycle's own scroll progress, would
+       miss the band's bottom edge by a few pixels on every frame of the grow.
+       The band glided and the seam under it shimmered. One clock now. */
 }
 
 .nc-allday-row::-webkit-scrollbar {

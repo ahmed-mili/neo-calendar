@@ -156,6 +156,7 @@ export default function TimeGrid(props: TimeGridProps) {
     const scrollRootRef = useRef<HTMLDivElement>(null);
     const headersRowRef = useRef<HTMLDivElement>(null);
     const allDayRowRef = useRef<HTMLDivElement>(null);
+    const allDayGutterRef = useRef<HTMLDivElement>(null);
     const allDayTrackRef = useRef<HTMLDivElement>(null);
     const leftScrollableRef = useRef<HTMLDivElement>(null);
     const [headerHeight, setHeaderHeight] = useState(0);
@@ -191,6 +192,30 @@ export default function TimeGrid(props: TimeGridProps) {
     const republishScrollTravel = React.useCallback(() => {
         const main = scrollRootRef.current;
         if (main) publishScrollTravel(main, gridRef.current);
+    }, []);
+
+    /** Put the panels that are pinned outside the scroller back where the
+     *  scroll says they belong: the hours rail's translateY, the grid's top
+     *  clip, and the all-day band's pair of counter-translations.
+     *
+     *  Nothing to do where the scroll timelines drive all three (see
+     *  PANELS_RIDE_SCROLL) — CSS runs them on the render cycle, and a JS write
+     *  here would only fight the cascade. */
+    const mirrorPinnedPanels = React.useCallback(() => {
+        const main = scrollRootRef.current;
+        if (!main || PANELS_RIDE_SCROLL) return;
+        const x = main.scrollLeft;
+        const scrollable = leftScrollableRef.current;
+        main.style.setProperty("--nc-scroll-y", `${clampScrollTop(main)}px`);
+        if (scrollable) {
+            scrollable.style.transform = `translateY(${-main.scrollTop}px)`;
+        }
+        if (allDayRowRef.current) {
+            allDayRowRef.current.style.transform = `translateX(${x}px)`;
+        }
+        if (allDayTrackRef.current) {
+            allDayTrackRef.current.style.transform = `translateX(${-x}px)`;
+        }
     }, []);
 
     useAxisLock(scrollRootRef, gridRef, onAndroid(), {
@@ -465,73 +490,123 @@ export default function TimeGrid(props: TimeGridProps) {
     }, []);
     // NEO_ANDROID_INITIAL_SCROLL_V7_4_END
 
-    // Compensate scrollTop when the all-day section's height changes between
-    // renders. Without this, any change to the visible lane count (e.g. when a
-    // horizontal shift brings more all-day events into the buffer) shifts the
-    // days row vertically and teleports the visible grid. The height tracked
-    // here must match the capped height set on .nc-allday-row in
-    // TimeGridSections.tsx (allDayVisibleRows * ALLDAY_ROW_HEIGHT).
+    // The all-day band takes ALLDAY_GROW_MS to gain a row or give one back,
+    // rather than doing it between two frames: everything below it moves by
+    // 24px, and done at once that reads as the whole grid jumping. Four things
+    // have to move together for that to look like one gesture —
     //
-    // The band now takes ALLDAY_GROW_MS to change height rather than doing it
-    // between two frames, so the correction is spread over the same time, on
-    // the same curve: a single jump would move the hours out from under the
-    // band while the band was still on its way down. The travels are republished
-    // each frame for the same reason — the scroll range grows with the band, and
-    // the pinned panels ride on it.
-    const prevAllDayHeightRef = useRef<number | null>(null);
+    //   · the band itself, on both sides of the seam (the row in the scroller
+    //     and the gutter in the left rail);
+    //   · the scroller's scrollTop, by exactly as much as the band grew, so the
+    //     hours underneath stay where the eye left them;
+    //   · --nc-rail-travel, the scroll range the pinned panels ride on, which
+    //     grows with the band;
+    //   · and, where the scroll timelines are missing, the mirrored transforms.
+    //
+    // They are all written HERE, in one rAF, off one clock. The band used to
+    // grow on a CSS `transition: height` while only the scroll correction ran on
+    // rAF, and two clocks was the whole problem: a transition starts at the
+    // frame's style recalc, this effect starts at React's commit — up to a frame
+    // earlier. So the range published each frame described a band height the
+    // paint had not reached yet, and the grid's top clip (progress x range,
+    // sampled by the render cycle) landed a few pixels off the band's bottom
+    // edge on every frame the band moved. The band glided; the seam under it
+    // shimmered, and the hours slid and snapped back at the end.
+    //
+    // Because JS owns the height, React must not also set it: an unrelated
+    // re-render mid-flight (the now-line ticking, a drag) would slam the band to
+    // its target for a frame. Neither .nc-allday-row nor .nc-left-rail-allday
+    // carries a height in its inline style — see TimeGridSections.tsx.
     const allDayGrowFrameRef = useRef(0);
-    /** Correction still owed, when a second row arrives before the first has
-        finished landing. Carried into the new run instead of being lost. */
-    const allDayGrowOwedRef = useRef(0);
+    /** What the band is actually showing. Not what was last asked for: a run cut
+        short by a second row arriving leaves the band mid-way, and the next run
+        has to start from there — from what the eye sees — or it would jump back
+        to a height that was never reached and re-travel the distance. */
+    const allDayShownHeightRef = useRef<number | null>(null);
+    /** The band's height, on both sides of the seam, in one write. Two elements
+        because the gutter under the chevron is in the left rail and the band is
+        in the scroller; one write because the line that closes them is read as
+        a single line, and a rail that arrives a frame late breaks it. */
+    const paintAllDayBand = React.useCallback((height: number) => {
+        allDayShownHeightRef.current = height;
+        if (allDayRowRef.current) {
+            allDayRowRef.current.style.height = `${height}px`;
+        }
+        if (allDayGutterRef.current) {
+            allDayGutterRef.current.style.height = `${height}px`;
+        }
+    }, []);
     useLayoutEffect(() => {
         const el = scrollRootRef.current;
         if (!el) return;
-        const prev = prevAllDayHeightRef.current;
-        prevAllDayHeightRef.current = allDayHeight;
-        if (prev === null || prev === allDayHeight) return;
+        const from = allDayShownHeightRef.current;
+        const running = allDayGrowFrameRef.current !== 0;
+        if (from === allDayHeight && !running) return;
 
         cancelAnimationFrame(allDayGrowFrameRef.current);
-        const distance = allDayHeight - prev + allDayGrowOwedRef.current;
-        allDayGrowOwedRef.current = distance;
+        allDayGrowFrameRef.current = 0;
+        // A run in flight passing through exactly the height now being asked
+        // for: stop it there. Checked before the early return above, or the
+        // band would carry on to a target nobody wants any more.
+        if (from === allDayHeight) return;
 
-        // Someone who has asked for less movement gets the band's height in one
-        // step (CalendarMotion.css cuts every duration to 1ms), so the
-        // correction has to arrive in one step too, or it would be the only
-        // thing still travelling.
-        if (prefersReducedMotion()) {
-            el.scrollTop += distance;
-            allDayGrowOwedRef.current = 0;
+        // The first paint has nothing to travel from, and someone who has asked
+        // for less movement gets no travel at all: the band is simply there, and
+        // the correction arrives in the same single step, or it would be the
+        // only thing still moving.
+        if (from === null || prefersReducedMotion()) {
+            paintAllDayBand(allDayHeight);
+            if (from !== null) el.scrollTop += allDayHeight - from;
             publishScrollTravel(el, gridRef.current);
+            mirrorPinnedPanels();
             return;
         }
 
-        const startedAt = performance.now();
+        const distance = allDayHeight - from;
+        let startedAt: number | null = null;
         let moved = 0;
         const step = (now: number) => {
+            // The clock starts on the first frame, not at React's commit:
+            // progress is 0 on the frame the band is first painted, which is
+            // where a CSS transition would have started counting too.
+            if (startedAt === null) startedAt = now;
             const progress = Math.min(1, (now - startedAt) / ALLDAY_GROW_MS);
-            const wanted = distance * easeOutCubic(progress);
-            // Relative, never absolute: the person may be scrolling while the
-            // band grows, and their scroll must survive the correction. And
-            // counted by what the screen DID rather than by what was asked:
-            // an offset lands on whole device pixels, so a frame's share of
-            // the last pixel rounds away, and treating it as spent leaves the
-            // hours a pixel off where the band left them.
+
+            // Whole pixels: a fractional height makes the scroller's own
+            // scrollHeight — an integer, and the scroll range the clip is
+            // computed from — round somewhere the band did not, which is a
+            // pixel of shimmer at the seam. The last frame lands on the target
+            // exactly, so the band comes to rest where the lanes are.
+            const height = Math.round(from + distance * easeOutCubic(progress));
+            paintAllDayBand(height);
+
+            // The correction is the band's OWN growth, not a second easing of
+            // the same distance: whatever the band did this frame, the scroll
+            // does, so the hours cannot drift out from under it at any point.
+            // Relative, never absolute — the person may be scrolling while the
+            // band grows, and their scroll has to survive the correction. And
+            // counted by what the screen DID rather than by what was asked: an
+            // offset lands on whole device pixels, so a frame's share of the
+            // last pixel can round away, and treating it as spent would leave
+            // the hours a pixel off where the band left them.
             const before = el.scrollTop;
-            el.scrollTop += wanted - moved;
-            const applied = el.scrollTop - before;
-            allDayGrowOwedRef.current -= applied;
-            moved += applied;
+            el.scrollTop += height - from - moved;
+            moved += el.scrollTop - before;
+
+            // Read AFTER both, so the range describes the layout this frame is
+            // about to paint rather than the one before it.
             publishScrollTravel(el, gridRef.current);
+            mirrorPinnedPanels();
+
             if (progress < 1) {
                 allDayGrowFrameRef.current = requestAnimationFrame(step);
             } else {
                 allDayGrowFrameRef.current = 0;
-                allDayGrowOwedRef.current = 0;
             }
         };
         allDayGrowFrameRef.current = requestAnimationFrame(step);
         return () => cancelAnimationFrame(allDayGrowFrameRef.current);
-    }, [allDayHeight]);
+    }, [allDayHeight, mirrorPinnedPanels, paintAllDayBand]);
 
     // The fallback path for everything the scroll timelines drive: the hours
     // rail's translateY, the grid's top clip, and the all-day band's pair of
@@ -550,24 +625,13 @@ export default function TimeGrid(props: TimeGridProps) {
         if (!main || !scrollable) return;
         if (PANELS_RIDE_SCROLL) return;
         let frame = 0;
+        // Drives, among the rest, the vertical clip on .nc-days-row: clipping
+        // its top by scrollTop keeps the grid from painting behind the
+        // transparent sticky header/all-day band. See mirrorPinnedPanels, and
+        // .nc-days-row in CalendarGrid.css.
         const update = () => {
             frame = 0;
-            const x = main.scrollLeft;
-            scrollable.style.transform = `translateY(${-main.scrollTop}px)`;
-            // Drive the vertical clip on .nc-days-row: clipping its top by
-            // scrollTop keeps the grid from painting behind the transparent
-            // sticky header/all-day band. Set on the scroller (ancestor) so it
-            // inherits to the row. See .nc-days-row in CalendarGrid.css.
-            main.style.setProperty(
-                "--nc-scroll-y",
-                `${clampScrollTop(main)}px`
-            );
-            if (allDayRowRef.current) {
-                allDayRowRef.current.style.transform = `translateX(${x}px)`;
-            }
-            if (allDayTrackRef.current) {
-                allDayTrackRef.current.style.transform = `translateX(${-x}px)`;
-            }
+            mirrorPinnedPanels();
         };
         const onScroll = () => {
             if (frame) return;
@@ -579,7 +643,7 @@ export default function TimeGrid(props: TimeGridProps) {
             main.removeEventListener("scroll", onScroll);
             if (frame) cancelAnimationFrame(frame);
         };
-    }, []);
+    }, [mirrorPinnedPanels]);
 
     // Keep the all-day track's horizontal offset correct even when its node is
     // recreated by a re-render (collapse toggle, data/width change). The scroll
@@ -591,20 +655,19 @@ export default function TimeGrid(props: TimeGridProps) {
     useLayoutEffect(() => {
         const main = scrollRootRef.current;
         if (!main) return;
+        // And for the same reason, the band's height: it is written by hand, not
+        // by React, so a recreated node would come back at its content height.
+        // Re-asserting what the band is CURRENTLY showing — never the target —
+        // leaves a run in flight untouched; the next frame carries on from here.
+        if (allDayShownHeightRef.current !== null) {
+            paintAllDayBand(allDayShownHeightRef.current);
+        }
         // The content's own size changes without the scroller resizing — a
         // taller all-day band, another view, a different hour height, a day
         // added to the range. The travels are the timelines' only input, so they
         // are republished on every render whichever path is in use.
         publishScrollTravel(main, gridRef.current);
-        if (PANELS_RIDE_SCROLL) return;
-        const x = main.scrollLeft;
-        main.style.setProperty("--nc-scroll-y", `${clampScrollTop(main)}px`);
-        if (allDayRowRef.current) {
-            allDayRowRef.current.style.transform = `translateX(${x}px)`;
-        }
-        if (allDayTrackRef.current) {
-            allDayTrackRef.current.style.transform = `translateX(${-x}px)`;
-        }
+        mirrorPinnedPanels();
     });
 
     // Le cadre du drag venu du panneau passe par le meme rendu que ceux du drag
@@ -651,7 +714,7 @@ export default function TimeGrid(props: TimeGridProps) {
                 <LeftRail
                     width={leftRailWidth}
                     headerHeight={headerHeight}
-                    allDayHeight={allDayHeight}
+                    allDayRef={allDayGutterRef}
                     showAllDay={showAllDay}
                     hours={HOURS}
                     timeFormat24h={timeFormat24h}
@@ -680,7 +743,6 @@ export default function TimeGrid(props: TimeGridProps) {
                             allDayLanes={allDayLanes}
                             extendedDates={extendedDates}
                             contentRows={allDayContentRows}
-                            visibleHeight={allDayHeight}
                             draftLane={allDayDraftLane}
                             collapsed={allDayCollapsed}
                             onToggleCollapse={onToggleAllDayCollapsed}

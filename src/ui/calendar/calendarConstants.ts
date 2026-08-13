@@ -75,10 +75,15 @@ export const ALLDAY_MAX_ROWS = 4; // visible rows before the section scrolls
  *
  * A row appearing from one frame to the next reads as the whole grid jumping,
  * because that is what it does: everything below the band moves down by 24px at
- * once. Published to the stylesheet as `--nc-allday-grow` so the band's height
- * transition and the scroll correction that keeps the grid still underneath it
- * are the same length, and drawn on the same curve as `easeOutCubic` — the JS
- * side of that correction runs on it.
+ * once.
+ *
+ * The band's own height is driven from JS (TimeGrid), on `easeOutCubic`, in the
+ * same frame as the scroll correction that keeps the grid still underneath it —
+ * one clock for the whole gesture. This constant is also published to the
+ * stylesheet as `--nc-allday-grow`, for the pieces that are CSS's to move and
+ * that have to arrive with the band: a bar sliding to a new lane, and a bar
+ * appearing in the room the band has just made. Their curve
+ * (`cubic-bezier(0.215, 0.61, 0.355, 1)`) is that same easeOutCubic.
  */
 export const ALLDAY_GROW_MS = 220;
 

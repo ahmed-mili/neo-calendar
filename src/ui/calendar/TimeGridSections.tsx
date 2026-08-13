@@ -44,7 +44,11 @@ interface ResizePreview {
 interface LeftRailProps {
     width: number;
     headerHeight: number;
-    allDayHeight: number;
+    /** The all-day gutter, whose height TimeGrid writes by hand every frame the
+        band moves — see the grow effect there. Deliberately NOT a style prop:
+        React setting the height too would slam the band to its target on any
+        re-render that happened mid-flight. */
+    allDayRef: React.Ref<HTMLDivElement>;
     showAllDay: boolean;
     hours: number[];
     timeFormat24h: boolean;
@@ -64,7 +68,7 @@ interface LeftRailProps {
 export function LeftRail({
     width,
     headerHeight,
-    allDayHeight,
+    allDayRef,
     showAllDay,
     hours,
     timeFormat24h,
@@ -138,10 +142,7 @@ export function LeftRail({
                         ))}
                 </div>
                 {showAllDay && (
-                    <div
-                        className="nc-left-rail-allday"
-                        style={{ height: allDayHeight }}
-                    >
+                    <div className="nc-left-rail-allday" ref={allDayRef}>
                         <div
                             className="nc-allday-collapse-btn"
                             role="button"
@@ -282,8 +283,6 @@ interface AllDayProps {
     /** Rows the band holds, draft included — computed once in TimeGrid so the
         height, the scroll correction and this layout can never disagree. */
     contentRows: number;
-    /** Height the band is animating to (the capped rows). */
-    visibleHeight: number;
     /** Row a pending all-day draft stands on, under its day's own events. */
     draftLane?: number | null;
     collapsed?: boolean;
@@ -318,7 +317,6 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
             allDayLanes,
             extendedDates,
             contentRows,
-            visibleHeight,
             draftLane,
             collapsed,
             onToggleCollapse,
@@ -380,7 +378,6 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                     style={{
                         ...(stickyTop !== undefined ? { top: stickyTop } : {}),
                         width: mainWidth || scrollerWidthStyle,
-                        height: visibleHeight,
                     }}
                 >
                     <div
@@ -490,7 +487,6 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                 style={{
                     ...(stickyTop !== undefined ? { top: stickyTop } : {}),
                     width: mainWidth || scrollerWidthStyle,
-                    height: visibleHeight,
                 }}
             >
                 <div
