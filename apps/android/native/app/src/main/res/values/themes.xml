@@ -13,4 +13,18 @@
         <item name="android:colorAccent">#89B4FA</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
+
+    <!-- Le popup de mise a jour. Le fond de fenetre est efface en code (voir
+         AppUpdater.showPrompt) pour que la carte arrondie du layout soit ce que
+         l'on voit ; ce qui reste ici est l'assombrissement derriere elle et le
+         retrait des marges par defaut du dialogue, qui laisseraient une bande
+         grise autour de la carte. -->
+    <style name="Theme.NeoCalendar.Dialog" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowCloseOnTouchOutside">true</item>
+        <item name="android:backgroundDimAmount">0.55</item>
+        <item name="android:colorAccent">#89B4FA</item>
+        <item name="android:fontFamily">sans</item>
+    </style>
 </resources>

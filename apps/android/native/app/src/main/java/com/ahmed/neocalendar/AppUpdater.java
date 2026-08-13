@@ -2,14 +2,22 @@ package com.ahmed.neocalendar;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
@@ -39,13 +47,27 @@ final class AppUpdater {
     "https://github.com/ahmed-mili/neo-calendar/releases/latest/download/latest-android.json";
   private static final String EXPECTED_DOWNLOAD_PREFIX =
     "/ahmed-mili/neo-calendar/releases/download/";
-  private static final long NO_UPDATE_RECHECK_MS = 6L * 60L * 60L * 1000L;
-  private static final long LATER_RECHECK_MS = 24L * 60L * 60L * 1000L;
-  private static final long FAILURE_RECHECK_MS = 60L * 60L * 1000L;
   private static final int MAX_METADATA_BYTES = 64 * 1024;
   private static final long MAX_APK_BYTES = 200L * 1024L * 1024L;
   private static final String PREFS = "neo_updates";
-  private static final String PREF_NEXT_CHECK = "next_check_at";
+  /** The one version the user has waved away, by its code. NOT a date.
+   *
+   *  This used to be a timestamp: every launch that found nothing new put the
+   *  next check six hours out, and "Later" put it twenty-four. On a project
+   *  that ships several times a day that is not a throttle, it is a blindfold —
+   *  a release published an hour after a launch went unseen until the next
+   *  morning, and the app looked broken while being exactly as written.
+   *
+   *  A check now runs on every launch; it costs one request for 240 bytes. What
+   *  "Later" suppresses is that VERSION, not that hour, so the answer keeps
+   *  meaning what it said — and the version after it still gets to ask. */
+  private static final String PREF_DISMISSED_CODE = "dismissed_version_code";
+  private static final String CHANNEL_ID = "neo_updates";
+  private static final int NOTIFICATION_ID = 0x4E43;
+  /** A notification redraw costs a binder round trip, and a fast connection
+   *  would otherwise ask for one per 32 KB buffer. The bar moves by whole
+   *  percents, and never more than five times a second. */
+  private static final long PROGRESS_INTERVAL_MS = 200L;
 
   private final Activity activity;
   private final ExecutorService io;
@@ -56,22 +78,19 @@ final class AppUpdater {
     this.io = io;
   }
 
+  /** Every launch, with no clock in the way. A debug build still says nothing:
+   *  it is usually newer than anything published, and the release APK it would
+   *  offer carries a different signing certificate anyway. */
   void checkOnLaunch() {
     if (BuildConfig.DEBUG) return;
-    long nextCheck = activity.getSharedPreferences(PREFS, Activity.MODE_PRIVATE)
-      .getLong(PREF_NEXT_CHECK, 0L);
-    if (System.currentTimeMillis() < nextCheck) return;
-
     io.execute(() -> {
       try {
         Metadata metadata = fetchMetadata();
-        if (metadata.versionCode <= currentVersionCode()) {
-          postpone(NO_UPDATE_RECHECK_MS);
-          return;
-        }
+        if (metadata.versionCode <= currentVersionCode()) return;
+        if (metadata.versionCode == dismissedVersionCode()) return;
         activity.runOnUiThread(() -> showPrompt(metadata));
       } catch (Exception error) {
-        postpone(FAILURE_RECHECK_MS);
+        // Offline, or GitHub having a moment. The next launch asks again.
         Log.w(TAG, "Update check failed", error);
       }
     });
@@ -88,24 +107,50 @@ final class AppUpdater {
     launchInstaller(apk);
   }
 
+  /** The app's own sheet, not the platform's grey one.
+   *
+   *  The window background is cleared to transparent so the rounded card in the
+   *  layout is what the eye sees; left to itself the dialog theme paints its own
+   *  square panel behind it and the corners come back as grey wedges. */
   private void showPrompt(Metadata metadata) {
     if (activity.isFinishing() || activity.isDestroyed()) return;
-    new AlertDialog.Builder(activity)
-      .setTitle(R.string.update_available)
-      .setMessage(activity.getString(R.string.update_message, metadata.version))
-      .setNegativeButton(R.string.update_later, (dialog, which) -> postpone(LATER_RECHECK_MS))
-      .setPositiveButton(R.string.update_install, (dialog, which) -> download(metadata))
-      .show();
+    View view = activity.getLayoutInflater().inflate(R.layout.update_dialog, null);
+    ((TextView) view.findViewById(R.id.update_message))
+      .setText(activity.getString(R.string.update_message, metadata.version));
+
+    AlertDialog dialog = new AlertDialog.Builder(activity, R.style.Theme_NeoCalendar_Dialog)
+      .setView(view)
+      .setCancelable(true)
+      .create();
+    if (dialog.getWindow() != null) {
+      dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+    }
+
+    view.findViewById(R.id.update_later).setOnClickListener(button -> {
+      dismissVersion(metadata.versionCode);
+      dialog.dismiss();
+    });
+    view.findViewById(R.id.update_install).setOnClickListener(button -> {
+      dialog.dismiss();
+      download(metadata);
+    });
+    // Dismissing by back or by tapping outside is "later" too, and has to be
+    // remembered as such — otherwise the prompt returns on the next launch
+    // having been answered.
+    dialog.setOnCancelListener(ignored -> dismissVersion(metadata.versionCode));
+    dialog.show();
   }
 
   private void download(Metadata metadata) {
-    Toast.makeText(activity, R.string.update_downloading, Toast.LENGTH_SHORT).show();
+    ensureChannel();
+    notifyProgress(metadata, 0, true);
     io.execute(() -> {
       try {
         File apk = downloadAndVerify(metadata);
+        notifyReady(metadata, apk);
         activity.runOnUiThread(() -> requestInstall(apk));
       } catch (Exception error) {
-        postpone(FAILURE_RECHECK_MS);
+        notifyFailed();
         Log.e(TAG, "Update download failed", error);
         activity.runOnUiThread(() ->
           Toast.makeText(activity, R.string.update_failed, Toast.LENGTH_LONG).show()
@@ -154,6 +199,91 @@ final class AppUpdater {
     }
   }
 
+  // ── Notifications ─────────────────────────────────────────
+  //
+  // The download is the one part of this with nothing on screen to show for it:
+  // the install prompt only appears at the end, and on a slow connection that is
+  // a minute of an app that looks like it did nothing. So it reports the way a
+  // store does — one notification, updated in place, that becomes the install
+  // button when it is done.
+
+  private void ensureChannel() {
+    NotificationManager manager = activity.getSystemService(NotificationManager.class);
+    if (manager == null) return;
+    // LOW, not DEFAULT: a progress bar that rings is a progress bar nobody
+    // wants twice.
+    NotificationChannel channel = new NotificationChannel(
+      CHANNEL_ID,
+      activity.getString(R.string.update_channel),
+      NotificationManager.IMPORTANCE_LOW
+    );
+    channel.setDescription(activity.getString(R.string.update_channel_description));
+    channel.setShowBadge(false);
+    manager.createNotificationChannel(channel);
+  }
+
+  private void notify(Notification notification) {
+    NotificationManager manager = activity.getSystemService(NotificationManager.class);
+    if (manager == null) return;
+    try {
+      manager.notify(NOTIFICATION_ID, notification);
+    } catch (SecurityException denied) {
+      // Notifications refused. The download carries on regardless — the prompt
+      // at the end is what actually installs.
+      Log.w(TAG, "Update notification refused", denied);
+    }
+  }
+
+  private void notifyProgress(Metadata metadata, int percent, boolean indeterminate) {
+    notify(new Notification.Builder(activity, CHANNEL_ID)
+      .setSmallIcon(R.drawable.ic_notification)
+      .setContentTitle(activity.getString(R.string.update_progress_title, metadata.version))
+      .setContentText(indeterminate ? null : percent + " %")
+      .setProgress(100, percent, indeterminate)
+      .setOngoing(true)
+      .setOnlyAlertOnce(true)
+      .build());
+  }
+
+  /** The finished notification IS the install button, so closing the app
+   *  mid-download does not lose the work. The read grant rides on the pending
+   *  intent, which is why it can hand a FileProvider URI to the installer. */
+  private void notifyReady(Metadata metadata, File apk) {
+    PendingIntent install = null;
+    try {
+      Uri uri = FileProvider.getUriForFile(
+        activity, activity.getPackageName() + ".updates", apk);
+      install = PendingIntent.getActivity(
+        activity,
+        0,
+        new Intent(Intent.ACTION_VIEW)
+          .setDataAndType(uri, "application/vnd.android.package-archive")
+          .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK),
+        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+      );
+    } catch (Exception error) {
+      Log.w(TAG, "Cannot build install intent for notification", error);
+    }
+    Notification.Builder builder = new Notification.Builder(activity, CHANNEL_ID)
+      .setSmallIcon(R.drawable.ic_notification)
+      .setContentTitle(activity.getString(R.string.update_ready_title))
+      .setContentText(activity.getString(R.string.update_ready_text, metadata.version))
+      .setAutoCancel(true)
+      .setOngoing(false);
+    if (install != null) builder.setContentIntent(install);
+    notify(builder.build());
+  }
+
+  private void notifyFailed() {
+    notify(new Notification.Builder(activity, CHANNEL_ID)
+      .setSmallIcon(R.drawable.ic_notification)
+      .setContentTitle(activity.getString(R.string.update_failed_title))
+      .setContentText(activity.getString(R.string.update_failed))
+      .setAutoCancel(true)
+      .setOngoing(false)
+      .build());
+  }
+
   private File downloadAndVerify(Metadata metadata) throws Exception {
     File directory = new File(activity.getCacheDir(), "updates");
     if (!directory.isDirectory() && !directory.mkdirs()) {
@@ -186,11 +316,25 @@ final class AppUpdater {
            FileOutputStream output = new FileOutputStream(temporary)) {
         byte[] buffer = new byte[32 * 1024];
         int count;
+        int lastPercent = -1;
+        long lastDrawnAt = 0L;
         while ((count = input.read(buffer)) != -1) {
           written += count;
           if (written > MAX_APK_BYTES) throw new IOException("Update is too large");
           digest.update(buffer, 0, count);
           output.write(buffer, 0, count);
+
+          // A server that declines to say how big the file is leaves the bar
+          // indeterminate rather than guessing at a total.
+          if (contentLength <= 0L) continue;
+          int percent = (int) Math.min(100L, written * 100L / contentLength);
+          long now = System.currentTimeMillis();
+          if (percent == lastPercent || now - lastDrawnAt < PROGRESS_INTERVAL_MS) {
+            continue;
+          }
+          lastPercent = percent;
+          lastDrawnAt = now;
+          notifyProgress(metadata, percent, false);
         }
       }
     } finally {
@@ -297,10 +441,15 @@ final class AppUpdater {
     return BuildConfig.VERSION_CODE;
   }
 
-  private void postpone(long delayMs) {
+  private long dismissedVersionCode() {
+    return activity.getSharedPreferences(PREFS, Activity.MODE_PRIVATE)
+      .getLong(PREF_DISMISSED_CODE, 0L);
+  }
+
+  private void dismissVersion(long versionCode) {
     activity.getSharedPreferences(PREFS, Activity.MODE_PRIVATE)
       .edit()
-      .putLong(PREF_NEXT_CHECK, System.currentTimeMillis() + delayMs)
+      .putLong(PREF_DISMISSED_CODE, versionCode)
       .apply();
   }
 

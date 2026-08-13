@@ -22,4 +22,11 @@
     <string name="update_install">"Mettre à jour"</string>
     <string name="update_later">"Plus tard"</string>
     <string name="update_downloading">"Téléchargement de la mise à jour…"</string>
-    <string name="update_failed">"La mise à jour n’a pas pu être vérifiée ou installée."</string></resources>
+    <string name="update_failed">"La mise à jour n’a pas pu être vérifiée ou installée."</string>
+    <string name="update_channel">"Mises à jour"</string>
+    <string name="update_channel_description">"Progression du téléchargement d’une mise à jour."</string>
+    <string name="update_progress_title">"Téléchargement de Neo Calendar %1$s"</string>
+    <string name="update_ready_title">"Mise à jour prête"</string>
+    <string name="update_ready_text">"Appuyez pour installer Neo Calendar %1$s"</string>
+    <string name="update_failed_title">"Échec du téléchargement"</string>
+</resources>
