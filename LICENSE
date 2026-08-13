@@ -33,3 +33,16 @@ Third-party code bundled in this repository:
 
 - vendor/ical.js.d.ts — TypeScript declarations for ical.js.
   Copyright (c) 2019 EteSync Authors. Licensed under the MPL-2.0.
+
+Fonts bundled in the published applications:
+
+The desktop installer and the Android package both embed webfont files built
+from the following families, each licensed under the SIL Open Font License 1.1,
+which allows redistribution provided this notice travels with them:
+
+- Geist and Geist Mono — Copyright (c) Vercel.
+- Inter — Copyright (c) The Inter Project Authors.
+- JetBrains Mono — Copyright (c) JetBrains s.r.o.
+
+The full text of the SIL Open Font License 1.1 is available at
+https://openfontlicense.org.

@@ -1,7 +1,0 @@
-Serial=SGPZQ84XNFDQBE8L
-Manufacturer=Xiaomi
-Model=23078PND5G
-Android=16
-SDK=36
-ABI=arm64-v8a
-PackagePath=package:/data/app/~~b8lZKTcP4IE5di1T5rJ3NQ==/com.ahmed.neocalendar-jn6Wvj6QeWszniDXvfsOmw==/base.apk

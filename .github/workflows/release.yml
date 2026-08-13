@@ -7,11 +7,9 @@
 # Le déclenchement manuel, lui, construit sans publier : de quoi vérifier que la
 # chaîne tient toujours.
 #
-# Une version ne reconstruit que les applications qu'elle a changées. Le reste
-# du temps on republiait un installateur Windows identique au précédent pour un
-# correctif Android — douze minutes de compilation, et un fichier de plus sur la
-# page qui n'apporte rien. Une release peut donc ne porter qu'un seul paquet :
-# l'autre n'a pas disparu, il n'a simplement pas bougé depuis sa dernière.
+# Une release stable reconstruit les deux applications. Les updaters consultent
+# la dernière release ; elle doit donc toujours contenir l'APK, l'installateur,
+# sa signature et les deux fichiers de métadonnées de la même version.
 name: Release
 
 on:
@@ -23,7 +21,7 @@ on:
     workflow_dispatch:
 
 permissions:
-    contents: write
+    contents: read
 
 # Repousser un correctif sur la même version annule le build précédent plutôt
 # que de laisser deux compilations Rust de douze minutes se courir après.
@@ -41,7 +39,7 @@ jobs:
     # nourrit LES DEUX applications, la coque Android affichant les écrans du
     # bureau. `scripts/releaseScope.mjs` porte la règle, et ses tests avec.
     scope:
-        name: Ce qui a change
+        name: Plateformes touchées
         runs-on: ubuntu-latest
         outputs:
             android: ${{ steps.decide.outputs.android }}
@@ -49,7 +47,7 @@ jobs:
         steps:
             # Tout l'historique : la comparaison remonte à l'étiquette
             # précédente, que le clone superficiel par défaut n'aurait pas.
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
               with:
                   fetch-depth: 0
 
@@ -82,20 +80,20 @@ jobs:
                     echo "### Depuis $previous"
                     echo
                     grep -q '^android=true$' "$GITHUB_OUTPUT" \
-                      && echo "- APK Android : construit" \
-                      || echo "- APK Android : inchangé, non reconstruit"
+                      && echo "- Android : code touché" \
+                      || echo "- Android : aucun changement propre"
                     grep -q '^windows=true$' "$GITHUB_OUTPUT" \
-                      && echo "- Installateur Windows : construit" \
-                      || echo "- Installateur Windows : inchangé, non reconstruit"
+                      && echo "- Windows : code touché" \
+                      || echo "- Windows : aucun changement propre"
                   } >> "$GITHUB_STEP_SUMMARY"
 
     tests:
         name: Tests
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
               with:
                   node-version: "20"
                   cache: npm
@@ -106,12 +104,11 @@ jobs:
     android:
         name: APK Android
         needs: [scope, tests]
-        if: needs.scope.outputs.android == 'true'
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
               with:
                   node-version: "20"
                   cache: npm
@@ -122,13 +119,13 @@ jobs:
 
             # Le module Android compile en Java 17 (`compileOptions` de
             # app/build.gradle.kts).
-            - uses: actions/setup-java@v4
+            - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
               with:
                   distribution: temurin
                   java-version: "17"
 
             - name: Réutiliser le cache Gradle
-              uses: actions/cache@v4
+              uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
               with:
                   path: |
                       ~/.gradle/caches
@@ -160,11 +157,23 @@ jobs:
                   yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
                   "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
 
-            # `assembleRelease` et non `assembleDebug` : la variante de release
-            # porte la clé fixe du dépôt, celle qui permet à une mise à jour de
-            # s'installer par-dessus la version précédente.
-            - name: Assembler l'APK
+            - name: Restaurer la clé de signature Android
+              shell: bash
+              env:
+                  ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+              run: |
+                  test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Secret ANDROID_KEYSTORE_BASE64 manquant"; exit 1; }
+                  mkdir -p "$RUNNER_TEMP/neo-calendar-signing"
+                  printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/neo-calendar-signing/android.jks"
+                  chmod 600 "$RUNNER_TEMP/neo-calendar-signing/android.jks"
+
+            - name: Assembler l'APK signé
               working-directory: apps/android/native
+              env:
+                  ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/neo-calendar-signing/android.jks
+                  ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+                  ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+                  ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
               run: ./gradlew --no-daemon assembleRelease
 
             # Le nom porte la version : un fichier téléchargé dit ce qu'il
@@ -180,7 +189,7 @@ jobs:
                   cp apps/android/native/app/build/outputs/apk/release/app-release.apk \
                      "artifacts/neo-calendar-android-$version$suffix.apk"
 
-            - uses: actions/upload-artifact@v4
+            - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
               with:
                   name: android
                   path: artifacts/*.apk
@@ -189,12 +198,11 @@ jobs:
     windows:
         name: Installateur Windows
         needs: [scope, tests]
-        if: needs.scope.outputs.windows == 'true'
         runs-on: windows-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
               with:
                   node-version: "20"
                   cache: npm
@@ -212,7 +220,7 @@ jobs:
             # neuve à chaque exécution, rattrapée par le préfixe, garde au
             # contraire l'entrée la plus récente — c'est ce dernier qui travaille.
             - name: Réutiliser le cache Rust
-              uses: actions/cache@v4
+              uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
               with:
                   path: |
                       ~/.cargo/registry
@@ -229,9 +237,14 @@ jobs:
                   npm install --no-audit --no-fund
                   npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
 
+            - name: Préparer la configuration updater
+              run: node scripts/configure-tauri-updater.mjs
             # `package` compile le front, puis Tauri, puis rend à l'installateur
             # le nom que porte un installateur de bureau.
-            - name: Construire l'installateur
+            - name: Construire et signer l'installateur
+              env:
+                  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+                  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
               run: npm --prefix apps/windows run package
 
             - name: Rassembler l'installateur
@@ -239,6 +252,7 @@ jobs:
               run: |
                   mkdir -p artifacts
                   cp apps/windows/src-tauri/target/release/bundle/nsis/*Setup*.exe artifacts/
+                  cp apps/windows/src-tauri/target/release/bundle/nsis/*Setup*.exe.sig artifacts/
                   # Même marque que sur l'APK, pour la même raison.
                   suffix=$(node scripts/releaseChannel.mjs)
                   if [ -n "$suffix" ]; then
@@ -247,30 +261,47 @@ jobs:
                     done
                   fi
 
-            - uses: actions/upload-artifact@v4
+            - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
               with:
                   name: windows
-                  path: artifacts/*.exe
+                  path: |
+                      artifacts/*.exe
+                      artifacts/*.exe.sig
                   if-no-files-found: error
 
     publish:
         name: Publier la release
         needs: [scope, android, windows]
-        # `always()` parce qu'un paquet saute dès que son application n'a pas
-        # bougé : sans lui, un travail ignoré emporterait la publication avec
-        # lui. `!failure() && !cancelled()` garde en revanche l'échec d'un
-        # paquet réellement construit — un travail ignoré n'est pas un échec.
+        # `always()` permet d'évaluer explicitement les échecs/annulations des
+        # jobs requis avant de décider si la release peut être publiée.
         if: >-
             always() && !failure() && !cancelled() &&
             (startsWith(github.ref, 'refs/tags/v') ||
             startsWith(github.ref, 'refs/heads/release/v'))
         runs-on: ubuntu-latest
+        permissions:
+            contents: write
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
               with:
                   path: artifacts
+
+            - name: Générer les métadonnées de mise à jour
+              shell: bash
+              run: |
+                  suffix=$(node scripts/releaseChannel.mjs)
+                  tag="${GITHUB_REF_NAME#release/}$suffix"
+                  android=(artifacts/android/*.apk)
+                  windows=(artifacts/windows/*.exe)
+                  signatures=(artifacts/windows/*.exe.sig)
+                  test ${#android[@]} -eq 1
+                  test ${#windows[@]} -eq 1
+                  test ${#signatures[@]} -eq 1
+                  node scripts/generate-update-metadata.mjs \
+                    "${android[0]}" "${windows[0]}" "${signatures[0]}" \
+                    artifacts "$tag"
 
             # `release/v1.0.3` comme `v1.0.3` donnent la même étiquette ; posée
             # sur le commit construit si elle n'existe pas déjà.
@@ -295,7 +326,7 @@ jobs:
                   # que le motif d'une application ignorée disparaisse au lieu
                   # de se retrouver dans la liste tel quel.
                   shopt -s nullglob
-                  packages=(artifacts/android/*.apk artifacts/windows/*.exe)
+                  packages=(artifacts/android/*.apk artifacts/windows/*.exe artifacts/windows/*.exe.sig artifacts/latest-android.json artifacts/latest.json)
                   shopt -u nullglob
 
                   if [ ${#packages[@]} -eq 0 ]; then

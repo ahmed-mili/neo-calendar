@@ -1,7 +1,0 @@
-Serial=SGPZQ84XNFDQBE8L
-Manufacturer=Xiaomi
-Model=23078PND5G
-Android=16
-SDK=36
-PID=20476
-CapturedAt=2026-08-06T01:07:41.7727913+02:00

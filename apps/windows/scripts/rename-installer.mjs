@@ -6,9 +6,12 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const windowsAppDirectory = path.resolve(scriptDirectory, "..");
 
 export function formatInstallerName(productName, version) {
-    return `${productName} Setup ${version}.exe`;
+    return `${productName.replaceAll(" ", "-")}-Setup-${version}.exe`;
 }
 
+export function signaturePath(installerPath) {
+    return `${installerPath}.sig`;
+}
 export async function renameInstaller(appDirectory = windowsAppDirectory) {
     const tauriDirectory = path.join(appDirectory, "src-tauri");
     const configPath = path.join(tauriDirectory, "tauri.conf.json");
@@ -40,6 +43,16 @@ export async function renameInstaller(appDirectory = windowsAppDirectory) {
 
     await rm(targetPath, { force: true });
     await rename(sourcePath, targetPath);
+
+    const sourceSignature = signaturePath(sourcePath);
+    const targetSignature = signaturePath(targetPath);
+    try {
+        await rm(targetSignature, { force: true });
+        await rename(sourceSignature, targetSignature);
+    } catch (error) {
+        if (error?.code !== "ENOENT") throw error;
+    }
+
     return targetPath;
 }
 

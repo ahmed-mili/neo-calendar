@@ -1,6 +1,0 @@
-import { HOUR_HEIGHT, SLOT_HEIGHT } from "./calendarConstants";
-    HOUR_HEIGHT,
-    const clampedY = Math.max(0, Math.min(yPosition, 24 * HOUR_HEIGHT));
-    const totalMinutes = (clampedY / HOUR_HEIGHT) * 60;
-    return Math.max(0, hours * HOUR_HEIGHT);
-    return Math.max(SLOT_HEIGHT, hours * HOUR_HEIGHT);

@@ -1,5 +1,25 @@
 plugins { id("com.android.application") }
 
+val signingEnvironment = mapOf(
+    "keystore" to System.getenv("ANDROID_KEYSTORE_PATH"),
+    "storePassword" to System.getenv("ANDROID_KEYSTORE_PASSWORD"),
+    "keyAlias" to System.getenv("ANDROID_KEY_ALIAS"),
+    "keyPassword" to System.getenv("ANDROID_KEY_PASSWORD"),
+)
+val missingSigningValues = signingEnvironment
+    .filterValues { it.isNullOrBlank() }
+    .keys
+val releaseRequested = gradle.startParameter.taskNames.any {
+    it.contains("release", ignoreCase = true)
+}
+
+if (releaseRequested && missingSigningValues.isNotEmpty()) {
+    throw GradleException(
+        "Release signing is not configured. Missing: " +
+            missingSigningValues.sorted().joinToString(", ")
+    )
+}
+
 android {
  namespace = "com.ahmed.neocalendar"
  compileSdk = 35
@@ -8,27 +28,19 @@ android {
   minSdk = 26
   targetSdk = 35
   versionCode = 65
+ buildFeatures { buildConfig = true }
+
   versionName = "1.38.6"
  }
 
- // Android n'accepte une mise à jour que si elle porte la même signature que la
- // version déjà posée. Tant que chaque machine signait avec sa propre clé de
- // débogage — celle du PC, puis celle jetable du runner — le téléphone voyait
- // deux applications étrangères l'une à l'autre et refusait : « le package est
- // en conflit avec un package déjà présent ».
- //
- // Cette clé-ci est fixe et voyage avec le dépôt : tous les builds, d'où qu'ils
- // viennent, s'installent par-dessus le précédent. Son mot de passe est en
- // clair et c'est assumé — le fichier est juste à côté, le cacher ne protégerait
- // rien. Elle vaut ce que vaut le dépôt privé qui la contient, et ne sert qu'à
- // se distribuer l'application à soi-même. Une publication sur le Play Store
- // demanderait une clé gardée ailleurs.
  signingConfigs {
-  create("distribution") {
-   storeFile = file("neo-calendar.jks")
-   storePassword = "neo-calendar"
-   keyAlias = "neo-calendar"
-   keyPassword = "neo-calendar"
+  if (missingSigningValues.isEmpty()) {
+   create("distribution") {
+    storeFile = file(signingEnvironment.getValue("keystore")!!)
+    storePassword = signingEnvironment.getValue("storePassword")
+    keyAlias = signingEnvironment.getValue("keyAlias")
+    keyPassword = signingEnvironment.getValue("keyPassword")
+   }
   }
  }
 
@@ -38,7 +50,13 @@ android {
   debug { isMinifyEnabled = false }
   release {
    isMinifyEnabled = false
-   signingConfig = signingConfigs.getByName("distribution")
+   if (missingSigningValues.isEmpty()) {
+    signingConfig = signingConfigs.getByName("distribution")
+   }
   }
  }
+}
+
+dependencies {
+ implementation("androidx.core:core:1.15.0")
 }
