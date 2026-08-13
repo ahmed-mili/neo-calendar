@@ -162,6 +162,19 @@ export function stillGliding(velocity: number): boolean {
 /** How long the grid takes to slide back onto whole days. */
 export const SETTLE_MS = 220;
 
+/** Close enough to the day to leave alone: the screen cannot scroll to less. */
+export const ALREADY_HOME_PX = 0.05;
+
+/**
+ * A correction small enough to be made in one step rather than animated.
+ *
+ * Not a preference — the animation cannot deliver it. Spread over 220ms, a
+ * frame's share of a one-pixel movement is a fraction of the whole device pixel
+ * a scroll offset can land on, so every frame rounds away to nothing. And a
+ * pixel put there in one step is not something an eye can catch.
+ */
+export const NUDGE_PX = 4;
+
 /** Fast at first, easing in at the end, like something coming to rest. */
 export function easeOutCubic(progress: number): number {
     const left = 1 - progress;
@@ -508,8 +521,13 @@ export function useAxisLock(
             const step = (now: number) => {
                 const progress = Math.min(1, (now - startedAt) / SETTLE_MS);
                 const wanted = distance * easeOutCubic(progress);
-                scrollAxisBy("x", wanted - moved);
-                moved = wanted;
+                // What the screen DID, not what was asked of it. A scroll
+                // offset lands on whole device pixels, so a frame's share of a
+                // small movement is rounded away to nothing; counting the
+                // request as spent throws that share away for good, and the
+                // grid arrives a pixel short of where it was sent. Counting
+                // what landed asks for the rest again next frame.
+                moved += scrollAxisBy("x", wanted - moved);
                 if (progress < 1) {
                     frame = requestAnimationFrame(step);
                     return;
@@ -537,9 +555,20 @@ export function useAxisLock(
             if (!paging()) return;
 
             const distance = offsetToNearestDay(element);
-            // Under half a pixel is already home; animating it would only cost
-            // a frame and a flicker.
-            if (distance === null || Math.abs(distance) < 0.5) return;
+            if (distance === null || Math.abs(distance) < ALREADY_HOME_PX) {
+                return;
+            }
+            // A pixel or two is not a movement, and must not be animated: over
+            // 220ms a frame's share of it is smaller than the pixel the screen
+            // can scroll to, so every frame rounds to nothing and the grid
+            // never arrives. Measured on the phone at 3×, the last swipe of a
+            // day left between a third and a whole pixel behind, every time —
+            // which is exactly the width of the second line. Put there in one
+            // step: at this size there is nothing to see either way.
+            if (Math.abs(distance) <= NUDGE_PX) {
+                scrollAxisBy("x", distance);
+                return;
+            }
             slideDays(distance);
         };
 

@@ -511,10 +511,16 @@ export default function TimeGrid(props: TimeGridProps) {
             const progress = Math.min(1, (now - startedAt) / ALLDAY_GROW_MS);
             const wanted = distance * easeOutCubic(progress);
             // Relative, never absolute: the person may be scrolling while the
-            // band grows, and their scroll must survive the correction.
+            // band grows, and their scroll must survive the correction. And
+            // counted by what the screen DID rather than by what was asked:
+            // an offset lands on whole device pixels, so a frame's share of
+            // the last pixel rounds away, and treating it as spent leaves the
+            // hours a pixel off where the band left them.
+            const before = el.scrollTop;
             el.scrollTop += wanted - moved;
-            allDayGrowOwedRef.current -= wanted - moved;
-            moved = wanted;
+            const applied = el.scrollTop - before;
+            allDayGrowOwedRef.current -= applied;
+            moved += applied;
             publishScrollTravel(el, gridRef.current);
             if (progress < 1) {
                 allDayGrowFrameRef.current = requestAnimationFrame(step);
