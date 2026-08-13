@@ -21,6 +21,7 @@ public class MainActivity extends Activity {
   private static final String APP_HOST = "neo-calendar.local";
   private static final String APP_URL = "https://" + APP_HOST + "/index.html";
   private WebView webView;
+  private AppUpdater appUpdater;
 
   /** How long the splash screen may wait on the interface before giving up. */
   private static final long SPLASH_TIMEOUT_MS = 6000L;
@@ -92,6 +93,7 @@ public class MainActivity extends Activity {
       )
     );
     setContentView(rootView);
+    appUpdater = new AppUpdater(this, io);
 
     // Hold the system splash screen until the interface has something to show.
     // Without this it lifts as soon as the activity can draw — which is before
@@ -168,7 +170,7 @@ public class MainActivity extends Activity {
       settings.setSafeBrowsingEnabled(true);
     }
 
-    WebView.setWebContentsDebuggingEnabled(true);
+    WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
     webView.addJavascriptInterface(new Bridge(), "NeoAndroid");
 
     webView.setWebChromeClient(new WebChromeClient() {
@@ -213,6 +215,7 @@ public class MainActivity extends Activity {
     webView.loadUrl(APP_URL);
     routeFromIntent(getIntent());
     requestNotificationPermission();
+    appUpdater.checkOnLaunch();
   }
 
   private void applyNeoCalendarRootBounds() {
@@ -345,6 +348,7 @@ public class MainActivity extends Activity {
       }
     );
   }
+  @Override protected void onResume(){super.onResume();if(appUpdater!=null)appUpdater.resumePendingInstall();}
   @Override protected void onDestroy(){io.shutdownNow();if(webView!=null){webView.removeJavascriptInterface("NeoAndroid");webView.destroy();}super.onDestroy();}
   @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);String id=pendingPickerId;pendingPickerId=null;if(id==null)return;if(result!=RESULT_OK||data==null){resolve(id,true,"null");return;}try{if(request==PICK_TREE){Uri uri=data.getData();if(uri==null){resolve(id,true,"null");return;}int flags=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);getContentResolver().takePersistableUriPermission(uri,flags);getSharedPreferences(PREF_FILE,MODE_PRIVATE).edit().putString(PREF_TREE,uri.toString()).apply();resolve(id,true,JSONObject.quote(uri.toString()));}else{JSONArray arr=new JSONArray();if(data.getClipData()!=null){for(int i=0;i<data.getClipData().getItemCount();i++)arr.put(data.getClipData().getItemAt(i).getUri().toString());}else if(data.getData()!=null)arr.put(data.getData().toString());resolve(id,true,arr.toString());}}catch(Exception e){resolve(id,false,e.getMessage());}}
   private void resolve(String id,boolean ok,String payload){String safeId=JSONObject.quote(id), safePayload=JSONObject.quote(payload==null?"":payload);runOnUiThread(()->webView.evaluateJavascript("window.__neoAndroidResolve&&window.__neoAndroidResolve("+safeId+","+ok+","+safePayload+")",null));}

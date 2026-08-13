@@ -8,7 +8,7 @@ Les deux paquets sont publiés sur la page
 [Releases](https://github.com/ahmed-mili/neo-calendar/releases) du dépôt :
 prenez la dernière version, en haut.
 
-- **PC** : `Neo Calendar Setup <version>.exe`. Windows affiche un avertissement
+- **PC** : `Neo-Calendar-Setup-<version>.exe`. Windows affiche un avertissement
   SmartScreen — l'installateur n'est pas signé — : « Informations
   complémentaires », puis « Exécuter quand même ».
 - **Android** : `neo-calendar-android-<version>.apk`. Téléchargez-le depuis le
@@ -22,10 +22,26 @@ version déjà installée. Jusqu'à la 1.0.2, chaque machine signait avec sa pro
 clé de débogage — celle du PC, puis celle, jetable, du serveur de build — et le
 téléphone refusait : « le package est en conflit avec un package déjà présent ».
 
-Depuis la 1.0.3, une clé fixe voyage avec le dépôt et signe tous les paquets,
-d'où qu'ils viennent. Pour y passer, une seule fois : **désinstallez
-l'application, puis installez le nouvel APK**. Les versions suivantes
-s'installeront par-dessus, sans rien perdre.
+Depuis la 1.0.3, tous les APK stables portent la même identité de signature.
+Sa clé privée et ses mots de passe vivent maintenant hors du dépôt et sont
+injectés dans la CI par GitHub Actions Secrets. Pour passer d'une version
+antérieure, une seule fois : **désinstallez l'application, puis installez le
+nouvel APK**. Les versions suivantes s'installeront par-dessus, sans rien perdre.
+
+## Mises à jour automatiques
+
+Après installation d'une version qui contient le nouvel updater :
+
+- **Windows** vérifie la release stable au démarrage, contrôle sa signature
+  Tauri, installe l'update en mode passif, puis redémarre l'application.
+- **Android** vérifie la release stable, contrôle le SHA-256, le nom du paquet,
+  le `versionCode` et le certificat de l'APK, puis ouvre l'installateur système.
+  Android demandera une fois l'autorisation d'installer depuis Neo Calendar.
+
+Les versions plus anciennes ne peuvent pas acquérir ce code toutes seules : la
+première version compatible devra encore être installée manuellement. La
+signature Tauri protège l'update, mais ne remplace pas une signature de code
+Windows reconnue ; SmartScreen peut donc continuer d'afficher son avertissement.
 
 ## Publier une version
 
@@ -57,9 +73,15 @@ livraison — trois corrections comprises — montait le mineur. Une suite de
 que c'est exactement ce qu'un numéro est là pour dire. Une livraison qui ne
 fait que corriger monte donc maintenant le correctif.
 
-L'étiquette déclenche la construction des deux paquets et leur publication
-(`.github/workflows/release.yml`). Une branche `release/vX.Y.Z` fait la même
-chose, pour le cas où l'on ne peut pousser que des branches.
+L'étiquette déclenche la construction des deux paquets, de leurs métadonnées de
+mise à jour et leur publication (`.github/workflows/release.yml`). Une branche
+`release/vX.Y.Z` fait la même chose, pour le cas où l'on ne peut pousser que des
+branches. Les deux applications sont reconstruites à chaque release stable afin
+que les endpoints `latest.json` et `latest-android.json` désignent toujours des
+artefacts cohérents de cette même version.
+
+Avant de rendre le dépôt public ou de publier la première version automatique,
+suivez [la checklist de publication](docs/PUBLICATION_CHECKLIST.md).
 
 Rien d'autre à toucher à la main : `version:set` s'occupe des trois
 `package.json` et de leurs lockfiles, de `tauri.conf.json`, de `Cargo.toml`, du
@@ -82,12 +104,12 @@ Obsidian.
 ## Commandes
 
 ```powershell
-cd C:\dev\neo-calendar
+cd neo-calendar
 npm install        # sans drapeau : le conflit fast-check est réglé par overrides
 npm test           # 500+ tests, la suite complète
 npm run dev
 npm run tauri      # installateur PC, copié dans Downloads
-.\BUILD_ANDROID.ps1  # APK signé, à la racine du dépôt
+.\BUILD_ANDROID.ps1  # APK signé avec le coffre local hors dépôt
 ```
 
 Le chemin du SDK Android (`local.properties`) n'est plus versionné : Android
