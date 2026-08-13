@@ -42,7 +42,7 @@
     "ts-jest": "^29.4.11",
     "tslib": "2.3.1",
     "typescript": "^6.0.2",
-    "zod-fast-check": "^0.9.0"
+    "zod-fast-check": "^0.10.1"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
