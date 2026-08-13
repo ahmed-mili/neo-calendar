@@ -15,4 +15,4 @@
  * chasing a line that is two pixels wide on a phone and one pixel wide on every
  * machine here.
  */
-export const GRID_LINE_DEBUG = true;
+export const GRID_LINE_DEBUG = false;

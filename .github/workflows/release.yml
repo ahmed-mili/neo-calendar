@@ -189,13 +189,7 @@ jobs:
     windows:
         name: Installateur Windows
         needs: [scope, tests]
-        # BRANCHE DE DIAGNOSTIC UNIQUEMENT — ne vit que sur `debug/grid-lines`,
-        # qui n'est jamais fusionnée. L'instrument est fait pour un téléphone :
-        # l'installateur Windows coûte douze minutes de Rust et un
-        # téléchargement de NSIS qui vient de lâcher, pour un paquet que
-        # personne n'installera. La règle normale est juste en dessous.
-        if: false
-        # if: needs.scope.outputs.windows == 'true'
+        if: needs.scope.outputs.windows == 'true'
         runs-on: windows-latest
         steps:
             - uses: actions/checkout@v4
