@@ -28,6 +28,7 @@ import { useSidebarReorder } from "./useSidebarReorder";
 import { isAndroidRuntime } from "./CalendarUtils";
 import {
     CHECK_RESULT_EVENT,
+    UPDATE_PROGRESS_EVENT,
     CheckResult,
     appVersion,
     canCheckForUpdates,
@@ -132,6 +133,22 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
     const [checkResult, setCheckResult] = React.useState<CheckResult | null>(
         null
     );
+    // While an update downloads the pill becomes the progress readout: the same
+    // percentage the notification shows, so the two never disagree. -1 means the
+    // server never said how big the file is — there is no honest number then,
+    // and the control spins rather than inventing one. -2 means it is over.
+    const [progress, setProgress] = React.useState<number | null>(null);
+    React.useEffect(() => {
+        const onProgress = (event: Event) => {
+            const detail = (event as CustomEvent<{ percent?: number }>).detail;
+            const percent = detail?.percent ?? -2;
+            setProgress(percent === -2 ? null : percent);
+            if (percent !== -2) setCheckResult(null);
+        };
+        window.addEventListener(UPDATE_PROGRESS_EVENT, onProgress);
+        return () =>
+            window.removeEventListener(UPDATE_PROGRESS_EVENT, onProgress);
+    }, []);
     // The shell answers a hand-asked check through this event rather than
     // through a Toast, so the control that asked is the one that answers.
     React.useEffect(() => {
@@ -338,8 +355,12 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                             <button
                                 type="button"
                                 className={`nc-sidebar-version${
-                                    updateVersion
+                                    updateVersion || progress !== null
                                         ? " nc-sidebar-version-ready"
+                                        : ""
+                                }${
+                                    progress === -1 || checkingUpdate
+                                        ? " nc-sidebar-version-busy"
                                         : ""
                                 }`}
                                 onClick={() => {
@@ -347,7 +368,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                     setCheckingUpdate(true);
                                     requestUpdateCheck();
                                 }}
-                                disabled={checkingUpdate}
+                                disabled={checkingUpdate || progress !== null}
                                 title={
                                     updateVersion
                                         ? t("Update available")
@@ -356,7 +377,11 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                             >
                                 <RefreshIcon size={12} />
                                 <span>
-                                    {checkingUpdate
+                                    {progress !== null
+                                        ? progress < 0
+                                            ? t("Updating…")
+                                            : `${progress} %`
+                                        : checkingUpdate
                                         ? t("Checking…")
                                         : checkResult === "current"
                                         ? t("Up to date")

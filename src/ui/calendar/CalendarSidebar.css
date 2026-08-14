@@ -96,6 +96,27 @@
     opacity: 0.7;
 }
 
+/* Looking, or downloading with no total to count towards: the glyph turns.
+   A spinner is the honest answer only when there is no number — as soon as the
+   server says how big the file is, the pill counts instead, because "42 %"
+   tells you how long to wait and a spinner never does. */
+.nc-sidebar-version-busy .nc-icon-spin,
+.nc-sidebar-version-busy svg {
+    animation: nc-version-spin 900ms linear infinite;
+}
+
+@keyframes nc-version-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Counting is not "disabled" in the greyed-out sense — it is the control doing
+   its job, and it must stay legible while it does. */
+.nc-sidebar-version-ready:disabled {
+    opacity: 1;
+}
+
 /* Where no check is reachable the number is not a control, and must not look
    like one. */
 .nc-sidebar-version-plain {

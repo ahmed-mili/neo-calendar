@@ -12,6 +12,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -69,6 +70,10 @@ final class AppUpdater {
    *  menu button is drawn from this, so it stays until the version that
    *  answers it is running. */
   private static String pendingVersion = "";
+  /** La derniere version qu'on a tente de telecharger. Statique comme le
+      reste : le bouton « Reessayer » d'une notification peut arriver apres
+      que l'Activity a ete reconstruite. */
+  private static Metadata lastAttempt;
 
   /** Read across the bridge by the web side; see appUpdates.ts. */
   static String pendingVersion() {
@@ -87,6 +92,7 @@ final class AppUpdater {
   private File pendingApk;
   private Runnable onUpdateFound;
   private java.util.function.Consumer<String> onCheckResult;
+  private java.util.function.Consumer<Integer> onProgress;
 
   AppUpdater(Activity activity, ExecutorService io) {
     this.activity = activity;
@@ -175,6 +181,36 @@ final class AppUpdater {
     onCheckResult = listener;
   }
 
+  void setOnProgress(java.util.function.Consumer<Integer> listener) {
+    onProgress = listener;
+  }
+
+  /** Le meme chiffre que la notification, envoye a la page.
+   *
+   *  -1 quand le serveur n'annonce pas la taille : il n'y a alors pas de
+   *  pourcentage honnete a afficher, et la pilule tourne au lieu de compter.
+   *  -2 quand c'est fini, dans un sens ou dans l'autre. */
+  private void reportProgress(int percent) {
+    activity.runOnUiThread(() -> {
+      if (onProgress != null) onProgress.accept(percent);
+    });
+  }
+
+  /** « Reessayer », depuis la notification d'echec.
+   *
+   *  Un echec de telechargement laissait une notification qu'on pouvait lire et
+   *  rien d'autre : la seule issue etait de rouvrir l'app et de retrouver le
+   *  bouton. Une notification qui signale un probleme doit porter de quoi le
+   *  reprendre. Sans tentative en memoire — le processus est peut-etre reparti
+   *  de zero — on refait la verification, qui aboutit au meme endroit. */
+  void retryLastDownload() {
+    if (lastAttempt != null) {
+      download(lastAttempt);
+      return;
+    }
+    checkNow();
+  }
+
   void resumePendingInstall() {
     if (pendingApk == null || !pendingApk.isFile()) return;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
@@ -249,14 +285,18 @@ final class AppUpdater {
   }
 
   private void download(Metadata metadata) {
+    lastAttempt = metadata;
     ensureChannel();
     notifyProgress(metadata, 0, true);
+    reportProgress(-1);
     io.execute(() -> {
       try {
         File apk = downloadAndVerify(metadata);
+        reportProgress(-2);
         notifyReady(metadata, apk);
         activity.runOnUiThread(() -> requestInstall(apk));
       } catch (Exception error) {
+        reportProgress(-2);
         notifyFailed();
         Log.e(TAG, "Update download failed", error);
         activity.runOnUiThread(() ->
@@ -343,7 +383,7 @@ final class AppUpdater {
 
   private void notifyProgress(Metadata metadata, int percent, boolean indeterminate) {
     notify(new Notification.Builder(activity, CHANNEL_ID)
-      .setSmallIcon(R.drawable.ic_notification)
+      .setSmallIcon(R.drawable.ic_update)
       .setContentTitle(activity.getString(R.string.update_progress_title, metadata.version))
       .setContentText(indeterminate ? null : percent + " %")
       .setProgress(100, percent, indeterminate)
@@ -372,7 +412,7 @@ final class AppUpdater {
       Log.w(TAG, "Cannot build install intent for notification", error);
     }
     Notification.Builder builder = new Notification.Builder(activity, CHANNEL_ID)
-      .setSmallIcon(R.drawable.ic_notification)
+      .setSmallIcon(R.drawable.ic_update)
       .setContentTitle(activity.getString(R.string.update_ready_title))
       .setContentText(activity.getString(R.string.update_ready_text, metadata.version))
       .setAutoCancel(true)
@@ -382,13 +422,29 @@ final class AppUpdater {
   }
 
   private void notifyFailed() {
-    notify(new Notification.Builder(activity, CHANNEL_ID)
-      .setSmallIcon(R.drawable.ic_notification)
+    // L'intention porte l'ordre de reprendre : MainActivity la lit et relance
+    // sans que personne ait a retrouver le bouton dans l'app.
+    PendingIntent retry = PendingIntent.getActivity(
+      activity,
+      1,
+      new Intent(activity, MainActivity.class)
+        .putExtra(MainActivity.EXTRA_UPDATE_RETRY, true)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP),
+      PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+    );
+    Notification.Builder builder = new Notification.Builder(activity, CHANNEL_ID)
+      .setSmallIcon(R.drawable.ic_update)
       .setContentTitle(activity.getString(R.string.update_failed_title))
       .setContentText(activity.getString(R.string.update_failed))
       .setAutoCancel(true)
       .setOngoing(false)
-      .build());
+      .setContentIntent(retry)
+      .addAction(new Notification.Action.Builder(
+        Icon.createWithResource(activity, R.drawable.ic_update),
+        activity.getString(R.string.update_retry),
+        retry
+      ).build());
+    notify(builder.build());
   }
 
   private File downloadAndVerify(Metadata metadata) throws Exception {
@@ -442,6 +498,7 @@ final class AppUpdater {
           lastPercent = percent;
           lastDrawnAt = now;
           notifyProgress(metadata, percent, false);
+          reportProgress(percent);
         }
       }
     } finally {

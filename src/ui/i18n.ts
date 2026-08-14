@@ -123,6 +123,7 @@ const FR: Record<string, string> = {
     // La version, a gauche de l'engrenage : c'est elle le bouton.
     "Check for updates": "Rechercher des mises à jour",
     "Checking…": "Vérification…",
+    "Updating…": "Mise à jour…",
     "Up to date": "À jour",
     "Check failed": "Échec",
     "Update available": "Mise à jour disponible",

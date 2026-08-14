@@ -31,6 +31,9 @@ public class MainActivity extends Activity {
   /** Which event a widget tap wants opened, if any. */
   static final String EXTRA_EVENT_ID = "neoCalendarEventId";
 
+  /** Pose par l'action « Reessayer » de la notification d'echec. */
+  static final String EXTRA_UPDATE_RETRY = "neoCalendarUpdateRetry";
+
   /** Held until the page can hear it: a widget tap can start the app cold. */
   private String pendingWidgetRoute = null;
   private android.widget.FrameLayout rootView;
@@ -106,6 +109,13 @@ public class MainActivity extends Activity {
     // The answer to a hand-asked check goes back to the control that asked it,
     // rather than to a system Toast over the calendar. The status is one of a
     // fixed set of words, so it is quoted straight into the event.
+    appUpdater.setOnProgress(percent -> {
+      if (webView != null) {
+        webView.evaluateJavascript(
+          "window.dispatchEvent(new CustomEvent('neo-update-progress',"
+            + "{detail:{percent:" + percent + "}}))", null);
+      }
+    });
     appUpdater.setOnCheckResult(status -> {
       if (webView != null) {
         webView.evaluateJavascript(
@@ -233,6 +243,7 @@ public class MainActivity extends Activity {
 
     webView.loadUrl(APP_URL);
     routeFromIntent(getIntent());
+    consumeUpdateRetry(getIntent());
     requestNotificationPermission();
     appUpdater.checkOnLaunch();
   }
@@ -397,6 +408,21 @@ public class MainActivity extends Activity {
         new String[] {android.Manifest.permission.POST_NOTIFICATIONS}, 42);
   }
 
+  /** Reprendre une mise a jour depuis la notification.
+   *
+   *  Le telechargement a besoin de l'updater, qui a besoin de l'Activity : c'est
+   *  pourquoi l'action ouvre l'app plutot que de partir d'un receveur. Mais elle
+   *  la rouvre EN reprenant — un seul appui, et la barre de progression repart —
+   *  au lieu de laisser retrouver le bouton. Le drapeau est consomme, sans quoi
+   *  une rotation le rejouerait. */
+  private void consumeUpdateRetry(Intent intent) {
+    if (intent == null || !intent.getBooleanExtra(EXTRA_UPDATE_RETRY, false)) {
+      return;
+    }
+    intent.removeExtra(EXTRA_UPDATE_RETRY);
+    if (appUpdater != null) appUpdater.retryLastDownload();
+  }
+
   private void routeFromIntent(Intent intent) {
     if (intent == null) return;
     String route = null;
@@ -427,6 +453,7 @@ public class MainActivity extends Activity {
 
   @Override protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
+    consumeUpdateRetry(intent);
     setIntent(intent);
     routeFromIntent(intent);
   }

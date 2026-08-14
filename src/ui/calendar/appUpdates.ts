@@ -38,6 +38,13 @@ export const CHECK_RESULT_EVENT = "neo-update-checked";
 
 export type CheckResult = "current" | "failed";
 
+/** Fired while an update downloads, with `detail.percent`:
+ *  0..100 as it goes, -1 when the server declined to say how big the file is
+ *  (nothing honest to count, so the control spins instead), and -2 when it is
+ *  over either way. The same figure the notification draws — one number, two
+ *  places, so they cannot disagree. */
+export const UPDATE_PROGRESS_EVENT = "neo-update-progress";
+
 interface UpdateBridge {
     checkForUpdates?: () => void;
     pendingUpdate?: () => string;

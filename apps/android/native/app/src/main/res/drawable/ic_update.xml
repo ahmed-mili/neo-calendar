@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- L'icone des notifications de mise a jour, distincte de celle des rappels
+     (ic_notification, un calendrier) : dans le volet, une mise a jour ne doit
+     pas se confondre avec un evenement qui commence.
+
+     Blanc plein sur transparent, comme l'exige une petite icone de
+     notification : Android n'en garde que la silhouette et la recolore, donc
+     toute couleur ici serait perdue et toute zone non transparente ferait
+     tache. Une fleche vers un socle — le geste de telecharger. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <!-- Le fut de la fleche. -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M10.75,3h2.5v8h-2.5z" />
+    <!-- Sa pointe. -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M12,16.2 L6.2,10.4 L8,8.6 L12,12.6 L16,8.6 L17.8,10.4z" />
+    <!-- Le socle sur lequel elle arrive. -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M4,18h16v2.5h-16z" />
+</vector>
