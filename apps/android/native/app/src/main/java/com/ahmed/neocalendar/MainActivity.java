@@ -42,7 +42,24 @@ public class MainActivity extends Activity {
   private int neoInsetRight = 0;
   private int neoInsetBottom = 0;
   private int neoInsetLeft = 0;
+  /*
+   * Deux files, et c'est le fond du probleme de lancement.
+   *
+   * `io` est volontairement a un seul fil : les ecritures dans le dossier de
+   * donnees s'y font l'une apres l'autre, ce qui evite qu'une sauvegarde et une
+   * suppression se croisent sur le meme fichier. Tant que le reseau partageait
+   * ce fil, une requete lente y bloquait tout le reste — la lecture du dossier
+   * au demarrage attendait derriere la verification de mise a jour, puis
+   * derriere l'abonnement ICS, et l'ecran de demarrage restait la. Sans reseau
+   * les memes requetes echouaient aussitot, le fil se liberait, et
+   * l'application s'ouvrait sur-le-champ : elle demarrait donc plus vite hors
+   * ligne qu'en ligne.
+   *
+   * `net` porte maintenant tout ce qui sort de l'appareil. Les fichiers ne
+   * l'attendent plus, et plusieurs requetes peuvent avancer de front.
+   */
   private final ExecutorService io = Executors.newSingleThreadExecutor();
+  private final ExecutorService net = Executors.newFixedThreadPool(3);
   private String pendingPickerId;
   private boolean pendingMultiple;
   private static final int PICK_TREE=4101, PICK_FILES=4102;
@@ -98,7 +115,7 @@ public class MainActivity extends Activity {
     );
     setContentView(rootView);
     wallpapers = new WallpaperStore(this);
-    appUpdater = new AppUpdater(this, io);
+    appUpdater = new AppUpdater(this, net);
     // The launch check finishes after the page has painted, so the badge
     // cannot be there at first render. Rather than have the page ask on a
     // timer for a string that changes once, the shell says when it changes.
@@ -258,7 +275,6 @@ public class MainActivity extends Activity {
     routeFromIntent(getIntent());
     consumeUpdateRetry(getIntent());
     requestNotificationPermission();
-    appUpdater.checkOnLaunch();
   }
 
   private void applyNeoCalendarRootBounds() {
@@ -493,6 +509,11 @@ public class MainActivity extends Activity {
   private void markInterfaceReady() {
     if (interfaceReady) return;
     interfaceReady = true;
+    /* La mise a jour se cherche une fois le calendrier a l'ecran, pas avant.
+       Elle n'est jamais urgente, et lancee des `onCreate` elle prenait la
+       bande passante d'une connexion faible au moment ou l'abonnement ICS en
+       avait besoin. */
+    appUpdater.checkOnLaunch();
     if (pendingWidgetRoute != null) {
       String route = pendingWidgetRoute;
       pendingWidgetRoute = null;
@@ -529,7 +550,7 @@ public class MainActivity extends Activity {
         repond a la page par un evenement — le pont ne peut pas rendre un
         resultat asynchrone. */
     @JavascriptInterface public void downloadWallpaper(String name, String url, String sha256){
-      io.execute(() -> {
+      net.execute(() -> {
         String error = "";
         try {
           if (wallpapers != null) wallpapers.download(name, url, sha256);
@@ -549,7 +570,15 @@ public class MainActivity extends Activity {
     }
     @JavascriptInterface public void pickDirectory(String id){pendingPickerId=id;Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION|Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);startActivityForResult(i,PICK_TREE);}
     @JavascriptInterface public void pickFiles(String id,boolean multiple){pendingPickerId=id;pendingMultiple=multiple;Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("*/*");i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,multiple);i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,PICK_FILES);}
-    @JavascriptInterface public void invoke(String id,String command,String args){io.execute(()->{try{Object out=handle(command,new JSONObject(args));resolve(id,true,out==null?"null":(out instanceof String?JSONObject.quote((String)out):out.toString()));}catch(Exception e){resolve(id,false,e.getMessage()==null?e.toString():e.getMessage());}});}
+    @JavascriptInterface public void invoke(String id,String command,String args){executorFor(command).execute(()->{try{Object out=handle(command,new JSONObject(args));resolve(id,true,out==null?"null":(out instanceof String?JSONObject.quote((String)out):out.toString()));}catch(Exception e){resolve(id,false,e.getMessage()==null?e.toString():e.getMessage());}});}
+  }
+
+  /** Sur quelle file poser une commande du pont : celle du reseau si elle sort
+      de l'appareil, celle des fichiers sinon. Le prefixe suffit et vaut pour
+      les commandes a venir — c'est la sortie reseau qu'on veut ecarter du fil
+      unique, pas une liste de noms a tenir a jour. */
+  private ExecutorService executorFor(String command){
+    return command.startsWith("fetch_") ? net : io;
   }
 
   private Uri tree(JSONObject args)throws Exception{String raw=args.optString("dataFolder","");if(raw.isEmpty())raw=getSharedPreferences(PREF_FILE,MODE_PRIVATE).getString(PREF_TREE,"");if(raw.isEmpty())throw new Exception("Selectionnez dabord un dossier Android.");Uri u=Uri.parse(raw);boolean granted=false;for(UriPermission p:getContentResolver().getPersistedUriPermissions())if(p.getUri().equals(u)&&p.isReadPermission()){granted=true;break;}if(!granted)throw new Exception("Lautorisation du dossier a ete revoquee. Selectionnez-le a nouveau.");String id=DocumentsContract.getTreeDocumentId(u);return DocumentsContract.buildDocumentUriUsingTree(u,id);}
