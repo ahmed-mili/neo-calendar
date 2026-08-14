@@ -5,7 +5,9 @@
     min-width: var(--nc-sidebar-width);
     border-right: 1px solid var(--nc-border);
     background: var(--nc-bg-secondary);
-    overflow-y: auto;
+    /* The panel itself no longer scrolls — .nc-sidebar-scroll below does, and
+       two nested scrollers would fight over the same wheel. */
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -15,9 +17,61 @@
     z-index: 3;
 }
 
+/* Everything under the top bar, in one window.
+   `min-height: 0` is what makes it work at all: a flex child's default minimum
+   is its content, so without it the box grows to fit the calendars and the
+   tasks and nothing ever overflows — the scrollbar simply never appears and the
+   list runs off the bottom of the panel. */
+.nc-sidebar-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
 .nc-sidebar-section {
     padding: var(--nc-spacing-sm);
     border-top: 1px solid var(--nc-border);
+}
+
+/* ── Version, immediately left of the gear ─────────────────── */
+
+.nc-sidebar-version {
+    margin-right: 2px;
+    padding: 3px 8px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--nc-text-faint, var(--text-faint));
+    font-family: var(--nc-num-font);
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.nc-sidebar-version:hover:not(:disabled) {
+    background: var(--nc-bg-hover);
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-sidebar-version:disabled {
+    cursor: default;
+    opacity: 0.7;
+}
+
+/* Where no check is reachable the number is not a control, and must not look
+   like one. */
+.nc-sidebar-version-plain {
+    cursor: default;
+}
+
+.nc-sidebar-version-plain:hover {
+    background: transparent;
+    color: var(--nc-text-faint, var(--text-faint));
 }
 
 .nc-sidebar-title-row {

@@ -25,6 +25,11 @@ import ShortcutsPanel from "./ShortcutsPanel";
 import { ObsidianIcon } from "../components/ObsidianIcon";
 import { useSidebarReorder } from "./useSidebarReorder";
 import { isAndroidRuntime } from "./CalendarUtils";
+import {
+    appVersion,
+    canCheckForUpdates,
+    requestUpdateCheck,
+} from "./appUpdates";
 import { t } from "../i18n";
 
 const ONLINE_TYPES = ["ical", "caldav", "icloud"];
@@ -112,6 +117,18 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
     // Anchor for the section-header "..." menu (Open root folder).
     const [headerMenuAnchor, setHeaderMenuAnchor] =
         React.useState<DOMRect | null>(null);
+    // The number beside the gear, and whether a check is in flight. The shell
+    // answers out of band — a prompt if there is something newer, a word if
+    // there is not — so this only says "asked", never "up to date", and it
+    // clears itself: a label left reading "Checking…" because a request never
+    // came back would be a worse lie than saying nothing.
+    const version = appVersion();
+    const [checkingUpdate, setCheckingUpdate] = React.useState(false);
+    React.useEffect(() => {
+        if (!checkingUpdate) return;
+        const timer = window.setTimeout(() => setCheckingUpdate(false), 4000);
+        return () => window.clearTimeout(timer);
+    }, [checkingUpdate]);
     // Collapse toggle for the calendar list (chevron next to the "Calendars"
     // header), mirroring Notion's collapsible section.
     const [calendarsCollapsed, setCalendarsCollapsed] = React.useState(false);
@@ -280,6 +297,36 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                     {/* Elsewhere the toolbar already carries settings, and an
                         event is made on the grid where it belongs — a second
                         pair of buttons up here was only ever a duplicate. */}
+                    {/* The version sits immediately left of the gear, and IS
+                        the control: there is nowhere else in the app to ask
+                        "am I up to date?", and a number you can press answers
+                        it without needing a row of its own.
+
+                        A button only where pressing it would reach something.
+                        On the desktop, which updates itself through Tauri,
+                        there is no bridge to call and the number stays a
+                        label — better than a control that does nothing. */}
+                    {version &&
+                        (canCheckForUpdates() ? (
+                            <button
+                                type="button"
+                                className="nc-sidebar-version"
+                                onClick={() => {
+                                    setCheckingUpdate(true);
+                                    requestUpdateCheck();
+                                }}
+                                disabled={checkingUpdate}
+                                title={t("Check for updates")}
+                            >
+                                {checkingUpdate
+                                    ? t("Checking…")
+                                    : `v${version}`}
+                            </button>
+                        ) : (
+                            <span className="nc-sidebar-version nc-sidebar-version-plain">
+                                v{version}
+                            </span>
+                        ))}
                     {isAndroid && (
                         <button
                             className="nc-sidebar-top-btn nc-sidebar-settings-btn"
@@ -293,508 +340,562 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                 </div>
             </div>
 
-            {sidebarVisible && (
-                <>
-                    {isAndroid && (
-                        <section
-                            className="nc-android-day-switcher"
-                            aria-label={t("Days displayed")}
-                        >
-                            <div className="nc-android-day-switcher-primary">
-                                {[1, 2, 3].map((count) => {
-                                    const active =
-                                        viewType === "days" &&
-                                        dayCount === count;
-                                    return (
-                                        <button
-                                            type="button"
-                                            key={count}
-                                            className={`nc-android-day-option${
-                                                active ? " nc-active" : ""
-                                            }`}
-                                            aria-pressed={active}
-                                            onClick={() =>
-                                                setAndroidDaySpan(count)
-                                            }
-                                        >
-                                            <span
-                                                className="nc-android-day-option-icon"
-                                                aria-hidden="true"
-                                            >
-                                                {Array.from(
-                                                    { length: count },
-                                                    (_, index) => (
-                                                        <i key={index} />
-                                                    )
-                                                )}
-                                            </span>
-                                            <span>
-                                                {count === 1
-                                                    ? "1 day"
-                                                    : `${count} days`}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            <button
-                                type="button"
-                                className="nc-android-more-days-toggle"
-                                aria-expanded={moreDaysOpen}
-                                onClick={() =>
-                                    setMoreDaysOpen((value) => !value)
-                                }
+            {/* ONE scroller for everything under the top bar.
+                Each section used to be its own: on Android both carried
+                `flex: 1 1 auto; overflow-y: auto`, so the calendars and the
+                tasks split the leftover height between them and each got a
+                stub of a window — the calendar list ended mid-row, the task
+                list ended on a heading, and neither could be scrolled to the
+                end without first scrolling the other. The sections are plain
+                content again; the height and the scrolling live here. */}
+            <div className="nc-sidebar-scroll">
+                {sidebarVisible && (
+                    <>
+                        {isAndroid && (
+                            <section
+                                className="nc-android-day-switcher"
+                                aria-label={t("Days displayed")}
                             >
-                                <span>{t("More day spans")}</span>
-                                <ChevronDownIcon size={14} />
-                            </button>
-
-                            {moreDaysOpen && (
-                                <div className="nc-android-more-days">
-                                    <div className="nc-android-more-days-grid">
-                                        {[4, 5, 6, 7, 8, 9].map((count) => (
+                                <div className="nc-android-day-switcher-primary">
+                                    {[1, 2, 3].map((count) => {
+                                        const active =
+                                            viewType === "days" &&
+                                            dayCount === count;
+                                        return (
                                             <button
                                                 type="button"
                                                 key={count}
-                                                className={
-                                                    viewType === "days" &&
-                                                    dayCount === count
-                                                        ? "nc-active"
-                                                        : ""
-                                                }
+                                                className={`nc-android-day-option${
+                                                    active ? " nc-active" : ""
+                                                }`}
+                                                aria-pressed={active}
                                                 onClick={() =>
                                                     setAndroidDaySpan(count)
                                                 }
                                             >
-                                                {count}
+                                                <span
+                                                    className="nc-android-day-option-icon"
+                                                    aria-hidden="true"
+                                                >
+                                                    {Array.from(
+                                                        { length: count },
+                                                        (_, index) => (
+                                                            <i key={index} />
+                                                        )
+                                                    )}
+                                                </span>
+                                                <span>
+                                                    {count === 1
+                                                        ? "1 day"
+                                                        : `${count} days`}
+                                                </span>
                                             </button>
-                                        ))}
-                                    </div>
-                                    <form
-                                        className="nc-android-custom-days"
-                                        onSubmit={(event) => {
-                                            event.preventDefault();
-                                            setAndroidDaySpan(customDayCount);
-                                        }}
-                                    >
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            max={60}
-                                            value={customDayCount}
-                                            aria-label={t(
-                                                "Custom number of days"
-                                            )}
-                                            onChange={(event) =>
-                                                setCustomDayCount(
-                                                    Number(
-                                                        event.currentTarget
-                                                            .value
-                                                    ) || 1
-                                                )
-                                            }
-                                        />
-                                        <button type="submit">
-                                            {t("Apply")}
-                                        </button>
-                                    </form>
-                                </div>
-                            )}
-                        </section>
-                    )}
-
-                    <MiniCalendar
-                        currentDate={currentDate}
-                        firstDay={firstDay}
-                        showWeekNumbers={showWeekNumbers}
-                        onDateSelect={onDateSelect}
-                    />
-
-                    <div className="nc-sidebar-section">
-                        {/* The whole header row is the collapse target: click
-                            anywhere toggles the list. The "+" stops propagation
-                            so it only adds a calendar. */}
-                        <div
-                            className="nc-sidebar-title-row"
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => setCalendarsCollapsed((v) => !v)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    setCalendarsCollapsed((v) => !v);
-                                }
-                            }}
-                            title={
-                                calendarsCollapsed
-                                    ? "Expand calendars"
-                                    : "Collapse calendars"
-                            }
-                        >
-                            <span className="nc-sidebar-title-label">
-                                <span className="nc-sidebar-title">
-                                    {t("Calendars")}
-                                </span>
-                                <span
-                                    className={`nc-sidebar-title-chevron${
-                                        calendarsCollapsed
-                                            ? " nc-collapsed"
-                                            : ""
-                                    }`}
-                                >
-                                    <ChevronDownIcon size={14} />
-                                </span>
-                            </span>
-                            <span className="nc-sidebar-title-actions">
-                                <button
-                                    className="nc-sidebar-add-btn"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setHeaderMenuAnchor(
-                                            e.currentTarget.getBoundingClientRect()
                                         );
-                                    }}
-                                    title={t("More options")}
-                                >
-                                    <MoreHorizontalIcon />
-                                </button>
+                                    })}
+                                </div>
+
                                 <button
-                                    className="nc-sidebar-add-btn"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onAddCalendar();
-                                    }}
-                                    title={t("Add calendar")}
+                                    type="button"
+                                    className="nc-android-more-days-toggle"
+                                    aria-expanded={moreDaysOpen}
+                                    onClick={() =>
+                                        setMoreDaysOpen((value) => !value)
+                                    }
                                 >
-                                    <PlusIcon size={14} />
+                                    <span>{t("More day spans")}</span>
+                                    <ChevronDownIcon size={14} />
                                 </button>
-                            </span>
-                        </div>
-                        {!calendarsCollapsed && (
-                            <div
-                                className={`nc-calendar-list${
-                                    reorder.dragging ? " nc-reordering" : ""
-                                }`}
-                            >
-                                {calendarSources.map((source, index) => {
-                                    const hidden = hiddenCalendars.has(
-                                        source.id
-                                    );
-                                    const online = ONLINE_TYPES.includes(
-                                        source.type
-                                    );
-                                    // Auto calendars wear their own icon in
-                                    // place of the solid swatch, same treatment
-                                    // as the feed mark: coloured glyph, no fill.
-                                    const isAuto = source.type === "auto";
-                                    const glyph = online || isAuto;
-                                    const isDefault =
-                                        source.id === defaultCalendarId;
-                                    const isSelected =
-                                        source.id === selectedCalendarId;
-                                    const dragProps =
-                                        reorder.getItemProps(index);
-                                    return (
-                                        <div
-                                            key={source.id}
-                                            ref={dragProps.ref}
-                                            className={`nc-calendar-item${
-                                                hidden
-                                                    ? " nc-calendar-hidden"
-                                                    : ""
-                                            }${
-                                                isDefault
-                                                    ? " nc-calendar-default"
-                                                    : ""
-                                            }${
-                                                isSelected
-                                                    ? " nc-calendar-selected"
-                                                    : ""
-                                            }${
-                                                dragProps.className
-                                                    ? " " + dragProps.className
-                                                    : ""
-                                            }`}
-                                            style={
-                                                {
-                                                    "--nc-cal-color":
-                                                        source.color,
-                                                    ...dragProps.style,
-                                                } as React.CSSProperties
-                                            }
-                                            onPointerDown={
-                                                dragProps.onPointerDown
-                                            }
-                                            // The whole row opens this calendar's
-                                            // event list â€” except the swatch and
-                                            // the action buttons, which stop
-                                            // propagation. Skipped while renaming,
-                                            // and after a drag (which ends here as
-                                            // a click) so reordering doesn't also
-                                            // open the panel.
-                                            onClick={() => {
-                                                if (editingId === source.id)
-                                                    return;
-                                                if (reorder.wasDragged())
-                                                    return;
-                                                onCalendarClick(source.id);
+
+                                {moreDaysOpen && (
+                                    <div className="nc-android-more-days">
+                                        <div className="nc-android-more-days-grid">
+                                            {[4, 5, 6, 7, 8, 9].map((count) => (
+                                                <button
+                                                    type="button"
+                                                    key={count}
+                                                    className={
+                                                        viewType === "days" &&
+                                                        dayCount === count
+                                                            ? "nc-active"
+                                                            : ""
+                                                    }
+                                                    onClick={() =>
+                                                        setAndroidDaySpan(count)
+                                                    }
+                                                >
+                                                    {count}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <form
+                                            className="nc-android-custom-days"
+                                            onSubmit={(event) => {
+                                                event.preventDefault();
+                                                setAndroidDaySpan(
+                                                    customDayCount
+                                                );
                                             }}
                                         >
-                                            {/* Left control: colored swatch (with
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                max={60}
+                                                value={customDayCount}
+                                                aria-label={t(
+                                                    "Custom number of days"
+                                                )}
+                                                onChange={(event) =>
+                                                    setCustomDayCount(
+                                                        Number(
+                                                            event.currentTarget
+                                                                .value
+                                                        ) || 1
+                                                    )
+                                                }
+                                            />
+                                            <button type="submit">
+                                                {t("Apply")}
+                                            </button>
+                                        </form>
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                        <MiniCalendar
+                            currentDate={currentDate}
+                            firstDay={firstDay}
+                            showWeekNumbers={showWeekNumbers}
+                            onDateSelect={onDateSelect}
+                        />
+
+                        <div className="nc-sidebar-section">
+                            {/* The whole header row is the collapse target: click
+                            anywhere toggles the list. The "+" stops propagation
+                            so it only adds a calendar. */}
+                            <div
+                                className="nc-sidebar-title-row"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setCalendarsCollapsed((v) => !v)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        setCalendarsCollapsed((v) => !v);
+                                    }
+                                }}
+                                title={
+                                    calendarsCollapsed
+                                        ? "Expand calendars"
+                                        : "Collapse calendars"
+                                }
+                            >
+                                <span className="nc-sidebar-title-label">
+                                    <span className="nc-sidebar-title">
+                                        {t("Calendars")}
+                                    </span>
+                                    <span
+                                        className={`nc-sidebar-title-chevron${
+                                            calendarsCollapsed
+                                                ? " nc-collapsed"
+                                                : ""
+                                        }`}
+                                    >
+                                        <ChevronDownIcon size={14} />
+                                    </span>
+                                </span>
+                                <span className="nc-sidebar-title-actions">
+                                    <button
+                                        className="nc-sidebar-add-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setHeaderMenuAnchor(
+                                                e.currentTarget.getBoundingClientRect()
+                                            );
+                                        }}
+                                        title={t("More options")}
+                                    >
+                                        <MoreHorizontalIcon />
+                                    </button>
+                                    <button
+                                        className="nc-sidebar-add-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onAddCalendar();
+                                        }}
+                                        title={t("Add calendar")}
+                                    >
+                                        <PlusIcon size={14} />
+                                    </button>
+                                </span>
+                            </div>
+                            {!calendarsCollapsed && (
+                                <div
+                                    className={`nc-calendar-list${
+                                        reorder.dragging ? " nc-reordering" : ""
+                                    }`}
+                                >
+                                    {calendarSources.map((source, index) => {
+                                        const hidden = hiddenCalendars.has(
+                                            source.id
+                                        );
+                                        const online = ONLINE_TYPES.includes(
+                                            source.type
+                                        );
+                                        // Auto calendars wear their own icon in
+                                        // place of the solid swatch, same treatment
+                                        // as the feed mark: coloured glyph, no fill.
+                                        const isAuto = source.type === "auto";
+                                        const glyph = online || isAuto;
+                                        const isDefault =
+                                            source.id === defaultCalendarId;
+                                        const isSelected =
+                                            source.id === selectedCalendarId;
+                                        const dragProps =
+                                            reorder.getItemProps(index);
+                                        return (
+                                            <div
+                                                key={source.id}
+                                                ref={dragProps.ref}
+                                                className={`nc-calendar-item${
+                                                    hidden
+                                                        ? " nc-calendar-hidden"
+                                                        : ""
+                                                }${
+                                                    isDefault
+                                                        ? " nc-calendar-default"
+                                                        : ""
+                                                }${
+                                                    isSelected
+                                                        ? " nc-calendar-selected"
+                                                        : ""
+                                                }${
+                                                    dragProps.className
+                                                        ? " " +
+                                                          dragProps.className
+                                                        : ""
+                                                }`}
+                                                style={
+                                                    {
+                                                        "--nc-cal-color":
+                                                            source.color,
+                                                        ...dragProps.style,
+                                                    } as React.CSSProperties
+                                                }
+                                                onPointerDown={
+                                                    dragProps.onPointerDown
+                                                }
+                                                // The whole row opens this calendar's
+                                                // event list â€” except the swatch and
+                                                // the action buttons, which stop
+                                                // propagation. Skipped while renaming,
+                                                // and after a drag (which ends here as
+                                                // a click) so reordering doesn't also
+                                                // open the panel.
+                                                onClick={() => {
+                                                    if (editingId === source.id)
+                                                        return;
+                                                    if (reorder.wasDragged())
+                                                        return;
+                                                    onCalendarClick(source.id);
+                                                }}
+                                            >
+                                                {/* Left control: colored swatch (with
                                             an RSS mark for remote calendars).
                                             Clicking sets this calendar as the
                                             default â€” but only local editable
                                             ones; remote calendars can't be the
                                             default. Visibility is toggled via
                                             the eye icon, not here. */}
-                                            <button
-                                                type="button"
-                                                ref={(el) => {
-                                                    swatchRefs.current[
-                                                        source.id
-                                                    ] = el;
-                                                }}
-                                                className={`nc-calendar-visibility${
-                                                    source.editable
-                                                        ? ""
-                                                        : " nc-calendar-visibility-static"
-                                                }`}
-                                                onClick={(e) => {
-                                                    // Never open the event list
-                                                    // from the swatch.
-                                                    e.stopPropagation();
-                                                    // Shift-click is the direct
-                                                    // shortcut to change the
-                                                    // colour. Kept separate from a
-                                                    // plain click so changing the
-                                                    // colour never also flips the
-                                                    // default calendar â€” a
-                                                    // double-click used to fire
-                                                    // the plain onClick first and
-                                                    // reset the default every time.
-                                                    // The swatch is now the ONE
-                                                    // way to set the default,
-                                                    // on every platform: one
-                                                    // control, one meaning. The
-                                                    // colour keeps its own
-                                                    // route through the row's
-                                                    // "..." menu, which is
-                                                    // where a phone reaches it
-                                                    // — the row itself is for
-                                                    // opening the calendar's
-                                                    // events.
-                                                    if (e.shiftKey) {
-                                                        openColorPicker(
-                                                            source.id,
-                                                            source.color
-                                                        );
-                                                        return;
-                                                    }
-                                                    if (source.editable)
-                                                        onSetDefaultCalendar(
+                                                <button
+                                                    type="button"
+                                                    ref={(el) => {
+                                                        swatchRefs.current[
                                                             source.id
-                                                        );
-                                                }}
-                                                title={
-                                                    source.editable
-                                                        ? t("Set as default")
-                                                        : t(
-                                                              "Shift-click to change colour"
-                                                          )
-                                                }
-                                            >
-                                                <span
-                                                    className={`nc-calendar-checkbox${
-                                                        glyph
-                                                            ? " nc-calendar-feed"
-                                                            : ""
+                                                        ] = el;
+                                                    }}
+                                                    className={`nc-calendar-visibility${
+                                                        source.editable
+                                                            ? ""
+                                                            : " nc-calendar-visibility-static"
                                                     }`}
-                                                    style={
-                                                        glyph
-                                                            ? {
-                                                                  color: source.color,
-                                                              }
-                                                            : {
-                                                                  backgroundColor:
-                                                                      source.color,
-                                                                  borderColor:
-                                                                      source.color,
-                                                              }
+                                                    onClick={(e) => {
+                                                        // Never open the event list
+                                                        // from the swatch.
+                                                        e.stopPropagation();
+                                                        // Shift-click is the direct
+                                                        // shortcut to change the
+                                                        // colour. Kept separate from a
+                                                        // plain click so changing the
+                                                        // colour never also flips the
+                                                        // default calendar â€” a
+                                                        // double-click used to fire
+                                                        // the plain onClick first and
+                                                        // reset the default every time.
+                                                        // The swatch is now the ONE
+                                                        // way to set the default,
+                                                        // on every platform: one
+                                                        // control, one meaning. The
+                                                        // colour keeps its own
+                                                        // route through the row's
+                                                        // "..." menu, which is
+                                                        // where a phone reaches it
+                                                        // — the row itself is for
+                                                        // opening the calendar's
+                                                        // events.
+                                                        if (e.shiftKey) {
+                                                            openColorPicker(
+                                                                source.id,
+                                                                source.color
+                                                            );
+                                                            return;
+                                                        }
+                                                        if (source.editable)
+                                                            onSetDefaultCalendar(
+                                                                source.id
+                                                            );
+                                                    }}
+                                                    title={
+                                                        source.editable
+                                                            ? t(
+                                                                  "Set as default"
+                                                              )
+                                                            : t(
+                                                                  "Shift-click to change colour"
+                                                              )
                                                     }
                                                 >
-                                                    {online && (
-                                                        <RssIcon
-                                                            size={15}
-                                                            maskId={source.id}
-                                                        />
-                                                    )}
-                                                    {isAuto && (
-                                                        <ObsidianIcon
-                                                            name={
-                                                                source.icon ||
-                                                                "flag"
-                                                            }
-                                                            size={15}
-                                                        />
-                                                    )}
-                                                </span>
-                                            </button>
-
-                                            {editingId === source.id ? (
-                                                <div className="nc-calendar-edit">
-                                                    <input
-                                                        type="text"
-                                                        className="nc-calendar-edit-input"
-                                                        value={editName}
-                                                        onChange={(e) =>
-                                                            setEditName(
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        onKeyDown={(e) => {
-                                                            if (
-                                                                e.key ===
-                                                                "Enter"
-                                                            )
-                                                                commitRename();
-                                                            if (
-                                                                e.key ===
-                                                                "Escape"
-                                                            )
-                                                                cancelRename();
-                                                        }}
-                                                        disabled={renaming}
-                                                        autoFocus
-                                                    />
-                                                    <button
-                                                        className="nc-calendar-edit-btn nc-edit-ok"
-                                                        onClick={commitRename}
-                                                        disabled={renaming}
-                                                        title={t("Save")}
-                                                    >
-                                                        {renaming
-                                                            ? "..."
-                                                            : "OK"}
-                                                    </button>
-                                                    <button
-                                                        className="nc-calendar-edit-btn nc-edit-cancel"
-                                                        onClick={cancelRename}
-                                                        disabled={renaming}
-                                                        title={t("Cancel")}
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <>
                                                     <span
-                                                        className="nc-calendar-name"
-                                                        title={source.name}
+                                                        className={`nc-calendar-checkbox${
+                                                            glyph
+                                                                ? " nc-calendar-feed"
+                                                                : ""
+                                                        }`}
+                                                        style={
+                                                            glyph
+                                                                ? {
+                                                                      color: source.color,
+                                                                  }
+                                                                : {
+                                                                      backgroundColor:
+                                                                          source.color,
+                                                                      borderColor:
+                                                                          source.color,
+                                                                  }
+                                                        }
                                                     >
-                                                        {source.name}
-                                                    </span>
-                                                    {isDefault && (
-                                                        <span className="nc-calendar-default-label">
-                                                            {t("Default")}
-                                                        </span>
-                                                    )}
-                                                    <div className="nc-calendar-actions">
-                                                        <button
-                                                            type="button"
-                                                            className="nc-calendar-action-btn"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                openMenu(
-                                                                    e,
+                                                        {online && (
+                                                            <RssIcon
+                                                                size={15}
+                                                                maskId={
                                                                     source.id
-                                                                );
+                                                                }
+                                                            />
+                                                        )}
+                                                        {isAuto && (
+                                                            <ObsidianIcon
+                                                                name={
+                                                                    source.icon ||
+                                                                    "flag"
+                                                                }
+                                                                size={15}
+                                                            />
+                                                        )}
+                                                    </span>
+                                                </button>
+
+                                                {editingId === source.id ? (
+                                                    <div className="nc-calendar-edit">
+                                                        <input
+                                                            type="text"
+                                                            className="nc-calendar-edit-input"
+                                                            value={editName}
+                                                            onChange={(e) =>
+                                                                setEditName(
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            onKeyDown={(e) => {
+                                                                if (
+                                                                    e.key ===
+                                                                    "Enter"
+                                                                )
+                                                                    commitRename();
+                                                                if (
+                                                                    e.key ===
+                                                                    "Escape"
+                                                                )
+                                                                    cancelRename();
                                                             }}
-                                                            title={t(
-                                                                "More options"
-                                                            )}
+                                                            disabled={renaming}
+                                                            autoFocus
+                                                        />
+                                                        <button
+                                                            className="nc-calendar-edit-btn nc-edit-ok"
+                                                            onClick={
+                                                                commitRename
+                                                            }
+                                                            disabled={renaming}
+                                                            title={t("Save")}
                                                         >
-                                                            <MoreHorizontalIcon />
+                                                            {renaming
+                                                                ? "..."
+                                                                : "OK"}
                                                         </button>
                                                         <button
-                                                            type="button"
-                                                            className="nc-calendar-action-btn"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                onToggleCalendar(
-                                                                    source.id
-                                                                );
-                                                            }}
-                                                            title={
-                                                                hidden
-                                                                    ? t("Show")
-                                                                    : t("Hide")
+                                                            className="nc-calendar-edit-btn nc-edit-cancel"
+                                                            onClick={
+                                                                cancelRename
                                                             }
+                                                            disabled={renaming}
+                                                            title={t("Cancel")}
                                                         >
-                                                            {hidden ? (
-                                                                <EyeOffIcon />
-                                                            ) : (
-                                                                <EyeIcon />
-                                                            )}
+                                                            Cancel
                                                         </button>
                                                     </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
+                                                ) : (
+                                                    <>
+                                                        <span
+                                                            className="nc-calendar-name"
+                                                            title={source.name}
+                                                        >
+                                                            {source.name}
+                                                        </span>
+                                                        {isDefault && (
+                                                            <span className="nc-calendar-default-label">
+                                                                {t("Default")}
+                                                            </span>
+                                                        )}
+                                                        <div className="nc-calendar-actions">
+                                                            <button
+                                                                type="button"
+                                                                className="nc-calendar-action-btn"
+                                                                onClick={(
+                                                                    e
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    openMenu(
+                                                                        e,
+                                                                        source.id
+                                                                    );
+                                                                }}
+                                                                title={t(
+                                                                    "More options"
+                                                                )}
+                                                            >
+                                                                <MoreHorizontalIcon />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="nc-calendar-action-btn"
+                                                                onClick={(
+                                                                    e
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    onToggleCalendar(
+                                                                        source.id
+                                                                    );
+                                                                }}
+                                                                title={
+                                                                    hidden
+                                                                        ? t(
+                                                                              "Show"
+                                                                          )
+                                                                        : t(
+                                                                              "Hide"
+                                                                          )
+                                                                }
+                                                            >
+                                                                {hidden ? (
+                                                                    <EyeOffIcon />
+                                                                ) : (
+                                                                    <EyeIcon />
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
 
-                    {/* Tasks live below the calendars: the grid answers where
+                        {/* Tasks live below the calendars: the grid answers where
                         you have to be, this answers what you have to get done —
                         including the tasks whose date has already slipped by,
                         which the grid buries in a month nobody scrolls to. */}
-                    <div className="nc-sidebar-section">
-                        <div
-                            className="nc-sidebar-title-row"
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => setTasksCollapsed((v) => !v)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    setTasksCollapsed((v) => !v);
+                        <div className="nc-sidebar-section">
+                            <div
+                                className="nc-sidebar-title-row"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setTasksCollapsed((v) => !v)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        setTasksCollapsed((v) => !v);
+                                    }
+                                }}
+                                title={
+                                    tasksCollapsed
+                                        ? "Expand tasks"
+                                        : "Collapse tasks"
                                 }
-                            }}
-                            title={
-                                tasksCollapsed
-                                    ? "Expand tasks"
-                                    : "Collapse tasks"
-                            }
-                        >
-                            <span className="nc-sidebar-title-label">
-                                <span className="nc-sidebar-title">
-                                    {t("Tasks")}
+                            >
+                                <span className="nc-sidebar-title-label">
+                                    <span className="nc-sidebar-title">
+                                        {t("Tasks")}
+                                    </span>
+                                    <span
+                                        className={`nc-sidebar-title-chevron${
+                                            tasksCollapsed
+                                                ? " nc-collapsed"
+                                                : ""
+                                        }`}
+                                    >
+                                        <ChevronDownIcon size={14} />
+                                    </span>
                                 </span>
-                                <span
-                                    className={`nc-sidebar-title-chevron${
-                                        tasksCollapsed ? " nc-collapsed" : ""
-                                    }`}
-                                >
-                                    <ChevronDownIcon size={14} />
-                                </span>
-                            </span>
+                            </div>
+                            {!tasksCollapsed && (
+                                <TasksPanel
+                                    tasks={tasks}
+                                    today={today}
+                                    onTaskClick={onEventClick}
+                                    onAddTask={onAddTask}
+                                    onToggleTask={onToggleTask}
+                                />
+                            )}
                         </div>
-                        {!tasksCollapsed && (
-                            <TasksPanel
-                                tasks={tasks}
-                                today={today}
-                                onTaskClick={onEventClick}
-                                onAddTask={onAddTask}
-                                onToggleTask={onToggleTask}
-                            />
-                        )}
-                    </div>
-                </>
-            )}
+                    </>
+                )}
 
+                <div className="nc-sidebar-footer">
+                    <button
+                        type="button"
+                        className="nc-sidebar-help-btn"
+                        title={t("Keyboard shortcuts")}
+                        aria-label={t("Keyboard shortcuts")}
+                        onClick={(event) =>
+                            setShortcutsAnchor(
+                                shortcutsAnchor
+                                    ? null
+                                    : event.currentTarget.getBoundingClientRect()
+                            )
+                        }
+                    >
+                        <CircleHelpIcon size={16} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Portaled to <body> (see CalendarItemMenu), so they are siblings
+                of the scroller rather than children of it — a menu inside an
+                overflow container would be clipped by it, and would scroll away
+                from the row it belongs to. */}
             {menuSource && menuAnchor && (
                 <CalendarItemMenu
                     items={buildMenuItems(menuSource)}
@@ -817,24 +918,6 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                     onClose={() => setHeaderMenuAnchor(null)}
                 />
             )}
-
-            <div className="nc-sidebar-footer">
-                <button
-                    type="button"
-                    className="nc-sidebar-help-btn"
-                    title={t("Keyboard shortcuts")}
-                    aria-label={t("Keyboard shortcuts")}
-                    onClick={(event) =>
-                        setShortcutsAnchor(
-                            shortcutsAnchor
-                                ? null
-                                : event.currentTarget.getBoundingClientRect()
-                        )
-                    }
-                >
-                    <CircleHelpIcon size={16} />
-                </button>
-            </div>
 
             {shortcutsAnchor && (
                 <ShortcutsPanel

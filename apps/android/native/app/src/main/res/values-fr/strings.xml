@@ -29,4 +29,5 @@
     <string name="update_ready_title">"Mise à jour prête"</string>
     <string name="update_ready_text">"Appuyez pour installer Neo Calendar %1$s"</string>
     <string name="update_failed_title">"Échec du téléchargement"</string>
+    <string name="update_none">"Neo Calendar est à jour."</string>
 </resources>

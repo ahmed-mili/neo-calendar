@@ -96,6 +96,33 @@ final class AppUpdater {
     });
   }
 
+  /** Asked for by hand, from the version beside the gear.
+   *
+   *  Two things it does that the launch check does not. It ignores the version
+   *  the user waved away: pressing the number IS reopening the question, and
+   *  answering "nothing new" to someone who just asked would be a lie by
+   *  omission. And it says so when there is nothing — a check with no visible
+   *  outcome is indistinguishable from a button that does not work. */
+  void checkNow() {
+    io.execute(() -> {
+      try {
+        Metadata metadata = fetchMetadata();
+        if (metadata.versionCode > currentVersionCode()) {
+          activity.runOnUiThread(() -> showPrompt(metadata));
+          return;
+        }
+        activity.runOnUiThread(() ->
+          Toast.makeText(activity, R.string.update_none, Toast.LENGTH_SHORT).show()
+        );
+      } catch (Exception error) {
+        Log.w(TAG, "Manual update check failed", error);
+        activity.runOnUiThread(() ->
+          Toast.makeText(activity, R.string.update_failed, Toast.LENGTH_LONG).show()
+        );
+      }
+    });
+  }
+
   void resumePendingInstall() {
     if (pendingApk == null || !pendingApk.isFile()) return;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O

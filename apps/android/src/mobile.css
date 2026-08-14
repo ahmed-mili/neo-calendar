@@ -1990,20 +1990,22 @@ body.nc-platform-android .nc-sidebar .nc-mini-calendar {
     display: none !important;
 }
 
+/* The sections are content, not windows.
+   Both of them used to carry `flex: 1 1 auto` AND `overflow-y: auto`, so the
+   calendars and the tasks divided the leftover height and each got a stub to
+   look through: the calendar list stopped mid-row, the task list stopped on a
+   heading, and neither could be read to the end without first scrolling the
+   other out of the way. The one window is .nc-sidebar-scroll now. */
 body.nc-platform-android .nc-sidebar-section {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-
     padding: 16px 9px 24px !important;
+}
 
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
+body.nc-platform-android .nc-sidebar-scroll {
     overscroll-behavior: contain !important;
     scrollbar-width: none !important;
 }
 
-body.nc-platform-android
-    .nc-sidebar-section::-webkit-scrollbar {
+body.nc-platform-android .nc-sidebar-scroll::-webkit-scrollbar {
     display: none !important;
 }
 
