@@ -166,6 +166,7 @@ const FR: Record<string, string> = {
     "Linked files": "Fichiers liés",
     "Edit link": "Modifier le lien",
     "Copy link": "Copier le lien",
+    "Rename link": "Renommer le lien",
     Link: "Lien",
     "Paste a link, or search the vault":
         "Coller un lien, ou chercher dans le coffre",

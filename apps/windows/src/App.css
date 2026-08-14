@@ -1321,6 +1321,81 @@ button.nc-settings__theme-card:focus-visible {
     outline-offset: 1px;
 }
 
+/*
+ * Renommer un lien, a cote de la croix qui l'enleve.
+ *
+ * Le titre d'un lien est lu une fois, a l'ajout, et ce que le site a bien voulu
+ * dire ce jour-la reste ensuite dans le fichier. Quand il n'a rien dit — un
+ * lien de partage, une connexion lente, un site qui refuse un client ordinaire
+ * — il n'y avait pas de retour en arriere. Le crayon en est un, et il ne
+ * demande rien a personne.
+ */
+.nc-linked-file-rename-button {
+    position: absolute;
+    top: 50%;
+    right: 33px;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    background: transparent !important;
+    box-shadow: none !important;
+    opacity: 0;
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition:
+        opacity var(--nc-transition-fast, 100ms ease),
+        background-color var(--nc-transition-fast, 100ms ease),
+        color var(--nc-transition-fast, 100ms ease);
+}
+
+.nc-linked-file.is-hovered .nc-linked-file-rename-button,
+.nc-linked-file-rename-button:focus-visible {
+    opacity: 1;
+}
+
+.nc-linked-file-rename-button:hover,
+.nc-linked-file-rename-button:focus-visible {
+    color: var(--nc-text-primary, var(--text-normal));
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+    outline: none;
+}
+
+.nc-linked-file-rename-button svg {
+    width: 15px;
+    height: 15px;
+}
+
+/* Le champ prend la place du nom, a la meme ligne de base : on corrige le mot
+   la ou on vient de le lire, sans que la ligne bouge. */
+.nc-linked-file-rename {
+    min-width: 0;
+    flex: 1;
+    height: 22px;
+    padding: 0 6px;
+    border: 1px solid
+        color-mix(
+            in srgb,
+            var(--nc-accent, var(--interactive-accent)) 62%,
+            transparent
+        );
+    border-radius: 5px;
+    color: var(--nc-text-primary, var(--text-normal));
+    background: var(--background-modifier-form-field, transparent);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.nc-linked-file-rename:focus {
+    outline: none;
+}
+
 .nc-linked-file-remove {
     position: absolute;
     top: 50%;

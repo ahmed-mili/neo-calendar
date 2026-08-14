@@ -142,6 +142,17 @@ export const XIcon = () => (
         />
     </svg>
 );
+/** Un crayon : renommer ce que la ligne montre. */
+export const PencilIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path
+            d="M11.2 2.8a1.4 1.4 0 0 1 2 2L6.4 11.6 3.5 12.5l.9-2.9 6.8-6.8z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
 export const FileTextIcon = () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path
@@ -195,7 +206,11 @@ export const GlobeIcon = () => (
             stroke="currentColor"
             strokeWidth="1.3"
         />
-        <path d="M2.6 6.2h10.8M2.6 9.8h10.8" stroke="currentColor" strokeWidth="1.3" />
+        <path
+            d="M2.6 6.2h10.8M2.6 9.8h10.8"
+            stroke="currentColor"
+            strokeWidth="1.3"
+        />
     </svg>
 );
 

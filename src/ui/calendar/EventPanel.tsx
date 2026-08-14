@@ -113,6 +113,12 @@ interface EventPanelProps {
     linkedItems?: EventLinkedItem[];
     onAddEventLink?: (eventId: string, markdown: string) => Promise<void>;
     onRemoveEventLink?: (eventId: string, target: string) => Promise<void>;
+    /** Renomme un lien : le libellé est du texte, pas une donnée du site. */
+    onRenameEventLink?: (
+        eventId: string,
+        target: string,
+        label: string
+    ) => Promise<void>;
     onOpenEventLink?: (item: EventLinkedItem) => Promise<void> | void;
     onPickEventAttachment?: (eventId: string) => Promise<void>;
 }
@@ -215,6 +221,7 @@ export default function EventPanel({
     linkedItems = [],
     onAddEventLink,
     onRemoveEventLink,
+    onRenameEventLink,
     onOpenEventLink,
     onPickEventAttachment,
 }: EventPanelProps) {
@@ -1072,6 +1079,7 @@ export default function EventPanel({
                         onResolveUrl={onResolveUrl}
                         onAddLink={onAddEventLink}
                         onRemoveLink={onRemoveEventLink}
+                        onRenameLink={onRenameEventLink}
                         onOpenLink={onOpenEventLink}
                         onPickAttachment={onPickEventAttachment}
                     />

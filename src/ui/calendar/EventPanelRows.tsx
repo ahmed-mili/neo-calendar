@@ -61,6 +61,7 @@ import {
     RepeatIcon,
     DotsIcon,
     XIcon,
+    PencilIcon,
     FileTextIcon,
     ArrowRightIcon,
     GlobeIcon,
@@ -1714,6 +1715,11 @@ interface LinksAttachmentsRowProps {
     ) => Promise<LinkSearchTarget[]>;
     onAddLink?: (eventId: string, markdown: string) => Promise<void>;
     onRemoveLink?: (eventId: string, target: string) => Promise<void>;
+    onRenameLink?: (
+        eventId: string,
+        target: string,
+        label: string
+    ) => Promise<void>;
     onOpenLink?: (item: LinkedFileItem) => Promise<void> | void;
     onPickAttachment?: (eventId: string) => Promise<void>;
 }
@@ -1813,12 +1819,18 @@ function LinkedFileRow({
     item,
     eventId,
     onRemoveLink,
+    onRenameLink,
     onOpenLink,
     tapTrackerRef,
 }: {
     item: LinkedFileItem;
     eventId: string | null;
     onRemoveLink?: (eventId: string, target: string) => Promise<void>;
+    onRenameLink?: (
+        eventId: string,
+        target: string,
+        label: string
+    ) => Promise<void>;
     onOpenLink?: (item: LinkedFileItem) => Promise<void> | void;
     tapTrackerRef: React.MutableRefObject<LinkedFileTap | null>;
 }) {
@@ -1920,6 +1932,33 @@ function LinkedFileRow({
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1200);
     };
+
+    /*
+     * Renommer sur place plutôt que dans une boîte : la ligne est déjà là, on
+     * la corrige là où on l'a lue. Entrée valide, Échap abandonne, et sortir du
+     * champ garde ce qui est écrit — perdre une phrase parce qu'on a touché
+     * ailleurs serait une punition pour rien.
+     */
+    const [renaming, setRenaming] = React.useState(false);
+    const [draftName, setDraftName] = React.useState("");
+    const nameRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        if (renaming) nameRef.current?.select();
+    }, [renaming]);
+
+    const commitName = React.useCallback(async () => {
+        if (!renaming) return;
+        setRenaming(false);
+        if (!eventId || !onRenameLink) return;
+        const wanted = draftName.trim();
+        if (wanted === displayName.trim()) return;
+        try {
+            await onRenameLink(eventId, item.target, wanted);
+        } catch {
+            // Le panneau dit déjà ce qui n'a pas pu être écrit.
+        }
+    }, [displayName, draftName, eventId, item.target, onRenameLink, renaming]);
 
     const remove = async (event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
@@ -2035,8 +2074,52 @@ function LinkedFileRow({
                         LINK_GLYPHS[linkKind(item.target, item.kind)]
                     )}
                 </span>
-                <span className="nc-linked-file-name">{displayName}</span>
-                {eventId && onRemoveLink && (
+                {renaming ? (
+                    <input
+                        ref={nameRef}
+                        className="nc-linked-file-rename"
+                        value={draftName}
+                        aria-label={t("Rename link")}
+                        onChange={(event) => setDraftName(event.target.value)}
+                        onClick={(event) => event.stopPropagation()}
+                        onMouseDown={(event) => event.stopPropagation()}
+                        onBlur={() => void commitName()}
+                        onKeyDown={(event) => {
+                            event.stopPropagation();
+                            if (event.key === "Enter") {
+                                event.preventDefault();
+                                void commitName();
+                            } else if (event.key === "Escape") {
+                                event.preventDefault();
+                                setRenaming(false);
+                            }
+                        }}
+                    />
+                ) : (
+                    <span className="nc-linked-file-name">{displayName}</span>
+                )}
+                {eventId && onRenameLink && !renaming && (
+                    <button
+                        type="button"
+                        className="nc-linked-file-rename-button"
+                        aria-label={t("Rename link")}
+                        title={t("Rename link")}
+                        onMouseDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            resetTapTracker();
+                            setDraftName(displayName);
+                            setRenaming(true);
+                        }}
+                    >
+                        <PencilIcon />
+                    </button>
+                )}
+                {eventId && onRemoveLink && !renaming && (
                     <button
                         type="button"
                         className="nc-linked-file-remove"
@@ -2099,6 +2182,7 @@ export function LinksAttachmentsRow({
     onResolveUrl,
     onAddLink,
     onRemoveLink,
+    onRenameLink,
     onOpenLink,
     onPickAttachment,
 }: LinksAttachmentsRowProps) {
@@ -2439,6 +2523,7 @@ export function LinksAttachmentsRow({
                             item={item}
                             eventId={eventId}
                             onRemoveLink={onRemoveLink}
+                            onRenameLink={onRenameLink}
                             onOpenLink={onOpenLink}
                             tapTrackerRef={tapTrackerRef}
                         />

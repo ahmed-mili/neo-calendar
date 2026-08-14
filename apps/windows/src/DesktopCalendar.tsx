@@ -103,6 +103,7 @@ import {
     markdownLinkForVaultNote,
     parseStoredEvent,
     removeMarkdownTargetFromEventBody,
+    renameMarkdownTargetInEventBody,
     serializeEventMarkdown,
 } from "./platform/desktopEventFormat";
 import { ThemeId } from "./themes/types";
@@ -1109,6 +1110,63 @@ export default function DesktopCalendar({
             const contents = removeMarkdownTargetFromEventBody(
                 previous.contents,
                 target
+            );
+            if (contents === previous.contents) return;
+
+            setIsSaving(true);
+            setStorageError(null);
+            try {
+                const relativePath = await writeDesktopEventFile({
+                    dataFolder,
+                    calendarPath: previous.calendarPath,
+                    previousRelativePath: previous.relativePath,
+                    fileName: previous.fileName,
+                    contents,
+                });
+                const nextRecord: DesktopStoredEvent = {
+                    ...previous,
+                    relativePath,
+                    fileName: fileNameFromRelativePath(relativePath),
+                    contents,
+                };
+                const next = recordsRef.current.map((record) =>
+                    record.id === previous.id ? nextRecord : record
+                );
+                recordsRef.current = next;
+                setStoredEvents(next);
+            } catch (reason) {
+                setStorageError(errorMessage(reason));
+                throw reason;
+            } finally {
+                setIsSaving(false);
+            }
+        },
+        [dataFolder]
+    );
+
+    /**
+     * Nommer un lien soi-même.
+     *
+     * Le titre est lu une fois, à l'ajout, et ce que le site voulait bien dire
+     * ce jour-là reste dans le fichier pour toujours. Un lien de partage, une
+     * connexion lente, un site qui refuse un client ordinaire : il n'y avait
+     * pas de retour en arrière. Le libellé n'est que du texte dans un lien
+     * Markdown ; le réécrire ne demande ni réseau ni permission.
+     */
+    const renameEventBodyLink = useCallback(
+        async (
+            eventId: string,
+            target: string,
+            label: string
+        ): Promise<void> => {
+            const previous = findStoredEvent(recordsRef.current, eventId);
+            if (!previous || previous.readOnly) {
+                throw new Error("This calendar is read-only.");
+            }
+            const contents = renameMarkdownTargetInEventBody(
+                previous.contents,
+                target,
+                label
             );
             if (contents === previous.contents) return;
 
@@ -2979,6 +3037,7 @@ export default function DesktopCalendar({
                 linkedItems={panelLinkedItems}
                 onAddEventLink={appendEventBody}
                 onRemoveEventLink={removeEventBodyLink}
+                onRenameEventLink={renameEventBodyLink}
                 onOpenEventLink={async (item: EventLinkedItem) => {
                     try {
                         if (item.kind === "attachment") {

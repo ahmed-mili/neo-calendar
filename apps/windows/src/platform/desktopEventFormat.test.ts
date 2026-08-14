@@ -1,4 +1,9 @@
-import { parseFrontmatter, serializeEventMarkdown } from "./desktopEventFormat";
+import {
+    extractEventBodyLinks,
+    parseFrontmatter,
+    renameMarkdownTargetInEventBody,
+    serializeEventMarkdown,
+} from "./desktopEventFormat";
 import { NeoEvent } from "../../../../src/types";
 
 const task = (subtasks?: string[]): NeoEvent =>
@@ -56,5 +61,78 @@ describe("the steps of a task, in a note", () => {
 
         expect(after).toContain("banner: cover.png");
         expect(parseFrontmatter(after)?.subtasks).toEqual(["[x] Pack"]);
+    });
+});
+
+describe("nommer un lien soi-même", () => {
+    const NOTE = [
+        "---",
+        "date: 2026-08-14",
+        "---",
+        "",
+        "Des notes.",
+        "",
+        "- [vm.tiktok.com](https://vm.tiktok.com/ZN88SfmSj/)",
+        "- [Une recette](https://exemple.fr/plat)",
+        "",
+    ].join("\n");
+
+    it("réécrit le libellé sans toucher à l'adresse", () => {
+        const next = renameMarkdownTargetInEventBody(
+            NOTE,
+            "https://vm.tiktok.com/ZN88SfmSj/",
+            "La danse du chat"
+        );
+
+        expect(next).toContain(
+            "- [La danse du chat](https://vm.tiktok.com/ZN88SfmSj/)"
+        );
+        expect(next).toContain("- [Une recette](https://exemple.fr/plat)");
+        expect(next).toContain("date: 2026-08-14");
+        expect(next).toContain("Des notes.");
+    });
+
+    // Un crochet fermerait le libellé et laisserait la suite en texte libre.
+    it("retire les crochets d'un nom", () => {
+        const next = renameMarkdownTargetInEventBody(
+            NOTE,
+            "https://exemple.fr/plat",
+            "Recette [rapide]"
+        );
+
+        expect(next).toContain("- [Recette rapide](https://exemple.fr/plat)");
+    });
+
+    // Effacer le nom rend le lien à son libellé automatique — son hôte.
+    it("accepte un nom vide", () => {
+        const next = renameMarkdownTargetInEventBody(
+            NOTE,
+            "https://exemple.fr/plat",
+            "   "
+        );
+
+        expect(next).toContain("- [](https://exemple.fr/plat)");
+        expect(extractEventBodyLinks(next)).toContainEqual(
+            expect.objectContaining({
+                target: "https://exemple.fr/plat",
+                label: "exemple.fr",
+            })
+        );
+    });
+
+    it("ne touche à rien quand l'adresse est absente", () => {
+        expect(
+            renameMarkdownTargetInEventBody(NOTE, "https://ailleurs.fr", "X")
+        ).toBe(NOTE);
+    });
+
+    it("ne réécrit pas un fichier pour un nom identique", () => {
+        expect(
+            renameMarkdownTargetInEventBody(
+                NOTE,
+                "https://exemple.fr/plat",
+                "Une recette"
+            )
+        ).toBe(NOTE);
     });
 });

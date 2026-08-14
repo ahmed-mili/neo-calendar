@@ -78,31 +78,19 @@ function splitYamlArray(value: string): string[] {
 }
 
 function parseTextScalar(value: string): string {
-    const withoutSeparator = value.startsWith(" ")
-        ? value.slice(1)
-        : value;
+    const withoutSeparator = value.startsWith(" ") ? value.slice(1) : value;
 
-    if (
-        withoutSeparator.startsWith('"') &&
-        withoutSeparator.endsWith('"')
-    ) {
+    if (withoutSeparator.startsWith('"') && withoutSeparator.endsWith('"')) {
         try {
             const parsed = JSON.parse(withoutSeparator) as unknown;
-            return typeof parsed === "string"
-                ? parsed
-                : withoutSeparator;
+            return typeof parsed === "string" ? parsed : withoutSeparator;
         } catch {
             return withoutSeparator;
         }
     }
 
-    if (
-        withoutSeparator.startsWith("'") &&
-        withoutSeparator.endsWith("'")
-    ) {
-        return withoutSeparator
-            .slice(1, -1)
-            .replace(/''/g, "'");
+    if (withoutSeparator.startsWith("'") && withoutSeparator.endsWith("'")) {
+        return withoutSeparator.slice(1, -1).replace(/''/g, "'");
     }
 
     return withoutSeparator;
@@ -128,7 +116,9 @@ export interface FrontmatterDocument {
     body: string;
 }
 
-export function extractFrontmatter(contents: string): FrontmatterDocument | null {
+export function extractFrontmatter(
+    contents: string
+): FrontmatterDocument | null {
     const normalized = contents.replace(/\r\n/g, "\n");
     if (!normalized.startsWith("---\n")) return null;
 
@@ -392,7 +382,6 @@ export function appendMarkdownToEventBody(
     return `${frontmatter}\n${body ? `${body}\n` : ""}${value}\n`;
 }
 
-
 interface ParsedMarkdownLink {
     label: string;
     target: string;
@@ -412,8 +401,8 @@ function parseMarkdownLinks(source: string): ParsedMarkdownLink[] {
         const labelStart = image
             ? index + 2
             : source[index] === "["
-              ? index + 1
-              : -1;
+            ? index + 1
+            : -1;
 
         if (labelStart < 0) {
             index += 1;
@@ -434,10 +423,7 @@ function parseMarkdownLinks(source: string): ParsedMarkdownLink[] {
             labelEnd += 1;
         }
 
-        if (
-            labelEnd >= source.length ||
-            source[labelEnd + 1] !== "("
-        ) {
+        if (labelEnd >= source.length || source[labelEnd + 1] !== "(") {
             index = labelStart;
             continue;
         }
@@ -496,6 +482,64 @@ export function removeMarkdownTargetFromEventBody(
         });
         if (removesLine) changed = true;
         return !removesLine;
+    });
+
+    if (!changed) return contents;
+
+    const nextBody = nextLines.join("\n").replace(/^\n+/, "").trimEnd();
+    if (!document) return nextBody ? `${nextBody}\n` : "";
+
+    const frontmatter = `---\n${document.lines.join("\n")}\n---`;
+    return `${frontmatter}\n${nextBody ? `${nextBody}\n` : ""}`;
+}
+
+/**
+ * Renames one link in the note body, leaving its address and everything else
+ * alone.
+ *
+ * A title is read once, when the link is added, from whatever the site chose to
+ * say at that moment — and a site can say nothing at all. A share link answers
+ * for the note that points at the video rather than for the video, a slow
+ * connection runs out the clock, a page refuses a plain client. After that the
+ * label is in the file and nothing ever reads it again, so there was no way
+ * back from a link called `vm.tiktok.com`.
+ *
+ * Naming it by hand needs no network, no site's cooperation and no second
+ * chance: the label is text in a Markdown link, and this rewrites exactly that.
+ * An empty name restores the automatic one — the host — rather than leaving a
+ * nameless link.
+ *
+ * The parser finds the link; the replacement is then a literal swap of the text
+ * it reported. Building a pattern out of an address would be a way to get
+ * parentheses in a URL wrong.
+ */
+export function renameMarkdownTargetInEventBody(
+    contents: string,
+    target: string,
+    label: string
+): string {
+    const normalizedTarget = target.trim().replace(/^<|>$/g, "");
+    if (!normalizedTarget) return contents;
+
+    // A bracket would end the label early and spill the rest into the note.
+    const safe = label.replace(/[[\]]/g, "").replace(/\s+/g, " ").trim();
+
+    const document = extractFrontmatter(contents);
+    const body = document?.body ?? contents;
+    let changed = false;
+
+    const nextLines = body.split(/\r?\n/).map((line) => {
+        for (const link of parseMarkdownLinks(line)) {
+            const found = link.target.trim().replace(/^<|>$/g, "");
+            if (found !== normalizedTarget) continue;
+            if (link.label === safe) continue;
+            changed = true;
+            return line.replace(
+                `[${link.label}](${link.target})`,
+                `[${safe}](${link.target})`
+            );
+        }
+        return line;
     });
 
     if (!changed) return contents;
@@ -586,8 +630,9 @@ export function extractEventBodyLinks(
 }
 
 function strictEncodeURIComponent(value: string): string {
-    return encodeURIComponent(value).replace(/[!'()*]/g, (character) =>
-        `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+    return encodeURIComponent(value).replace(
+        /[!'()*]/g,
+        (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
     );
 }
 
