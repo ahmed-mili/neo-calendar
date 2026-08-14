@@ -3407,13 +3407,62 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     letter-spacing: -0.01em;
 }
 
-/* Long lists scroll inside the dialog rather than growing past the screen —
-   still less disruptive than replacing it. */
-.nc-choice-dialog__options {
+/* A submenu of rows rather than a list of names needs the width its values
+   were written for; the rows bring their own inset, so the panel gives less. */
+.nc-choice-dialog--wide {
+    width: min(400px, 100%);
+    padding: 20px 10px 14px;
+}
+
+/* Anything taller than the screen scrolls inside the panel rather than growing
+   past it — still less disruptive than replacing the screen. */
+.nc-choice-dialog__body {
     min-height: 0;
-    display: grid;
     overflow-y: auto;
     overscroll-behavior: contain;
+}
+
+.nc-choice-dialog__options {
+    display: grid;
+}
+
+/* Blocks sit closer together here than down a whole page: there are two of
+   them at most, and the panel's own edge already separates them from the rest. */
+.nc-choice-dialog--wide .nc-set-groups {
+    gap: 18px;
+}
+
+/*
+ * A row that only states something — a name and what it amounts to, with
+ * nothing to press — sets its answer under its name in the narrower panel.
+ *
+ * Side by side they no longer fit: "Stockage en ligne" wrapped to two lines
+ * while "OneDrive, Google Drive, Dropbox" was cut after the second name, so
+ * neither half could be read. Rows one can press keep their single line — the
+ * label is short there by construction, and stacking would make a button look
+ * like a paragraph.
+ */
+/* The panel is narrower than a page, so the rows give back what they can:
+   a little of their inset and of the gap between icon and name. */
+.nc-choice-dialog--wide .nc-set-row {
+    gap: 10px;
+    padding-right: 10px;
+    padding-left: 12px;
+}
+
+.nc-choice-dialog--wide div.nc-set-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 2px;
+    padding-top: 11px;
+    padding-bottom: 12px;
+}
+
+.nc-choice-dialog--wide div.nc-set-row .nc-set-row__value {
+    grid-column: 2;
+    justify-self: start;
+    max-width: 100%;
+    text-align: left;
+    white-space: normal;
 }
 
 .nc-choice-option {

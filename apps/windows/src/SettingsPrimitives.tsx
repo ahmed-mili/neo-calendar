@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-import { createPortal } from "react-dom";
 import { Check, ChevronRight, RotateCcw } from "lucide-react";
 import { t } from "../../../src/ui/i18n";
 
@@ -243,30 +242,29 @@ export function SettingsFieldRow({
     );
 }
 
-export interface SettingsChoice {
-    title: string;
-    value: string;
-    options: Array<{ value: string; label: string; icon?: React.ReactNode }>;
-    onPick: (value: string) => void;
-}
-
 /**
- * A short list of choices, taken over the screen one came from.
+ * A submenu taken over the screen it was opened from, rather than replacing it.
  *
- * It used to be a page of its own: a back arrow, a title bar, and three lines
- * on an otherwise empty screen — the whole of the settings pushed aside to ask
- * light or dark. Choosing between a handful of named things is one gesture, not
- * a journey, and the answer reads better against the row that asked it.
+ * A page costs the whole screen and a journey out and back. That is the right
+ * price for a list that grows — calendars, vaults, time zones — and far too
+ * much for three lines and a note: the settings slid aside to ask light or
+ * dark, and the row that asked the question went with them.
  *
- * Long lists are the same dialog; it simply scrolls, which is still less
- * disruptive than replacing the screen.
+ * What is left underneath, dimmed, is the point: the answer reads as an answer
+ * to something still visible. Anything too tall simply scrolls inside the
+ * panel, which is still less disruptive than replacing the screen.
  */
-export function SettingsChoiceDialog({
-    choice,
+export function SettingsDialog({
+    title,
     onClose,
+    children,
+    wide = false,
 }: {
-    choice: SettingsChoice;
+    title: string;
     onClose: () => void;
+    children: React.ReactNode;
+    /** For a submenu holding rows rather than a list of names. */
+    wide?: boolean;
 }) {
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -281,9 +279,13 @@ export function SettingsChoiceDialog({
         return () => window.removeEventListener("keydown", onKeyDown, true);
     }, [onClose]);
 
-    if (typeof document === "undefined") return null;
-
-    return createPortal(
+    /*
+     * No portal of its own: this is rendered inside the settings' backdrop,
+     * which is already portalled to the body and already covers the screen.
+     * A second portal only made the dialog invisible to anything rendering the
+     * settings without a document — which is how the tests read this screen.
+     */
+    return (
         <div
             className="nc-choice-backdrop"
             onMouseDown={(event) => {
@@ -291,48 +293,73 @@ export function SettingsChoiceDialog({
             }}
         >
             <section
-                className="nc-choice-dialog"
+                className={
+                    wide
+                        ? "nc-choice-dialog nc-choice-dialog--wide"
+                        : "nc-choice-dialog"
+                }
                 role="dialog"
                 aria-modal="true"
-                aria-label={choice.title}
+                aria-label={title}
             >
-                <h2 className="nc-choice-dialog__title">{choice.title}</h2>
-                <div className="nc-choice-dialog__options" role="radiogroup">
-                    {choice.options.map((option) => {
-                        const selected = option.value === choice.value;
-                        return (
-                            <button
-                                key={option.value}
-                                type="button"
-                                role="radio"
-                                aria-checked={selected}
-                                className="nc-choice-option"
-                                onClick={() => {
-                                    choice.onPick(option.value);
-                                    onClose();
-                                }}
-                            >
-                                {option.icon && (
-                                    <span className="nc-choice-option__icon">
-                                        {option.icon}
-                                    </span>
-                                )}
-                                <span className="nc-choice-option__label">
-                                    {option.label}
-                                </span>
-                                {selected && (
-                                    <Check
-                                        size={19}
-                                        className="nc-choice-option__check"
-                                    />
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
+                <h2 className="nc-choice-dialog__title">{title}</h2>
+                <div className="nc-choice-dialog__body">{children}</div>
             </section>
-        </div>,
-        document.body
+        </div>
+    );
+}
+
+export interface SettingsChoice {
+    title: string;
+    value: string;
+    options: Array<{ value: string; label: string; icon?: React.ReactNode }>;
+    onPick: (value: string) => void;
+}
+
+/** One of those submenus: a list of named things, the current one ticked. */
+export function SettingsChoiceDialog({
+    choice,
+    onClose,
+}: {
+    choice: SettingsChoice;
+    onClose: () => void;
+}) {
+    return (
+        <SettingsDialog title={choice.title} onClose={onClose}>
+            <div className="nc-choice-dialog__options" role="radiogroup">
+                {choice.options.map((option) => {
+                    const selected = option.value === choice.value;
+                    return (
+                        <button
+                            key={option.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            className="nc-choice-option"
+                            onClick={() => {
+                                choice.onPick(option.value);
+                                onClose();
+                            }}
+                        >
+                            {option.icon && (
+                                <span className="nc-choice-option__icon">
+                                    {option.icon}
+                                </span>
+                            )}
+                            <span className="nc-choice-option__label">
+                                {option.label}
+                            </span>
+                            {selected && (
+                                <Check
+                                    size={19}
+                                    className="nc-choice-option__check"
+                                />
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+        </SettingsDialog>
     );
 }
 
@@ -344,7 +371,7 @@ export interface ChoiceOption<T extends string> {
 
 /**
  * A row that reads its chosen option and hands the list to whoever knows how
- * to show it — here, the settings stack, which opens it as its own page.
+ * to show it — here, the settings stack, which opens it as a dialog.
  *
  * The row reads the chosen option by its label: a person picked "Lundi", not
  * the number 1, and that is what should be read back.

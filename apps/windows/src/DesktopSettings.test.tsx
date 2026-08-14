@@ -53,11 +53,23 @@ describe("Windows settings", () => {
     // arrow leads to the settings rather than straight out of them.
     it("keeps the first page under a section opened directly", () => {
         const html = renderToStaticMarkup(
-            <DesktopSettings open initialTab="sync" {...commonProps} />
+            <DesktopSettings open initialTab="calendars" {...commonProps} />
         );
 
         expect(html).toContain("nc-settings__page--buried");
         expect(html).toContain("Vue du calendrier");
+    });
+
+    // A section short enough to be a dialog leaves the first page standing,
+    // dimmed but readable — which is the whole reason it is a dialog.
+    it("shows a short section over the first page rather than instead of it", () => {
+        const html = renderToStaticMarkup(
+            <DesktopSettings open initialTab="sync" {...commonProps} />
+        );
+
+        expect(html).toContain("nc-choice-dialog");
+        expect(html).toContain("Vue du calendrier");
+        expect(html).not.toContain("nc-settings__page--buried");
     });
 
     it("lists every subject on its first page", () => {

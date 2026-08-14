@@ -18,6 +18,7 @@ import {
     SettingsGroup,
     SettingsChoice,
     SettingsChoiceDialog,
+    SettingsDialog,
     SettingsChoiceRow,
     SettingsFieldRow,
     SettingsRow,
@@ -34,6 +35,7 @@ import {
     saveAppearancePreferences,
     setThemeCustomization,
 } from "./themes/appearancePreferences";
+import { folderName, readableFolderPath } from "./platform/documentPath";
 import type { DesktopDetectedVaultDto } from "./platform/desktopCalendarStore";
 import type {
     DesktopInitialView,
@@ -51,6 +53,7 @@ import {
     Copy,
     Columns2,
     Columns3,
+    ExternalLink,
     FileText,
     Flag,
     FolderOpen,
@@ -97,6 +100,24 @@ type SettingsSection =
 type SettingsTab = "general" | SettingsSection;
 
 type SettingsPage = { kind: "root" } | { kind: "section"; id: SettingsSection };
+
+/*
+ * The submenus small enough to be taken over the screen instead of replacing it.
+ *
+ * The test is what the section holds, not how many lines it happens to show
+ * today: a fixed handful of rows can be a dialog, a list that grows with use
+ * cannot. Calendars, Obsidian vaults and time zones each grow — and time zones
+ * carries a text field, which on a phone means a keyboard covering half of
+ * whatever it is drawn over. Appearance is a whole screen of its own.
+ */
+const DIALOG_SECTIONS: ReadonlySet<SettingsSection> = new Set<SettingsSection>([
+    "folder",
+    "sync",
+]);
+
+function isDialogSection(page: SettingsPage): boolean {
+    return page.kind === "section" && DIALOG_SECTIONS.has(page.id);
+}
 
 const SECTION_TITLES: Record<SettingsSection, string> = {
     calendars: t("Calendars"),
@@ -821,7 +842,7 @@ export default function DesktopSettings({
                 <SettingsRow
                     label={t("Data folder")}
                     icon={<FolderOpen size={18} />}
-                    value={vaultName(dataFolder)}
+                    value={folderName(dataFolder)}
                     navigates
                     onClick={() => openPage({ kind: "section", id: "folder" })}
                 />
@@ -918,14 +939,16 @@ export default function DesktopSettings({
                 )}
             >
                 <div className="nc-set-row nc-set-row--stacked">
-                    <code>{dataFolder}</code>
+                    <code>{readableFolderPath(dataFolder)}</code>
                 </div>
                 <SettingsRow
                     label={t("Change folder")}
+                    icon={<FolderOpen size={18} />}
                     onClick={() => void onChangeDataFolder()}
                 />
                 <SettingsRow
                     label={t("Open folder")}
+                    icon={<ExternalLink size={18} />}
                     onClick={() => void onOpenDataFolder()}
                 />
             </SettingsGroup>
@@ -962,9 +985,9 @@ export default function DesktopSettings({
                             </span>
                             <span className="nc-set-row__text">
                                 <span className="nc-set-row__label">
-                                    {vaultName(folderPath)}
+                                    {folderName(folderPath)}
                                 </span>
-                                <code>{folderPath}</code>
+                                <code>{readableFolderPath(folderPath)}</code>
                             </span>
                             <span className="nc-set-row__trailing">
                                 <button
@@ -1022,7 +1045,9 @@ export default function DesktopSettings({
                                         <span className="nc-set-row__label">
                                             {vault.name}
                                         </span>
-                                        <code>{vault.path}</code>
+                                        <code>
+                                            {readableFolderPath(vault.path)}
+                                        </code>
                                     </span>
                                     <span className="nc-set-row__trailing">
                                         <span
@@ -1183,7 +1208,8 @@ export default function DesktopSettings({
             >
                 <SettingsRow
                     label={t("Data folder")}
-                    value={vaultName(dataFolder)}
+                    icon={<FolderOpen size={18} />}
+                    value={folderName(dataFolder)}
                     navigates
                     onClick={() => openPage({ kind: "section", id: "folder" })}
                 />
@@ -1421,6 +1447,17 @@ export default function DesktopSettings({
         return renderSection(page.id);
     };
 
+    /*
+     * The stack splits where the first dialog section appears: everything below
+     * stays a page and keeps the header, everything from there up is drawn over
+     * it. Only the topmost dialog is shown — one panel at a time, and the back
+     * arrow (or Escape, or the scrim) takes off one layer, exactly as before.
+     */
+    const dialogAt = stack.findIndex(isDialogSection);
+    const pages = dialogAt === -1 ? stack : stack.slice(0, dialogAt);
+    const dialog = dialogAt === -1 ? null : stack[stack.length - 1];
+    const headerPage = pages[pages.length - 1] ?? { kind: "root" as const };
+
     const content = (
         <div
             className="nc-settings-backdrop"
@@ -1448,15 +1485,15 @@ export default function DesktopSettings({
                     >
                         <ArrowLeft size={22} />
                     </button>
-                    <h2 id="nc-settings-title">{pageTitle(currentPage)}</h2>
+                    <h2 id="nc-settings-title">{pageTitle(headerPage)}</h2>
                 </header>
 
                 {/* Every page occupies the same slot: the one on top slides in
                     from the right, and the one it replaced waits underneath
                     with the scroll position it was left at. */}
                 <div className="nc-settings__pages">
-                    {stack.map((page, index) => {
-                        const buried = index < stack.length - 1;
+                    {pages.map((page, index) => {
+                        const buried = index < pages.length - 1;
                         return (
                             <div
                                 className={`nc-settings__page${
@@ -1481,6 +1518,19 @@ export default function DesktopSettings({
                     )}
                 </div>
             </section>
+
+            {/* A submenu small enough to be taken over the screen. Drawn after
+                the pages so it sits above them, and before the choice dialog so
+                a choice made inside it lands on top. */}
+            {dialog && dialog.kind === "section" && (
+                <SettingsDialog
+                    title={SECTION_TITLES[dialog.id]}
+                    onClose={goBack}
+                    wide
+                >
+                    {renderSection(dialog.id)}
+                </SettingsDialog>
+            )}
 
             {choice && (
                 <SettingsChoiceDialog
@@ -1527,9 +1577,4 @@ function ThemePreview({ theme }: { theme: (typeof THEMES)[number] }) {
             <small>a</small>
         </span>
     );
-}
-
-function vaultName(path: string): string {
-    const normalized = path.replace(/[\\/]+$/, "");
-    return normalized.split(/[\\/]/).pop() || path;
 }
