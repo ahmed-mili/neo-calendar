@@ -22,6 +22,7 @@ public class MainActivity extends Activity {
   private static final String APP_URL = "https://" + APP_HOST + "/index.html";
   private WebView webView;
   private AppUpdater appUpdater;
+  private WallpaperStore wallpapers;
 
   /** How long the splash screen may wait on the interface before giving up. */
   private static final long SPLASH_TIMEOUT_MS = 6000L;
@@ -96,6 +97,7 @@ public class MainActivity extends Activity {
       )
     );
     setContentView(rootView);
+    wallpapers = new WallpaperStore(this);
     appUpdater = new AppUpdater(this, io);
     // The launch check finishes after the page has painted, so the badge
     // cannot be there at first render. Rather than have the page ask on a
@@ -317,6 +319,25 @@ public class MainActivity extends Activity {
       assetPath = assetPath.substring(1);
     }
 
+    // Les fonds d'ecran ne sont plus dans l'APK : ils vivent dans le dossier de
+    // donnees, telecharges une fois et gardes ensuite. On les y cherche AVANT
+    // les assets — ce qui laisse une version encore embarquee fonctionner, et
+    // fait qu'un fond absent renvoie 404, signal que la page attend pour
+    // proposer de le telecharger.
+    if (assetPath.startsWith("themes/neo-wallpapers/")
+        && !assetPath.contains("/thumbs/")) {
+      String name = assetPath.substring(assetPath.lastIndexOf('/') + 1);
+      InputStream stored = wallpapers == null ? null : wallpapers.open(name);
+      if (stored != null) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Access-Control-Allow-Origin", "*");
+        // Une image telechargee ne change plus : la relire a chaque peinture du
+        // fond serait un aller-retour SAF pour rien.
+        headers.put("Cache-Control", "max-age=31536000, immutable");
+        return new WebResourceResponse("image/jpeg", null, 200, "OK", headers, stored);
+      }
+    }
+
     try {
       InputStream stream = getAssets().open(assetPath);
       Map<String, String> headers = new HashMap<>();
@@ -486,6 +507,35 @@ public class MainActivity extends Activity {
         button is drawn from. Returns synchronously: it is a field, not a
         fetch. */
     @JavascriptInterface public String pendingUpdate(){ return AppUpdater.pendingVersion(); }
+    /** Les fonds deja presents dans le dossier, pour que le selecteur les
+        marque au lieu de les reproposer. */
+    @JavascriptInterface public String installedWallpapers(){
+      JSONArray out = new JSONArray();
+      if (wallpapers != null) for (String name : wallpapers.installed()) out.put(name);
+      return out.toString();
+    }
+    /** Telecharge UN fond, verifie son empreinte, l'ecrit dans le dossier, et
+        repond a la page par un evenement — le pont ne peut pas rendre un
+        resultat asynchrone. */
+    @JavascriptInterface public void downloadWallpaper(String name, String url, String sha256){
+      io.execute(() -> {
+        String error = "";
+        try {
+          if (wallpapers != null) wallpapers.download(name, url, sha256);
+        } catch (Exception failure) {
+          error = failure.getMessage() == null ? "failed" : failure.getMessage();
+          Log.w(TAG, "Telechargement du fond " + name + " impossible", failure);
+        }
+        final String status = error;
+        runOnUiThread(() -> {
+          if (webView == null) return;
+          webView.evaluateJavascript(
+            "window.dispatchEvent(new CustomEvent('neo-wallpaper-done',{detail:{name:"
+              + JSONObject.quote(name) + ",error:" + JSONObject.quote(status) + "}}))",
+            null);
+        });
+      });
+    }
     @JavascriptInterface public void pickDirectory(String id){pendingPickerId=id;Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION|Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);startActivityForResult(i,PICK_TREE);}
     @JavascriptInterface public void pickFiles(String id,boolean multiple){pendingPickerId=id;pendingMultiple=multiple;Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("*/*");i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,multiple);i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,PICK_FILES);}
     @JavascriptInterface public void invoke(String id,String command,String args){io.execute(()->{try{Object out=handle(command,new JSONObject(args));resolve(id,true,out==null?"null":(out instanceof String?JSONObject.quote((String)out):out.toString()));}catch(Exception e){resolve(id,false,e.getMessage()==null?e.toString():e.getMessage());}});}
