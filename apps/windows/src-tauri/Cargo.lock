@@ -2125,7 +2125,7 @@ dependencies = [
 
 [[package]]
 name = "neo-calendar-windows"
-version = "1.38.11"
+version = "1.38.12"
 dependencies = [
  "serde",
  "serde_json",
