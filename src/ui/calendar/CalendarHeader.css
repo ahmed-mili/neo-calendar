@@ -355,9 +355,7 @@
    the button — the way an unread count sits on the thing that leads to what is
    unread. It survives "Later", which dismisses the prompt and not the fact.
 
-   The button needs a positioning context; it is a plain .nc-btn otherwise. The
-   ring is the app bar's own dark, so the dot reads as a separate object rather
-   than as a red pixel welded to the top stroke of the icon. */
+   The button needs a positioning context; it is a plain .nc-btn otherwise. */
 .nc-android-menu-btn {
     position: relative;
 }
@@ -366,10 +364,12 @@
     position: absolute;
     top: 6px;
     right: 6px;
-    width: 9px;
-    height: 9px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--nc-update-accent, #f38ba8);
-    box-shadow: 0 0 0 2px var(--nc-bg-primary, #11111b);
+    /* No ring. It was there to separate the dot from the icon's top stroke, but
+       on the wallpaper it read as a dark halo around a small bright thing —
+       heavier than the news it carries. The gap does that job on its own. */
     pointer-events: none;
 }

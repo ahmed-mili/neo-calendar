@@ -138,38 +138,6 @@
     transform: translate(0, -1px) rotate(0deg);
 }
 
-/* Collapsed all-day: one compact label per day, in that day's column. */
-.nc-allday-collapsed-day {
-    position: absolute;
-    top: 1px;
-    bottom: 1px;
-    left: 2px;
-    right: 2px;
-    display: flex;
-    align-items: center;
-    padding: 0 6px;
-    border-radius: 4px;
-    font-size: 11px;
-    line-height: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    cursor: pointer;
-}
-
-.nc-allday-collapsed-day.is-count {
-    color: var(--nc-text-faint, var(--text-faint));
-}
-
-.nc-allday-collapsed-day.is-count:hover {
-    color: var(--nc-text-primary, var(--text-normal));
-}
-
-.nc-allday-collapsed-day.is-single {
-    color: var(--nc-text-primary, var(--text-normal));
-    font-weight: 500;
-}
-
 /* ── Timezone corner control (left-rail corner) ───────────── */
 
 .nc-left-rail-corner {

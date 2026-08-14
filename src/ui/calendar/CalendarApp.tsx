@@ -740,17 +740,12 @@ function CalendarAppInner(props: CalendarAppProps) {
     );
 
     const handleChangeHomeTimezone = useCallback(() => {
-        openTimezonePicker(
-            props.plugin.app,
-            new Date(),
-            recentTimezones,
-            (tz) => {
-                addRecentTimezone(tz);
-                settings.primaryTimezone = tz;
-                props.plugin.saveData(props.plugin.settings);
-                setPrimaryTimezone(tz);
-            }
-        );
+        openTimezonePicker(new Date(), recentTimezones, (tz) => {
+            addRecentTimezone(tz);
+            settings.primaryTimezone = tz;
+            props.plugin.saveData(props.plugin.settings);
+            setPrimaryTimezone(tz);
+        });
     }, [settings, props.plugin, addRecentTimezone, recentTimezones]);
 
     // ── Le système change de fuseau (on descend d'avion) ─────────
@@ -780,45 +775,36 @@ function CalendarAppInner(props: CalendarAppProps) {
 
     const handleChangeTimezone = useCallback(
         (oldTz: string) => {
-            openTimezonePicker(
-                props.plugin.app,
-                new Date(),
-                recentTimezones,
-                (newTz) => {
-                    addRecentTimezone(newTz);
-                    setSecondaryTimezones((prev) => {
-                        if (!newTz || newTz === oldTz) return prev;
-                        // Replace in place; drop a duplicate if the new zone is
-                        // already shown elsewhere.
-                        const next = prev
-                            .map((t) => (t === oldTz ? newTz : t))
-                            .filter((t, i, a) => a.indexOf(t) === i);
-                        settings.secondaryTimezones = next;
-                        props.plugin.saveData(props.plugin.settings);
-                        return next;
-                    });
-                }
-            );
+            openTimezonePicker(new Date(), recentTimezones, (newTz) => {
+                addRecentTimezone(newTz);
+                setSecondaryTimezones((prev) => {
+                    if (!newTz || newTz === oldTz) return prev;
+                    // Replace in place; drop a duplicate if the new zone is
+                    // already shown elsewhere.
+                    const next = prev
+                        .map((t) => (t === oldTz ? newTz : t))
+                        .filter((t, i, a) => a.indexOf(t) === i);
+                    settings.secondaryTimezones = next;
+                    props.plugin.saveData(props.plugin.settings);
+                    return next;
+                });
+            });
         },
         [settings, props.plugin, addRecentTimezone, recentTimezones]
     );
 
     const handleRenameTimezone = useCallback(
         (tz: string) => {
-            openTimezoneRename(
-                props.plugin.app,
-                settings.timezoneLabels?.[tz] ?? "",
-                (label) => {
-                    setTimezoneLabels((prev) => {
-                        const next = { ...prev };
-                        if (label) next[tz] = label;
-                        else delete next[tz];
-                        settings.timezoneLabels = next;
-                        props.plugin.saveData(props.plugin.settings);
-                        return next;
-                    });
-                }
-            );
+            openTimezoneRename(settings.timezoneLabels?.[tz] ?? "", (label) => {
+                setTimezoneLabels((prev) => {
+                    const next = { ...prev };
+                    if (label) next[tz] = label;
+                    else delete next[tz];
+                    settings.timezoneLabels = next;
+                    props.plugin.saveData(props.plugin.settings);
+                    return next;
+                });
+            });
         },
         [settings, props.plugin]
     );

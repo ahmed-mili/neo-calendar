@@ -2,7 +2,11 @@ import { DateTime } from "luxon";
 import { NeoEvent } from "../../types";
 import { DisplayEvent, CalendarSource } from "../types";
 
-import { SLOT_HEIGHT, currentHourHeight } from "./calendarConstants";
+import {
+    SLOT_HEIGHT,
+    currentHourHeight,
+    ALLDAY_ROW_HEIGHT,
+} from "./calendarConstants";
 import { startOfDay as startOfDayFn } from "./calendarDateUtils";
 
 // Re-export constants, date utils, formatters, and event expansion
@@ -270,6 +274,22 @@ export function isAndroidRuntime(): boolean {
         typeof document !== "undefined" &&
         document.body.classList.contains("nc-platform-android")
     );
+}
+
+/**
+ * How tall one all-day lane is, in pixels.
+ *
+ * Doubled on the phone. At 24px a lane held one event and nothing else: the
+ * band was exactly as tall as its single bar, so there was no room to aim at
+ * under an existing event, and adding a second one meant hitting a seam. 48
+ * leaves a bar its size and a gap beneath it worth pressing.
+ *
+ * A number and not a CSS variable because the lane maths is done in JS — the
+ * band's height, the top of each bar, the scroll correction under it all come
+ * from this, and a value only the stylesheet knew would put them out of step.
+ */
+export function allDayRowHeight(): number {
+    return isAndroidRuntime() ? 48 : ALLDAY_ROW_HEIGHT;
 }
 
 /**

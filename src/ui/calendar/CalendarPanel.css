@@ -1964,3 +1964,77 @@
     border-color: var(--nc-border);
     color: var(--nc-text-secondary);
 }
+
+/* ── Time-zone surfaces (choose / rename) ──────────────────── */
+
+/* These replace two Obsidian modals that were empty stubs off Obsidian — see
+   timezoneModals.tsx. Centred rather than anchored: they are opened from a
+   context-menu item, and by then the menu that anchored it is gone. */
+.nc-tz-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.nc-tz-overlay-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(420px, 100%);
+    max-height: min(70vh, 560px);
+    padding: 14px;
+    border: 1px solid var(--nc-border);
+    border-radius: 16px;
+    background: var(--nc-bg-secondary, #1e1e2e);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.nc-tz-overlay-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-tz-overlay-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.nc-tz-overlay-cancel,
+.nc-tz-overlay-save {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: none !important;
+}
+
+.nc-tz-overlay-cancel {
+    background: transparent !important;
+    color: var(--nc-text-secondary, var(--text-muted));
+}
+
+.nc-tz-overlay-save {
+    background: var(--nc-accent) !important;
+    color: var(--nc-accent-text, #11111b);
+}
+
+/* Inside the sheet the list is what stretches, not the search field above it. */
+.nc-tz-overlay-sheet .nc-tz-picker-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.nc-tz-overlay-sheet .nc-tz-picker-input {
+    flex: 0 0 auto;
+}

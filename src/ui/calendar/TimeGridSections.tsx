@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import {
     OVERLAP_COL_GAP,
     EVENT_VGAP,
-    ALLDAY_ROW_HEIGHT,
+    allDayRowHeight,
     DAYS_SHORT,
     formatHour,
     isToday,
@@ -362,122 +362,19 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
             ];
         });
 
-        // Collapsed: one compact label per day, positioned in that day's
-        // column (Notion-style). A day with a single all-day event shows it as
-        // a mini bar; a day with several shows "N events".
-        if (collapsed) {
-            // A single-day event occupies one cell; a multi-day one is "single"
-            // in each cell it spans. Render its bar only on the first such cell
-            // so we never mount two EventBlocks with the same dnd-kit id.
-            const renderedSingles = new Set<string>();
-            return (
-                <div
-                    className="nc-allday-row nc-allday-collapsed"
-                    ref={ref}
-                    style={{
-                        ...(stickyTop !== undefined ? { top: stickyTop } : {}),
-                        width: mainWidth || scrollerWidthStyle,
-                    }}
-                >
-                    <div
-                        className="nc-allday-track"
-                        ref={trackRef}
-                        style={{
-                            width: trackWidth || scrollerWidthStyle,
-                            height: ALLDAY_ROW_HEIGHT,
-                        }}
-                    >
-                        {/* Flex cells (one per day) match the header/day-column
-                        layout exactly, so each count sits under its day. */}
-                        <div className="nc-allday-cells">
-                            {extendedDates.map((date, dayIdx) => {
-                                const dayBars = allDayLanes.bars.filter(
-                                    (b) =>
-                                        b.startIdx <= dayIdx &&
-                                        dayIdx <= b.startIdx + b.span - 1
-                                );
-                                const single =
-                                    dayBars.length === 1
-                                        ? dayBars[0].event
-                                        : null;
-                                let firstOccurrence = false;
-                                if (single) {
-                                    firstOccurrence = !renderedSingles.has(
-                                        single.id
-                                    );
-                                    if (firstOccurrence)
-                                        renderedSingles.add(single.id);
-                                }
-                                return (
-                                    <div
-                                        key={date.toDateString()}
-                                        className="nc-allday-cell"
-                                    >
-                                        {/* A day with one event renders it as a
-                                        normal bar (never a faded preview); only
-                                        days with several events collapse to a
-                                        count. */}
-                                        {single ? (
-                                            firstOccurrence ? (
-                                                <EventBlock
-                                                    event={single}
-                                                    compact
-                                                    timeFormat24h={
-                                                        timeFormat24h
-                                                    }
-                                                    onEventClick={onEventClick}
-                                                    onContextMenu={
-                                                        onContextMenu
-                                                    }
-                                                    onToggleTask={onToggleTask}
-                                                    style={{
-                                                        position: "absolute",
-                                                        top: 1,
-                                                        bottom: 1,
-                                                        left: 2,
-                                                        right: 2,
-                                                    }}
-                                                />
-                                            ) : null
-                                        ) : dayBars.length > 0 ? (
-                                            <div
-                                                className="nc-allday-collapsed-day is-count"
-                                                title={`${dayBars.length} events`}
-                                                onClick={() =>
-                                                    onToggleCollapse?.()
-                                                }
-                                            >
-                                                {`${dayBars.length} events`}
-                                            </div>
-                                        ) : null}
-                                        {/* Drop-preview frame while dragging an
-                                        event onto this day, even when the band
-                                        is collapsed (Notion shows it too). */}
-                                        {allDayPreviews.some(
-                                            (p) => p.idx === dayIdx
-                                        ) && (
-                                            <div
-                                                className="nc-drop-preview nc-allday-draft"
-                                                style={{
-                                                    position: "absolute",
-                                                    top: 1,
-                                                    bottom: 1,
-                                                    left: 2,
-                                                    right: 2,
-                                                    color: allDayPreviews.find(
-                                                        (p) => p.idx === dayIdx
-                                                    )?.color,
-                                                }}
-                                            />
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-            );
-        }
+        // NO separate collapsed layout, and that is the point.
+        //
+        // There used to be one: each day drew its lone event as a bar inset in
+        // its own cell, and a day with several drew a count. Which meant an
+        // event MOVED and CHANGED SIZE on collapse — a cell-wide box with 2px
+        // insets instead of the lane bar it had been, spanning one day instead
+        // of its real span. Folding the band is a change to the BAND, and it
+        // should leave what is inside it exactly where it was.
+        //
+        // Collapsing now only shortens the row: same track, same lanes, same
+        // geometry, and the rows past the first are simply out of view. The
+        // height is decided in TimeGrid (allDayVisibleRows) and the row scrolls
+        // internally, so they can still be reached without unfolding.
 
         return (
             <div
@@ -493,7 +390,7 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                     ref={trackRef}
                     style={{
                         width: trackWidth || scrollerWidthStyle,
-                        height: contentRows * ALLDAY_ROW_HEIGHT,
+                        height: contentRows * allDayRowHeight(),
                     }}
                 >
                     {/* Per-day background grid (double-click target + draft) */}
@@ -521,9 +418,9 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                                 // already holds, never over it.
                                                 top:
                                                     (draftLane ?? 0) *
-                                                        ALLDAY_ROW_HEIGHT +
+                                                        allDayRowHeight() +
                                                     1,
-                                                height: ALLDAY_ROW_HEIGHT - 2,
+                                                height: allDayRowHeight() - 2,
                                                 backgroundColor: draftColor
                                                     ? draftColor + "25"
                                                     : undefined,
@@ -547,8 +444,8 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                 onToggleTask={onToggleTask}
                                 style={{
                                     position: "absolute",
-                                    top: bar.lane * ALLDAY_ROW_HEIGHT + 1,
-                                    height: ALLDAY_ROW_HEIGHT - 2,
+                                    top: bar.lane * allDayRowHeight() + 1,
+                                    height: allDayRowHeight() - 2,
                                     left: `${(bar.startIdx / len) * 100}%`,
                                     width: `calc(${
                                         (bar.span / len) * 100
@@ -561,8 +458,8 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                 key={p.id}
                                 className="nc-drop-preview nc-allday-draft"
                                 style={{
-                                    top: p.lane * ALLDAY_ROW_HEIGHT + 1,
-                                    height: ALLDAY_ROW_HEIGHT - 2,
+                                    top: p.lane * allDayRowHeight() + 1,
+                                    height: allDayRowHeight() - 2,
                                     left: `${(p.idx / len) * 100}%`,
                                     width: `calc(${
                                         (p.span / len) * 100
@@ -744,9 +641,7 @@ function DayColumn({
                         key={p.event.id}
                         className="nc-drop-preview"
                         style={{
-                            top: scaledPx(
-                                eventTopHours(p.newStart, dayStart)
-                            ),
+                            top: scaledPx(eventTopHours(p.newStart, dayStart)),
                             height: scaledHeightPx(
                                 eventDurationHours(p.newStart, p.newEnd)
                             ),

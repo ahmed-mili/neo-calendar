@@ -4,7 +4,7 @@ import { useRef, useLayoutEffect, useMemo, useState } from "react";
 import { DndContext, DragOverlay, closestCenter } from "@dnd-kit/core";
 import {
     currentHourHeight,
-    ALLDAY_ROW_HEIGHT,
+    allDayRowHeight,
     ALLDAY_MAX_ROWS,
     ALLDAY_GROW_MS,
     addDays,
@@ -117,10 +117,7 @@ function prefersReducedMotion(): boolean {
 }
 
 function clampScrollTop(scroller: HTMLElement): number {
-    const maximum = Math.max(
-        0,
-        scroller.scrollHeight - scroller.clientHeight
-    );
+    const maximum = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
     return Math.min(Math.max(scroller.scrollTop, 0), maximum);
 }
 
@@ -360,7 +357,7 @@ export default function TimeGrid(props: TimeGridProps) {
     const allDayVisibleRows = allDayCollapsed
         ? 1
         : Math.min(allDayContentRows, ALLDAY_MAX_ROWS);
-    const allDayHeight = allDayVisibleRows * ALLDAY_ROW_HEIGHT;
+    const allDayHeight = allDayVisibleRows * allDayRowHeight();
 
     const overlapByDate = useMemo(() => {
         const map = new Map<string, ReturnType<typeof computeOverlapGroups>>();
@@ -403,9 +400,8 @@ export default function TimeGrid(props: TimeGridProps) {
                 document.documentElement.classList.contains(
                     "nc-platform-android"
                 ) ||
-                document.body?.classList.contains(
-                    "nc-platform-android"
-                ) === true
+                document.body?.classList.contains("nc-platform-android") ===
+                    true
             );
         };
 
@@ -422,70 +418,39 @@ export default function TimeGrid(props: TimeGridProps) {
                     ? element.clientHeight / currentHourHeight()
                     : 8;
 
-            const hoursAboveCurrent =
-                isAndroidRuntime()
-                    ? Math.min(
-                          6,
-                          Math.max(
-                              3.5,
-                              viewportHours * 0.68
-                          )
-                      )
-                    : 1;
+            const hoursAboveCurrent = isAndroidRuntime()
+                ? Math.min(6, Math.max(3.5, viewportHours * 0.68))
+                : 1;
 
-            const requestedScroll =
-                Math.max(
-                    0,
-                    (
-                        currentHour -
-                        hoursAboveCurrent
-                    ) * currentHourHeight()
-                );
+            const requestedScroll = Math.max(
+                0,
+                (currentHour - hoursAboveCurrent) * currentHourHeight()
+            );
 
-            const maximumScroll =
-                Math.max(
-                    0,
-                    element.scrollHeight -
-                        element.clientHeight
-                );
+            const maximumScroll = Math.max(
+                0,
+                element.scrollHeight - element.clientHeight
+            );
 
-            element.scrollTop =
-                Math.min(
-                    requestedScroll,
-                    maximumScroll
-                );
+            element.scrollTop = Math.min(requestedScroll, maximumScroll);
         };
 
         applyInitialScroll();
 
-        firstFrame =
-            window.requestAnimationFrame(() => {
-                applyInitialScroll();
+        firstFrame = window.requestAnimationFrame(() => {
+            applyInitialScroll();
 
-                secondFrame =
-                    window.requestAnimationFrame(
-                        applyInitialScroll
-                    );
-            });
+            secondFrame = window.requestAnimationFrame(applyInitialScroll);
+        });
 
-        settleTimer =
-            window.setTimeout(
-                applyInitialScroll,
-                220
-            );
+        settleTimer = window.setTimeout(applyInitialScroll, 220);
 
         return () => {
-            window.cancelAnimationFrame(
-                firstFrame
-            );
+            window.cancelAnimationFrame(firstFrame);
 
-            window.cancelAnimationFrame(
-                secondFrame
-            );
+            window.cancelAnimationFrame(secondFrame);
 
-            window.clearTimeout(
-                settleTimer
-            );
+            window.clearTimeout(settleTimer);
         };
     }, []);
     // NEO_ANDROID_INITIAL_SCROLL_V7_4_END

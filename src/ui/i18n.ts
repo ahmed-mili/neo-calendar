@@ -151,6 +151,9 @@ const FR: Record<string, string> = {
     "Your system time moved to the time zone":
         "L'heure de votre système est passée au fuseau horaire",
     "Add timezone": "Ajouter un fuseau horaire",
+    "Rename time zone": "Renommer le fuseau horaire",
+    Label: "Libellé",
+    Recent: "Récent",
     "Total time": "Temps total",
     "Event totals": "Totaux des événements",
     "Add links and attachments": "Ajouter des liens et des fichiers",
