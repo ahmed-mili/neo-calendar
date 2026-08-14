@@ -30,6 +30,14 @@ export function appVersion(): string {
  *  newer, so the badge appears without anyone waiting for a poll. */
 export const UPDATE_EVENT = "neo-update-available";
 
+/** Fired with `detail.status` once a check asked for BY HAND has finished:
+ *  "current" when nothing is newer, "failed" when the look could not be taken.
+ *  A check that finds something opens the prompt instead, and says so through
+ *  UPDATE_EVENT — so there is no "found" here. */
+export const CHECK_RESULT_EVENT = "neo-update-checked";
+
+export type CheckResult = "current" | "failed";
+
 interface UpdateBridge {
     checkForUpdates?: () => void;
     pendingUpdate?: () => string;

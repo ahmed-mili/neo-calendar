@@ -27,6 +27,8 @@ import { ObsidianIcon } from "../components/ObsidianIcon";
 import { useSidebarReorder } from "./useSidebarReorder";
 import { isAndroidRuntime } from "./CalendarUtils";
 import {
+    CHECK_RESULT_EVENT,
+    CheckResult,
     appVersion,
     canCheckForUpdates,
     requestUpdateCheck,
@@ -127,11 +129,33 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
     const version = appVersion();
     const updateVersion = useUpdateAvailable();
     const [checkingUpdate, setCheckingUpdate] = React.useState(false);
+    const [checkResult, setCheckResult] = React.useState<CheckResult | null>(
+        null
+    );
+    // The shell answers a hand-asked check through this event rather than
+    // through a Toast, so the control that asked is the one that answers.
+    React.useEffect(() => {
+        const onResult = (event: Event) => {
+            const detail = (event as CustomEvent<{ status?: string }>).detail;
+            setCheckingUpdate(false);
+            setCheckResult(detail?.status === "failed" ? "failed" : "current");
+        };
+        window.addEventListener(CHECK_RESULT_EVENT, onResult);
+        return () => window.removeEventListener(CHECK_RESULT_EVENT, onResult);
+    }, []);
+    // Both transient states hand the pill back to the version number on their
+    // own. A control left reading "Checking…" because an answer never arrived
+    // is a worse lie than one that says nothing.
     React.useEffect(() => {
         if (!checkingUpdate) return;
-        const timer = window.setTimeout(() => setCheckingUpdate(false), 4000);
+        const timer = window.setTimeout(() => setCheckingUpdate(false), 8000);
         return () => window.clearTimeout(timer);
     }, [checkingUpdate]);
+    React.useEffect(() => {
+        if (!checkResult) return;
+        const timer = window.setTimeout(() => setCheckResult(null), 2500);
+        return () => window.clearTimeout(timer);
+    }, [checkResult]);
     // Collapse toggle for the calendar list (chevron next to the "Calendars"
     // header), mirroring Notion's collapsible section.
     const [calendarsCollapsed, setCalendarsCollapsed] = React.useState(false);
@@ -319,6 +343,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                         : ""
                                 }`}
                                 onClick={() => {
+                                    setCheckResult(null);
                                     setCheckingUpdate(true);
                                     requestUpdateCheck();
                                 }}
@@ -333,6 +358,10 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                 <span>
                                     {checkingUpdate
                                         ? t("Checking…")
+                                        : checkResult === "current"
+                                        ? t("Up to date")
+                                        : checkResult === "failed"
+                                        ? t("Check failed")
                                         : updateVersion
                                         ? t("Update")
                                         : `v${version}`}

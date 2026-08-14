@@ -122,7 +122,9 @@ const FR: Record<string, string> = {
     "Remove date": "Retirer la date",
     // La version, a gauche de l'engrenage : c'est elle le bouton.
     "Check for updates": "Rechercher des mises à jour",
-    "Checking…": "Recherche…",
+    "Checking…": "Vérification…",
+    "Up to date": "À jour",
+    "Check failed": "Échec",
     "Update available": "Mise à jour disponible",
     Update: "Mettre à jour",
     "Removing the date on a repeating event also removes the repeat. It becomes a single unscheduled entry.":

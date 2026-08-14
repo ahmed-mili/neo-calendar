@@ -103,6 +103,16 @@ public class MainActivity extends Activity {
           "window.dispatchEvent(new Event('neo-update-available'))", null);
       }
     });
+    // The answer to a hand-asked check goes back to the control that asked it,
+    // rather than to a system Toast over the calendar. The status is one of a
+    // fixed set of words, so it is quoted straight into the event.
+    appUpdater.setOnCheckResult(status -> {
+      if (webView != null) {
+        webView.evaluateJavascript(
+          "window.dispatchEvent(new CustomEvent('neo-update-checked',"
+            + "{detail:{status:" + JSONObject.quote(status) + "}}))", null);
+      }
+    });
 
     // Hold the system splash screen until the interface has something to show.
     // Without this it lifts as soon as the activity can draw — which is before

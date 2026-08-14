@@ -18,7 +18,7 @@
     <string name="reminder_channel">"Rappels d’événements"</string>
     <string name="reminder_channel_description">"Prévient avant le début d’un événement."</string>
     <string name="update_available">"Mise à jour disponible"</string>
-    <string name="update_message">"Neo Calendar %1$s est disponible. Télécharger et installer maintenant ?"</string>
+    <string name="update_message">"La version %1$s de Neo Calendar est disponible. Souhaitez-vous la télécharger et l’installer maintenant ?"</string>
     <string name="update_install">"Mettre à jour"</string>
     <string name="update_later">"Plus tard"</string>
     <string name="update_downloading">"Téléchargement de la mise à jour…"</string>
@@ -29,5 +29,4 @@
     <string name="update_ready_title">"Mise à jour prête"</string>
     <string name="update_ready_text">"Appuyez pour installer Neo Calendar %1$s"</string>
     <string name="update_failed_title">"Échec du téléchargement"</string>
-    <string name="update_none">"Neo Calendar est à jour."</string>
 </resources>

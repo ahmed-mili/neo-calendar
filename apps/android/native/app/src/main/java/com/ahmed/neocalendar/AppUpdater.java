@@ -86,6 +86,7 @@ final class AppUpdater {
   private final ExecutorService io;
   private File pendingApk;
   private Runnable onUpdateFound;
+  private java.util.function.Consumer<String> onCheckResult;
 
   AppUpdater(Activity activity, ExecutorService io) {
     this.activity = activity;
@@ -137,15 +138,23 @@ final class AppUpdater {
           return;
         }
         pendingVersion = "";
-        activity.runOnUiThread(() ->
-          Toast.makeText(activity, R.string.update_none, Toast.LENGTH_SHORT).show()
-        );
+        report("current");
       } catch (Exception error) {
         Log.w(TAG, "Manual update check failed", error);
-        activity.runOnUiThread(() ->
-          Toast.makeText(activity, R.string.update_failed, Toast.LENGTH_LONG).show()
-        );
+        report("failed");
       }
+    });
+  }
+
+  /** The answer to a check asked for by hand, handed to the page.
+   *
+   *  It used to be a Toast: a grey lozenge over the calendar, in the system's
+   *  own styling, saying something about a button at the other end of the
+   *  screen. The button asked the question, so the button shows the answer —
+   *  see the version pill in CalendarSidebar.tsx. */
+  private void report(String status) {
+    activity.runOnUiThread(() -> {
+      if (onCheckResult != null) onCheckResult.accept(status);
     });
   }
 
@@ -160,6 +169,10 @@ final class AppUpdater {
 
   void setOnUpdateFound(Runnable listener) {
     onUpdateFound = listener;
+  }
+
+  void setOnCheckResult(java.util.function.Consumer<String> listener) {
+    onCheckResult = listener;
   }
 
   void resumePendingInstall() {
