@@ -1533,7 +1533,6 @@ export default function DesktopSettings({
                 <SettingsDialog
                     title={SECTION_TITLES[dialog.id]}
                     onClose={goBack}
-                    wide
                 >
                     {renderSection(dialog.id)}
                 </SettingsDialog>

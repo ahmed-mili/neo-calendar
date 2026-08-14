@@ -259,13 +259,10 @@ export function SettingsDialog({
     title,
     onClose,
     children,
-    wide = false,
 }: {
     title: string;
     onClose: () => void;
     children: React.ReactNode;
-    /** For a submenu holding rows rather than a list of names. */
-    wide?: boolean;
 }) {
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -288,11 +285,7 @@ export function SettingsDialog({
             }}
         >
             <section
-                className={
-                    wide
-                        ? "nc-choice-dialog nc-choice-dialog--wide"
-                        : "nc-choice-dialog"
-                }
+                className="nc-choice-dialog"
                 role="dialog"
                 aria-modal="true"
                 aria-label={title}

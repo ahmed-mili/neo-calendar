@@ -3361,6 +3361,102 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 }
 
 /*
+ * Un sous-menu se dessine comme la liste de choix, et pas autrement.
+ *
+ * Il gardait les blocs de la page dont il venait : des cartes dans un panneau,
+ * chacune avec son fond, ses coins et ses interstices — trois epaisseurs
+ * empilees pour trois lignes. A cote de « Mode de couleur », pose a plat sur le
+ * panneau, cela faisait deux dessins pour la meme chose.
+ *
+ * Les lignes reprennent donc la mesure des options : meme hauteur, meme retrait,
+ * meme corps de texte, et le panneau seul porte la matiere.
+ */
+.nc-choice-dialog .nc-set-groups {
+    gap: 14px;
+}
+
+.nc-choice-dialog .nc-set-group__rows {
+    display: grid !important;
+    gap: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* Rien entre les lignes : ni filet, ni carte, ni interstice. */
+.nc-choice-dialog .nc-set-group__rows > *,
+.nc-choice-dialog .nc-set-group__rows > *:first-child,
+.nc-choice-dialog .nc-set-group__rows > *:last-child,
+.nc-choice-dialog .nc-set-group__rows > *:only-child {
+    border-radius: 12px !important;
+    background: transparent !important;
+}
+
+.nc-choice-dialog .nc-set-group__rows > * + *::before {
+    display: none !important;
+}
+
+.nc-choice-dialog .nc-set-row {
+    min-height: 52px;
+    gap: 16px;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 16px;
+}
+
+.nc-choice-dialog .nc-set-row__label,
+.nc-choice-dialog .nc-set-row__value {
+    font-size: 16px;
+}
+
+/*
+ * Dans le panneau, une ligne met sa reponse sous son nom.
+ *
+ * La largeur d'une liste de choix ne tient pas un nom et sa valeur cote a cote :
+ * « Dossier de donnees » se coupait en deux pour laisser passer « Neo Calendar »,
+ * et « Stockage en ligne » faisait de meme pendant que « OneDrive, Google Drive,
+ * Dropbox » etait tronque. Empilees, les deux se lisent, et la ligne garde la
+ * hauteur d'une ligne de liste.
+ */
+.nc-choice-dialog .nc-set-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    row-gap: 2px;
+}
+
+.nc-choice-dialog .nc-set-row__value {
+    grid-column: 2;
+    justify-self: start;
+    max-width: 100%;
+    color: var(--nc-text-secondary, var(--text-muted));
+    text-align: left;
+    white-space: normal;
+}
+
+/* L'icone et le chevron se centrent sur la ligne entiere, pas sur son nom. */
+.nc-choice-dialog .nc-set-row__icon,
+.nc-choice-dialog .nc-set-row__trailing {
+    grid-row: 1 / -1;
+}
+
+.nc-choice-dialog .nc-set-row__trailing {
+    grid-column: 3;
+}
+
+/* Le titre d'un bloc et sa note se rangent sur le meme retrait que les lignes. */
+.nc-choice-dialog .nc-set-group__title,
+.nc-choice-dialog .nc-set-group__note {
+    margin-right: 16px;
+    margin-left: 16px;
+}
+
+.nc-choice-dialog .nc-set-group__note {
+    font-size: 13px;
+}
+
+/*
  * A short list of choices, taken over the screen that asked for it.
  *
  * It used to be a page: a back arrow, a title bar, and three lines on an
@@ -3423,13 +3519,6 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     letter-spacing: -0.01em;
 }
 
-/* A submenu of rows rather than a list of names needs the width its values
-   were written for; the rows bring their own inset, so the panel gives less. */
-.nc-choice-dialog--wide {
-    width: min(400px, 100%);
-    padding: 20px 10px 14px;
-}
-
 /* Anything taller than the screen scrolls inside the panel rather than growing
    past it — still less disruptive than replacing the screen. */
 .nc-choice-dialog__body {
@@ -3440,45 +3529,6 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 
 .nc-choice-dialog__options {
     display: grid;
-}
-
-/* Blocks sit closer together here than down a whole page: there are two of
-   them at most, and the panel's own edge already separates them from the rest. */
-.nc-choice-dialog--wide .nc-set-groups {
-    gap: 18px;
-}
-
-/*
- * A row that only states something — a name and what it amounts to, with
- * nothing to press — sets its answer under its name in the narrower panel.
- *
- * Side by side they no longer fit: "Stockage en ligne" wrapped to two lines
- * while "OneDrive, Google Drive, Dropbox" was cut after the second name, so
- * neither half could be read. Rows one can press keep their single line — the
- * label is short there by construction, and stacking would make a button look
- * like a paragraph.
- */
-/* The panel is narrower than a page, so the rows give back what they can:
-   a little of their inset and of the gap between icon and name. */
-.nc-choice-dialog--wide .nc-set-row {
-    gap: 10px;
-    padding-right: 10px;
-    padding-left: 12px;
-}
-
-.nc-choice-dialog--wide div.nc-set-row {
-    grid-template-columns: auto minmax(0, 1fr);
-    row-gap: 2px;
-    padding-top: 11px;
-    padding-bottom: 12px;
-}
-
-.nc-choice-dialog--wide div.nc-set-row .nc-set-row__value {
-    grid-column: 2;
-    justify-self: start;
-    max-width: 100%;
-    text-align: left;
-    white-space: normal;
 }
 
 .nc-choice-option {
