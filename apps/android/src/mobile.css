@@ -369,7 +369,6 @@ body.nc-platform-android .nc-mobile-new-event:active {
     transform: scale(0.94);
 }
 
-
 /* â”€â”€ Time grid tuned for a 6â€“7 inch portrait display â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 body.nc-platform-android .nc-timegrid-header {
@@ -1363,14 +1362,6 @@ body.nc-platform-android .nc-left-rail-window {
 }
 
 /* === NEO ANDROID NATIVE SHELL V5 END === */
-
-
-
-
-
-
-
-
 
 /* === NEO ANDROID DRAFT SELECTION START === */
 
@@ -2419,10 +2410,6 @@ body.nc-platform-android
 
 /* === NEO ANDROID NATIVE TOUCH RESIZE V7.1 END === */
 
-
-
-
-
 /* === NEO ANDROID EMPTY GRID MENU GUARD V7.7 START === */
 
 /*
@@ -3385,155 +3372,17 @@ body.nc-platform-android .nc-settings__page::-webkit-scrollbar {
     display: none !important;
 }
 
-body.nc-platform-android .nc-settings__appearance,
-body.nc-platform-android .nc-theme-studio,
-body.nc-platform-android .nc-wallpaper-effects {
+/* La page d'apparence tient dans la largeur comme les autres : ses lignes
+   portent des curseurs et des champs, qui poussent sans cette borne. */
+body.nc-platform-android .nc-settings__appearance {
     min-width: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
-}
-
-/*
- * One card per adjustment:
- * line 1 = label / value / reset
- * line 2 = full-width slider
- */
-body.nc-platform-android .nc-wallpaper-effects {
-    box-sizing: border-box !important;
-    display: grid !important;
-    gap: 12px !important;
-    margin: 14px 0 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-}
-
-body.nc-platform-android .nc-wallpaper-effects__header {
-    box-sizing: border-box !important;
-    display: grid !important;
-    grid-template-columns: 24px minmax(0, 1fr) !important;
-    align-items: start !important;
-    gap: 10px !important;
-
-    padding: 2px 2px 0 !important;
-}
-
-body.nc-platform-android .nc-wallpaper-effects__header > span {
-    min-width: 0 !important;
-    display: grid !important;
-    gap: 3px !important;
-}
-
-body.nc-platform-android .nc-wallpaper-effects__header strong,
-body.nc-platform-android .nc-wallpaper-effects__header small {
-    display: block !important;
-    max-width: 100% !important;
-    line-height: 1.35 !important;
-    white-space: normal !important;
-}
-
-body.nc-platform-android .nc-wallpaper-effects__rows {
-    min-width: 0 !important;
-    display: grid !important;
-    gap: 10px !important;
-}
-
-body.nc-platform-android .nc-wallpaper-effect-row {
-    box-sizing: border-box !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 104px !important;
-
-    display: grid !important;
-    grid-template-columns:
-        minmax(0, 1fr)
-        auto
-        48px !important;
-
-    grid-template-areas:
-        "label value reset"
-        "slider slider slider" !important;
-
-    align-items: center !important;
-    gap: 12px 10px !important;
-
-    margin: 0 !important;
-    padding: 14px !important;
-
-    border: 1px solid var(--background-modifier-border) !important;
-    border-radius: 14px !important;
-
-    background:
-        color-mix(
-            in srgb,
-            var(--background-secondary) 76%,
-            transparent
-        ) !important;
-}
-
-body.nc-platform-android .nc-wallpaper-effect-row__label {
-    grid-area: label !important;
-    min-width: 0 !important;
-    display: grid !important;
-    gap: 3px !important;
-}
-
-body.nc-platform-android .nc-wallpaper-effect-row__label strong,
-body.nc-platform-android .nc-wallpaper-effect-row__label small {
-    display: block !important;
-    max-width: 100% !important;
-    line-height: 1.3 !important;
-    white-space: normal !important;
-}
-
-body.nc-platform-android .nc-wallpaper-effect-row output {
-    grid-area: value !important;
-    min-width: 42px !important;
-    white-space: nowrap !important;
-    text-align: right !important;
-    font-variant-numeric: tabular-nums !important;
-}
-
-body.nc-platform-android
-    .nc-wallpaper-effect-row
-    input[type="range"] {
-    grid-area: slider !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-}
-
-body.nc-platform-android .nc-wallpaper-effect-row__reset {
-    grid-area: reset !important;
-    box-sizing: border-box !important;
-    width: 48px !important;
-    height: 48px !important;
-    min-width: 48px !important;
-    min-height: 48px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    touch-action: manipulation !important;
 }
 
 @media (max-width: 360px) {
     body.nc-platform-android .nc-android-month-button {
         max-width: 34vw !important;
-    }
-
-    body.nc-platform-android .nc-wallpaper-effect-row {
-        grid-template-columns:
-            minmax(0, 1fr)
-            48px !important;
-
-        grid-template-areas:
-            "label reset"
-            "value reset"
-            "slider slider" !important;
-    }
-
-    body.nc-platform-android .nc-wallpaper-effect-row output {
-        justify-self: start !important;
-        text-align: left !important;
     }
 }
 
@@ -3681,8 +3530,6 @@ body.nc-platform-android .nc-android-day-switcher {
 }
 
 /* === NEO ANDROID DRAWER GLASS V8.5 END === */
-
-
 
 /* === NEO ANDROID FULL-HEIGHT EVENT SHEET V8.7 START === */
 
@@ -4574,7 +4421,6 @@ body.nc-sheet-dragging.nc-platform-android
 body.nc-platform-android .nc-mobile-new-event {
     display: grid !important;
 }
-
 
 /* Less rounded, and unmistakably the accent.
 

@@ -6,7 +6,13 @@ import React, {
     useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Download, Loader2, RotateCcw } from "lucide-react";
+import {
+    Check,
+    ChevronRight,
+    Download,
+    Loader2,
+    RotateCcw,
+} from "lucide-react";
 import {
     currentWallpaperRuntime,
     getWallpaper,
@@ -289,28 +295,31 @@ export default function ThemeWallpaperPicker({
     });
 
     return (
-        <div className="nc-theme-studio__row nc-theme-wallpaper-row">
-            <span>Image de fond</span>
+        <>
+            {/* Une ligne de réglage comme les autres : la vignette du fond
+                choisi tient la place de l'icône, et son nom celle de la
+                valeur. */}
             <button
                 ref={triggerRef}
-                className="nc-wallpaper-picker__trigger"
+                className="nc-set-row nc-set-row--action"
                 type="button"
                 aria-haspopup="listbox"
                 aria-expanded={open}
                 onClick={() => setOpen((currentOpen) => !currentOpen)}
             >
-                <WallpaperPreview
-                    wallpaper={current}
-                    accent={accent}
-                    surface={surface}
-                />
-                <span>
-                    <strong>{current.label}</strong>
+                <span className="nc-set-row__icon nc-set-row__icon--thumb">
+                    <WallpaperPreview
+                        wallpaper={current}
+                        accent={accent}
+                        surface={surface}
+                        className="nc-set-row__thumb"
+                    />
                 </span>
-                <ChevronDown
-                    size={16}
-                    className={open ? "nc-open" : undefined}
-                />
+                <span className="nc-set-row__label">{t("Wallpaper")}</span>
+                <span className="nc-set-row__value">{current.label}</span>
+                <span className="nc-set-row__trailing">
+                    <ChevronRight size={18} />
+                </span>
             </button>
 
             {open &&
@@ -363,6 +372,6 @@ export default function ThemeWallpaperPicker({
                     </div>,
                     document.body
                 )}
-        </div>
+        </>
     );
 }

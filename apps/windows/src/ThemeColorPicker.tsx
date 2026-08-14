@@ -7,7 +7,7 @@ import React, {
     useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { Check } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 
 interface ThemeColorPickerProps {
     label: string;
@@ -59,9 +59,7 @@ function hexToRgb(value: string): { r: number; g: number; b: number } {
 
 function rgbToHex(r: number, g: number, b: number): string {
     const part = (value: number) =>
-        Math.round(clamp(value, 0, 255))
-            .toString(16)
-            .padStart(2, "0");
+        Math.round(clamp(value, 0, 255)).toString(16).padStart(2, "0");
     return `#${part(r)}${part(g)}${part(b)}`.toUpperCase();
 }
 
@@ -241,7 +239,9 @@ export default function ThemeColorPicker({
                       }}
                       onPointerDown={(event) => {
                           saturationDragging.current = true;
-                          event.currentTarget.setPointerCapture(event.pointerId);
+                          event.currentTarget.setPointerCapture(
+                              event.pointerId
+                          );
                           updateSaturation(event.clientX, event.clientY);
                       }}
                       onPointerMove={(event) => {
@@ -269,7 +269,9 @@ export default function ThemeColorPicker({
                       className="nc-theme-color-popover__hue"
                       onPointerDown={(event) => {
                           hueDragging.current = true;
-                          event.currentTarget.setPointerCapture(event.pointerId);
+                          event.currentTarget.setPointerCapture(
+                              event.pointerId
+                          );
                           updateHue(event.clientX);
                       }}
                       onPointerMove={(event) => {
@@ -282,9 +284,7 @@ export default function ThemeColorPicker({
                           );
                       }}
                   >
-                      <span
-                          style={{ left: `${(hsv.h / 360) * 100}%` }}
-                      />
+                      <span style={{ left: `${(hsv.h / 360) * 100}%` }} />
                   </div>
                   <div className="nc-theme-color-popover__field">
                       <i style={{ backgroundColor: safeColor }} />
@@ -338,42 +338,45 @@ export default function ThemeColorPicker({
           )
         : null;
 
+    /*
+     * Une ligne de réglage comme les autres : la pastille tient la place de
+     * l'icône, le nom au milieu, la valeur à droite, un chevron pour dire qu'il
+     * y a quelque chose derrière.
+     *
+     * Le champ hexadécimal qui était posé là a disparu de la ligne — il vit
+     * dans le sélecteur, sous la roue et au-dessus des présélections, là où on
+     * le cherche quand on veut coller une valeur précise. Sur la ligne il ne
+     * servait qu'à faire une case de saisie au milieu d'une liste de réglages.
+     */
     return (
-        <div className="nc-theme-studio__row nc-theme-color-row">
-            <span>{label}</span>
-            <span
-                className={
-                    emphasized
-                        ? "nc-theme-color-editor nc-theme-color-editor--accent"
-                        : "nc-theme-color-editor"
-                }
-                style={
-                    emphasized && isHex(value)
-                        ? { backgroundColor: value }
-                        : undefined
-                }
+        <>
+            <button
+                ref={triggerRef}
+                type="button"
+                className="nc-set-row nc-set-row--action"
+                aria-haspopup="dialog"
+                aria-expanded={open}
+                onClick={() => setOpen((current) => !current)}
             >
-                <button
-                    ref={triggerRef}
-                    className="nc-theme-color-editor__trigger"
-                    type="button"
-                    aria-label={`Choisir ${label.toLowerCase()}`}
-                    aria-expanded={open}
-                    onClick={() => setOpen((current) => !current)}
-                >
-                    <i style={{ backgroundColor: safeColor }} />
-                </button>
-                <input
-                    className="nc-theme-color-editor__text"
-                    type="text"
-                    value={value.toUpperCase()}
-                    maxLength={7}
-                    onChange={(event) => onChange(event.target.value)}
-                    spellCheck={false}
-                    aria-invalid={!isHex(value)}
-                />
-            </span>
+                <span className="nc-set-row__icon">
+                    <i
+                        className={
+                            emphasized
+                                ? "nc-set-swatch nc-set-swatch--accent"
+                                : "nc-set-swatch"
+                        }
+                        style={{ backgroundColor: safeColor }}
+                    />
+                </span>
+                <span className="nc-set-row__label">{label}</span>
+                <span className="nc-set-row__value nc-set-row__value--code">
+                    {value.toUpperCase()}
+                </span>
+                <span className="nc-set-row__trailing">
+                    <ChevronRight size={18} />
+                </span>
+            </button>
             {popover}
-        </div>
+        </>
     );
 }

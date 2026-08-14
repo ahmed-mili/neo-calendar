@@ -17,7 +17,9 @@ import {
 import {
     SettingsGroup,
     SettingsChoiceRow,
+    SettingsFieldRow,
     SettingsRow,
+    SettingsSliderRow,
     SettingsToggleRow,
 } from "./SettingsPrimitives";
 import {
@@ -43,7 +45,7 @@ import {
     CalendarDays,
     CalendarRange,
     Check,
-    ChevronDown,
+    Code2,
     Copy,
     Columns2,
     FileText,
@@ -55,11 +57,14 @@ import {
     Moon,
     Monitor,
     Palette,
+    PanelLeft,
     RefreshCw,
     Smartphone,
     Plus,
+    SunMedium,
     Timer,
     Trash2,
+    Type,
     Upload,
     Wifi,
     X,
@@ -266,8 +271,6 @@ export default function DesktopSettings({
     // then how many entries actually came back as events.
     const [convertOpen, setConvertOpen] = useState(false);
     const [convertedCount, setConvertedCount] = useState<number | null>(null);
-    const [themePickerOpen, setThemePickerOpen] = useState(false);
-    const themePickerRef = useRef<HTMLDivElement>(null);
     const importThemeInputRef = useRef<HTMLInputElement>(null);
     const [appearance, setAppearance] = useState<AppearancePreferences>(() =>
         loadAppearancePreferences()
@@ -324,31 +327,11 @@ export default function DesktopSettings({
         if (!open) return;
         const closeOnEscape = (event: KeyboardEvent) => {
             if (event.key !== "Escape") return;
-            if (themePickerOpen) {
-                setThemePickerOpen(false);
-                return;
-            }
             if (!editingCalendarId) goBack();
         };
         window.addEventListener("keydown", closeOnEscape);
         return () => window.removeEventListener("keydown", closeOnEscape);
-    }, [editingCalendarId, goBack, open, themePickerOpen]);
-
-    useEffect(() => {
-        if (!themePickerOpen) return;
-        const closeOnPointerDown = (event: PointerEvent) => {
-            const target = event.target;
-            if (
-                target instanceof Node &&
-                !themePickerRef.current?.contains(target)
-            ) {
-                setThemePickerOpen(false);
-            }
-        };
-        window.addEventListener("pointerdown", closeOnPointerDown);
-        return () =>
-            window.removeEventListener("pointerdown", closeOnPointerDown);
-    }, [themePickerOpen]);
+    }, [editingCalendarId, goBack, open]);
 
     useEffect(() => {
         if (!open) return;
@@ -612,7 +595,9 @@ export default function DesktopSettings({
         <div className="nc-set-groups">
             <SettingsGroup
                 title={t("Calendar view")}
-                note={t("Without “Create an event by tapping a day of the month”, tapping a day opens the day view instead.")}
+                note={t(
+                    "Without “Create an event by tapping a day of the month”, tapping a day opens the day view instead."
+                )}
             >
                 <SettingsChoiceRow
                     label={t("Initial view on desktop")}
@@ -832,7 +817,11 @@ export default function DesktopSettings({
 
     const renderTimezones = () => (
         <div className="nc-set-groups">
-            <SettingsGroup note={t("An extra hour column appears in the week, day and three-day views.")}>
+            <SettingsGroup
+                note={t(
+                    "An extra hour column appears in the week, day and three-day views."
+                )}
+            >
                 <div className="nc-set-row nc-set-row--field">
                     <input
                         value={timezone}
@@ -887,7 +876,11 @@ export default function DesktopSettings({
 
     const renderFolder = () => (
         <div className="nc-set-groups">
-            <SettingsGroup note={t("Neo Calendar keeps its calendar files in this folder. Each direct subfolder is a calendar.")}>
+            <SettingsGroup
+                note={t(
+                    "Neo Calendar keeps its calendar files in this folder. Each direct subfolder is a calendar."
+                )}
+            >
                 <div className="nc-set-row nc-set-row--stacked">
                     <code>{dataFolder}</code>
                 </div>
@@ -905,7 +898,11 @@ export default function DesktopSettings({
 
     const renderVaults = () => (
         <div className="nc-set-groups">
-            <SettingsGroup note={t("Add the folder that holds your Obsidian vaults. Those sitting directly inside it with an .obsidian folder are detected.")}>
+            <SettingsGroup
+                note={t(
+                    "Add the folder that holds your Obsidian vaults. Those sitting directly inside it with an .obsidian folder are detected."
+                )}
+            >
                 <SettingsRow
                     label={
                         isChoosingVaultFolder
@@ -1010,7 +1007,11 @@ export default function DesktopSettings({
 
     const renderCalendars = () => (
         <div className="nc-set-groups">
-            <SettingsGroup note={t("Each direct subfolder of the data folder is a calendar.")}>
+            <SettingsGroup
+                note={t(
+                    "Each direct subfolder of the data folder is a calendar."
+                )}
+            >
                 <SettingsRow
                     label={t("Add calendar")}
                     value={t("Full note, ICS or automatic")}
@@ -1104,8 +1105,12 @@ export default function DesktopSettings({
                                     }}
                                     title={
                                         calendar.editable
-                                            ? t("Tap to set as default, double-tap to rename")
-                                            : t("Read-only calendar; double-tap to rename")
+                                            ? t(
+                                                  "Tap to set as default, double-tap to rename"
+                                              )
+                                            : t(
+                                                  "Read-only calendar; double-tap to rename"
+                                              )
                                     }
                                 >
                                     {calendar.name}
@@ -1119,7 +1124,9 @@ export default function DesktopSettings({
                             <button
                                 className="nc-settings__calendar-delete"
                                 type="button"
-                                onClick={() => void onDeleteCalendar(calendar.id)}
+                                onClick={() =>
+                                    void onDeleteCalendar(calendar.id)
+                                }
                                 aria-label={`Supprimer ${calendar.name}`}
                             >
                                 <Trash2 size={16} />
@@ -1133,7 +1140,11 @@ export default function DesktopSettings({
 
     const renderSync = () => (
         <div className="nc-set-groups">
-            <SettingsGroup note={t("Neo Calendar keeps its data in the folder you choose. Syncing is done by whichever tool you settle on.")}>
+            <SettingsGroup
+                note={t(
+                    "Neo Calendar keeps its data in the folder you choose. Syncing is done by whichever tool you settle on."
+                )}
+            >
                 <SettingsRow
                     label={t("Data folder")}
                     value={vaultName(dataFolder)}
@@ -1143,10 +1154,7 @@ export default function DesktopSettings({
             </SettingsGroup>
 
             <SettingsGroup title={t("Possible methods")}>
-                <SettingsRow
-                    label="Syncthing"
-                    value={t("Recommended")}
-                />
+                <SettingsRow label="Syncthing" value={t("Recommended")} />
                 <SettingsRow
                     label={t("Online storage")}
                     value={t("OneDrive, Google Drive, Dropbox")}
@@ -1159,106 +1167,62 @@ export default function DesktopSettings({
         </div>
     );
 
+    /*
+     * L'apparence, en lignes de réglage comme le reste.
+     *
+     * C'était une fiche à part : un en-tête portant le mode et trois boutons,
+     * des rangées séparées par des filets, des cartes bordées pour les curseurs
+     * du fond, et deux boutons en pied. Rien de tout cela ne ressemblait à
+     * l'écran d'où l'on venait — même écran, deux dessins.
+     *
+     * Tout passe donc par les mêmes blocs : un titre discret, des lignes
+     * pastille-nom-valeur-chevron, et ce qui ne tient pas sur une ligne (un
+     * curseur, une pile de polices) prend la seconde ligne en entier plutôt que
+     * de se serrer dans la colonne de droite.
+     */
     const renderAppearance = () => (
         <div className="nc-set-groups nc-settings__appearance">
-            <section className="nc-theme-studio">
-                <header className="nc-theme-studio__header">
-                    <strong>
-                        {appearance.mode === "system"
-                            ? t("System mode")
-                            : appearance.mode === "light"
-                            ? t("Light mode")
-                            : t("Dark mode")}
-                    </strong>
-                    <div className="nc-theme-studio__actions">
-                        <input
-                            ref={importThemeInputRef}
-                            className="nc-theme-import-input"
-                            type="file"
-                            accept=".json,.txt,application/json,text/plain"
-                            onChange={(event) =>
-                                void importThemeFile(event.target.files?.[0])
-                            }
-                        />
-                        <button
-                            type="button"
-                            className="nc-theme-text-action"
-                            onClick={() => importThemeInputRef.current?.click()}
-                        >
-                            <Upload size={14} />
-                            Importer
-                        </button>
-                        <button
-                            type="button"
-                            className="nc-theme-text-action"
-                            onClick={() => void copyCurrentTheme()}
-                        >
-                            <Copy size={14} />
-                            Copier le thème
-                        </button>
+            <SettingsGroup title={t("Theme")}>
+                {/* Le thème s'ouvre comme n'importe quel autre choix : une page
+                    qui liste les thèmes, leur aperçu en guise d'icône. Le menu
+                    flottant qui était là ne ressemblait à rien d'autre dans
+                    l'écran, et il fallait viser un bouton de trois millimètres
+                    pour l'ouvrir. */}
+                <SettingsRow
+                    label={t("Theme")}
+                    icon={<ThemePreview theme={currentTheme} />}
+                    value={currentTheme.label}
+                    navigates
+                    onClick={() =>
+                        openChoice({
+                            title: t("Themes"),
+                            value: themeId,
+                            options: THEMES.map((theme) => ({
+                                value: theme.id,
+                                label: theme.label,
+                                icon: <ThemePreview theme={theme} />,
+                            })),
+                            onPick: (next) => {
+                                setThemeDirty(false);
+                                setThemeMessage(null);
+                                void onThemeChange(next as ThemeId);
+                            },
+                        })
+                    }
+                />
+                <SettingsRow
+                    label={t("Import a theme")}
+                    icon={<Upload size={18} />}
+                    onClick={() => importThemeInputRef.current?.click()}
+                />
+                <SettingsRow
+                    label={t("Copy theme")}
+                    icon={<Copy size={18} />}
+                    onClick={() => void copyCurrentTheme()}
+                />
+            </SettingsGroup>
 
-                        <div
-                            className="nc-settings__theme-picker"
-                            ref={themePickerRef}
-                        >
-                            <button
-                                className="nc-settings__theme-picker-button"
-                                type="button"
-                                aria-haspopup="listbox"
-                                aria-expanded={themePickerOpen}
-                                onClick={() => setThemePickerOpen((it) => !it)}
-                            >
-                                <ThemePreview theme={currentTheme} />
-                                <span>{currentTheme.label}</span>
-                                <ChevronDown
-                                    className={
-                                        themePickerOpen ? "nc-open" : undefined
-                                    }
-                                    size={15}
-                                />
-                            </button>
-
-                            {themePickerOpen && (
-                                <div
-                                    className="nc-settings__theme-menu"
-                                    role="listbox"
-                                    aria-label={t("Themes")}
-                                >
-                                    {THEMES.map((theme) => {
-                                        const selected = theme.id === themeId;
-                                        return (
-                                            <button
-                                                key={theme.id}
-                                                className="nc-settings__theme-option"
-                                                type="button"
-                                                role="option"
-                                                aria-selected={selected}
-                                                onClick={() => {
-                                                    setThemePickerOpen(false);
-                                                    setThemeDirty(false);
-                                                    setThemeMessage(null);
-                                                    void onThemeChange(theme.id);
-                                                }}
-                                            >
-                                                <ThemePreview theme={theme} />
-                                                <span>
-                                                    <strong>
-                                                        {theme.label}
-                                                    </strong>
-                                                    <small>
-                                                        {theme.variantLabel}
-                                                    </small>
-                                                </span>
-                                                {selected && <Check size={16} />}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </header>
-
+            <SettingsGroup title={t("Colours")}>
                 <ThemeColorPicker
                     label={t("Accent")}
                     value={themeDraft.accent}
@@ -1275,6 +1239,26 @@ export default function DesktopSettings({
                     value={themeDraft.ink}
                     onChange={(ink) => updateThemeDraft({ ink })}
                 />
+                <SettingsSliderRow
+                    label={t("Contrast")}
+                    icon={<SunMedium size={18} />}
+                    value={themeDraft.contrast}
+                    min={0}
+                    max={100}
+                    step={1}
+                    format={(value) => String(Math.round(value))}
+                    defaultValue={currentTheme.contrast}
+                    onChange={(contrast) => updateThemeDraft({ contrast })}
+                    onReset={() =>
+                        updateThemeDraft({ contrast: currentTheme.contrast })
+                    }
+                />
+            </SettingsGroup>
+
+            <SettingsGroup
+                title={t("Wallpaper")}
+                note={t("The preview and the app update instantly.")}
+            >
                 <ThemeWallpaperPicker
                     value={themeDraft.wallpaperId}
                     accent={themeDraft.accent}
@@ -1282,21 +1266,26 @@ export default function DesktopSettings({
                     onChange={applyWallpaper}
                 />
                 <WallpaperEffectsControls />
-                <label className="nc-theme-studio__row nc-theme-font-row">
-                    <span>Police de l’interface utilisateur</span>
-                    <input
-                        type="text"
-                        list="nc-ui-fonts"
-                        value={themeDraft.uiFont}
-                        onChange={(event) =>
-                            updateThemeDraft({ uiFont: event.target.value })
-                        }
-                        spellCheck={false}
-                    />
+                <SettingsToggleRow
+                    label={t("Translucent sidebar")}
+                    icon={<PanelLeft size={18} />}
+                    checked={themeDraft.translucentSidebar}
+                    onChange={(translucentSidebar) =>
+                        updateThemeDraft({ translucentSidebar })
+                    }
+                />
+            </SettingsGroup>
+
+            <SettingsGroup title={t("Fonts")}>
+                <SettingsFieldRow
+                    label={t("Interface font")}
+                    icon={<Type size={18} />}
+                    value={themeDraft.uiFont}
+                    list="nc-ui-fonts"
+                    onChange={(uiFont) => updateThemeDraft({ uiFont })}
+                >
                     <datalist id="nc-ui-fonts">
-                        <option
-                            value={'"Inter Variable", Inter, sans-serif'}
-                        />
+                        <option value={'"Inter Variable", Inter, sans-serif'} />
                         <option
                             value={
                                 '"Geist Variable", Geist, "Inter Variable", sans-serif'
@@ -1318,18 +1307,14 @@ export default function DesktopSettings({
                             }
                         />
                     </datalist>
-                </label>
-                <label className="nc-theme-studio__row nc-theme-font-row">
-                    <span>Police monospace</span>
-                    <input
-                        type="text"
-                        list="nc-code-fonts"
-                        value={themeDraft.codeFont}
-                        onChange={(event) =>
-                            updateThemeDraft({ codeFont: event.target.value })
-                        }
-                        spellCheck={false}
-                    />
+                </SettingsFieldRow>
+                <SettingsFieldRow
+                    label={t("Monospace font")}
+                    icon={<Code2 size={18} />}
+                    value={themeDraft.codeFont}
+                    list="nc-code-fonts"
+                    onChange={(codeFont) => updateThemeDraft({ codeFont })}
+                >
                     <datalist id="nc-code-fonts">
                         <option
                             value={
@@ -1345,67 +1330,36 @@ export default function DesktopSettings({
                             value={'"Cascadia Code", Consolas, monospace'}
                         />
                     </datalist>
-                </label>
-                <div className="nc-theme-studio__row">
-                    <span>Barre latérale translucide</span>
-                    <button
-                        className="nc-theme-switch"
-                        type="button"
-                        role="switch"
-                        aria-checked={themeDraft.translucentSidebar}
-                        onClick={() =>
-                            updateThemeDraft({
-                                translucentSidebar:
-                                    !themeDraft.translucentSidebar,
-                            })
-                        }
-                    >
-                        <i />
-                    </button>
-                </div>
-                <label className="nc-theme-studio__row nc-theme-contrast-row">
-                    <span>Contraste</span>
-                    <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={themeDraft.contrast}
-                        onChange={(event) =>
-                            updateThemeDraft({
-                                contrast: Number(event.target.value),
-                            })
-                        }
-                    />
-                    <output>{themeDraft.contrast}</output>
-                </label>
+                </SettingsFieldRow>
+            </SettingsGroup>
 
-                <footer className="nc-theme-studio__footer">
-                    <button
-                        type="button"
-                        className="nc-theme-reset-button"
-                        onClick={resetCurrentTheme}
-                    >
-                        <RotateCcw size={15} />
-                        Réinitialiser ce thème
-                    </button>
-                    <button
-                        type="button"
-                        className="nc-theme-save-button"
-                        disabled={!themeDirty}
-                        onClick={saveThemeChanges}
-                    >
-                        <Save size={15} />
-                        Enregistrer
-                    </button>
-                </footer>
+            {/* Le fond s'applique tout de suite ; une couleur ou une police
+                attend d'être enregistrée. La ligne le dit plutôt que de laisser
+                un bouton grisé le sous-entendre. */}
+            <SettingsGroup note={themeMessage ?? undefined}>
+                <SettingsRow
+                    label={t("Save")}
+                    icon={<Save size={18} />}
+                    value={themeDirty ? t("Unsaved changes") : undefined}
+                    disabled={!themeDirty}
+                    onClick={saveThemeChanges}
+                />
+                <SettingsRow
+                    label={t("Reset this theme")}
+                    icon={<RotateCcw size={18} />}
+                    onClick={resetCurrentTheme}
+                />
+            </SettingsGroup>
 
-                {themeMessage && (
-                    <p className="nc-theme-studio__message" role="status">
-                        {themeMessage}
-                    </p>
-                )}
-            </section>
+            <input
+                ref={importThemeInputRef}
+                className="nc-theme-import-input"
+                type="file"
+                accept=".json,.txt,application/json,text/plain"
+                onChange={(event) =>
+                    void importThemeFile(event.target.files?.[0])
+                }
+            />
         </div>
     );
 

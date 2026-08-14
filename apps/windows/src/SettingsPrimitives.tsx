@@ -1,5 +1,6 @@
 import React from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, RotateCcw } from "lucide-react";
+import { t } from "../../../src/ui/i18n";
 
 /**
  * The building blocks of the settings screen.
@@ -117,6 +118,127 @@ export function SettingsToggleRow({
                 </span>
             </span>
         </button>
+    );
+}
+
+interface SettingsSliderRowProps {
+    label: string;
+    icon?: React.ReactNode;
+    value: number;
+    min: number;
+    max: number;
+    step: number;
+    /** What the number says once written out — "0.70", "5", "12 px". */
+    format: (value: number) => string;
+    /** Offered only when the value has been moved off it. */
+    defaultValue?: number;
+    onChange: (value: number) => void;
+    onReset?: () => void;
+}
+
+/**
+ * A setting held on a slider rather than behind a page.
+ *
+ * The name and the current number share the first line, exactly as on every
+ * other row, and the slider takes the second one whole — a slider squeezed into
+ * the right-hand column is too short to aim at, and on a phone it is the width
+ * that makes it usable at all.
+ */
+export function SettingsSliderRow({
+    label,
+    icon,
+    value,
+    min,
+    max,
+    step,
+    format,
+    defaultValue,
+    onChange,
+    onReset,
+}: SettingsSliderRowProps) {
+    const movable =
+        onReset !== undefined &&
+        defaultValue !== undefined &&
+        Math.abs(value - defaultValue) > 0.0001;
+
+    return (
+        <label className="nc-set-row nc-set-row--slider">
+            {icon && <span className="nc-set-row__icon">{icon}</span>}
+            <span className="nc-set-row__label">{label}</span>
+            <output className="nc-set-row__value">{format(value)}</output>
+            {/* The slot is always there, so the number does not jump sideways
+                the moment a value leaves its default — but the button inside it
+                appears only when it has something to undo. */}
+            {onReset && (
+                <span className="nc-set-row__trailing nc-set-row__trailing--reset">
+                    {movable && (
+                        <button
+                            type="button"
+                            className="nc-set-row__icon-button"
+                            aria-label={`${label} — ${t("Reset")}`}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                onReset();
+                            }}
+                        >
+                            <RotateCcw size={17} />
+                        </button>
+                    )}
+                </span>
+            )}
+            <input
+                className="nc-set-row__slider"
+                type="range"
+                min={min}
+                max={max}
+                step={step}
+                value={value}
+                aria-label={label}
+                onChange={(event) => onChange(Number(event.target.value))}
+            />
+        </label>
+    );
+}
+
+interface SettingsFieldRowProps {
+    label: string;
+    icon?: React.ReactNode;
+    value: string;
+    /** Id of a `<datalist>`, for the values worth suggesting. */
+    list?: string;
+    onChange: (value: string) => void;
+    children?: React.ReactNode;
+}
+
+/**
+ * A setting typed out, its field on its own line.
+ *
+ * A font stack — `"Inter Variable", Inter, sans-serif` — does not fit in a
+ * right-hand column; put it there and one reads three characters and an
+ * ellipsis of the thing one is editing.
+ */
+export function SettingsFieldRow({
+    label,
+    icon,
+    value,
+    list,
+    onChange,
+    children,
+}: SettingsFieldRowProps) {
+    return (
+        <label className="nc-set-row nc-set-row--typed">
+            {icon && <span className="nc-set-row__icon">{icon}</span>}
+            <span className="nc-set-row__label">{label}</span>
+            <input
+                className="nc-set-row__input"
+                type="text"
+                list={list}
+                value={value}
+                spellCheck={false}
+                onChange={(event) => onChange(event.target.value)}
+            />
+            {children}
+        </label>
     );
 }
 
