@@ -12,6 +12,7 @@ import {
 } from "./themes/appearancePreferences";
 import { getTheme, THEMES } from "./themes/registry";
 import { getWallpaper, isAndroidRuntime } from "./themes/wallpapers";
+import { useWallpaperReady } from "./themes/useWallpaperReady";
 import WallpaperRenderLayer from "./WallpaperRenderLayer";
 import "./themes/wallpaperEffects";
 import { t } from "../../../src/ui/i18n";
@@ -93,6 +94,12 @@ export default function App() {
         [appearance, theme]
     );
 
+    // Sur Android la photo choisie vit dans le dossier de données : tant qu'elle
+    // n'y est pas, les variables de fond restent celles du thème.
+    const wallpaperReady = useWallpaperReady(
+        getWallpaper(effectiveTheme.wallpaperId).imageUrl
+    );
+
     useEffect(() => {
         const onAppearanceChange = (event: Event) => {
             const detail = (event as CustomEvent<AppearancePreferences>).detail;
@@ -157,8 +164,14 @@ export default function App() {
             "--nc-text-faint": `color-mix(in srgb, ${ink} 52%, ${surface})`,
         };
 
-        if (wallpaper.previewStyle === "image" && wallpaper.imageUrl) {
-            properties["--nc-selected-wallpaper"] = `url("${wallpaper.imageUrl}")`;
+        if (
+            wallpaper.previewStyle === "image" &&
+            wallpaper.imageUrl &&
+            wallpaperReady
+        ) {
+            properties[
+                "--nc-selected-wallpaper"
+            ] = `url("${wallpaper.imageUrl}")`;
             properties["--nc-selected-wallpaper-overlay"] =
                 appearanceMode === "light"
                     ? "linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.18))"
@@ -200,7 +213,7 @@ export default function App() {
                 }
             }
         };
-    }, [appearanceMode, effectiveTheme, theme]);
+    }, [appearanceMode, effectiveTheme, theme, wallpaperReady]);
 
     // `preferences` stays null until the stored settings have been read. Falling
     // through to the welcome screen would flash t("Choose the folder") on every
@@ -294,7 +307,8 @@ export default function App() {
                     Choisir le dossier
                 </button>
                 <p className="nc-welcome__hint">
-                    Les fichiers de calendrier restent hors de tout coffre Obsidian.
+                    Les fichiers de calendrier restent hors de tout coffre
+                    Obsidian.
                 </p>
                 {error && (
                     <p className="nc-welcome__error" role="alert">
@@ -310,4 +324,3 @@ export default function App() {
         </main>
     );
 }
-

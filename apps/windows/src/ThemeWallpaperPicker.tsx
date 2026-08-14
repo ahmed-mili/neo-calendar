@@ -6,7 +6,7 @@ import React, {
     useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Download, Loader2, RotateCcw } from "lucide-react";
 import {
     currentWallpaperRuntime,
     getWallpaper,
@@ -14,6 +14,13 @@ import {
     WallpaperDefinition,
     WallpaperId,
 } from "./themes/wallpapers";
+import {
+    ensureWallpaper,
+    fileNameOf,
+    installedFiles,
+    needsDownloading,
+    thumbUrlOf,
+} from "./themes/wallpaperDownload";
 import { placeFlyout } from "../../../src/ui/calendar/flyoutPlacement";
 import { t } from "../../../src/ui/i18n";
 
@@ -53,9 +60,12 @@ function WallpaperPreview({
     surface: string;
     className?: string;
 }) {
+    // La vignette, jamais la pleine résolution : à 23 Ko pièce, parcourir la
+    // liste coûte quelques centaines de kilo-octets au lieu de dix mégaoctets,
+    // et surtout la vignette est là même quand l'original ne l'est pas encore.
     const style: React.CSSProperties =
         wallpaper.previewStyle === "image" && wallpaper.imageUrl
-            ? { backgroundImage: `url("${wallpaper.imageUrl}")` }
+            ? { backgroundImage: `url("${thumbUrlOf(wallpaper.imageUrl)}")` }
             : wallpaper.previewStyle === "theme"
             ? {
                   backgroundImage: `radial-gradient(circle at 72% 25%, ${accent}99, transparent 42%), linear-gradient(145deg, ${surface}, color-mix(in srgb, ${surface} 68%, ${accent}))`,
@@ -88,6 +98,19 @@ export default function ThemeWallpaperPicker({
     const [open, setOpen] = useState(false);
     const [position, setPosition] = useState<MenuPosition | null>(null);
     const current = getWallpaper(value);
+
+    // Sur Android les pleines résolutions ne sont plus dans l'APK : elles vivent
+    // dans le dossier de données, et n'y arrivent que quand on les choisit.
+    const remote = needsDownloading();
+    const [installed, setInstalled] = useState<Set<string>>(installedFiles);
+    const [busy, setBusy] = useState<WallpaperId | null>(null);
+    const [failed, setFailed] = useState<WallpaperId | null>(null);
+
+    // Le dossier appartient à l'utilisateur et survit à l'application : le
+    // relire à chaque ouverture plutôt que de croire une liste d'une autre fois.
+    useEffect(() => {
+        if (open) setInstalled(installedFiles());
+    }, [open]);
 
     // Only what this screen can actually show. A landscape photo cropped to a
     // phone is a strip of its middle; a portrait one on a desktop is two bars.
@@ -139,6 +162,9 @@ export default function ThemeWallpaperPicker({
         if (!open) return;
 
         const onPointerDown = (event: PointerEvent) => {
+            // Fermer pendant un téléchargement laisserait l'utilisateur sans
+            // rien à regarder alors que quelque chose se passe.
+            if (busy) return;
             const target = event.target;
             if (!(target instanceof Node)) return;
             if (
@@ -150,7 +176,7 @@ export default function ThemeWallpaperPicker({
         };
 
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") setOpen(false);
+            if (event.key === "Escape" && !busy) setOpen(false);
         };
 
         document.addEventListener("pointerdown", onPointerDown, true);
@@ -160,34 +186,107 @@ export default function ThemeWallpaperPicker({
             document.removeEventListener("pointerdown", onPointerDown, true);
             document.removeEventListener("keydown", onKeyDown);
         };
-    }, [open]);
+    }, [open, busy]);
 
-    const options = wallpapers.map((wallpaper) => (
-        <button
-            key={wallpaper.id}
-            type="button"
-            role="option"
-            aria-selected={wallpaper.id === value}
-            className="nc-wallpaper-option"
-            onClick={() => {
+    /** Ce fond est-il à aller chercher avant de pouvoir être appliqué ? */
+    const missing = useCallback(
+        (wallpaper: WallpaperDefinition) =>
+            remote &&
+            !!wallpaper.imageUrl &&
+            !installed.has(fileNameOf(wallpaper.imageUrl)),
+        [remote, installed]
+    );
+
+    /**
+     * Choisir un fond, en le téléchargeant d'abord s'il n'est pas là.
+     *
+     * L'appliquer avant qu'il soit arrivé donnerait un fond vide le temps du
+     * transfert, puis l'image d'un coup : on attend, et on le dit.
+     */
+    const pick = useCallback(
+        async (wallpaper: WallpaperDefinition) => {
+            if (busy) return;
+            if (!wallpaper.imageUrl || !missing(wallpaper)) {
                 onChange(wallpaper.id);
                 setOpen(false);
-            }}
-        >
-            <WallpaperPreview
-                wallpaper={wallpaper}
-                accent={accent}
-                surface={surface}
-                className="nc-wallpaper-option__image"
-            />
-            <span className="nc-wallpaper-option__label">
-                {wallpaper.label}
-            </span>
-            {wallpaper.id === value && (
-                <Check size={18} className="nc-wallpaper-option__check" />
-            )}
-        </button>
-    ));
+                return;
+            }
+
+            setFailed(null);
+            setBusy(wallpaper.id);
+            try {
+                await ensureWallpaper(wallpaper.imageUrl);
+                setInstalled(installedFiles());
+                onChange(wallpaper.id);
+                setOpen(false);
+            } catch {
+                // Un nouvel appui relance : l'échec est presque toujours le
+                // réseau, et redemander est la seule chose à faire.
+                setFailed(wallpaper.id);
+            } finally {
+                setBusy(null);
+            }
+        },
+        [busy, missing, onChange]
+    );
+
+    const options = wallpapers.map((wallpaper) => {
+        const downloading = busy === wallpaper.id;
+        const retry = failed === wallpaper.id;
+        const selected = wallpaper.id === value;
+
+        return (
+            <button
+                key={wallpaper.id}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                aria-busy={downloading || undefined}
+                disabled={!!busy && !downloading}
+                className="nc-wallpaper-option"
+                onClick={() => void pick(wallpaper)}
+            >
+                <WallpaperPreview
+                    wallpaper={wallpaper}
+                    accent={accent}
+                    surface={surface}
+                    className="nc-wallpaper-option__image"
+                />
+                <span className="nc-wallpaper-option__text">
+                    <span className="nc-wallpaper-option__label">
+                        {wallpaper.label}
+                    </span>
+                    {downloading && (
+                        <span className="nc-wallpaper-option__note">
+                            Téléchargement…
+                        </span>
+                    )}
+                    {retry && !downloading && (
+                        <span className="nc-wallpaper-option__note nc-wallpaper-option__note--failed">
+                            Téléchargement impossible — appuyez pour réessayer
+                        </span>
+                    )}
+                    {!downloading && !retry && missing(wallpaper) && (
+                        <span className="nc-wallpaper-option__note">
+                            À télécharger
+                        </span>
+                    )}
+                </span>
+                {downloading ? (
+                    <Loader2 size={18} className="nc-wallpaper-option__spin" />
+                ) : retry ? (
+                    <RotateCcw
+                        size={18}
+                        className="nc-wallpaper-option__failed"
+                    />
+                ) : selected ? (
+                    <Check size={18} className="nc-wallpaper-option__check" />
+                ) : missing(wallpaper) ? (
+                    <Download size={16} className="nc-wallpaper-option__get" />
+                ) : null}
+            </button>
+        );
+    });
 
     return (
         <div className="nc-theme-studio__row nc-theme-wallpaper-row">
@@ -249,7 +348,9 @@ export default function ThemeWallpaperPicker({
                             type="button"
                             className="nc-wallpaper-sheet__scrim"
                             aria-label={t("Close")}
-                            onClick={() => setOpen(false)}
+                            onClick={() => {
+                                if (!busy) setOpen(false);
+                            }}
                         />
                         <div
                             ref={menuRef}

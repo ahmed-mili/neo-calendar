@@ -3376,6 +3376,12 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     border-radius: 8px;
 }
 
+.nc-wallpaper-option__text {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
 .nc-wallpaper-option__label {
     min-width: 0;
     overflow: hidden;
@@ -3383,8 +3389,51 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     white-space: nowrap;
 }
 
+/* Ce qu'il manque a ce fond, dit sous son nom : sur Android les pleines
+   resolutions ne sont plus dans l'APK et arrivent quand on les choisit. */
+.nc-wallpaper-option__note {
+    font-size: 11px;
+    line-height: 1.3;
+    color: var(--text-muted);
+}
+
+.nc-wallpaper-option__note--failed {
+    color: var(--text-error, #e5534b);
+    white-space: normal;
+}
+
 .nc-wallpaper-option__check {
     color: var(--nc-accent);
+}
+
+.nc-wallpaper-option__get {
+    color: var(--text-muted);
+}
+
+.nc-wallpaper-option__failed {
+    color: var(--text-error, #e5534b);
+}
+
+.nc-wallpaper-option__spin {
+    color: var(--nc-accent);
+    animation: nc-wallpaper-spin 900ms linear infinite;
+}
+
+@keyframes nc-wallpaper-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Pendant un telechargement les autres lignes ne repondent plus : deux images
+   qui arrivent en meme temps, dont une seule sera appliquee, n'aide personne. */
+.nc-wallpaper-option:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.nc-wallpaper-option:disabled:hover {
+    background: transparent !important;
 }
 
 /*

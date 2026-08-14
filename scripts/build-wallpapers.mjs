@@ -30,6 +30,7 @@ const WALLPAPERS = path.join(
 );
 const THUMBS = path.join(WALLPAPERS, "thumbs");
 const MANIFEST = path.join(WALLPAPERS, "wallpapers.json");
+const CATALOGUE = path.join(root, "apps/windows/src/themes/wallpapers.ts");
 
 /** Assez large pour rester net sur une tuile de sélecteur, assez petit pour que
     parcourir cent fonds coûte quelques mégaoctets et non quarante. */
@@ -118,6 +119,58 @@ async function main() {
             `résolution — ${built} vignette(s) (re)fabriquée(s).`
     );
     console.log(`Manifeste : ${path.relative(root, MANIFEST)}`);
+
+    await reportMissingFromCatalogue(entries);
+}
+
+/*
+ * Le libellé et la description sont écrits par un humain, en français, et le
+ * script ne peut pas les deviner : le catalogue reste donc à la main. Ce qu'on
+ * peut faire, c'est ne jamais laisser deviner ce qu'il reste à faire — le
+ * script dit quelles images n'y sont pas encore et donne le texte à coller,
+ * plutôt que de laisser découvrir l'oubli en ouvrant le sélecteur.
+ */
+async function reportMissingFromCatalogue(entries) {
+    let source;
+    try {
+        source = await fs.readFile(CATALOGUE, "utf8");
+    } catch {
+        return;
+    }
+
+    const missing = entries.filter(
+        (entry) =>
+            !source.includes(`/themes/neo-wallpapers/${entry.file}`)
+    );
+    if (missing.length === 0) {
+        console.log("Catalogue à jour : chaque image y a son entrée.");
+        return;
+    }
+
+    console.log(
+        `\n${missing.length} image(s) sans entrée dans ` +
+            `${path.relative(root, CATALOGUE)}.\n` +
+            `À ajouter à WALLPAPER_IDS puis à WALLPAPERS ` +
+            `(libellé et description à écrire) :\n`
+    );
+
+    for (const entry of missing) {
+        // Une photo plus haute que large est faite pour un téléphone ; l'inverse
+        // pour un écran d'ordinateur. Le déduire évite le seul champ qu'on se
+        // trompe systématiquement à remplir.
+        const portrait = entry.height > entry.width;
+        console.log(
+            `    {
+        id: "${entry.id}",
+        label: "${entry.title}",
+        description: "",
+        imageUrl: "/themes/neo-wallpapers/${entry.file}",
+        previewStyle: "image",
+        target: "${portrait ? "android" : "pc"}",
+        aspect: "${portrait ? "portrait" : "landscape"}",
+    },`
+        );
+    }
 }
 
 main().catch((error) => {

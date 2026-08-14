@@ -14,6 +14,7 @@ import {
     getWallpaper,
     WallpaperId,
 } from "./themes/wallpapers";
+import { useWallpaperReady } from "./themes/useWallpaperReady";
 
 interface WallpaperRenderLayerProps {
     wallpaperId: WallpaperId | string;
@@ -65,6 +66,12 @@ export default function WallpaperRenderLayer({
 
     const wallpaper =
         getWallpaper(wallpaperId);
+
+    // Sur Android la photo vit dans le dossier de données, pas dans l'APK :
+    // tant qu'elle n'y est pas, on peint le fond du thème.
+    const ready = useWallpaperReady(
+        wallpaper.imageUrl
+    );
 
     useEffect(() => {
         const onEffectsChange = (
@@ -145,7 +152,8 @@ export default function WallpaperRenderLayer({
             const image =
                 wallpaper.previewStyle ===
                     "image" &&
-                wallpaper.imageUrl
+                wallpaper.imageUrl &&
+                ready
                     ? `url("${wallpaper.imageUrl}")`
                     : themeWallpaper;
 
@@ -158,6 +166,7 @@ export default function WallpaperRenderLayer({
                 : "none";
         }, [
             appearanceMode,
+            ready,
             surface,
             themeWallpaper,
             wallpaper.imageUrl,
