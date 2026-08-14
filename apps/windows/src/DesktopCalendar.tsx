@@ -112,6 +112,7 @@ import {
     parseIcalCalendarEvents,
     type DesktopExternalCalendarSource,
 } from "./platform/desktopExternalCalendars";
+import { mergeRemoteEvents } from "./platform/mergeRemoteEvents";
 import {
     defaultDesktopWorkspacePreferences,
     parseDesktopWorkspacePreferences,
@@ -619,6 +620,62 @@ export default function DesktopCalendar({
         [preferenceWriter]
     );
 
+    /**
+     * Rapatrier les abonnements distants, après que le calendrier est à l'écran.
+     *
+     * Chacun remplace ses propres événements et ne touche à rien d'autre : ce
+     * que l'on vient de créer entre-temps reste, et un abonnement qui échoue ne
+     * fait pas disparaître les autres. C'est aussi pourquoi la fusion se fait
+     * sur l'état courant plutôt que sur une liste capturée au départ.
+     */
+    const refreshRemoteCalendars = useCallback(
+        async (sources: DesktopExternalCalendarSource[]) => {
+            const remote = sources.filter(
+                (
+                    source
+                ): source is Extract<
+                    DesktopExternalCalendarSource,
+                    { type: "ical" }
+                > => source.type === "ical"
+            );
+            if (remote.length === 0) return;
+
+            const errors: string[] = [];
+            const groups = await Promise.all(
+                remote.map(async (source) => {
+                    try {
+                        const text = await fetchDesktopIcs(source.url);
+                        return parseIcalCalendarEvents(text).map(
+                            (event, index) =>
+                                externalEventRecord(source, event, index)
+                        );
+                    } catch (reason) {
+                        errors.push(`${source.name}: ${errorMessage(reason)}`);
+                        return [];
+                    }
+                })
+            );
+
+            const arrived = groups.flat();
+            setStoredEvents((current) =>
+                mergeRemoteEvents(
+                    current,
+                    remote.map(externalCalendarId),
+                    arrived
+                )
+            );
+
+            if (errors.length) {
+                setStorageError(
+                    `Some remote calendars could not be refreshed: ${errors.join(
+                        " | "
+                    )}`
+                );
+            }
+        },
+        []
+    );
+
     const reloadWorkspace = useCallback(async () => {
         setStorageError(null);
         try {
@@ -730,37 +787,23 @@ export default function DesktopCalendar({
                     )
                 );
 
-            const remoteErrors: string[] = [];
-            const remoteEventGroups = await Promise.all(
-                nextPreferences.externalCalendars
-                    .filter(
-                        (
-                            source
-                        ): source is Extract<
-                            DesktopExternalCalendarSource,
-                            { type: "ical" }
-                        > => source.type === "ical"
-                    )
-                    .map(async (source) => {
-                        try {
-                            const text = await fetchDesktopIcs(source.url);
-                            return parseIcalCalendarEvents(text).map(
-                                (event, index) =>
-                                    externalEventRecord(source, event, index)
-                            );
-                        } catch (reason) {
-                            remoteErrors.push(
-                                `${source.name}: ${errorMessage(reason)}`
-                            );
-                            return [];
-                        }
-                    })
-            );
-            const nextEvents = [
-                ...localEvents,
-                ...automaticEvents,
-                ...remoteEventGroups.flat(),
-            ];
+            /*
+             * Ce qui est sur le disque suffit à dessiner le calendrier.
+             *
+             * Les abonnements distants étaient attendus ici, avant que quoi que
+             * ce soit ne s'affiche — et la coque Android retient son écran de
+             * démarrage jusqu'à ce que la page se dise prête. Un abonnement sur
+             * une connexion lente pouvait donc coûter trente-cinq secondes de
+             * lancement (quinze de connexion, vingt de lecture), alors que sans
+             * réseau du tout la tentative échouait aussitôt et l'application
+             * s'ouvrait sur-le-champ. Se lancer plus vite hors ligne qu'en
+             * ligne est le signe qu'on attend quelque chose qu'on ne devrait
+             * pas attendre.
+             *
+             * Les abonnements arrivent maintenant après coup et se fondent dans
+             * ce qui est déjà à l'écran.
+             */
+            const nextEvents = [...localEvents, ...automaticEvents];
 
             const preferredDefault = localCalendars.find(
                 (calendar) =>
@@ -827,13 +870,7 @@ export default function DesktopCalendar({
                     ? current
                     : null
             );
-            if (remoteErrors.length) {
-                setStorageError(
-                    `Some remote calendars could not be refreshed: ${remoteErrors.join(
-                        " | "
-                    )}`
-                );
-            }
+            void refreshRemoteCalendars(nextPreferences.externalCalendars);
         } catch (reason) {
             setStorageError(errorMessage(reason));
         } finally {
@@ -845,6 +882,7 @@ export default function DesktopCalendar({
         dataFolder,
         onReady,
         preferenceWriter,
+        refreshRemoteCalendars,
         revealDesktopEventRoute,
         setDaysCount,
         setViewType,

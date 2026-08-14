@@ -197,8 +197,19 @@ public class MainActivity extends Activity {
     settings.setAllowUniversalAccessFromFileURLs(false);
     settings.setMediaPlaybackRequiresUserGesture(false);
     settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+    /*
+     * Safe Browsing eteint, et ce n'est pas un renoncement.
+     *
+     * Il compare les URL visitees a une liste tenue par Google, ce qui suppose
+     * d'aller la chercher — un aller-retour reseau au demarrage de la WebView.
+     * Or cette WebView ne visite rien : tout ce qu'elle charge vient de
+     * `shouldInterceptRequest`, donc des assets ou du dossier de donnees, et le
+     * moindre lien externe part au navigateur du systeme par
+     * `shouldOverrideUrlLoading`. Il n'y a aucune URL a verifier, et donc rien
+     * a gagner contre du temps de lancement paye a chaque ouverture.
+     */
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      settings.setSafeBrowsingEnabled(true);
+      settings.setSafeBrowsingEnabled(false);
     }
 
     WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
