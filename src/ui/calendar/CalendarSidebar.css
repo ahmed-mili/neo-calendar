@@ -27,8 +27,18 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
+    /* BLOCK, not flex, and this is the whole rule.
+       As a flex column its children became flex items, which shrink by default
+       — and mobile.css already puts `min-height: 0 !important` on every
+       `.nc-sidebar-section`, which is exactly the permission to shrink BELOW
+       their own content. So the calendars box came out 249px tall around 544px
+       of calendars and simply painted the overflow over the task list beneath
+       it: two lists interleaved on screen, one line of each in turn.
+       Measured, not guessed — and it needs enough rows to show, which is why a
+       first pass with five calendars looked fine.
+       As blocks the sections take their content's height, the scroller
+       overflows, and the scroller is the one thing that scrolls. */
+    display: block;
 }
 
 .nc-sidebar-section {
