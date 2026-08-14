@@ -101,6 +101,28 @@ migration effectue la séparation physique sans réécrire immédiatement tous
 les composants partagés qui utilisent encore le shim de compatibilité
 Obsidian.
 
+## Ajouter un fond d'écran
+
+```powershell
+# 1. déposer le JPEG en pleine résolution
+copy ma-photo.jpg apps\windows\public\themes\neo-wallpapers\montagne-bleue.jpg
+# 2. fabriquer la vignette, l'empreinte et l'entrée du manifeste
+npm run wallpapers
+# 3. coller dans apps/windows/src/themes/wallpapers.ts le bloc que la commande
+#    a imprimé (elle ne devine ni le libellé ni la description), puis committer
+```
+
+L'image n'entre pas dans l'APK : elle est lue sur `raw.githubusercontent.com`
+et n'est donc disponible qu'une fois le commit poussé — mais elle l'est
+aussitôt, sans attendre une version. Seules la vignette (23 Ko) et le
+manifeste voyagent avec l'application, ce qui laisse le sélecteur s'ouvrir
+hors ligne ; la pleine résolution est téléchargée quand quelqu'un choisit ce
+fond, puis gardée dans `.neo-calendar/wallpapers/` du dossier de données —
+où elle survit aux mises à jour et à une désinstallation.
+
+`npm run wallpapers` est idempotent : il ne refabrique une vignette que si
+elle manque ou si l'original a changé.
+
 ## Commandes
 
 ```powershell
