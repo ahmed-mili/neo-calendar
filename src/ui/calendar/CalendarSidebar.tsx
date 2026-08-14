@@ -155,7 +155,10 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         const onResult = (event: Event) => {
             const detail = (event as CustomEvent<{ status?: string }>).detail;
             setCheckingUpdate(false);
-            setCheckResult(detail?.status === "failed" ? "failed" : "current");
+            const status = detail?.status;
+            setCheckResult(
+                status === "failed" || status === "offline" ? status : "current"
+            );
         };
         window.addEventListener(CHECK_RESULT_EVENT, onResult);
         return () => window.removeEventListener(CHECK_RESULT_EVENT, onResult);
@@ -385,6 +388,8 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                         ? t("Checking…")
                                         : checkResult === "current"
                                         ? t("Up to date")
+                                        : checkResult === "offline"
+                                        ? t("Offline")
                                         : checkResult === "failed"
                                         ? t("Check failed")
                                         : updateVersion

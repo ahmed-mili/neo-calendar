@@ -7,6 +7,9 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
@@ -86,6 +89,11 @@ final class AppUpdater {
    *  would otherwise ask for one per 32 KB buffer. The bar moves by whole
    *  percents, and never more than five times a second. */
   private static final long PROGRESS_INTERVAL_MS = 200L;
+  /** Le manifeste tient en 240 octets ; au-dela de ces delais, la connexion ne
+      va pas aboutir utilement. Le telechargement de l'APK garde les siens, plus
+      larges : 14 Mo prennent legitimement du temps. */
+  private static final int METADATA_CONNECT_MS = 6_000;
+  private static final int METADATA_READ_MS = 6_000;
 
   private final Activity activity;
   private final ExecutorService io;
@@ -147,7 +155,9 @@ final class AppUpdater {
         report("current");
       } catch (Exception error) {
         Log.w(TAG, "Manual update check failed", error);
-        report("failed");
+        // « Hors ligne » et « ca n'a pas marche » ne se corrigent pas de la
+        // meme facon : l'un demande du reseau, l'autre demande de reessayer.
+        report("offline".equals(error.getMessage()) ? "offline" : "failed");
       }
     });
   }
@@ -209,6 +219,21 @@ final class AppUpdater {
       return;
     }
     checkNow();
+  }
+
+  /** Pas de reseau du tout : inutile d'aller au bout d'un delai d'attente pour
+   *  apprendre ce que le systeme sait deja. On leve, et l'appelant le dit. */
+  private void requireNetwork() throws IOException {
+    ConnectivityManager manager =
+      activity.getSystemService(ConnectivityManager.class);
+    if (manager == null) return;
+    Network network = manager.getActiveNetwork();
+    NetworkCapabilities capabilities =
+      network == null ? null : manager.getNetworkCapabilities(network);
+    if (capabilities == null
+        || !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
+      throw new IOException("offline");
+    }
   }
 
   void resumePendingInstall() {
@@ -307,8 +332,13 @@ final class AppUpdater {
   }
 
   private Metadata fetchMetadata() throws Exception {
+    requireNetwork();
     URL url = new URL(METADATA_URL);
-    HttpsURLConnection connection = open(url);
+    // 240 octets. Les delais genereux du telechargement n'ont rien a faire ici :
+    // sur une connexion lente ils laissaient la pilule tourner pres d'une minute
+    // avant d'admettre que ca n'allait pas aboutir. Mieux vaut echouer vite et
+    // le dire — la verification suivante est a un lancement d'ici.
+    HttpsURLConnection connection = open(url, METADATA_CONNECT_MS, METADATA_READ_MS);
     try {
       int status = connection.getResponseCode();
       if (status != HttpURLConnection.HTTP_OK) {
@@ -592,9 +622,14 @@ final class AppUpdater {
   }
 
   private HttpsURLConnection open(URL url) throws IOException {
+    return open(url, 15_000, 45_000);
+  }
+
+  private HttpsURLConnection open(URL url, int connectMs, int readMs)
+      throws IOException {
     HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-    connection.setConnectTimeout(15_000);
-    connection.setReadTimeout(45_000);
+    connection.setConnectTimeout(connectMs);
+    connection.setReadTimeout(readMs);
     connection.setInstanceFollowRedirects(true);
     connection.setRequestProperty("Accept", "application/json, application/octet-stream");
     connection.setRequestProperty("User-Agent", "NeoCalendar-Android/" + BuildConfig.VERSION_NAME);

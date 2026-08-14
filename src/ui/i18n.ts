@@ -126,6 +126,7 @@ const FR: Record<string, string> = {
     "Updating…": "Mise à jour…",
     "Up to date": "À jour",
     "Check failed": "Échec",
+    Offline: "Hors ligne",
     "Update available": "Mise à jour disponible",
     Update: "Mettre à jour",
     "Removing the date on a repeating event also removes the repeat. It becomes a single unscheduled entry.":

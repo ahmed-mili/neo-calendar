@@ -31,12 +31,13 @@ export function appVersion(): string {
 export const UPDATE_EVENT = "neo-update-available";
 
 /** Fired with `detail.status` once a check asked for BY HAND has finished:
- *  "current" when nothing is newer, "failed" when the look could not be taken.
+ *  "current" when nothing is newer, "offline" when there is no network to look
+ *  over, "failed" when the look was taken and did not work.
  *  A check that finds something opens the prompt instead, and says so through
  *  UPDATE_EVENT — so there is no "found" here. */
 export const CHECK_RESULT_EVENT = "neo-update-checked";
 
-export type CheckResult = "current" | "failed";
+export type CheckResult = "current" | "failed" | "offline";
 
 /** Fired while an update downloads, with `detail.percent`:
  *  0..100 as it goes, -1 when the server declined to say how big the file is
