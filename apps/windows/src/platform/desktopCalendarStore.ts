@@ -205,3 +205,23 @@ export async function fetchDesktopIcs(url: string): Promise<string> {
 export async function fetchDesktopPage(url: string): Promise<string> {
     return invoke<string>("fetch_desktop_ics", { url });
 }
+
+/**
+ * Où mène vraiment un lien de partage.
+ *
+ * `vm.tiktok.com/ZN88…` est un billet indiquant une adresse. On la cherchait
+ * dans la page — `og:url` —, ce qui suppose que le site serve une vraie page à
+ * un client HTTP ordinaire ; il sert sa porte d'entrée, dont l'adresse
+ * canonique est sa page d'accueil. La redirection, elle, mène à la vidéo.
+ *
+ * La coque plus ancienne, et le bureau, ne connaissent pas la commande : on
+ * rend alors l'adresse inchangée plutôt que d'échouer — c'est exactement ce
+ * qu'on savait d'elle avant.
+ */
+export async function resolveDesktopUrl(url: string): Promise<string> {
+    try {
+        return await invoke<string>("fetch_desktop_final_url", { url });
+    } catch {
+        return url;
+    }
+}

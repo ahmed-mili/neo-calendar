@@ -599,6 +599,7 @@ public class MainActivity extends Activity {
       case "search_desktop_vault_notes": return new JSONArray();
       case "copy_desktop_attachment": return copyAttachment(tree(a),a);
       case "fetch_desktop_ics": return fetch(a.getString("url"));
+      case "fetch_desktop_final_url": return finalUrl(a.getString("url"));
       /* The widget is handed a finished list rather than the calendar itself:
          see WidgetData. Writing it is cheap, so the app may call this on every
          change without thinking about it. */
@@ -663,6 +664,30 @@ public class MainActivity extends Activity {
   private Object deleteFolder(Uri tree,String rel)throws Exception{Uri u=findPath(tree,rel);if(u==null)return null;if(!list(u).isEmpty())throw new Exception("Ce calendrier nest pas vide.");DocumentsContract.deleteDocument(getContentResolver(),u);return null;}
   private JSONObject copyAttachment(Uri tree,JSONObject a)throws Exception{Uri src=Uri.parse(a.getString("sourcePath"));String event=a.getString("eventRelativePath");String base=event.contains("/")?event.substring(0,event.lastIndexOf('/')):"";Uri dir=base.isEmpty()?tree:findPath(tree,base);Uri attach=findChild(dir,"attachments");if(attach==null)attach=DocumentsContract.createDocument(getContentResolver(),dir,DocumentsContract.Document.MIME_TYPE_DIR,"attachments");String name=queryName(src);if(name==null||name.isBlank())name="attachment";name=uniqueName(attach,name);Uri dst=DocumentsContract.createDocument(getContentResolver(),attach,getContentResolver().getType(src)==null?"application/octet-stream":getContentResolver().getType(src),name);try(InputStream in=getContentResolver().openInputStream(src);OutputStream out=getContentResolver().openOutputStream(dst,"w")){byte[] b=new byte[8192];int n;while((n=in.read(b))>0)out.write(b,0,n);}String rel=(base.isEmpty()?"":base+"/")+"attachments/"+name;return new JSONObject().put("fileName",name).put("relativePath",rel).put("markdownPath",rel);}
   private String fetch(String value)throws Exception{HttpURLConnection h=(HttpURLConnection)new URL(value).openConnection();h.setConnectTimeout(15000);h.setReadTimeout(20000);try(InputStream in=h.getInputStream()){return new String(readAll(in),StandardCharsets.UTF_8);}finally{h.disconnect();}}
+  /**
+   * Ou mene vraiment un lien de partage.
+   *
+   * `vm.tiktok.com/ZN88…` est un billet indiquant une adresse, pas l'adresse.
+   * L'application cherchait celle-ci DANS la page — `og:url` —, ce qui suppose
+   * que le site serve une vraie page a un client HTTP ordinaire ; TikTok lui
+   * sert sa porte d'entree, dont l'adresse canonique est sa page d'accueil. La
+   * redirection, elle, mene bien a la video, et il suffit de la suivre et de
+   * regarder ou l'on a atterri. C'est ce que le site publie pour ca, et ca ne
+   * demande de se faire passer pour personne.
+   *
+   * Le corps n'est pas lu : seule la destination compte ici.
+   */
+  private String finalUrl(String value)throws Exception{
+    String normalized=value.trim();
+    if(!(normalized.startsWith("https://")||normalized.startsWith("http://")))
+      throw new Exception("Adresse non supportee: "+value);
+    HttpURLConnection h=(HttpURLConnection)new URL(normalized).openConnection();
+    h.setConnectTimeout(6000);
+    h.setReadTimeout(6000);
+    h.setInstanceFollowRedirects(true);
+    try{h.getResponseCode();return h.getURL().toString();}finally{h.disconnect();}
+  }
+
   private String validName(String name,boolean md)throws Exception{name=name.trim();if(name.isEmpty()||name.equals(".")||name.equals("..")||name.contains("/")||name.contains("\\"))throw new Exception("Nom invalide: "+name);if(md&&!name.toLowerCase(Locale.ROOT).endsWith(".md"))throw new Exception("Le fichier doit finir par .md");return name;}
   private String uniqueName(Uri dir,String name)throws Exception{if(findChild(dir,name)==null)return name;int dot=name.lastIndexOf('.');String stem=dot>0?name.substring(0,dot):name,ext=dot>0?name.substring(dot):"";for(int i=1;;i++){String n=stem+" ("+i+")"+ext;if(findChild(dir,n)==null)return n;}}
   private Uri findOrCreate(Uri dir,String name,String mime)throws Exception{Uri u=findChild(dir,name);return u!=null?u:DocumentsContract.createDocument(getContentResolver(),dir,mime,name);}

@@ -71,6 +71,7 @@ import {
     deleteDesktopEventFile,
     fetchDesktopIcs,
     fetchDesktopPage,
+    resolveDesktopUrl,
     loadDesktopWorkspace,
     openDesktopExternalTarget,
     openDesktopLinkedPath,
@@ -2974,6 +2975,7 @@ export default function DesktopCalendar({
                 }))}
                 onSearchEventLinks={searchEventLinks}
                 onFetchPage={fetchDesktopPage}
+                onResolveUrl={resolveDesktopUrl}
                 linkedItems={panelLinkedItems}
                 onAddEventLink={appendEventBody}
                 onRemoveEventLink={removeEventBodyLink}

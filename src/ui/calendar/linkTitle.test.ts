@@ -1,4 +1,5 @@
 import {
+    addressesToAsk,
     MAX_TITLE_LENGTH,
     TITLE_SCAN_BYTES,
     canonicalUrlFrom,
@@ -62,7 +63,8 @@ describe("pageTitleFrom", () => {
     it("stops looking after the head-sized part of the page", () => {
         // A title this far down is not a title; it is the page's content, and
         // scanning a whole document for it costs more than it is worth.
-        const buried = "x".repeat(TITLE_SCAN_BYTES) + "<title>Trop loin</title>";
+        const buried =
+            "x".repeat(TITLE_SCAN_BYTES) + "<title>Trop loin</title>";
         expect(pageTitleFrom(buried)).toBeNull();
     });
 
@@ -189,13 +191,17 @@ describe("canonicalUrlFrom", () => {
 
     it("falls back to the canonical link tag", () => {
         expect(
-            canonicalUrlFrom('<link rel="canonical" href="https://a.example/b">')
+            canonicalUrlFrom(
+                '<link rel="canonical" href="https://a.example/b">'
+            )
         ).toBe("https://a.example/b");
     });
 
     it("has nothing to give when the page does not say", () => {
         expect(canonicalUrlFrom("<html><head></head></html>")).toBeNull();
-        expect(canonicalUrlFrom('<meta property="og:url" content="  ">')).toBeNull();
+        expect(
+            canonicalUrlFrom('<meta property="og:url" content="  ">')
+        ).toBeNull();
     });
 });
 
@@ -203,14 +209,17 @@ describe("isFrontDoorTitle", () => {
     it("recognises the words a site uses when it tells you nothing", () => {
         // Two different videos both called this is what the bug looked like.
         expect(
-            isFrontDoorTitle("TikTok - Make Your Day", "https://vm.tiktok.com/a/")
+            isFrontDoorTitle(
+                "TikTok - Make Your Day",
+                "https://vm.tiktok.com/a/"
+            )
         ).toBe(true);
-        expect(isFrontDoorTitle("tiktok", "https://www.tiktok.com/@a/video/1")).toBe(
-            true
-        );
-        expect(isFrontDoorTitle("Instagram", "https://instagram.com/reel/a")).toBe(
-            true
-        );
+        expect(
+            isFrontDoorTitle("tiktok", "https://www.tiktok.com/@a/video/1")
+        ).toBe(true);
+        expect(
+            isFrontDoorTitle("Instagram", "https://instagram.com/reel/a")
+        ).toBe(true);
     });
 
     it("leaves a real title alone, even one naming the site", () => {
@@ -303,14 +312,18 @@ describe("confirmedTarget", () => {
     it("refuses a front door offering itself as the address", () => {
         // The interstitial a plain client is shown says og:url is the
         // homepage. Believing it would move the link to the homepage.
-        expect(
-            confirmedTarget(shared, "https://www.tiktok.com/", answer)
-        ).toBe(shared);
+        expect(confirmedTarget(shared, "https://www.tiktok.com/", answer)).toBe(
+            shared
+        );
     });
 
     it("never lets a page send the link to another site", () => {
         expect(
-            confirmedTarget(shared, "https://evil.example/7671974074775784707", answer)
+            confirmedTarget(
+                shared,
+                "https://evil.example/7671974074775784707",
+                answer
+            )
         ).toBe(shared);
         expect(confirmedTarget(shared, "javascript:alert(1)", answer)).toBe(
             shared
@@ -327,5 +340,32 @@ describe("confirmedTarget", () => {
 
     it("leaves an address it cannot read alone", () => {
         expect(confirmedTarget("not a url", real, answer)).toBe("not a url");
+    });
+});
+
+describe("les adresses à interroger pour un lien partagé", () => {
+    const SHORT = "https://vm.tiktok.com/ZN88SfmSj/";
+    const REAL = "https://www.tiktok.com/@quelquun/video/7412345678901234567";
+
+    // Le lien court ne dit rien de sa destination : celle-ci vient soit de la
+    // page, soit de la redirection. Les deux sont tentées, le lien en dernier.
+    it("garde l'ordre et écarte les doublons", () => {
+        expect(addressesToAsk(REAL, REAL, SHORT)).toEqual([REAL, SHORT]);
+    });
+
+    it("ignore ce qui n'est pas une adresse web", () => {
+        expect(addressesToAsk(null, "", "obsidian://note", SHORT)).toEqual([
+            SHORT,
+        ]);
+    });
+
+    // Une porte d'entrée offre sa page d'accueil comme adresse canonique ; la
+    // redirection, elle, mène à la vidéo. Les deux sont posées à la suite.
+    it("garde la page d'accueil et la vraie adresse comme deux pistes", () => {
+        expect(addressesToAsk("https://www.tiktok.com/", REAL, SHORT)).toEqual([
+            "https://www.tiktok.com/",
+            REAL,
+            SHORT,
+        ]);
     });
 });

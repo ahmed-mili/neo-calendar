@@ -38,6 +38,7 @@ import {
 import { sameDestination, sameTarget, urlMarkdown } from "./linkInput";
 import { LinkKind, linkKind } from "./linkKind";
 import {
+    addressesToAsk,
     canonicalUrlFrom,
     confirmedTarget,
     isFrontDoorTitle,
@@ -1701,6 +1702,8 @@ interface LinksAttachmentsRowProps {
     /** Fetches a page's source, off the WebView so no site can refuse it for
         being cross-origin. Absent where there is no such way. */
     onFetchPage?: (url: string) => Promise<string>;
+    /** Suit les redirections d'un lien de partage jusqu'à sa destination. */
+    onResolveUrl?: (url: string) => Promise<string>;
     disabled: boolean;
     vaults: LinkVaultOption[];
     items: LinkedFileItem[];
@@ -2093,6 +2096,7 @@ export function LinksAttachmentsRow({
     onOpenNote,
     onSearch,
     onFetchPage,
+    onResolveUrl,
     onAddLink,
     onRemoveLink,
     onOpenLink,
@@ -2244,10 +2248,15 @@ export function LinksAttachmentsRow({
              * that is, so it is fetched once for both the address and the
              * title, and oEmbed is asked about the address it gave.
              */
-            const html = await withDeadline(
-                onFetchPage(target),
-                TITLE_DEADLINE_MS
-            );
+            /* La page et la destination de la redirection se demandent en
+               même temps : ce sont deux façons d'apprendre la même chose, et
+               les enchaîner doublerait l'attente pour rien. */
+            const [html, resolved] = await Promise.all([
+                withDeadline(onFetchPage(target), TITLE_DEADLINE_MS),
+                onResolveUrl
+                    ? withDeadline(onResolveUrl(target), TITLE_DEADLINE_MS)
+                    : Promise.resolve(null),
+            ]);
 
             const canonical = (html && canonicalUrlFrom(html)) || target;
             let title: string | null = null;
@@ -2264,8 +2273,7 @@ export function LinksAttachmentsRow({
              * canonical read off it is not this link's, so an answer only
              * counts when it names the address it was asked about.
              */
-            const addresses =
-                canonical === target ? [target] : [canonical, target];
+            const addresses = addressesToAsk(canonical, resolved, target);
             for (const about of addresses) {
                 const oembed = oembedUrlFor(about);
                 if (!oembed) continue;
@@ -2276,7 +2284,10 @@ export function LinksAttachmentsRow({
                 );
                 if (!json || !oembedAnswersFor(json, about)) continue;
 
-                destination = confirmedTarget(target, canonical, json);
+                /* L'adresse retenue est celle qui a répondu, pas celle lue
+                   dans la page : quand c'est la redirection qui a mené à la
+                   vidéo, c'est elle qui décrit le lien. */
+                destination = confirmedTarget(target, about, json);
                 title = titleFromOembed(json);
                 if (title) break;
             }
@@ -2301,7 +2312,7 @@ export function LinksAttachmentsRow({
                 ? markdown
                 : markdown.replace(`(${target})`, `(${destination})`);
         },
-        [onFetchPage]
+        [onFetchPage, onResolveUrl]
     );
 
     const addMarkdown = React.useCallback(

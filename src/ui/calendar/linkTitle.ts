@@ -38,9 +38,10 @@ export function decodeEntities(value: string): string {
         const known = ENTITIES[name.toLowerCase()];
         if (known !== undefined) return known;
         if (name[0] === "#") {
-            const code = name[1]?.toLowerCase() === "x"
-                ? Number.parseInt(name.slice(2), 16)
-                : Number.parseInt(name.slice(1), 10);
+            const code =
+                name[1]?.toLowerCase() === "x"
+                    ? Number.parseInt(name.slice(2), 16)
+                    : Number.parseInt(name.slice(1), 10);
             if (Number.isFinite(code) && code > 0 && code < 0x110000) {
                 return String.fromCodePoint(code);
             }
@@ -357,7 +358,34 @@ export function confirmedTarget(
     const id = itemIdIn(claimed.pathname);
     if (!id || !json.includes(id)) return target;
 
-    return `${claimed.protocol}//${claimed.host.toLowerCase()}${claimed.pathname}`;
+    return `${claimed.protocol}//${claimed.host.toLowerCase()}${
+        claimed.pathname
+    }`;
+}
+
+/**
+ * The addresses worth asking a site about, in order, without repeats.
+ *
+ * A shared link is a note saying where to go, and there are two ways to learn
+ * where that is: the page can state its own address, or the redirect can simply
+ * be followed. Neither is reliable alone — a site that does not recognise the
+ * client serves a front door whose `og:url` is its homepage, and a site that
+ * answers no plain request cannot be read at all — so both are tried, and the
+ * link itself last, since it is the one address known to be right.
+ */
+export function addressesToAsk(
+    ...candidates: ReadonlyArray<string | null | undefined>
+): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const candidate of candidates) {
+        if (!candidate) continue;
+        const trimmed = candidate.trim();
+        if (!/^https?:\/\//i.test(trimmed) || seen.has(trimmed)) continue;
+        seen.add(trimmed);
+        out.push(trimmed);
+    }
+    return out;
 }
 
 /** Enough of a host to tell one site from another. */

@@ -104,6 +104,8 @@ interface EventPanelProps {
     linkVaults?: EventLinkVault[];
     /** Fetches a page's source so a link can be named after it. */
     onFetchPage?: (url: string) => Promise<string>;
+    /** Suit les redirections d'un lien de partage jusqu'à sa destination. */
+    onResolveUrl?: (url: string) => Promise<string>;
     onSearchEventLinks?: (
         query: string,
         vaultPath?: string
@@ -208,6 +210,7 @@ export default function EventPanel({
     firstDay,
     linkVaults = [],
     onFetchPage,
+    onResolveUrl,
     onSearchEventLinks,
     linkedItems = [],
     onAddEventLink,
@@ -1066,6 +1069,7 @@ export default function EventPanel({
                         onOpenNote={() => eventId && onOpenFile(eventId)}
                         onSearch={onSearchEventLinks}
                         onFetchPage={onFetchPage}
+                        onResolveUrl={onResolveUrl}
                         onAddLink={onAddEventLink}
                         onRemoveLink={onRemoveEventLink}
                         onOpenLink={onOpenEventLink}
