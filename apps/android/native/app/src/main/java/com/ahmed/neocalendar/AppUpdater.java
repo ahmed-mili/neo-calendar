@@ -49,19 +49,19 @@ final class AppUpdater {
     "/ahmed-mili/neo-calendar/releases/download/";
   private static final int MAX_METADATA_BYTES = 64 * 1024;
   private static final long MAX_APK_BYTES = 200L * 1024L * 1024L;
-  private static final String PREFS = "neo_updates";
-  /** The one version the user has waved away, by its code. NOT a date.
+  /** The version waved away, for THIS RUN of the app and no longer.
    *
-   *  This used to be a timestamp: every launch that found nothing new put the
-   *  next check six hours out, and "Later" put it twenty-four. On a project
-   *  that ships several times a day that is not a throttle, it is a blindfold —
-   *  a release published an hour after a launch went unseen until the next
-   *  morning, and the app looked broken while being exactly as written.
+   *  It was written to disk, and that made "Later" a refusal with no way back:
+   *  the launch check skipped that version for good, and the only route to it
+   *  was knowing that the number beside the gear is secretly a button. One
+   *  mis-tap and the update was unreachable to anyone who did not know.
    *
-   *  A check now runs on every launch; it costs one request for 240 bytes. What
-   *  "Later" suppresses is that VERSION, not that hour, so the answer keeps
-   *  meaning what it said — and the version after it still gets to ask. */
-  private static final String PREF_DISMISSED_CODE = "dismissed_version_code";
+   *  "Later" now means later — the next time the app starts, it asks again.
+   *  Static so it survives the Activity being rebuilt (a rotation, a theme
+   *  change) without surviving the process, which is exactly what "this run"
+   *  means. The old key is left unread rather than migrated; a stale one on
+   *  disk simply stops mattering. */
+  private static long dismissedThisRun = 0L;
   private static final String CHANNEL_ID = "neo_updates";
   private static final int NOTIFICATION_ID = 0x4E43;
   /** A notification redraw costs a binder round trip, and a fast connection
@@ -78,9 +78,18 @@ final class AppUpdater {
     this.io = io;
   }
 
-  /** Every launch, with no clock in the way. A debug build still says nothing:
-   *  it is usually newer than anything published, and the release APK it would
-   *  offer carries a different signing certificate anyway. */
+  /** Every launch, with no clock in the way.
+   *
+   *  There used to be one: a launch that found nothing new put the next check
+   *  six hours out, and "Later" put it twenty-four. On a project that ships
+   *  several times in an evening that is not a throttle but a blindfold — a
+   *  release published an hour after a launch went unseen until the morning,
+   *  and the app looked broken while doing exactly what it was told. A check
+   *  costs one request for 240 bytes; it can happen every time.
+   *
+   *  A debug build still says nothing: it is usually newer than anything
+   *  published, and the release APK it would offer carries a different signing
+   *  certificate anyway. */
   void checkOnLaunch() {
     if (BuildConfig.DEBUG) return;
     io.execute(() -> {
@@ -497,15 +506,11 @@ final class AppUpdater {
   }
 
   private long dismissedVersionCode() {
-    return activity.getSharedPreferences(PREFS, Activity.MODE_PRIVATE)
-      .getLong(PREF_DISMISSED_CODE, 0L);
+    return dismissedThisRun;
   }
 
   private void dismissVersion(long versionCode) {
-    activity.getSharedPreferences(PREFS, Activity.MODE_PRIVATE)
-      .edit()
-      .putLong(PREF_DISMISSED_CODE, versionCode)
-      .apply();
+    dismissedThisRun = versionCode;
   }
 
   private static byte[] readLimited(InputStream input, int limit) throws IOException {
