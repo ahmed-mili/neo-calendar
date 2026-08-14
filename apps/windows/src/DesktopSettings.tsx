@@ -1068,14 +1068,21 @@ export default function DesktopSettings({
 
     const renderCalendars = () => (
         <div className="nc-set-groups">
+            {/* Ce que l'on peut ajouter se dit sous le bloc, pas dans la
+                colonne de droite : « Note complète, ICS ou automatique » ne
+                tient pas à côté de son libellé sur un téléphone, et s'y
+                faisait couper après « ICS ou au… ». */}
             <SettingsGroup
-                note={t(
+                note={`${t(
                     "Each direct subfolder of the data folder is a calendar."
-                )}
+                )} ${t(
+                    "It can be a full note, an ICS subscription, or one detected automatically."
+                )}`}
             >
                 <SettingsRow
                     label={t("Add calendar")}
-                    value={t("Full note, ICS or automatic")}
+                    icon={<Plus size={18} />}
+                    navigates
                     onClick={onAddCalendar}
                 />
             </SettingsGroup>

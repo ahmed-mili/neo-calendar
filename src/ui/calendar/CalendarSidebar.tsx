@@ -948,23 +948,30 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                     </>
                 )}
 
-                <div className="nc-sidebar-footer">
-                    <button
-                        type="button"
-                        className="nc-sidebar-help-btn"
-                        title={t("Keyboard shortcuts")}
-                        aria-label={t("Keyboard shortcuts")}
-                        onClick={(event) =>
-                            setShortcutsAnchor(
-                                shortcutsAnchor
-                                    ? null
-                                    : event.currentTarget.getBoundingClientRect()
-                            )
-                        }
-                    >
-                        <CircleHelpIcon size={16} />
-                    </button>
-                </div>
+                {/* La liste des raccourcis clavier n'est offerte que là où il
+                    y a un clavier. Sur un téléphone elle donnait une fiche de
+                    touches — T, D, W, M — qu'aucun doigt ne peut presser, et
+                    un champ de recherche qui faisait monter le clavier tactile
+                    par-dessus la fiche qu'on venait d'ouvrir. */}
+                {!isAndroid && (
+                    <div className="nc-sidebar-footer">
+                        <button
+                            type="button"
+                            className="nc-sidebar-help-btn"
+                            title={t("Keyboard shortcuts")}
+                            aria-label={t("Keyboard shortcuts")}
+                            onClick={(event) =>
+                                setShortcutsAnchor(
+                                    shortcutsAnchor
+                                        ? null
+                                        : event.currentTarget.getBoundingClientRect()
+                                )
+                            }
+                        >
+                            <CircleHelpIcon size={16} />
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Portaled to <body> (see CalendarItemMenu), so they are siblings

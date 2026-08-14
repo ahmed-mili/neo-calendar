@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronRight, RotateCcw } from "lucide-react";
 import { t } from "../../../src/ui/i18n";
 
@@ -279,13 +280,7 @@ export function SettingsDialog({
         return () => window.removeEventListener("keydown", onKeyDown, true);
     }, [onClose]);
 
-    /*
-     * No portal of its own: this is rendered inside the settings' backdrop,
-     * which is already portalled to the body and already covers the screen.
-     * A second portal only made the dialog invisible to anything rendering the
-     * settings without a document — which is how the tests read this screen.
-     */
-    return (
+    const panel = (
         <div
             className="nc-choice-backdrop"
             onMouseDown={(event) => {
@@ -307,6 +302,19 @@ export function SettingsDialog({
             </section>
         </div>
     );
+
+    /*
+     * Porté sur le body quand il y a un body.
+     *
+     * Le dialogue peut être ouvert depuis n'importe où, y compris depuis une
+     * ligne au fond d'une page qui glisse : `position: fixed` se résout alors
+     * contre cette page transformée, et le panneau s'ouvre dans un coin. Sans
+     * document — c'est ainsi que les tests lisent cet écran — il reste sur
+     * place, où il est visible dans le balisage rendu.
+     */
+    return typeof document === "undefined"
+        ? panel
+        : createPortal(panel, document.body);
 }
 
 export interface SettingsChoice {

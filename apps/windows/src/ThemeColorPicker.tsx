@@ -8,6 +8,9 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronRight } from "lucide-react";
+import { SettingsDialog } from "./SettingsPrimitives";
+import { isAndroidRuntime } from "./themes/wallpapers";
+import { t } from "../../../src/ui/i18n";
 
 interface ThemeColorPickerProps {
     label: string;
@@ -179,7 +182,11 @@ export default function ThemeColorPicker({
             }
         };
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") setOpen(false);
+            if (event.key !== "Escape") return;
+            // Le panneau des réglages écoute Échap lui aussi : sans cela, une
+            // seule pression fermait ce sélecteur ET reculait d'une page.
+            event.stopPropagation();
+            setOpen(false);
         };
         document.addEventListener("pointerdown", onPointerDown, true);
         document.addEventListener("keydown", onKeyDown);
@@ -217,126 +224,137 @@ export default function ThemeColorPicker({
         });
     };
 
-    const popover = open
-        ? createPortal(
-              <div
-                  ref={popoverRef}
-                  className="nc-theme-color-popover"
-                  style={{ top: position.top, left: position.left }}
-                  role="dialog"
-                  aria-label={`Sélecteur de couleur — ${label}`}
-                  onPointerDown={(event) => event.stopPropagation()}
-              >
-                  <header className="nc-theme-color-popover__header">
-                      <span>Choisir une couleur</span>
-                      <i style={{ backgroundColor: safeColor }} />
-                  </header>
-                  <div
-                      ref={saturationRef}
-                      className="nc-theme-color-popover__saturation"
-                      style={{
-                          backgroundColor: `hsl(${hsv.h} 100% 50%)`,
-                      }}
-                      onPointerDown={(event) => {
-                          saturationDragging.current = true;
-                          event.currentTarget.setPointerCapture(
-                              event.pointerId
-                          );
-                          updateSaturation(event.clientX, event.clientY);
-                      }}
-                      onPointerMove={(event) => {
-                          if (saturationDragging.current) {
-                              updateSaturation(event.clientX, event.clientY);
-                          }
-                      }}
-                      onPointerUp={(event) => {
-                          saturationDragging.current = false;
-                          event.currentTarget.releasePointerCapture(
-                              event.pointerId
-                          );
-                      }}
-                  >
-                      <span
-                          className="nc-theme-color-popover__saturation-thumb"
-                          style={{
-                              left: `${hsv.s * 100}%`,
-                              top: `${(1 - hsv.v) * 100}%`,
-                          }}
-                      />
-                  </div>
-                  <div
-                      ref={hueRef}
-                      className="nc-theme-color-popover__hue"
-                      onPointerDown={(event) => {
-                          hueDragging.current = true;
-                          event.currentTarget.setPointerCapture(
-                              event.pointerId
-                          );
-                          updateHue(event.clientX);
-                      }}
-                      onPointerMove={(event) => {
-                          if (hueDragging.current) updateHue(event.clientX);
-                      }}
-                      onPointerUp={(event) => {
-                          hueDragging.current = false;
-                          event.currentTarget.releasePointerCapture(
-                              event.pointerId
-                          );
-                      }}
-                  >
-                      <span style={{ left: `${(hsv.h / 360) * 100}%` }} />
-                  </div>
-                  <div className="nc-theme-color-popover__field">
-                      <i style={{ backgroundColor: safeColor }} />
-                      <input
-                          value={value.toUpperCase()}
-                          maxLength={7}
-                          spellCheck={false}
-                          aria-invalid={!isHex(value)}
-                          onChange={(event) => {
-                              const next = event.target.value;
-                              onChange(next);
-                              if (isHex(next)) setHsv(hexToHsv(next));
-                          }}
-                          onKeyDown={(event) => {
-                              if (event.key === "Enter" && isHex(value)) {
-                                  setOpen(false);
-                              }
-                          }}
-                      />
-                  </div>
-                  <div className="nc-theme-color-popover__presets">
-                      {PRESET_COLORS.map((preset) => {
-                          const selected =
-                              preset.toLowerCase() === safeColor.toLowerCase();
-                          return (
-                              <button
-                                  key={preset}
-                                  type="button"
-                                  aria-label={`Utiliser ${preset}`}
-                                  aria-pressed={selected}
-                                  style={{ backgroundColor: preset }}
-                                  onClick={() => {
-                                      onChange(preset);
-                                      setHsv(hexToHsv(preset));
-                                  }}
-                              >
-                                  {selected && <Check size={13} />}
-                              </button>
-                          );
-                      })}
-                  </div>
-                  <button
-                      className="nc-theme-color-popover__done"
-                      type="button"
-                      onClick={() => setOpen(false)}
-                  >
-                      Terminé
-                  </button>
-              </div>,
-              document.body
-          )
-        : null;
+    const wheel = (
+        <>
+            <div
+                ref={saturationRef}
+                className="nc-theme-color-popover__saturation"
+                style={{
+                    backgroundColor: `hsl(${hsv.h} 100% 50%)`,
+                }}
+                onPointerDown={(event) => {
+                    saturationDragging.current = true;
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    updateSaturation(event.clientX, event.clientY);
+                }}
+                onPointerMove={(event) => {
+                    if (saturationDragging.current) {
+                        updateSaturation(event.clientX, event.clientY);
+                    }
+                }}
+                onPointerUp={(event) => {
+                    saturationDragging.current = false;
+                    event.currentTarget.releasePointerCapture(event.pointerId);
+                }}
+            >
+                <span
+                    className="nc-theme-color-popover__saturation-thumb"
+                    style={{
+                        left: `${hsv.s * 100}%`,
+                        top: `${(1 - hsv.v) * 100}%`,
+                    }}
+                />
+            </div>
+            <div
+                ref={hueRef}
+                className="nc-theme-color-popover__hue"
+                onPointerDown={(event) => {
+                    hueDragging.current = true;
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    updateHue(event.clientX);
+                }}
+                onPointerMove={(event) => {
+                    if (hueDragging.current) updateHue(event.clientX);
+                }}
+                onPointerUp={(event) => {
+                    hueDragging.current = false;
+                    event.currentTarget.releasePointerCapture(event.pointerId);
+                }}
+            >
+                <span style={{ left: `${(hsv.h / 360) * 100}%` }} />
+            </div>
+            <div className="nc-theme-color-popover__field">
+                <i style={{ backgroundColor: safeColor }} />
+                <input
+                    value={value.toUpperCase()}
+                    maxLength={7}
+                    spellCheck={false}
+                    aria-invalid={!isHex(value)}
+                    onChange={(event) => {
+                        const next = event.target.value;
+                        onChange(next);
+                        if (isHex(next)) setHsv(hexToHsv(next));
+                    }}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter" && isHex(value)) {
+                            setOpen(false);
+                        }
+                    }}
+                />
+            </div>
+            <div className="nc-theme-color-popover__presets">
+                {PRESET_COLORS.map((preset) => {
+                    const selected =
+                        preset.toLowerCase() === safeColor.toLowerCase();
+                    return (
+                        <button
+                            key={preset}
+                            type="button"
+                            aria-label={`Utiliser ${preset}`}
+                            aria-pressed={selected}
+                            style={{ backgroundColor: preset }}
+                            onClick={() => {
+                                onChange(preset);
+                                setHsv(hexToHsv(preset));
+                            }}
+                        >
+                            {selected && <Check size={13} />}
+                        </button>
+                    );
+                })}
+            </div>
+            <button
+                className="nc-theme-color-popover__done"
+                type="button"
+                onClick={() => setOpen(false)}
+            >
+                Terminé
+            </button>
+        </>
+    );
+
+    /*
+     * Sur téléphone, le même panneau que les autres sous-menus ; sur un écran
+     * large, la bulle ancrée sous la ligne — elle y est à côté de la couleur
+     * qu'on modifie, et il y a la place. C'est le partage que le sélecteur de
+     * fonds d'écran fait déjà.
+     */
+    const popover = !open ? null : isAndroidRuntime() ? (
+        <SettingsDialog
+            title={t("Pick a colour")}
+            onClose={() => setOpen(false)}
+        >
+            <div className="nc-theme-color-body">{wheel}</div>
+        </SettingsDialog>
+    ) : (
+        createPortal(
+            <div
+                ref={popoverRef}
+                className="nc-theme-color-popover"
+                style={{ top: position.top, left: position.left }}
+                role="dialog"
+                aria-label={`Sélecteur de couleur — ${label}`}
+                onPointerDown={(event) => event.stopPropagation()}
+            >
+                <header className="nc-theme-color-popover__header">
+                    <span>{t("Pick a colour")}</span>
+                    <i style={{ backgroundColor: safeColor }} />
+                </header>
+                <div className="nc-theme-color-body">{wheel}</div>
+            </div>,
+            document.body
+        )
+    );
 
     /*
      * Une ligne de réglage comme les autres : la pastille tient la place de

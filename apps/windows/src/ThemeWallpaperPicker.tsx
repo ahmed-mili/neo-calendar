@@ -27,6 +27,7 @@ import {
     needsDownloading,
     thumbUrlOf,
 } from "./themes/wallpaperDownload";
+import { SettingsDialog } from "./SettingsPrimitives";
 import { placeFlyout } from "../../../src/ui/calendar/flyoutPlacement";
 import { t } from "../../../src/ui/i18n";
 
@@ -182,7 +183,11 @@ export default function ThemeWallpaperPicker({
         };
 
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape" && !busy) setOpen(false);
+            if (event.key !== "Escape" || busy) return;
+            // Le panneau des réglages écoute Échap lui aussi : sans cela, une
+            // seule pression fermait ce sélecteur ET reculait d'une page.
+            event.stopPropagation();
+            setOpen(false);
         };
 
         document.addEventListener("pointerdown", onPointerDown, true);
@@ -344,34 +349,27 @@ export default function ThemeWallpaperPicker({
                     document.body
                 )}
 
-            {open &&
-                !anchored &&
-                createPortal(
+            {/* Sur téléphone, le même panneau que tous les autres sous-menus.
+                C'était une feuille à part : pas de titre, pas de flou derrière,
+                des lignes deux fois plus hautes — un troisième dessin dans un
+                écran qui n'en veut qu'un. */}
+            {open && !anchored && (
+                <SettingsDialog
+                    title={t("Wallpapers")}
+                    onClose={() => {
+                        if (!busy) setOpen(false);
+                    }}
+                >
                     <div
-                        className="nc-wallpaper-sheet"
-                        role="dialog"
-                        aria-modal="true"
+                        ref={menuRef}
+                        className="nc-wallpaper-options"
+                        role="listbox"
                         aria-label={t("Wallpapers")}
                     >
-                        <button
-                            type="button"
-                            className="nc-wallpaper-sheet__scrim"
-                            aria-label={t("Close")}
-                            onClick={() => {
-                                if (!busy) setOpen(false);
-                            }}
-                        />
-                        <div
-                            ref={menuRef}
-                            className="nc-wallpaper-sheet__panel"
-                            role="listbox"
-                            aria-label={t("Wallpapers")}
-                        >
-                            {options}
-                        </div>
-                    </div>,
-                    document.body
-                )}
+                        {options}
+                    </div>
+                </SettingsDialog>
+            )}
         </>
     );
 }

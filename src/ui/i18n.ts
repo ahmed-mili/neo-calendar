@@ -369,6 +369,8 @@ const FR: Record<string, string> = {
     "Each direct subfolder of the data folder is a calendar.":
         "Chaque sous-dossier direct du dossier de données est un calendrier.",
     "Full note, ICS or automatic": "Note complète, ICS ou automatique",
+    "It can be a full note, an ICS subscription, or one detected automatically.":
+        "Il peut être une note complète, un abonnement ICS, ou détecté automatiquement.",
     "Neo Calendar keeps its data in the folder you choose. Syncing is done by whichever tool you settle on.":
         "Neo Calendar range ses données dans le dossier que vous choisissez. La synchronisation est assurée par l'outil que vous retenez.",
     "Possible methods": "Méthodes possibles",

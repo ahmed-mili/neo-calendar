@@ -2681,41 +2681,6 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
  * over the picture rather than the real one, so it told you less than simply
  * applying the wallpaper does.
  */
-.nc-wallpaper-sheet {
-    position: fixed;
-    inset: 0;
-    /* Au-dessus du panneau de reglages (20000), sinon la feuille s'ouvre
-       derriere lui et rien ne semble se passer. */
-    z-index: 20100;
-    display: grid;
-    place-items: center;
-    padding: 24px;
-}
-
-.nc-wallpaper-sheet__scrim {
-    position: absolute;
-    inset: 0;
-    padding: 0;
-    border: 0;
-    background: rgba(3, 4, 12, 0.58);
-    cursor: pointer;
-}
-
-.nc-wallpaper-sheet__panel {
-    position: relative;
-    width: min(420px, 100%);
-    max-height: min(70vh, 560px);
-    display: grid;
-    gap: 4px;
-    padding: 8px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 16px;
-    background: var(--background-primary);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.44);
-}
-
 .nc-wallpaper-option {
     min-width: 0;
     display: grid;
@@ -2836,6 +2801,54 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     font-family: var(--nc-ui-font) !important;
 }
 
+/*
+ * Dans le panneau commun, la ligne d'un fond tient la hauteur d'une ligne de
+ * liste et non celle d'une affiche : la vignette portrait passe de 64x88 a
+ * 40x54, ce qui fait tenir neuf fonds a l'ecran au lieu de cinq. On vient y
+ * choisir une image, pas la regarder.
+ */
+.nc-choice-dialog .nc-wallpaper-options {
+    display: grid;
+}
+
+.nc-choice-dialog .nc-wallpaper-option {
+    grid-template-columns: 40px minmax(0, 1fr) 20px;
+    gap: 14px;
+    padding: 7px 12px;
+    border-radius: 12px;
+}
+
+.nc-choice-dialog .nc-wallpaper-option__image {
+    width: 40px;
+    height: 54px;
+    border-radius: 7px;
+}
+
+.nc-choice-dialog .nc-wallpaper-option__label {
+    font-size: 16px;
+}
+
+/* Le fond choisi se nomme dans la couleur d'accentuation, comme partout
+   ailleurs dans ces panneaux : le cadre et le fond teinte faisaient une
+   troisieme facon de dire « celui-ci ». */
+.nc-choice-dialog .nc-wallpaper-option[aria-selected="true"] {
+    border-color: transparent;
+    background: transparent !important;
+}
+
+.nc-choice-dialog
+    .nc-wallpaper-option[aria-selected="true"]
+    .nc-wallpaper-option__label {
+    color: var(--nc-accent);
+}
+
+/* Le corps du selecteur de couleur, partage par la bulle ancree du bureau et
+   le panneau du telephone. */
+.nc-theme-color-body {
+    display: grid;
+    gap: 11px;
+}
+
 /* Vignettes paysage : les fonds proposes a un ecran large le sont, un cadre
    portrait n'en montrerait qu'une bande centrale. */
 .nc-wallpaper-menu .nc-wallpaper-option {
@@ -2847,18 +2860,6 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 .nc-wallpaper-menu .nc-wallpaper-option__image {
     width: 96px;
     height: 54px;
-}
-
-@media (max-width: 760px) {
-
-    .nc-wallpaper-sheet {
-        padding: 16px;
-    }
-
-    .nc-wallpaper-sheet__panel {
-        width: 100%;
-        max-height: 76vh;
-    }
 }
 
 /* === NEO WALLPAPER LIBRARY V8 END === */
