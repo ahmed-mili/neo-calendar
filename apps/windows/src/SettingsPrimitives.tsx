@@ -1,5 +1,6 @@
-import React from "react";
-import { ChevronRight, RotateCcw } from "lucide-react";
+import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
+import { Check, ChevronRight, RotateCcw } from "lucide-react";
 import { t } from "../../../src/ui/i18n";
 
 /**
@@ -239,6 +240,99 @@ export function SettingsFieldRow({
             />
             {children}
         </label>
+    );
+}
+
+export interface SettingsChoice {
+    title: string;
+    value: string;
+    options: Array<{ value: string; label: string; icon?: React.ReactNode }>;
+    onPick: (value: string) => void;
+}
+
+/**
+ * A short list of choices, taken over the screen one came from.
+ *
+ * It used to be a page of its own: a back arrow, a title bar, and three lines
+ * on an otherwise empty screen — the whole of the settings pushed aside to ask
+ * light or dark. Choosing between a handful of named things is one gesture, not
+ * a journey, and the answer reads better against the row that asked it.
+ *
+ * Long lists are the same dialog; it simply scrolls, which is still less
+ * disruptive than replacing the screen.
+ */
+export function SettingsChoiceDialog({
+    choice,
+    onClose,
+}: {
+    choice: SettingsChoice;
+    onClose: () => void;
+}) {
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                event.stopPropagation();
+                onClose();
+            }
+        };
+        // Capture, so the settings' own Escape handler does not also fire and
+        // walk a page back behind the dialog that just closed.
+        window.addEventListener("keydown", onKeyDown, true);
+        return () => window.removeEventListener("keydown", onKeyDown, true);
+    }, [onClose]);
+
+    if (typeof document === "undefined") return null;
+
+    return createPortal(
+        <div
+            className="nc-choice-backdrop"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) onClose();
+            }}
+        >
+            <section
+                className="nc-choice-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-label={choice.title}
+            >
+                <h2 className="nc-choice-dialog__title">{choice.title}</h2>
+                <div className="nc-choice-dialog__options" role="radiogroup">
+                    {choice.options.map((option) => {
+                        const selected = option.value === choice.value;
+                        return (
+                            <button
+                                key={option.value}
+                                type="button"
+                                role="radio"
+                                aria-checked={selected}
+                                className="nc-choice-option"
+                                onClick={() => {
+                                    choice.onPick(option.value);
+                                    onClose();
+                                }}
+                            >
+                                {option.icon && (
+                                    <span className="nc-choice-option__icon">
+                                        {option.icon}
+                                    </span>
+                                )}
+                                <span className="nc-choice-option__label">
+                                    {option.label}
+                                </span>
+                                {selected && (
+                                    <Check
+                                        size={19}
+                                        className="nc-choice-option__check"
+                                    />
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            </section>
+        </div>,
+        document.body
     );
 }
 

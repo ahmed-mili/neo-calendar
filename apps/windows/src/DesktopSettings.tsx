@@ -16,6 +16,8 @@ import {
 } from "../../../src/ui/i18n";
 import {
     SettingsGroup,
+    SettingsChoice,
+    SettingsChoiceDialog,
     SettingsChoiceRow,
     SettingsFieldRow,
     SettingsRow,
@@ -48,12 +50,14 @@ import {
     Code2,
     Copy,
     Columns2,
+    Columns3,
     FileText,
     Flag,
     FolderOpen,
     Globe,
     Languages,
     Library,
+    List as ListIcon,
     Moon,
     Monitor,
     Palette,
@@ -61,6 +65,7 @@ import {
     RefreshCw,
     Smartphone,
     Plus,
+    Square,
     SunMedium,
     Timer,
     Trash2,
@@ -91,17 +96,7 @@ type SettingsSection =
 /** Kept for callers that used to open the settings straight onto a tab. */
 type SettingsTab = "general" | SettingsSection;
 
-interface ChoicePage {
-    title: string;
-    value: string;
-    options: Array<{ value: string; label: string; icon?: React.ReactNode }>;
-    onPick: (value: string) => void;
-}
-
-type SettingsPage =
-    | { kind: "root" }
-    | { kind: "section"; id: SettingsSection }
-    | { kind: "choice"; choice: ChoicePage };
+type SettingsPage = { kind: "root" } | { kind: "section"; id: SettingsSection };
 
 const SECTION_TITLES: Record<SettingsSection, string> = {
     calendars: t("Calendars"),
@@ -114,14 +109,11 @@ const SECTION_TITLES: Record<SettingsSection, string> = {
 
 function pageTitle(page: SettingsPage): string {
     if (page.kind === "root") return t("Settings");
-    if (page.kind === "choice") return page.choice.title;
     return SECTION_TITLES[page.id];
 }
 
-function pageKey(page: SettingsPage, index: number): string {
-    if (page.kind === "root") return "root";
-    if (page.kind === "section") return `section:${page.id}`;
-    return `choice:${index}:${page.choice.title}`;
+function pageKey(page: SettingsPage): string {
+    return page.kind === "root" ? "root" : `section:${page.id}`;
 }
 
 /**
@@ -280,6 +272,7 @@ export default function DesktopSettings({
         () => createThemeDraft(themeId, loadAppearancePreferences())
     );
     const [themeDirty, setThemeDirty] = useState(false);
+    const [choice, setChoice] = useState<SettingsChoice | null>(null);
 
     /*
      * Rewind to the requested page only when the settings window is opened (or
@@ -291,6 +284,7 @@ export default function DesktopSettings({
         if (open) {
             setStack(initialStack(initialTab));
             setLeaving(null);
+            setChoice(null);
         }
     }, [initialTab, open]);
 
@@ -318,9 +312,11 @@ export default function DesktopSettings({
         setStack((current) => [...current, page]);
     }, []);
 
+    /* Une liste courte se prend par-dessus l'écran qui l'a demandée, pas à sa
+       place : choisir entre trois choses nommées est un geste, pas un voyage. */
     const openChoice = React.useCallback(
-        (choice: ChoicePage) => openPage({ kind: "choice", choice }),
-        [openPage]
+        (next: SettingsChoice) => setChoice(next),
+        []
     );
 
     useEffect(() => {
@@ -604,10 +600,26 @@ export default function DesktopSettings({
                     icon={<Monitor size={18} />}
                     value={preferences.initialView.desktop}
                     options={[
-                        { value: "day", label: t("Day") },
-                        { value: "week", label: t("Week") },
-                        { value: "month", label: t("Month") },
-                        { value: "list", label: t("List") },
+                        {
+                            value: "day",
+                            label: t("Day"),
+                            icon: <Square size={19} />,
+                        },
+                        {
+                            value: "week",
+                            label: t("Week"),
+                            icon: <Columns3 size={19} />,
+                        },
+                        {
+                            value: "month",
+                            label: t("Month"),
+                            icon: <CalendarRange size={19} />,
+                        },
+                        {
+                            value: "list",
+                            label: t("List"),
+                            icon: <ListIcon size={19} />,
+                        },
                     ]}
                     onOpen={openChoice}
                     onChange={(value) =>
@@ -621,9 +633,21 @@ export default function DesktopSettings({
                     icon={<Smartphone size={18} />}
                     value={preferences.initialView.mobile}
                     options={[
-                        { value: "day", label: t("Day") },
-                        { value: "3days", label: t("3 days") },
-                        { value: "list", label: t("List") },
+                        {
+                            value: "day",
+                            label: t("Day"),
+                            icon: <Square size={19} />,
+                        },
+                        {
+                            value: "3days",
+                            label: t("3 days"),
+                            icon: <Columns3 size={19} />,
+                        },
+                        {
+                            value: "list",
+                            label: t("List"),
+                            icon: <ListIcon size={19} />,
+                        },
                     ]}
                     onOpen={openChoice}
                     onChange={(value) =>
@@ -737,9 +761,21 @@ export default function DesktopSettings({
                     icon={<Moon size={18} />}
                     value={appearance.mode}
                     options={[
-                        { value: "system", label: t("System") },
-                        { value: "light", label: t("Light") },
-                        { value: "dark", label: t("Dark") },
+                        {
+                            value: "system",
+                            label: t("System"),
+                            icon: <Smartphone size={19} />,
+                        },
+                        {
+                            value: "light",
+                            label: t("Light"),
+                            icon: <SunMedium size={19} />,
+                        },
+                        {
+                            value: "dark",
+                            label: t("Dark"),
+                            icon: <Moon size={19} />,
+                        },
                     ]}
                     onOpen={openChoice}
                     onChange={(mode) =>
@@ -1363,41 +1399,6 @@ export default function DesktopSettings({
         </div>
     );
 
-    /** A list of choices, one per line, the current one ticked. */
-    const renderChoice = (choice: ChoicePage) => (
-        <div className="nc-set-groups">
-            <SettingsGroup>
-                {choice.options.map((option) => (
-                    <button
-                        key={option.value}
-                        type="button"
-                        role="radio"
-                        aria-checked={option.value === choice.value}
-                        className="nc-set-row nc-set-row--action"
-                        onClick={() => {
-                            choice.onPick(option.value);
-                            goBack();
-                        }}
-                    >
-                        {option.icon && (
-                            <span className="nc-set-row__icon">
-                                {option.icon}
-                            </span>
-                        )}
-                        <span className="nc-set-row__label">
-                            {option.label}
-                        </span>
-                        {option.value === choice.value && (
-                            <span className="nc-set-row__trailing nc-set-row__trailing--check">
-                                <Check size={18} />
-                            </span>
-                        )}
-                    </button>
-                ))}
-            </SettingsGroup>
-        </div>
-    );
-
     const renderSection = (id: SettingsSection) => {
         switch (id) {
             case "appearance":
@@ -1417,7 +1418,6 @@ export default function DesktopSettings({
 
     const renderPage = (page: SettingsPage) => {
         if (page.kind === "root") return renderRoot();
-        if (page.kind === "choice") return renderChoice(page.choice);
         return renderSection(page.id);
     };
 
@@ -1462,7 +1462,7 @@ export default function DesktopSettings({
                                 className={`nc-settings__page${
                                     buried ? " nc-settings__page--buried" : ""
                                 }`}
-                                key={pageKey(page, index)}
+                                key={pageKey(page)}
                                 data-depth={index}
                                 aria-hidden={buried ? true : undefined}
                             >
@@ -1481,6 +1481,13 @@ export default function DesktopSettings({
                     )}
                 </div>
             </section>
+
+            {choice && (
+                <SettingsChoiceDialog
+                    choice={choice}
+                    onClose={() => setChoice(null)}
+                />
+            )}
 
             <ConfirmDialog
                 open={convertOpen}
