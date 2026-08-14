@@ -419,8 +419,10 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                                 top:
                                                     (draftLane ?? 0) *
                                                         allDayRowHeight() +
-                                                    1,
-                                                height: allDayRowHeight() - 2,
+                                                    EVENT_VGAP / 2,
+                                                height:
+                                                    allDayRowHeight() -
+                                                    EVENT_VGAP,
                                                 backgroundColor: draftColor
                                                     ? draftColor + "25"
                                                     : undefined,
@@ -444,8 +446,10 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                 onToggleTask={onToggleTask}
                                 style={{
                                     position: "absolute",
-                                    top: bar.lane * allDayRowHeight() + 1,
-                                    height: allDayRowHeight() - 2,
+                                    top:
+                                        bar.lane * allDayRowHeight() +
+                                        EVENT_VGAP / 2,
+                                    height: allDayRowHeight() - EVENT_VGAP,
                                     left: `${(bar.startIdx / len) * 100}%`,
                                     width: `calc(${
                                         (bar.span / len) * 100
@@ -458,8 +462,10 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                 key={p.id}
                                 className="nc-drop-preview nc-allday-draft"
                                 style={{
-                                    top: p.lane * allDayRowHeight() + 1,
-                                    height: allDayRowHeight() - 2,
+                                    top:
+                                        p.lane * allDayRowHeight() +
+                                        EVENT_VGAP / 2,
+                                    height: allDayRowHeight() - EVENT_VGAP,
                                     left: `${(p.idx / len) * 100}%`,
                                     width: `calc(${
                                         (p.span / len) * 100

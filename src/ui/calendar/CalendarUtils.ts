@@ -277,19 +277,23 @@ export function isAndroidRuntime(): boolean {
 }
 
 /**
- * How tall one all-day lane is, in pixels.
+ * How tall one all-day lane is: exactly half an hour of grid.
  *
- * Doubled on the phone. At 24px a lane held one event and nothing else: the
- * band was exactly as tall as its single bar, so there was no room to aim at
- * under an existing event, and adding a second one meant hitting a seam. 48
- * leaves a bar its size and a gap beneath it worth pressing.
+ * An all-day event is the same size as a 30-minute one — that is the rule, and
+ * deriving the lane from the hour rather than fixing it in pixels is what keeps
+ * it true. It stays true through a pinch, too: `currentHourHeight` is what the
+ * zoom moves, so the band follows the grid instead of drifting away from it.
+ *
+ * It was 24px, then 48 on the phone, and both were guesses at a figure the grid
+ * already knew. 48 made an all-day event visibly taller than the half-hour
+ * below it, which is what sent me looking.
  *
  * A number and not a CSS variable because the lane maths is done in JS — the
  * band's height, the top of each bar, the scroll correction under it all come
  * from this, and a value only the stylesheet knew would put them out of step.
  */
 export function allDayRowHeight(): number {
-    return isAndroidRuntime() ? 48 : ALLDAY_ROW_HEIGHT;
+    return currentHourHeight() / 2;
 }
 
 /**
