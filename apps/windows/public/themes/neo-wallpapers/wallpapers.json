@@ -1,0 +1,245 @@
+{
+    "format": 1,
+    "wallpapers": [
+        {
+            "id": "alpine-crown",
+            "title": "Alpine crown",
+            "file": "alpine-crown.jpg",
+            "thumb": "thumbs/alpine-crown.jpg",
+            "width": 1932,
+            "height": 1087,
+            "bytes": 454646,
+            "sha256": "efa69cbcbb6bfad48ef5317f770347d7b4ca50512c5ae23ce9fc423112eafffa"
+        },
+        {
+            "id": "alpine-lake-sunset",
+            "title": "Alpine lake sunset",
+            "file": "alpine-lake-sunset.jpg",
+            "thumb": "thumbs/alpine-lake-sunset.jpg",
+            "width": 841,
+            "height": 1870,
+            "bytes": 297641,
+            "sha256": "431080a531be6774372b1e54ef5ec455047b74b6423acc0b09a7d9416eb0f7f4"
+        },
+        {
+            "id": "alpine-turquoise-lake",
+            "title": "Alpine turquoise lake",
+            "file": "alpine-turquoise-lake.jpg",
+            "thumb": "thumbs/alpine-turquoise-lake.jpg",
+            "width": 841,
+            "height": 1870,
+            "bytes": 418727,
+            "sha256": "0397ee442ff9c1837a66ce675a226aaf942cf3d4bf972f718923a098fed232bc"
+        },
+        {
+            "id": "android-alpenglow",
+            "title": "Android alpenglow",
+            "file": "android-alpenglow.jpg",
+            "thumb": "thumbs/android-alpenglow.jpg",
+            "width": 1152,
+            "height": 2048,
+            "bytes": 678973,
+            "sha256": "12f8a3e1fdd0fa5d9bba3a82c3c527660a3f56966f1319f42094f8e326e9fefa"
+        },
+        {
+            "id": "android-rose-summit",
+            "title": "Android rose summit",
+            "file": "android-rose-summit.jpg",
+            "thumb": "thumbs/android-rose-summit.jpg",
+            "width": 1152,
+            "height": 2048,
+            "bytes": 504077,
+            "sha256": "19566a4ee20b8cce87e20ad879af3604fb1b5f9ab683db4c1cad0efc254e0bd2"
+        },
+        {
+            "id": "aurora-lake-night",
+            "title": "Aurora lake night",
+            "file": "aurora-lake-night.jpg",
+            "thumb": "thumbs/aurora-lake-night.jpg",
+            "width": 841,
+            "height": 1870,
+            "bytes": 240856,
+            "sha256": "eb8755d96c292ba7ce401a3b411495b1569de532b7a55059cb0cf7aacdb067b4"
+        },
+        {
+            "id": "coastal-city-night",
+            "title": "Coastal city night",
+            "file": "coastal-city-night.jpg",
+            "thumb": "thumbs/coastal-city-night.jpg",
+            "width": 841,
+            "height": 1870,
+            "bytes": 340434,
+            "sha256": "8e88d1b05bf114de7276f0b38648d035a7ca86caa60310f18b1a777ab467a325"
+        },
+        {
+            "id": "dolomite-dawn",
+            "title": "Dolomite dawn",
+            "file": "dolomite-dawn.jpg",
+            "thumb": "thumbs/dolomite-dawn.jpg",
+            "width": 1762,
+            "height": 1161,
+            "bytes": 366870,
+            "sha256": "eb3ebb5897a297210ef93b95cdde4916b7e9089aa56e6e64b9fa1cbe2c17ce0e"
+        },
+        {
+            "id": "dolomite-haze",
+            "title": "Dolomite haze",
+            "file": "dolomite-haze.jpg",
+            "thumb": "thumbs/dolomite-haze.jpg",
+            "width": 1931,
+            "height": 1086,
+            "bytes": 206340,
+            "sha256": "179b556c1f38f8590bef9b2d7588424353029abbbce11a2ee03a6454fb29c48f"
+        },
+        {
+            "id": "ember-dolomites",
+            "title": "Ember dolomites",
+            "file": "ember-dolomites.jpg",
+            "thumb": "thumbs/ember-dolomites.jpg",
+            "width": 941,
+            "height": 1672,
+            "bytes": 191942,
+            "sha256": "80eb4dcff8954308f252f972a41d41389e034bacbc4ef2c54537cf4e637258d5"
+        },
+        {
+            "id": "emerald-cove",
+            "title": "Emerald cove",
+            "file": "emerald-cove.jpg",
+            "thumb": "thumbs/emerald-cove.jpg",
+            "width": 1898,
+            "height": 1103,
+            "bytes": 628160,
+            "sha256": "d0cf4dc7f5af20fa375e532f515721e675adacaec91b14ef3a07adb4efb70a7f"
+        },
+        {
+            "id": "glacier-plateau",
+            "title": "Glacier plateau",
+            "file": "glacier-plateau.jpg",
+            "thumb": "thumbs/glacier-plateau.jpg",
+            "width": 941,
+            "height": 1672,
+            "bytes": 383895,
+            "sha256": "0b73809affeb1b9b4693098ff527eace1de4d23247d87642ac1a35bbd7e44cf2"
+        },
+        {
+            "id": "glacier-ridge",
+            "title": "Glacier ridge",
+            "file": "glacier-ridge.jpg",
+            "thumb": "thumbs/glacier-ridge.jpg",
+            "width": 1900,
+            "height": 1102,
+            "bytes": 347857,
+            "sha256": "7dc8242999909727e7bb04be09ecf91359d50b22e930501763445b7061db1034"
+        },
+        {
+            "id": "golden-crest",
+            "title": "Golden crest",
+            "file": "golden-crest.jpg",
+            "thumb": "thumbs/golden-crest.jpg",
+            "width": 941,
+            "height": 1672,
+            "bytes": 388481,
+            "sha256": "3604cf665568fc45527eadd725acf05ad88203d6aebf6e5e27ef6282a0b1758b"
+        },
+        {
+            "id": "lofoten-fjord",
+            "title": "Lofoten fjord",
+            "file": "lofoten-fjord.jpg",
+            "thumb": "thumbs/lofoten-fjord.jpg",
+            "width": 1932,
+            "height": 1087,
+            "bytes": 482371,
+            "sha256": "e37690f166b98bc4526b0b78c213017151310b75c547277c1e69f128704d0b15"
+        },
+        {
+            "id": "milky-way-mountain",
+            "title": "Milky way mountain",
+            "file": "milky-way-mountain.jpg",
+            "thumb": "thumbs/milky-way-mountain.jpg",
+            "width": 841,
+            "height": 1870,
+            "bytes": 425654,
+            "sha256": "67c595c806c4a88c708298fa06087cf50935d6982b4c79f94213a9fb94018e83"
+        },
+        {
+            "id": "misty-forest-dawn",
+            "title": "Misty forest dawn",
+            "file": "misty-forest-dawn.jpg",
+            "thumb": "thumbs/misty-forest-dawn.jpg",
+            "width": 841,
+            "height": 1870,
+            "bytes": 349807,
+            "sha256": "6494b127f2b57a9c964a4084b0bec5d97023a7fd3c5956769ba7224523886fbd"
+        },
+        {
+            "id": "neon-city-sunset",
+            "title": "Neon city sunset",
+            "file": "neon-city-sunset.jpg",
+            "thumb": "thumbs/neon-city-sunset.jpg",
+            "width": 841,
+            "height": 1870,
+            "bytes": 295937,
+            "sha256": "39889d8a6a92819e1a78102415cdcb7540f0b97c71b0dcaf6c0f253df226ff21"
+        },
+        {
+            "id": "orange-mountain-sunset",
+            "title": "Orange mountain sunset",
+            "file": "orange-mountain-sunset.jpg",
+            "thumb": "thumbs/orange-mountain-sunset.jpg",
+            "width": 841,
+            "height": 1870,
+            "bytes": 144596,
+            "sha256": "a48de9eb1cc74250dc15b0d98696ab430c91beb5ad0ccf1febcb4d8e70db566e"
+        },
+        {
+            "id": "starlit-alpine-refuge",
+            "title": "Starlit alpine refuge",
+            "file": "starlit-alpine-refuge.jpg",
+            "thumb": "thumbs/starlit-alpine-refuge.jpg",
+            "width": 841,
+            "height": 1870,
+            "bytes": 2053217,
+            "sha256": "810d0a56617b4339575c344dd56f7df64b931eb1cc9bcd115cb28aeae14c661c"
+        },
+        {
+            "id": "stormy-fjord",
+            "title": "Stormy fjord",
+            "file": "stormy-fjord.jpg",
+            "thumb": "thumbs/stormy-fjord.jpg",
+            "width": 941,
+            "height": 1672,
+            "bytes": 303592,
+            "sha256": "a98133c6952982c6f414428868a3de981add8827abcc5475a65b992be9652c23"
+        },
+        {
+            "id": "tropical-beach-aerial",
+            "title": "Tropical beach aerial",
+            "file": "tropical-beach-aerial.jpg",
+            "thumb": "thumbs/tropical-beach-aerial.jpg",
+            "width": 841,
+            "height": 1870,
+            "bytes": 450393,
+            "sha256": "3b2f0f34f333cce673b3d59576f0b7634280bd84b08738ce0fd93102fbb292d4"
+        },
+        {
+            "id": "turquoise-lagoon",
+            "title": "Turquoise lagoon",
+            "file": "turquoise-lagoon.jpg",
+            "thumb": "thumbs/turquoise-lagoon.jpg",
+            "width": 941,
+            "height": 1672,
+            "bytes": 510850,
+            "sha256": "80192c912e269bd7c323e4444933f48b7868219f4f29bdec028f2273ed129ffb"
+        },
+        {
+            "id": "turquoise-waves-aerial",
+            "title": "Turquoise waves aerial",
+            "file": "turquoise-waves-aerial.jpg",
+            "thumb": "thumbs/turquoise-waves-aerial.jpg",
+            "width": 841,
+            "height": 1870,
+            "bytes": 428782,
+            "sha256": "91f1d1eacbbe9c0568791abbf50e4baea76c7ff1940c7b609fa44d6ac8c2841a"
+        }
+    ]
+}
