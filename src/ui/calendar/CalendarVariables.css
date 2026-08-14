@@ -30,6 +30,12 @@
     --nc-accent: var(--interactive-accent);
     --nc-accent-text: var(--text-on-accent);
     --nc-error: var(--text-error);
+    /* The one red that means "there is news": the dot on the menu button and
+       the pill in the drawer are the same piece of news seen twice, so they
+       must not drift apart. Literal, not a theme var — a theme that resolves
+       it to nothing would leave an invisible badge, which is worse than an
+       off-palette one. */
+    --nc-update-accent: #f38ba8;
 
     /* Single canonical "today" red. Literal value → resolves in every scope
        (grid/header/sidebar/panel) with no fallback needed, unlike the theme-mapped

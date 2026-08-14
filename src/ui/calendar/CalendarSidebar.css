@@ -48,13 +48,19 @@
 
 /* ── Version, immediately left of the gear ─────────────────── */
 
+/* It shipped as bare faint text and nobody could tell it was a control —
+   the one person using the app found out by being told. So: an outline, a
+   refresh glyph beside the number, and a hit area worth aiming at. */
 .nc-sidebar-version {
-    margin-right: 2px;
-    padding: 3px 8px;
-    border: none;
-    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-right: 4px;
+    padding: 5px 9px;
+    border: 1px solid var(--nc-border);
+    border-radius: 999px;
     background: transparent;
-    color: var(--nc-text-faint, var(--text-faint));
+    color: var(--nc-text-secondary, var(--text-muted));
     font-family: var(--nc-num-font);
     font-variant-numeric: tabular-nums;
     font-size: 11px;
@@ -66,6 +72,23 @@
 .nc-sidebar-version:hover:not(:disabled) {
     background: var(--nc-bg-hover);
     color: var(--nc-text-primary, var(--text-normal));
+}
+
+/* Something is waiting: the pill stops being a version number and becomes the
+   errand, in the same red as the dot on the menu button so the two read as one
+   piece of news rather than two. */
+.nc-sidebar-version-ready {
+    border-color: transparent;
+    background: var(--nc-update-accent, #f38ba8);
+    color: #11111b;
+    font-family: inherit;
+    font-weight: 700;
+}
+
+.nc-sidebar-version-ready:hover:not(:disabled) {
+    background: var(--nc-update-accent, #f38ba8);
+    color: #11111b;
+    filter: brightness(1.08);
 }
 
 .nc-sidebar-version:disabled {

@@ -94,6 +94,15 @@ public class MainActivity extends Activity {
     );
     setContentView(rootView);
     appUpdater = new AppUpdater(this, io);
+    // The launch check finishes after the page has painted, so the badge
+    // cannot be there at first render. Rather than have the page ask on a
+    // timer for a string that changes once, the shell says when it changes.
+    appUpdater.setOnUpdateFound(() -> {
+      if (webView != null) {
+        webView.evaluateJavascript(
+          "window.dispatchEvent(new Event('neo-update-available'))", null);
+      }
+    });
 
     // Hold the system splash screen until the interface has something to show.
     // Without this it lifts as soon as the activity can draw — which is before
@@ -436,6 +445,10 @@ public class MainActivity extends Activity {
         (see appUpdates.ts), so an older shell without this simply renders the
         number as a label. */
     @JavascriptInterface public void checkForUpdates(){ if(appUpdater!=null) appUpdater.checkNow(); }
+    /** The version the shell is holding, or "" — what the badge on the menu
+        button is drawn from. Returns synchronously: it is a field, not a
+        fetch. */
+    @JavascriptInterface public String pendingUpdate(){ return AppUpdater.pendingVersion(); }
     @JavascriptInterface public void pickDirectory(String id){pendingPickerId=id;Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION|Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);startActivityForResult(i,PICK_TREE);}
     @JavascriptInterface public void pickFiles(String id,boolean multiple){pendingPickerId=id;pendingMultiple=multiple;Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("*/*");i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,multiple);i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,PICK_FILES);}
     @JavascriptInterface public void invoke(String id,String command,String args){io.execute(()->{try{Object out=handle(command,new JSONObject(args));resolve(id,true,out==null?"null":(out instanceof String?JSONObject.quote((String)out):out.toString()));}catch(Exception e){resolve(id,false,e.getMessage()==null?e.toString():e.getMessage());}});}

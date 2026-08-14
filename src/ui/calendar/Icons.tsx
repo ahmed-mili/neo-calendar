@@ -291,6 +291,27 @@ export function AllDayCollapseChevrons({
     );
 }
 
+/** Lucide RotateCw — beside the version, so a number that can be pressed looks
+    like something you press. Without it the control was faint grey text in a
+    corner, and nobody found it. */
+export function RefreshIcon({ size = 12 }: { size?: number }) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+            <path d="M21 3v6h-6" />
+        </svg>
+    );
+}
+
 /** Close X — used for the remove-timezone button. */
 export function XIcon({ size = 12 }: { size?: number }) {
     return (

@@ -123,6 +123,8 @@ const FR: Record<string, string> = {
     // La version, a gauche de l'engrenage : c'est elle le bouton.
     "Check for updates": "Rechercher des mises à jour",
     "Checking…": "Recherche…",
+    "Update available": "Mise à jour disponible",
+    Update: "Mettre à jour",
     "Removing the date on a repeating event also removes the repeat. It becomes a single unscheduled entry.":
         "Retirer la date d'un événement qui se répète supprime aussi la répétition. Il devient une entrée unique non planifiée.",
     // The steps a task is made of, listed on the task itself.

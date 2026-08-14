@@ -18,6 +18,7 @@ import {
     FolderIcon,
     LinkIcon,
     CircleHelpIcon,
+    RefreshIcon,
 } from "./Icons";
 import CalendarItemMenu, { CalendarMenuItem } from "./CalendarItemMenu";
 import ColorPicker from "./ColorPicker";
@@ -30,6 +31,7 @@ import {
     canCheckForUpdates,
     requestUpdateCheck,
 } from "./appUpdates";
+import { useUpdateAvailable } from "./useUpdateAvailable";
 import { t } from "../i18n";
 
 const ONLINE_TYPES = ["ical", "caldav", "icloud"];
@@ -123,6 +125,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
     // clears itself: a label left reading "Checking…" because a request never
     // came back would be a worse lie than saying nothing.
     const version = appVersion();
+    const updateVersion = useUpdateAvailable();
     const [checkingUpdate, setCheckingUpdate] = React.useState(false);
     React.useEffect(() => {
         if (!checkingUpdate) return;
@@ -310,17 +313,30 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                         (canCheckForUpdates() ? (
                             <button
                                 type="button"
-                                className="nc-sidebar-version"
+                                className={`nc-sidebar-version${
+                                    updateVersion
+                                        ? " nc-sidebar-version-ready"
+                                        : ""
+                                }`}
                                 onClick={() => {
                                     setCheckingUpdate(true);
                                     requestUpdateCheck();
                                 }}
                                 disabled={checkingUpdate}
-                                title={t("Check for updates")}
+                                title={
+                                    updateVersion
+                                        ? t("Update available")
+                                        : t("Check for updates")
+                                }
                             >
-                                {checkingUpdate
-                                    ? t("Checking…")
-                                    : `v${version}`}
+                                <RefreshIcon size={12} />
+                                <span>
+                                    {checkingUpdate
+                                        ? t("Checking…")
+                                        : updateVersion
+                                        ? t("Update")
+                                        : `v${version}`}
+                                </span>
                             </button>
                         ) : (
                             <span className="nc-sidebar-version nc-sidebar-version-plain">

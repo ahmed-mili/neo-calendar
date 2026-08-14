@@ -62,6 +62,19 @@ final class AppUpdater {
    *  means. The old key is left unread rather than migrated; a stale one on
    *  disk simply stops mattering. */
   private static long dismissedThisRun = 0L;
+  /** The version found and still not installed, held for the badge.
+   *
+   *  Static and separate from `dismissedThisRun` on purpose: "Later" puts the
+   *  PROMPT away, it does not make the update stop existing. The dot on the
+   *  menu button is drawn from this, so it stays until the version that
+   *  answers it is running. */
+  private static String pendingVersion = "";
+
+  /** Read across the bridge by the web side; see appUpdates.ts. */
+  static String pendingVersion() {
+    return pendingVersion;
+  }
+
   private static final String CHANNEL_ID = "neo_updates";
   private static final int NOTIFICATION_ID = 0x4E43;
   /** A notification redraw costs a binder round trip, and a fast connection
@@ -72,6 +85,7 @@ final class AppUpdater {
   private final Activity activity;
   private final ExecutorService io;
   private File pendingApk;
+  private Runnable onUpdateFound;
 
   AppUpdater(Activity activity, ExecutorService io) {
     this.activity = activity;
@@ -96,6 +110,7 @@ final class AppUpdater {
       try {
         Metadata metadata = fetchMetadata();
         if (metadata.versionCode <= currentVersionCode()) return;
+        remember(metadata);
         if (metadata.versionCode == dismissedVersionCode()) return;
         activity.runOnUiThread(() -> showPrompt(metadata));
       } catch (Exception error) {
@@ -117,9 +132,11 @@ final class AppUpdater {
       try {
         Metadata metadata = fetchMetadata();
         if (metadata.versionCode > currentVersionCode()) {
+          remember(metadata);
           activity.runOnUiThread(() -> showPrompt(metadata));
           return;
         }
+        pendingVersion = "";
         activity.runOnUiThread(() ->
           Toast.makeText(activity, R.string.update_none, Toast.LENGTH_SHORT).show()
         );
@@ -130,6 +147,19 @@ final class AppUpdater {
         );
       }
     });
+  }
+
+  /** Hold the finding, and tell the page so the badge appears now rather than
+      at whatever moment it next happens to read. */
+  private void remember(Metadata metadata) {
+    pendingVersion = metadata.version;
+    activity.runOnUiThread(() -> {
+      if (onUpdateFound != null) onUpdateFound.run();
+    });
+  }
+
+  void setOnUpdateFound(Runnable listener) {
+    onUpdateFound = listener;
   }
 
   void resumePendingInstall() {

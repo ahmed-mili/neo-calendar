@@ -26,8 +26,13 @@ export function appVersion(): string {
     }
 }
 
+/** Fired on `window` by the Android shell the moment a check finds something
+ *  newer, so the badge appears without anyone waiting for a poll. */
+export const UPDATE_EVENT = "neo-update-available";
+
 interface UpdateBridge {
     checkForUpdates?: () => void;
+    pendingUpdate?: () => string;
 }
 
 function bridge(): UpdateBridge | null {
@@ -43,6 +48,21 @@ function bridge(): UpdateBridge | null {
  *  WebView rather than doing nothing quietly. */
 export function canCheckForUpdates(): boolean {
     return typeof bridge()?.checkForUpdates === "function";
+}
+
+/** The version the shell has found and is holding, or "" for none.
+ *
+ *  It outlives "Later": the prompt goes away, the fact does not, and that is
+ *  what the badge on the menu button is drawn from. Reading it costs one call
+ *  across the bridge and returns a string the shell already has. */
+export function pendingUpdateVersion(): string {
+    const host = bridge();
+    if (typeof host?.pendingUpdate !== "function") return "";
+    try {
+        return host.pendingUpdate() || "";
+    } catch {
+        return "";
+    }
 }
 
 /** Ask the shell to look now. It owns what happens next — the prompt if there

@@ -7,6 +7,7 @@ import {
     todayBadgeState,
 } from "./CalendarUtils";
 import MiniCalendar from "./MiniCalendar";
+import { useUpdateAvailable } from "./useUpdateAvailable";
 import {
     ChevronDownIcon,
     ChevronLeftIcon,
@@ -123,6 +124,10 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
         setMonthPanelOpen(false);
     }, [currentDate.getFullYear(), currentDate.getMonth()]);
 
+    // Called unconditionally, above the platform branch: a hook may not sit
+    // behind an `if`, and the desktop simply gets "" because no bridge answers.
+    const updateVersion = useUpdateAvailable();
+
     const applyOther = () => {
         const raw = otherInputRef.current?.value ?? "";
         const n = parseInt(raw, 10);
@@ -150,10 +155,29 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                         type="button"
                         className="nc-btn nc-btn-icon nc-btn-sidebar-toggle nc-android-menu-btn"
                         onClick={onToggleSidebar}
-                        title={t("Calendars")}
-                        aria-label={t("Open calendars")}
+                        title={
+                            updateVersion
+                                ? t("Update available")
+                                : t("Calendars")
+                        }
+                        aria-label={
+                            updateVersion
+                                ? t("Update available")
+                                : t("Open calendars")
+                        }
                     >
                         <SidebarToggleIcon />
+                        {/* An update is behind this button, in the drawer it
+                            opens — so the reminder belongs ON it, the way an
+                            unread count sits on the thing that leads to what
+                            is unread. It outlives "Later": the prompt is
+                            dismissed, the update is not. */}
+                        {updateVersion && (
+                            <span
+                                className="nc-update-dot"
+                                aria-hidden="true"
+                            />
+                        )}
                     </button>
 
                     <button
