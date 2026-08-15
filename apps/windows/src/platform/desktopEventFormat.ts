@@ -516,7 +516,8 @@ export function removeMarkdownTargetFromEventBody(
 export function renameMarkdownTargetInEventBody(
     contents: string,
     target: string,
-    label: string
+    label: string,
+    nextTarget?: string
 ): string {
     const normalizedTarget = target.trim().replace(/^<|>$/g, "");
     if (!normalizedTarget) return contents;
@@ -532,11 +533,15 @@ export function renameMarkdownTargetInEventBody(
         for (const link of parseMarkdownLinks(line)) {
             const found = link.target.trim().replace(/^<|>$/g, "");
             if (found !== normalizedTarget) continue;
-            if (link.label === safe) continue;
+            /* L'adresse peut changer avec le nom : quand le site a confirmé où
+               mène un lien de partage, deux partages d'une même vidéo doivent
+               devenir visiblement le même lien. */
+            const address = (nextTarget ?? link.target).trim() || link.target;
+            if (link.label === safe && address === link.target) continue;
             changed = true;
             return line.replace(
                 `[${link.label}](${link.target})`,
-                `[${safe}](${link.target})`
+                `[${safe}](${address})`
             );
         }
         return line;

@@ -1322,6 +1322,162 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 /*
+ * Le bandeau qui dit ce qui vient d'arriver.
+ *
+ * Copier un lien ne changeait rien a l'ecran : la coche remplacait l'icone une
+ * seconde, dans une bulle qui n'existe qu'au survol — donc invisible au doigt.
+ * Une action sans trace ressemble a une action qui n'a pas eu lieu, et on la
+ * refait.
+ *
+ * En bas, au-dessus de la barre du systeme, parce que c'est la que le pouce ne
+ * cache rien et que rien d'important ne se trouve.
+ */
+.nc-toast {
+    position: fixed;
+    right: 16px;
+    bottom: max(20px, calc(var(--nc-mobile-safe-bottom, 0px) + 16px));
+    left: 16px;
+    z-index: 90000;
+    box-sizing: border-box;
+    max-width: 460px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 12px 14px 16px;
+    border: 1px solid
+        color-mix(in srgb, var(--background-modifier-border) 60%, transparent);
+    border-radius: 16px;
+    color: var(--text-normal);
+    background: color-mix(in srgb, var(--background-primary) 96%, transparent);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(18px) saturate(1.06);
+    -webkit-backdrop-filter: blur(18px) saturate(1.06);
+    animation: nc-toast-in 200ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.nc-toast.is-leaving {
+    animation: nc-toast-out 200ms ease-in forwards;
+}
+
+.nc-toast__icon {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    color: var(--nc-accent);
+}
+
+.nc-toast__text {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.nc-toast__text strong {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.nc-toast__text small {
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 13px;
+}
+
+.nc-toast__close {
+    width: 32px;
+    height: 32px;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 9px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    background: transparent !important;
+    box-shadow: none !important;
+    cursor: pointer;
+}
+
+.nc-toast__close:hover {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover) !important;
+}
+
+@keyframes nc-toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+}
+
+@keyframes nc-toast-out {
+    to {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nc-toast,
+    .nc-toast.is-leaving {
+        animation: none;
+    }
+}
+
+/*
+ * La ligne cherche encore son nom.
+ *
+ * Le lien s'ecrit tout de suite et le titre arrive apres, ce qui laisse une
+ * ligne vraie mais provisoire : elle porte son hote en attendant. Une lueur qui
+ * passe dessus dit que quelque chose est en cours sans rien promettre — et
+ * quand rien ne vient, elle s'arrete et le nom reste celui-la.
+ */
+.nc-linked-file.is-searching .nc-linked-file-name {
+    color: var(--nc-text-secondary, var(--text-muted));
+    background: linear-gradient(
+            90deg,
+            transparent 0%,
+            color-mix(in srgb, currentColor 22%, transparent) 45%,
+            transparent 90%
+        )
+        no-repeat;
+    background-size: 60% 100%;
+    animation: nc-link-searching 1.25s ease-in-out infinite;
+}
+
+@keyframes nc-link-searching {
+    from {
+        background-position: -70% 0;
+    }
+    to {
+        background-position: 170% 0;
+    }
+}
+
+/* L'icone du lien respire au meme rythme, pour que l'attente se lise meme
+   quand le nom est court. */
+.nc-linked-file.is-searching .nc-linked-file-icon {
+    animation: nc-link-searching-icon 1.25s ease-in-out infinite;
+}
+
+@keyframes nc-link-searching-icon {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.45;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nc-linked-file.is-searching .nc-linked-file-name,
+    .nc-linked-file.is-searching .nc-linked-file-icon {
+        animation: none;
+    }
+}
+
+/*
  * Renommer un lien, a cote de la croix qui l'enleve.
  *
  * Le titre d'un lien est lu une fois, a l'ajout, et ce que le site a bien voulu

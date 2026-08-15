@@ -1,5 +1,6 @@
 import {
     addressesToAsk,
+    authorFromOembed,
     MAX_TITLE_LENGTH,
     TITLE_SCAN_BYTES,
     canonicalUrlFrom,
@@ -367,5 +368,38 @@ describe("les adresses à interroger pour un lien partagé", () => {
             REAL,
             SHORT,
         ]);
+    });
+});
+
+describe("l'auteur, quand la chose n'a pas de nom", () => {
+    // Une vidéo sans légende répond avec un titre vide : le lien retombait sur
+    // son hôte alors que la réponse portait le nom de qui l'a publiée.
+    it("prend le pseudonyme de préférence", () => {
+        expect(
+            authorFromOembed(
+                JSON.stringify({
+                    title: "",
+                    author_name: "Camille Dupont",
+                    author_unique_id: "camille",
+                })
+            )
+        ).toBe("@camille");
+    });
+
+    it("n'ajoute pas un second arobase", () => {
+        expect(
+            authorFromOembed(JSON.stringify({ author_unique_id: "@camille" }))
+        ).toBe("@camille");
+    });
+
+    it("se rabat sur le nom affiché", () => {
+        expect(
+            authorFromOembed(JSON.stringify({ author_name: "Camille Dupont" }))
+        ).toBe("Camille Dupont");
+    });
+
+    it("ne rend rien quand la réponse ne nomme personne", () => {
+        expect(authorFromOembed(JSON.stringify({ title: "" }))).toBeNull();
+        expect(authorFromOembed("pas du json")).toBeNull();
     });
 });

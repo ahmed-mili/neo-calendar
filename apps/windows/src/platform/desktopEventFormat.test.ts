@@ -136,3 +136,42 @@ describe("nommer un lien soi-même", () => {
         ).toBe(NOTE);
     });
 });
+
+describe("le titre qui arrive après coup", () => {
+    const NOTE = "- [vm.tiktok.com](https://vm.tiktok.com/ZN88SfmSj/)\n";
+    const REAL = "https://www.tiktok.com/@quelquun/video/7412345678901234567";
+
+    // Le lien est écrit tout de suite avec le nom qu'on a ; quand le site
+    // répond, le nom ET l'adresse peuvent changer d'un coup.
+    it("réécrit le nom et l'adresse ensemble", () => {
+        expect(
+            renameMarkdownTargetInEventBody(
+                NOTE,
+                "https://vm.tiktok.com/ZN88SfmSj/",
+                "@quelquun",
+                REAL
+            )
+        ).toBe(`- [@quelquun](${REAL})\n`);
+    });
+
+    it("garde l'adresse quand on ne lui en donne pas d'autre", () => {
+        expect(
+            renameMarkdownTargetInEventBody(
+                NOTE,
+                "https://vm.tiktok.com/ZN88SfmSj/",
+                "@quelquun"
+            )
+        ).toBe("- [@quelquun](https://vm.tiktok.com/ZN88SfmSj/)\n");
+    });
+
+    it("n'écrit rien quand ni le nom ni l'adresse ne changent", () => {
+        expect(
+            renameMarkdownTargetInEventBody(
+                NOTE,
+                "https://vm.tiktok.com/ZN88SfmSj/",
+                "vm.tiktok.com",
+                "https://vm.tiktok.com/ZN88SfmSj/"
+            )
+        ).toBe(NOTE);
+    });
+});

@@ -167,6 +167,8 @@ const FR: Record<string, string> = {
     "Edit link": "Modifier le lien",
     "Copy link": "Copier le lien",
     "Rename link": "Renommer le lien",
+    "Link copied": "Lien copié",
+    "Paste it wherever you like": "Collez-le où vous voulez",
     Link: "Lien",
     "Paste a link, or search the vault":
         "Coller un lien, ou chercher dans le coffre",

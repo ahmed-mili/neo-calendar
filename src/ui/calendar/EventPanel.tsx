@@ -117,7 +117,8 @@ interface EventPanelProps {
     onRenameEventLink?: (
         eventId: string,
         target: string,
-        label: string
+        label: string,
+        nextTarget?: string
     ) => Promise<void>;
     onOpenEventLink?: (item: EventLinkedItem) => Promise<void> | void;
     onPickEventAttachment?: (eventId: string) => Promise<void>;

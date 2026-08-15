@@ -215,6 +215,45 @@ export function titleFromOembed(json: string): string | null {
 }
 
 /**
+ * Qui a publié ce que le lien montre, quand la chose elle-même n'a pas de nom.
+ *
+ * Une vidéo sans légende a un titre vide, et un titre vide n'est pas un titre :
+ * le lien retombait alors sur son hôte, `vm.tiktok.com`, qui ne dit rien — alors
+ * que la même réponse portait le nom de l'auteur, qui dit quelque chose. La
+ * ligne montre déjà le logo du site ; il lui manquait seulement de qui c'est.
+ *
+ * Le pseudonyme d'abord : c'est sous cette forme qu'on reconnaît quelqu'un sur
+ * ces sites, et deux personnes peuvent porter le même nom affiché.
+ */
+export function authorFromOembed(json: string): string | null {
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(json);
+    } catch {
+        return null;
+    }
+    if (typeof parsed !== "object" || parsed === null) return null;
+
+    const answer = parsed as {
+        author_unique_id?: unknown;
+        author_name?: unknown;
+    };
+    const handle =
+        typeof answer.author_unique_id === "string"
+            ? answer.author_unique_id.trim()
+            : "";
+    if (handle) return handle.startsWith("@") ? handle : `@${handle}`;
+
+    const name =
+        typeof answer.author_name === "string" ? answer.author_name.trim() : "";
+    if (!name) return null;
+
+    return name.length > MAX_TITLE_LENGTH
+        ? name.slice(0, MAX_TITLE_LENGTH - 1).trimEnd() + "…"
+        : name;
+}
+
+/**
  * The address a page says it really lives at.
  *
  * A shared link is rarely the canonical one: `vm.tiktok.com/ZM…` is a note

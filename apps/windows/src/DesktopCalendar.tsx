@@ -1157,7 +1157,8 @@ export default function DesktopCalendar({
         async (
             eventId: string,
             target: string,
-            label: string
+            label: string,
+            nextTarget?: string
         ): Promise<void> => {
             const previous = findStoredEvent(recordsRef.current, eventId);
             if (!previous || previous.readOnly) {
@@ -1166,7 +1167,8 @@ export default function DesktopCalendar({
             const contents = renameMarkdownTargetInEventBody(
                 previous.contents,
                 target,
-                label
+                label,
+                nextTarget
             );
             if (contents === previous.contents) return;
 

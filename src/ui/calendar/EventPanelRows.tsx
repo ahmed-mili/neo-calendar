@@ -39,6 +39,7 @@ import { sameDestination, sameTarget, urlMarkdown } from "./linkInput";
 import { LinkKind, linkKind } from "./linkKind";
 import {
     addressesToAsk,
+    authorFromOembed,
     canonicalUrlFrom,
     confirmedTarget,
     isFrontDoorTitle,
@@ -68,6 +69,7 @@ import {
     MailIcon,
     PhoneIcon,
 } from "./EventPanelIcons";
+import { Toast, ToastMessage } from "./Toast";
 import { t } from "../i18n";
 import { isAndroidRuntime } from "./CalendarUtils";
 import { decideLinkedFileTap, LinkedFileTap } from "./linkedFileTap";
@@ -1718,8 +1720,11 @@ interface LinksAttachmentsRowProps {
     onRenameLink?: (
         eventId: string,
         target: string,
-        label: string
+        label: string,
+        nextTarget?: string
     ) => Promise<void>;
+    /** Le titre est encore en route : la ligne le montre plutôt que de mentir. */
+    searching?: boolean;
     onOpenLink?: (item: LinkedFileItem) => Promise<void> | void;
     onPickAttachment?: (eventId: string) => Promise<void>;
 }
@@ -1820,6 +1825,8 @@ function LinkedFileRow({
     eventId,
     onRemoveLink,
     onRenameLink,
+    searching = false,
+    onCopied,
     onOpenLink,
     tapTrackerRef,
 }: {
@@ -1829,8 +1836,13 @@ function LinkedFileRow({
     onRenameLink?: (
         eventId: string,
         target: string,
-        label: string
+        label: string,
+        nextTarget?: string
     ) => Promise<void>;
+    /** Le titre est encore en route : la ligne le montre plutôt que de mentir. */
+    searching?: boolean;
+    /** L'adresse vient d'être copiée — au panneau de le dire à l'écran. */
+    onCopied?: () => void;
     onOpenLink?: (item: LinkedFileItem) => Promise<void> | void;
     tapTrackerRef: React.MutableRefObject<LinkedFileTap | null>;
 }) {
@@ -1931,6 +1943,7 @@ function LinkedFileRow({
         await navigator.clipboard.writeText(item.target);
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1200);
+        onCopied?.();
     };
 
     /*
@@ -2035,7 +2048,9 @@ function LinkedFileRow({
         <>
             <div
                 ref={rowRef}
-                className={`nc-linked-file${hovered ? " is-hovered" : ""}`}
+                className={`nc-linked-file${hovered ? " is-hovered" : ""}${
+                    searching ? " is-searching" : ""
+                }`}
                 data-clickable={onOpenLink ? "true" : "false"}
                 role={onOpenLink ? "link" : undefined}
                 tabIndex={onOpenLink ? 0 : undefined}
@@ -2191,6 +2206,9 @@ export function LinksAttachmentsRow({
     const [results, setResults] = React.useState<LinkSearchTarget[]>([]);
     /** Said after the link is added, unlike an error, which stops it. */
     const [notice, setNotice] = React.useState<string | null>(null);
+    /** Les liens dont le titre est encore en route, par adresse. */
+    const [searching, setSearching] = React.useState<readonly string[]>([]);
+    const [toast, setToast] = React.useState<ToastMessage | null>(null);
     const [loading, setLoading] = React.useState(false);
     const [saving, setSaving] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
@@ -2209,6 +2227,11 @@ export function LinksAttachmentsRow({
     }, [eventId]);
 
     const closePicker = React.useCallback(() => {
+        /* Rendre le clavier avant tout le reste : sur un téléphone, une touche
+           « OK » qui laisse le clavier en place donne l'impression que rien
+           n'a été pris. Le champ disparaît juste après, mais le rendu du
+           clavier suit le flou, pas le démontage. */
+        inputRef.current?.blur();
         setOpen(false);
         setQuery("");
         setResults([]);
@@ -2317,12 +2340,12 @@ export function LinksAttachmentsRow({
      * simply an answer that takes too long, and the link is added with its host
      * as the label exactly as before.
      */
-    const titled = React.useCallback(
-        async (markdown: string): Promise<string> => {
-            if (!onFetchPage) return markdown;
-
-            const target = /\]\(([^)]+)\)\s*$/.exec(markdown)?.[1];
-            if (!target || !/^https?:\/\//i.test(target)) return markdown;
+    const titleFor = React.useCallback(
+        async (
+            target: string
+        ): Promise<{ label: string; destination: string }> => {
+            const nothing = { label: "", destination: target };
+            if (!onFetchPage || !/^https?:\/\//i.test(target)) return nothing;
 
             /*
              * The page first, then the site's own answer about it.
@@ -2372,7 +2395,10 @@ export function LinksAttachmentsRow({
                    dans la page : quand c'est la redirection qui a mené à la
                    vidéo, c'est elle qui décrit le lien. */
                 destination = confirmedTarget(target, about, json);
-                title = titleFromOembed(json);
+                /* Une vidéo sans légende répond avec un titre vide. Son auteur,
+                   lui, est dans la même réponse, et « @quelquun » vaut mieux
+                   que « vm.tiktok.com ». */
+                title = titleFromOembed(json) ?? authorFromOembed(json);
                 if (title) break;
             }
 
@@ -2384,19 +2410,48 @@ export function LinksAttachmentsRow({
                         : null;
             }
 
-            const label = title ? safeLabel(title) : "";
-            if (label) return `[${label}](${destination})`;
-
-            /* The link is added either way — a title was never a condition —
-               but silence here reads as the feature not existing. A site that
-               would not say is worth a word, because trying again in a moment
-               often works. */
-            setNotice(t("The site did not give a title for this link"));
-            return destination === target
-                ? markdown
-                : markdown.replace(`(${target})`, `(${destination})`);
+            return { label: title ? safeLabel(title) : "", destination };
         },
         [onFetchPage, onResolveUrl]
+    );
+
+    /*
+     * Le titre se cherche APRÈS que le lien est là.
+     *
+     * Il était attendu avant l'écriture : jusqu'à trois requêtes de deux
+     * secondes et demie, pendant lesquelles le champ restait ouvert, le clavier
+     * avec, et rien n'apparaissait. Ajouter un lien est une écriture dans un
+     * fichier, c'est instantané ; c'est le titre qui est lent, et il n'est pas
+     * une condition — il ne l'a jamais été.
+     *
+     * La ligne s'ajoute donc tout de suite avec le nom qu'on a, s'anime le
+     * temps de la recherche, et se renomme quand la réponse arrive. Si elle
+     * n'arrive pas, il reste le crayon.
+     */
+    const lookUpTitle = React.useCallback(
+        async (id: string, target: string) => {
+            if (!onFetchPage || !onRenameLink) return;
+            setSearching((current) =>
+                current.includes(target) ? current : [...current, target]
+            );
+            try {
+                const { label, destination } = await titleFor(target);
+                if (label || destination !== target) {
+                    await onRenameLink(id, target, label, destination);
+                }
+                if (!label) {
+                    setNotice(t("The site did not give a title for this link"));
+                }
+            } catch {
+                // Le lien est là ; ne pas avoir su le nommer n'est pas une
+                // erreur à signaler deux fois.
+            } finally {
+                setSearching((current) =>
+                    current.filter((pending) => pending !== target)
+                );
+            }
+        },
+        [onFetchPage, onRenameLink, titleFor]
     );
 
     const addMarkdown = React.useCallback(
@@ -2422,39 +2477,22 @@ export function LinksAttachmentsRow({
             setError(null);
             setNotice(null);
             try {
-                const resolved = (await titled(raw)).trim();
-
-                /* The same thing reached by another road. Two shares of one
-                   video are two different addresses, so this can only be seen
-                   once the site has said where each one goes — which is here,
-                   and not a moment earlier. Worth its own words: "already
-                   here" about an address you have never seen before reads as
-                   the app being wrong. */
-                const target = /\]\(([^)]+)\)\s*$/.exec(resolved)?.[1];
-                if (
-                    target &&
-                    items.some((item) => sameDestination(item.target, target))
-                ) {
-                    setNotice(null);
-                    setError(
-                        t(
-                            "This link leads to the same place as one already here"
-                        )
-                    );
-                    return;
-                }
-
-                await onAddLink(eventId, resolved);
+                await onAddLink(eventId, raw);
                 closePicker();
             } catch (reason) {
                 setError(
                     reason instanceof Error ? reason.message : String(reason)
                 );
+                return;
             } finally {
                 setSaving(false);
             }
+
+            /* Le lien est écrit et le champ est fermé — donc le clavier est
+               parti. Le titre se cherche maintenant, sans que rien n'attende. */
+            if (pasted) void lookUpTitle(eventId, pasted);
         },
-        [closePicker, eventId, items, onAddLink, saving, titled]
+        [closePicker, eventId, items, lookUpTitle, onAddLink, saving]
     );
 
     const submitInput = React.useCallback(() => {
@@ -2524,6 +2562,13 @@ export function LinksAttachmentsRow({
                             eventId={eventId}
                             onRemoveLink={onRemoveLink}
                             onRenameLink={onRenameLink}
+                            searching={searching.includes(item.target)}
+                            onCopied={() =>
+                                setToast({
+                                    title: t("Link copied"),
+                                    detail: t("Paste it wherever you like"),
+                                })
+                            }
                             onOpenLink={onOpenLink}
                             tapTrackerRef={tapTrackerRef}
                         />
@@ -2534,6 +2579,8 @@ export function LinksAttachmentsRow({
             {/* Not an error: the link is there, it just kept its host for a
                 name. Said once, under the list it is about, and gone as soon
                 as another link is added. */}
+            {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+
             {notice && (
                 <div className="nc-link-notice" role="status">
                     {notice}
