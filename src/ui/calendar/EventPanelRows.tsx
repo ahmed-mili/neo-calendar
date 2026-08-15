@@ -1828,6 +1828,8 @@ function LinkedFileRow({
     onRenameLink,
     searching = false,
     onCopied,
+    openTooltipFor,
+    onTooltipOpen,
     onOpenLink,
     tapTrackerRef,
 }: {
@@ -1844,6 +1846,10 @@ function LinkedFileRow({
     searching?: boolean;
     /** L'adresse vient d'être copiée — au panneau de le dire à l'écran. */
     onCopied?: () => void;
+    /** L'adresse de la ligne dont la bulle est ouverte, s'il y en a une. */
+    openTooltipFor?: string | null;
+    /** Cette ligne vient d'ouvrir la sienne. */
+    onTooltipOpen?: (target: string) => void;
     onOpenLink?: (item: LinkedFileItem) => Promise<void> | void;
     tapTrackerRef: React.MutableRefObject<LinkedFileTap | null>;
 }) {
@@ -1918,7 +1924,11 @@ function LinkedFileRow({
         );
         const top = Math.max(viewportGap, rect.top - 40);
         setTooltip({ top, left, width });
-    }, [cancelHide]);
+        /* Une seule bulle à la fois : la liste retient laquelle, et les autres
+           lignes se referment en l'apprenant. Sans cela, toucher trois liens
+           laissait trois bulles empilées, chacune à fermer à la main. */
+        onTooltipOpen?.(item.target);
+    }, [cancelHide, item.target, onTooltipOpen]);
 
     const hideTooltip = React.useCallback(
         (delay = 0) => {
@@ -1956,6 +1966,12 @@ function LinkedFileRow({
         },
         [clearHideTimer]
     );
+
+    React.useEffect(() => {
+        if (!tooltip) return;
+        if (openTooltipFor === item.target) return;
+        hideTooltip();
+    }, [hideTooltip, item.target, openTooltipFor, tooltip]);
 
     const copyTarget = async (event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
@@ -2263,6 +2279,10 @@ export function LinksAttachmentsRow({
     /** Les liens dont le titre est encore en route, par adresse. */
     const [searching, setSearching] = React.useState<readonly string[]>([]);
     const [toast, setToast] = React.useState<ToastMessage | null>(null);
+    /** L'adresse de la ligne dont la bulle est ouverte : il n'y en a qu'une. */
+    const [openTooltipFor, setOpenTooltipFor] = React.useState<string | null>(
+        null
+    );
     const [loading, setLoading] = React.useState(false);
     const [saving, setSaving] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
@@ -2621,6 +2641,8 @@ export function LinksAttachmentsRow({
                             onRemoveLink={onRemoveLink}
                             onRenameLink={onRenameLink}
                             searching={searching.includes(item.target)}
+                            openTooltipFor={openTooltipFor}
+                            onTooltipOpen={setOpenTooltipFor}
                             onCopied={() =>
                                 setToast({
                                     title: t("Link copied"),
