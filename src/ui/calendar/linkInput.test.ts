@@ -10,30 +10,30 @@ import {
 describe("urlMarkdown", () => {
     it("takes the links a phone actually hands you", () => {
         expect(urlMarkdown("https://youtu.be/dQw4w9WgXcQ?si=abc")).toBe(
-            "[youtu.be](https://youtu.be/dQw4w9WgXcQ?si=abc)"
+            "[youtu.be/dQw4w9WgXcQ?si=abc](https://youtu.be/dQw4w9WgXcQ?si=abc)"
         );
-        expect(
-            urlMarkdown("https://www.instagram.com/reel/Cxyz/?igsh=1")
-        ).toBe("[instagram.com](https://www.instagram.com/reel/Cxyz/?igsh=1)");
+        expect(urlMarkdown("https://www.instagram.com/reel/Cxyz/?igsh=1")).toBe(
+            "[instagram.com/reel/Cxyz/?igsh=1](https://www.instagram.com/reel/Cxyz/?igsh=1)"
+        );
         expect(urlMarkdown("https://vm.tiktok.com/ZMabc/")).toBe(
-            "[vm.tiktok.com](https://vm.tiktok.com/ZMabc/)"
+            "[vm.tiktok.com/ZMabc](https://vm.tiktok.com/ZMabc/)"
         );
     });
 
     it("adds the scheme a bare address obviously meant", () => {
         // Typed by hand, or copied from an address bar that hides the scheme.
         expect(urlMarkdown("youtube.com/watch?v=abc")).toBe(
-            "[youtube.com](https://youtube.com/watch?v=abc)"
+            "[youtube.com/watch?v=abc](https://youtube.com/watch?v=abc)"
         );
         expect(urlMarkdown("www.tiktok.com/@someone")).toBe(
-            "[tiktok.com](https://www.tiktok.com/@someone)"
+            "[tiktok.com/@someone](https://www.tiktok.com/@someone)"
         );
     });
 
     it("finds the link inside the text an app shares", () => {
         expect(
             urlMarkdown("Regarde ça https://vm.tiktok.com/ZMabc/ via TikTok")
-        ).toBe("[vm.tiktok.com](https://vm.tiktok.com/ZMabc/)");
+        ).toBe("[vm.tiktok.com/ZMabc](https://vm.tiktok.com/ZMabc/)");
     });
 
     it("leaves a link already written as markdown alone", () => {
@@ -69,7 +69,9 @@ describe("urlMarkdown", () => {
         // these, and one written into a note would be waiting to be tapped.
         expect(urlMarkdown("javascript:alert(1)")).toBeNull();
         expect(urlMarkdown("JavaScript:alert(1)")).toBeNull();
-        expect(urlMarkdown("data:text/html,<script>alert(1)</script>")).toBeNull();
+        expect(
+            urlMarkdown("data:text/html,<script>alert(1)</script>")
+        ).toBeNull();
         expect(urlMarkdown("vbscript:msgbox(1)")).toBeNull();
     });
 
@@ -109,10 +111,27 @@ describe("findUrl", () => {
 });
 
 describe("labelFor", () => {
-    it("shows the host, without the www", () => {
+    // L'hôte seul suffit quand on garde un lien par site ; il ne suffit plus
+    // dès qu'on en garde trois du même, et c'est la fin de l'adresse qui les
+    // sépare.
+    it("montre l'adresse entière, sans le schéma ni le www", () => {
         expect(labelFor("https://www.youtube.com/watch?v=abc")).toBe(
-            "youtube.com"
+            "youtube.com/watch?v=abc"
         );
+    });
+
+    it("distingue deux partages d'un même site", () => {
+        expect(labelFor("https://vm.tiktok.com/ZN88SfmSj/")).toBe(
+            "vm.tiktok.com/ZN88SfmSj"
+        );
+        expect(labelFor("https://vm.tiktok.com/ZN88unp8a/")).toBe(
+            "vm.tiktok.com/ZN88unp8a"
+        );
+    });
+
+    it("garde l'hôte seul quand il n'y a rien après", () => {
+        expect(labelFor("https://exemple.fr/")).toBe("exemple.fr");
+        expect(labelFor("https://exemple.fr")).toBe("exemple.fr");
     });
 
     it("shows the address itself when there is no host to show", () => {
@@ -145,7 +164,10 @@ describe("sameTarget", () => {
         // The scheme and host do not care about case; a trailing slash is not
         // a different place.
         expect(
-            sameTarget("https://TikTok.com/@a/video/1", "https://tiktok.com/@a/video/1")
+            sameTarget(
+                "https://TikTok.com/@a/video/1",
+                "https://tiktok.com/@a/video/1"
+            )
         ).toBe(true);
     });
 
@@ -201,7 +223,10 @@ describe("sameDestination", () => {
 
     it("still tells two different videos apart", () => {
         expect(
-            sameDestination(video("7671974074775784707"), video("7000000000000000000"))
+            sameDestination(
+                video("7671974074775784707"),
+                video("7000000000000000000")
+            )
         ).toBe(false);
     });
 
@@ -224,7 +249,10 @@ describe("sameDestination", () => {
             )
         ).toBe(false);
         expect(
-            sameDestination("https://vm.tiktok.com/ZN8RmLXNp/", "https://vm.tiktok.com/ZN8RmLXNp")
+            sameDestination(
+                "https://vm.tiktok.com/ZN8RmLXNp/",
+                "https://vm.tiktok.com/ZN8RmLXNp"
+            )
         ).toBe(true);
         expect(sameDestination("Notes/A.md", "Notes/A.md")).toBe(true);
     });

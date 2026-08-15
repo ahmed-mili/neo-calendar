@@ -103,7 +103,7 @@ describe("nommer un lien soi-même", () => {
         expect(next).toContain("- [Recette rapide](https://exemple.fr/plat)");
     });
 
-    // Effacer le nom rend le lien à son libellé automatique — son hôte.
+    // Effacer le nom rend le lien à son libellé automatique — son adresse.
     it("accepte un nom vide", () => {
         const next = renameMarkdownTargetInEventBody(
             NOTE,
@@ -115,7 +115,7 @@ describe("nommer un lien soi-même", () => {
         expect(extractEventBodyLinks(next)).toContainEqual(
             expect.objectContaining({
                 target: "https://exemple.fr/plat",
-                label: "exemple.fr",
+                label: "exemple.fr/plat",
             })
         );
     });
@@ -173,5 +173,41 @@ describe("le titre qui arrive après coup", () => {
                 "https://vm.tiktok.com/ZN88SfmSj/"
             )
         ).toBe(NOTE);
+    });
+});
+
+describe("le nom d'un lien sans titre", () => {
+    // Trois partages d'un même site donnaient trois lignes identiques.
+    it("montre l'adresse entière plutôt que le seul hôte", () => {
+        const links = extractEventBodyLinks(
+            [
+                "- [](https://vm.tiktok.com/ZN88SfmSj/)",
+                "- [](https://vm.tiktok.com/ZN88unp8a/)",
+            ].join("\n")
+        );
+
+        expect(links.map((link) => link.label)).toEqual([
+            "vm.tiktok.com/ZN88SfmSj",
+            "vm.tiktok.com/ZN88unp8a",
+        ]);
+    });
+
+    // Ce que les versions précédentes écrivaient faute de titre ne dit rien de
+    // plus que l'adresse : les liens déjà dans les fichiers se lisent mieux
+    // sans qu'on les réécrive.
+    it("traite un libellé réduit à l'hôte comme absent", () => {
+        const links = extractEventBodyLinks(
+            "- [vm.tiktok.com](https://vm.tiktok.com/ZN88SfmSj/)"
+        );
+
+        expect(links[0].label).toBe("vm.tiktok.com/ZN88SfmSj");
+    });
+
+    it("garde un vrai titre", () => {
+        const links = extractEventBodyLinks(
+            "- [La danse du chat](https://vm.tiktok.com/ZN88SfmSj/)"
+        );
+
+        expect(links[0].label).toBe("La danse du chat");
     });
 });

@@ -4,6 +4,7 @@ import {
     KEYS_DROPPED_WHEN_ABSENT,
     validateEvent,
 } from "../../../../src/types";
+import { labelFor } from "../../../../src/ui/calendar/linkInput";
 import type { DesktopEventFileDto } from "./desktopCalendarStore";
 
 export interface DesktopStoredEvent {
@@ -586,6 +587,17 @@ function linkedFileName(path: string): string {
  * resolved from the link target, not the Markdown label, so an Obsidian note is
  * shown as `File name.md` even when its note title differs.
  */
+/** Le libellé n'est-il que l'hôte de l'adresse — donc rien de plus qu'elle ? */
+function isBareHost(label: string, target: string): boolean {
+    try {
+        const host = new URL(target).host.toLowerCase();
+        const said = label.trim().toLowerCase();
+        return said === host || said === host.replace(/^www\./, "");
+    } catch {
+        return false;
+    }
+}
+
 export function extractEventBodyLinks(
     contents: string
 ): DesktopEventBodyLink[] {
@@ -612,11 +624,20 @@ export function extractEventBodyLinks(
             }
         } else if (/^https?:\/\//i.test(target)) {
             kind = "web";
-            try {
-                label = markdownLabel || new URL(target).hostname;
-            } catch {
-                label = markdownLabel || target;
-            }
+            /*
+             * Sans titre, l'adresse entière : trois liens d'un même site ne se
+             * distinguent que par ce qui vient après l'hôte.
+             *
+             * Un libellé qui n'est QUE l'hôte est traité comme absent. C'est
+             * ce que les versions précédentes écrivaient faute de titre, et il
+             * ne porte aucune information que l'adresse n'ait déjà — alors
+             * qu'un vrai titre n'est jamais exactement l'hôte. Les liens déjà
+             * enregistrés se lisent donc mieux sans qu'on touche aux fichiers.
+             */
+            label =
+                markdownLabel && !isBareHost(markdownLabel, target)
+                    ? markdownLabel
+                    : labelFor(target);
         } else {
             label = linkedFileName(target);
         }

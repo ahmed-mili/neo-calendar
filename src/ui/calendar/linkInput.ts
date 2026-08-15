@@ -32,8 +32,8 @@ export function isInlineMarkdownLink(value: string): boolean {
             ? 2
             : -1
         : value.startsWith("[")
-          ? 1
-          : -1;
+        ? 1
+        : -1;
     if (labelStart < 0 || !value.endsWith(")")) return false;
 
     const destinationStart = value.indexOf("](", labelStart);
@@ -71,7 +71,8 @@ export function findUrl(value: string): string | null {
     let trimmed = candidate.replace(/[.,;:!?"'»]+$/, "");
     while (
         trimmed.endsWith(")") &&
-        (trimmed.match(/\(/g)?.length ?? 0) < (trimmed.match(/\)/g)?.length ?? 0)
+        (trimmed.match(/\(/g)?.length ?? 0) <
+            (trimmed.match(/\)/g)?.length ?? 0)
     ) {
         trimmed = trimmed.slice(0, -1);
     }
@@ -98,7 +99,22 @@ export function labelFor(target: string): string {
     }
     try {
         const url = new URL(target);
-        return url.hostname.replace(/^www\./, "") || target;
+        /*
+         * L'adresse entière, et pas seulement l'hôte.
+         *
+         * L'hôte seul suffit quand on garde un lien par site ; il ne suffit
+         * plus dès qu'on en garde trois du même. Trois lignes disant toutes
+         * « vm.tiktok.com » ne se distinguent pas, et c'est justement le code
+         * de partage, à la fin, qui les sépare.
+         *
+         * Le schéma part quand même : « https:// » est le même sur tout, ne
+         * distingue rien, et prend huit caractères de la place qui manque à ce
+         * qui distingue. La barre finale part pour la même raison.
+         */
+        const shown = `${url.host.replace(/^www\./, "")}${url.pathname}${
+            url.search
+        }${url.hash}`.replace(/\/+$/, "");
+        return shown || target;
     } catch {
         return target;
     }
@@ -168,7 +184,11 @@ function itemOf(value: string): string | null {
             .reverse()
             .find((part) => /^\d{6,}$/.test(part));
         if (!id) return null;
-        return `${url.hostname.toLowerCase().split(".").slice(-2).join(".")}/${id}`;
+        return `${url.hostname
+            .toLowerCase()
+            .split(".")
+            .slice(-2)
+            .join(".")}/${id}`;
     } catch {
         return null;
     }
@@ -179,7 +199,9 @@ function normaliseTarget(value: string): string {
     try {
         const url = new URL(trimmed);
         const path = url.pathname.replace(/\/+$/, "");
-        return `${url.protocol.toLowerCase()}//${url.host.toLowerCase()}${path}${url.search}`;
+        return `${url.protocol.toLowerCase()}//${url.host.toLowerCase()}${path}${
+            url.search
+        }`;
     } catch {
         return trimmed.replace(/\/+$/, "");
     }
