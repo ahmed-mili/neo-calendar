@@ -49,3 +49,24 @@ describe("pressOutcome", () => {
         expect(pressOutcome(pressedOn())).toBe("dismiss");
     });
 });
+
+describe("ce qui est porté hors du panneau mais lui appartient", () => {
+    // La bulle d'un lien contient le bouton « copier ». Elle est portée au
+    // niveau du body, donc `popup.contains()` répond non : sans le marqueur,
+    // copier une adresse fermait l'événement qu'on était en train de lire.
+    it("garde le panneau ouvert sur la bulle d'un lien", () => {
+        expect(pressOutcome(pressedOn("[data-nc-popup-portal='true']"))).toBe(
+            "keep"
+        );
+    });
+
+    // Le bandeau « Lien copié » est porté sur le body lui aussi : sa croix ne
+    // doit pas emporter l'éditeur avec elle.
+    it("garde le panneau ouvert sur le bandeau de confirmation", () => {
+        expect(
+            pressOutcome(
+                pressedOn("[data-nc-popup-portal='true']", ".nc-toast")
+            )
+        ).toBe("keep");
+    });
+});

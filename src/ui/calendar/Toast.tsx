@@ -54,6 +54,9 @@ export function Toast({
     return ReactDOM.createPortal(
         <div
             className={`nc-toast${leaving ? " is-leaving" : ""}`}
+            /* Porté sur le body, donc « au dehors » de tout : sans ce
+               marqueur, presser sa croix fermerait l'éditeur derrière lui. */
+            data-nc-popup-portal="true"
             role="status"
             aria-live="polite"
         >

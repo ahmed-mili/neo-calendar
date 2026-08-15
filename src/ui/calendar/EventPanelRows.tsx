@@ -2156,6 +2156,11 @@ function LinkedFileRow({
                         className={`nc-linked-file-tooltip${
                             tooltipClosing ? " is-closing" : ""
                         }`}
+                        /* Portée hors du panneau, mais elle lui appartient :
+                           sans ce marqueur, presser le bouton « copier »
+                           qu'elle contient comptait comme une pression au
+                           dehors et fermait l'événement. */
+                        data-nc-popup-portal="true"
                         style={{
                             top: tooltip.top,
                             left: tooltip.left,
