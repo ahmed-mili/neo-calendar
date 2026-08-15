@@ -1855,7 +1855,6 @@ function LinkedFileRow({
         width: number;
     } | null>(null);
     const [tooltipClosing, setTooltipClosing] = React.useState(false);
-    const [copied, setCopied] = React.useState(false);
     const [removing, setRemoving] = React.useState(false);
     const [opening, setOpening] = React.useState(false);
     const [hovered, setHovered] = React.useState(false);
@@ -1933,7 +1932,6 @@ function LinkedFileRow({
                     hideTimerRef.current = null;
                     setTooltip(null);
                     setTooltipClosing(false);
-                    setCopied(false);
                     revealedRef.current = false;
                     resetTapTracker();
                 }, LINK_TOOLTIP_EXIT_MS);
@@ -1964,9 +1962,12 @@ function LinkedFileRow({
         event.stopPropagation();
         resetTapTracker();
         await navigator.clipboard.writeText(item.target);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1200);
         onCopied?.();
+        /* La bulle s'en va : elle n'existait que pour porter ce bouton, et la
+           laisser ouverte oblige à la chasser d'un second geste. La coche qui
+           s'y affichait une seconde n'a plus lieu d'être — le bandeau, lui,
+           dit ce qui vient de se passer, et il le dit plus grand. */
+        hideTooltip();
     };
 
     /*
@@ -2230,7 +2231,7 @@ function LinkedFileRow({
                             }}
                             onClick={(event) => void copyTarget(event)}
                         >
-                            {copied ? <CheckMarkIcon /> : <CopyIcon />}
+                            <CopyIcon />
                         </button>
                     </div>,
                     getEventPanelPortalTarget()
