@@ -69,6 +69,7 @@ import {
     MailIcon,
     PhoneIcon,
 } from "./EventPanelIcons";
+import { linkSubtitle } from "./linkFacts";
 import { Toast, ToastMessage } from "./Toast";
 import { t } from "../i18n";
 import { isAndroidRuntime } from "./CalendarUtils";
@@ -1859,6 +1860,28 @@ function LinkedFileRow({
     const [opening, setOpening] = React.useState(false);
     const [hovered, setHovered] = React.useState(false);
     const displayName = React.useMemo(() => linkedItemFileName(item), [item]);
+    /* Le compte et la date se lisent dans l'adresse : rien n'est stocké, rien
+       n'est demandé au réseau, et les liens déjà là en profitent. */
+    const subtitle = React.useMemo(
+        () =>
+            item.kind === "web" ? linkSubtitle(item.target, displayName) : null,
+        [displayName, item.kind, item.target]
+    );
+
+    const nameScrollRef = React.useRef<HTMLSpanElement>(null);
+    const [overflowing, setOverflowing] = React.useState(false);
+
+    React.useLayoutEffect(() => {
+        const element = nameScrollRef.current;
+        if (!element) return;
+        const measure = () =>
+            setOverflowing(element.scrollWidth > element.clientWidth + 1);
+        measure();
+        if (typeof ResizeObserver !== "function") return;
+        const observer = new ResizeObserver(measure);
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [displayName]);
 
     const clearHideTimer = React.useCallback(() => {
         if (hideTimerRef.current !== null) {
@@ -2111,7 +2134,32 @@ function LinkedFileRow({
                         }}
                     />
                 ) : (
-                    <span className="nc-linked-file-name">{displayName}</span>
+                    /*
+                     * Le nom défile sous le doigt.
+                     *
+                     * Une adresse entière ou un titre de vidéo dépassent
+                     * souvent la largeur d'un téléphone, et l'ellipse coupait
+                     * précisément la fin — le code de partage, le mot qui
+                     * distingue. On peut maintenant la faire glisser ; le voile
+                     * au bord droit n'apparaît que s'il reste quelque chose à
+                     * voir, sinon il mangerait la fin d'un nom court.
+                     */
+                    <span className="nc-linked-file-text">
+                        <span
+                            ref={nameScrollRef}
+                            className={`nc-linked-file-name${
+                                overflowing ? " is-overflowing" : ""
+                            }`}
+                            onPointerDown={(event) => event.stopPropagation()}
+                        >
+                            {displayName}
+                        </span>
+                        {subtitle && (
+                            <span className="nc-linked-file-meta">
+                                {subtitle}
+                            </span>
+                        )}
+                    </span>
                 )}
                 {eventId && onRenameLink && !renaming && (
                     <button
@@ -2445,7 +2493,11 @@ export function LinksAttachmentsRow({
                     await onRenameLink(id, target, label, destination);
                 }
                 if (!label) {
-                    setNotice(t("The site did not give a title for this link"));
+                    setNotice(
+                        t(
+                            "No title available for this link — you can name it yourself."
+                        )
+                    );
                 }
             } catch {
                 // Le lien est là ; ne pas avoir su le nommer n'est pas une

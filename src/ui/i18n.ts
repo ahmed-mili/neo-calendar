@@ -188,6 +188,8 @@ const FR: Record<string, string> = {
     "This link is already here": "Ce lien est déjà là",
     "This link leads to the same place as one already here":
         "Ce lien mène au même endroit qu'un lien déjà là",
+    "No title available for this link — you can name it yourself.":
+        "Titre indisponible pour ce lien — vous pouvez le nommer vous-même.",
     "The site did not give a title for this link":
         "Le site n'a pas donné de titre pour ce lien",
     "No event scheduled": "Aucun événement prévu",
