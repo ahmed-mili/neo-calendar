@@ -1,6 +1,6 @@
 {
   "name": "@neo-calendar/android",
-  "version": "1.38.34",
+  "version": "1.38.35",
   "private": true,
   "type": "module",
   "scripts": {
