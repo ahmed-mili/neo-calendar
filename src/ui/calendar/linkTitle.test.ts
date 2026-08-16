@@ -425,10 +425,45 @@ describe("resolvedTarget", () => {
         );
     });
 
-    it("refuses a landing on another site", () => {
+    // A shortener leading to another site is what a shortener IS: refusing
+    // those would look through none of the links that most need it.
+    it("follows a shortener wherever it goes", () => {
         expect(
-            resolvedTarget(share, "https://example.com/video/7645383659813391")
-        ).toBe(share);
+            resolvedTarget(
+                "https://bit.ly/3xYzAbc",
+                "https://example.com/post/1"
+            )
+        ).toBe("https://example.com/post/1");
+        expect(
+            resolvedTarget(
+                "https://youtu.be/dQw4w9WgXcQ",
+                "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            )
+        ).toBe("https://www.youtube.com/watch");
+    });
+
+    // A dead, throttled or app-only share lands on a bare host or on a wall,
+    // both of which say less than the code did.
+    it("keeps the share when it lands nowhere in particular", () => {
+        expect(
+            resolvedTarget("https://bit.ly/3xYzAbc", "https://bit.ly/")
+        ).toBe("https://bit.ly/3xYzAbc");
+        expect(
+            resolvedTarget(
+                "https://bit.ly/3xYzAbc",
+                "https://example.com/login"
+            )
+        ).toBe("https://bit.ly/3xYzAbc");
+    });
+
+    // An ordinary address is never rewritten to wherever it redirects today.
+    it("refuses to move an ordinary link to another site", () => {
+        expect(
+            resolvedTarget(
+                "https://www.tiktok.com/@someone/video/7645383659813391648",
+                "https://login.example.com/oauth?next=%2F"
+            )
+        ).toBe("https://www.tiktok.com/@someone/video/7645383659813391648");
     });
 
     it("keeps the link itself when nothing was resolved", () => {

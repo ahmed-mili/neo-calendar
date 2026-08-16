@@ -1379,7 +1379,9 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
-    background: rgba(0, 0, 0, 0.5);
+    /* Ce voile s'ajoute a celui de la feuille d'evenement qu'il couvre : deux
+       noirs empiles pour une question, c'est un de trop. */
+    background: rgba(0, 0, 0, 0.34);
 }
 
 .nc-scope-dialog {
@@ -1390,7 +1392,10 @@
     padding: 20px;
     border: 1px solid var(--nc-border);
     border-radius: 18px;
-    background: var(--nc-bg-secondary, var(--background-secondary, #1e1e2e));
+    /* La variable Obsidian d'abord : sur Android les --nc-* sont laissées vides
+       exprès (c'est ce qui laisse passer le fond d'écran ailleurs), et une
+       surface qui doit couvrir ne peut pas s'appuyer dessus. */
+    background: var(--background-secondary, var(--nc-bg-secondary, #1e1e2e));
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
 }
 

@@ -72,6 +72,7 @@ import {
     PhoneIcon,
 } from "./EventPanelIcons";
 import { linkSubtitle } from "./linkFacts";
+import { needsResolving } from "./shareLink";
 import { Toast, ToastMessage } from "./Toast";
 import { t } from "../i18n";
 import { isAndroidRuntime } from "./CalendarUtils";
@@ -2564,7 +2565,7 @@ export function LinksAttachmentsRow({
      * n'arrive pas, il reste le crayon.
      */
     const lookUpTitle = React.useCallback(
-        async (id: string, target: string) => {
+        async (id: string, target: string, quiet = false) => {
             if (!onFetchPage || !onRenameLink) return;
             setSearching((current) =>
                 current.includes(target) ? current : [...current, target]
@@ -2574,7 +2575,9 @@ export function LinksAttachmentsRow({
                 if (label || destination !== target) {
                     await onRenameLink(id, target, label, destination);
                 }
-                if (!label) {
+                // Nobody asked for this one: a link the panel looked through
+                // on its own says nothing when it finds nothing.
+                if (!label && !quiet) {
                     setNotice(
                         t(
                             "No title available for this link — you can name it yourself."
@@ -2592,6 +2595,51 @@ export function LinksAttachmentsRow({
         },
         [onFetchPage, onRenameLink, titleFor]
     );
+
+    /*
+     * Les liens qui en cachent un autre se font ouvrir tout seuls.
+     *
+     * Une adresse de partage — `vm.tiktok.com/ZN88…`, `bit.ly/3xYz` — ne dit
+     * rien de ce qu'il y a au bout : ni le compte, ni la date, ni de quoi voir
+     * que deux partages sont la même vidéo. Tout cela se lit dans l'adresse
+     * canonique, et elle se demande une seule fois, à l'ajout, avec deux
+     * secondes et demie pour répondre. Quand ce délai passe — réseau lent, site
+     * qui fait patienter — la note garde le code, et le garde pour toujours.
+     *
+     * Le panneau les rouvre donc lui-même, à l'ouverture de l'événement : un à
+     * la fois pour ne pas partir en rafale, seulement ceux dont l'adresse est
+     * encore un code (voir shareLink), et une seule fois chacun — l'adresse
+     * elle-même est le registre de ce qui a été fait, puisqu'un lien résolu
+     * n'en est plus un.
+     */
+    const sweptRef = React.useRef(new Set<string>());
+    React.useEffect(() => {
+        sweptRef.current = new Set<string>();
+    }, [eventId]);
+
+    React.useEffect(() => {
+        if (!eventId || !onFetchPage || !onRenameLink) return;
+        const pending = items.filter(
+            (item) =>
+                needsResolving(item.target, item.kind) &&
+                !sweptRef.current.has(item.target)
+        );
+        if (!pending.length) return;
+
+        let cancelled = false;
+        for (const item of pending) sweptRef.current.add(item.target);
+
+        void (async () => {
+            for (const item of pending) {
+                if (cancelled) return;
+                await lookUpTitle(eventId, item.target, true);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [eventId, items, lookUpTitle, onFetchPage, onRenameLink]);
 
     const addMarkdown = React.useCallback(
         async (markdown: string) => {

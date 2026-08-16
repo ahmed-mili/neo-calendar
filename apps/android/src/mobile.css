@@ -463,10 +463,32 @@ body.nc-platform-android .nc-recur-num {
 
 /* The question asked on the way out of one day of a series. A phone gets the
    dialog wide, its choices tall, and its two answers where a thumb is. */
+/*
+ * Opaque, et sur un voile plus clair.
+ *
+ * `--nc-bg-secondary` est laissé VIDE sur cette plateforme, exprès : c'est ce
+ * qui laisse le fond d'écran traverser les surfaces qui le doivent. Nommer la
+ * variable ici ne peignait donc rien du tout — le dialogue était transparent,
+ * et on lisait la grille et la feuille d'événement au travers de la question
+ * qu'il posait. C'est la variable Obsidian qu'il faut nommer, comme le fait
+ * déjà tout ce qui doit couvrir sur ce téléphone.
+ *
+ * Le voile derrière, lui, s'ajoutait à celui de la feuille et à celui du
+ * tiroir : trois noirs empilés pour une question. Il s'allège d'autant.
+ */
+body.nc-platform-android .nc-scope-overlay {
+    background: rgba(0, 0, 0, 0.32);
+}
+
 body.nc-platform-android .nc-scope-dialog {
     width: min(420px, 100%);
     padding: 22px;
     border-radius: 22px;
+    background: var(--background-secondary, #1a1d29) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55) !important;
 }
 
 body.nc-platform-android .nc-scope-title {
