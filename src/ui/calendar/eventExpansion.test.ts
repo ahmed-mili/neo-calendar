@@ -35,31 +35,6 @@ describe("expanding a weekday series", () => {
         expect(ids).toContain("42_2026-08-05");
     });
 
-    // One note holds the series, so its description is what every occurrence
-    // shows — until one of them is unsynced and writes its own.
-    it("gives an unsynced occurrence its own description", () => {
-        const events = neoEventToDisplayEvents(
-            {
-                ...weekdaySeries,
-                description: "Tour de table",
-                occurrenceDescriptions: ["2026-07-29 Démo client"],
-            } as unknown as NeoEvent,
-            "42",
-            "cal",
-            "Cal",
-            "#ffffff",
-            true,
-            new Date(WINDOW[0]),
-            new Date(WINDOW[1])
-        );
-        const descriptionOf = (id: string) =>
-            events.find((e) => e.id === id)?.description;
-
-        expect(descriptionOf("42_2026-07-29")).toBe("Démo client");
-        expect(descriptionOf("42_2026-07-22")).toBe("Tour de table");
-        expect(descriptionOf("42_2026-08-05")).toBe("Tour de table");
-    });
-
     // Detaching an occurrence writes its date into the series' skipDates. If
     // the expansion ignored them, the occurrence would come back on the next
     // read and sit on top of the copy that was moved away.

@@ -411,6 +411,84 @@ body.nc-platform-android .nc-main-scroller {
 
 /* â”€â”€ Event editor as a native-feeling bottom sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
+/* ── The repeat, sized for a finger ──────────────────────────
+   The block was drawn for a mouse: 12px words to press, 13px radios to hit and
+   fields half the height of everything else on this sheet. Same layout, same
+   order — every target simply grows to what a thumb needs. */
+
+body.nc-platform-android .nc-recur-summary {
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-recur-presets {
+    gap: 8px;
+}
+
+body.nc-platform-android .nc-recur-presets .nc-chip {
+    min-height: 34px;
+    padding: 6px 14px;
+    font-size: 13.5px;
+}
+
+body.nc-platform-android .nc-recur-custom {
+    gap: 14px;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+body.nc-platform-android .nc-recur-interval,
+body.nc-platform-android .nc-recur-end {
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-recur-end label {
+    min-height: 38px;
+    gap: 10px;
+}
+
+body.nc-platform-android .nc-recur-end input[type="radio"] {
+    width: 20px;
+    height: 20px;
+}
+
+body.nc-platform-android .nc-recur-num,
+body.nc-platform-android .nc-panel-date-trigger {
+    height: 36px;
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-recur-num {
+    width: 60px;
+}
+
+/* The question asked on the way out of one day of a series. A phone gets the
+   dialog wide, its choices tall, and its two answers where a thumb is. */
+body.nc-platform-android .nc-scope-dialog {
+    width: min(420px, 100%);
+    padding: 22px;
+    border-radius: 22px;
+}
+
+body.nc-platform-android .nc-scope-title {
+    font-size: 17px;
+}
+
+body.nc-platform-android .nc-scope-choice {
+    min-height: 48px;
+    font-size: 15px;
+}
+
+body.nc-platform-android .nc-scope-choice input[type="radio"] {
+    width: 20px;
+    height: 20px;
+}
+
+body.nc-platform-android .nc-scope-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 15px;
+}
+
 body.nc-platform-android .nc-event-popup {
     left: max(8px, var(--nc-mobile-safe-left)) !important;
     right: max(8px, var(--nc-mobile-safe-right)) !important;

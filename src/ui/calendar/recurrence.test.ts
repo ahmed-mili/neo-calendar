@@ -263,19 +263,56 @@ describe("recurrenceToEventFields", () => {
 });
 
 describe("recurrenceSummary", () => {
-    it("renders human text for a weekly rule", () => {
-        const s = recurrenceSummary(
+    const weekly = (
+        extra: Partial<Parameters<typeof recurrenceSummary>[0]> = {}
+    ) =>
+        recurrenceSummary(
             {
                 freq: "weekly",
                 interval: 2,
                 byDay: ["T"],
                 monthMode: "dayOfMonth",
                 end: { kind: "never" },
+                ...extra,
             },
             "2026-06-02"
         );
-        expect(s.toLowerCase()).toContain("every 2 weeks");
-        expect(s.toLowerCase()).toContain("tuesday");
+
+    // It is read out in the calendar's own language, which is what rrule's
+    // toText() could never do — it answered in English inside French wording.
+    it("reads a weekly rule out in the calendar's language", () => {
+        expect(weekly()).toBe("Toutes les 2 semaines le mardi");
+    });
+
+    it("says a repeat that happens every time", () => {
+        expect(weekly({ interval: 1 })).toBe("Toutes les semaines le mardi");
+    });
+
+    it("names every day a weekly rule falls on, in week order", () => {
+        expect(weekly({ interval: 1, byDay: ["F", "M"] })).toBe(
+            "Toutes les semaines le lundi, vendredi"
+        );
+    });
+
+    it("adds the end, when there is one", () => {
+        expect(
+            weekly({ end: { kind: "until", date: "2026-08-30" } })
+        ).toContain("jusqu'au");
+        expect(weekly({ end: { kind: "count", count: 13 } })).toContain(
+            "13 fois"
+        );
+    });
+
+    it("keeps a rule with no weekday to a single clause", () => {
+        expect(
+            recurrenceSummary({
+                freq: "daily",
+                interval: 1,
+                byDay: [],
+                monthMode: "dayOfMonth",
+                end: { kind: "never" },
+            })
+        ).toBe("Tous les jours");
     });
 });
 

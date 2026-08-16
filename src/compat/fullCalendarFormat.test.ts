@@ -280,29 +280,6 @@ describe("compat: NeoEvent → frontmatter (serialize & merge)", () => {
         );
     });
 
-    // One occurrence of a series can write its own description, which lands in
-    // a list of free text: a line break inside an item is escaped rather than
-    // carried, or the item would split the inline list across two lines and the
-    // note would stop being YAML.
-    it("writes an occurrence's own description, line breaks escaped", () => {
-        const page =
-            "---\ntitle: Standup\nallDay: true\ntype: rrule\nstartDate: 2026-08-05\nrrule: FREQ=WEEKLY;BYDAY=WE\nskipDates: []\n---" +
-            body;
-        const event = parseEvent({
-            title: "Standup",
-            allDay: true,
-            type: "rrule",
-            startDate: "2026-08-05",
-            rrule: "FREQ=WEEKLY;BYDAY=WE",
-            skipDates: [],
-            occurrenceDescriptions: ["2026-08-19 Demo,\nthen a break"],
-        });
-        expect(modifyFrontmatterString(page, event)).toBe(
-            '---\ntitle: Standup\nallDay: true\ntype: rrule\nstartDate: 2026-08-05\nrrule: FREQ=WEEKLY;BYDAY=WE\nskipDates: []\noccurrenceDescriptions: ["2026-08-19 Demo,\\nthen a break"]\n---' +
-                body
-        );
-    });
-
     it("drops stale times when an event becomes all-day", () => {
         const page =
             "---\ntitle: T\nallDay: false\nstartTime: 11:00\nendTime: 12:30\ntype: single\ndate: 2022-01-01\nendDate: null\n---" +

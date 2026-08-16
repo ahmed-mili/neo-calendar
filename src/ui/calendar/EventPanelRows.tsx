@@ -75,6 +75,7 @@ import { t } from "../i18n";
 import { isAndroidRuntime } from "./CalendarUtils";
 import { decideLinkedFileTap, LinkedFileTap } from "./linkedFileTap";
 import { swallowNextClick } from "./swallowNextClick";
+import { RecurringEditScope } from "./recurringEdit";
 
 function getEventPanelPortalTarget(): HTMLElement {
     const isAndroid =
@@ -114,6 +115,8 @@ function ObsidianColorIcon() {
 
 interface PanelHeaderProps {
     isDraft: boolean;
+    /** What the panel is showing, which is what its header says it is. */
+    isTask: boolean;
     editable: boolean;
     eventId: string | null;
     menuOpen: boolean;
@@ -130,6 +133,7 @@ interface PanelHeaderProps {
 
 export function PanelHeader({
     isDraft,
+    isTask,
     editable,
     eventId,
     menuOpen,
@@ -149,7 +153,11 @@ export function PanelHeader({
             ref={headerRef}
             onMouseDown={onHeaderMouseDown}
         >
-            <span className="nc-panel-header-label">{t("Event")}</span>
+            {/* The header says which of the two this is. It read "Event" on
+                everything, including an entry whose own Type row said Task. */}
+            <span className="nc-panel-header-label">
+                {isTask ? t("Task") : t("Event")}
+            </span>
             <div className="nc-panel-header-actions">
                 <div className="nc-panel-menu-wrap" ref={menuRef}>
                     <button
@@ -198,7 +206,11 @@ export function PanelHeader({
                                     onClick={onDeleteClick}
                                 >
                                     <TrashIcon size={15} />
-                                    <span>{t("Delete event")}</span>
+                                    <span>
+                                        {isTask
+                                            ? t("Delete task")
+                                            : t("Delete event")}
+                                    </span>
                                 </button>
                             )}
                         </div>
@@ -1023,13 +1035,16 @@ export function RecurrenceRow({
                                 options={[
                                     {
                                         value: "dayOfMonth",
-                                        label: `Monthly on day ${Number(
-                                            startDate.slice(8, 10)
-                                        )}`,
+                                        label: t("Monthly on day {n}").replace(
+                                            "{n}",
+                                            String(
+                                                Number(startDate.slice(8, 10))
+                                            )
+                                        ),
                                     },
                                     {
                                         value: "dayOfWeek",
-                                        label: "Monthly on the nth weekday",
+                                        label: t("Monthly on the same weekday"),
                                     },
                                 ]}
                                 onChange={(v) => {
@@ -1053,7 +1068,7 @@ export function RecurrenceRow({
                                         onAutoSave();
                                     }}
                                 />
-                                Never
+                                <span>{t("Never")}</span>
                             </label>
                             <label>
                                 <input
@@ -1070,7 +1085,7 @@ export function RecurrenceRow({
                                         onAutoSave();
                                     }}
                                 />
-                                On
+                                <span>{t("On date")}</span>
                                 <DateField
                                     triggerClassName="nc-panel-date-trigger"
                                     date={
@@ -1107,7 +1122,7 @@ export function RecurrenceRow({
                                         onAutoSave();
                                     }}
                                 />
-                                After
+                                <span>{t("After count")}</span>
                                 <input
                                     type="number"
                                     min={1}
@@ -1131,7 +1146,7 @@ export function RecurrenceRow({
                                     }
                                     onBlur={commit}
                                 />
-                                occurrences
+                                <span>{t("occurrences")}</span>
                             </label>
                         </div>
                     </div>
@@ -2893,6 +2908,100 @@ export function LinksAttachmentsRow({
     );
 }
 
+// ── "This one, or all of them?" ─────────────────────────────
+
+interface RecurringScopeDialogProps {
+    /** A series of tasks and a series of events are not asked about alike. */
+    isTask: boolean;
+    onCancel: () => void;
+    onConfirm: (scope: RecurringEditScope) => void;
+}
+
+/**
+ * The question a calendar has to ask before writing one day of a series.
+ *
+ * It comes up on the way out, once, holding everything typed since the panel
+ * opened — not on each field, which would put a dialog between a person and
+ * their own typing. "Cancel" hands the panel back with the edit intact.
+ */
+export function RecurringScopeDialog({
+    isTask,
+    onCancel,
+    onConfirm,
+}: RecurringScopeDialogProps) {
+    const [scope, setScope] = React.useState<RecurringEditScope>("occurrence");
+
+    React.useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+            event.stopPropagation();
+            onCancel();
+        };
+        document.addEventListener("keydown", onKey, true);
+        return () => document.removeEventListener("keydown", onKey, true);
+    }, [onCancel]);
+
+    const choices: { value: RecurringEditScope; label: string }[] = [
+        {
+            value: "occurrence",
+            label: isTask ? t("This task") : t("This event"),
+        },
+        {
+            value: "series",
+            label: isTask ? t("All tasks") : t("All events"),
+        },
+    ];
+
+    return ReactDOM.createPortal(
+        <div
+            className="nc-scope-overlay"
+            role="dialog"
+            aria-modal="true"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) onCancel();
+            }}
+        >
+            <div className="nc-scope-dialog">
+                <div className="nc-scope-title">
+                    {isTask
+                        ? t("Save a recurring task")
+                        : t("Save a recurring event")}
+                </div>
+                <div className="nc-scope-choices">
+                    {choices.map((choice) => (
+                        <label className="nc-scope-choice" key={choice.value}>
+                            <input
+                                type="radio"
+                                name="nc-recurring-scope"
+                                checked={scope === choice.value}
+                                onChange={() => setScope(choice.value)}
+                            />
+                            <span>{choice.label}</span>
+                        </label>
+                    ))}
+                </div>
+                <div className="nc-scope-actions">
+                    <button
+                        type="button"
+                        className="nc-scope-btn"
+                        onClick={onCancel}
+                    >
+                        {t("Cancel")}
+                    </button>
+                    <button
+                        type="button"
+                        className="nc-scope-btn nc-scope-btn-primary"
+                        onClick={() => onConfirm(scope)}
+                    >
+                        {t("Save")}
+                    </button>
+                </div>
+            </div>
+        </div>,
+        getEventPanelPortalTarget()
+    );
+}
+
 // ── Description row ────────────────────────────────────────
 
 interface DescriptionRowProps {
@@ -2900,14 +3009,6 @@ interface DescriptionRowProps {
     editable: boolean;
     setDescription: (v: string) => void;
     onCommit: () => void;
-    /** Offered on one occurrence of a series, where the choice exists: the
-        description is the series' (every occurrence says the same thing) or
-        this day's alone. Absent everywhere else — an event that happens once
-        has nothing to share it with. */
-    sync?: {
-        synced: boolean;
-        onChange: (synced: boolean) => void;
-    };
 }
 
 export function DescriptionRow({
@@ -2915,7 +3016,6 @@ export function DescriptionRow({
     editable,
     setDescription,
     onCommit,
-    sync,
 }: DescriptionRowProps) {
     return (
         <div className="nc-panel-row nc-panel-row-desc">
@@ -2932,29 +3032,6 @@ export function DescriptionRow({
                     onBlur={onCommit}
                     readOnly={!editable}
                 />
-                {sync && (
-                    <div className="nc-panel-chips">
-                        <button
-                            type="button"
-                            className={`nc-chip ${
-                                sync.synced ? "nc-active" : ""
-                            }`}
-                            aria-pressed={sync.synced}
-                            title={
-                                sync.synced
-                                    ? t(
-                                          "The whole series shares this description. Switch it off to write one for this occurrence only."
-                                      )
-                                    : t(
-                                          "This description belongs to this occurrence only. Switch it on to show the series' own again."
-                                      )
-                            }
-                            onClick={() => sync.onChange(!sync.synced)}
-                        >
-                            {t("Synced description")}
-                        </button>
-                    </div>
-                )}
             </div>
         </div>
     );

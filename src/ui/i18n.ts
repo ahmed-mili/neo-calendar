@@ -27,6 +27,9 @@ const FR: Record<string, string> = {
     // same whatever locale the machine happens to be set to.
     "days.short": "dim.,lun.,mar.,mer.,jeu.,ven.,sam.",
     "days.min": "di,lu,ma,me,je,ve,sa",
+    // Écrits en toutes lettres pour le résumé d'une répétition — « toutes les
+    // semaines le mardi » — où le jour est au milieu d'une phrase.
+    "days.long": "dimanche,lundi,mardi,mercredi,jeudi,vendredi,samedi",
     "months.short":
         "janv.,févr.,mars,avr.,mai,juin,juil.,août,sept.,oct.,nov.,déc.",
     "months.long":
@@ -91,6 +94,24 @@ const FR: Record<string, string> = {
     Every: "Tous les",
     From: "De",
     Ends: "Fin",
+    // Les trois fins possibles d'une répétition, et le résumé qui les relit.
+    Never: "Jamais",
+    "On date": "Le",
+    "After count": "Après",
+    occurrences: "occurrences",
+    "Every day": "Tous les jours",
+    "Every week": "Toutes les semaines",
+    "Every month": "Tous les mois",
+    "Every year": "Tous les ans",
+    "every {n} days": "tous les {n} jours",
+    "every {n} weeks": "toutes les {n} semaines",
+    "every {n} months": "tous les {n} mois",
+    "every {n} years": "tous les {n} ans",
+    "on {days}": "le {days}",
+    "until {date}": "jusqu'au {date}",
+    "{n} times": "{n} fois",
+    "Monthly on day {n}": "Le {n} de chaque mois",
+    "Monthly on the same weekday": "Le même jour de la semaine chaque mois",
     Period: "Période",
     "Custom period": "Période personnalisée",
     Custom: "Personnalisé",
@@ -146,13 +167,14 @@ const FR: Record<string, string> = {
         "entrées ont une heure de début et une heure de fin, ce qui est la forme d'un événement et non d'une tâche. Elles perdront leur case à cocher. Les tâches sur toute la journée et celles déjà terminées ne sont pas touchées.",
     Description: "Description",
     Empty: "Vide",
-    // Une série tient dans une seule note : sa description est lue par toutes
-    // ses occurrences. L'interrupteur laisse une occurrence écrire la sienne.
-    "Synced description": "Description synchronisée",
-    "The whole series shares this description. Switch it off to write one for this occurrence only.":
-        "Toute la série partage cette description. Désactivez pour en écrire une pour cette occurrence seulement.",
-    "This description belongs to this occurrence only. Switch it on to show the series' own again.":
-        "Cette description n'appartient qu'à cette occurrence. Activez pour réafficher celle de la série.",
+    // La question posée en quittant le panneau après avoir modifié un jour
+    // d'une série : cette occurrence seule, ou toute la série.
+    "Save a recurring event": "Enregistrer un événement récurrent",
+    "Save a recurring task": "Enregistrer une tâche récurrente",
+    "This event": "Cet événement",
+    "All events": "Tous les événements",
+    "This task": "Cette tâche",
+    "All tasks": "Toutes les tâches",
     Date: "Date",
     "Pick a date": "Choisir une date",
     "Change time zone": "Changer de fuseau horaire",
@@ -188,6 +210,7 @@ const FR: Record<string, string> = {
     "Available once the event is created":
         "Disponible une fois l'événement créé",
     "Delete event": "Supprimer l'événement",
+    "Delete task": "Supprimer la tâche",
     "Click again to confirm": "Cliquer à nouveau pour confirmer",
     Untitled: "Sans titre",
     "Back to calendars": "Retour aux calendriers",

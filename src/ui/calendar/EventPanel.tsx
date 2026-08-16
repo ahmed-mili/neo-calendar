@@ -20,6 +20,7 @@ import { usePopupDrag } from "./usePopupDrag";
 import { useEventFormState } from "./useEventFormState";
 import {
     PanelHeader,
+    RecurringScopeDialog,
     TitleRow,
     DateRow,
     RecurrenceRow,
@@ -34,8 +35,15 @@ import {
 import { FileTextIcon } from "./EventPanelIcons";
 import { t } from "../i18n";
 import { defaultRecurrence } from "./recurrence";
-import { occurrenceDateOf } from "./occurrenceDescription";
 import { mergeForSave } from "./eventScheduling";
+import {
+    RecurringEditScope,
+    detachedOccurrence,
+    needsScopeChoice,
+    occurrenceDateOf,
+    occurrenceIsDone,
+    seriesWithoutOccurrence,
+} from "./recurringEdit";
 
 /* NEO_ANDROID_RUNTIME_HELPER_V3_START */
 function isNeoAndroidRuntime(): boolean {
@@ -278,15 +286,9 @@ export default function EventPanel({
         [calendars]
     );
 
-    // Which day of a series this is. The id an occurrence is opened under
-    // carries it — `<note>_2026-08-16` — and it is the only thing that tells
-    // one Tuesday from the next, since they share the note.
-    const occurrenceDate = useMemo(() => occurrenceDateOf(eventId), [eventId]);
-
     const form = useEventFormState({
         eventId,
         event,
-        occurrenceDate,
         draft,
         editableCalendars,
         currentCalendarId: stableCalInfo.currentId,
@@ -421,6 +423,13 @@ export default function EventPanel({
     // indirection is because the sheet hook is set up just below and owns the
     // movement — reading it through a closure keeps the order of declaration
     // from deciding how the panel behaves.
+    // Every way out of the panel goes through here first. It is set below, once
+    // there is something to guard: a held edit on one day of a series, which
+    // has to be answered for before the panel can go anywhere.
+    const guardExitRef = React.useRef<(exit: () => void) => void>((exit) =>
+        exit()
+    );
+
     const closeRef = React.useRef<() => void>(onClose);
     usePopupDismiss({
         visible,
@@ -438,9 +447,23 @@ export default function EventPanel({
         // A draft stands lower at rest than an existing event: it opens over a
         // slot the person is still looking at.
         variant: isDraft ? "draft" : "sheet",
-        onClose,
+        // Swiping the sheet down is a way out like any other, and the sheet has
+        // already left by the time this runs — so the guard puts it back if it
+        // has a question to ask.
+        onClose: () => guardExitRef.current(onClose),
     });
-    closeRef.current = requestClose;
+
+    /** Undoes a swipe that was stopped by the question: the sheet comes home. */
+    const restoreSheet = React.useCallback(() => {
+        popupRef.current?.style.removeProperty("--nc-sheet-offset");
+    }, []);
+
+    /** What the X, the Escape key and a tap outside all call. */
+    const requestCloseGuarded = React.useCallback(
+        () => guardExitRef.current(requestClose),
+        [requestClose]
+    );
+    closeRef.current = requestCloseGuarded;
 
     // NEO_ANDROID_NOTION_DRAFT_FOCUS_START
     useEffect(() => {
@@ -519,6 +542,8 @@ export default function EventPanel({
     const handleDeleteClick = () => {
         if (!eventId) return;
         onDelete(eventId);
+        // Nothing left to ask about: the note this panel was editing is gone.
+        heldEditRef.current = false;
         requestClose();
     };
 
@@ -554,6 +579,33 @@ export default function EventPanel({
 
     const isTask = form.taskStatus !== null;
 
+    /*
+     * One day of a series is held, not written.
+     *
+     * Everything else in this panel saves itself as it is typed. A series
+     * cannot: its note describes every occurrence at once, so writing the
+     * moment a field changes would answer "all of them" to a question nobody
+     * has been asked yet. The edits stay in the form until the panel is closed,
+     * and the way out is where the question is put.
+     */
+    const scopeChoiceNeeded = needsScopeChoice({
+        event: stableEvent,
+        eventId,
+        isDraft,
+    });
+    const occurrenceDate = useMemo(() => occurrenceDateOf(eventId), [eventId]);
+    const heldEditRef = useRef(false);
+    const scopeNeededRef = useRef(scopeChoiceNeeded);
+    scopeNeededRef.current = scopeChoiceNeeded;
+    const [scopeAsked, setScopeAsked] = useState(false);
+
+    // An edit held for one occurrence belongs to that occurrence alone: opening
+    // another entry starts from nothing held.
+    useEffect(() => {
+        heldEditRef.current = false;
+        setScopeAsked(false);
+    }, [eventId]);
+
     // Mutex to prevent overlapping auto-saves. When the user types rapidly,
     // multiple auto-saves can fire before the previous one finishes, causing
     // race conditions with file renames (e.g. duplicate files).
@@ -567,6 +619,11 @@ export default function EventPanel({
     const autoSave = useCallback(async () => {
         if (isDraft || !stableEvent || !eventId || !stableCalInfo.editable)
             return;
+        // Held until the panel is closed and the question has been answered.
+        if (scopeNeededRef.current) {
+            heldEditRef.current = true;
+            return;
+        }
         if (savingRef.current) {
             saveAgainRef.current = true;
             return;
@@ -662,6 +719,127 @@ export default function EventPanel({
         };
     }, []);
 
+    /**
+     * Writes the held edit, once it is known who it was meant for.
+     *
+     * "All of them" is the panel's ordinary save: the series' note carries
+     * every occurrence, so writing it answers for all of them at once.
+     *
+     * "This one" cannot be written there at all. The day is taken OUT of the
+     * series — the same exception `skipDates` records when an occurrence is
+     * dragged — and written beside it as an event of its own, carrying
+     * everything the panel holds. The copy goes down first: an occurrence
+     * showing twice for a moment beats one that was lost.
+     */
+    const applyScopedEdit = useCallback(
+        async (scope: RecurringEditScope) => {
+            if (!stableEvent || !eventId || !occurrenceDate) return;
+            const payload = form.buildPayload();
+            const targetCalendar = editableCalendars[form.calendarIndex];
+
+            try {
+                if (scope === "series") {
+                    const originalCalendarId = originalCalendarIdRef.current;
+                    const newCalendarId = targetCalendar?.id;
+                    if (
+                        newCalendarId &&
+                        originalCalendarId &&
+                        newCalendarId !== originalCalendarId
+                    ) {
+                        await cache.moveEventToCalendar(eventId, newCalendarId);
+                        originalCalendarIdRef.current = newCalendarId;
+                        const moved = cache.getEventById(eventId);
+                        if (moved) {
+                            await cache.updateEventWithId(
+                                eventId,
+                                mergeForSave(moved, payload)
+                            );
+                        }
+                        return;
+                    }
+                    await cache.updateEventWithId(
+                        eventId,
+                        mergeForSave(stableEvent, payload)
+                    );
+                    return;
+                }
+
+                // The date row of a series shows where the SERIES starts, so a
+                // date left alone means "the day I opened", and a date changed
+                // means this occurrence is being moved to it.
+                const seriesStart =
+                    stableEvent.type === "recurring"
+                        ? stableEvent.startRecur
+                        : stableEvent.type === "rrule"
+                        ? stableEvent.startDate
+                        : undefined;
+                const dateISO =
+                    form.date && form.date !== seriesStart
+                        ? form.date
+                        : occurrenceDate;
+
+                const single = detachedOccurrence({
+                    payload,
+                    dateISO,
+                    done: occurrenceIsDone(stableEvent, occurrenceDate),
+                });
+                const calendarId =
+                    targetCalendar?.id ?? stableCalInfo.currentId;
+                await cache.addEvent(calendarId, single);
+                await cache.updateEventWithId(
+                    eventId,
+                    seriesWithoutOccurrence(stableEvent, occurrenceDate)
+                );
+            } catch (e) {
+                reportSaveFailure(e);
+            }
+        },
+        [
+            cache,
+            editableCalendars,
+            eventId,
+            form,
+            occurrenceDate,
+            reportSaveFailure,
+            stableCalInfo.currentId,
+            stableEvent,
+        ]
+    );
+
+    /*
+     * The way out, with the question in it.
+     *
+     * Every exit — the X, Escape, a tap outside, the sheet swiped down — ends
+     * up here. With an edit held for one day of a series, none of them leave:
+     * the sheet comes back to where it was and the question is put instead.
+     * Answering it leaves by the ordinary door, so the panel goes out the way
+     * it always does rather than blinking off the screen.
+     */
+    guardExitRef.current = (exit) => {
+        if (!scopeNeededRef.current || !heldEditRef.current) {
+            exit();
+            return;
+        }
+        restoreSheet();
+        setScopeAsked(true);
+    };
+
+    const confirmScopedEdit = useCallback(
+        (scope: RecurringEditScope) => {
+            setScopeAsked(false);
+            heldEditRef.current = false;
+            // The write is not waited on: the panel leaves now and the grid
+            // catches up when the file lands — the bargain every other save in
+            // this panel already makes.
+            void applyScopedEdit(scope);
+            requestClose();
+        },
+        [applyScopedEdit, requestClose]
+    );
+
+    /** Back to the panel, with everything typed still in it. */
+    const cancelScopedEdit = useCallback(() => setScopeAsked(false), []);
+
     const commitDraftIfNeeded = useCallback(() => {
         if (!isDraft || !draft) return;
         if (!form.date) return;
@@ -752,6 +930,11 @@ export default function EventPanel({
         lastSavedPayloadRef.current = serialized;
         lastSavedCalendarRef.current = form.calendarIndex;
 
+        if (scopeNeededRef.current) {
+            heldEditRef.current = true;
+            return;
+        }
+
         // If a save is already in progress, mark it as pending and return.
         // The save will be retried once the current one finishes.
         if (savingRef.current) {
@@ -770,7 +953,6 @@ export default function EventPanel({
         form.calendarIndex,
         form.taskStatus,
         form.description,
-        form.descriptionSynced,
         form.subtasks,
         isDraft,
         stableEvent,
@@ -872,7 +1054,7 @@ export default function EventPanel({
             onMouseDown={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
                 if (e.key === "Escape") {
-                    requestClose();
+                    requestCloseGuarded();
                 }
                 e.stopPropagation();
             }}
@@ -880,6 +1062,7 @@ export default function EventPanel({
             <PanelHeader
                 headerRef={headerRef}
                 isDraft={isDraft}
+                isTask={isTask}
                 editable={stableCalInfo.editable}
                 eventId={eventId}
                 menuOpen={menuOpen}
@@ -898,6 +1081,10 @@ export default function EventPanel({
                               // the original hides the thing just made.
                               setMenuOpen(false);
                               onDuplicate(id);
+                              // The copy was made from the note, not from what
+                              // is held here; asking about the held edit on top
+                              // of it would stack two answers on one gesture.
+                              heldEditRef.current = false;
                               requestClose();
                           }
                         : undefined
@@ -906,7 +1093,7 @@ export default function EventPanel({
                     setMenuOpen(false);
                     handleDeleteClick();
                 }}
-                onClose={requestClose}
+                onClose={requestCloseGuarded}
             />
 
             <form
@@ -1099,25 +1286,16 @@ export default function EventPanel({
                     editable={stableCalInfo.editable}
                     setDescription={form.setDescription}
                     onCommit={onTitleCommit}
-                    /* One note holds the whole series, so its description is
-                       read by every occurrence — which is right until the day
-                       one of them has something of its own to say. The switch
-                       is offered on that day, never on the series as a whole:
-                       there is no "this occurrence" to write for until an
-                       occurrence is what was opened. */
-                    sync={
-                        form.canUnsyncDescription && stableCalInfo.editable
-                            ? {
-                                  synced: form.descriptionSynced,
-                                  onChange: (next) => {
-                                      form.setDescriptionSynced(next);
-                                      scheduleAutoSave();
-                                  },
-                              }
-                            : undefined
-                    }
                 />
             </form>
+
+            {scopeAsked && (
+                <RecurringScopeDialog
+                    isTask={isTask}
+                    onCancel={cancelScopedEdit}
+                    onConfirm={confirmScopedEdit}
+                />
+            )}
 
             {/* Read-only events (holidays, .ics) are backed by no note at all,
                 so the footer would open nothing. */}
