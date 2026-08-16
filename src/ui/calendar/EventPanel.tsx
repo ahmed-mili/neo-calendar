@@ -9,6 +9,7 @@ import {
     POPUP_MAX_HEIGHT,
     formatDateLong,
     formatDateParts,
+    formatPanelDate,
     computeDuration,
     computePopupPosition,
     hasDraftCreationIntent,
@@ -19,14 +20,16 @@ import { useSheetDrag } from "./useSheetDrag";
 import { usePopupDrag } from "./usePopupDrag";
 import { useEventFormState } from "./useEventFormState";
 import {
+    AllDayRow,
+    EntryKind,
     PanelHeader,
     RecurringScopeDialog,
+    RepeatRow,
     TitleRow,
     DateRow,
     RecurrenceRow,
     CalendarRow,
     TypeRow,
-    DueRow,
     StatusRow,
     SubtasksRow,
     LinksAttachmentsRow,
@@ -34,7 +37,13 @@ import {
 } from "./EventPanelRows";
 import { FileTextIcon } from "./EventPanelIcons";
 import { t } from "../i18n";
-import { defaultRecurrence } from "./recurrence";
+import {
+    PresetKey,
+    defaultRecurrence,
+    matchPreset,
+    presetToRecurrence,
+    recurrenceSummary,
+} from "./recurrence";
 import { mergeForSave } from "./eventScheduling";
 import {
     RecurringEditScope,
@@ -994,13 +1003,118 @@ export default function EventPanel({
         }
     }, [isDraft]);
 
+    // ── What this entry is, and how often ─────────────────────
+
+    /*
+     * A birthday is read, not recorded.
+     *
+     * It is an all-day event that comes back every year on its own date — which
+     * the note already says, in `allDay` and in the rule. Storing a third kind
+     * beside them would say it twice, and would say it only for the ones
+     * written after today; read this way, every yearly all-day event ever
+     * written is one, including the ones the calendar did not create.
+     */
+    const isBirthday =
+        !isTask &&
+        form.allDay &&
+        form.isRecurring &&
+        form.recurrence.freq === "yearly";
+    const entryKind: EntryKind = isTask
+        ? "task"
+        : isBirthday
+        ? "birthday"
+        : "event";
+
+    const currentPreset: PresetKey = useMemo(
+        () => matchPreset(form.recurrence, form.date),
+        [form.recurrence, form.date]
+    );
+
+    const repeatSummary = useMemo(
+        () => recurrenceSummary(form.recurrence, form.date),
+        [form.recurrence, form.date]
+    );
+
+    /** True while a rule is being built by hand rather than picked. */
+    const [customRepeat, setCustomRepeat] = useState(false);
+    useEffect(() => {
+        setCustomRepeat(false);
+    }, [eventId]);
+
+    const toggleAllDay = () => {
+        const next = !form.allDay;
+        form.setAllDay(next);
+        // Un-checking all-day moves the event into the timed grid. An event
+        // that was always all-day has no times, so without a default
+        // buildPayload emits empty times, which the expansion resolves to
+        // 00:00 — the event would stick to the top of the day. Seed noon
+        // (12:00–12:30) so it drops into the middle of the day. Guard on an
+        // empty startTime so a previously-timed event toggled back keeps its
+        // original hours.
+        if (!next && !form.startTime) {
+            form.setStartTime("12:00");
+            form.setEndTime("12:30");
+        }
+        scheduleAutoSave();
+    };
+
+    const chooseRepeat = (key: PresetKey | "once") => {
+        if (key === "once") {
+            setCustomRepeat(false);
+            form.setIsRecurring(false);
+            scheduleAutoSave();
+            return;
+        }
+        setCustomRepeat(key === "custom");
+        form.setIsRecurring(true);
+        form.setRecurrence(
+            key === "custom"
+                ? form.isRecurring
+                    ? form.recurrence
+                    : defaultRecurrence(form.date)
+                : presetToRecurrence(key, form.date)
+        );
+        // A deadline describes one day, and a series has none.
+        form.setDue(null);
+        scheduleAutoSave();
+    };
+
+    /**
+     * Choosing what an entry is.
+     *
+     * A birthday is the only one of the three that is more than a label: it
+     * takes the whole day and comes back each year, which is what makes it one.
+     * Turning it off leaves those where they are — the entry keeps the shape it
+     * was given, and only stops being CALLED a birthday.
+     */
+    const setEntryKind = (kind: EntryKind) => {
+        form.setTaskStatus(kind === "task" ? "todo" : null);
+        if (kind === "birthday") {
+            form.setAllDay(true);
+            form.setIsRecurring(true);
+            form.setRecurrence(presetToRecurrence("yearly", form.date));
+            form.setDue(null);
+            setCustomRepeat(false);
+        }
+        scheduleAutoSave();
+    };
+
     // ── Computed ──────────────────────────────────────────────
 
     const duration = useMemo(
         () => computeDuration(form.startTime, form.endTime),
         [form.startTime, form.endTime]
     );
-    const dateLabel = useMemo(() => formatDateLong(form.date), [form.date]);
+    const dateLabel = useMemo(() => formatPanelDate(form.date), [form.date]);
+
+    /* Le coin du panneau : l'état de la tâche, ou ce que l'entrée est. */
+    const headerLabel = isTask
+        ? form.taskStatus === "complete"
+            ? t("Done")
+            : t("To do")
+        : entryKind === "birthday"
+        ? t("Birthday")
+        : t("Event");
     // End date, shown only when the event crosses midnight (endTime < startTime
     // means it ends the next day) — Notion shows both start and end dates.
     const endDateLabel = useMemo(() => {
@@ -1009,7 +1123,7 @@ export default function EventPanel({
         const d = new Date(form.date + "T00:00:00");
         if (Number.isNaN(d.getTime())) return "";
         d.setDate(d.getDate() + 1);
-        return formatDateParts(d);
+        return formatPanelDate(d.toISOString().slice(0, 10));
     }, [form.allDay, form.startTime, form.endTime, form.date]);
 
     const computedLeft = dragOffset ? dragOffset.x : position.left;
@@ -1063,6 +1177,7 @@ export default function EventPanel({
                 headerRef={headerRef}
                 isDraft={isDraft}
                 isTask={isTask}
+                label={headerLabel}
                 editable={stableCalInfo.editable}
                 eventId={eventId}
                 menuOpen={menuOpen}
@@ -1111,6 +1226,13 @@ export default function EventPanel({
                     onCommit={onTitleCommit}
                 />
 
+                {/* What it is, before anything else about it. */}
+                <TypeRow
+                    kind={entryKind}
+                    editable={stableCalInfo.editable}
+                    setKind={setEntryKind}
+                />
+
                 <DateRow
                     date={form.date}
                     dateLabel={dateLabel}
@@ -1125,35 +1247,6 @@ export default function EventPanel({
                     setDate={form.setDate}
                     setStartTime={form.setStartTime}
                     setEndTime={form.setEndTime}
-                    toggleAllDay={() => {
-                        const next = !form.allDay;
-                        form.setAllDay(next);
-                        // Un-checking all-day moves the event into the timed
-                        // grid. An event that was always all-day has no times,
-                        // so without a default buildPayload emits empty times,
-                        // which the expansion resolves to 00:00 — the event
-                        // would stick to the top of the day. Seed noon
-                        // (12:00–12:30) so it drops into the middle of the day.
-                        // Guard on an empty startTime so a previously-timed
-                        // event toggled back keeps its original hours.
-                        if (!next && !form.startTime) {
-                            form.setStartTime("12:00");
-                            form.setEndTime("12:30");
-                        }
-                        scheduleAutoSave();
-                    }}
-                    toggleRecurring={() => {
-                        const next = !form.isRecurring;
-                        form.setIsRecurring(next);
-                        if (next) {
-                            form.setRecurrence(defaultRecurrence(form.date));
-                            // Task-ness survives: a series records completion
-                            // per occurrence. Only the deadline goes, since it
-                            // would describe one day for an endless list.
-                            form.setDue(null);
-                        }
-                        scheduleAutoSave();
-                    }}
                     // Back to the unscheduled list. Every field that only a
                     // DATED event can carry has to go with the date, because
                     // buildPayload reads them all: a repeat left standing would
@@ -1184,7 +1277,21 @@ export default function EventPanel({
                     onAutoSave={autoSave}
                 />
 
-                {form.isRecurring && (
+                <AllDayRow
+                    allDay={form.allDay}
+                    editable={stableCalInfo.editable}
+                    onToggle={toggleAllDay}
+                />
+
+                <RepeatRow
+                    isRecurring={form.isRecurring}
+                    currentPreset={currentPreset}
+                    summary={repeatSummary}
+                    editable={stableCalInfo.editable}
+                    onChoose={chooseRepeat}
+                />
+
+                {form.isRecurring && customRepeat && (
                     <RecurrenceRow
                         recurrence={form.recurrence}
                         startDate={form.date}
@@ -1209,34 +1316,6 @@ export default function EventPanel({
                     onChange={form.setCalendarIndex}
                     onAutoSave={autoSave}
                 />
-
-                {/* A series can be a task now: `completedDates` holds the
-                    per-occurrence answer, so the choice is no longer barred. */}
-                <TypeRow
-                    isTask={isTask}
-                    editable={stableCalInfo.editable}
-                    setIsTask={(next) => {
-                        // Switching to a task starts it outstanding;
-                        // switching back drops `completed` entirely.
-                        form.setTaskStatus(next ? "todo" : null);
-                        scheduleAutoSave();
-                    }}
-                />
-
-                {isTask && !form.isRecurring && (
-                    <DueRow
-                        due={form.due}
-                        editable={stableCalInfo.editable}
-                        firstDay={firstDay}
-                        // A deadline added to a dated task starts on its own
-                        // day; a dateless one has nothing to borrow, so today.
-                        fallbackDate={
-                            form.date || new Date().toISOString().slice(0, 10)
-                        }
-                        setDue={form.setDue}
-                        onAutoSave={scheduleAutoSave}
-                    />
-                )}
 
                 {isTask && !form.isRecurring && (
                     <StatusRow

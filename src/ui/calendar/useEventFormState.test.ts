@@ -1,4 +1,9 @@
-import { completedFor, dueFor, isDraftHandover } from "./useEventFormState";
+import {
+    completedFor,
+    dueFor,
+    formStatusOf,
+    isDraftHandover,
+} from "./useEventFormState";
 import { isTask } from "../tasks";
 import { NeoEvent } from "../../types";
 
@@ -92,5 +97,37 @@ describe("le type choisi survit a l'enregistrement", () => {
 
     it("une tache datee terminee reste une tache", () => {
         expect(isTask(dated(completedFor("complete")))).toBe(true);
+    });
+});
+
+describe("formStatusOf", () => {
+    const series = (completed?: false): NeoEvent =>
+        ({
+            title: "Standup",
+            allDay: true,
+            type: "rrule",
+            startDate: "2026-08-05",
+            rrule: "FREQ=WEEKLY;BYDAY=WE",
+            skipDates: [],
+            ...(completed === undefined ? {} : { completed }),
+        } as unknown as NeoEvent);
+
+    // Regression : appuyer sur « Répéter » transformait une tache en
+    // evenement. La note partait bien en serie avec son `completed`, mais la
+    // synchronisation relisait la serie avec `getTaskStatus`, qui repond
+    // toujours `null` pour une serie — le formulaire se croyait alors devant un
+    // evenement ordinaire et retirait le champ a l'ecriture suivante.
+    it("garde une serie qui est une tache", () => {
+        expect(formStatusOf(series(false))).toBe("todo");
+    });
+
+    it("laisse une serie ordinaire ordinaire", () => {
+        expect(formStatusOf(series())).toBeNull();
+    });
+
+    it("lit un evenement date comme avant", () => {
+        expect(formStatusOf(dated(false))).toBe("todo");
+        expect(formStatusOf(dated("2026-08-09T04:00:00"))).toBe("complete");
+        expect(formStatusOf(dated(undefined))).toBeNull();
     });
 });

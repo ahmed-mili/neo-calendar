@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { DateTime } from "luxon";
 import { NeoEvent } from "../../types";
-import { getTaskStatus, isTask, TaskStatus } from "../tasks";
+import { getTaskStatus, isSeries, isTask, TaskStatus } from "../tasks";
 import { Subtask, readSubtasks, writeSubtasks } from "../tasks/subtasks";
 import type { DraftInfo } from "./EventPanel";
 import {
@@ -101,6 +101,26 @@ export function completedForSeries(isTask: boolean): false | undefined {
     return isTask ? false : undefined;
 }
 
+/**
+ * The status the FORM should show for an event — a series included.
+ *
+ * `getTaskStatus` answers `null` for a series ON PURPOSE: a series is never
+ * finished as a whole, and asking whether it is done is a question that only
+ * one of its days can answer. But the panel is not asking that. It is asking
+ * "is this a task", and for a series the answer is `completed` being present at
+ * all, which is exactly what `isTask` reads.
+ *
+ * Reading a series through `getTaskStatus` is what turned a task into an event
+ * the moment Repeat was pressed: the note was written as a series with its
+ * `completed` intact, the cache handed it back, the sync below read `null` off
+ * it, and the form — now believing it held an ordinary event — dropped the
+ * field on the next save.
+ */
+export function formStatusOf(event: NeoEvent): TaskStatus | null {
+    if (isSeries(event)) return isTask(event) ? "todo" : null;
+    return getTaskStatus(event);
+}
+
 function toISOTime(d: Date): string {
     return (
         DateTime.fromJSDate(d).toISOTime({
@@ -171,7 +191,7 @@ export function useEventFormState({
             if (eventId) {
                 lastKeyRef.current = eventId;
                 prevPersistedStatusRef.current = event
-                    ? getTaskStatus(event)
+                    ? formStatusOf(event)
                     : null;
             }
             return;
@@ -281,7 +301,7 @@ export function useEventFormState({
         }
 
         lastKeyRef.current = key;
-        prevPersistedStatusRef.current = event ? getTaskStatus(event) : null;
+        prevPersistedStatusRef.current = event ? formStatusOf(event) : null;
     }, [eventId, event, draft, committingDraft]);
 
     // Keep the status pill in sync with the event's PERSISTED status while the
@@ -294,7 +314,7 @@ export function useEventFormState({
     // value transitions to what we already set, making this a no-op.
     useEffect(() => {
         if (!event) return;
-        const persisted = getTaskStatus(event);
+        const persisted = formStatusOf(event);
         if (persisted !== prevPersistedStatusRef.current) {
             prevPersistedStatusRef.current = persisted;
             setTaskStatus(persisted);

@@ -411,6 +411,96 @@ body.nc-platform-android .nc-main-scroller {
 
 /* â”€â”€ Event editor as a native-feeling bottom sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
+/* ── Le bloc date/heure, resserré ────────────────────────────
+ *
+ * La ligne des heures étalait « 16:00 → 16:30 30 min » sur toute la largeur du
+ * panneau, l'icône flottait un cran trop à droite et deux crans trop bas par
+ * rapport aux autres, et la date en dessous était séparée par un blanc qui ne
+ * disait rien. Les trois se tiennent maintenant : les mêmes éléments, dans le
+ * même ordre, simplement rapprochés — sans se toucher.
+ */
+body.nc-platform-android .nc-panel-row-icon {
+    width: 22px;
+    margin-top: 1px;
+}
+
+body.nc-platform-android .nc-panel-time-row {
+    gap: 6px;
+}
+
+body.nc-platform-android .nc-panel-time-input {
+    padding: 1px 2px;
+    margin: -1px -2px;
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-panel-duration {
+    margin-left: 4px;
+    font-size: 12.5px;
+}
+
+body.nc-platform-android .nc-panel-row-content {
+    gap: 2px;
+}
+
+body.nc-platform-android .nc-panel-date-line {
+    gap: 4px;
+}
+
+/* ── Le type, sous le titre ──────────────────────────────────
+   Trois pastilles pleine chair : c'est la première chose que dit la fiche. */
+body.nc-platform-android .nc-panel-row-kind {
+    padding-top: 4px;
+    padding-bottom: 10px;
+}
+
+body.nc-platform-android .nc-panel-row-kind .nc-type-pill {
+    min-height: 34px;
+    padding: 6px 16px;
+    font-size: 13.5px;
+}
+
+/* Interrupteur et ligne de répétition, à la taille du pouce. */
+body.nc-platform-android .nc-switch {
+    width: 50px;
+    height: 30px;
+}
+
+body.nc-platform-android .nc-switch-knob {
+    width: 22px;
+    height: 22px;
+}
+
+body.nc-platform-android .nc-switch.nc-switch-on .nc-switch-knob {
+    transform: translate(20px, -50%);
+}
+
+body.nc-platform-android .nc-panel-row-repeat .nc-repeat-trigger,
+body.nc-platform-android .nc-panel-row-allday .nc-panel-row-label {
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-choice-dialog {
+    width: min(360px, 100%);
+    padding: 12px 8px;
+    border-radius: 20px;
+    background: var(--background-secondary, #1a1d29) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55) !important;
+}
+
+body.nc-platform-android .nc-choice-option {
+    min-height: 50px;
+    font-size: 15px;
+}
+
+body.nc-platform-android .nc-choice-option input[type="radio"] {
+    width: 20px;
+    height: 20px;
+}
+
 /* ── The repeat, sized for a finger ──────────────────────────
    The block was drawn for a mouse: 12px words to press, 13px radios to hit and
    fields half the height of everything else on this sheet. Same layout, same
@@ -676,6 +766,14 @@ body.nc-platform-android .nc-panel-date-btn,
 body.nc-platform-android .nc-panel-date-trigger {
     min-height: 44px;
     font-size: 16px;
+}
+
+/* Sauf la description : sa hauteur est écrite ligne à ligne par la rangée
+   elle-même, et un plancher de 44px lui donnait quatre lignes de vide à
+   remplir. Déclarée après le groupe qu'elle corrige, à spécificité égale. */
+body.nc-platform-android .nc-panel-textarea {
+    min-height: 0;
+    font-size: 15px;
 }
 
 body.nc-platform-android .nc-context-menu {

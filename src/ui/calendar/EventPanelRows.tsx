@@ -120,6 +120,8 @@ interface PanelHeaderProps {
     isDraft: boolean;
     /** What the panel is showing, which is what its header says it is. */
     isTask: boolean;
+    /** The word top-left: a task's own state, or the kind of the entry. */
+    label: string;
     editable: boolean;
     eventId: string | null;
     menuOpen: boolean;
@@ -137,6 +139,7 @@ interface PanelHeaderProps {
 export function PanelHeader({
     isDraft,
     isTask,
+    label,
     editable,
     eventId,
     menuOpen,
@@ -156,11 +159,11 @@ export function PanelHeader({
             ref={headerRef}
             onMouseDown={onHeaderMouseDown}
         >
-            {/* The header says which of the two this is. It read "Event" on
-                everything, including an entry whose own Type row said Task. */}
-            <span className="nc-panel-header-label">
-                {isTask ? t("Task") : t("Event")}
-            </span>
+            {/* The kind is said by the pills under the title now, so the
+                corner is free for what a task actually wants to say there:
+                whether it is done. An event has no such state and keeps its
+                name. */}
+            <span className="nc-panel-header-label">{label}</span>
             <div className="nc-panel-header-actions">
                 <div className="nc-panel-menu-wrap" ref={menuRef}>
                     <button
@@ -321,8 +324,6 @@ interface DateRowProps {
     setDate: (v: string) => void;
     setStartTime: (v: string) => void;
     setEndTime: (v: string) => void;
-    toggleAllDay: () => void;
-    toggleRecurring: () => void;
     /** Send this event back to the unscheduled list. Absent on a draft, which
         has no note yet to move anywhere. */
     onClearDate?: () => void;
@@ -644,8 +645,6 @@ export function DateRow({
     setDate,
     setStartTime,
     setEndTime,
-    toggleAllDay,
-    toggleRecurring,
     onClearDate,
     onAutoSave,
 }: DateRowProps) {
@@ -737,27 +736,153 @@ export function DateRow({
                         </>
                     )}
                 </div>
-                {editable && (
-                    <div className="nc-panel-chips">
-                        <button
-                            type="button"
-                            className={`nc-chip ${allDay ? "nc-active" : ""}`}
-                            onClick={toggleAllDay}
-                        >
-                            {t("All-day")}
-                        </button>
-                        <button
-                            type="button"
-                            className={`nc-chip ${
-                                isRecurring ? "nc-active" : ""
-                            }`}
-                            onClick={toggleRecurring}
-                        >
-                            {t("Repeat")}
-                        </button>
-                    </div>
-                )}
             </div>
+        </div>
+    );
+}
+
+// ── All day ────────────────────────────────────────────────
+
+/**
+ * A switch, on a line of its own.
+ *
+ * It was a chip under the times, beside "Repeat", where two settings of quite
+ * different natures shared one row: one says how long the event is, the other
+ * how often it comes back. A switch says what this one is — on or off, now —
+ * and a line of its own says it is about the times above it.
+ */
+export function AllDayRow({
+    allDay,
+    editable,
+    onToggle,
+}: {
+    allDay: boolean;
+    editable: boolean;
+    onToggle: () => void;
+}) {
+    return (
+        <div className="nc-panel-row nc-panel-row-inline nc-panel-row-allday">
+            <span className="nc-panel-row-icon">
+                <ClockIcon />
+            </span>
+            <div className="nc-panel-row-label">{t("All-day")}</div>
+            <button
+                type="button"
+                role="switch"
+                aria-checked={allDay}
+                aria-label={t("All-day")}
+                className={`nc-switch${allDay ? " nc-switch-on" : ""}`}
+                disabled={!editable}
+                onClick={() => editable && onToggle()}
+            >
+                <span className="nc-switch-knob" />
+            </button>
+        </div>
+    );
+}
+
+// ── Repeat ─────────────────────────────────────────────────
+
+/** The five answers offered before anyone has to build a rule by hand. */
+const REPEAT_CHOICES: { key: PresetKey | "once"; label: string }[] = [
+    { key: "once", label: t("Once") },
+    { key: "daily", label: t("Every day") },
+    { key: "weekly", label: t("Every week") },
+    { key: "monthly", label: t("Every month") },
+    { key: "yearly", label: t("Every year") },
+    { key: "custom", label: t("Custom…") },
+];
+
+/**
+ * How often it comes back, said in one line.
+ *
+ * An event that does not repeat says so — "Once" — rather than leaving the
+ * question unanswered until a chip is noticed. Pressing the line opens the six
+ * answers over the sheet, which is where a choice of one from six belongs: as a
+ * row of chips they were five words to read before the one that applied could
+ * be found, and the sixth opened controls that had nowhere to go.
+ */
+export function RepeatRow({
+    isRecurring,
+    currentPreset,
+    summary,
+    editable,
+    onChoose,
+}: {
+    isRecurring: boolean;
+    /** Which of the answers the rule in force amounts to. */
+    currentPreset: PresetKey;
+    /** What the rule says today, when there is one. */
+    summary: string;
+    editable: boolean;
+    onChoose: (key: PresetKey | "once") => void;
+}) {
+    const [open, setOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!open) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+            event.stopPropagation();
+            setOpen(false);
+        };
+        document.addEventListener("keydown", onKey, true);
+        return () => document.removeEventListener("keydown", onKey, true);
+    }, [open]);
+
+    return (
+        <div className="nc-panel-row nc-panel-row-inline nc-panel-row-repeat">
+            <span className="nc-panel-row-icon">
+                <RepeatIcon />
+            </span>
+            <button
+                type="button"
+                className="nc-repeat-trigger"
+                disabled={!editable}
+                onClick={() => editable && setOpen(true)}
+            >
+                {isRecurring && summary ? summary : t("Once")}
+            </button>
+            {open &&
+                ReactDOM.createPortal(
+                    <div
+                        className="nc-choice-overlay"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={t("Repetition")}
+                        onMouseDown={(event) => {
+                            if (event.target === event.currentTarget) {
+                                setOpen(false);
+                            }
+                        }}
+                    >
+                        <div className="nc-choice-dialog">
+                            {REPEAT_CHOICES.map((choice) => (
+                                <label
+                                    className="nc-choice-option"
+                                    key={choice.key}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="nc-repeat-choice"
+                                        checked={
+                                            choice.key === "once"
+                                                ? !isRecurring
+                                                : isRecurring &&
+                                                  choice.key === currentPreset
+                                        }
+                                        onChange={() => {
+                                            setOpen(false);
+                                            onChoose(choice.key);
+                                        }}
+                                    />
+                                    <span>{choice.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>,
+                    getEventPanelPortalTarget()
+                )}
         </div>
     );
 }
@@ -917,10 +1042,6 @@ export function RecurrenceRow({
     setRecurrence,
     onAutoSave,
 }: RecurrenceRowProps) {
-    const [showCustom, setShowCustom] = React.useState(false);
-    const preset = matchPreset(recurrence, startDate);
-    const isCustomOpen = showCustom || preset === "custom";
-    const activeKey = isCustomOpen ? "custom" : preset;
     const update = (patch: Partial<RecurrenceState>) =>
         setRecurrence({ ...recurrence, ...patch });
     const commit = () => onAutoSave();
@@ -940,36 +1061,10 @@ export function RecurrenceRow({
                 <RepeatIcon />
             </span>
             <div className="nc-panel-row-content">
-                <div className="nc-recur-summary">
-                    {recurrenceSummary(recurrence, startDate)}
-                </div>
-
-                <div className="nc-recur-presets">
-                    {PRESETS.map((p) => (
-                        <button
-                            type="button"
-                            key={p.key}
-                            className={`nc-chip ${
-                                activeKey === p.key ? "nc-active" : ""
-                            }`}
-                            onClick={() => {
-                                if (p.key === "custom") {
-                                    setShowCustom(true);
-                                } else {
-                                    setShowCustom(false);
-                                    setRecurrence(
-                                        presetToRecurrence(p.key, startDate)
-                                    );
-                                    onAutoSave();
-                                }
-                            }}
-                        >
-                            {p.label}
-                        </button>
-                    ))}
-                </div>
-
-                {isCustomOpen && (
+                {/* The five ordinary answers live in the picker the repeat row
+                    opens; what is left here is the rule someone is building by
+                    hand, which is the only thing "Custom" ever meant. */}
+                {
                     <div className="nc-recur-custom">
                         <div className="nc-recur-interval">
                             <span>{t("Every")}</span>
@@ -1153,7 +1248,7 @@ export function RecurrenceRow({
                             </label>
                         </div>
                     </div>
-                )}
+                }
             </div>
         </div>
     );
@@ -1429,10 +1524,22 @@ export function DueRow({
 
 // ── Type row ───────────────────────────────────────────────
 
+/**
+ * What an entry IS, which is a question with three answers now.
+ *
+ * `event` and `task` are stored on the note — a task carries `completed`, an
+ * event does not. `birthday` is not stored and does not need to be: a birthday
+ * is an all-day event that comes back every year on the same date, which the
+ * note already says in full. Reading it back rather than recording it means
+ * every birthday ever written by hand is recognised as one, and nothing has to
+ * be migrated.
+ */
+export type EntryKind = "event" | "task" | "birthday";
+
 interface TypeRowProps {
-    isTask: boolean;
+    kind: EntryKind;
     editable: boolean;
-    setIsTask: (isTask: boolean) => void;
+    setKind: (kind: EntryKind) => void;
 }
 
 /**
@@ -1447,32 +1554,38 @@ interface TypeRowProps {
  * `completed` to `single` and `someday` only), so the panel hides this row for
  * recurring events rather than offering a choice that cannot be saved.
  */
-export function TypeRow({ isTask, editable, setIsTask }: TypeRowProps) {
+const ENTRY_KINDS: { key: EntryKind; label: string }[] = [
+    { key: "event", label: t("Event") },
+    { key: "task", label: t("Task") },
+    { key: "birthday", label: t("Birthday") },
+];
+
+/**
+ * The three kinds, under the title.
+ *
+ * It sits at the top of the sheet now, where the entry says what it is before
+ * it says anything else — the row it used to be, halfway down between the
+ * deadline and the steps, answered a question that had already been answered by
+ * everything above it.
+ */
+export function TypeRow({ kind, editable, setKind }: TypeRowProps) {
     return (
-        <div className="nc-panel-row nc-panel-row-inline">
-            <span className="nc-panel-row-icon">
-                <DocIcon />
-            </span>
-            <div className="nc-panel-row-label">{t("Type")}</div>
+        <div className="nc-panel-row nc-panel-row-kind">
             <div className="nc-type-group" role="group">
-                <button
-                    type="button"
-                    className={`nc-type-pill ${!isTask ? "nc-active" : ""}`}
-                    onClick={() => editable && setIsTask(false)}
-                    disabled={!editable}
-                    aria-pressed={!isTask}
-                >
-                    {t("Event")}
-                </button>
-                <button
-                    type="button"
-                    className={`nc-type-pill ${isTask ? "nc-active" : ""}`}
-                    onClick={() => editable && setIsTask(true)}
-                    disabled={!editable}
-                    aria-pressed={isTask}
-                >
-                    {t("Task")}
-                </button>
+                {ENTRY_KINDS.map((entry) => (
+                    <button
+                        key={entry.key}
+                        type="button"
+                        className={`nc-type-pill ${
+                            kind === entry.key ? "nc-active" : ""
+                        }`}
+                        onClick={() => editable && setKind(entry.key)}
+                        disabled={!editable}
+                        aria-pressed={kind === entry.key}
+                    >
+                        {entry.label}
+                    </button>
+                ))}
             </div>
         </div>
     );
@@ -3116,17 +3229,38 @@ export function DescriptionRow({
     setDescription,
     onCommit,
 }: DescriptionRowProps) {
+    const fieldRef = React.useRef<HTMLTextAreaElement>(null);
+
+    /*
+     * One line until there is more than one line to show.
+     *
+     * The field stood four lines tall whether it held four lines or none, with
+     * "Empty" written in the middle of them — a box of nothing, on a sheet
+     * where every other row is a line. It starts as a line now and grows by
+     * exactly what is typed: the wrap of a long sentence, or the return key
+     * pressed on purpose.
+     */
+    React.useLayoutEffect(() => {
+        const field = fieldRef.current;
+        if (!field) return;
+        field.style.height = "auto";
+        field.style.height = `${field.scrollHeight}px`;
+    }, [description]);
+
     return (
         <div className="nc-panel-row nc-panel-row-desc">
             <span className="nc-panel-row-icon">
                 <LinesIcon />
             </span>
             <div className="nc-panel-row-content">
-                <div className="nc-panel-row-label">{t("Description")}</div>
                 <textarea
+                    ref={fieldRef}
+                    rows={1}
                     className="nc-panel-textarea"
                     value={description}
-                    placeholder={t("Empty")}
+                    /* An empty row that says what it is FOR beats one that
+                       says it is empty, which was visible already. */
+                    placeholder={t("Add a description")}
                     onChange={(e) => setDescription(e.target.value)}
                     onBlur={onCommit}
                     readOnly={!editable}

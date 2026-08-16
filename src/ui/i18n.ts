@@ -91,6 +91,15 @@ const FR: Record<string, string> = {
     "All day": "Toute la journée",
     "All-day": "Toute la journée",
     Repeat: "Répéter",
+    // La ligne de répétition et le choix qu'elle ouvre : un événement qui ne se
+    // répète pas le dit lui aussi, plutôt que de ne rien dire du tout.
+    // (« Tous les jours », « Toutes les semaines »… sont déjà plus bas, avec le
+    // résumé d'une répétition qui les emploie dans la même acception.)
+    Once: "Une seule fois",
+    "Custom…": "Personnalisé…",
+    Repetition: "Répétition",
+    // Le troisième type : une date qui revient chaque année, toute la journée.
+    Birthday: "Anniversaire",
     Every: "Tous les",
     From: "De",
     Ends: "Fin",
@@ -125,6 +134,7 @@ const FR: Record<string, string> = {
     "year(s)": "an(s)",
     Status: "Statut",
     "To do": "À faire",
+    Done: "Fait",
     Complete: "Terminé",
     // The event/task choice in the panel. `Event` is already spelled out above.
     Type: "Type",
@@ -167,6 +177,7 @@ const FR: Record<string, string> = {
         "entrées ont une heure de début et une heure de fin, ce qui est la forme d'un événement et non d'une tâche. Elles perdront leur case à cocher. Les tâches sur toute la journée et celles déjà terminées ne sont pas touchées.",
     Description: "Description",
     Empty: "Vide",
+    "Add a description": "Ajouter une description",
     // La question posée en quittant le panneau après avoir modifié un jour
     // d'une série : cette occurrence seule, ou toute la série.
     "Save a recurring event": "Enregistrer un événement récurrent",

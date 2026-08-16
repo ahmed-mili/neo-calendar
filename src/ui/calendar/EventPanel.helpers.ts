@@ -1,4 +1,8 @@
-import { formatDatedDayWithYear } from "./calendarFormatters";
+import {
+    appendYear,
+    formatDatedDay,
+    formatDatedDayWithYear,
+} from "./calendarFormatters";
 
 export const DAY_MAP: Record<string, string> = {
     U: "S",
@@ -56,6 +60,23 @@ export function formatDateParts(
     currentYear: number = new Date().getFullYear()
 ): string {
     return formatDatedDayWithYear(d, currentYear);
+}
+
+/**
+ * The date, as the panel writes it: `Dim. 16 août 2026`.
+ *
+ * Two things set it apart from the same date on the grid. The weekday starts
+ * with a capital, because here it opens a line rather than sitting inside one.
+ * And the year is always there: the grid says which year it is on every screen,
+ * a sheet opened over it does not, and "16 août" alone is a date you have to go
+ * back and check.
+ */
+export function formatPanelDate(dateStr: string): string {
+    if (!dateStr) return "";
+    const d = new Date(dateStr + "T00:00:00");
+    if (Number.isNaN(d.getTime())) return "";
+    const label = appendYear(formatDatedDay(d), d.getFullYear());
+    return label.charAt(0).toLocaleUpperCase() + label.slice(1);
 }
 
 export function formatDateLong(dateStr: string): string {
