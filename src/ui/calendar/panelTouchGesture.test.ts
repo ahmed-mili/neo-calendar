@@ -7,11 +7,11 @@ describe("panelTouchGestureOwner", () => {
         expect(panelTouchGestureOwner(10, 10)).toBe("scroll");
     });
 
-    it("gives a rightward horizontal motion to panel back", () => {
-        expect(panelTouchGestureOwner(30, 4)).toBe("back");
+    it("gives a leftward horizontal motion to panel back", () => {
+        expect(panelTouchGestureOwner(-30, 4)).toBe("back");
     });
 
-    it("preserves the existing leftward event drag onto the grid", () => {
-        expect(panelTouchGestureOwner(-30, 4)).toBe("event-drag");
+    it("drags an event onto the grid rightward, away from the panel", () => {
+        expect(panelTouchGestureOwner(30, 4)).toBe("event-drag");
     });
 });

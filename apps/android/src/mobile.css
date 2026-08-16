@@ -4264,21 +4264,23 @@ body.nc-platform-android .nc-timegrid-header-date:not(.nc-today-date) {
 
 /* === NEO ANDROID DRAWER GESTURE V10 END === */
 
-/* ── Calendar events panel, sliding in from the right ────────
-   Same movement as on a desktop, where it opens as a second column beside the
-   calendar. A phone has no room to share, so it covers instead — but it slides
-   the same way, from the same edge, so the two platforms teach the same thing.
+/* ── Calendar events panel, sliding in from the left ─────────
+   It is opened from the drawer, one calendar at a time, so it arrives by the
+   same edge and sits directly ON TOP of it — same width, same side. Closing it
+   slides it back the way it came and uncovers the list it was chosen from,
+   which is what a phone's back gesture means everywhere else.
 
-   It leaves a strip of calendar showing, exactly as the drawer does on the
-   opposite edge, and that strip closes it. That strip is also why this is not a
-   full-width panel: the reason it was switched off on Android was a list with no
-   way out, and one control is one too few to depend on. */
+   It leaves a strip of calendar showing, exactly as the drawer does, and that
+   strip closes it. That strip is also why this is not a full-width panel: the
+   reason it was switched off on Android was a list with no way out, and one
+   control is one too few to depend on. */
 
 body.nc-platform-android .nc-cep-slot {
     position: fixed;
     inset: 0;
     width: auto !important;
-    z-index: 60;
+    /* Above the drawer (90), which stays open underneath it. */
+    z-index: 95;
     pointer-events: none;
 }
 
@@ -4305,25 +4307,36 @@ body.nc-platform-android .nc-cep-slot.nc-cep-open .nc-cep-backdrop {
 body.nc-platform-android .nc-cep-slot .nc-cep {
     position: absolute;
     top: 0;
-    right: 0;
+    left: 0;
     bottom: 0;
-    /* Mirrors the drawer's own width on the other edge. */
-    width: min(360px, 88vw);
+    /* The drawer's own width: the two are the same panel, one over the other,
+       and a mismatch would leave a sliver of the drawer showing down the side. */
+    width: var(--nc-android-drawer-width);
     max-height: none;
     border-radius: 0;
-    border-left: 1px solid rgba(255, 255, 255, 0.07);
-    box-shadow: -20px 0 50px rgba(0, 0, 0, 0.38);
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.38);
     pointer-events: auto;
     display: flex;
     flex-direction: column;
     touch-action: pan-y;
-    transform: translate3d(100%, 0, 0);
+    transform: translate3d(-100%, 0, 0);
     transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
     will-change: transform;
 }
 
 body.nc-platform-android .nc-cep-slot.nc-cep-open .nc-cep {
     transform: translate3d(0, 0, 0);
+}
+
+/* Only one veil over the calendar at a time.
+   The drawer dims the grid while it is out, and this panel's own backdrop dims
+   everything it does not cover. Both at once darkened the strip of calendar
+   beside the panel to nearly black — and that strip is the way out. The
+   drawer's share fades back in by itself as the panel slides off it.
+   Declared after the rule it overrides, which it matches for specificity. */
+body.nc-platform-android .nc-layout--panel-open .nc-main {
+    --nc-drawer-dim: 0;
 }
 
 /* The status bar is what used to hide the top of this header. This padding is

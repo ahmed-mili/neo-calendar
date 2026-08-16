@@ -152,9 +152,9 @@ export function usePanelDrag({ onDrop, onTargetChange }: Options) {
                 const dx = e.clientX - g.originX;
                 const dy = e.clientY - g.originY;
                 // Touch gestures have three owners: vertical motion scrolls
-                // the list, rightward motion closes the panel, and only a
-                // leftward horizontal motion drags an event onto the grid.
-                // Mouse/pen behavior is unchanged.
+                // the list, leftward motion pushes the panel back over the
+                // drawer, and only a rightward horizontal motion drags an event
+                // onto the grid. Mouse/pen behavior is unchanged.
                 if (
                     g.pointerType === "touch" &&
                     panelTouchGestureOwner(dx, dy) !== "event-drag"
