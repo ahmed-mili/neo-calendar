@@ -1,4 +1,4 @@
-import { packAllDayLanes } from "./useAllDayLanes";
+import { allDayBandRows, packAllDayLanes } from "./useAllDayLanes";
 import { DisplayEvent } from "../types";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -113,5 +113,40 @@ describe("packAllDayLanes", () => {
         expect(packAllDayLanes([allDay("x", 0)], [], () => 0).laneCount).toBe(
             0
         );
+    });
+});
+
+describe("allDayBandRows", () => {
+    const rows = (
+        laneCount: number,
+        draftLane: number | null = null,
+        collapsed = false
+    ) => allDayBandRows({ laneCount, draftLane, collapsed, maxRows: 4 });
+
+    // The day that already held three events was the one day nothing could be
+    // added to: the band was exactly as tall as its bars, so there was no empty
+    // background left to tap.
+    it("keeps one empty row under the events", () => {
+        expect(rows(3)).toEqual({ contentRows: 4, visibleRows: 4 });
+        expect(rows(1)).toEqual({ contentRows: 2, visibleRows: 2 });
+    });
+
+    it("still shows a single row when the band holds nothing", () => {
+        expect(rows(0)).toEqual({ contentRows: 1, visibleRows: 1 });
+    });
+
+    // Naming an event must not take away the way another one is added.
+    it("keeps the empty row while a draft is being named", () => {
+        expect(rows(1, 1).contentRows).toBe(3);
+        // A draft on an empty day still leaves a row under it.
+        expect(rows(0, 0).contentRows).toBe(2);
+    });
+
+    it("stops growing at the cap and scrolls instead", () => {
+        expect(rows(5)).toEqual({ contentRows: 6, visibleRows: 4 });
+    });
+
+    it("shows one row collapsed, whatever it holds", () => {
+        expect(rows(3, null, true)).toEqual({ contentRows: 4, visibleRows: 1 });
     });
 });

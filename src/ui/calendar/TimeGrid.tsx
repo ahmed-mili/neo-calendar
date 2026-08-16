@@ -24,7 +24,7 @@ import { TimeGridProps } from "./TimeGrid.types";
 import { useTimeGridDrag } from "./useTimeGridDrag";
 import { useTimeGridResize } from "./useTimeGridResize";
 import { useTimeGridSelection } from "./useTimeGridSelection";
-import { useAllDayLanes } from "./useAllDayLanes";
+import { allDayBandRows, useAllDayLanes } from "./useAllDayLanes";
 import { useAxisLock, easeOutCubic } from "./useAxisLock";
 import { GRID_LINE_DEBUG } from "./debugFlags";
 import { enableGridLineDebug } from "./gridDebug";
@@ -344,19 +344,20 @@ export default function TimeGrid(props: TimeGridProps) {
         return occupied.length ? Math.max(...occupied) + 1 : 0;
     }, [draftSlot, extendedDates, allDayLanes]);
 
-    // Every row the band has to hold, draft included.
-    const allDayContentRows = Math.max(
-        allDayLanes.laneCount,
-        allDayDraftLane === null ? 0 : allDayDraftLane + 1,
-        1
-    );
-
-    // Visible (capped) height of the all-day row — the value that pushes the
-    // days grid down. Used below to keep the grid from teleporting vertically
+    // Every row the band has to hold, draft included, plus the empty one it
+    // always keeps underneath so an all-day event can be added by tapping the
+    // day (see allDayBandRows).
+    //
+    // The visible count is capped: it is the value that pushes the days grid
+    // down, and it is read below to keep the grid from teleporting vertically
     // when the lane count changes during a horizontal shift.
-    const allDayVisibleRows = allDayCollapsed
-        ? 1
-        : Math.min(allDayContentRows, ALLDAY_MAX_ROWS);
+    const { contentRows: allDayContentRows, visibleRows: allDayVisibleRows } =
+        allDayBandRows({
+            laneCount: allDayLanes.laneCount,
+            draftLane: allDayDraftLane,
+            collapsed: allDayCollapsed,
+            maxRows: ALLDAY_MAX_ROWS,
+        });
     const allDayHeight = allDayVisibleRows * allDayRowHeight();
 
     const overlapByDate = useMemo(() => {

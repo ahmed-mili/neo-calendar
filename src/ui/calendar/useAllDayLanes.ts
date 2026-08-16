@@ -131,6 +131,40 @@ export function packAllDayLanes(
 }
 
 /**
+ * How many rows the band holds, and how many of them are on screen.
+ *
+ * There is always ONE row more than the events need, and it is always empty.
+ * That row is the only way to add an all-day event with a finger: a tap lands
+ * on the day's empty background, and a band sized exactly to its bars leaves no
+ * background to tap — the day that already had three events was the one day
+ * nothing could be added to, while a quieter day beside it still had room by
+ * accident. The row is kept while a draft is being named too, so the band does
+ * not lose its way in as soon as it is used.
+ *
+ * Beyond `maxRows` the band stops growing and scrolls, spare row included.
+ * Collapsed, it shows a single row, whatever it holds.
+ */
+export function allDayBandRows({
+    laneCount,
+    draftLane,
+    collapsed,
+    maxRows,
+}: {
+    laneCount: number;
+    /** Row a pending all-day draft stands on, or null when none is pending. */
+    draftLane: number | null;
+    collapsed?: boolean;
+    maxRows: number;
+}): { contentRows: number; visibleRows: number } {
+    const taken = Math.max(laneCount, draftLane === null ? 0 : draftLane + 1);
+    const contentRows = taken + 1;
+    return {
+        contentRows,
+        visibleRows: collapsed ? 1 : Math.min(contentRows, maxRows),
+    };
+}
+
+/**
  * The lanes, plus the memory of what was already there.
  *
  * An event's rank is fixed the first time it is seen and never changes again,
