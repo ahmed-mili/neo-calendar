@@ -151,13 +151,19 @@ export default function EventBlock({
             } ${isResizing ? "nc-resizing" : ""} ${
                 isSelected ? "nc-selected" : ""
             }`}
-            style={{
-                background: eventColorBg,
-                borderLeft: `3px solid ${eventColorBorder}`,
-                color: selectedTextColor,
-                ...style,
-                ...dragStyle,
-            }}
+            style={
+                {
+                    background: eventColorBg,
+                    // The calendar's colour, read by the strip down the left
+                    // edge (see .nc-event-block::before). It is a variable and
+                    // not a border because a border bends around the block's
+                    // rounded corners and reads as a parenthesis.
+                    "--nc-event-accent": eventColorBorder,
+                    color: selectedTextColor,
+                    ...style,
+                    ...dragStyle,
+                } as React.CSSProperties
+            }
             onClick={handleClick}
             onContextMenu={handleContextMenu}
             onMouseEnter={() => setIsHovered(true)}

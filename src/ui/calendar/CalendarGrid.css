@@ -808,12 +808,16 @@
 
 .nc-event-block {
     position: absolute;
+    /* Width of the colour strip down the left edge. Named so the platforms can
+       differ — a phone reads a wider one — without either of them restating
+       what the strip is. */
+    --nc-event-accent-width: 3px;
     border-radius: var(--nc-event-radius);
     padding: var(--nc-spacing-xs) 6px;
+    padding-left: calc(var(--nc-event-accent-width) + 6px);
     font-size: var(--nc-event-font-size);
     cursor: pointer;
     overflow: hidden;
-    border-left: 3px solid;
     transition: box-shadow var(--nc-transition-fast),
         opacity var(--nc-transition-fast), filter var(--nc-transition-fast);
     z-index: 1;
@@ -821,6 +825,28 @@
     /* Own compositor layer — prevents Chrome from culling this block
        during fast horizontal scroll, which caused events to vanish. */
     transform: translateZ(0);
+}
+
+/* The calendar's colour, down the left edge.
+   A border cannot do this: a border follows the corner it turns, so a 3px one
+   on an 8px radius is drawn as a hairline arc up each end of the block — a
+   parenthesis around the event rather than a band beside it. A strip of its own
+   rounds only where the block rounds and keeps a straight inner edge, which is
+   the shape Notion Calendar draws and the one a colour is actually read from.
+   The radius is inherited rather than clipped by the block's `overflow`, so it
+   survives the states that have to let content out (an event selected for
+   resize shows its handles past its own edge). */
+.nc-event-block::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--nc-event-accent-width);
+    border-top-left-radius: inherit;
+    border-bottom-left-radius: inherit;
+    background: var(--nc-event-accent, transparent);
+    pointer-events: none;
 }
 
 .nc-event-block.nc-resizing {
