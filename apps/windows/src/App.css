@@ -1580,6 +1580,84 @@ button.nc-settings__theme-card:focus-visible {
     height: 15px;
 }
 
+/*
+ * Redemander au site ce qu'il dit du lien.
+ *
+ * Le titre et l'adresse canonique se cherchent une seule fois, a l'ajout, avec
+ * deux secondes et demie pour repondre. Quand la reponse n'arrive pas — reseau
+ * lent, site qui fait patienter — il reste une ligne nommee d'apres son hote,
+ * et pour un lien de partage une adresse qui ne porte ni le compte ni la date :
+ * ces deux-la sont dans l'adresse canonique, celle que la demande devait
+ * ramener. Le crayon repare le nom ; celui-ci refait la demande.
+ *
+ * Troisieme bouton de la rangee, donc 24px plus a gauche que le crayon, qui
+ * est lui-meme 26px a gauche de la croix.
+ */
+.nc-linked-file-reload-button {
+    position: absolute;
+    top: 50%;
+    right: 59px;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    background: transparent !important;
+    box-shadow: none !important;
+    opacity: 0;
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition:
+        opacity var(--nc-transition-fast, 100ms ease),
+        background-color var(--nc-transition-fast, 100ms ease),
+        color var(--nc-transition-fast, 100ms ease);
+}
+
+.nc-linked-file.is-hovered .nc-linked-file-reload-button,
+.nc-linked-file-reload-button:focus-visible {
+    opacity: 1;
+}
+
+.nc-linked-file-reload-button:hover,
+.nc-linked-file-reload-button:focus-visible {
+    color: var(--nc-text-primary, var(--text-normal));
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+    outline: none;
+}
+
+.nc-linked-file-reload-button svg {
+    width: 15px;
+    height: 15px;
+}
+
+/* Pendant la demande, la fleche tourne : la ligne dit qu'elle travaille, au
+   meme endroit ou l'on vient d'appuyer. */
+.nc-linked-file.is-searching .nc-linked-file-reload-button {
+    opacity: 1;
+    color: var(--nc-accent, var(--interactive-accent));
+    cursor: default;
+}
+
+.nc-linked-file.is-searching .nc-linked-file-reload-button svg {
+    animation: nc-link-reload-spin 900ms linear infinite;
+}
+
+@keyframes nc-link-reload-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nc-linked-file.is-searching .nc-linked-file-reload-button svg {
+        animation: none;
+    }
+}
+
 /* Le champ prend la place du nom, a la meme ligne de base : on corrige le mot
    la ou on vient de le lire, sans que la ligne bouge. */
 .nc-linked-file-rename {

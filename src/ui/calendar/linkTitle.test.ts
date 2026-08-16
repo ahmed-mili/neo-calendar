@@ -10,6 +10,7 @@ import {
     oembedAnswersFor,
     oembedUrlFor,
     pageTitleFrom,
+    resolvedTarget,
     titleFromOembed,
     safeLabel,
     withDeadline,
@@ -401,5 +402,37 @@ describe("l'auteur, quand la chose n'a pas de nom", () => {
     it("ne rend rien quand la réponse ne nomme personne", () => {
         expect(authorFromOembed(JSON.stringify({ title: "" }))).toBeNull();
         expect(authorFromOembed("pas du json")).toBeNull();
+    });
+});
+
+describe("resolvedTarget", () => {
+    const share = "https://vm.tiktok.com/ZN88G1NAU/";
+    const landed =
+        "https://www.tiktok.com/@fatwasfr/video/7645383659813391648?_r=1&_t=ZS-98w1uo1SlOL";
+
+    // Following the share is not a claim made by a page: it is where the link
+    // goes. The account and the publication time are read off that address and
+    // nowhere else, so it is worth keeping even when the site says nothing.
+    it("keeps the address a share leads to, without its share query", () => {
+        expect(resolvedTarget(share, landed)).toBe(
+            "https://www.tiktok.com/@fatwasfr/video/7645383659813391648"
+        );
+    });
+
+    it("refuses a landing that names no item", () => {
+        expect(resolvedTarget(share, "https://www.tiktok.com/login")).toBe(
+            share
+        );
+    });
+
+    it("refuses a landing on another site", () => {
+        expect(
+            resolvedTarget(share, "https://example.com/video/7645383659813391")
+        ).toBe(share);
+    });
+
+    it("keeps the link itself when nothing was resolved", () => {
+        expect(resolvedTarget(share, null)).toBe(share);
+        expect(resolvedTarget(share, "not a url")).toBe(share);
     });
 });

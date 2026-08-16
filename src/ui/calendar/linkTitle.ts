@@ -403,6 +403,47 @@ export function confirmedTarget(
 }
 
 /**
+ * The address a share actually leads to, when following it is answer enough.
+ *
+ * {@link confirmedTarget} keeps a canonical address only once the site has
+ * corroborated it, and it is right to: that address is a CLAIM made by a page,
+ * and a page that does not recognise the client claims its own front door.
+ *
+ * A redirect is not a claim. It is where the link goes — the browser would end
+ * up there whatever anyone says about it. So when a site answers nothing about
+ * a share, but the share resolves to a real item on the same site, that
+ * resolution is kept: it is what carries the account and the publication time,
+ * both of which are read off the address and nowhere else (see linkFacts). A
+ * share code carries neither, which is why one link showed its author and the
+ * others, added the same day, showed nothing.
+ *
+ * The query goes with it, for the reason it does there: `_t=…` is minted per
+ * share, and two shares of one video must not read as two links.
+ */
+export function resolvedTarget(
+    target: string,
+    resolved: string | null | undefined
+): string {
+    if (!resolved) return target;
+
+    let shared: URL;
+    let landed: URL;
+    try {
+        shared = new URL(target);
+        landed = new URL(resolved);
+    } catch {
+        return target;
+    }
+    if (landed.protocol !== "http:" && landed.protocol !== "https:") {
+        return target;
+    }
+    if (siteOf(shared.hostname) !== siteOf(landed.hostname)) return target;
+    if (!itemIdIn(landed.pathname)) return target;
+
+    return `${landed.protocol}//${landed.host.toLowerCase()}${landed.pathname}`;
+}
+
+/**
  * The addresses worth asking a site about, in order, without repeats.
  *
  * A shared link is a note saying where to go, and there are two ways to learn

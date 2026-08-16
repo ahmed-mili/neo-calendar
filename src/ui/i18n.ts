@@ -209,6 +209,7 @@ const FR: Record<string, string> = {
     "View note": "Ouvrir la note",
     "Available once the event is created":
         "Disponible une fois l'événement créé",
+    "Reload this link": "Recharger ce lien",
     "Delete event": "Supprimer l'événement",
     "Delete task": "Supprimer la tâche",
     "Click again to confirm": "Cliquer à nouveau pour confirmer",

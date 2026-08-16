@@ -42,6 +42,7 @@ import {
     authorFromOembed,
     canonicalUrlFrom,
     confirmedTarget,
+    resolvedTarget,
     isFrontDoorTitle,
     oembedAnswersFor,
     oembedUrlFor,
@@ -63,6 +64,7 @@ import {
     DotsIcon,
     XIcon,
     PencilIcon,
+    ReloadIcon,
     FileTextIcon,
     ArrowRightIcon,
     GlobeIcon,
@@ -1842,6 +1844,7 @@ function LinkedFileRow({
     onRemoveLink,
     onRenameLink,
     searching = false,
+    onReload,
     onCopied,
     openTooltipFor,
     onTooltipOpen,
@@ -1859,6 +1862,8 @@ function LinkedFileRow({
     ) => Promise<void>;
     /** Le titre est encore en route : la ligne le montre plutôt que de mentir. */
     searching?: boolean;
+    /** Redemander au site ce qu'il dit de ce lien. */
+    onReload?: (item: LinkedFileItem) => void;
     /** L'adresse vient d'être copiée — au panneau de le dire à l'écran. */
     onCopied?: () => void;
     /** L'adresse de la ligne dont la bulle est ouverte, s'il y en a une. */
@@ -2193,6 +2198,39 @@ function LinkedFileRow({
                         )}
                     </span>
                 )}
+                {/*
+                 * Redemander au site ce qu'il dit de ce lien.
+                 *
+                 * Le titre et l'adresse canonique se cherchent une fois, au
+                 * moment de l'ajout, avec deux secondes et demie pour répondre.
+                 * Un réseau lent, un site qui fait patienter, et il reste une
+                 * ligne nommée d'après son hôte — et, pour un lien de partage,
+                 * une adresse qui ne porte ni le compte ni la date : c'est
+                 * l'adresse canonique qui les porte, et elle n'est arrivée pour
+                 * aucun des liens ajoutés ce jour-là. Ce bouton refait la
+                 * demande, avec le fichier déjà écrit et rien qui attend.
+                 */}
+                {eventId && onReload && item.kind === "web" && !renaming && (
+                    <button
+                        type="button"
+                        className="nc-linked-file-reload-button"
+                        aria-label={t("Reload this link")}
+                        title={t("Reload this link")}
+                        disabled={searching}
+                        onMouseDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            resetTapTracker();
+                            onReload(item);
+                        }}
+                    >
+                        <ReloadIcon />
+                    </button>
+                )}
                 {eventId && onRenameLink && !renaming && (
                     <button
                         type="button"
@@ -2499,6 +2537,14 @@ export function LinksAttachmentsRow({
                         : null;
             }
 
+            /* Le site n'a rien dit, mais le lien mène quelque part, et c'est
+               là que se lisent le compte et la date : l'adresse d'arrivée est
+               gardée même sans réponse, tant qu'elle nomme un vrai élément du
+               même site (voir resolvedTarget). */
+            if (destination === target) {
+                destination = resolvedTarget(target, resolved);
+            }
+
             return { label: title ? safeLabel(title) : "", destination };
         },
         [onFetchPage, onResolveUrl]
@@ -2656,6 +2702,11 @@ export function LinksAttachmentsRow({
                             onRemoveLink={onRemoveLink}
                             onRenameLink={onRenameLink}
                             searching={searching.includes(item.target)}
+                            onReload={(link) => {
+                                if (!eventId) return;
+                                setNotice(null);
+                                void lookUpTitle(eventId, link.target);
+                            }}
                             openTooltipFor={openTooltipFor}
                             onTooltipOpen={setOpenTooltipFor}
                             onCopied={() =>
