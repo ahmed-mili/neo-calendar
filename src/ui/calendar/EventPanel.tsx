@@ -34,6 +34,7 @@ import {
 import { FileTextIcon } from "./EventPanelIcons";
 import { t } from "../i18n";
 import { defaultRecurrence } from "./recurrence";
+import { occurrenceDateOf } from "./occurrenceDescription";
 import { mergeForSave } from "./eventScheduling";
 
 /* NEO_ANDROID_RUNTIME_HELPER_V3_START */
@@ -277,9 +278,15 @@ export default function EventPanel({
         [calendars]
     );
 
+    // Which day of a series this is. The id an occurrence is opened under
+    // carries it — `<note>_2026-08-16` — and it is the only thing that tells
+    // one Tuesday from the next, since they share the note.
+    const occurrenceDate = useMemo(() => occurrenceDateOf(eventId), [eventId]);
+
     const form = useEventFormState({
         eventId,
         event,
+        occurrenceDate,
         draft,
         editableCalendars,
         currentCalendarId: stableCalInfo.currentId,
@@ -763,6 +770,7 @@ export default function EventPanel({
         form.calendarIndex,
         form.taskStatus,
         form.description,
+        form.descriptionSynced,
         form.subtasks,
         isDraft,
         stableEvent,
@@ -1091,6 +1099,23 @@ export default function EventPanel({
                     editable={stableCalInfo.editable}
                     setDescription={form.setDescription}
                     onCommit={onTitleCommit}
+                    /* One note holds the whole series, so its description is
+                       read by every occurrence — which is right until the day
+                       one of them has something of its own to say. The switch
+                       is offered on that day, never on the series as a whole:
+                       there is no "this occurrence" to write for until an
+                       occurrence is what was opened. */
+                    sync={
+                        form.canUnsyncDescription && stableCalInfo.editable
+                            ? {
+                                  synced: form.descriptionSynced,
+                                  onChange: (next) => {
+                                      form.setDescriptionSynced(next);
+                                      scheduleAutoSave();
+                                  },
+                              }
+                            : undefined
+                    }
                 />
             </form>
 

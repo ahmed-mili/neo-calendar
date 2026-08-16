@@ -163,7 +163,15 @@ function stringifyYamlAtom(v: PrintableAtom, inList = false): string {
         typeof v === "string" &&
         (v === "" || v !== v.trim() || (inList && UNSAFE_IN_LIST.test(v)))
     ) {
-        return `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+        // The line break is escaped, not carried: a quoted item holding a real
+        // newline splits the inline list across two lines of frontmatter, which
+        // is no more readable than the bracket this quoting exists to contain.
+        // Free text reaches a list now that an occurrence can write its own
+        // description, and free text has line breaks in it.
+        return `"${v
+            .replace(/\\/g, "\\\\")
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, "\\n")}"`;
     }
     return `${v}`;
 }

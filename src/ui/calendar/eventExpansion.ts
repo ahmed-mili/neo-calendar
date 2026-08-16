@@ -5,6 +5,7 @@ import { DisplayEvent } from "../types";
 import { getDisplayTitle } from "./CalendarEventsPanel.helpers";
 import { getTaskStatus, isTask, TaskStatus } from "../tasks";
 import { addDays, startOfDay } from "./calendarDateUtils";
+import { readOccurrenceDescriptions } from "./occurrenceDescription";
 
 /**
  * Converts NeoEvent (storage format) into one or more DisplayEvents
@@ -218,6 +219,11 @@ function expandRecurring(
     const skipSet = new Set(event.skipDates || []);
     const seriesIsTask = isTask(event);
     const doneDays = new Set(event.completedDates || []);
+    // Days whose description was unsynced from the series and written for
+    // themselves. Everything else reads the series', as it always has.
+    const ownDescriptions = readOccurrenceDescriptions(
+        event.occurrenceDescriptions
+    );
 
     const results: DisplayEvent[] = [];
     let current = startOfDay(new Date(startMs));
@@ -244,7 +250,8 @@ function expandRecurring(
                         ctx,
                         idSuffix: dateStr,
                         title: getDisplayTitle(event.title),
-                        description: event.description,
+                        description:
+                            ownDescriptions.get(dateStr) ?? event.description,
                         start: times.start,
                         end: times.end,
                         allDay: !!event.allDay,
@@ -295,6 +302,9 @@ function expandRrule(
     const skipSet = new Set(event.skipDates || []);
     const seriesIsTask = isTask(event);
     const doneDays = new Set(event.completedDates || []);
+    const ownDescriptions = readOccurrenceDescriptions(
+        event.occurrenceDescriptions
+    );
 
     return dates.flatMap((d) => {
         const dateStr = DateTime.fromJSDate(d, { zone: "utc" }).toISODate();
@@ -314,7 +324,7 @@ function expandRrule(
                 ctx,
                 idSuffix: dateStr,
                 title: getDisplayTitle(event.title),
-                description: event.description,
+                description: ownDescriptions.get(dateStr) ?? event.description,
                 start: times.start,
                 end: times.end,
                 allDay: !!event.allDay,

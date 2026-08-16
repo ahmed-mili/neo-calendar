@@ -10,6 +10,11 @@ import {
     eventToRecurrenceState,
     recurrenceToEventFields,
 } from "./recurrence";
+import {
+    clearOccurrenceDescription,
+    occurrenceDescription,
+    setOccurrenceDescription,
+} from "./occurrenceDescription";
 
 interface EditableCalendarRef {
     id: string;
@@ -20,6 +25,9 @@ interface EditableCalendarRef {
 interface Args {
     eventId: string | null;
     event: NeoEvent | null;
+    /** The day of the series this panel was opened on, when it was opened on
+        one. It is what a description can be written for on its own. */
+    occurrenceDate?: string | null;
     draft: DraftInfo | null;
     editableCalendars: EditableCalendarRef[];
     currentCalendarId: string;
@@ -115,6 +123,7 @@ function toISOTime(d: Date): string {
 export function useEventFormState({
     eventId,
     event,
+    occurrenceDate = null,
     draft,
     editableCalendars,
     currentCalendarId,
@@ -145,6 +154,19 @@ export function useEventFormState({
     const [completedDates, setCompletedDates] = useState<string[] | undefined>(
         undefined
     );
+    // The series' OWN description, kept aside while an occurrence is writing
+    // its own: the note still carries it for every other day, and a save built
+    // from the form alone would overwrite it with this one day's text.
+    const [seriesDescription, setSeriesDescription] = useState("");
+    // Carried through untouched unless this occurrence's own description
+    // changes, for the same reason as `completedDates` above.
+    const [occurrenceDescriptions, setOccurrenceDescriptions] = useState<
+        string[] | undefined
+    >(undefined);
+    // False while the description on screen belongs to this occurrence alone.
+    // A series shares one description by default — that is what it means for a
+    // series to have one — and this is the exception, held per occurrence.
+    const [descriptionSynced, setDescriptionSynced] = useState(true);
 
     const lastKeyRef = useRef<string | null>(null);
     // Tracks the event's last-seen PERSISTED task status, so the sync effect
@@ -172,9 +194,16 @@ export function useEventFormState({
 
         if (event) {
             setTitle(event.title);
-            setDescription(event.description || "");
             setAllDay(!!event.allDay);
             setSubtasks(readSubtasks(event));
+
+            // An occurrence that was unsynced shows ITS text; every other one
+            // shows the series'. Both are held, because a save has to write
+            // back the one the form is not showing.
+            const own = occurrenceDescription(event, occurrenceDate);
+            setSeriesDescription(event.description || "");
+            setDescription(own ?? event.description ?? "");
+            setDescriptionSynced(own === null);
 
             if (event.type === "single" || event.type === undefined) {
                 setDate(event.date || "");
@@ -187,6 +216,7 @@ export function useEventFormState({
                 setTaskStatus(getTaskStatus(event));
                 setDue(event.due ?? null);
                 setCompletedDates(undefined);
+                setOccurrenceDescriptions(undefined);
             } else if (event.type === "recurring") {
                 setDate(event.startRecur || "");
                 setStartTime(!event.allDay ? event.startTime || "" : "");
@@ -197,6 +227,7 @@ export function useEventFormState({
                 setTaskStatus(isTask(event) ? "todo" : null);
                 setDue(null);
                 setCompletedDates(event.completedDates);
+                setOccurrenceDescriptions(event.occurrenceDescriptions);
             } else if (event.type === "rrule") {
                 setDate(event.startDate || "");
                 setStartTime(!event.allDay ? event.startTime || "" : "");
@@ -207,6 +238,7 @@ export function useEventFormState({
                 setTaskStatus(isTask(event) ? "todo" : null);
                 setDue(null);
                 setCompletedDates(event.completedDates);
+                setOccurrenceDescriptions(event.occurrenceDescriptions);
             } else {
                 setDate("");
                 setEndDate(undefined);
@@ -219,6 +251,7 @@ export function useEventFormState({
                 setTaskStatus(getTaskStatus(event));
                 setDue((event as { due?: string | null }).due ?? null);
                 setCompletedDates(undefined);
+                setOccurrenceDescriptions(undefined);
             }
 
             const idx = editableCalendars.findIndex(
@@ -245,6 +278,9 @@ export function useEventFormState({
             setDue(null);
             setSubtasks([]);
             setCompletedDates(undefined);
+            setSeriesDescription("");
+            setOccurrenceDescriptions(undefined);
+            setDescriptionSynced(true);
 
             const idx = editableCalendars.findIndex(
                 (c) => c.id === currentCalendarId
@@ -265,11 +301,14 @@ export function useEventFormState({
             setDue(null);
             setSubtasks([]);
             setCompletedDates(undefined);
+            setSeriesDescription("");
+            setOccurrenceDescriptions(undefined);
+            setDescriptionSynced(true);
         }
 
         lastKeyRef.current = key;
         prevPersistedStatusRef.current = event ? getTaskStatus(event) : null;
-    }, [eventId, event, draft, committingDraft]);
+    }, [eventId, event, occurrenceDate, draft, committingDraft]);
 
     // Keep the status pill in sync with the event's PERSISTED status while the
     // panel stays open (same eventId) — e.g. toggling the checkbox on the
@@ -288,11 +327,55 @@ export function useEventFormState({
         }
     }, [event]);
 
+    /**
+     * A series' description is shared by every occurrence, or this one keeps
+     * its own. Nothing is written here: the panel's change-watching effect
+     * follows both pieces of state and saves the finished form.
+     *
+     * Turning it back on hands the occurrence to the series and shows the
+     * series' own text again, which is the only honest way to undo it —
+     * leaving the day's text on screen would suggest the series now said it.
+     */
+    const setDescriptionSyncedWithText = useCallback(
+        (synced: boolean) => {
+            setDescriptionSynced(synced);
+            if (!occurrenceDate) return;
+            if (synced) {
+                setOccurrenceDescriptions((entries) =>
+                    clearOccurrenceDescription(entries, occurrenceDate)
+                );
+                setDescription(seriesDescription);
+                return;
+            }
+            // Unsyncing changes nothing on screen and nothing for the other
+            // days: this one takes a copy of the text they share, and edits it
+            // from there. Taking the text away from them is not what was asked
+            // for — the switch was thrown on one day, not on the series.
+            setSeriesDescription(description);
+        },
+        [occurrenceDate, seriesDescription, description]
+    );
+
+    /** True only where the choice exists: one day of a series, on a note that
+        can carry the day's own text. */
+    const canUnsyncDescription = isRecurring && !!occurrenceDate;
+
     const buildPayload = useCallback((): NeoEvent => {
         // The steps only belong to a task: switching an entry back to Event
         // drops them the way it drops the deadline, rather than leaving an
         // orphan list in the note.
         const steps = taskStatus === null ? undefined : writeSubtasks(subtasks);
+        // With the description unsynced, the text in the form is this day's,
+        // and the note keeps the series' own for every other day.
+        const ownDay = isRecurring && !!occurrenceDate && !descriptionSynced;
+        const seriesText = ownDay ? seriesDescription : description;
+        const perOccurrence = ownDay
+            ? setOccurrenceDescription(
+                  occurrenceDescriptions,
+                  occurrenceDate as string,
+                  description
+              )
+            : occurrenceDescriptions;
         return {
             title,
             ...(steps ? { subtasks: steps } : {}),
@@ -304,8 +387,12 @@ export function useEventFormState({
                       ...recurrenceToEventFields(recurrence, date || ""),
                       completed: completedForSeries(taskStatus !== null),
                       // Ticked occurrences are the series' only record of what
-                      // is done; they must survive an unrelated edit.
+                      // is done; they must survive an unrelated edit. So must
+                      // the days that wrote their own description.
                       ...(completedDates ? { completedDates } : {}),
+                      ...(perOccurrence
+                          ? { occurrenceDescriptions: perOccurrence }
+                          : {}),
                   }
                 : date
                 ? {
@@ -320,7 +407,7 @@ export function useEventFormState({
                       completed: completedFor(taskStatus),
                       due: dueFor(taskStatus, due),
                   }),
-            ...(description ? { description } : {}),
+            ...(seriesText ? { description: seriesText } : {}),
         } as NeoEvent;
     }, [
         title,
@@ -336,6 +423,10 @@ export function useEventFormState({
         subtasks,
         completedDates,
         description,
+        seriesDescription,
+        occurrenceDescriptions,
+        descriptionSynced,
+        occurrenceDate,
     ]);
 
     return {
@@ -365,6 +456,9 @@ export function useEventFormState({
         setDue,
         subtasks,
         setSubtasks,
+        descriptionSynced,
+        setDescriptionSynced: setDescriptionSyncedWithText,
+        canUnsyncDescription,
         buildPayload,
         resetLastKey: () => {
             lastKeyRef.current = null;

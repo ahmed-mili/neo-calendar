@@ -63,6 +63,21 @@ const DueSchema = ParsedDate.or(z.literal(null)).optional();
  */
 const CompletedDatesSchema = z.array(ParsedDate).optional();
 
+/**
+ * A description written for ONE occurrence of a series.
+ *
+ * A series is a single note, so its `description` is read by every occurrence
+ * it produces — change it on one Tuesday and every other Tuesday says the same
+ * thing. That is the right default, and it is what most series want; this is
+ * the exception, held the way `completedDates` and `skipDates` hold their own
+ * per-occurrence truths: a flat list, one line per date that differs.
+ *
+ * Each entry is the ISO day, a space, then the text — `"2026-08-16 Bring the
+ * keys"`. A date with nothing after it is an occurrence deliberately left
+ * blank, which is not the same as one that follows the series.
+ */
+const OccurrenceDescriptionsSchema = z.array(z.string()).optional();
+
 /** Time facet: all-day events carry no clock times; timed ones carry both. */
 export const TimeSchema = z.discriminatedUnion("allDay", [
     z.object({ allDay: z.literal(true) }),
@@ -121,6 +136,7 @@ export const EventSchema = z.discriminatedUnion("type", [
         // Defaulted, never required: notes written before this existed — every
         // one the upstream plugin wrote — carry no such key and must stay valid.
         skipDates: z.array(ParsedDate).default([]),
+        occurrenceDescriptions: OccurrenceDescriptionsSchema,
     }),
     z.object({
         type: z.literal("rrule"),
@@ -129,6 +145,7 @@ export const EventSchema = z.discriminatedUnion("type", [
         skipDates: z.array(ParsedDate),
         completed: CompletedSchema,
         completedDates: CompletedDatesSchema,
+        occurrenceDescriptions: OccurrenceDescriptionsSchema,
     }),
     z.object({
         type: z.literal("someday"),
@@ -162,6 +179,7 @@ export const TYPE_DISCRIMINANT_KEYS = [
     "startDate",
     "skipDates",
     "completedDates",
+    "occurrenceDescriptions",
 ] as const;
 
 /**

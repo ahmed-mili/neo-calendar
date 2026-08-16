@@ -146,6 +146,13 @@ const FR: Record<string, string> = {
         "entrées ont une heure de début et une heure de fin, ce qui est la forme d'un événement et non d'une tâche. Elles perdront leur case à cocher. Les tâches sur toute la journée et celles déjà terminées ne sont pas touchées.",
     Description: "Description",
     Empty: "Vide",
+    // Une série tient dans une seule note : sa description est lue par toutes
+    // ses occurrences. L'interrupteur laisse une occurrence écrire la sienne.
+    "Synced description": "Description synchronisée",
+    "The whole series shares this description. Switch it off to write one for this occurrence only.":
+        "Toute la série partage cette description. Désactivez pour en écrire une pour cette occurrence seulement.",
+    "This description belongs to this occurrence only. Switch it on to show the series' own again.":
+        "Cette description n'appartient qu'à cette occurrence. Activez pour réafficher celle de la série.",
     Date: "Date",
     "Pick a date": "Choisir une date",
     "Change time zone": "Changer de fuseau horaire",

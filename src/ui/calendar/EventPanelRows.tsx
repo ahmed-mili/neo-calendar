@@ -2900,6 +2900,14 @@ interface DescriptionRowProps {
     editable: boolean;
     setDescription: (v: string) => void;
     onCommit: () => void;
+    /** Offered on one occurrence of a series, where the choice exists: the
+        description is the series' (every occurrence says the same thing) or
+        this day's alone. Absent everywhere else — an event that happens once
+        has nothing to share it with. */
+    sync?: {
+        synced: boolean;
+        onChange: (synced: boolean) => void;
+    };
 }
 
 export function DescriptionRow({
@@ -2907,6 +2915,7 @@ export function DescriptionRow({
     editable,
     setDescription,
     onCommit,
+    sync,
 }: DescriptionRowProps) {
     return (
         <div className="nc-panel-row nc-panel-row-desc">
@@ -2923,6 +2932,29 @@ export function DescriptionRow({
                     onBlur={onCommit}
                     readOnly={!editable}
                 />
+                {sync && (
+                    <div className="nc-panel-chips">
+                        <button
+                            type="button"
+                            className={`nc-chip ${
+                                sync.synced ? "nc-active" : ""
+                            }`}
+                            aria-pressed={sync.synced}
+                            title={
+                                sync.synced
+                                    ? t(
+                                          "The whole series shares this description. Switch it off to write one for this occurrence only."
+                                      )
+                                    : t(
+                                          "This description belongs to this occurrence only. Switch it on to show the series' own again."
+                                      )
+                            }
+                            onClick={() => sync.onChange(!sync.synced)}
+                        >
+                            {t("Synced description")}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

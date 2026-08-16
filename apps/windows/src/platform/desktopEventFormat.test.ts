@@ -64,6 +64,49 @@ describe("the steps of a task, in a note", () => {
     });
 });
 
+const seriesNote = (occurrenceDescriptions?: string[]): NeoEvent =>
+    ({
+        title: "Standup",
+        allDay: false,
+        startTime: "08:00",
+        endTime: "08:30",
+        type: "rrule",
+        startDate: "2026-08-05",
+        rrule: "FREQ=WEEKLY;BYDAY=WE",
+        skipDates: [],
+        description: "Tour de table",
+        ...(occurrenceDescriptions ? { occurrenceDescriptions } : {}),
+    } as unknown as NeoEvent);
+
+describe("the description one occurrence writes for itself", () => {
+    it("writes the days and reads them back unchanged", () => {
+        const days = ["2026-08-19 Démo client", "2026-08-26 Rétro, puis pause"];
+        const note = serializeEventMarkdown(seriesNote(days));
+
+        expect(parseFrontmatter(note)?.occurrenceDescriptions).toEqual(days);
+        // The series still says its own thing for every other Wednesday.
+        expect(parseFrontmatter(note)?.description).toBe("Tour de table");
+    });
+
+    // A description is a free text field: commas, colons and line breaks are
+    // ordinary in it, and every one of them would close a list written raw.
+    it("survives punctuation and line breaks", () => {
+        const days = ['2026-08-19 Deux lignes,\net un "guillemet": ici'];
+        const note = serializeEventMarkdown(seriesNote(days));
+
+        expect(parseFrontmatter(note)?.occurrenceDescriptions).toEqual(days);
+    });
+
+    // The key belongs to a series alone. An occurrence handed back to it takes
+    // the line with it rather than leaving an empty pair of brackets behind.
+    it("takes the line away once the last day is handed back", () => {
+        const before = serializeEventMarkdown(seriesNote(["2026-08-19 Démo"]));
+        const after = serializeEventMarkdown(seriesNote(), before);
+
+        expect(after).not.toContain("occurrenceDescriptions");
+    });
+});
+
 describe("nommer un lien soi-même", () => {
     const NOTE = [
         "---",
