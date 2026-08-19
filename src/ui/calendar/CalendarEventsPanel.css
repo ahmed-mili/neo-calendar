@@ -556,7 +556,14 @@
 }
 
 .nc-cep-card:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
+    /* Keep the card opaque. A translucent hover fill on a drawer laid over
+       the calendar lets grid labels and event text show through the card,
+       which reads as duplicated, overlapping content. */
+    background: linear-gradient(
+            rgba(255, 255, 255, 0.05),
+            rgba(255, 255, 255, 0.05)
+        ),
+        var(--nc-bg-primary, var(--background-primary)) !important;
     border-color: rgba(255, 255, 255, 0.13);
     box-shadow: rgba(0, 0, 0, 0.16) 0 4px 12px -2px !important;
 }
@@ -578,14 +585,17 @@
    que les deux autres le sont. */
 
 .nc-cep-card--past {
-    /* Sur la carte entiere plutot que sur le texte : la date porte la couleur
-       du calendrier en style inline, qu'aucune regle de classe ne peut
-       reprendre. L'opacite, elle, s'applique a tout d'un coup. */
-    opacity: 0.45;
+    /* Keep the surface opaque over the calendar grid. Fading the whole card
+       also fades its background and lets hour labels bleed through it. */
+    opacity: 1;
 }
 
-.nc-cep-card--past:hover {
-    opacity: 0.75;
+.nc-cep-card--past > * {
+    opacity: 0.52;
+}
+
+.nc-cep-card--past:hover > * {
+    opacity: 0.78;
 }
 
 .nc-cep-card--now {
