@@ -55,6 +55,7 @@ import {
     withFollowingRemoved,
     withOccurrenceRemoved,
 } from "../../../src/ui/calendar/recurrenceDeletion";
+import { escapeClosesEventsPanel } from "../../../src/ui/calendar/escapeClosing";
 import { useCalendarNavigation } from "../../../src/ui/calendar/useCalendarNavigation";
 import { useEventDragResize } from "../../../src/ui/calendar/useEventDragResize";
 import {
@@ -1915,6 +1916,51 @@ export default function DesktopCalendar({
             window.removeEventListener("blur", onBlur);
         };
     }, [clearMultiSelection]);
+
+    /*
+     * Escape closes the calendar's events panel — the drawer its someday pile
+     * lives in — but only when it is the layer in front. A dialog, the settings
+     * and the command palette answer Escape themselves, an open event answers
+     * it itself, and a selection is cleared by it: one press, one thing.
+     *
+     * On the phone the panel is left to the back gesture, which is what closes
+     * a screen there.
+     */
+    useEffect(() => {
+        if (isAndroid) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+            const closes = escapeClosesEventsPanel({
+                eventsPanelOpen: selectedCalendarId !== null,
+                overlayOpen:
+                    settingsOpen ||
+                    addCalendarOpen ||
+                    commandPaletteVisible ||
+                    calendarToDelete !== null ||
+                    recurringDeleteId !== null ||
+                    contextMenu !== null,
+                eventPanelOpen: panelEventId !== null || draftSlot !== null,
+                hasSelection: selectedIds.size > 0,
+            });
+            if (!closes) return;
+            event.preventDefault();
+            setSelectedCalendarId(null);
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [
+        addCalendarOpen,
+        calendarToDelete,
+        commandPaletteVisible,
+        contextMenu,
+        draftSlot,
+        isAndroid,
+        panelEventId,
+        recurringDeleteId,
+        selectedCalendarId,
+        selectedIds,
+        settingsOpen,
+    ]);
 
     const handlePanelDragTarget = useCallback(
         (event: DisplayEvent | null, target: PanelDropTarget) => {
