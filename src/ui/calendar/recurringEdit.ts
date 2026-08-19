@@ -1,4 +1,5 @@
 import { NeoEvent } from "../../types";
+import { isSeries, parseOccurrenceId } from "../tasks";
 
 /**
  * Editing ONE day of a series.
@@ -30,16 +31,18 @@ const SERIES_ONLY = [
     "completedDates",
 ] as const;
 
-/** The ISO day an occurrence's display id ends with (`<note>_2026-08-16`). */
+/** The ISO day an occurrence's display id ends with (`<note>_2026-08-16`).
+    What such an id is made of is read in one place, parseOccurrenceId; this
+    only adds the null a panel with nothing open hands over. */
 export function occurrenceDateOf(displayId: string | null): string | null {
     if (!displayId) return null;
-    const match = displayId.match(/_(\d{4}-\d{2}-\d{2})$/);
-    return match ? match[1] : null;
+    return parseOccurrenceId(displayId)?.date ?? null;
 }
 
-/** Does this event describe a whole series rather than one dated entry? */
+/** Does this event describe a whole series rather than one dated entry?
+    The same question isSeries answers, asked where there may be no event. */
 export function isSeriesEvent(event: NeoEvent | null | undefined): boolean {
-    return event?.type === "recurring" || event?.type === "rrule";
+    return event != null && isSeries(event);
 }
 
 /**
