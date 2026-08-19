@@ -78,6 +78,8 @@ import {
     X,
     RotateCcw,
     Save,
+    Search,
+    Settings as SettingsIcon,
 } from "lucide-react";
 
 /**
@@ -294,6 +296,10 @@ export default function DesktopSettings({
     );
     const [themeDirty, setThemeDirty] = useState(false);
     const [choice, setChoice] = useState<SettingsChoice | null>(null);
+    const [settingsSearch, setSettingsSearch] = useState("");
+    const isAndroid =
+        typeof document !== "undefined" &&
+        document.body.classList.contains("nc-platform-android");
 
     /*
      * Rewind to the requested page only when the settings window is opened (or
@@ -306,6 +312,7 @@ export default function DesktopSettings({
             setStack(initialStack(initialTab));
             setLeaving(null);
             setChoice(null);
+            setSettingsSearch("");
         }
     }, [initialTab, open]);
 
@@ -344,11 +351,14 @@ export default function DesktopSettings({
         if (!open) return;
         const closeOnEscape = (event: KeyboardEvent) => {
             if (event.key !== "Escape") return;
-            if (!editingCalendarId) goBack();
+            if (!editingCalendarId) {
+                if (isAndroid) goBack();
+                else onClose();
+            }
         };
         window.addEventListener("keydown", closeOnEscape);
         return () => window.removeEventListener("keydown", closeOnEscape);
-    }, [editingCalendarId, goBack, open]);
+    }, [editingCalendarId, goBack, isAndroid, onClose, open]);
 
     useEffect(() => {
         if (!open) return;
@@ -608,7 +618,7 @@ export default function DesktopSettings({
     ).length;
 
     /** The first page: everything the app can be set to, in one column. */
-    const renderRoot = () => (
+    const renderRoot = (desktop = false) => (
         <div className="nc-set-groups">
             <SettingsGroup
                 title={t("Calendar view")}
@@ -813,57 +823,73 @@ export default function DesktopSettings({
                 />
             </SettingsGroup>
 
-            <SettingsGroup title={t("Integrations")}>
-                <SettingsRow
-                    label={t("Calendars")}
-                    icon={<CalendarDays size={18} />}
-                    value={String(calendars.length)}
-                    navigates
-                    onClick={() =>
-                        openPage({ kind: "section", id: "calendars" })
-                    }
-                />
-                <SettingsRow
-                    label={t("Time zones")}
-                    icon={<Globe size={18} />}
-                    value={
-                        secondaryTimezoneCount === 0
-                            ? t("None")
-                            : String(secondaryTimezoneCount)
-                    }
-                    navigates
-                    onClick={() =>
-                        openPage({ kind: "section", id: "timezones" })
-                    }
-                />
-            </SettingsGroup>
+            {!desktop && (
+                <>
+                    <SettingsGroup title={t("Integrations")}>
+                        <SettingsRow
+                            label={t("Calendars")}
+                            icon={<CalendarDays size={18} />}
+                            value={String(calendars.length)}
+                            navigates
+                            onClick={() =>
+                                openPage({
+                                    kind: "section",
+                                    id: "calendars",
+                                })
+                            }
+                        />
+                        <SettingsRow
+                            label={t("Time zones")}
+                            icon={<Globe size={18} />}
+                            value={
+                                secondaryTimezoneCount === 0
+                                    ? t("None")
+                                    : String(secondaryTimezoneCount)
+                            }
+                            navigates
+                            onClick={() =>
+                                openPage({
+                                    kind: "section",
+                                    id: "timezones",
+                                })
+                            }
+                        />
+                    </SettingsGroup>
 
-            <SettingsGroup title={t("Data")}>
-                <SettingsRow
-                    label={t("Data folder")}
-                    icon={<FolderOpen size={18} />}
-                    value={folderName(dataFolder)}
-                    navigates
-                    onClick={() => openPage({ kind: "section", id: "folder" })}
-                />
-                <SettingsRow
-                    label={t("Obsidian vaults")}
-                    icon={<Library size={18} />}
-                    value={
-                        vaultFolders.length === 0
-                            ? t("No folder")
-                            : String(enabledVaultCount)
-                    }
-                    navigates
-                    onClick={() => openPage({ kind: "section", id: "vaults" })}
-                />
-                <SettingsRow
-                    label={t("Sync")}
-                    icon={<RefreshCw size={18} />}
-                    navigates
-                    onClick={() => openPage({ kind: "section", id: "sync" })}
-                />
-            </SettingsGroup>
+                    <SettingsGroup title={t("Data")}>
+                        <SettingsRow
+                            label={t("Data folder")}
+                            icon={<FolderOpen size={18} />}
+                            value={folderName(dataFolder)}
+                            navigates
+                            onClick={() =>
+                                openPage({ kind: "section", id: "folder" })
+                            }
+                        />
+                        <SettingsRow
+                            label={t("Obsidian vaults")}
+                            icon={<Library size={18} />}
+                            value={
+                                vaultFolders.length === 0
+                                    ? t("No folder")
+                                    : String(enabledVaultCount)
+                            }
+                            navigates
+                            onClick={() =>
+                                openPage({ kind: "section", id: "vaults" })
+                            }
+                        />
+                        <SettingsRow
+                            label={t("Sync")}
+                            icon={<RefreshCw size={18} />}
+                            navigates
+                            onClick={() =>
+                                openPage({ kind: "section", id: "sync" })
+                            }
+                        />
+                    </SettingsGroup>
+                </>
+            )}
 
             {/* At the foot of the page, where every app puts it. It is the
                 first thing anyone needs when something is wrong, and the only
@@ -895,7 +921,7 @@ export default function DesktopSettings({
                     <button
                         type="button"
                         onClick={addTimezone}
-                        aria-label="Ajouter un fuseau horaire"
+                        aria-label={t("Add timezone")}
                     >
                         <Plus size={18} />
                     </button>
@@ -919,7 +945,7 @@ export default function DesktopSettings({
                                                 ),
                                         })
                                     }
-                                    aria-label={`Retirer ${zone}`}
+                                    aria-label={`${t("Remove")} ${zone}`}
                                 >
                                     <X size={16} />
                                 </button>
@@ -996,7 +1022,7 @@ export default function DesktopSettings({
                                     onClick={() =>
                                         void onRemoveVaultFolder(folderPath)
                                     }
-                                    aria-label={`Retirer ${folderPath}`}
+                                    aria-label={`${t("Remove")} ${folderPath}`}
                                 >
                                     <Trash2 size={16} />
                                 </button>
@@ -1118,9 +1144,9 @@ export default function DesktopSettings({
                                 }`}
                                 type="button"
                                 onClick={() => onToggleCalendar(calendar.id)}
-                                aria-label={`${
-                                    calendar.hidden ? "Afficher" : "Masquer"
-                                } ${calendar.name}`}
+                                aria-label={`${t(
+                                    calendar.hidden ? "Show" : "Hide"
+                                )} ${calendar.name}`}
                             >
                                 {!calendar.hidden && <Check size={14} />}
                             </button>
@@ -1134,7 +1160,7 @@ export default function DesktopSettings({
                                         event.target.value
                                     )
                                 }
-                                aria-label={`Couleur de ${calendar.name}`}
+                                aria-label={`${t("Color")} ${calendar.name}`}
                             />
                             {editingCalendarId === calendar.id ? (
                                 <input
@@ -1186,7 +1212,7 @@ export default function DesktopSettings({
                             )}
                             {calendar.isDefault && (
                                 <span className="nc-settings__calendar-default">
-                                    Par défaut
+                                    {t("Default")}
                                 </span>
                             )}
                             <button
@@ -1195,7 +1221,7 @@ export default function DesktopSettings({
                                 onClick={() =>
                                     void onDeleteCalendar(calendar.id)
                                 }
-                                aria-label={`Supprimer ${calendar.name}`}
+                                aria-label={`${t("Delete")} ${calendar.name}`}
                             >
                                 <Trash2 size={16} />
                             </button>
@@ -1449,8 +1475,8 @@ export default function DesktopSettings({
         }
     };
 
-    const renderPage = (page: SettingsPage) => {
-        if (page.kind === "root") return renderRoot();
+    const renderPage = (page: SettingsPage, desktop = false) => {
+        if (page.kind === "root") return renderRoot(desktop);
         return renderSection(page.id);
     };
 
@@ -1460,10 +1486,117 @@ export default function DesktopSettings({
      * it. Only the topmost dialog is shown — one panel at a time, and the back
      * arrow (or Escape, or the scrim) takes off one layer, exactly as before.
      */
-    const dialogAt = stack.findIndex(isDialogSection);
+    const dialogAt = isAndroid ? stack.findIndex(isDialogSection) : -1;
     const pages = dialogAt === -1 ? stack : stack.slice(0, dialogAt);
-    const dialog = dialogAt === -1 ? null : stack[stack.length - 1];
+    const dialog =
+        isAndroid && dialogAt !== -1 ? stack[stack.length - 1] : null;
     const headerPage = pages[pages.length - 1] ?? { kind: "root" as const };
+
+    type DesktopNavigationId = "general" | SettingsSection;
+    const desktopNavigation: Array<{
+        id: DesktopNavigationId;
+        label: string;
+        icon: React.ReactNode;
+        group: "settings" | "data";
+    }> = [
+        {
+            id: "general",
+            label: t("General"),
+            icon: <SettingsIcon size={17} />,
+            group: "settings",
+        },
+        {
+            id: "calendars",
+            label: t("Calendars"),
+            icon: <CalendarDays size={17} />,
+            group: "settings",
+        },
+        {
+            id: "appearance",
+            label: t("Appearance"),
+            icon: <Palette size={17} />,
+            group: "settings",
+        },
+        {
+            id: "timezones",
+            label: t("Time zones"),
+            icon: <Globe size={17} />,
+            group: "settings",
+        },
+        {
+            id: "folder",
+            label: t("Data folder"),
+            icon: <FolderOpen size={17} />,
+            group: "data",
+        },
+        {
+            id: "vaults",
+            label: t("Obsidian vaults"),
+            icon: <Library size={17} />,
+            group: "data",
+        },
+        {
+            id: "sync",
+            label: t("Sync"),
+            icon: <RefreshCw size={17} />,
+            group: "data",
+        },
+    ];
+
+    const normalizeSearch = (value: string) =>
+        value
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLocaleLowerCase(getLanguage());
+    const normalizedSettingsSearch = normalizeSearch(settingsSearch.trim());
+    const visibleDesktopNavigation = desktopNavigation.filter((item) =>
+        normalizeSearch(item.label).includes(normalizedSettingsSearch)
+    );
+    const activeDesktopNavigation: DesktopNavigationId =
+        currentPage.kind === "section" ? currentPage.id : "general";
+
+    const navigateDesktop = (id: DesktopNavigationId) => {
+        setLeaving(null);
+        setStack(
+            id === "general"
+                ? [{ kind: "root" }]
+                : [{ kind: "root" }, { kind: "section", id }]
+        );
+    };
+
+    const desktopTitle =
+        currentPage.kind === "root" ? t("General") : pageTitle(currentPage);
+
+    const renderDesktopNavigationGroup = (
+        group: "settings" | "data",
+        title: string
+    ) => {
+        const items = visibleDesktopNavigation.filter(
+            (item) => item.group === group
+        );
+        if (items.length === 0) return null;
+        return (
+            <div className="nc-settings__nav-group">
+                <p className="nc-settings__nav-heading">{title}</p>
+                {items.map((item) => (
+                    <button
+                        key={item.id}
+                        type="button"
+                        className="nc-settings__nav-item"
+                        aria-current={
+                            activeDesktopNavigation === item.id
+                                ? "page"
+                                : undefined
+                        }
+                        onClick={() => navigateDesktop(item.id)}
+                    >
+                        {item.icon}
+                        <span>{item.label}</span>
+                    </button>
+                ))}
+            </div>
+        );
+    };
 
     const content = (
         <div
@@ -1473,7 +1606,9 @@ export default function DesktopSettings({
             }}
         >
             <section
-                className="nc-settings"
+                className={`nc-settings${
+                    isAndroid ? "" : " nc-settings--desktop"
+                }`}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="nc-settings-title"
@@ -1481,49 +1616,117 @@ export default function DesktopSettings({
                     currentPage.kind === "section" ? currentPage.id : "general"
                 }
             >
-                <header className="nc-settings__header">
-                    <button
-                        className="nc-settings__back"
-                        type="button"
-                        onClick={goBack}
-                        aria-label={
-                            stack.length > 1 ? t("Back") : t("Close settings")
-                        }
-                    >
-                        <ArrowLeft size={22} />
-                    </button>
-                    <h2 id="nc-settings-title">{pageTitle(headerPage)}</h2>
-                </header>
-
-                {/* Every page occupies the same slot: the one on top slides in
-                    from the right, and the one it replaced waits underneath
-                    with the scroll position it was left at. */}
-                <div className="nc-settings__pages">
-                    {pages.map((page, index) => {
-                        const buried = index < pages.length - 1;
-                        return (
-                            <div
-                                className={`nc-settings__page${
-                                    buried ? " nc-settings__page--buried" : ""
-                                }`}
-                                key={pageKey(page)}
-                                data-depth={index}
-                                aria-hidden={buried ? true : undefined}
+                {isAndroid ? (
+                    <>
+                        <header className="nc-settings__header">
+                            <button
+                                className="nc-settings__back"
+                                type="button"
+                                onClick={goBack}
+                                aria-label={
+                                    stack.length > 1
+                                        ? t("Back")
+                                        : t("Close settings")
+                                }
                             >
-                                {renderPage(page)}
-                            </div>
-                        );
-                    })}
-                    {leaving && (
-                        <div
-                            className="nc-settings__page nc-settings__page--leaving"
-                            key="leaving"
-                            aria-hidden="true"
-                        >
-                            {renderPage(leaving)}
+                                <ArrowLeft size={22} />
+                            </button>
+                            <h2 id="nc-settings-title">
+                                {pageTitle(headerPage)}
+                            </h2>
+                        </header>
+
+                        {/* Every page occupies the same slot: the one on top
+                            slides in from the right, while the page underneath
+                            keeps its scroll position. */}
+                        <div className="nc-settings__pages">
+                            {pages.map((page, index) => {
+                                const buried = index < pages.length - 1;
+                                return (
+                                    <div
+                                        className={`nc-settings__page${
+                                            buried
+                                                ? " nc-settings__page--buried"
+                                                : ""
+                                        }`}
+                                        key={pageKey(page)}
+                                        data-depth={index}
+                                        aria-hidden={buried ? true : undefined}
+                                    >
+                                        {renderPage(page)}
+                                    </div>
+                                );
+                            })}
+                            {leaving && (
+                                <div
+                                    className="nc-settings__page nc-settings__page--leaving"
+                                    key="leaving"
+                                    aria-hidden="true"
+                                >
+                                    {renderPage(leaving)}
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
+                    </>
+                ) : (
+                    <div className="nc-settings__desktop-shell">
+                        <aside className="nc-settings__sidebar">
+                            <label className="nc-settings__search">
+                                <Search size={17} aria-hidden="true" />
+                                <input
+                                    type="search"
+                                    value={settingsSearch}
+                                    placeholder={t("Search")}
+                                    aria-label={t("Search settings")}
+                                    onChange={(event) =>
+                                        setSettingsSearch(event.target.value)
+                                    }
+                                />
+                            </label>
+                            <nav
+                                className="nc-settings__navigation"
+                                aria-label={t("Settings sections")}
+                            >
+                                {renderDesktopNavigationGroup(
+                                    "settings",
+                                    t("Settings")
+                                )}
+                                {renderDesktopNavigationGroup(
+                                    "data",
+                                    t("Data and integrations")
+                                )}
+                                {visibleDesktopNavigation.length === 0 && (
+                                    <p className="nc-settings__nav-empty">
+                                        {t("No settings found")}
+                                    </p>
+                                )}
+                            </nav>
+                            <p className="nc-settings__sidebar-version">
+                                Neo Calendar&nbsp; {__NEO_VERSION__}
+                            </p>
+                        </aside>
+
+                        <main className="nc-settings__desktop-main">
+                            <header className="nc-settings__desktop-header">
+                                <h2 id="nc-settings-title">{desktopTitle}</h2>
+                                <button
+                                    type="button"
+                                    className="nc-settings__close"
+                                    onClick={onClose}
+                                    aria-label={t("Close settings")}
+                                >
+                                    <X size={20} />
+                                </button>
+                            </header>
+                            <div
+                                className="nc-settings__desktop-page"
+                                key={pageKey(currentPage)}
+                            >
+                                {renderPage(currentPage, true)}
+                            </div>
+                        </main>
+                    </div>
+                )}
             </section>
 
             {/* A submenu small enough to be taken over the screen. Drawn after
