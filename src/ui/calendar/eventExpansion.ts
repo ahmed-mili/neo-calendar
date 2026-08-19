@@ -5,6 +5,7 @@ import { DisplayEvent } from "../types";
 import { getDisplayTitle } from "./CalendarEventsPanel.helpers";
 import { getTaskStatus, isTask, TaskStatus } from "../tasks";
 import { addDays, startOfDay } from "./calendarDateUtils";
+import { seriesStartDate } from "./recurrenceDeletion";
 
 /**
  * Converts NeoEvent (storage format) into one or more DisplayEvents
@@ -110,6 +111,7 @@ interface MakeArgs {
     taskStatus: TaskStatus;
     isRecurring: boolean;
     isMultiDay: boolean;
+    isSeriesStart?: boolean;
 }
 
 function makeDisplayEvent({
@@ -125,6 +127,7 @@ function makeDisplayEvent({
     taskStatus,
     isRecurring,
     isMultiDay,
+    isSeriesStart = false,
 }: MakeArgs): DisplayEvent {
     return {
         id: idSuffix ? `${ctx.id}_${idSuffix}` : ctx.id,
@@ -140,6 +143,7 @@ function makeDisplayEvent({
         taskCompleted,
         taskStatus,
         isRecurring,
+        isSeriesStart,
         isMultiDay,
         isSomeday: false,
         description,
@@ -218,6 +222,9 @@ function expandRecurring(
     const skipSet = new Set(event.skipDates || []);
     const seriesIsTask = isTask(event);
     const doneDays = new Set(event.completedDates || []);
+    // Read once for the whole series: the first occurrence left is a fact about
+    // the series, not about the window being drawn.
+    const startsOn = seriesStartDate(event);
 
     const results: DisplayEvent[] = [];
     let current = startOfDay(new Date(startMs));
@@ -257,6 +264,7 @@ function expandRecurring(
                             ? "complete"
                             : "todo") as TaskStatus,
                         isRecurring: true,
+                        isSeriesStart: dateStr === startsOn,
                         isMultiDay: false,
                     })
                 );
@@ -295,6 +303,7 @@ function expandRrule(
     const skipSet = new Set(event.skipDates || []);
     const seriesIsTask = isTask(event);
     const doneDays = new Set(event.completedDates || []);
+    const startsOn = seriesStartDate(event);
 
     return dates.flatMap((d) => {
         const dateStr = DateTime.fromJSDate(d, { zone: "utc" }).toISODate();
@@ -324,6 +333,7 @@ function expandRrule(
                     ? "complete"
                     : "todo") as TaskStatus,
                 isRecurring: true,
+                isSeriesStart: dateStr === startsOn,
                 isMultiDay: false,
             }),
         ];

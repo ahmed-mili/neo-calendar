@@ -5,6 +5,8 @@ import { DisplayEvent } from "../types";
 import { formatTime } from "./CalendarUtils";
 import { readableTextColor, withAlpha } from "../../utils/color";
 import { TaskCheckbox } from "./TaskCheckbox";
+import { ChevronRightIcon } from "./Icons";
+import { t } from "../i18n";
 
 interface EventBlockProps {
     event: DisplayEvent;
@@ -176,6 +178,18 @@ export default function EventBlock({
                     >
                         <TaskCheckbox completed={isCompleted} />
                     </button>
+                )}
+                {event.isSeriesStart && (
+                    /* Deleting the first occurrences moves where the series
+                       begins, so the one it begins on now says so. Worked out
+                       at display time; nothing of it is written down. */
+                    <span
+                        className="nc-event-series-start"
+                        title={t("Start of the series")}
+                        aria-label={t("Start of the series")}
+                    >
+                        <ChevronRightIcon size={11} />
+                    </span>
                 )}
                 <div
                     className={`nc-event-text ${

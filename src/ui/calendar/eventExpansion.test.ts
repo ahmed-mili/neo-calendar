@@ -58,3 +58,49 @@ describe("expanding a weekday series", () => {
         expect(ids).toEqual(["42_2026-07-29"]);
     });
 });
+
+/** Expand an event over a window and return the dates it marked as the start. */
+const expandStarts = (event: unknown, from: string, to: string): string[] =>
+    neoEventToDisplayEvents(
+        event as NeoEvent,
+        "42",
+        "cal",
+        "Cal",
+        "#ffffff",
+        true,
+        new Date(from),
+        new Date(to)
+    )
+        .filter((occurrence) => occurrence.isSeriesStart)
+        .map((occurrence) => occurrence.id);
+
+// Where the series begins is a fact about the series, not about what is on
+// screen: scrolling to a later week must not crown a new first occurrence.
+describe("marking where a series begins", () => {
+    const dated = { ...weekdaySeries, startRecur: "2026-07-20" };
+
+    it("marks the first occurrence of the series", () => {
+        expect(expandStarts(dated, ...WINDOW)).toEqual(["42_2026-07-22"]);
+    });
+
+    it("marks nothing in a window that opens after the series started", () => {
+        expect(
+            expandStarts(dated, "2026-08-01T00:00:00", "2026-08-31T23:59:59")
+        ).toEqual([]);
+    });
+
+    it("moves the mark to the occurrence that now comes first", () => {
+        expect(
+            expandStarts({ ...dated, skipDates: ["2026-07-22"] }, ...WINDOW)
+        ).toEqual(["42_2026-07-29"]);
+    });
+
+    it("marks nothing on an event that does not recur", () => {
+        expect(
+            expandStarts(
+                { title: "Lunch", type: "single", date: "2026-07-22" },
+                ...WINDOW
+            )
+        ).toEqual([]);
+    });
+});

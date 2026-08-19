@@ -890,6 +890,21 @@
     gap: 4px;
 }
 
+/* Le chevron qui marque la premiere occurrence d'une serie : assez visible
+   pour etre remarque, assez discret pour ne pas concurrencer le titre. */
+.nc-event-series-start {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    width: 11px;
+    height: 11px;
+    color: inherit;
+    opacity: 0.65;
+    line-height: 0;
+}
+
 .nc-task-checkbox {
     display: inline-flex;
     align-items: center;

@@ -92,6 +92,15 @@ const FR: Record<string, string> = {
     "All day": "Toute la journée",
     "All-day": "Toute la journée",
     Repeat: "Répéter",
+    "Start of the series": "Début de la série",
+    "Delete the recurring task": "Supprimer la tâche récurrente",
+    "Delete the recurring event": "Supprimer l'événement récurrent",
+    "Delete this task only": "Supprimer cette tâche uniquement",
+    "Delete this task and all following":
+        "Supprimer cette tâche et toutes les suivantes",
+    "Delete this event only": "Supprimer cet événement uniquement",
+    "Delete this event and all following":
+        "Supprimer cet événement et toutes les suivantes",
     Every: "Tous les",
     From: "De",
     To: "À",

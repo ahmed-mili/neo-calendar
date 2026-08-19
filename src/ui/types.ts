@@ -24,6 +24,9 @@ export interface DisplayEvent {
     // Recurrence
     isRecurring: boolean;
     rrule?: string;
+    // The first occurrence of the series that has not been deleted, worked out
+    // at display time. Deleting the occurrences a series began with moves it.
+    isSeriesStart?: boolean;
     // Multi-day
     isMultiDay: boolean;
     description?: string;

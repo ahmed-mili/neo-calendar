@@ -42,6 +42,11 @@ import {
     neoEventToDisplayEvents,
     startOfDay,
 } from "../../../src/ui/calendar/CalendarUtils";
+import {
+    needsOccurrenceChoice,
+    withFollowingRemoved,
+    withOccurrenceRemoved,
+} from "../../../src/ui/calendar/recurrenceDeletion";
 import { useCalendarNavigation } from "../../../src/ui/calendar/useCalendarNavigation";
 import { useEventDragResize } from "../../../src/ui/calendar/useEventDragResize";
 import {
@@ -65,6 +70,7 @@ import AddCalendarDialog, {
     type AddCalendarRequest,
 } from "./AddCalendarDialog";
 import ConfirmDialog from "./ConfirmDialog";
+import RecurringDeleteDialog from "./RecurringDeleteDialog";
 import {
     copyDesktopAttachment,
     createDesktopCalendarFolder,
@@ -495,6 +501,10 @@ export default function DesktopCalendar({
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [addCalendarOpen, setAddCalendarOpen] = useState(false);
     const [calendarToDelete, setCalendarToDelete] = useState<string | null>(
+        null
+    );
+    // The occurrence a delete is waiting on an answer for, if any.
+    const [recurringDeleteId, setRecurringDeleteId] = useState<string | null>(
         null
     );
     const [panelEventId, setPanelEventId] = useState<string | null>(null);
@@ -1342,6 +1352,67 @@ export default function DesktopCalendar({
         async (eventId: string): Promise<void> => deleteEvents([eventId]),
         [deleteEvents]
     );
+
+    /**
+     * Deleting one date of a series is not deleting its note: the whole series
+     * lives in that one file. So a single occurrence asks what to delete, and
+     * everything else deletes as it always did.
+     */
+    const requestDeleteEvents = useCallback(
+        async (eventIds: string[]): Promise<void> => {
+            if (eventIds.length === 1) {
+                const record = findStoredEvent(recordsRef.current, eventIds[0]);
+                if (
+                    record &&
+                    !record.readOnly &&
+                    needsOccurrenceChoice(record.event, eventIds[0])
+                ) {
+                    setRecurringDeleteId(eventIds[0]);
+                    return;
+                }
+            }
+            await deleteEvents(eventIds);
+        },
+        [deleteEvents]
+    );
+
+    const applyRecurringDelete = useCallback(
+        async (displayId: string, following: boolean): Promise<void> => {
+            const record = findStoredEvent(recordsRef.current, displayId);
+            const occurrence = parseOccurrenceId(displayId);
+            if (!record || record.readOnly || !occurrence) return;
+
+            const next = following
+                ? withFollowingRemoved(record.event, occurrence.date)
+                : withOccurrenceRemoved(record.event, occurrence.date);
+            // Nothing would be left of the series, so its note goes too — and
+            // through the usual path, which keeps the undo.
+            if (!next) {
+                await deleteEvents([displayId]);
+                return;
+            }
+
+            await updateEvent(displayId, next);
+            if (panelEventId === displayId) {
+                setPanelEventId(null);
+                setPanelAnchor(null);
+            }
+            setSelectedIds((current) => {
+                if (!current.has(displayId)) return current;
+                const remaining = new Set(current);
+                remaining.delete(displayId);
+                return remaining;
+            });
+        },
+        [deleteEvents, panelEventId, updateEvent]
+    );
+
+    // Which of the two wordings the question is asked in.
+    const recurringDeleteIsTask = useMemo(() => {
+        if (!recurringDeleteId) return false;
+        const record = findStoredEvent(recordsRef.current, recurringDeleteId);
+        return !!record && isTask(record.event);
+    }, [recurringDeleteId]);
 
     const undoLastDeletion = useCallback(async () => {
         if (!deletedBatch.length) return;
@@ -2342,8 +2413,8 @@ export default function DesktopCalendar({
     }, [actionTargetIds, duplicateEvent]);
 
     const deleteTargets = useCallback(async () => {
-        await deleteEvents(actionTargetIds());
-    }, [actionTargetIds, deleteEvents]);
+        await requestDeleteEvents(actionTargetIds());
+    }, [actionTargetIds, requestDeleteEvents]);
 
     const contextItems = useMemo<ContextMenuItem[]>(() => {
         if (!contextMenu) return [];
@@ -2454,7 +2525,7 @@ export default function DesktopCalendar({
                 onClick: () =>
                     void (selectedCount > 1
                         ? deleteTargets()
-                        : deleteEvents([contextMenu.eventId])),
+                        : requestDeleteEvents([contextMenu.eventId])),
             },
         ];
     }, [
@@ -2463,8 +2534,8 @@ export default function DesktopCalendar({
         copyEvent,
         cutEvent,
         dataFolder,
-        deleteEvents,
         deleteTargets,
+        requestDeleteEvents,
         duplicateEvent,
         duplicateTargets,
         openDraft,
@@ -3028,7 +3099,9 @@ export default function DesktopCalendar({
                         void openDesktopPath(dataFolder, record.relativePath);
                     }
                 }}
-                onDelete={(eventId: string) => void deleteEvent(eventId)}
+                onDelete={(eventId: string) =>
+                    void requestDeleteEvents([eventId])
+                }
                 firstDay={preferences.firstDay}
                 linkVaults={linkedVaults.map((path) => ({
                     path,
@@ -3159,6 +3232,22 @@ export default function DesktopCalendar({
                 existingNames={calendars.map((calendar) => calendar.name)}
                 onClose={() => setAddCalendarOpen(false)}
                 onCreate={createCalendar}
+            />
+
+            <RecurringDeleteDialog
+                open={recurringDeleteId !== null}
+                isTask={recurringDeleteIsTask}
+                onClose={() => setRecurringDeleteId(null)}
+                onDeleteOccurrence={() => {
+                    const target = recurringDeleteId;
+                    setRecurringDeleteId(null);
+                    if (target) void applyRecurringDelete(target, false);
+                }}
+                onDeleteFollowing={() => {
+                    const target = recurringDeleteId;
+                    setRecurringDeleteId(null);
+                    if (target) void applyRecurringDelete(target, true);
+                }}
             />
 
             <ConfirmDialog

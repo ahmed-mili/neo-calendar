@@ -2366,6 +2366,49 @@ button.nc-settings__theme-card:focus-visible {
     background: var(--text-error);
 }
 
+/* ── Deleting one occurrence of a series ─────────────────────────────
+   No icon and no message: the two buttons ARE the question, so they carry
+   the weight the message usually would. */
+
+.nc-recurring-delete header {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.nc-recurring-delete__choices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.nc-recurring-delete .nc-recurring-delete__choice {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 10px;
+    color: var(--text-normal);
+    background: color-mix(
+        in srgb,
+        var(--background-secondary) 62%,
+        transparent
+    );
+    box-shadow: none;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+}
+
+.nc-recurring-delete .nc-recurring-delete__choice:hover {
+    border-color: color-mix(in srgb, var(--nc-accent) 55%, transparent);
+    background: color-mix(in srgb, var(--nc-accent) 12%, transparent);
+}
+
+.nc-recurring-delete footer {
+    margin-top: 14px;
+}
+
 /* Theme selector generated from codex-theme-v1 palettes. */
 html[class*="nc-theme-"],
 body[class*="nc-theme-"],
