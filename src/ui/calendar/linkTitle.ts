@@ -16,6 +16,8 @@
  * exactly as before. A title is an improvement on that, never a condition.
  */
 
+import { isShareLink, looksLikeWall } from "./shareLink";
+
 /** Past this, we are reading a page, not looking for its head. */
 export const TITLE_SCAN_BYTES = 64 * 1024;
 
@@ -400,6 +402,67 @@ export function confirmedTarget(
     return `${claimed.protocol}//${claimed.host.toLowerCase()}${
         claimed.pathname
     }`;
+}
+
+/**
+ * The address a share actually leads to, when following it is answer enough.
+ *
+ * {@link confirmedTarget} keeps a canonical address only once the site has
+ * corroborated it, and it is right to: that address is a CLAIM made by a page,
+ * and a page that does not recognise the client claims its own front door.
+ *
+ * A redirect is not a claim. It is where the link goes — the browser would end
+ * up there whatever anyone says about it. So when a site answers nothing about
+ * a share, but the share resolves to a real item on the same site, that
+ * resolution is kept: it is what carries the account and the publication time,
+ * both of which are read off the address and nowhere else (see linkFacts). A
+ * share code carries neither, which is why one link showed its author and the
+ * others, added the same day, showed nothing.
+ *
+ * The query goes with it, for the reason it does there: `_t=…` is minted per
+ * share, and two shares of one video must not read as two links.
+ */
+export function resolvedTarget(
+    target: string,
+    resolved: string | null | undefined
+): string {
+    if (!resolved) return target;
+
+    let shared: URL;
+    let landed: URL;
+    try {
+        shared = new URL(target);
+        landed = new URL(resolved);
+    } catch {
+        return target;
+    }
+    if (landed.protocol !== "http:" && landed.protocol !== "https:") {
+        return target;
+    }
+
+    /*
+     * A shortener may lead anywhere, and that is the whole of what it is for:
+     * `bit.ly/3xYz` and `youtu.be/dQw4` land on another site by design, so
+     * insisting on the same site would look through none of the links that
+     * most need looking through. What is asked of the landing instead is that
+     * it be somewhere — a bare host is where a dead or blocked share ends up,
+     * and storing that would lose the little the code still carried.
+     *
+     * Everything else keeps the strict rule. An ordinary address is never
+     * rewritten to wherever it redirects today: that is how a link ends up
+     * stored as a login page, a consent wall, or a session URL.
+     */
+    if (isShareLink(target)) {
+        if (looksLikeWall(resolved)) return target;
+        return `${landed.protocol}//${landed.host.toLowerCase()}${
+            landed.pathname
+        }`;
+    }
+
+    if (siteOf(shared.hostname) !== siteOf(landed.hostname)) return target;
+    if (!itemIdIn(landed.pathname)) return target;
+
+    return `${landed.protocol}//${landed.host.toLowerCase()}${landed.pathname}`;
 }
 
 /**

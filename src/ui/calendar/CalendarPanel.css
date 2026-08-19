@@ -361,8 +361,7 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: 6px;
-    transition:
-        border-color var(--nc-transition-fast),
+    transition: border-color var(--nc-transition-fast),
         background-color var(--nc-transition-fast);
 }
 
@@ -480,6 +479,13 @@
 .nc-panel-text-input,
 .nc-panel-select,
 .nc-panel-textarea {
+    /* One line to start with, and exactly as many as are typed after that: the
+       height is written by the row itself (see DescriptionRow), so nothing here
+       may set a floor it cannot go under. */
+    min-height: 0;
+    resize: none;
+    overflow: hidden;
+    line-height: 1.45;
     padding: 4px 6px;
     font-size: 13px;
     color: var(--nc-text-primary);
@@ -837,8 +843,7 @@
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    transition:
-        background var(--nc-transition-fast),
+    transition: background var(--nc-transition-fast),
         color var(--nc-transition-fast);
 }
 
@@ -1079,49 +1084,71 @@
 
 /* Recurrence row — summary, presets, custom controls */
 
+/* ── How an event repeats ────────────────────────────────────
+   The row holds four things that used to be laid out as four unrelated ones: a
+   sentence saying what the rule currently is, the five ways to change it, the
+   custom rule's own controls, and where it stops. They read as one block now —
+   the sentence at the top, the choices under it as real targets rather than
+   bare words, and the custom controls inset on their own surface so it is
+   obvious which of them belong to "Custom". */
+
 .nc-recur-summary {
-    font-size: 12px;
-    color: var(--nc-text-secondary);
-    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--nc-text-primary);
+    margin-bottom: 8px;
 }
 
 .nc-recur-presets {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 6px;
+    margin-bottom: 10px;
 }
 
+/* Pills, not words. As plain text these were four labels in a row with nothing
+   to say they could be pressed, and on a phone nothing to press either — a
+   13px word is a third of the target a finger needs. */
 .nc-recur-presets .nc-chip {
     display: inline-flex;
     align-items: center;
-    padding: 2px 4px;
-    margin: -2px -4px;
-    font-size: 13px;
-    color: var(--nc-text-faint);
-    background: transparent;
-    border: none;
+    min-height: 26px;
+    padding: 3px 10px;
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--nc-text-secondary);
+    background: var(--nc-bg-hover);
+    border: 1px solid transparent;
     box-shadow: none;
-    border-radius: 4px;
+    border-radius: 999px;
     cursor: pointer;
     transition: background var(--nc-transition-fast),
-        color var(--nc-transition-fast);
+        color var(--nc-transition-fast), border-color var(--nc-transition-fast);
 }
 
 .nc-recur-presets .nc-chip:hover {
     color: var(--nc-text-primary);
-    background: var(--nc-bg-hover);
+    border-color: var(--nc-border);
 }
 
+/* The chosen one is filled, not just coloured: at a glance the block should
+   answer "which of these is it?" before it is read. */
 .nc-recur-presets .nc-chip.nc-active {
     color: var(--nc-accent);
     font-weight: 600;
+    background: color-mix(in srgb, var(--nc-accent) 16%, transparent);
+    border-color: color-mix(in srgb, var(--nc-accent) 38%, transparent);
 }
 
 .nc-recur-custom {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid var(--nc-border);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--nc-bg-hover) 60%, transparent);
 }
 
 .nc-recur-interval {
@@ -1321,8 +1348,8 @@
     color: var(--nc-text-faint);
     font-size: 13px;
     cursor: pointer;
-    transition: background var(--nc-transition-fast), color
-            var(--nc-transition-fast);
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast);
 }
 
 .nc-panel-reminders:hover,
@@ -1393,8 +1420,8 @@
     color: var(--nc-text-faint);
     opacity: 0;
     cursor: pointer;
-    transition: opacity var(--nc-transition-fast), background
-            var(--nc-transition-fast);
+    transition: opacity var(--nc-transition-fast),
+        background var(--nc-transition-fast);
 }
 
 .nc-panel-reminder-chip:hover .nc-panel-reminder-remove,
@@ -1450,17 +1477,22 @@
     color: var(--nc-text-faint);
 }
 
+/* Where the repeat stops. Three lines that answer one question, so they are
+   spaced as a group and separated from the interval above them. */
 .nc-recur-end {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--nc-border);
     font-size: 13px;
 }
 
 .nc-recur-end label {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    min-height: 28px;
     cursor: pointer;
     color: var(--nc-text-primary);
 }
@@ -1468,8 +1500,20 @@
 /* Tint the native radios with the accent instead of the OS blue. */
 .nc-recur-end input[type="radio"] {
     accent-color: var(--nc-accent);
+    width: 16px;
+    height: 16px;
+    flex: none;
     cursor: pointer;
     margin: 0;
+}
+
+/* The label of an end condition that is not the chosen one steps back, so the
+   line in force is the one the eye lands on. */
+.nc-recur-end
+    label:not(:focus-within)
+    input[type="radio"]:not(:checked)
+    ~ span {
+    color: var(--nc-text-secondary);
 }
 
 /* An inactive end-condition's count field is disabled — mute it so it reads as
@@ -1478,6 +1522,239 @@
 .nc-recur-end .nc-recur-num:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+/* ── A switch ────────────────────────────────────────────────
+   All-day is on or off, now, which a chip could only say by being coloured.
+   Same shape everywhere it is used. */
+
+.nc-switch {
+    position: relative;
+    flex: none;
+    width: 44px;
+    height: 26px;
+    margin-left: auto;
+    padding: 0;
+    border: 1px solid var(--nc-border);
+    border-radius: 999px;
+    background: var(
+        --background-modifier-form-field,
+        rgba(255, 255, 255, 0.06)
+    ) !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        border-color var(--nc-transition-fast);
+}
+
+.nc-switch-knob {
+    position: absolute;
+    top: 50%;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--nc-text-secondary, var(--text-muted));
+    transform: translateY(-50%);
+    transition: transform var(--nc-transition-fast),
+        background var(--nc-transition-fast);
+}
+
+.nc-switch.nc-switch-on {
+    background: color-mix(
+        in srgb,
+        var(--nc-accent) 42%,
+        transparent
+    ) !important;
+    border-color: color-mix(in srgb, var(--nc-accent) 55%, transparent);
+}
+
+.nc-switch.nc-switch-on .nc-switch-knob {
+    background: var(--nc-accent);
+    transform: translate(18px, -50%);
+}
+
+.nc-switch:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* ── How often it comes back ─────────────────────────────────
+   One line saying what the rule is — "Once" when there is none — and pressing
+   it opens the answers over the sheet. */
+
+.nc-panel-row-repeat .nc-repeat-trigger {
+    flex: 1;
+    min-width: 0;
+    padding: 2px 0;
+    border: none;
+    background: transparent !important;
+    box-shadow: none !important;
+    font: inherit;
+    font-size: 13px;
+    color: var(--nc-text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+
+.nc-panel-row-repeat .nc-repeat-trigger:disabled {
+    cursor: default;
+    color: var(--nc-text-secondary);
+}
+
+/* One from a short list, over what raised it. Same surface as the recurring
+   scope dialog below, which asks the same shape of question. */
+.nc-choice-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.34);
+}
+
+.nc-choice-dialog {
+    display: flex;
+    flex-direction: column;
+    width: min(320px, 100%);
+    padding: 10px 6px;
+    border: 1px solid var(--nc-border);
+    border-radius: 16px;
+    background: var(--background-secondary, var(--nc-bg-secondary, #1e1e2e));
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.nc-choice-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 44px;
+    padding: 2px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--nc-text-primary, var(--text-normal));
+    cursor: pointer;
+}
+
+.nc-choice-option:hover {
+    background: var(--nc-bg-hover);
+}
+
+.nc-choice-option input[type="radio"] {
+    accent-color: var(--nc-accent);
+    width: 18px;
+    height: 18px;
+    flex: none;
+    margin: 0;
+    cursor: pointer;
+}
+
+/* ── The three kinds, under the title ────────────────────────
+   No icon and no label: the row is three words, and which one is lit says the
+   whole thing. */
+.nc-panel-row.nc-panel-row-kind {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.nc-panel-row-kind .nc-type-group {
+    margin-left: 0;
+}
+
+/* ── "This one, or all of them?" ─────────────────────────────
+   Asked on the way out of a series' occurrence, over the panel that raised it.
+   Above the event sheet on a phone (z-index 200) and the timezone sheets
+   (1200), because it is the answer to a question the panel is holding. */
+
+.nc-scope-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    /* Ce voile s'ajoute a celui de la feuille d'evenement qu'il couvre : deux
+       noirs empiles pour une question, c'est un de trop. */
+    background: rgba(0, 0, 0, 0.34);
+}
+
+.nc-scope-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: min(360px, 100%);
+    padding: 20px;
+    border: 1px solid var(--nc-border);
+    border-radius: 18px;
+    /* La variable Obsidian d'abord : sur Android les --nc-* sont laissées vides
+       exprès (c'est ce qui laisse passer le fond d'écran ailleurs), et une
+       surface qui doit couvrir ne peut pas s'appuyer dessus. */
+    background: var(--background-secondary, var(--nc-bg-secondary, #1e1e2e));
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.nc-scope-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-scope-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nc-scope-choice {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 40px;
+    padding: 2px 4px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--nc-text-primary, var(--text-normal));
+    cursor: pointer;
+}
+
+.nc-scope-choice:hover {
+    background: var(--nc-bg-hover);
+}
+
+.nc-scope-choice input[type="radio"] {
+    accent-color: var(--nc-accent);
+    width: 18px;
+    height: 18px;
+    flex: none;
+    margin: 0;
+    cursor: pointer;
+}
+
+.nc-scope-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.nc-scope-btn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--nc-accent);
+    background: transparent !important;
+    box-shadow: none !important;
+    cursor: pointer;
+}
+
+.nc-scope-btn:hover {
+    background: var(--nc-bg-hover) !important;
 }
 
 .nc-panel-subrow {

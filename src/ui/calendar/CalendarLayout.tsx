@@ -275,8 +275,12 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
 
     // On Android the drawer follows the finger, and closing it plays the
     // opening backwards instead of cutting to nothing.
+    //
+    // It stops listening while the events panel is over it: both are pushed
+    // back the same way, from the same edge, and a drag meant for the panel on
+    // top would otherwise move the drawer underneath it at the same time.
     const drawerSwipe = useDrawerSwipe({
-        enabled: isAndroidRuntime(),
+        enabled: isAndroidRuntime() && !panelMounted,
         isOpen: sidebarVisible,
         onOpenChange: (open) => {
             if (open !== sidebarVisible) onToggleSidebar();
@@ -287,7 +291,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         <div
             className={`nc-layout${
                 sidebarVisible ? " nc-layout--sidebar-open" : ""
-            }`}
+            }${panelOpen ? " nc-layout--panel-open" : ""}`}
         >
             {sidebarVisible && (
                 <button
@@ -345,9 +349,10 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                     onEventClick={onPanelEventClick}
                     onClose={onCloseEventsPanel}
                     /* Back to where this panel was opened from. On the phone a
-                       calendar is reached through the drawer, so closing the
-                       panel to a bare grid loses the place you were in — the
-                       list you were picking from. */
+                       calendar is reached through the drawer, which stays open
+                       underneath: sliding this panel off its edge uncovers the
+                       list it was picked from, rather than a bare grid. The
+                       drawer is only re-opened if something else closed it. */
                     onBack={() => {
                         onCloseEventsPanel();
                         if (!sidebarVisible) onToggleSidebar();

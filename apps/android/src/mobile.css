@@ -394,7 +394,7 @@ body.nc-platform-android .nc-timegrid-hour-label {
 body.nc-platform-android .nc-event-block {
     min-width: 0;
     padding: 4px 5px;
-    border-left-width: 2px;
+    padding-left: calc(var(--nc-event-accent-width) + 5px);
     border-radius: 6px;
     font-size: 12px;
 }
@@ -410,6 +410,196 @@ body.nc-platform-android .nc-main-scroller {
 }
 
 /* â”€â”€ Event editor as a native-feeling bottom sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+/* ── Le bloc date/heure, resserré ────────────────────────────
+ *
+ * La ligne des heures étalait « 16:00 → 16:30 30 min » sur toute la largeur du
+ * panneau, l'icône flottait un cran trop à droite et deux crans trop bas par
+ * rapport aux autres, et la date en dessous était séparée par un blanc qui ne
+ * disait rien. Les trois se tiennent maintenant : les mêmes éléments, dans le
+ * même ordre, simplement rapprochés — sans se toucher.
+ */
+body.nc-platform-android .nc-panel-row-icon {
+    width: 22px;
+    margin-top: 1px;
+}
+
+body.nc-platform-android .nc-panel-time-row {
+    gap: 6px;
+}
+
+body.nc-platform-android .nc-panel-time-input {
+    padding: 1px 2px;
+    margin: -1px -2px;
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-panel-duration {
+    margin-left: 4px;
+    font-size: 12.5px;
+}
+
+body.nc-platform-android .nc-panel-row-content {
+    gap: 2px;
+}
+
+body.nc-platform-android .nc-panel-date-line {
+    gap: 4px;
+}
+
+/* ── Le type, sous le titre ──────────────────────────────────
+   Trois pastilles pleine chair : c'est la première chose que dit la fiche. */
+body.nc-platform-android .nc-panel-row-kind {
+    padding-top: 4px;
+    padding-bottom: 10px;
+}
+
+body.nc-platform-android .nc-panel-row-kind .nc-type-pill {
+    min-height: 34px;
+    padding: 6px 16px;
+    font-size: 13.5px;
+}
+
+/* Interrupteur et ligne de répétition, à la taille du pouce. */
+body.nc-platform-android .nc-switch {
+    width: 50px;
+    height: 30px;
+}
+
+body.nc-platform-android .nc-switch-knob {
+    width: 22px;
+    height: 22px;
+}
+
+body.nc-platform-android .nc-switch.nc-switch-on .nc-switch-knob {
+    transform: translate(20px, -50%);
+}
+
+body.nc-platform-android .nc-panel-row-repeat .nc-repeat-trigger,
+body.nc-platform-android .nc-panel-row-allday .nc-panel-row-label {
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-choice-dialog {
+    width: min(360px, 100%);
+    padding: 12px 8px;
+    border-radius: 20px;
+    background: var(--background-secondary, #1a1d29) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55) !important;
+}
+
+body.nc-platform-android .nc-choice-option {
+    min-height: 50px;
+    font-size: 15px;
+}
+
+body.nc-platform-android .nc-choice-option input[type="radio"] {
+    width: 20px;
+    height: 20px;
+}
+
+/* ── The repeat, sized for a finger ──────────────────────────
+   The block was drawn for a mouse: 12px words to press, 13px radios to hit and
+   fields half the height of everything else on this sheet. Same layout, same
+   order — every target simply grows to what a thumb needs. */
+
+body.nc-platform-android .nc-recur-summary {
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-recur-presets {
+    gap: 8px;
+}
+
+body.nc-platform-android .nc-recur-presets .nc-chip {
+    min-height: 34px;
+    padding: 6px 14px;
+    font-size: 13.5px;
+}
+
+body.nc-platform-android .nc-recur-custom {
+    gap: 14px;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+body.nc-platform-android .nc-recur-interval,
+body.nc-platform-android .nc-recur-end {
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-recur-end label {
+    min-height: 38px;
+    gap: 10px;
+}
+
+body.nc-platform-android .nc-recur-end input[type="radio"] {
+    width: 20px;
+    height: 20px;
+}
+
+body.nc-platform-android .nc-recur-num,
+body.nc-platform-android .nc-panel-date-trigger {
+    height: 36px;
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-recur-num {
+    width: 60px;
+}
+
+/* The question asked on the way out of one day of a series. A phone gets the
+   dialog wide, its choices tall, and its two answers where a thumb is. */
+/*
+ * Opaque, et sur un voile plus clair.
+ *
+ * `--nc-bg-secondary` est laissé VIDE sur cette plateforme, exprès : c'est ce
+ * qui laisse le fond d'écran traverser les surfaces qui le doivent. Nommer la
+ * variable ici ne peignait donc rien du tout — le dialogue était transparent,
+ * et on lisait la grille et la feuille d'événement au travers de la question
+ * qu'il posait. C'est la variable Obsidian qu'il faut nommer, comme le fait
+ * déjà tout ce qui doit couvrir sur ce téléphone.
+ *
+ * Le voile derrière, lui, s'ajoutait à celui de la feuille et à celui du
+ * tiroir : trois noirs empilés pour une question. Il s'allège d'autant.
+ */
+body.nc-platform-android .nc-scope-overlay {
+    background: rgba(0, 0, 0, 0.32);
+}
+
+body.nc-platform-android .nc-scope-dialog {
+    width: min(420px, 100%);
+    padding: 22px;
+    border-radius: 22px;
+    background: var(--background-secondary, #1a1d29) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55) !important;
+}
+
+body.nc-platform-android .nc-scope-title {
+    font-size: 17px;
+}
+
+body.nc-platform-android .nc-scope-choice {
+    min-height: 48px;
+    font-size: 15px;
+}
+
+body.nc-platform-android .nc-scope-choice input[type="radio"] {
+    width: 20px;
+    height: 20px;
+}
+
+body.nc-platform-android .nc-scope-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 15px;
+}
 
 body.nc-platform-android .nc-event-popup {
     left: max(8px, var(--nc-mobile-safe-left)) !important;
@@ -576,6 +766,14 @@ body.nc-platform-android .nc-panel-date-btn,
 body.nc-platform-android .nc-panel-date-trigger {
     min-height: 44px;
     font-size: 16px;
+}
+
+/* Sauf la description : sa hauteur est écrite ligne à ligne par la rangée
+   elle-même, et un plancher de 44px lui donnait quatre lignes de vide à
+   remplir. Déclarée après le groupe qu'elle corrige, à spécificité égale. */
+body.nc-platform-android .nc-panel-textarea {
+    min-height: 0;
+    font-size: 15px;
 }
 
 body.nc-platform-android .nc-context-menu {
@@ -1153,11 +1351,33 @@ body.nc-platform-android .nc-timegrid-slot-line.nc-half {
     border-color: rgba(155, 160, 185, 0.06) !important;
 }
 
+/*
+ * An event, off the line it belongs to.
+ *
+ * A block was laid flush against its column's left edge, which is where that
+ * column draws its 1px rule: the colour strip landed ON the line, and its
+ * rounded ends were read as cut off by it. It is held clear of the line now —
+ * the gap is taken from the 16px the block already leaves on its right, so the
+ * event keeps its width and simply sits inside its day instead of against it.
+ *
+ * The strip is wider here than on a desktop, for the reason everything else on
+ * this platform is: it is looked at from arm's length, on a bar a third of the
+ * height, and 3px of colour at that size is a hairline.
+ */
 body.nc-platform-android .nc-event-block {
+    --nc-event-accent-width: 4px !important;
+    margin-left: 4px !important;
     padding: 5px 7px !important;
-    border-left-width: 3px !important;
-    border-radius: 7px !important;
+    padding-left: calc(var(--nc-event-accent-width) + 7px) !important;
+    border-radius: 8px !important;
     box-shadow: 0 5px 14px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* The frame that shows where a dragged event will land steps aside with it, so
+   the landing is drawn where the block will actually be. */
+body.nc-platform-android .nc-drop-preview {
+    margin-left: 4px !important;
+    border-radius: 8px !important;
 }
 
 /* Native-feeling drawer: view span at the top, calendars below. */
@@ -4264,21 +4484,23 @@ body.nc-platform-android .nc-timegrid-header-date:not(.nc-today-date) {
 
 /* === NEO ANDROID DRAWER GESTURE V10 END === */
 
-/* ── Calendar events panel, sliding in from the right ────────
-   Same movement as on a desktop, where it opens as a second column beside the
-   calendar. A phone has no room to share, so it covers instead — but it slides
-   the same way, from the same edge, so the two platforms teach the same thing.
+/* ── Calendar events panel, sliding in from the left ─────────
+   It is opened from the drawer, one calendar at a time, so it arrives by the
+   same edge and sits directly ON TOP of it — same width, same side. Closing it
+   slides it back the way it came and uncovers the list it was chosen from,
+   which is what a phone's back gesture means everywhere else.
 
-   It leaves a strip of calendar showing, exactly as the drawer does on the
-   opposite edge, and that strip closes it. That strip is also why this is not a
-   full-width panel: the reason it was switched off on Android was a list with no
-   way out, and one control is one too few to depend on. */
+   It leaves a strip of calendar showing, exactly as the drawer does, and that
+   strip closes it. That strip is also why this is not a full-width panel: the
+   reason it was switched off on Android was a list with no way out, and one
+   control is one too few to depend on. */
 
 body.nc-platform-android .nc-cep-slot {
     position: fixed;
     inset: 0;
     width: auto !important;
-    z-index: 60;
+    /* Above the drawer (90), which stays open underneath it. */
+    z-index: 95;
     pointer-events: none;
 }
 
@@ -4305,25 +4527,36 @@ body.nc-platform-android .nc-cep-slot.nc-cep-open .nc-cep-backdrop {
 body.nc-platform-android .nc-cep-slot .nc-cep {
     position: absolute;
     top: 0;
-    right: 0;
+    left: 0;
     bottom: 0;
-    /* Mirrors the drawer's own width on the other edge. */
-    width: min(360px, 88vw);
+    /* The drawer's own width: the two are the same panel, one over the other,
+       and a mismatch would leave a sliver of the drawer showing down the side. */
+    width: var(--nc-android-drawer-width);
     max-height: none;
     border-radius: 0;
-    border-left: 1px solid rgba(255, 255, 255, 0.07);
-    box-shadow: -20px 0 50px rgba(0, 0, 0, 0.38);
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.38);
     pointer-events: auto;
     display: flex;
     flex-direction: column;
     touch-action: pan-y;
-    transform: translate3d(100%, 0, 0);
+    transform: translate3d(-100%, 0, 0);
     transition: transform 260ms cubic-bezier(0.2, 0, 0, 1);
     will-change: transform;
 }
 
 body.nc-platform-android .nc-cep-slot.nc-cep-open .nc-cep {
     transform: translate3d(0, 0, 0);
+}
+
+/* Only one veil over the calendar at a time.
+   The drawer dims the grid while it is out, and this panel's own backdrop dims
+   everything it does not cover. Both at once darkened the strip of calendar
+   beside the panel to nearly black — and that strip is the way out. The
+   drawer's share fades back in by itself as the panel slides off it.
+   Declared after the rule it overrides, which it matches for specificity. */
+body.nc-platform-android .nc-layout--panel-open .nc-main {
+    --nc-drawer-dim: 0;
 }
 
 /* The status bar is what used to hide the top of this header. This padding is

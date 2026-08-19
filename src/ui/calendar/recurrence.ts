@@ -1,6 +1,8 @@
 import { RRule, rrulestr, Weekday, Options } from "rrule";
 import { DateTime } from "luxon";
 import { NeoEvent } from "../../types";
+import { formatDateLong } from "./EventPanel.helpers";
+import { t, tList } from "../i18n";
 
 export type DayCode = "U" | "M" | "T" | "W" | "R" | "F" | "S";
 export type Freq = "daily" | "weekly" | "monthly" | "yearly";
@@ -232,15 +234,83 @@ export function recurrenceToEventFields(
 
 // ─── Task 5: summary text + presets ──────────────────────────────────────────
 
+/** The names the summary reads a repeat out with, in the calendar's language. */
+const FREQ_EVERY: Record<Freq, string> = {
+    daily: "Every day",
+    weekly: "Every week",
+    monthly: "Every month",
+    yearly: "Every year",
+};
+
+const FREQ_EVERY_N: Record<Freq, string> = {
+    daily: "every {n} days",
+    weekly: "every {n} weeks",
+    monthly: "every {n} months",
+    yearly: "every {n} years",
+};
+
+/** Spelled out, and cased for the middle of a sentence: French writes its days
+    in lower case, English does not, so the list carries the difference. */
+const dayNames = () =>
+    tList("days.long", [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+    ]);
+
+/**
+ * The repeat, read back as a sentence.
+ *
+ * It used to be rrule's own `toText()`, which speaks English and only English:
+ * a French calendar answered "every day until August 30, 2026" in the middle of
+ * its own wording. The rule is small enough to say out loud from its own parts,
+ * and saying it here is what lets it be said in the language the calendar is
+ * set to.
+ */
 export function recurrenceSummary(
     state: RecurrenceState,
-    startDateISO: string
+    /** Kept in the signature: every caller has one, and a rule that reads its
+        start date back — "every month on the 12th" — would need it. */
+    _startDateISO?: string
 ): string {
-    try {
-        return rrulestr(recurrenceToRRule(state, startDateISO)).toText();
-    } catch {
-        return "";
+    const interval = Math.max(1, state.interval || 1);
+    const parts: string[] = [
+        interval === 1
+            ? t(FREQ_EVERY[state.freq])
+            : t(FREQ_EVERY_N[state.freq]).replace("{n}", String(interval)),
+    ];
+
+    if (state.freq === "weekly" && state.byDay.length) {
+        const names = dayNames();
+        const days = DAY_ORDER.filter((code) => state.byDay.includes(code)).map(
+            (code) => names[DAY_ORDER.indexOf(code)]
+        );
+        parts.push(t("on {days}").replace("{days}", days.join(", ")));
     }
+
+    if (state.end.kind === "until" && state.end.date) {
+        parts.push(
+            t("until {date}").replace("{date}", formatDateLong(state.end.date))
+        );
+    }
+    if (state.end.kind === "count") {
+        parts.push(
+            t("{n} times").replace("{n}", String(Math.max(1, state.end.count)))
+        );
+    }
+
+    // The day list belongs to the frequency it qualifies; an end condition is
+    // a second statement about it, and reads as one.
+    const head = parts.slice(0, state.freq === "weekly" ? 2 : 1).join(" ");
+    const tail = parts.slice(state.freq === "weekly" ? 2 : 1);
+    const sentence = tail.length ? `${head}, ${tail.join(", ")}` : head;
+    // "every 2 weeks" is written for the middle of a sentence, and here it
+    // starts one.
+    return sentence.charAt(0).toLocaleUpperCase() + sentence.slice(1);
 }
 
 export type PresetKey = "daily" | "weekly" | "monthly" | "yearly" | "custom";

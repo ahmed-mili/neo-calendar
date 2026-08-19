@@ -9,12 +9,12 @@ import {
 const WIDTH = 300;
 
 describe("calendarPanelSwipeProgress", () => {
-    it("follows a rightward drag proportionally", () => {
+    it("follows a leftward drag proportionally", () => {
         expect(
             calendarPanelSwipeProgress({
                 startProgress: 0,
-                startX: 100,
-                currentX: 190,
+                startX: 190,
+                currentX: 100,
                 panelWidth: WIDTH,
             })
         ).toBeCloseTo(0.3);
@@ -24,27 +24,27 @@ describe("calendarPanelSwipeProgress", () => {
         expect(
             calendarPanelSwipeProgress({
                 startProgress: 0.4,
-                startX: 100,
-                currentX: 130,
+                startX: 130,
+                currentX: 100,
                 panelWidth: WIDTH,
             })
         ).toBeCloseTo(0.5);
     });
 
-    it("clamps leftward movement and overshoot", () => {
+    it("clamps rightward movement and overshoot", () => {
         expect(
             calendarPanelSwipeProgress({
                 startProgress: 0,
                 startX: 100,
-                currentX: 0,
+                currentX: 200,
                 panelWidth: WIDTH,
             })
         ).toBe(0);
         expect(
             calendarPanelSwipeProgress({
                 startProgress: 0.8,
-                startX: 100,
-                currentX: 300,
+                startX: 300,
+                currentX: 100,
                 panelWidth: WIDTH,
             })
         ).toBe(1);
@@ -53,9 +53,9 @@ describe("calendarPanelSwipeProgress", () => {
 
 describe("calendarPanelVisualProgress", () => {
     it("reads open, partial and closed composited positions", () => {
-        expect(calendarPanelVisualProgress(400, 400, WIDTH)).toBe(0);
-        expect(calendarPanelVisualProgress(550, 400, WIDTH)).toBe(0.5);
-        expect(calendarPanelVisualProgress(700, 400, WIDTH)).toBe(1);
+        expect(calendarPanelVisualProgress(0, WIDTH)).toBe(0);
+        expect(calendarPanelVisualProgress(-150, WIDTH)).toBe(0.5);
+        expect(calendarPanelVisualProgress(-300, WIDTH)).toBe(1);
     });
 });
 
@@ -78,11 +78,11 @@ describe("shouldCloseCalendarPanel", () => {
         ).toBe(false);
     });
 
-    it("accepts a short fast flick to the right", () => {
+    it("accepts a short fast flick to the left", () => {
         expect(
             shouldCloseCalendarPanel({
                 progress: 0.1,
-                velocity: PANEL_SWIPE_VELOCITY_THRESHOLD + 0.01,
+                velocity: -PANEL_SWIPE_VELOCITY_THRESHOLD - 0.01,
             })
         ).toBe(true);
     });
@@ -91,7 +91,7 @@ describe("shouldCloseCalendarPanel", () => {
         expect(
             shouldCloseCalendarPanel({
                 progress: 0.8,
-                velocity: -PANEL_SWIPE_VELOCITY_THRESHOLD - 0.01,
+                velocity: PANEL_SWIPE_VELOCITY_THRESHOLD + 0.01,
             })
         ).toBe(false);
     });

@@ -18,6 +18,13 @@ interface Gesture {
     dragging: boolean;
 }
 
+/**
+ * How far the panel has been pushed off, from 0 (fully open) to 1 (gone).
+ *
+ * The panel leaves by the left edge, over the drawer it was opened from, so
+ * progress grows as the finger travels LEFT — the same direction, and the same
+ * reading, as pushing the drawer itself back.
+ */
 export function calendarPanelSwipeProgress({
     startProgress,
     startX,
@@ -32,17 +39,18 @@ export function calendarPanelSwipeProgress({
     if (panelWidth <= 0) return 0;
     return Math.min(
         1,
-        Math.max(0, startProgress + (currentX - startX) / panelWidth)
+        Math.max(0, startProgress + (startX - currentX) / panelWidth)
     );
 }
 
+/** Reads the composited position when a gesture interrupts a settle. Open, the
+    panel's left edge sits at 0; gone, a full width to the left of it. */
 export function calendarPanelVisualProgress(
-    panelRight: number,
-    viewportWidth: number,
+    panelLeft: number,
     panelWidth: number
 ): number {
     if (panelWidth <= 0) return 0;
-    return Math.min(1, Math.max(0, (panelRight - viewportWidth) / panelWidth));
+    return Math.min(1, Math.max(0, -panelLeft / panelWidth));
 }
 
 export function shouldCloseCalendarPanel({
@@ -52,8 +60,8 @@ export function shouldCloseCalendarPanel({
     progress: number;
     velocity: number;
 }): boolean {
-    if (velocity > PANEL_SWIPE_VELOCITY_THRESHOLD) return true;
-    if (velocity < -PANEL_SWIPE_VELOCITY_THRESHOLD) return false;
+    if (velocity < -PANEL_SWIPE_VELOCITY_THRESHOLD) return true;
+    if (velocity > PANEL_SWIPE_VELOCITY_THRESHOLD) return false;
     return progress > PANEL_SWIPE_CLOSE_THRESHOLD;
 }
 
@@ -108,7 +116,7 @@ export function useCalendarEventsPanelSwipe({
             const backdrop = backdropRef.current;
             if (panel) {
                 panel.style.transform =
-                    "translate3d(" + progress * width + "px, 0, 0)";
+                    "translate3d(" + -progress * width + "px, 0, 0)";
             }
             if (backdrop) backdrop.style.opacity = String(1 - progress);
         };
@@ -139,8 +147,7 @@ export function useCalendarEventsPanelSwipe({
             const width = panelWidth();
             const progress = panel
                 ? calendarPanelVisualProgress(
-                      panel.getBoundingClientRect().right,
-                      window.innerWidth,
+                      panel.getBoundingClientRect().left,
                       width
                   )
                 : 0;
@@ -270,9 +277,10 @@ export function useCalendarEventsPanelSwipe({
 
                 clearSettle();
                 const frozen = freeze();
-                // A leftward gesture belongs to event dragging while the panel
-                // is fully open. It can only reverse a panel already settling.
-                if (dx < 0 && frozen.progress === 0) {
+                // A rightward gesture belongs to event dragging while the panel
+                // is fully open — the grid it drags onto is on that side. It can
+                // only reverse a panel already settling.
+                if (dx > 0 && frozen.progress === 0) {
                     gesture = null;
                     return;
                 }

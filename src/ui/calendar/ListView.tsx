@@ -53,6 +53,13 @@ const MONTH_NAMES_FALLBACK = [
     "December",
 ];
 
+/* The table writes a weekday the way it is read mid-sentence — "toutes les
+   semaines le mardi" — which in French is lowercase. A day heading opens its
+   line, so it opens with a capital. */
+function startOfLine(word: string): string {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 export default function ListView(props: ListViewProps) {
     const {
         events,
@@ -106,7 +113,7 @@ export default function ListView(props: ListViewProps) {
                             }}
                         >
                             <span className="nc-list-day-name">
-                                {dayNames[date.getDay()]}
+                                {startOfLine(dayNames[date.getDay()])}
                             </span>
                             <span className="nc-list-day-date">
                                 {monthNames[date.getMonth()]} {date.getDate()}

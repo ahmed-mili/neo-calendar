@@ -174,6 +174,25 @@ export const PencilIcon = () => (
         />
     </svg>
 );
+/** Une flèche qui revient sur elle-même : redemander ce que le lien dit de lui,
+    quand le réseau n'a pas répondu la première fois. */
+export const ReloadIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path
+            d="M13.2 8a5.2 5.2 0 1 1-1.53-3.68"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+        />
+        <path
+            d="M13.2 2.4v3.1h-3.1"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
 export const FileTextIcon = () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path

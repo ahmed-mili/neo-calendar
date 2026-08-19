@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { DateTime } from "luxon";
 import { NeoEvent } from "../../types";
-import { getTaskStatus, isTask, TaskStatus } from "../tasks";
+import { getTaskStatus, isSeries, isTask, TaskStatus } from "../tasks";
 import { Subtask, readSubtasks, writeSubtasks } from "../tasks/subtasks";
 import type { DraftInfo } from "./EventPanel";
 import {
@@ -114,6 +114,26 @@ export function completedForSeries(isTask: boolean): false | undefined {
     return isTask ? false : undefined;
 }
 
+/**
+ * The status the FORM should show for an event — a series included.
+ *
+ * `getTaskStatus` answers `null` for a series ON PURPOSE: a series is never
+ * finished as a whole, and asking whether it is done is a question that only
+ * one of its days can answer. But the panel is not asking that. It is asking
+ * "is this a task", and for a series the answer is `completed` being present at
+ * all, which is exactly what `isTask` reads.
+ *
+ * Reading a series through `getTaskStatus` is what turned a task into an event
+ * the moment Repeat was pressed: the note was written as a series with its
+ * `completed` intact, the cache handed it back, the sync below read `null` off
+ * it, and the form — now believing it held an ordinary event — dropped the
+ * field on the next save.
+ */
+export function formStatusOf(event: NeoEvent): TaskStatus | null {
+    if (isSeries(event)) return isTask(event) ? "todo" : null;
+    return getTaskStatus(event);
+}
+
 function toISOTime(d: Date): string {
     return (
         DateTime.fromJSDate(d).toISOTime({
@@ -162,6 +182,13 @@ export function useEventFormState({
     const [completedDates, setCompletedDates] = useState<string[] | undefined>(
         undefined
     );
+    // The days this series does NOT happen on, because each of them was taken
+    // out of it and written on its own. Carried through untouched for the same
+    // reason as `completedDates`: `recurrenceToEventFields` builds a rule from
+    // the form alone and hands back an empty list, so a payload that did not
+    // carry these would put every detached day back on the calendar — twice,
+    // beside the copy it was detached into.
+    const [skipDates, setSkipDates] = useState<string[] | undefined>(undefined);
 
     const lastKeyRef = useRef<string | null>(null);
     // Tracks the event's last-seen PERSISTED task status, so the sync effect
@@ -181,7 +208,7 @@ export function useEventFormState({
             if (eventId) {
                 lastKeyRef.current = eventId;
                 prevPersistedStatusRef.current = event
-                    ? getTaskStatus(event)
+                    ? formStatusOf(event)
                     : null;
             }
             return;
@@ -205,6 +232,7 @@ export function useEventFormState({
                 setTaskStatus(getTaskStatus(event));
                 setDue(event.due ?? null);
                 setCompletedDates(undefined);
+                setSkipDates(undefined);
             } else if (event.type === "recurring") {
                 setDate(event.startRecur || "");
                 setStartTime(!event.allDay ? event.startTime || "" : "");
@@ -215,6 +243,7 @@ export function useEventFormState({
                 setTaskStatus(isTask(event) ? "todo" : null);
                 setDue(null);
                 setCompletedDates(event.completedDates);
+                setSkipDates(event.skipDates);
             } else if (event.type === "rrule") {
                 setDate(event.startDate || "");
                 setStartTime(!event.allDay ? event.startTime || "" : "");
@@ -225,6 +254,7 @@ export function useEventFormState({
                 setTaskStatus(isTask(event) ? "todo" : null);
                 setDue(null);
                 setCompletedDates(event.completedDates);
+                setSkipDates(event.skipDates);
             } else {
                 setDate("");
                 setEndDate(undefined);
@@ -237,6 +267,7 @@ export function useEventFormState({
                 setTaskStatus(getTaskStatus(event));
                 setDue((event as { due?: string | null }).due ?? null);
                 setCompletedDates(undefined);
+                setSkipDates(undefined);
             }
 
             const idx = editableCalendars.findIndex(
@@ -264,6 +295,7 @@ export function useEventFormState({
             setSubtasks([]);
             setReminders(undefined);
             setCompletedDates(undefined);
+            setSkipDates(undefined);
 
             const idx = editableCalendars.findIndex(
                 (c) => c.id === currentCalendarId
@@ -285,10 +317,11 @@ export function useEventFormState({
             setSubtasks([]);
             setReminders(undefined);
             setCompletedDates(undefined);
+            setSkipDates(undefined);
         }
 
         lastKeyRef.current = key;
-        prevPersistedStatusRef.current = event ? getTaskStatus(event) : null;
+        prevPersistedStatusRef.current = event ? formStatusOf(event) : null;
     }, [eventId, event, draft, committingDraft]);
 
     // Keep the status pill in sync with the event's PERSISTED status while the
@@ -301,7 +334,7 @@ export function useEventFormState({
     // value transitions to what we already set, making this a no-op.
     useEffect(() => {
         if (!event) return;
-        const persisted = getTaskStatus(event);
+        const persisted = formStatusOf(event);
         if (persisted !== prevPersistedStatusRef.current) {
             prevPersistedStatusRef.current = persisted;
             setTaskStatus(persisted);
@@ -326,8 +359,11 @@ export function useEventFormState({
                       ...recurrenceToEventFields(recurrence, date || ""),
                       completed: completedForSeries(taskStatus !== null),
                       // Ticked occurrences are the series' only record of what
-                      // is done; they must survive an unrelated edit.
+                      // is done, and skipped ones the only record of what has
+                      // been detached from it. Both must survive an edit that
+                      // was about something else entirely.
                       ...(completedDates ? { completedDates } : {}),
+                      ...(skipDates?.length ? { skipDates } : {}),
                   }
                 : date
                 ? {
@@ -358,6 +394,7 @@ export function useEventFormState({
         subtasks,
         reminders,
         completedDates,
+        skipDates,
         description,
     ]);
 

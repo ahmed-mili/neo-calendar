@@ -170,8 +170,10 @@ export default function CalendarEventsPanel({
     });
     const panelRef = React.useRef<HTMLDivElement>(null);
     const backdropRef = React.useRef<HTMLDivElement>(null);
-    // On a phone this slides in from the right over the calendar, the same
-    // movement it makes on a desktop — just covering rather than sharing.
+    // On a phone this slides in from the left, on top of the drawer it was
+    // opened from and by the same edge — the same movement it makes on a
+    // desktop, just covering rather than sharing. Pushing it back uncovers the
+    // list of calendars, which is where it came from.
     const onPhone = isAndroidRuntime();
     const panelSwipe = useCalendarEventsPanelSwipe({
         enabled: onPhone && !!onBack,

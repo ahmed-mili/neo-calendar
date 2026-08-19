@@ -43,6 +43,7 @@ import {
     authorFromOembed,
     canonicalUrlFrom,
     confirmedTarget,
+    resolvedTarget,
     isFrontDoorTitle,
     oembedAnswersFor,
     oembedUrlFor,
@@ -65,6 +66,7 @@ import {
     DotsIcon,
     XIcon,
     PencilIcon,
+    ReloadIcon,
     FileTextIcon,
     ArrowRightIcon,
     GlobeIcon,
@@ -72,11 +74,13 @@ import {
     PhoneIcon,
 } from "./EventPanelIcons";
 import { linkSubtitle } from "./linkFacts";
+import { needsResolving } from "./shareLink";
 import { Toast, ToastMessage } from "./Toast";
 import { t } from "../i18n";
 import { isAndroidRuntime } from "./CalendarUtils";
 import { decideLinkedFileTap, LinkedFileTap } from "./linkedFileTap";
 import { swallowNextClick } from "./swallowNextClick";
+import { RecurringEditScope } from "./recurringEdit";
 
 function getEventPanelPortalTarget(): HTMLElement {
     const isAndroid =
@@ -116,6 +120,10 @@ function ObsidianColorIcon() {
 
 interface PanelHeaderProps {
     isDraft: boolean;
+    /** What the panel is showing, which is what its header says it is. */
+    isTask: boolean;
+    /** The word top-left: a task's own state, or the kind of the entry. */
+    label: string;
     editable: boolean;
     eventId: string | null;
     menuOpen: boolean;
@@ -132,6 +140,8 @@ interface PanelHeaderProps {
 
 export function PanelHeader({
     isDraft,
+    isTask,
+    label,
     editable,
     eventId,
     menuOpen,
@@ -151,7 +161,11 @@ export function PanelHeader({
             ref={headerRef}
             onMouseDown={onHeaderMouseDown}
         >
-            <span className="nc-panel-header-label">{t("Event")}</span>
+            {/* The kind is said by the pills under the title now, so the
+                corner is free for what a task actually wants to say there:
+                whether it is done. An event has no such state and keeps its
+                name. */}
+            <span className="nc-panel-header-label">{label}</span>
             <div className="nc-panel-header-actions">
                 <div className="nc-panel-menu-wrap" ref={menuRef}>
                     <button
@@ -200,7 +214,11 @@ export function PanelHeader({
                                     onClick={onDeleteClick}
                                 >
                                     <TrashIcon size={15} />
-                                    <span>{t("Delete event")}</span>
+                                    <span>
+                                        {isTask
+                                            ? t("Delete task")
+                                            : t("Delete event")}
+                                    </span>
                                 </button>
                             )}
                         </div>
@@ -308,8 +326,6 @@ interface DateRowProps {
     setDate: (v: string) => void;
     setStartTime: (v: string) => void;
     setEndTime: (v: string) => void;
-    toggleAllDay: () => void;
-    toggleRecurring: () => void;
     /** Send this event back to the unscheduled list. Absent on a draft, which
         has no note yet to move anywhere. */
     onClearDate?: () => void;
@@ -631,8 +647,6 @@ export function DateRow({
     setDate,
     setStartTime,
     setEndTime,
-    toggleAllDay,
-    toggleRecurring,
     onClearDate,
     onAutoSave,
 }: DateRowProps) {
@@ -724,27 +738,153 @@ export function DateRow({
                         </>
                     )}
                 </div>
-                {editable && (
-                    <div className="nc-panel-chips">
-                        <button
-                            type="button"
-                            className={`nc-chip ${allDay ? "nc-active" : ""}`}
-                            onClick={toggleAllDay}
-                        >
-                            {t("All-day")}
-                        </button>
-                        <button
-                            type="button"
-                            className={`nc-chip ${
-                                isRecurring ? "nc-active" : ""
-                            }`}
-                            onClick={toggleRecurring}
-                        >
-                            {t("Repeat")}
-                        </button>
-                    </div>
-                )}
             </div>
+        </div>
+    );
+}
+
+// ── All day ────────────────────────────────────────────────
+
+/**
+ * A switch, on a line of its own.
+ *
+ * It was a chip under the times, beside "Repeat", where two settings of quite
+ * different natures shared one row: one says how long the event is, the other
+ * how often it comes back. A switch says what this one is — on or off, now —
+ * and a line of its own says it is about the times above it.
+ */
+export function AllDayRow({
+    allDay,
+    editable,
+    onToggle,
+}: {
+    allDay: boolean;
+    editable: boolean;
+    onToggle: () => void;
+}) {
+    return (
+        <div className="nc-panel-row nc-panel-row-inline nc-panel-row-allday">
+            <span className="nc-panel-row-icon">
+                <ClockIcon />
+            </span>
+            <div className="nc-panel-row-label">{t("All-day")}</div>
+            <button
+                type="button"
+                role="switch"
+                aria-checked={allDay}
+                aria-label={t("All-day")}
+                className={`nc-switch${allDay ? " nc-switch-on" : ""}`}
+                disabled={!editable}
+                onClick={() => editable && onToggle()}
+            >
+                <span className="nc-switch-knob" />
+            </button>
+        </div>
+    );
+}
+
+// ── Repeat ─────────────────────────────────────────────────
+
+/** The five answers offered before anyone has to build a rule by hand. */
+const REPEAT_CHOICES: { key: PresetKey | "once"; label: string }[] = [
+    { key: "once", label: t("Once") },
+    { key: "daily", label: t("Every day") },
+    { key: "weekly", label: t("Every week") },
+    { key: "monthly", label: t("Every month") },
+    { key: "yearly", label: t("Every year") },
+    { key: "custom", label: t("Custom…") },
+];
+
+/**
+ * How often it comes back, said in one line.
+ *
+ * An event that does not repeat says so — "Once" — rather than leaving the
+ * question unanswered until a chip is noticed. Pressing the line opens the six
+ * answers over the sheet, which is where a choice of one from six belongs: as a
+ * row of chips they were five words to read before the one that applied could
+ * be found, and the sixth opened controls that had nowhere to go.
+ */
+export function RepeatRow({
+    isRecurring,
+    currentPreset,
+    summary,
+    editable,
+    onChoose,
+}: {
+    isRecurring: boolean;
+    /** Which of the answers the rule in force amounts to. */
+    currentPreset: PresetKey;
+    /** What the rule says today, when there is one. */
+    summary: string;
+    editable: boolean;
+    onChoose: (key: PresetKey | "once") => void;
+}) {
+    const [open, setOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!open) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+            event.stopPropagation();
+            setOpen(false);
+        };
+        document.addEventListener("keydown", onKey, true);
+        return () => document.removeEventListener("keydown", onKey, true);
+    }, [open]);
+
+    return (
+        <div className="nc-panel-row nc-panel-row-inline nc-panel-row-repeat">
+            <span className="nc-panel-row-icon">
+                <RepeatIcon />
+            </span>
+            <button
+                type="button"
+                className="nc-repeat-trigger"
+                disabled={!editable}
+                onClick={() => editable && setOpen(true)}
+            >
+                {isRecurring && summary ? summary : t("Once")}
+            </button>
+            {open &&
+                ReactDOM.createPortal(
+                    <div
+                        className="nc-choice-overlay"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={t("Repetition")}
+                        onMouseDown={(event) => {
+                            if (event.target === event.currentTarget) {
+                                setOpen(false);
+                            }
+                        }}
+                    >
+                        <div className="nc-choice-dialog">
+                            {REPEAT_CHOICES.map((choice) => (
+                                <label
+                                    className="nc-choice-option"
+                                    key={choice.key}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="nc-repeat-choice"
+                                        checked={
+                                            choice.key === "once"
+                                                ? !isRecurring
+                                                : isRecurring &&
+                                                  choice.key === currentPreset
+                                        }
+                                        onChange={() => {
+                                            setOpen(false);
+                                            onChoose(choice.key);
+                                        }}
+                                    />
+                                    <span>{choice.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>,
+                    getEventPanelPortalTarget()
+                )}
         </div>
     );
 }
@@ -904,10 +1044,6 @@ export function RecurrenceRow({
     setRecurrence,
     onAutoSave,
 }: RecurrenceRowProps) {
-    const [showCustom, setShowCustom] = React.useState(false);
-    const preset = matchPreset(recurrence, startDate);
-    const isCustomOpen = showCustom || preset === "custom";
-    const activeKey = isCustomOpen ? "custom" : preset;
     const update = (patch: Partial<RecurrenceState>) =>
         setRecurrence({ ...recurrence, ...patch });
     const commit = () => onAutoSave();
@@ -927,36 +1063,10 @@ export function RecurrenceRow({
                 <RepeatIcon />
             </span>
             <div className="nc-panel-row-content">
-                <div className="nc-recur-summary">
-                    {recurrenceSummary(recurrence, startDate)}
-                </div>
-
-                <div className="nc-recur-presets">
-                    {PRESETS.map((p) => (
-                        <button
-                            type="button"
-                            key={p.key}
-                            className={`nc-chip ${
-                                activeKey === p.key ? "nc-active" : ""
-                            }`}
-                            onClick={() => {
-                                if (p.key === "custom") {
-                                    setShowCustom(true);
-                                } else {
-                                    setShowCustom(false);
-                                    setRecurrence(
-                                        presetToRecurrence(p.key, startDate)
-                                    );
-                                    onAutoSave();
-                                }
-                            }}
-                        >
-                            {p.label}
-                        </button>
-                    ))}
-                </div>
-
-                {isCustomOpen && (
+                {/* The five ordinary answers live in the picker the repeat row
+                    opens; what is left here is the rule someone is building by
+                    hand, which is the only thing "Custom" ever meant. */}
+                {
                     <div className="nc-recur-custom">
                         <div className="nc-recur-interval">
                             <span>{t("Every")}</span>
@@ -1025,13 +1135,16 @@ export function RecurrenceRow({
                                 options={[
                                     {
                                         value: "dayOfMonth",
-                                        label: `Monthly on day ${Number(
-                                            startDate.slice(8, 10)
-                                        )}`,
+                                        label: t("Monthly on day {n}").replace(
+                                            "{n}",
+                                            String(
+                                                Number(startDate.slice(8, 10))
+                                            )
+                                        ),
                                     },
                                     {
                                         value: "dayOfWeek",
-                                        label: "Monthly on the nth weekday",
+                                        label: t("Monthly on the same weekday"),
                                     },
                                 ]}
                                 onChange={(v) => {
@@ -1055,7 +1168,7 @@ export function RecurrenceRow({
                                         onAutoSave();
                                     }}
                                 />
-                                Never
+                                <span>{t("Never")}</span>
                             </label>
                             <label>
                                 <input
@@ -1072,7 +1185,7 @@ export function RecurrenceRow({
                                         onAutoSave();
                                     }}
                                 />
-                                On
+                                <span>{t("On date")}</span>
                                 <DateField
                                     triggerClassName="nc-panel-date-trigger"
                                     date={
@@ -1109,7 +1222,7 @@ export function RecurrenceRow({
                                         onAutoSave();
                                     }}
                                 />
-                                After
+                                <span>{t("After count")}</span>
                                 <input
                                     type="number"
                                     min={1}
@@ -1133,11 +1246,11 @@ export function RecurrenceRow({
                                     }
                                     onBlur={commit}
                                 />
-                                occurrences
+                                <span>{t("occurrences")}</span>
                             </label>
                         </div>
                     </div>
-                )}
+                }
             </div>
         </div>
     );
@@ -1614,10 +1727,22 @@ export function RemindersRow({
 
 // ── Type row ───────────────────────────────────────────────
 
+/**
+ * What an entry IS, which is a question with three answers now.
+ *
+ * `event` and `task` are stored on the note — a task carries `completed`, an
+ * event does not. `birthday` is not stored and does not need to be: a birthday
+ * is an all-day event that comes back every year on the same date, which the
+ * note already says in full. Reading it back rather than recording it means
+ * every birthday ever written by hand is recognised as one, and nothing has to
+ * be migrated.
+ */
+export type EntryKind = "event" | "task" | "birthday";
+
 interface TypeRowProps {
-    isTask: boolean;
+    kind: EntryKind;
     editable: boolean;
-    setIsTask: (isTask: boolean) => void;
+    setKind: (kind: EntryKind) => void;
 }
 
 /**
@@ -1632,32 +1757,38 @@ interface TypeRowProps {
  * `completed` to `single` and `someday` only), so the panel hides this row for
  * recurring events rather than offering a choice that cannot be saved.
  */
-export function TypeRow({ isTask, editable, setIsTask }: TypeRowProps) {
+const ENTRY_KINDS: { key: EntryKind; label: string }[] = [
+    { key: "event", label: t("Event") },
+    { key: "task", label: t("Task") },
+    { key: "birthday", label: t("Birthday") },
+];
+
+/**
+ * The three kinds, under the title.
+ *
+ * It sits at the top of the sheet now, where the entry says what it is before
+ * it says anything else — the row it used to be, halfway down between the
+ * deadline and the steps, answered a question that had already been answered by
+ * everything above it.
+ */
+export function TypeRow({ kind, editable, setKind }: TypeRowProps) {
     return (
-        <div className="nc-panel-row nc-panel-row-inline">
-            <span className="nc-panel-row-icon">
-                <DocIcon />
-            </span>
-            <div className="nc-panel-row-label">{t("Type")}</div>
+        <div className="nc-panel-row nc-panel-row-kind">
             <div className="nc-type-group" role="group">
-                <button
-                    type="button"
-                    className={`nc-type-pill ${!isTask ? "nc-active" : ""}`}
-                    onClick={() => editable && setIsTask(false)}
-                    disabled={!editable}
-                    aria-pressed={!isTask}
-                >
-                    {t("Event")}
-                </button>
-                <button
-                    type="button"
-                    className={`nc-type-pill ${isTask ? "nc-active" : ""}`}
-                    onClick={() => editable && setIsTask(true)}
-                    disabled={!editable}
-                    aria-pressed={isTask}
-                >
-                    {t("Task")}
-                </button>
+                {ENTRY_KINDS.map((entry) => (
+                    <button
+                        key={entry.key}
+                        type="button"
+                        className={`nc-type-pill ${
+                            kind === entry.key ? "nc-active" : ""
+                        }`}
+                        onClick={() => editable && setKind(entry.key)}
+                        disabled={!editable}
+                        aria-pressed={kind === entry.key}
+                    >
+                        {entry.label}
+                    </button>
+                ))}
             </div>
         </div>
     );
@@ -2030,6 +2161,7 @@ function LinkedFileRow({
     onRemoveLink,
     onRenameLink,
     searching = false,
+    onReload,
     onCopied,
     openTooltipFor,
     onTooltipOpen,
@@ -2047,6 +2179,8 @@ function LinkedFileRow({
     ) => Promise<void>;
     /** Le titre est encore en route : la ligne le montre plutôt que de mentir. */
     searching?: boolean;
+    /** Redemander au site ce qu'il dit de ce lien. */
+    onReload?: (item: LinkedFileItem) => void;
     /** L'adresse vient d'être copiée — au panneau de le dire à l'écran. */
     onCopied?: () => void;
     /** L'adresse de la ligne dont la bulle est ouverte, s'il y en a une. */
@@ -2381,6 +2515,39 @@ function LinkedFileRow({
                         )}
                     </span>
                 )}
+                {/*
+                 * Redemander au site ce qu'il dit de ce lien.
+                 *
+                 * Le titre et l'adresse canonique se cherchent une fois, au
+                 * moment de l'ajout, avec deux secondes et demie pour répondre.
+                 * Un réseau lent, un site qui fait patienter, et il reste une
+                 * ligne nommée d'après son hôte — et, pour un lien de partage,
+                 * une adresse qui ne porte ni le compte ni la date : c'est
+                 * l'adresse canonique qui les porte, et elle n'est arrivée pour
+                 * aucun des liens ajoutés ce jour-là. Ce bouton refait la
+                 * demande, avec le fichier déjà écrit et rien qui attend.
+                 */}
+                {eventId && onReload && item.kind === "web" && !renaming && (
+                    <button
+                        type="button"
+                        className="nc-linked-file-reload-button"
+                        aria-label={t("Reload this link")}
+                        title={t("Reload this link")}
+                        disabled={searching}
+                        onMouseDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            resetTapTracker();
+                            onReload(item);
+                        }}
+                    >
+                        <ReloadIcon />
+                    </button>
+                )}
                 {eventId && onRenameLink && !renaming && (
                     <button
                         type="button"
@@ -2687,6 +2854,14 @@ export function LinksAttachmentsRow({
                         : null;
             }
 
+            /* Le site n'a rien dit, mais le lien mène quelque part, et c'est
+               là que se lisent le compte et la date : l'adresse d'arrivée est
+               gardée même sans réponse, tant qu'elle nomme un vrai élément du
+               même site (voir resolvedTarget). */
+            if (destination === target) {
+                destination = resolvedTarget(target, resolved);
+            }
+
             return { label: title ? safeLabel(title) : "", destination };
         },
         [onFetchPage, onResolveUrl]
@@ -2706,7 +2881,7 @@ export function LinksAttachmentsRow({
      * n'arrive pas, il reste le crayon.
      */
     const lookUpTitle = React.useCallback(
-        async (id: string, target: string) => {
+        async (id: string, target: string, quiet = false) => {
             if (!onFetchPage || !onRenameLink) return;
             setSearching((current) =>
                 current.includes(target) ? current : [...current, target]
@@ -2716,7 +2891,9 @@ export function LinksAttachmentsRow({
                 if (label || destination !== target) {
                     await onRenameLink(id, target, label, destination);
                 }
-                if (!label) {
+                // Nobody asked for this one: a link the panel looked through
+                // on its own says nothing when it finds nothing.
+                if (!label && !quiet) {
                     setNotice(
                         t(
                             "No title available for this link — you can name it yourself."
@@ -2734,6 +2911,51 @@ export function LinksAttachmentsRow({
         },
         [onFetchPage, onRenameLink, titleFor]
     );
+
+    /*
+     * Les liens qui en cachent un autre se font ouvrir tout seuls.
+     *
+     * Une adresse de partage — `vm.tiktok.com/ZN88…`, `bit.ly/3xYz` — ne dit
+     * rien de ce qu'il y a au bout : ni le compte, ni la date, ni de quoi voir
+     * que deux partages sont la même vidéo. Tout cela se lit dans l'adresse
+     * canonique, et elle se demande une seule fois, à l'ajout, avec deux
+     * secondes et demie pour répondre. Quand ce délai passe — réseau lent, site
+     * qui fait patienter — la note garde le code, et le garde pour toujours.
+     *
+     * Le panneau les rouvre donc lui-même, à l'ouverture de l'événement : un à
+     * la fois pour ne pas partir en rafale, seulement ceux dont l'adresse est
+     * encore un code (voir shareLink), et une seule fois chacun — l'adresse
+     * elle-même est le registre de ce qui a été fait, puisqu'un lien résolu
+     * n'en est plus un.
+     */
+    const sweptRef = React.useRef(new Set<string>());
+    React.useEffect(() => {
+        sweptRef.current = new Set<string>();
+    }, [eventId]);
+
+    React.useEffect(() => {
+        if (!eventId || !onFetchPage || !onRenameLink) return;
+        const pending = items.filter(
+            (item) =>
+                needsResolving(item.target, item.kind) &&
+                !sweptRef.current.has(item.target)
+        );
+        if (!pending.length) return;
+
+        let cancelled = false;
+        for (const item of pending) sweptRef.current.add(item.target);
+
+        void (async () => {
+            for (const item of pending) {
+                if (cancelled) return;
+                await lookUpTitle(eventId, item.target, true);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [eventId, items, lookUpTitle, onFetchPage, onRenameLink]);
 
     const addMarkdown = React.useCallback(
         async (markdown: string) => {
@@ -2844,6 +3066,11 @@ export function LinksAttachmentsRow({
                             onRemoveLink={onRemoveLink}
                             onRenameLink={onRenameLink}
                             searching={searching.includes(item.target)}
+                            onReload={(link) => {
+                                if (!eventId) return;
+                                setNotice(null);
+                                void lookUpTitle(eventId, link.target);
+                            }}
                             openTooltipFor={openTooltipFor}
                             onTooltipOpen={setOpenTooltipFor}
                             onCopied={() =>
@@ -3096,6 +3323,100 @@ export function LinksAttachmentsRow({
     );
 }
 
+// ── "This one, or all of them?" ─────────────────────────────
+
+interface RecurringScopeDialogProps {
+    /** A series of tasks and a series of events are not asked about alike. */
+    isTask: boolean;
+    onCancel: () => void;
+    onConfirm: (scope: RecurringEditScope) => void;
+}
+
+/**
+ * The question a calendar has to ask before writing one day of a series.
+ *
+ * It comes up on the way out, once, holding everything typed since the panel
+ * opened — not on each field, which would put a dialog between a person and
+ * their own typing. "Cancel" hands the panel back with the edit intact.
+ */
+export function RecurringScopeDialog({
+    isTask,
+    onCancel,
+    onConfirm,
+}: RecurringScopeDialogProps) {
+    const [scope, setScope] = React.useState<RecurringEditScope>("occurrence");
+
+    React.useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+            event.stopPropagation();
+            onCancel();
+        };
+        document.addEventListener("keydown", onKey, true);
+        return () => document.removeEventListener("keydown", onKey, true);
+    }, [onCancel]);
+
+    const choices: { value: RecurringEditScope; label: string }[] = [
+        {
+            value: "occurrence",
+            label: isTask ? t("This task") : t("This event"),
+        },
+        {
+            value: "series",
+            label: isTask ? t("All tasks") : t("All events"),
+        },
+    ];
+
+    return ReactDOM.createPortal(
+        <div
+            className="nc-scope-overlay"
+            role="dialog"
+            aria-modal="true"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) onCancel();
+            }}
+        >
+            <div className="nc-scope-dialog">
+                <div className="nc-scope-title">
+                    {isTask
+                        ? t("Save a recurring task")
+                        : t("Save a recurring event")}
+                </div>
+                <div className="nc-scope-choices">
+                    {choices.map((choice) => (
+                        <label className="nc-scope-choice" key={choice.value}>
+                            <input
+                                type="radio"
+                                name="nc-recurring-scope"
+                                checked={scope === choice.value}
+                                onChange={() => setScope(choice.value)}
+                            />
+                            <span>{choice.label}</span>
+                        </label>
+                    ))}
+                </div>
+                <div className="nc-scope-actions">
+                    <button
+                        type="button"
+                        className="nc-scope-btn"
+                        onClick={onCancel}
+                    >
+                        {t("Cancel")}
+                    </button>
+                    <button
+                        type="button"
+                        className="nc-scope-btn nc-scope-btn-primary"
+                        onClick={() => onConfirm(scope)}
+                    >
+                        {t("Save")}
+                    </button>
+                </div>
+            </div>
+        </div>,
+        getEventPanelPortalTarget()
+    );
+}
+
 // ── Description row ────────────────────────────────────────
 
 interface DescriptionRowProps {
@@ -3111,17 +3432,38 @@ export function DescriptionRow({
     setDescription,
     onCommit,
 }: DescriptionRowProps) {
+    const fieldRef = React.useRef<HTMLTextAreaElement>(null);
+
+    /*
+     * One line until there is more than one line to show.
+     *
+     * The field stood four lines tall whether it held four lines or none, with
+     * "Empty" written in the middle of them — a box of nothing, on a sheet
+     * where every other row is a line. It starts as a line now and grows by
+     * exactly what is typed: the wrap of a long sentence, or the return key
+     * pressed on purpose.
+     */
+    React.useLayoutEffect(() => {
+        const field = fieldRef.current;
+        if (!field) return;
+        field.style.height = "auto";
+        field.style.height = `${field.scrollHeight}px`;
+    }, [description]);
+
     return (
         <div className="nc-panel-row nc-panel-row-desc">
             <span className="nc-panel-row-icon">
                 <LinesIcon />
             </span>
             <div className="nc-panel-row-content">
-                <div className="nc-panel-row-label">{t("Description")}</div>
                 <textarea
+                    ref={fieldRef}
+                    rows={1}
                     className="nc-panel-textarea"
                     value={description}
-                    placeholder={t("Empty")}
+                    /* An empty row that says what it is FOR beats one that
+                       says it is empty, which was visible already. */
+                    placeholder={t("Add a description")}
                     onChange={(e) => setDescription(e.target.value)}
                     onBlur={onCommit}
                     readOnly={!editable}

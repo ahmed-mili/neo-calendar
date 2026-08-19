@@ -27,7 +27,9 @@ const FR: Record<string, string> = {
     // same whatever locale the machine happens to be set to.
     "days.short": "dim.,lun.,mar.,mer.,jeu.,ven.,sam.",
     "days.min": "di,lu,ma,me,je,ve,sa",
-    "days.long": "Dimanche,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi",
+    // Écrits en toutes lettres pour le résumé d'une répétition — « toutes les
+    // semaines le mardi » — où le jour est au milieu d'une phrase.
+    "days.long": "dimanche,lundi,mardi,mercredi,jeudi,vendredi,samedi",
     "months.short":
         "janv.,févr.,mars,avr.,mai,juin,juil.,août,sept.,oct.,nov.,déc.",
     "months.long":
@@ -92,6 +94,15 @@ const FR: Record<string, string> = {
     "All day": "Toute la journée",
     "All-day": "Toute la journée",
     Repeat: "Répéter",
+    // La ligne de répétition et le choix qu'elle ouvre : un événement qui ne se
+    // répète pas le dit lui aussi, plutôt que de ne rien dire du tout.
+    // (« Tous les jours », « Toutes les semaines »… sont déjà plus bas, avec le
+    // résumé d'une répétition qui les emploie dans la même acception.)
+    Once: "Une seule fois",
+    "Custom…": "Personnalisé…",
+    Repetition: "Répétition",
+    // Le troisième type : une date qui revient chaque année, toute la journée.
+    Birthday: "Anniversaire",
     "Start of the series": "Début de la série",
     "Starting now": "Ça commence",
     Reminders: "Rappels",
@@ -112,6 +123,24 @@ const FR: Record<string, string> = {
     From: "De",
     To: "À",
     Ends: "Fin",
+    // Les trois fins possibles d'une répétition, et le résumé qui les relit.
+    Never: "Jamais",
+    "On date": "Le",
+    "After count": "Après",
+    occurrences: "occurrences",
+    "Every day": "Tous les jours",
+    "Every week": "Toutes les semaines",
+    "Every month": "Tous les mois",
+    "Every year": "Tous les ans",
+    "every {n} days": "tous les {n} jours",
+    "every {n} weeks": "toutes les {n} semaines",
+    "every {n} months": "tous les {n} mois",
+    "every {n} years": "tous les {n} ans",
+    "on {days}": "le {days}",
+    "until {date}": "jusqu'au {date}",
+    "{n} times": "{n} fois",
+    "Monthly on day {n}": "Le {n} de chaque mois",
+    "Monthly on the same weekday": "Le même jour de la semaine chaque mois",
     Period: "Période",
     "Custom period": "Période personnalisée",
     Custom: "Personnalisé",
@@ -125,6 +154,7 @@ const FR: Record<string, string> = {
     "year(s)": "an(s)",
     Status: "Statut",
     "To do": "À faire",
+    Done: "Fait",
     Complete: "Terminé",
     // The event/task choice in the panel. `Event` is already spelled out above.
     Type: "Type",
@@ -167,6 +197,15 @@ const FR: Record<string, string> = {
         "entrées ont une heure de début et une heure de fin, ce qui est la forme d'un événement et non d'une tâche. Elles perdront leur case à cocher. Les tâches sur toute la journée et celles déjà terminées ne sont pas touchées.",
     Description: "Description",
     Empty: "Vide",
+    "Add a description": "Ajouter une description",
+    // La question posée en quittant le panneau après avoir modifié un jour
+    // d'une série : cette occurrence seule, ou toute la série.
+    "Save a recurring event": "Enregistrer un événement récurrent",
+    "Save a recurring task": "Enregistrer une tâche récurrente",
+    "This event": "Cet événement",
+    "All events": "Tous les événements",
+    "This task": "Cette tâche",
+    "All tasks": "Toutes les tâches",
     Date: "Date",
     "Pick a date": "Choisir une date",
     "Change time zone": "Changer de fuseau horaire",
@@ -201,7 +240,9 @@ const FR: Record<string, string> = {
     "View note": "Ouvrir la note",
     "Available once the event is created":
         "Disponible une fois l'événement créé",
+    "Reload this link": "Recharger ce lien",
     "Delete event": "Supprimer l'événement",
+    "Delete task": "Supprimer la tâche",
     "Click again to confirm": "Cliquer à nouveau pour confirmer",
     Untitled: "Sans titre",
     "Back to calendars": "Retour aux calendriers",
