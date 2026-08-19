@@ -21,6 +21,8 @@ export interface DisplayEvent {
     isTask: boolean;
     taskCompleted: boolean | string; // false | ISO date string
     taskStatus: TaskStatus; // "todo" | "complete"
+    /** Minutes before the start to be reminded; absent means the setting decides. */
+    reminders?: number[];
     // Recurrence
     isRecurring: boolean;
     rrule?: string;

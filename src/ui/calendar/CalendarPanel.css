@@ -1299,6 +1299,157 @@
     color: var(--nc-accent);
 }
 
+/* ── Reminders field ────────────────────────────────────────────────────
+   Une boite pleine largeur plutot qu'une ligne etiquetee : la cloche et le
+   mot « Rappels » disent ce qu'elle contient tant qu'elle est vide, et les
+   rappels eux-memes le disent des qu'il y en a. Mesures relevees sur la
+   reference : hauteur 35 px, rayon 10 px, retrait 14 px, icone 16 px. */
+
+.nc-panel-reminders-row {
+    display: block;
+}
+
+.nc-panel-reminders {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 35px;
+    padding: 6px 14px;
+    border-radius: 10px;
+    background: var(--nc-bg-hover);
+    color: var(--nc-text-faint);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast), color
+            var(--nc-transition-fast);
+}
+
+.nc-panel-reminders:hover,
+.nc-panel-reminders:focus-visible {
+    background: color-mix(in srgb, var(--nc-text-primary) 11%, transparent);
+    color: var(--nc-text-secondary);
+    outline: none;
+}
+
+.nc-panel-reminders-readonly {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.nc-panel-reminders-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.nc-panel-reminders-placeholder {
+    color: var(--nc-text-faint);
+}
+
+.nc-panel-reminders-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+/* Le delai porte le poids, le mot qui le suit reste en retrait — comme dans
+   le menu, pour que la puce se lise comme l'entree qui l'a posee. */
+.nc-panel-reminder-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px 2px 8px;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--nc-text-primary) 10%, transparent);
+    color: var(--nc-text-primary);
+    font-size: 12.5px;
+    white-space: nowrap;
+}
+
+.nc-panel-reminder-chip strong {
+    font-weight: 600;
+}
+
+.nc-panel-reminder-suffix {
+    color: var(--nc-text-faint);
+}
+
+/* La croix n'apparait que sur la puce pointee : une rangee de croix serait
+   la chose la plus bruyante du panneau (meme regle que les sous-taches). */
+.nc-panel-reminder-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: none;
+    border-radius: 5px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-faint);
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity var(--nc-transition-fast), background
+            var(--nc-transition-fast);
+}
+
+.nc-panel-reminder-chip:hover .nc-panel-reminder-remove,
+.nc-panel-reminder-remove:focus-visible {
+    opacity: 1;
+}
+
+.nc-panel-reminder-remove:hover {
+    background: var(--nc-bg-hover) !important;
+    color: var(--nc-text-primary);
+}
+
+.nc-panel-reminder-remove svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* Le menu des cinq delais : plus aere que le select generique du panneau,
+   comme sur la reference (entrees de 35 px, rayon 12 px). */
+.nc-reminders-menu {
+    padding: 6px;
+    border-radius: 12px;
+}
+
+.nc-reminders-option {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast);
+}
+
+.nc-reminders-option:hover {
+    background: var(--nc-bg-hover) !important;
+}
+
+.nc-reminders-option strong {
+    font-weight: 600;
+}
+
+.nc-reminders-option-suffix {
+    color: var(--nc-text-faint);
+}
+
 .nc-recur-end {
     display: flex;
     flex-direction: column;

@@ -130,6 +130,10 @@ final class ReminderScheduler {
         ensureChannel(context);
 
         String eventId = reminder.optString("id", "");
+        // An event may carry several reminders; they share its id (tapping any
+        // of them opens the same event) and are told apart by their key, so one
+        // does not replace the other in the shade.
+        String key = reminder.optString("key", eventId);
         Intent open = new Intent(context, MainActivity.class);
         open.setAction(Intent.ACTION_VIEW);
         open.putExtra(MainActivity.EXTRA_EVENT_ID, eventId);
@@ -151,8 +155,7 @@ final class ReminderScheduler {
                 context.getSystemService(NotificationManager.class);
         if (manager == null) return;
         try {
-            manager.notify(
-                    eventId.isEmpty() ? index : eventId.hashCode(), notification);
+            manager.notify(key.isEmpty() ? index : key.hashCode(), notification);
         } catch (SecurityException e) {
             // Notifications not granted: nothing to do but stay quiet.
             Log.w(TAG, "Notification refusee", e);

@@ -5,6 +5,7 @@ import { Subtask, subtaskProgress } from "../tasks/subtasks";
 import { CalendarInfo } from "../../types";
 import { DAY_MAP, formatDateLong } from "./EventPanel.helpers";
 import { placeFlyout } from "./flyoutPlacement";
+import { REMINDER_CHOICES, reminderLabelParts } from "./reminderChoices";
 import {
     RecurrenceState,
     Freq,
@@ -52,6 +53,7 @@ import {
 } from "./linkTitle";
 import { BrandIcon } from "./BrandIcons";
 import {
+    BellIcon,
     ClockIcon,
     CalendarIcon,
     CheckIcon,
@@ -1405,6 +1407,207 @@ export function DueRow({
                     {t("Add deadline")}
                 </button>
             )}
+        </div>
+    );
+}
+
+// ── Reminders row ──────────────────────────────────────────
+
+interface RemindersRowProps {
+    reminders: number[] | undefined;
+    editable: boolean;
+    setReminders: (reminders: number[]) => void;
+    onAutoSave: () => void;
+}
+
+/**
+ * When to be told about this event.
+ *
+ * A field rather than a labelled row: it holds a list, and the list is what
+ * names it — a bell and the word "Reminders" while it is empty, the reminders
+ * themselves once there are any. An event carrying none at all falls back to
+ * the reminder set in the settings; one carrying an empty list has asked for
+ * silence, which is why removing the last chip still saves a list.
+ */
+export function RemindersRow({
+    reminders,
+    editable,
+    setReminders,
+    onAutoSave,
+}: RemindersRowProps) {
+    const [open, setOpen] = React.useState(false);
+    const [menuPos, setMenuPos] = React.useState<{
+        top: number | null;
+        bottom: number | null;
+        left: number;
+        minWidth: number;
+        maxHeight: number;
+    } | null>(null);
+    const fieldRef = React.useRef<HTMLDivElement>(null);
+    const menuRef = React.useRef<HTMLDivElement>(null);
+
+    const chosen = reminders ?? [];
+
+    const openMenu = () => {
+        const box = fieldRef.current?.getBoundingClientRect();
+        if (box) {
+            const placement = placeFlyout(box, window.innerHeight, {
+                gap: 4,
+                margin: 12,
+                minHeight: 140,
+            });
+            setMenuPos({
+                top: placement.top,
+                bottom: placement.bottom,
+                left: box.left,
+                minWidth: box.width,
+                maxHeight: placement.maxHeight,
+            });
+        }
+        setOpen(true);
+    };
+
+    React.useEffect(() => {
+        if (!open) return;
+        const onDown = (event: PointerEvent) => {
+            const target = event.target as Node;
+            if (fieldRef.current?.contains(target)) return;
+            if (menuRef.current?.contains(target)) return;
+            setOpen(false);
+        };
+        document.addEventListener("pointerdown", onDown);
+        return () => document.removeEventListener("pointerdown", onDown);
+    }, [open]);
+
+    const toggleMenu = () => {
+        if (!editable) return;
+        if (open) setOpen(false);
+        else openMenu();
+    };
+
+    const add = (minutes: number) => {
+        setOpen(false);
+        if (chosen.includes(minutes)) return;
+        setReminders([...chosen, minutes].sort((a, b) => a - b));
+        onAutoSave();
+    };
+
+    const remove = (minutes: number) => {
+        setReminders(chosen.filter((value) => value !== minutes));
+        onAutoSave();
+    };
+
+    return (
+        <div className="nc-panel-row nc-panel-reminders-row">
+            {/* A div rather than a button: the chips carry their own buttons,
+                and a button inside a button is not a thing. */}
+            <div
+                ref={fieldRef}
+                className={`nc-panel-reminders${
+                    editable ? "" : " nc-panel-reminders-readonly"
+                }`}
+                role="button"
+                tabIndex={editable ? 0 : -1}
+                aria-expanded={open}
+                aria-disabled={editable ? undefined : true}
+                onClick={toggleMenu}
+                onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleMenu();
+                    }
+                }}
+            >
+                <span className="nc-panel-reminders-icon">
+                    <BellIcon />
+                </span>
+                {chosen.length === 0 ? (
+                    <span className="nc-panel-reminders-placeholder">
+                        {t("Reminders")}
+                    </span>
+                ) : (
+                    <span className="nc-panel-reminders-chips">
+                        {chosen.map((minutes) => {
+                            const { amount, suffix } =
+                                reminderLabelParts(minutes);
+                            const label = suffix
+                                ? `${amount} ${suffix}`
+                                : amount;
+                            return (
+                                <span
+                                    className="nc-panel-reminder-chip"
+                                    key={minutes}
+                                >
+                                    <strong>{amount}</strong>
+                                    {suffix && (
+                                        <span className="nc-panel-reminder-suffix">
+                                            {suffix}
+                                        </span>
+                                    )}
+                                    {editable && (
+                                        <button
+                                            type="button"
+                                            className="nc-panel-reminder-remove"
+                                            title={`${t(
+                                                "Remove reminder"
+                                            )} ${label}`}
+                                            aria-label={`${t(
+                                                "Remove reminder"
+                                            )} ${label}`}
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                remove(minutes);
+                                            }}
+                                        >
+                                            <XIcon />
+                                        </button>
+                                    )}
+                                </span>
+                            );
+                        })}
+                    </span>
+                )}
+            </div>
+
+            {open &&
+                menuPos &&
+                ReactDOM.createPortal(
+                    <div
+                        className="nc-select-menu nc-reminders-menu"
+                        role="listbox"
+                        ref={menuRef}
+                        style={{
+                            top: menuPos.top ?? undefined,
+                            bottom: menuPos.bottom ?? undefined,
+                            left: menuPos.left,
+                            minWidth: menuPos.minWidth,
+                            maxHeight: menuPos.maxHeight,
+                        }}
+                    >
+                        {REMINDER_CHOICES.map((minutes) => {
+                            const { amount, suffix } =
+                                reminderLabelParts(minutes);
+                            return (
+                                <button
+                                    type="button"
+                                    key={minutes}
+                                    role="option"
+                                    aria-selected={chosen.includes(minutes)}
+                                    className="nc-reminders-option"
+                                    onClick={() => add(minutes)}
+                                >
+                                    <strong>{amount}</strong>
+                                    {suffix && (
+                                        <span className="nc-reminders-option-suffix">
+                                            {suffix}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>,
+                    getEventPanelPortalTarget()
+                )}
         </div>
     );
 }

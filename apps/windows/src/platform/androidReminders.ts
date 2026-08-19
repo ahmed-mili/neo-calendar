@@ -13,19 +13,46 @@ import { t } from "../../../../src/ui/i18n";
 
 /** Reminders further out than this are not scheduled: the list is rewritten on
     every change anyway, so there is no point carrying months of them around. */
-const HORIZON_DAYS = 30;
+export const REMINDER_HORIZON_DAYS = 30;
 
 /** An all-day event has no hour to be early for, so it is announced the evening
     before, at this hour. */
 export const ALL_DAY_REMINDER_HOUR = 20;
 
 export interface Reminder {
+    /** The event to open when the notification is tapped. */
     id: string;
+    /** What tells two reminders of the same event apart. */
+    key: string;
     /** When to post it, in milliseconds. */
     atMs: number;
     title: string;
     /** The line under the title: when the event is, in words. */
     body: string;
+}
+
+/**
+ * The reminders this event asks for. The setting is the default rather than the
+ * law: an event carrying its own list is announced on its own terms, and an
+ * event carrying an empty one has asked for silence.
+ */
+function offsetsFor(event: DisplayEvent, fallbackMinutes: number): number[] {
+    if (event.reminders) return event.reminders;
+    return fallbackMinutes > 0 ? [fallbackMinutes] : [];
+}
+
+function bodyFor(
+    offsetMinutes: number,
+    start: Date,
+    timeFormat24h: boolean
+): string {
+    const time = formatTime(start, timeFormat24h);
+    if (offsetMinutes <= 0) return `${t("Starting now")} · ${time}`;
+    const away =
+        offsetMinutes % 60 === 0
+            ? `${offsetMinutes / 60} h`
+            : `${offsetMinutes} min`;
+    return `${t("In")} ${away} · ${time}`;
 }
 
 function eveningBefore(start: Date): number {
@@ -46,37 +73,47 @@ export function buildReminders({
     minutesBefore: number;
     timeFormat24h: boolean;
 }): Reminder[] {
-    if (minutesBefore <= 0) return [];
-
     const horizon = new Date(now);
-    horizon.setDate(horizon.getDate() + HORIZON_DAYS);
+    horizon.setDate(horizon.getDate() + REMINDER_HORIZON_DAYS);
 
-    return events
-        .filter((event) => !event.isSomeday)
-        .filter((event) => event.start < horizon)
-        .map((event) => {
-            const atMs = event.allDay
-                ? eveningBefore(event.start)
-                : +event.start - minutesBefore * 60_000;
+    return (
+        events
+            .filter((event) => !event.isSomeday)
+            .filter((event) => event.start < horizon)
+            .flatMap((event) => {
+                const offsets = offsetsFor(event, minutesBefore);
+                if (offsets.length === 0) return [];
+                const title = event.title || t("Untitled");
 
-            return {
-                id: event.id,
-                atMs,
-                title: event.title || t("Untitled"),
-                body: event.allDay
-                    ? t("Tomorrow, all day")
-                    : `${t("In")} ${minutesBefore} min · ${formatTime(
-                          event.start,
-                          timeFormat24h
-                      )}`,
-            };
-        })
-        /*
-         * A reminder whose moment has passed is dropped rather than fired late.
-         * Being told at 10:20 that something starts at 10:00 is worse than not
-         * being told: it is a notification you cannot act on, arriving as if
-         * you could.
-         */
-        .filter((reminder) => reminder.atMs > +now)
-        .sort((a, b) => a.atMs - b.atMs);
+                // An all-day event has no hour to be early for, so it is announced
+                // once the evening before however many reminders it carries.
+                if (event.allDay) {
+                    return [
+                        {
+                            id: event.id,
+                            key: `${event.id}#day`,
+                            atMs: eveningBefore(event.start),
+                            title,
+                            body: t("Tomorrow, all day"),
+                        },
+                    ];
+                }
+
+                return offsets.map((offset) => ({
+                    id: event.id,
+                    key: `${event.id}#${offset}`,
+                    atMs: +event.start - offset * 60_000,
+                    title,
+                    body: bodyFor(offset, event.start, timeFormat24h),
+                }));
+            })
+            /*
+             * A reminder whose moment has passed is dropped rather than fired late.
+             * Being told at 10:20 that something starts at 10:00 is worse than not
+             * being told: it is a notification you cannot act on, arriving as if
+             * you could.
+             */
+            .filter((reminder) => reminder.atMs > +now)
+            .sort((a, b) => a.atMs - b.atMs)
+    );
 }

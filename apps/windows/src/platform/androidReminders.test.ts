@@ -130,3 +130,91 @@ describe("buildReminders", () => {
         expect(reminder.title).toBe("Sans titre");
     });
 });
+
+/*
+ * The setting in the preferences is the default, not the law: an event that
+ * carries its own reminders is announced on its own terms, and an event that
+ * carries an empty list has asked for silence.
+ */
+describe("reminders an event carries itself", () => {
+    it("uses the event's own delay rather than the default", () => {
+        const [reminder] = build([
+            event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00", {
+                reminders: [30],
+            }),
+        ]);
+
+        expect(reminder.atMs).toBe(+new Date("2026-08-07T13:30:00"));
+        expect(reminder.body).toBe("Dans 30 min · 14:00");
+    });
+
+    it("announces the event once per reminder, soonest last", () => {
+        const reminders = build([
+            event("a", "2026-08-07T16:00:00", "2026-08-07T17:00:00", {
+                reminders: [10, 60],
+            }),
+        ]);
+
+        expect(reminders.map((item) => item.atMs)).toEqual([
+            +new Date("2026-08-07T15:00:00"),
+            +new Date("2026-08-07T15:50:00"),
+        ]);
+    });
+
+    // The phone tells them apart by key, and opens the event by id.
+    it("gives each of them its own key and the same event id", () => {
+        const reminders = build([
+            event("a", "2026-08-07T16:00:00", "2026-08-07T17:00:00", {
+                reminders: [10, 60],
+            }),
+        ]);
+
+        expect(reminders.map((item) => item.key)).toEqual(["a#60", "a#10"]);
+        expect(reminders.map((item) => item.id)).toEqual(["a", "a"]);
+    });
+
+    it("says so when the reminder is the event itself starting", () => {
+        const [reminder] = build([
+            event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00", {
+                reminders: [0],
+            }),
+        ]);
+
+        expect(reminder.atMs).toBe(+new Date("2026-08-07T14:00:00"));
+        expect(reminder.body).toBe("Ça commence · 14:00");
+    });
+
+    it("counts an hour out in hours", () => {
+        const [reminder] = build([
+            event("a", "2026-08-07T16:00:00", "2026-08-07T17:00:00", {
+                reminders: [60],
+            }),
+        ]);
+
+        expect(reminder.body).toBe("Dans 1 h · 16:00");
+    });
+
+    it("stays quiet for an event that asked for silence", () => {
+        expect(
+            build([
+                event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00", {
+                    reminders: [],
+                }),
+            ])
+        ).toEqual([]);
+    });
+
+    // The setting says "no reminder", but this event asked for one.
+    it("speaks up for an event of its own even with reminders off", () => {
+        expect(
+            build(
+                [
+                    event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00", {
+                        reminders: [10],
+                    }),
+                ],
+                0
+            )
+        ).toHaveLength(1);
+    });
+});

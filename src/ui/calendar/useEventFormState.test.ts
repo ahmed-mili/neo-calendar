@@ -1,4 +1,9 @@
-import { completedFor, dueFor, isDraftHandover } from "./useEventFormState";
+import {
+    completedFor,
+    dueFor,
+    isDraftHandover,
+    remindersFor,
+} from "./useEventFormState";
 import { isTask } from "../tasks";
 import { NeoEvent } from "../../types";
 
@@ -92,5 +97,22 @@ describe("le type choisi survit a l'enregistrement", () => {
 
     it("une tache datee terminee reste une tache", () => {
         expect(isTask(dated(completedFor("complete")))).toBe(true);
+    });
+});
+
+describe("remindersFor", () => {
+    // Ne rien avoir demande et avoir demande le silence ne disent pas la meme
+    // chose : sans cle, le rappel des reglages s'applique ; avec une liste
+    // vide, l'evenement a demande qu'on le laisse tranquille.
+    it("n'ecrit aucune cle quand l'evenement n'a jamais rien demande", () => {
+        expect(remindersFor(undefined)).toBeUndefined();
+    });
+
+    it("ecrit la liste vide d'un evenement qui veut le silence", () => {
+        expect(remindersFor([])).toEqual([]);
+    });
+
+    it("garde les rappels poses sur l'evenement", () => {
+        expect(remindersFor([0, 30])).toEqual([0, 30]);
     });
 });

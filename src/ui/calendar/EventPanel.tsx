@@ -23,6 +23,7 @@ import {
     TitleRow,
     DateRow,
     RecurrenceRow,
+    RemindersRow,
     CalendarRow,
     TypeRow,
     DueRow,
@@ -1014,6 +1015,18 @@ export default function EventPanel({
                     onChange={form.setCalendarIndex}
                     onAutoSave={autoSave}
                 />
+
+                {/* Only for something that happens at a time: an entry
+                    waiting in the unscheduled list has no moment to be early
+                    for. */}
+                {(form.date || form.isRecurring) && (
+                    <RemindersRow
+                        reminders={form.reminders}
+                        editable={stableCalInfo.editable}
+                        setReminders={form.setReminders}
+                        onAutoSave={scheduleAutoSave}
+                    />
+                )}
 
                 {/* A series can be a task now: `completedDates` holds the
                     per-occurrence answer, so the choice is no longer barred. */}

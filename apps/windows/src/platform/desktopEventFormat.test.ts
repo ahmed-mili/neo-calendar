@@ -211,3 +211,40 @@ describe("le nom d'un lien sans titre", () => {
         expect(links[0].label).toBe("La danse du chat");
     });
 });
+
+describe("the reminders of an event, in a note", () => {
+    const dated = (reminders?: number[]): NeoEvent =>
+        ({
+            title: "Dentist",
+            allDay: false,
+            startTime: "09:00",
+            endTime: "09:30",
+            type: "single",
+            date: "2026-08-19",
+            endDate: null,
+            ...(reminders ? { reminders } : {}),
+        } as unknown as NeoEvent);
+
+    it("writes them and reads them back as minutes", () => {
+        const note = serializeEventMarkdown(dated([0, 10, 60]));
+
+        expect(note).toContain("reminders: [0,10,60]");
+        expect(parseFrontmatter(note)?.reminders).toEqual([0, 10, 60]);
+    });
+
+    /*
+     * An empty list is not the absence of one: with no key at all the reminder
+     * from the settings applies, while `[]` is this event asking for silence.
+     * Dropping the empty line would put the setting's reminder back.
+     */
+    it("keeps the empty list of an event that asked for silence", () => {
+        const note = serializeEventMarkdown(dated([]));
+
+        expect(note).toContain("reminders: []");
+        expect(parseFrontmatter(note)?.reminders).toEqual([]);
+    });
+
+    it("says nothing about an event that never asked", () => {
+        expect(serializeEventMarkdown(dated())).not.toContain("reminders");
+    });
+});

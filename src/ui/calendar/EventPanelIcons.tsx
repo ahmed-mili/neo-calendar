@@ -35,6 +35,27 @@ export const CalendarIcon = () => (
         />
     </svg>
 );
+/* Lucide "bell", drawn on its own 24 grid rather than the 16 the icons
+   above use: it is the shape the reference shows on this field, and
+   redrawing it by hand at 16 would be a lookalike rather than the icon. */
+export const BellIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path
+            d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        <path
+            d="M10.3 21a1.94 1.94 0 0 0 3.4 0"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
 export const ClockIcon = () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.3" />

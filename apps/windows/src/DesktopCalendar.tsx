@@ -9,7 +9,15 @@ import CalendarLayout from "../../../src/ui/calendar/CalendarLayout";
 import CommandPalette from "../../../src/ui/calendar/CommandPalette";
 import { invoke } from "@tauri-apps/api/core";
 import { buildWidgetPayload, readWidgetTheme } from "./platform/androidWidget";
-import { buildReminders } from "./platform/androidReminders";
+import {
+    buildReminders,
+    REMINDER_HORIZON_DAYS,
+} from "./platform/androidReminders";
+import { createReminderScheduler } from "./platform/desktopReminderScheduler";
+import {
+    ensureNotificationPermission,
+    postReminder,
+} from "./platform/desktopNotifications";
 import ContextMenu, {
     ContextMenuItem,
 } from "../../../src/ui/calendar/ContextMenu";
@@ -527,6 +535,9 @@ export default function DesktopCalendar({
 
     const calendarRootRef = useRef<HTMLElement>(null);
     const calendarsRef = useRef(calendars);
+    const reminderSchedulerRef = useRef<ReturnType<
+        typeof createReminderScheduler
+    > | null>(null);
     const recordsRef = useRef(storedEvents);
     const pendingEventRouteRef = useRef<DesktopEventRoute | null>(null);
     const didApplyInitialViewRef = useRef(false);
@@ -2623,24 +2634,79 @@ export default function DesktopCalendar({
      * and working out which alarms an edit invalidated is exactly the kind of
      * bookkeeping that ends with a reminder for an event that no longer exists.
      */
+    /*
+     * Every event of the coming month, whatever the grid happens to show.
+     *
+     * The visible events are the wrong list to remind from: they follow the
+     * view, so a reminder set on an event three weeks out would only be armed
+     * once you scrolled to it.
+     */
+    const reminderEvents = useMemo(() => {
+        const from = new Date();
+        const to = addDays(from, REMINDER_HORIZON_DAYS);
+        return storedEvents.flatMap((record) => {
+            if (
+                record.event.type === "someday" ||
+                hiddenCalendars.has(record.calendarId)
+            ) {
+                return [];
+            }
+            const calendar = calendarById.get(record.calendarId);
+            if (!calendar) return [];
+            return neoEventToDisplayEvents(
+                record.event,
+                record.id,
+                calendar.id,
+                calendar.name,
+                calendar.color,
+                calendar.editable,
+                from,
+                to
+            );
+        });
+    }, [calendarById, hiddenCalendars, storedEvents]);
+
+    /* Windows has no alarm to hand the list to, so the app keeps it and
+       watches the clock while it is open. */
     useEffect(() => {
-        if (!isAndroid) return;
+        if (isAndroid) return;
+        const scheduler = createReminderScheduler(
+            (reminder) => void postReminder(reminder)
+        );
+        reminderSchedulerRef.current = scheduler;
+        return () => {
+            scheduler.stop();
+            reminderSchedulerRef.current = null;
+        };
+    }, [isAndroid]);
+
+    useEffect(() => {
         const reminders = buildReminders({
-            events: displayEvents,
+            events: reminderEvents,
             now: new Date(),
             minutesBefore: preferences.reminderMinutes,
             timeFormat24h: preferences.timeFormat24h,
         });
-        void invoke("write_reminders", {
-            payload: JSON.stringify(reminders),
-        }).catch(() => {
-            // A reminder that failed to schedule is not worth interrupting for.
-        });
+
+        if (isAndroid) {
+            void invoke("write_reminders", {
+                payload: JSON.stringify(reminders),
+            }).catch(() => {
+                // A reminder that failed to schedule is not worth
+                // interrupting for.
+            });
+            return;
+        }
+
+        // Asked for only once there is something to post, so opening the app
+        // on an empty calendar never raises the question.
+        if (reminders.length > 0) void ensureNotificationPermission();
+        reminderSchedulerRef.current?.set(reminders);
     }, [
-        displayEvents,
         isAndroid,
         preferences.reminderMinutes,
         preferences.timeFormat24h,
+        reminderEvents,
     ]);
 
     /*

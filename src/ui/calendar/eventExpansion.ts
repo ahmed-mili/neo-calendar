@@ -100,6 +100,7 @@ function resolveTimes(
 
 interface MakeArgs {
     ctx: ExpandContext;
+    reminders?: number[];
     idSuffix?: string;
     title: string;
     description: string | undefined;
@@ -116,6 +117,7 @@ interface MakeArgs {
 
 function makeDisplayEvent({
     ctx,
+    reminders,
     idSuffix,
     title,
     description,
@@ -142,6 +144,7 @@ function makeDisplayEvent({
         isTask,
         taskCompleted,
         taskStatus,
+        reminders,
         isRecurring,
         isSeriesStart,
         isMultiDay,
@@ -169,6 +172,7 @@ function expandSingle(
     return [
         makeDisplayEvent({
             ctx,
+            reminders: event.reminders,
             title: getDisplayTitle(event.title),
             description: event.description,
             start: times.start,
@@ -249,6 +253,7 @@ function expandRecurring(
                 results.push(
                     makeDisplayEvent({
                         ctx,
+                        reminders: event.reminders,
                         idSuffix: dateStr,
                         title: getDisplayTitle(event.title),
                         description: event.description,
@@ -321,6 +326,7 @@ function expandRrule(
         return [
             makeDisplayEvent({
                 ctx,
+                reminders: event.reminders,
                 idSuffix: dateStr,
                 title: getDisplayTitle(event.title),
                 description: event.description,

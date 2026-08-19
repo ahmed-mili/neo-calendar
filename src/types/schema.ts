@@ -90,6 +90,18 @@ export const TimeSchema = z.discriminatedUnion("allDay", [
  */
 const SubtasksSchema = z.array(z.string()).optional();
 
+/**
+ * Minutes before the event to be reminded, 0 being its very start.
+ *
+ * A list rather than one value: an event may want to be announced an hour out
+ * and again at ten minutes.
+ *
+ * Absent and empty say different things, so an empty list is written down
+ * rather than dropped: no key at all means the reminder from the settings
+ * applies, `[]` means this event asked for silence.
+ */
+const RemindersSchema = z.array(z.number()).optional();
+
 /** Metadata common to every event, regardless of time or kind. */
 export const CommonSchema = z.object({
     title: z.string(),
@@ -98,6 +110,7 @@ export const CommonSchema = z.object({
     description: z.string().optional(),
     attendees: z.array(z.string()).optional(),
     subtasks: SubtasksSchema,
+    reminders: RemindersSchema,
 });
 
 /** Event-kind facet, discriminated by `type`. */

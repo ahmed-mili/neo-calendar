@@ -65,6 +65,19 @@ export function isDraftHandover(
  * drift: the dated one used to hardcode `false`, which silently turned every
  * dated event into a task no matter what the form said.
  */
+/**
+ * The reminders as they go into the note.
+ *
+ * Absent and empty do not say the same thing: with no key at all the reminder
+ * from the settings applies, while an empty list is this event asking to be
+ * left alone. So `undefined` writes nothing and `[]` is written down.
+ */
+export function remindersFor(
+    reminders: number[] | undefined
+): number[] | undefined {
+    return reminders;
+}
+
 export function completedFor(
     taskStatus: TaskStatus | null,
     now: () => string = () => DateTime.now().toISO() as string
@@ -139,6 +152,10 @@ export function useEventFormState({
     // The steps the task is made of. Held as objects and written back as lines
     // (see ui/tasks/subtasks), so the panel never handles the stored syntax.
     const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+    // Minutes before the start to be announced. Undefined while the event has
+    // never said anything about it — the reminder from the settings then
+    // applies; an empty list is the event asking for silence.
+    const [reminders, setReminders] = useState<number[] | undefined>(undefined);
     // Carried through untouched: the panel edits the series, while the ticks
     // happen on the grid. Dropping it here would erase every occurrence ever
     // ticked the next time the title was edited.
@@ -175,6 +192,7 @@ export function useEventFormState({
             setDescription(event.description || "");
             setAllDay(!!event.allDay);
             setSubtasks(readSubtasks(event));
+            setReminders(event.reminders);
 
             if (event.type === "single" || event.type === undefined) {
                 setDate(event.date || "");
@@ -244,6 +262,7 @@ export function useEventFormState({
             setTaskStatus(draft.defaultAsTask ? "todo" : null);
             setDue(null);
             setSubtasks([]);
+            setReminders(undefined);
             setCompletedDates(undefined);
 
             const idx = editableCalendars.findIndex(
@@ -264,6 +283,7 @@ export function useEventFormState({
             setTaskStatus(null);
             setDue(null);
             setSubtasks([]);
+            setReminders(undefined);
             setCompletedDates(undefined);
         }
 
@@ -293,9 +313,11 @@ export function useEventFormState({
         // drops them the way it drops the deadline, rather than leaving an
         // orphan list in the note.
         const steps = taskStatus === null ? undefined : writeSubtasks(subtasks);
+        const announcements = remindersFor(reminders);
         return {
             title,
             ...(steps ? { subtasks: steps } : {}),
+            ...(announcements ? { reminders: announcements } : {}),
             ...(allDay
                 ? { allDay: true }
                 : { allDay: false, startTime: startTime || "", endTime }),
@@ -334,6 +356,7 @@ export function useEventFormState({
         taskStatus,
         due,
         subtasks,
+        reminders,
         completedDates,
         description,
     ]);
@@ -365,6 +388,8 @@ export function useEventFormState({
         setDue,
         subtasks,
         setSubtasks,
+        reminders,
+        setReminders,
         buildPayload,
         resetLastKey: () => {
             lastKeyRef.current = null;

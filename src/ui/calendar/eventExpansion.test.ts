@@ -104,3 +104,46 @@ describe("marking where a series begins", () => {
         ).toEqual([]);
     });
 });
+
+// The reminders belong to the event; every occurrence of a series inherits
+// them, since the scheduler only ever sees display events.
+describe("carrying the reminders of an event", () => {
+    const remind = (event: unknown): (number[] | undefined)[] =>
+        neoEventToDisplayEvents(
+            event as NeoEvent,
+            "42",
+            "cal",
+            "Cal",
+            "#ffffff",
+            true,
+            new Date("2026-07-20T00:00:00"),
+            new Date("2026-08-03T23:59:59")
+        ).map((occurrence) => occurrence.reminders);
+
+    it("carries them on a single event", () => {
+        expect(
+            remind({
+                title: "Lunch",
+                type: "single",
+                date: "2026-07-22",
+                reminders: [10, 60],
+            })
+        ).toEqual([[10, 60]]);
+    });
+
+    it("carries them on every occurrence of a series", () => {
+        expect(
+            remind({
+                ...weekdaySeries,
+                startRecur: "2026-07-20",
+                reminders: [0],
+            })
+        ).toEqual([[0], [0]]);
+    });
+
+    it("carries none when the event asked for none", () => {
+        expect(
+            remind({ title: "Lunch", type: "single", date: "2026-07-22" })
+        ).toEqual([undefined]);
+    });
+});

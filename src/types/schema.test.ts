@@ -265,3 +265,30 @@ describe("properties", () => {
         );
     });
 });
+
+describe("reminders", () => {
+    const base = {
+        title: "Standup",
+        type: "single",
+        date: "2026-08-19",
+        allDay: false,
+        startTime: "09:00",
+        endTime: "09:30",
+    };
+
+    // Minutes before the event starts, 0 being its very start. A list: an
+    // event may want to be announced twice, an hour out and again at ten.
+    it("keeps the minutes an event asked to be reminded at", () => {
+        expect(
+            parseEvent({ ...base, reminders: [0, 10, 60] }).reminders
+        ).toEqual([0, 10, 60]);
+    });
+
+    it("has none when the event never asked for any", () => {
+        expect(parseEvent(base).reminders).toBeUndefined();
+    });
+
+    it("refuses anything but minutes", () => {
+        expect(() => parseEvent({ ...base, reminders: ["soon"] })).toThrow();
+    });
+});
