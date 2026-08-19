@@ -21,6 +21,7 @@ import {
     VERTICAL_MONTH_THRESHOLD,
 } from "./useWheelNavigation";
 import { DragPreview } from "./TimeGrid.types";
+import { t, tList } from "../i18n";
 
 interface MonthViewProps {
     events: DisplayEvent[];
@@ -52,16 +53,18 @@ interface MonthViewProps {
     externalPreview?: DragPreview | null;
 }
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAYS_FALLBACK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MAX_VISIBLE_EVENTS = 3;
 
 function DraggableMonthEvent({
     event,
     onEventClick,
+    onContextMenu,
     onToggleTask,
 }: {
     event: DisplayEvent;
     onEventClick: (id: string) => void;
+    onContextMenu: (id: string, mouseEvent: MouseEvent) => void;
     onToggleTask: (id: string, isDone: boolean) => Promise<boolean>;
 }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -89,6 +92,11 @@ function DraggableMonthEvent({
                 e.stopPropagation();
                 onEventClick(event.id);
             }}
+            onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onContextMenu(event.id, e.nativeEvent);
+            }}
             data-event-id={event.id}
             data-calendar-id={event.calendarId}
             data-visibility-state={event.visibilityState}
@@ -97,6 +105,7 @@ function DraggableMonthEvent({
         >
             {event.isTask && (
                 <button
+                    type="button"
                     className="nc-month-task-btn"
                     onClick={(e) => {
                         e.stopPropagation();
@@ -120,6 +129,7 @@ export default function MonthView(props: MonthViewProps) {
         onEventClick,
         onEventDrag,
         onDayClick,
+        onContextMenu,
         onEmptyContextMenu,
         onToggleTask,
         onShiftMonths,
@@ -233,9 +243,10 @@ export default function MonthView(props: MonthViewProps) {
     }
 
     // Get day headers based on firstDay setting
+    const dayNames = tList("days.short", DAYS_FALLBACK);
     const dayHeaders = Array.from({ length: 7 }, (_, i) => {
         const dayIndex = (i + firstDay) % 7;
-        return DAYS[dayIndex];
+        return dayNames[dayIndex];
     });
 
     // 42 cells (6 rows x 7 cols)
@@ -307,6 +318,7 @@ export default function MonthView(props: MonthViewProps) {
                                         onClick={() => onDayClick(date)}
                                         onContextMenu={(e) => {
                                             if (onEmptyContextMenu) {
+                                                e.preventDefault();
                                                 onEmptyContextMenu(
                                                     date,
                                                     e.nativeEvent
@@ -323,12 +335,15 @@ export default function MonthView(props: MonthViewProps) {
                                                     key={event.id}
                                                     event={event}
                                                     onEventClick={onEventClick}
+                                                    onContextMenu={
+                                                        onContextMenu
+                                                    }
                                                     onToggleTask={onToggleTask}
                                                 />
                                             ))}
                                             {more > 0 && (
                                                 <div className="nc-month-more">
-                                                    +{more} more
+                                                    +{more} {t("more")}
                                                 </div>
                                             )}
                                         </div>

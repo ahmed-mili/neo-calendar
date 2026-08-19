@@ -413,7 +413,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                                                 }
                                             >
                                                 <span className="nc-view-dropdown-check" />
-                                                <span>Otherâ€¦</span>
+                                                <span>{t("Other…")}</span>
                                             </button>
                                         )}
                                     </div>

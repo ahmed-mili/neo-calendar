@@ -278,7 +278,7 @@ export default function AddCalendarDialog({
                                 }}
                                 placeholder={
                                     kind === "auto"
-                                        ? "Nom du calendrier (facultatif)"
+                                        ? t("Calendar name (optional)")
                                         : t("Calendar name")
                                 }
                                 autoComplete="off"
@@ -289,7 +289,7 @@ export default function AddCalendarDialog({
 
                     {kind === "ical" && (
                         <label className="nc-add-calendar-dialog__field">
-                            <span>URL du calendrier</span>
+                            <span>{t("Calendar URL")}</span>
                             <input
                                 ref={inputRef}
                                 value={url}
@@ -307,7 +307,7 @@ export default function AddCalendarDialog({
                     {kind === "auto" && (
                         <>
                             <label className="nc-add-calendar-dialog__field">
-                                <span>Modèle</span>
+                                <span>{t("Preset")}</span>
                                 <select
                                     value={autoPreset}
                                     onChange={(event) => {
@@ -319,13 +319,13 @@ export default function AddCalendarDialog({
                                 >
                                     <option value="FR">France</option>
                                     <option value="custom">
-                                        Importer un JSON de règles
+                                        {t("Import a rules JSON")}
                                     </option>
                                 </select>
                             </label>
                             {autoPreset === "custom" && (
                                 <label className="nc-add-calendar-dialog__field">
-                                    <span>JSON du calendrier</span>
+                                    <span>{t("Calendar JSON")}</span>
                                     <textarea
                                         value={customJson}
                                         onChange={(event) => {
@@ -342,7 +342,7 @@ export default function AddCalendarDialog({
 
                     {kind !== "local" && (
                         <label className="nc-add-calendar-dialog__color">
-                            <span>Couleur</span>
+                            <span>{t("Colour")}</span>
                             <input
                                 type="color"
                                 value={color}
@@ -377,7 +377,7 @@ export default function AddCalendarDialog({
                             className="nc-add-calendar-dialog__primary"
                             disabled={submitting}
                         >
-                            {submitting ? "Ajout…" : t("Add the calendar")}
+                            {submitting ? t("Adding…") : t("Add the calendar")}
                         </button>
                     </footer>
                 </form>

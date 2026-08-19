@@ -1,4 +1,5 @@
 import React from "react";
+import { t } from "../../../src/ui/i18n";
 
 interface DesktopErrorBoundaryProps {
     children?: React.ReactNode;
@@ -28,10 +29,15 @@ export default class DesktopErrorBoundary extends React.Component<
         return (
             <div className="nc-desktop-fatal" role="alert">
                 <div className="nc-desktop-fatal__card">
-                    <strong>Neo Calendar a rencontré une erreur d’interface.</strong>
+                    <strong>
+                        {t("Neo Calendar encountered an interface error.")}
+                    </strong>
                     <p>{this.state.error.message}</p>
-                    <button type="button" onClick={() => window.location.reload()}>
-                        Recharger l’interface
+                    <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                    >
+                        {t("Reload interface")}
                     </button>
                 </div>
             </div>

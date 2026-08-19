@@ -408,7 +408,7 @@ export default function CommandPalette({
                 <div className="nc-command-palette-list">
                     {filtered.length === 0 && (
                         <div className="nc-command-palette-empty">
-                            No results found
+                            {t("No results found")}
                         </div>
                     )}
                     {filtered.map((cmd, idx) => (

@@ -149,10 +149,19 @@ export function LeftRail({
                             tabIndex={0}
                             title={
                                 allDayCollapsed
-                                    ? "Expand all-day events"
-                                    : "Collapse all-day events"
+                                    ? t("Expand all-day events")
+                                    : t("Collapse all-day events")
                             }
                             onClick={onToggleAllDayCollapsed}
+                            onKeyDown={(event) => {
+                                if (
+                                    event.key === "Enter" ||
+                                    event.key === " "
+                                ) {
+                                    event.preventDefault();
+                                    onToggleAllDayCollapsed?.();
+                                }
+                            }}
                         >
                             <AllDayCollapseChevrons
                                 size={14}

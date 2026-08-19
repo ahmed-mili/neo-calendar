@@ -53,6 +53,14 @@ function TaskRow({
         <div
             className={`nc-tasks-item${done ? " nc-task-completed" : ""}`}
             onClick={() => onTaskClick(task.id)}
+            onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onTaskClick(task.id);
+                }
+            }}
+            role="button"
+            tabIndex={0}
         >
             <button
                 type="button"

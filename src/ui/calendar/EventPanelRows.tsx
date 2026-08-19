@@ -2203,7 +2203,7 @@ function LinkedFileRow({
                     <button
                         type="button"
                         className="nc-linked-file-remove"
-                        aria-label={`Remove ${displayName}`}
+                        aria-label={`${t("Remove")} ${displayName}`}
                         disabled={removing}
                         onMouseDown={(event) => {
                             event.preventDefault();

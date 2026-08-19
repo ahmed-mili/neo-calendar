@@ -59,6 +59,7 @@ import {
 } from "../../../src/ui/calendar/Icons";
 import { NeoEvent, validateEvent } from "../../../src/types";
 import { CalendarSource, DisplayEvent, ViewType } from "../../../src/ui/types";
+import { t } from "../../../src/ui/i18n";
 import DesktopSettings from "./DesktopSettings";
 import AddCalendarDialog, {
     type AddCalendarRequest,
@@ -3091,7 +3092,7 @@ export default function DesktopCalendar({
                     {storageError}
                     <button
                         type="button"
-                        aria-label="Masquer l'erreur"
+                        aria-label={t("Dismiss error")}
                         onClick={() => setStorageError(null)}
                     >
                         ×
@@ -3162,21 +3163,21 @@ export default function DesktopCalendar({
 
             <ConfirmDialog
                 open={calendarToDelete !== null}
-                title="Supprimer le calendrier"
+                title={t("Delete calendar")}
                 message={
                     calendarToDelete
                         ? calendarById.get(calendarToDelete)?.editable
-                            ? `Remove the empty calendar folder “${
+                            ? `${t("Remove the empty calendar folder")} “${
                                   calendarById.get(calendarToDelete)?.name ??
-                                  "Calendar"
+                                  t("Calendar")
                               }”?`
-                            : `Remove the read-only calendar “${
+                            : `${t("Remove the read-only calendar")} “${
                                   calendarById.get(calendarToDelete)?.name ??
-                                  "Calendar"
+                                  t("Calendar")
                               }”?`
                         : ""
                 }
-                confirmLabel="Delete calendar"
+                confirmLabel={t("Delete calendar")}
                 danger
                 onClose={() => setCalendarToDelete(null)}
                 onConfirm={confirmRemoveCalendar}

@@ -274,12 +274,12 @@ export default function CalendarEventsPanel({
 
     const settingsTitle =
         settingsPage === "root"
-            ? "Filters"
+            ? t("Filters")
             : settingsPage === "status"
-            ? "Status"
+            ? t("Status")
             : settingsPage === "date"
-            ? "Date"
-            : "Custom period";
+            ? t("Date")
+            : t("Custom period");
 
     return (
         <div
@@ -479,7 +479,7 @@ export default function CalendarEventsPanel({
                         >
                             <CalendarGlyphIcon size={15} />
                             <span className="nc-cep-menu-label">
-                                Make default calendar
+                                {t("Set as default")}
                             </span>
                         </button>
                         <button
@@ -566,7 +566,7 @@ export default function CalendarEventsPanel({
                                         {STATUS_OPTIONS.find(
                                             (option) =>
                                                 option.value === statusFilter
-                                        )?.label ?? "All"}
+                                        )?.label ?? t("All")}
                                     </span>
                                     <ChevronRightIcon size={14} />
                                 </button>
@@ -577,16 +577,16 @@ export default function CalendarEventsPanel({
                                 >
                                     <CalendarGlyphIcon size={15} />
                                     <span className="nc-cep-menu-label">
-                                        Date
+                                        {t("Date")}
                                     </span>
                                     <span className="nc-cep-menu-value">
                                         {dateFilter === "period"
-                                            ? "Period"
+                                            ? t("Period")
                                             : DATE_OPTIONS.find(
                                                   (option) =>
                                                       option.value ===
                                                       dateFilter
-                                              )?.label ?? "All"}
+                                              )?.label ?? t("All")}
                                     </span>
                                     <ChevronRightIcon size={14} />
                                 </button>
@@ -643,7 +643,7 @@ export default function CalendarEventsPanel({
                                         )}
                                     </span>
                                     <span className="nc-cep-menu-label">
-                                        Custom period
+                                        {t("Custom period")}
                                     </span>
                                     <ChevronRightIcon size={14} />
                                 </button>
@@ -667,7 +667,7 @@ export default function CalendarEventsPanel({
                                     />
                                 </label>
                                 <label>
-                                    <span>To</span>
+                                    <span>{t("To")}</span>
                                     <input
                                         type="date"
                                         value={draftPeriod.end}
@@ -690,7 +690,7 @@ export default function CalendarEventsPanel({
                                             setSettingsPage("root");
                                         }}
                                     >
-                                        Clear
+                                        {t("Clear")}
                                     </button>
                                     <button
                                         type="button"
@@ -703,7 +703,7 @@ export default function CalendarEventsPanel({
                                             setSettingsPage("root");
                                         }}
                                     >
-                                        Apply
+                                        {t("Apply")}
                                     </button>
                                 </div>
                             </div>
@@ -717,8 +717,8 @@ export default function CalendarEventsPanel({
                             {searchQuery ||
                             statusFilter !== "all" ||
                             dateFilter !== "all"
-                                ? "No matching events"
-                                : "No events"}
+                                ? t("No matching events")
+                                : t("No events")}
                         </div>
                     ) : (
                         filteredEvents.map((event) => (
@@ -790,7 +790,7 @@ export default function CalendarEventsPanel({
             {dragState &&
                 ReactDOM.createPortal(
                     <div className="nc-panel-drag-hint">
-                        Drag onto the grid to add a date
+                        {t("Drag onto the grid to add a date")}
                     </div>,
                     document.body
                 )}

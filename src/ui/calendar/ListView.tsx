@@ -1,8 +1,9 @@
 import * as React from "react";
 import { DisplayEvent } from "../types";
-import { isToday, formatTime, isSameDay } from "./CalendarUtils";
+import { isToday, formatTime } from "./CalendarUtils";
 import { TaskCheckbox } from "./TaskCheckbox";
 import { DragPreview } from "./TimeGrid.types";
+import { t, tList } from "../i18n";
 
 interface ListViewProps {
     events: DisplayEvent[];
@@ -28,7 +29,7 @@ interface ListViewProps {
     externalPreview?: DragPreview | null;
 }
 
-const DAY_NAMES = [
+const DAY_NAMES_FALLBACK = [
     "Sunday",
     "Monday",
     "Tuesday",
@@ -37,7 +38,7 @@ const DAY_NAMES = [
     "Friday",
     "Saturday",
 ];
-const MONTH_NAMES = [
+const MONTH_NAMES_FALLBACK = [
     "January",
     "February",
     "March",
@@ -58,8 +59,11 @@ export default function ListView(props: ListViewProps) {
         visibleDates,
         timeFormat24h,
         onEventClick,
+        onContextMenu,
         onEmptyContextMenu,
     } = props;
+    const dayNames = tList("days.long", DAY_NAMES_FALLBACK);
+    const monthNames = tList("months.long", MONTH_NAMES_FALLBACK);
 
     // Group events by date
     const eventsByDate = new Map<string, DisplayEvent[]>();
@@ -96,15 +100,16 @@ export default function ListView(props: ListViewProps) {
                             }`}
                             onContextMenu={(e) => {
                                 if (onEmptyContextMenu) {
+                                    e.preventDefault();
                                     onEmptyContextMenu(date, e.nativeEvent);
                                 }
                             }}
                         >
                             <span className="nc-list-day-name">
-                                {DAY_NAMES[date.getDay()]}
+                                {dayNames[date.getDay()]}
                             </span>
                             <span className="nc-list-day-date">
-                                {MONTH_NAMES[date.getMonth()]} {date.getDate()}
+                                {monthNames[date.getMonth()]} {date.getDate()}
                             </span>
                         </div>
                         <div className="nc-list-events">
@@ -123,6 +128,24 @@ export default function ListView(props: ListViewProps) {
                                             onClick={() =>
                                                 onEventClick(event.id)
                                             }
+                                            onContextMenu={(e) => {
+                                                e.preventDefault();
+                                                onContextMenu(
+                                                    event.id,
+                                                    e.nativeEvent
+                                                );
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (
+                                                    e.key === "Enter" ||
+                                                    e.key === " "
+                                                ) {
+                                                    e.preventDefault();
+                                                    onEventClick(event.id);
+                                                }
+                                            }}
+                                            role="button"
+                                            tabIndex={0}
                                             data-event-id={event.id}
                                             data-calendar-id={event.calendarId}
                                             data-visibility-state={
@@ -138,7 +161,7 @@ export default function ListView(props: ListViewProps) {
                                             />
                                             <span className="nc-list-event-time">
                                                 {event.allDay
-                                                    ? "All day"
+                                                    ? t("All day")
                                                     : `${formatTime(
                                                           event.start,
                                                           timeFormat24h
@@ -157,6 +180,7 @@ export default function ListView(props: ListViewProps) {
                                             </span>
                                             {event.isTask && (
                                                 <button
+                                                    type="button"
                                                     className="nc-list-task-btn"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -180,7 +204,7 @@ export default function ListView(props: ListViewProps) {
                             ) : (
                                 <div className="nc-list-empty">
                                     <span className="nc-list-empty-text">
-                                        No events
+                                        {t("No events")}
                                     </span>
                                 </div>
                             )}
