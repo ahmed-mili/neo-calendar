@@ -384,6 +384,12 @@ const FR: Record<string, string> = {
     Delete: "Supprimer",
     Duplicate: "Dupliquer",
     Copy: "Copier",
+    Cut: "Couper",
+    // Le menu contextuel de la grille agit sur ce qui est selectionne : le
+    // nombre est dit dans l'entree elle-meme (voir countedLabel).
+    events: "événements",
+    "Paste event": "Coller l'événement",
+    "Duplicate to default calendar": "Dupliquer vers le calendrier par défaut",
     Copied: "Copié",
     Rename: "Renommer",
     Remove: "Retirer",

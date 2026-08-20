@@ -55,6 +55,7 @@ import {
     withFollowingRemoved,
     withOccurrenceRemoved,
 } from "../../../src/ui/calendar/recurrenceDeletion";
+import { countedLabel } from "../../../src/ui/calendar/countedLabel";
 import { escapeClosesEventsPanel } from "../../../src/ui/calendar/escapeClosing";
 import { useCalendarNavigation } from "../../../src/ui/calendar/useCalendarNavigation";
 import { useEventDragResize } from "../../../src/ui/calendar/useEventDragResize";
@@ -2479,7 +2480,7 @@ export default function DesktopCalendar({
         if (contextMenu.type === "empty") {
             const base: ContextMenuItem[] = [
                 {
-                    label: "Create event",
+                    label: t("Create event"),
                     shortcut: "C",
                     onClick: () => {
                         const start = new Date(contextMenu.date);
@@ -2491,7 +2492,7 @@ export default function DesktopCalendar({
                     },
                 },
                 {
-                    label: "Paste event",
+                    label: t("Paste event"),
                     shortcut: "Ctrl+V",
                     disabled: clipboard === null,
                     onClick: () => void pasteEvent(contextMenu.date),
@@ -2499,16 +2500,15 @@ export default function DesktopCalendar({
             ];
             if (selectedIds.size === 0) return base;
             const count = selectedIds.size;
-            const noun = count === 1 ? "event" : `${count} events`;
             return [
                 {
-                    label: `Duplicate ${noun}`,
+                    label: countedLabel("Duplicate", count),
                     icon: <DuplicateIcon />,
                     onClick: () => void duplicateTargets(),
                 },
                 { label: "", separator: true, onClick: () => undefined },
                 {
-                    label: `Delete ${noun}`,
+                    label: countedLabel("Delete", count),
                     shortcut: "delete",
                     danger: true,
                     icon: <TrashIcon />,
@@ -2525,13 +2525,13 @@ export default function DesktopCalendar({
         if (record.readOnly) {
             return [
                 {
-                    label: "Copy",
+                    label: t("Copy"),
                     shortcut: "Ctrl C",
                     icon: <CopyIcon />,
                     onClick: () => copyEvent(contextMenu.eventId),
                 },
                 {
-                    label: "Duplicate to default calendar",
+                    label: t("Duplicate to default calendar"),
                     shortcut: "Ctrl D",
                     icon: <DuplicateIcon />,
                     onClick: () => void duplicateEvent(contextMenu.eventId),
@@ -2540,22 +2540,19 @@ export default function DesktopCalendar({
         }
         return [
             {
-                label: "Cut",
+                label: t("Cut"),
                 shortcut: "Ctrl X",
                 icon: <ScissorsIcon />,
                 onClick: () => cutEvent(contextMenu.eventId),
             },
             {
-                label: "Copy",
+                label: t("Copy"),
                 shortcut: "Ctrl C",
                 icon: <CopyIcon />,
                 onClick: () => copyEvent(contextMenu.eventId),
             },
             {
-                label:
-                    selectedCount > 1
-                        ? `Duplicate ${selectedCount} events`
-                        : "Duplicate",
+                label: countedLabel("Duplicate", selectedCount),
                 shortcut: "Ctrl D",
                 icon: <DuplicateIcon />,
                 onClick: () =>
@@ -2565,17 +2562,14 @@ export default function DesktopCalendar({
             },
             { label: "", separator: true, onClick: () => undefined },
             {
-                label: "Go to note",
+                label: t("Go to note"),
                 icon: <FileTextIcon />,
                 onClick: () =>
                     void openDesktopPath(dataFolder, record.relativePath),
             },
             { label: "", separator: true, onClick: () => undefined },
             {
-                label:
-                    selectedCount > 1
-                        ? `Delete ${selectedCount} events`
-                        : "Delete",
+                label: countedLabel("Delete", selectedCount),
                 shortcut: "delete",
                 danger: true,
                 icon: <TrashIcon />,
