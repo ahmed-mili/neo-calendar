@@ -2,11 +2,20 @@ const isPermissionGranted = jest.fn();
 const requestPermission = jest.fn();
 const sendNotification = jest.fn();
 
-jest.mock("@tauri-apps/plugin-notification", () => ({
-    isPermissionGranted: () => isPermissionGranted(),
-    requestPermission: () => requestPermission(),
-    sendNotification: (options: unknown) => sendNotification(options),
-}));
+/*
+ * Virtuel : le plugin n'est installé que dans apps/windows, et les tests
+ * tournent depuis la racine, où `npm ci` ne descend pas. Le mock répond donc à
+ * la place du module plutôt qu'au-dessus de lui.
+ */
+jest.mock(
+    "@tauri-apps/plugin-notification",
+    () => ({
+        isPermissionGranted: () => isPermissionGranted(),
+        requestPermission: () => requestPermission(),
+        sendNotification: (options: unknown) => sendNotification(options),
+    }),
+    { virtual: true }
+);
 
 /** A fresh copy of the module, whose answer is not remembered from before. */
 function load() {
