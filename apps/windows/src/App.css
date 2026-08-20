@@ -3378,6 +3378,23 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     background-image: none !important;
 }
 
+/* The month title is chrome, not grid: it sits between the header and the
+   calendar, and untinted it let a bare band of wallpaper through. Its four
+   pixels of bottom margin become padding, so the tint reaches the grid instead
+   of stopping four pixels short and leaving a thinner band of the same thing.
+   Height and alignment are unchanged: 4px of padding plus 4px of margin become
+   8px of padding. */
+.nc-desktop--calendar .nc-month-title {
+    background:
+        var(
+            --nc-chrome-container-background,
+            rgba(17, 17, 27, 0.48)
+        ) !important;
+    background-image: none !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 8px !important;
+}
+
 /* Inside the already-tinted grid container: a second tint here would paint a
    darker strip across the top of an otherwise translucent grid. The grid clips
    itself at this band's bottom edge, so no fill is needed to mask anything. */
