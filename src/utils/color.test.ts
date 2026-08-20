@@ -132,6 +132,25 @@ describe("readableTextColor", () => {
     it("choisit du texte sombre sur un jaune vif donne en rgb()", () => {
         expect(readableTextColor("rgb(244,190,64)")).toBe("#1a1a1a");
     });
+
+    /*
+     * Les couleurs moyennes sont celles qui se lisent le plus mal, et c'est
+     * exactement la ou un seuil unique tranche au hasard : un gris-bleu de
+     * calendrier recevait du blanc, qui n'y contraste que de 3,4 pour 1, quand
+     * le sombre y contraste de 5,1. Le choix se fait sur le contraste reel des
+     * deux encres, pas sur un point de bascule pose a la main.
+     */
+    it("prend l'encre qui contraste le mieux sur un ton moyen", () => {
+        expect(readableTextColor("#7f849c")).toBe("#1a1a1a");
+        expect(readableTextColor("#9d9d9d")).toBe("#1a1a1a");
+        expect(readableTextColor("#6c8cff")).toBe("#1a1a1a");
+    });
+
+    it("garde l'encre claire la ou elle contraste le mieux", () => {
+        expect(readableTextColor("#1e1e2e")).toBe("#ffffff");
+        expect(readableTextColor("#45475a")).toBe("#ffffff");
+        expect(readableTextColor("#8b0000")).toBe("#ffffff");
+    });
 });
 
 describe("rgbToHex", () => {

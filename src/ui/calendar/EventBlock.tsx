@@ -116,9 +116,22 @@ export default function EventBlock({
         ? event.color
         : `linear-gradient(${tint}, ${tint}), var(--background-primary)`;
     const eventColorBorder = event.color;
+    /*
+     * L'encre du bloc rempli, passee en variable plutot qu'en `color`.
+     * Le titre et l'heure fixent chacun leur couleur dans la feuille de style,
+     * si bien qu'une couleur posee sur le bloc ne les atteignait jamais : le
+     * nom restait dans le texte pale du theme, sur un fond qui pouvait etre
+     * clair. Les deux regles lisent cette variable, avec le theme en repli.
+     */
     const selectedTextColor = isSelected
         ? readableTextColor(event.color)
         : undefined;
+    const inkVariables: Record<string, string> = selectedTextColor
+        ? {
+              "--nc-event-ink": selectedTextColor,
+              "--nc-event-ink-muted": withAlpha(selectedTextColor, 0.75),
+          }
+        : {};
     const displayEnd = previewEnd ?? event.end;
 
     // Event blocks show the time RANGE (start – end), like Notion Calendar.
@@ -161,6 +174,7 @@ export default function EventBlock({
                     // not a border because a border bends around the block's
                     // rounded corners and reads as a parenthesis.
                     "--nc-event-accent": eventColorBorder,
+                    ...inkVariables,
                     color: selectedTextColor,
                     ...style,
                     ...dragStyle,

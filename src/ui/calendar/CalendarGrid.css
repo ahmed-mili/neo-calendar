@@ -1011,19 +1011,22 @@
     flex-shrink: 0;
 }
 
+/* L'encre vient du bloc quand il est rempli de sa couleur (voir EventBlock) :
+   sans ce repli, la couleur du theme gagnait et le nom devenait illisible sur
+   un fond clair. */
 .nc-event-title {
     font-size: var(--nc-event-font-size);
     font-weight: 600;
     line-height: 1.3;
     overflow: hidden;
     white-space: pre-wrap;
-    color: var(--nc-text-primary, var(--text-normal));
+    color: var(--nc-event-ink, var(--nc-text-primary, var(--text-normal)));
 }
 
 .nc-event-time {
     font-size: 11px;
     font-weight: 400;
-    color: var(--nc-text-secondary);
+    color: var(--nc-event-ink-muted, var(--nc-text-secondary));
     line-height: 1.3;
     white-space: nowrap;
 }

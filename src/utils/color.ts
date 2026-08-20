@@ -156,12 +156,61 @@ export function withAlpha(
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+/** L'encre sombre et l'encre claire entre lesquelles on choisit. */
+const DARK_INK = "#1a1a1a";
+const LIGHT_INK = "#ffffff";
+
+/** Une composante sRGB ramenee a la lumiere qu'elle emet reellement. */
+function channelLuminance(value: number): number {
+    const unit = value / 255;
+    return unit <= 0.04045
+        ? unit / 12.92
+        : Math.pow((unit + 0.055) / 1.055, 2.4);
+}
+
+/** La luminance relative d'une couleur, au sens WCAG. */
+function relativeLuminance({
+    r,
+    g,
+    b,
+}: {
+    r: number;
+    g: number;
+    b: number;
+}): number {
+    return (
+        0.2126 * channelLuminance(r) +
+        0.7152 * channelLuminance(g) +
+        0.0722 * channelLuminance(b)
+    );
+}
+
+/** Le rapport de contraste entre deux luminances, de 1 a 21. */
+function contrast(a: number, b: number): number {
+    const [light, dark] = a > b ? [a, b] : [b, a];
+    return (light + 0.05) / (dark + 0.05);
+}
+
 /**
- * Noir ou blanc, selon ce qui se lit le mieux sur `css`. Luminance percue sRGB :
- * un fond clair recoit du texte sombre.
+ * Noir ou blanc, selon ce qui se lit le mieux sur `css`.
+ *
+ * Le choix se fait sur le contraste reel des deux encres, pas sur un seuil de
+ * luminance pose a la main : un seuil tranche juste la ou il est le plus
+ * difficile de trancher, et une couleur moyenne — le gris-bleu d'un calendrier,
+ * un bleu franc — recevait du blanc alors que le sombre s'y lit nettement
+ * mieux. Le nom d'un evenement doit rester lisible quelle que soit la couleur
+ * qu'on lui a donnee.
  */
 export function readableTextColor(css: string | null | undefined): string {
-    const { r, g, b } = parseColor(css) ?? parseColor(FALLBACK_COLOR)!;
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.6 ? "#1a1a1a" : "#ffffff";
+    const rgb = parseColor(css) ?? parseColor(FALLBACK_COLOR)!;
+    const background = relativeLuminance(rgb);
+    const onDark = contrast(
+        background,
+        relativeLuminance({ r: 26, g: 26, b: 26 })
+    );
+    const onLight = contrast(
+        background,
+        relativeLuminance({ r: 255, g: 255, b: 255 })
+    );
+    return onDark >= onLight ? DARK_INK : LIGHT_INK;
 }

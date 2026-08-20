@@ -65,3 +65,23 @@ describe("the first occurrence of a series", () => {
         expect(render(single)).not.toContain("nc-event-series-start");
     });
 });
+
+describe("an event filled with its own colour", () => {
+    /*
+     * Selected, the block is painted in the calendar's colour and the title has
+     * to be read on it. The title and the time each set their own colour in the
+     * stylesheet, so an ink handed down by the block was overridden and lost:
+     * the name came out in the theme's pale text on a mid-grey fill, unreadable.
+     * The ink travels as a variable those two rules read.
+     */
+    it("hands the readable ink down as a variable", () => {
+        const html = render({ ...occurrence, selected: true });
+
+        expect(html).toContain("--nc-event-ink:#1a1a1a");
+        expect(html).toContain("--nc-event-ink-muted:rgba(26, 26, 26,");
+    });
+
+    it("hands nothing down while it is not filled", () => {
+        expect(render(occurrence)).not.toContain("--nc-event-ink");
+    });
+});
