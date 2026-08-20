@@ -25,7 +25,8 @@
     .nc-sidebar-title-chevron,
     .nc-sidebar-add-btn,
     .nc-calendar-actions,
-    .nc-calendar-default-label {
+    .nc-calendar-default-label,
+    .nc-panel-reminder-remove {
         opacity: 1;
     }
 
@@ -97,6 +98,24 @@
         width: 30px;
         height: 100%;
         min-height: 22px;
+        transform: translate(-50%, -50%);
+    }
+
+    /* La croix d'un rappel vit DANS sa puce, et les puces se suivent a six
+       pixels : une zone de 44 px prendrait le tap de la voisine. Elle s'etend
+       donc a la hauteur de la puce, et d'assez peu sur les cotes. */
+    .nc-panel-reminder-remove {
+        position: relative;
+    }
+
+    .nc-panel-reminder-remove::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 26px;
+        height: 100%;
+        min-height: 24px;
         transform: translate(-50%, -50%);
     }
 
