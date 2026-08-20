@@ -15,19 +15,32 @@ import type { Reminder } from "./androidReminders";
  * about.
  */
 
-let granted: boolean | null = null;
+/*
+ * The asking itself, kept rather than its answer.
+ *
+ * Reminders come in bursts: the scheduler posts everything due in the same
+ * turn, and each one asks whether it may. Holding only the answer means every
+ * reminder in the burst finds nothing yet and asks Windows again — ten
+ * reminders, ten permission requests for one decision. Holding the promise
+ * makes them all wait on the first.
+ */
+let asking: Promise<boolean> | null = null;
 
 /** Asks once, then remembers the answer for the rest of the session. */
-export async function ensureNotificationPermission(): Promise<boolean> {
-    if (granted !== null) return granted;
-    try {
-        granted =
-            (await isPermissionGranted()) ||
-            (await requestPermission()) === "granted";
-    } catch {
-        granted = false;
+export function ensureNotificationPermission(): Promise<boolean> {
+    if (!asking) {
+        asking = (async () => {
+            try {
+                return (
+                    (await isPermissionGranted()) ||
+                    (await requestPermission()) === "granted"
+                );
+            } catch {
+                return false;
+            }
+        })();
     }
-    return granted;
+    return asking;
 }
 
 export async function postReminder(reminder: Reminder): Promise<void> {
