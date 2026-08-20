@@ -166,7 +166,6 @@ const FR: Record<string, string> = {
     Overdue: "En retard",
     // A task's deadline, kept distinct from the day set aside for the work.
     Deadline: "Échéance",
-    "Add deadline": "Ajouter une échéance",
     "Remove deadline": "Retirer l'échéance",
     // Taking the date off an event, which is what sends it back to the
     // unscheduled list — the reverse of "Add date" above.

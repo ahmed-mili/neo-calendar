@@ -1770,60 +1770,6 @@
     min-width: 36px;
 }
 
-/* Deadline row: a date once set, a quiet invitation while it is not. Most
-   tasks never need one, so the unset state must not shout. */
-
-.nc-panel-due-value {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    flex-shrink: 0;
-}
-
-.nc-panel-due-clear {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    padding: 0;
-    border: none;
-    box-shadow: none !important;
-    background: transparent;
-    border-radius: 4px;
-    cursor: pointer;
-    color: var(--nc-text-faint);
-    transition: var(--nc-transition-paint);
-}
-
-.nc-panel-due-clear:hover {
-    background: var(--nc-bg-hover);
-    color: var(--nc-text-primary);
-}
-
-.nc-panel-due-add {
-    padding: 2px 8px;
-    font-size: var(--nc-text-sm, 12px);
-    border: none;
-    box-shadow: none !important;
-    background: transparent;
-    border-radius: 4px;
-    cursor: pointer;
-    color: var(--nc-text-faint);
-    transition: var(--nc-transition-paint);
-    flex-shrink: 0;
-}
-
-.nc-panel-due-add:hover:not(:disabled) {
-    background: var(--nc-bg-hover);
-    color: var(--nc-text-primary);
-}
-
-.nc-panel-due-add:disabled {
-    cursor: default;
-    opacity: 0.6;
-}
-
 /* Steps of a task — a list that reads as a list: one line per step, the box on
    the left, nothing else drawn around it. The row keeps the panel's own layout
    (icon, then a column of content) so it sits with the others rather than
