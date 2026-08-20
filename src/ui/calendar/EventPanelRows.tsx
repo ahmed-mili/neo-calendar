@@ -1561,24 +1561,43 @@ export function RemindersRow({
 
     const chosen = reminders ?? [];
 
-    const openMenu = () => {
+    /* `wanted` is how tall the menu would be if nothing cut it: measured once
+       it is up, so the five entries are counted as they really render rather
+       than from a number kept in step with the stylesheet by hand. Until then
+       the field's own height stands in, which is enough to open on the side
+       with room. */
+    const place = (wanted: number) => {
         const box = fieldRef.current?.getBoundingClientRect();
-        if (box) {
-            const placement = placeFlyout(box, window.innerHeight, {
-                gap: 4,
-                margin: 12,
-                minHeight: 140,
-            });
-            setMenuPos({
-                top: placement.top,
-                bottom: placement.bottom,
-                left: box.left,
-                minWidth: box.width,
-                maxHeight: placement.maxHeight,
-            });
-        }
+        if (!box) return;
+        const placement = placeFlyout(box, window.innerHeight, {
+            gap: 4,
+            margin: 12,
+            minHeight: wanted,
+        });
+        setMenuPos({
+            top: placement.top,
+            bottom: placement.bottom,
+            left: box.left,
+            minWidth: box.width,
+            maxHeight: placement.maxHeight,
+        });
+    };
+
+    const openMenu = () => {
+        place(REMINDER_CHOICES.length * 40);
         setOpen(true);
     };
+
+    /* A menu of five entries fits above or below almost anywhere; scrolling it
+       under the field while the whole screen sits free above is the placement
+       being asked the wrong question. So it is asked again with the height the
+       menu actually wants, before the browser paints it. */
+    React.useLayoutEffect(() => {
+        if (!open) return;
+        const height = menuRef.current?.scrollHeight;
+        if (height) place(height);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
 
     React.useEffect(() => {
         if (!open) return;
