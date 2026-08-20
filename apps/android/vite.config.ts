@@ -52,6 +52,10 @@ export default defineConfig({
                 replacement: here("./src/platform/store.ts"),
             },
             {
+                find: "@tauri-apps/plugin-notification",
+                replacement: here("./src/platform/notification.ts"),
+            },
+            {
                 find: "obsidian",
                 replacement: here("../windows/src/platform/obsidianShim.ts"),
             },
