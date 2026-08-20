@@ -32,6 +32,8 @@
     "../../vendor/**/*.d.ts"
   ],
   "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
     "../windows/src/**/*.test.ts",
     "../windows/src/**/*.test.tsx"
   ]

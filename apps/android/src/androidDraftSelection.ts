@@ -1,3 +1,5 @@
+import { eventAccentColor } from "./eventAccent";
+
 type NeoAndroidWindow = Window & {
     NeoAndroid?: unknown;
     __neoNativeTouchResizeV71?: boolean;
@@ -64,15 +66,10 @@ function isAndroidRuntime(): boolean {
 function readEventColor(
     block: HTMLElement
 ): string {
-    const computed =
+    return eventAccentColor(
         window.getComputedStyle(
             block
-        );
-
-    return (
-        computed.borderLeftColor ||
-        computed.borderTopColor ||
-        "currentColor"
+        )
     );
 }
 
