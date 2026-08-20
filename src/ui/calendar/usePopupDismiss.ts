@@ -36,6 +36,10 @@ const KEEP_OPEN_SELECTORS = [
     ".nc-cal-select-menu",
     ".nc-datepicker",
     ".nc-select-menu",
+    // Les choix que la feuille ouvre par dessus elle-meme : la repetition et,
+    // sur une serie, la portee de l'enregistrement.
+    ".nc-choice-overlay",
+    ".nc-scope-overlay",
     "[data-nc-popup-portal='true']",
     ".nc-link-results-popover",
     ".nc-sidebar",

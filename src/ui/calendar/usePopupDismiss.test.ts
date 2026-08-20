@@ -20,6 +20,17 @@ describe("pressOutcome", () => {
         );
     });
 
+    /*
+     * La ligne de repetition et la question de portee ouvrent leur choix par
+     * dessus la feuille, au niveau du body. Absentes de la liste, elles etaient
+     * lues comme un depart : la feuille se demontait sous le doigt et l'option
+     * choisie n'etait jamais enregistree — la repetition ne changeait pas.
+     */
+    it("garde le panneau ouvert sur les choix qu'il ouvre lui-même", () => {
+        expect(pressOutcome(pressedOn(".nc-choice-overlay"))).toBe("keep");
+        expect(pressOutcome(pressedOn(".nc-scope-overlay"))).toBe("keep");
+    });
+
     it("keeps the editor open while the surrounding app is used", () => {
         expect(pressOutcome(pressedOn(".nc-sidebar"))).toBe("keep");
         expect(pressOutcome(pressedOn(".mod-left-split"))).toBe("keep");
