@@ -696,6 +696,17 @@ body.nc-platform-android .nc-panel-row {
     margin-right: 10px;
 }
 
+/* Le conteneur des liens n'a pas de marge propre.
+   Il porte une ligne de panneau comme les autres, qui prend deja les siennes
+   juste au-dessus ; les 2px 8px que le bureau pose sur le conteneur venaient
+   s'y ajouter. Mesure sur l'emulateur : l'icone d'« Ajouter des liens et des
+   fichiers » a 36 px, celle de toutes les autres lignes a 28 px — une seule
+   ligne de la feuille desalignee, et c'est celle-la. */
+body.nc-platform-android .nc-links-attachments {
+    margin-left: 0;
+    margin-right: 0;
+}
+
 /*
  * The title of an event is a title, not a form field.
  *
@@ -1369,7 +1380,11 @@ body.nc-platform-android .nc-event-block {
     margin-left: 4px !important;
     padding: 5px 7px !important;
     padding-left: calc(var(--nc-event-accent-width) + 7px) !important;
-    border-radius: 8px !important;
+    /* Presque carre, volontairement. Une barre d'une demi-heure fait une
+       trentaine de pixels de haut ici : un rayon de 8 px en arrondissait un
+       quart a chaque bout et l'evenement se lisait comme une pastille plutot
+       que comme une duree. */
+    border-radius: 4px !important;
     box-shadow: 0 5px 14px rgba(0, 0, 0, 0.18) !important;
 }
 
@@ -1377,7 +1392,10 @@ body.nc-platform-android .nc-event-block {
    the landing is drawn where the block will actually be. */
 body.nc-platform-android .nc-drop-preview {
     margin-left: 4px !important;
-    border-radius: 8px !important;
+    /* Le meme angle que le bloc : ce cadre montre ou il va se poser, et un
+       arrondi different ferait un contour qui ne ressemble pas a ce qui vient
+       dedans. */
+    border-radius: 4px !important;
 }
 
 /* Native-feeling drawer: view span at the top, calendars below. */
