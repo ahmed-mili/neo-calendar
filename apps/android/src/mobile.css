@@ -4724,10 +4724,21 @@ body.nc-platform-android .nc-mobile-new-event:active {
    Same treatment as the event sheet and the header before it. Anything that
    covers the calendar rather than sitting beside it has to be opaque. */
 
+/* La meme surface que le drawer, et pas seulement une surface opaque.
+   Le panneau s'ouvre DEPUIS le drawer, a la meme largeur, sur le meme bord, et
+   se pose dessus : deux couleurs differentes pour un seul geste, et l'on croit
+   avoir change d'ecran. Mesure sur l'emulateur avant ce correctif — drawer
+   rgb(21, 21, 34), panneau rgb(27, 27, 44) — parce que celui-ci demandait la
+   surface primaire du theme la ou le drawer demande la secondaire.
+
+   `--background-secondary` comme le drawer, donc, et pour la meme raison que
+   la regle du drawer le dit plus haut : `--nc-bg-secondary` est redefinie sur
+   .nc-desktop--calendar a 58 % de celle-ci sur du transparent, et le repli ne
+   s'applique jamais a une variable qui EST definie. */
 body.nc-platform-android .nc-cep-slot .nc-cep,
 body.nc-platform-android .nc-cep-slot .nc-cep-header,
 body.nc-platform-android .nc-cep-slot .nc-cep-body {
-    background: var(--background-primary) !important;
+    background: var(--background-secondary, #181825) !important;
     background-image: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
