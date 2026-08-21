@@ -3133,18 +3133,39 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 }
 
 .nc-wallpaper-option__credit {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     min-width: 0;
     margin-left: 8px;
-    overflow: hidden;
     color: var(--nc-text-secondary, var(--text-muted));
     font-size: 11px;
     line-height: 1.3;
+}
+
+/* C'est le nom qui se coupe quand la place manque, jamais la marque : un logo
+   tronque a l'air casse, un nom tronque a l'air long. */
+.nc-wallpaper-option__credit-text {
+    min-width: 0;
+    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+.nc-wallpaper-option__mark {
+    flex: none;
+    /* Le logo pese optiquement plus lourd que le texte a taille egale ; un
+       cheveu de transparence le remet au meme plan que le nom. */
+    opacity: 0.75;
+}
+
 .nc-wallpaper-option__credit--link {
     cursor: pointer;
+}
+
+/* Le trait souligne le nom seul : porte par le conteneur, il passerait sous le
+   logo et sous l'espace qui l'en separe. */
+.nc-wallpaper-option__credit--link .nc-wallpaper-option__credit-text {
     text-decoration: underline;
     text-decoration-color: transparent;
     text-underline-offset: 2px;
@@ -3153,6 +3174,11 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 .nc-wallpaper-option__credit--link:hover,
 .nc-wallpaper-option__credit--link:focus-visible {
     color: var(--text-normal);
+}
+
+.nc-wallpaper-option__credit--link:hover .nc-wallpaper-option__credit-text,
+.nc-wallpaper-option__credit--link:focus-visible
+    .nc-wallpaper-option__credit-text {
     text-decoration-color: currentColor;
 }
 

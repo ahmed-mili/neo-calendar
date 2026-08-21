@@ -2,31 +2,46 @@ import { WallpaperCredit } from "./wallpaperCredit";
 
 export const WALLPAPER_IDS = [
     "theme-default",
-    "android-alpenglow",
-    "android-rose-summit",
-    "starlit-alpine-refuge",
-    "mountain-sunset",
-    "alpine-crown",
-    "dolomite-dawn",
-    "dolomite-haze",
-    "emerald-cove",
-    "lofoten-fjord",
-    "glacier-ridge",
-    "golden-crest",
-    "ember-dolomites",
-    "turquoise-lagoon",
-    "stormy-fjord",
-    "glacier-plateau",
-    "alpine-lake-sunset",
-    "alpine-turquoise-lake",
-    "aurora-lake-night",
-    "coastal-city-night",
-    "milky-way-mountain",
-    "misty-forest-dawn",
-    "neon-city-sunset",
-    "orange-mountain-sunset",
-    "tropical-beach-aerial",
-    "turquoise-waves-aerial",
+    "violet-forest-bloom",
+    "violet-forest-bloom-portrait",
+    "cloudlaced-ranges",
+    "cloudlaced-ranges-portrait",
+    "panorama-valley",
+    "panorama-valley-portrait",
+    "milky-way-trail",
+    "milky-way-trail-portrait",
+    "sunlit-canyon",
+    "sunlit-canyon-portrait",
+    "whale-tail-cliffs",
+    "whale-tail-cliffs-portrait",
+    "white-forest-flowers",
+    "white-forest-flowers-portrait",
+    "golden-gate-night",
+    "golden-gate-night-portrait",
+    "island-sunset",
+    "island-sunset-portrait",
+    "tropical-palm-coast",
+    "tropical-palm-coast-portrait",
+    "starlit-snow-peak",
+    "starlit-snow-peak-portrait",
+    "steep-blue-ridges",
+    "steep-blue-ridges-portrait",
+    "golden-snow-range",
+    "golden-snow-range-portrait",
+    "gapstow-autumn",
+    "gapstow-autumn-portrait",
+    "coastal-hills-dusk",
+    "coastal-hills-dusk-portrait",
+    "autumn-forest-path",
+    "autumn-forest-path-portrait",
+    "turquoise-shallows",
+    "turquoise-shallows-portrait",
+    "monument-valley-stars",
+    "monument-valley-stars-portrait",
+    "cloudveil-fjord",
+    "cloudveil-fjord-portrait",
+    "golden-summit",
+    "golden-summit-portrait",
     "none",
 ] as const;
 
@@ -43,44 +58,244 @@ export interface WallpaperDefinition {
     target: WallpaperTarget;
     aspect: WallpaperAspect;
     /**
-     * D'où vient l'image, quand on le sait.
+     * D'où vient l'image.
      *
-     * Le catalogue s'est rempli en deposant des fichiers dans un dossier, et
-     * rien n'a jamais note leur origine : la plupart des entrees n'ont donc pas
-     * encore de credit, et `needsCredit` (wallpaperCredit.ts) dit lesquelles.
-     * Absent vaut « on ne sait pas », jamais « personne » — un credit invente
-     * designe quelqu'un d'autre, ce qui est pire que pas de credit du tout.
+     * Chaque photo du catalogue a été choisie dans les favoris Unsplash
+     * d'Ahmed, et son auteur comme sa page ont été relevés sur Unsplash même,
+     * une par une. Le champ reste optionnel parce qu'une couleur unie et le
+     * fond du thème ne sont la photo de personne — mais une photo sans crédit
+     * n'entre plus dans ce catalogue.
      */
     credit?: WallpaperCredit;
 }
 
 /**
- * D'ou viennent les photos du catalogue.
+ * Les vingt photos, chacune livrée dans les deux formats.
  *
- * Ahmed, qui les a choisies, dit qu'elles viennent toutes d'Unsplash. Le lien
- * pointe vers Unsplash et non vers chaque photo : rien n'a jamais note de
- * quelle page chacune vient, et inventer vingt-cinq adresses reviendrait a
- * designer vingt-cinq photos au hasard. Le jour ou les pages sont connues, il
- * suffit de poser `url` sur l'entree concernee — c'est pour cela que le champ
- * est par fond et non global.
+ * Le catalogue est monté à partir de cette table plutôt qu'écrit deux fois :
+ * une photo, c'est un auteur, une page et un texte — le format d'écran est ce
+ * qui varie, pas la photo. Chaque entrée produit donc un fond paysage pour les
+ * écrans d'ordinateur et un fond portrait pour les téléphones, et l'appareil ne
+ * voit que celui qui lui va (`getWallpapersForRuntime`).
+ *
+ * Les deux fichiers sont recadrés par Unsplash depuis le même original, jamais
+ * regénérés : c'est bien la photo de l'auteur crédité qui s'affiche, dans un
+ * cadre différent.
+ *
+ * `portraitId` est écrit en toutes lettres, et non déduit de `id`, pour que le
+ * compilateur vérifie qu'il existe dans `WALLPAPER_IDS` : un identifiant mal
+ * orthographié serait sinon un fond introuvable découvert à l'exécution.
  */
-const UNSPLASH = { source: "Unsplash", url: "https://unsplash.com" } as const;
+interface CataloguePhoto {
+    readonly id: WallpaperId;
+    readonly portraitId: WallpaperId;
+    readonly label: string;
+    readonly description: string;
+    /** Qui l'a prise. Relevé sur la page Unsplash, jamais deviné. */
+    readonly author: string;
+    /** Sa page chez Unsplash — l'original, en pleine résolution. */
+    readonly page: string;
+}
 
-/**
- * Celle dont le fichier dit lui-meme comment elle a ete faite.
- *
- * `starlit-alpine-refuge.jpg` porte une signature C2PA d'OpenAI Media Service,
- * dans le JPEG. Une image generee peut parfaitement etre publiee sur Unsplash,
- * donc les deux tiennent ensemble : la source reste Unsplash, et ce que le
- * fichier prouve n'est pas jete.
- */
-const UNSPLASH_GENERATED = {
-    source: "Unsplash · image générée",
-    url: "https://unsplash.com",
-} as const;
+const PHOTOS: readonly CataloguePhoto[] = [
+    {
+        id: "violet-forest-bloom",
+        portraitId: "violet-forest-bloom-portrait",
+        label: "Sous-bois en fleurs",
+        description: "Le soleil traverse les arbres jusqu'à un tapis violet.",
+        author: "Uran Wang",
+        page: "https://unsplash.com/photos/la-lumiere-du-soleil-traverse-les-arbres-jusqua-un-champ-de-fleurs-violettes-TVORvlpH2ZY",
+    },
+    {
+        id: "cloudlaced-ranges",
+        portraitId: "cloudlaced-ranges-portrait",
+        label: "Crêtes et nuages",
+        description: "Des sommets enneigés au-dessus d'une mer de nuages.",
+        author: "Nicolas Prieto",
+        page: "https://unsplash.com/photos/chaines-de-montagnes-couvertes-de-nuages-sMJaf08ugD0",
+    },
+    {
+        id: "panorama-valley",
+        portraitId: "panorama-valley-portrait",
+        label: "Vallée panoramique",
+        description: "Une vallée ouverte, les montagnes en arrière-plan.",
+        author: "Daniel Seßler",
+        page: "https://unsplash.com/photos/une-vue-panoramique-dune-vallee-avec-des-montagnes-en-arriere-plan-yVkwJVCAnXs",
+    },
+    {
+        id: "milky-way-trail",
+        portraitId: "milky-way-trail-portrait",
+        label: "Sentier sous la Voie lactée",
+        description: "La Voie lactée s'arque au-dessus d'un chemin de pierres.",
+        author: "Sebastian Knoll",
+        page: "https://unsplash.com/photos/voie-lactee-sarquant-au-dessus-dun-sentier-rocheux-IPCh5x1whiQ",
+    },
+    {
+        id: "sunlit-canyon",
+        portraitId: "sunlit-canyon-portrait",
+        label: "Canyon au soleil",
+        description: "Roches et végétation clairsemée en plein soleil.",
+        author: "NIR HIMI",
+        page: "https://unsplash.com/photos/canyon-desertique-baigne-de-soleil-avec-des-formations-rocheuses-et-une-vegetation-clairsemee-Rv2yB04plX8",
+    },
+    {
+        id: "whale-tail-cliffs",
+        portraitId: "whale-tail-cliffs-portrait",
+        label: "Baleine sous les falaises",
+        description: "Une baleine sort de l'eau sombre au pied des rochers.",
+        author: "Marek Piwnicki",
+        page: "https://unsplash.com/photos/queue-de-baleine-emergeant-de-leau-sombre-pres-des-falaises-rocheuses-tv8swoH1aOY",
+    },
+    {
+        id: "white-forest-flowers",
+        portraitId: "white-forest-flowers-portrait",
+        label: "Anémones des bois",
+        description: "Des fleurs blanches en sous-bois, au milieu du jour.",
+        author: "Kasia Gajek",
+        page: "https://unsplash.com/photos/fleurs-blanches-dans-la-foret-pendant-la-journee-Dpf1iwtX2Yo",
+    },
+    {
+        id: "golden-gate-night",
+        portraitId: "golden-gate-night-portrait",
+        label: "Golden Gate la nuit",
+        description: "Le pont illuminé sous un ciel de traîne.",
+        author: "Justin Wolff",
+        page: "https://unsplash.com/photos/le-golden-gate-bridge-est-illumine-la-nuit-Macs-aqy6Ek",
+    },
+    {
+        id: "island-sunset",
+        portraitId: "island-sunset-portrait",
+        label: "Île au couchant",
+        description: "Un coucher de soleil sur une île au milieu de l'océan.",
+        author: "Daniel Seßler",
+        page: "https://unsplash.com/photos/un-magnifique-coucher-de-soleil-sur-une-petite-ile-au-milieu-de-locean-xHxfXRbTG1Y",
+    },
+    {
+        id: "tropical-palm-coast",
+        portraitId: "tropical-palm-coast-portrait",
+        label: "Côte tropicale",
+        description: "Des palmiers au bord d'une eau turquoise et claire.",
+        author: "Marcreation",
+        page: "https://unsplash.com/photos/cote-tropicale-diles-avec-des-palmiers-et-une-eau-turquoise-claire-fV_qtB_sTV8",
+    },
+    {
+        id: "starlit-snow-peak",
+        portraitId: "starlit-snow-peak-portrait",
+        label: "Sommet sous les étoiles",
+        description: "Une montagne enneigée sous un ciel constellé.",
+        author: "Benjamin Voros",
+        page: "https://unsplash.com/photos/montagne-enneigee-sous-les-etoiles-phIFdC6lA4E",
+    },
+    {
+        id: "steep-blue-ridges",
+        portraitId: "steep-blue-ridges-portrait",
+        label: "Crêtes escarpées",
+        description: "Des versants abrupts sous un ciel bleu franc.",
+        author: "Marek Piwnicki",
+        page: "https://unsplash.com/photos/montagnes-escarpees-sous-un-ciel-bleu-avec-des-nuages-blancs-I3HjjiGRnko",
+    },
+    {
+        id: "golden-snow-range",
+        portraitId: "golden-snow-range-portrait",
+        label: "Chaîne dorée",
+        description: "Des sommets enneigés pris dans un soleil doré.",
+        author: "Marek Piwnicki",
+        page: "https://unsplash.com/photos/majestueuses-montagnes-enneigees-baignees-dun-soleil-dore-VksMwErxR9c",
+    },
+    {
+        id: "gapstow-autumn",
+        portraitId: "gapstow-autumn-portrait",
+        label: "Pont de Gapstow",
+        description: "Le pont entouré d'arbres d'automne, à New York.",
+        author: "Juan Di Nella",
+        page: "https://unsplash.com/photos/pont-de-gapstow-a-lautomne-a-new-york-ne1X1c9M0Hg",
+    },
+    {
+        id: "coastal-hills-dusk",
+        portraitId: "coastal-hills-dusk-portrait",
+        label: "Collines au crépuscule",
+        description:
+            "Collines et océan dans une lumière chaude de fin de jour.",
+        author: "Antonin Fontaine",
+        page: "https://unsplash.com/photos/collines-et-ocean-au-coucher-du-soleil-avec-une-lumiere-chaude-YiRaXIR5Etk",
+    },
+    {
+        id: "autumn-forest-path",
+        portraitId: "autumn-forest-path-portrait",
+        label: "Chemin d'automne",
+        description: "Un chemin de terre dans une forêt aux feuilles jaunes.",
+        author: "Daniel Seßler",
+        page: "https://unsplash.com/photos/chemin-de-terre-a-travers-la-foret-dautomne-_3DI_vx2ygg",
+    },
+    {
+        id: "turquoise-shallows",
+        portraitId: "turquoise-shallows-portrait",
+        label: "Hauts-fonds turquoise",
+        description: "Vue aérienne d'un sable clair sous une eau peu profonde.",
+        author: "Rod Long",
+        page: "https://unsplash.com/photos/vue-aerienne-dune-cote-sablonneuse-avec-une-eau-turquoise-peu-profonde-iqBc91jdqoQ",
+    },
+    {
+        id: "monument-valley-stars",
+        portraitId: "monument-valley-stars-portrait",
+        label: "Monument Valley étoilée",
+        description: "Un ciel constellé au-dessus des buttes du désert.",
+        author: "Joseph Corl",
+        page: "https://unsplash.com/photos/voie-lactee-au-dessus-des-buttes-de-la-vallee-du-monument-BMhglVdk3lA",
+    },
+    {
+        id: "cloudveil-fjord",
+        portraitId: "cloudveil-fjord-portrait",
+        label: "Fjord sous les nuages",
+        description: "Un fjord encerclé de montagnes prises dans les nuages.",
+        author: "Marek Piwnicki",
+        page: "https://unsplash.com/photos/fjord-entoure-de-montagnes-spectaculaires-couvertes-de-nuages-jMPwiaqRXzI",
+    },
+    {
+        id: "golden-summit",
+        portraitId: "golden-summit-portrait",
+        label: "Sommet doré",
+        description: "Une cime enneigée prise dans un soleil rasant.",
+        author: "Marek Piwnicki",
+        page: "https://unsplash.com/photos/un-sommet-enneige-baigne-dun-soleil-dore-E909Oe4N3pM",
+    },
+];
 
 export const DEFAULT_WALLPAPER_ID: WallpaperId = "theme-default";
-export const DEFAULT_ANDROID_WALLPAPER_ID: WallpaperId = "android-alpenglow";
+export const DEFAULT_ANDROID_WALLPAPER_ID: WallpaperId =
+    "starlit-snow-peak-portrait";
+
+/** Les deux fonds tirés d'une même photo : l'écran large, puis le téléphone. */
+function bothFormats(photo: CataloguePhoto): WallpaperDefinition[] {
+    const credit: WallpaperCredit = {
+        author: photo.author,
+        source: "Unsplash",
+        url: photo.page,
+    };
+
+    return [
+        {
+            id: photo.id,
+            label: photo.label,
+            description: photo.description,
+            imageUrl: `/themes/neo-wallpapers/${photo.id}.jpg`,
+            previewStyle: "image",
+            target: "pc",
+            aspect: "landscape",
+            credit,
+        },
+        {
+            id: photo.portraitId,
+            label: photo.label,
+            description: photo.description,
+            imageUrl: `/themes/neo-wallpapers/${photo.portraitId}.jpg`,
+            previewStyle: "image",
+            target: "android",
+            aspect: "portrait",
+            credit,
+        },
+    ];
+}
 
 export const WALLPAPERS: readonly WallpaperDefinition[] = [
     {
@@ -92,271 +307,11 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         target: "universal",
         aspect: "adaptive",
     },
-    {
-        id: "android-alpenglow",
-        label: "Sommets Alpenglow",
-        description: "Fond vertical optimisé pour les écrans Android.",
-        imageUrl: "/themes/neo-wallpapers/android-alpenglow.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "android-rose-summit",
-        label: "Sommet Rose",
-        description: "Fond vertical Android aux tons rose et bleu.",
-        imageUrl: "/themes/neo-wallpapers/android-rose-summit.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "starlit-alpine-refuge",
-        label: "Starlit Alpine Refuge",
-        description:
-            "Refuge des Dolomites sous un ciel étoilé, à la nuit tombée.",
-        imageUrl: "/themes/neo-wallpapers/starlit-alpine-refuge.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH_GENERATED,
-    },
-    {
-        id: "mountain-sunset",
-        label: "Mountain Sunset",
-        description: "Fond horizontal optimisé pour PC et grands écrans.",
-        imageUrl: "/themes/catppuccin-mocha/mountain-sunset.jpg",
-        previewStyle: "image",
-        target: "pc",
-        aspect: "landscape",
-        credit: UNSPLASH,
-    },
-    {
-        id: "alpine-crown",
-        label: "Couronne alpine",
-        description: "Fond horizontal : crête enneigée au soleil rasant.",
-        imageUrl: "/themes/neo-wallpapers/alpine-crown.jpg",
-        previewStyle: "image",
-        target: "pc",
-        aspect: "landscape",
-        credit: UNSPLASH,
-    },
-    {
-        id: "dolomite-dawn",
-        label: "Aube des Dolomites",
-        description: "Fond horizontal : sommet doré sous un ciel mauve.",
-        imageUrl: "/themes/neo-wallpapers/dolomite-dawn.jpg",
-        previewStyle: "image",
-        target: "pc",
-        aspect: "landscape",
-        credit: UNSPLASH,
-    },
-    {
-        id: "dolomite-haze",
-        label: "Brume des Dolomites",
-        description: "Fond horizontal : crêtes roses au-dessus de la brume.",
-        imageUrl: "/themes/neo-wallpapers/dolomite-haze.jpg",
-        previewStyle: "image",
-        target: "pc",
-        aspect: "landscape",
-        credit: UNSPLASH,
-    },
-    {
-        id: "emerald-cove",
-        label: "Crique émeraude",
-        description: "Fond horizontal : eau turquoise au pied d'une falaise.",
-        imageUrl: "/themes/neo-wallpapers/emerald-cove.jpg",
-        previewStyle: "image",
-        target: "pc",
-        aspect: "landscape",
-        credit: UNSPLASH,
-    },
-    {
-        id: "lofoten-fjord",
-        label: "Fjord des Lofoten",
-        description: "Fond horizontal : parois sombres et nuages bas.",
-        imageUrl: "/themes/neo-wallpapers/lofoten-fjord.jpg",
-        previewStyle: "image",
-        target: "pc",
-        aspect: "landscape",
-        credit: UNSPLASH,
-    },
-    {
-        id: "glacier-ridge",
-        label: "Crête glaciaire",
-        description: "Fond horizontal : glacier et ciel bleu franc.",
-        imageUrl: "/themes/neo-wallpapers/glacier-ridge.jpg",
-        previewStyle: "image",
-        target: "pc",
-        aspect: "landscape",
-        credit: UNSPLASH,
-    },
-    {
-        id: "golden-crest",
-        label: "Crête dorée",
-        description: "Fond vertical : sommet au soleil rasant, ciel profond.",
-        imageUrl: "/themes/neo-wallpapers/golden-crest.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "ember-dolomites",
-        label: "Dolomites incandescentes",
-        description: "Fond vertical : ciel orangé au-dessus de la brume.",
-        imageUrl: "/themes/neo-wallpapers/ember-dolomites.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "turquoise-lagoon",
-        label: "Lagon turquoise",
-        description: "Fond vertical : eau claire au pied d'une falaise verte.",
-        imageUrl: "/themes/neo-wallpapers/turquoise-lagoon.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "stormy-fjord",
-        label: "Fjord sous l'orage",
-        description: "Fond vertical : parois sombres et nuages bas.",
-        imageUrl: "/themes/neo-wallpapers/stormy-fjord.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "glacier-plateau",
-        label: "Plateau glaciaire",
-        description: "Fond vertical : glacier et versant ocre, ciel franc.",
-        imageUrl: "/themes/neo-wallpapers/glacier-plateau.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "alpine-lake-sunset",
-        label: "Lac alpin au couchant",
-        description:
-            "Fond vertical : ciel pourpre reflété sur un lac de montagne.",
-        imageUrl: "/themes/neo-wallpapers/alpine-lake-sunset.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "alpine-turquoise-lake",
-        label: "Lac alpin turquoise",
-        description:
-            "Fond vertical : eau turquoise au pied de cimes enneigées.",
-        imageUrl: "/themes/neo-wallpapers/alpine-turquoise-lake.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "aurora-lake-night",
-        label: "Aurores boréales",
-        description:
-            "Fond vertical : voiles verts au-dessus d'un lac, la nuit.",
-        imageUrl: "/themes/neo-wallpapers/aurora-lake-night.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "coastal-city-night",
-        label: "Ville côtière la nuit",
-        description:
-            "Fond vertical : gratte-ciel et traînées de phares au bord de l'eau.",
-        imageUrl: "/themes/neo-wallpapers/coastal-city-night.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "milky-way-mountain",
-        label: "Voie lactée",
-        description:
-            "Fond vertical : cœur de la galaxie au-dessus d'une crête sombre.",
-        imageUrl: "/themes/neo-wallpapers/milky-way-mountain.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "misty-forest-dawn",
-        label: "Forêt brumeuse",
-        description:
-            "Fond vertical : lumière du matin filtrée entre les troncs.",
-        imageUrl: "/themes/neo-wallpapers/misty-forest-dawn.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "neon-city-sunset",
-        label: "Ville néon",
-        description:
-            "Fond vertical : crépuscule magenta sur une skyline de néons.",
-        imageUrl: "/themes/neo-wallpapers/neon-city-sunset.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "orange-mountain-sunset",
-        label: "Coucher orangé",
-        description:
-            "Fond vertical : soleil rasant sur des crêtes en ombres chinoises.",
-        imageUrl: "/themes/neo-wallpapers/orange-mountain-sunset.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "tropical-beach-aerial",
-        label: "Plage tropicale",
-        description:
-            "Fond vertical : vue aérienne d'un sable blanc et d'un récif turquoise.",
-        imageUrl: "/themes/neo-wallpapers/tropical-beach-aerial.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
-    {
-        id: "turquoise-waves-aerial",
-        label: "Vagues turquoise",
-        description:
-            "Fond vertical : vue aérienne d'un rouleau d'écume sur une eau claire.",
-        imageUrl: "/themes/neo-wallpapers/turquoise-waves-aerial.jpg",
-        previewStyle: "image",
-        target: "android",
-        aspect: "portrait",
-        credit: UNSPLASH,
-    },
+    ...PHOTOS.flatMap(bothFormats),
     {
         id: "none",
-        label: "Aucun fond d'écran",
-        description: "Utilise uniquement la couleur d'arrière-plan du thème.",
+        label: "Aucun",
+        description: "Aucune image : la couleur de fond du thème seule.",
         imageUrl: null,
         previewStyle: "solid",
         target: "universal",

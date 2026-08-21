@@ -1,4 +1,9 @@
-import { creditLine, needsCredit } from "./wallpaperCredit";
+import {
+    creditByline,
+    creditLine,
+    isUnsplash,
+    needsCredit,
+} from "./wallpaperCredit";
 import { WALLPAPERS } from "./wallpapers";
 
 describe("what a wallpaper says about where it comes from", () => {
@@ -19,6 +24,34 @@ describe("what a wallpaper says about where it comes from", () => {
 
     it("says nothing at all for a wallpaper that has no credit", () => {
         expect(creditLine(undefined)).toBe(null);
+    });
+});
+
+describe("the credit shown beside the source's own mark", () => {
+    /*
+     * Unsplash writes it this way under its own photographs, and the picker
+     * draws the logo next to it: the name is what the line has left to say.
+     */
+    it("gives the photographer's name the whole line", () => {
+        expect(creditByline({ author: "Uran Wang", source: "Unsplash" })).toBe(
+            "Photo de Uran Wang"
+        );
+    });
+
+    // With nobody named, the source is all there is to show.
+    it("falls back to the source when nobody is named", () => {
+        expect(creditByline({ source: "Unsplash" })).toBe("Unsplash");
+    });
+
+    it("says nothing for a wallpaper that has no credit", () => {
+        expect(creditByline(undefined)).toBe(null);
+    });
+
+    // The mark is only drawn for the source it actually belongs to.
+    it("recognises which source has a mark to draw", () => {
+        expect(isUnsplash({ source: "Unsplash" })).toBe(true);
+        expect(isUnsplash({ source: "Pexels" })).toBe(false);
+        expect(isUnsplash(undefined)).toBe(false);
     });
 });
 
@@ -46,37 +79,62 @@ describe("which wallpapers still need somebody to say where they came from", () 
 
 describe("the catalogue as it stands", () => {
     /*
-     * Nothing recorded where the photographs came from — no metadata in the
-     * files, nothing in the commits that added them — so the answer came from
-     * Ahmed, who chose them: Unsplash, all of them.
-     *
-     * The test stays because a wallpaper added later without a source would
-     * push this off zero, and an omission that shows is one that gets fixed.
+     * Every photograph in the catalogue was picked from Ahmed's Unsplash
+     * favourites, and its author and page were read off Unsplash itself, one
+     * by one. A wallpaper added later without a source would push this off
+     * zero, and an omission that shows is one that gets fixed.
      */
     it("owes nobody a source any more", () => {
         expect(needsCredit(WALLPAPERS)).toEqual([]);
     });
 
     /*
-     * One file says something about itself that the others do not: a C2PA
-     * signature from an OpenAI media service. A generated image can perfectly
-     * well be published on Unsplash, so both facts are kept — the source it
-     * was taken from, and what the file proves about how it was made.
+     * The link goes to the photograph, not to the front page of Unsplash.
+     * That is the whole difference between a credit somebody can check and a
+     * gesture towards a website: from this address you reach the author, the
+     * licence and the original.
      */
-    it("keeps what one file proves about itself, beside its source", () => {
-        const generated = WALLPAPERS.find(
-            (wallpaper) => wallpaper.id === "starlit-alpine-refuge"
-        );
-        expect(generated?.credit?.source).toBe("Unsplash · image générée");
-    });
-
-    // The link is to Unsplash and not to each photograph: which page each one
-    // came from was never written down, and twenty-five invented addresses
-    // would point at twenty-five photographs at random.
-    it("links to the source it can name", () => {
+    it("links to the photograph itself", () => {
         for (const wallpaper of WALLPAPERS) {
             if (!wallpaper.credit) continue;
-            expect(wallpaper.credit.url).toBe("https://unsplash.com");
+
+            expect([
+                wallpaper.id,
+                wallpaper.credit.url?.startsWith(
+                    "https://unsplash.com/photos/"
+                ),
+            ]).toEqual([wallpaper.id, true]);
+        }
+    });
+
+    // A source without a name credits a website for somebody's work.
+    it("names the photographer of every photograph", () => {
+        for (const wallpaper of WALLPAPERS) {
+            if (!wallpaper.credit) continue;
+
+            expect([
+                wallpaper.id,
+                (wallpaper.credit.author ?? "").trim().length > 0,
+            ]).toEqual([wallpaper.id, true]);
+        }
+    });
+
+    /*
+     * The two formats of one photograph are the same photograph: same author,
+     * same page. Cropping it for a phone does not make it somebody else's.
+     */
+    it("credits both formats of a photograph identically", () => {
+        for (const wallpaper of WALLPAPERS) {
+            if (!wallpaper.id.endsWith("-portrait")) continue;
+
+            const landscape = WALLPAPERS.find(
+                (other) => other.id === wallpaper.id.replace(/-portrait$/, "")
+            );
+
+            expect([wallpaper.id, wallpaper.credit]).toEqual([
+                wallpaper.id,
+                landscape?.credit,
+            ]);
         }
     });
 

@@ -138,9 +138,11 @@ async function reportMissingFromCatalogue(entries) {
         return;
     }
 
+    // On cherche l'identifiant et non le chemin : le catalogue monte les deux
+    // formats d'une même photo à partir d'une seule ligne, et les chemins y
+    // sont donc calculés plutôt qu'écrits.
     const missing = entries.filter(
-        (entry) =>
-            !source.includes(`/themes/neo-wallpapers/${entry.file}`)
+        (entry) => !source.includes(`"${entry.id}"`)
     );
     if (missing.length === 0) {
         console.log("Catalogue à jour : chaque image y a son entrée.");

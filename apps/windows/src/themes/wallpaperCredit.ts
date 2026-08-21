@@ -45,6 +45,26 @@ export function creditLine(credit: WallpaperCredit | undefined): string | null {
 }
 
 /**
+ * Le crédit tel que la source elle-même le formule : « Photo de Uran Wang ».
+ *
+ * Là où la marque est affichée à côté — le logo Unsplash sous la vignette —,
+ * répéter « Unsplash » en toutes lettres dit deux fois la même chose et vole la
+ * place du nom, qui est ce qu'un crédit sert à donner. Sans auteur connu, il ne
+ * reste que la source, et c'est elle qui s'affiche.
+ */
+export function creditByline(
+    credit: WallpaperCredit | undefined
+): string | null {
+    if (!credit) return null;
+    return credit.author ? `Photo de ${credit.author}` : credit.source;
+}
+
+/** Si le fond vient d'Unsplash, dont on sait afficher la marque. */
+export function isUnsplash(credit: WallpaperCredit | undefined): boolean {
+    return credit?.source === "Unsplash";
+}
+
+/**
  * Les fonds qui attendent encore qu'on dise d'où ils viennent.
  *
  * Une couleur unie et le fond du thème ne sont la photo de personne.

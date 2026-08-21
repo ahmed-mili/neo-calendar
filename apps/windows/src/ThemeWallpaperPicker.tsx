@@ -20,7 +20,7 @@ import {
     WallpaperDefinition,
     WallpaperId,
 } from "./themes/wallpapers";
-import { creditLine } from "./themes/wallpaperCredit";
+import { creditByline, creditLine, isUnsplash } from "./themes/wallpaperCredit";
 import {
     ensureWallpaper,
     fileNameOf,
@@ -62,6 +62,31 @@ const MENU_MARGIN = 12;
 const MENU_MIN_HEIGHT = 200;
 /** Un menu plus étroit que ça écraserait la vignette et son libellé. */
 const MENU_MIN_WIDTH = 280;
+
+/**
+ * La marque d'Unsplash, dessinée plutôt qu'écrite.
+ *
+ * Le tracé est celui du logo officiel (Simple Icons, `unsplash.svg`), posé en
+ * SVG dans la page : une icône chargée depuis un serveur manquerait chez qui
+ * n'a pas de réseau, ce qui est justement le moment où l'on parcourt ses fonds
+ * déjà téléchargés. `aria-hidden` parce que la ligne à côté dit déjà tout : un
+ * lecteur d'écran annoncerait « Unsplash » deux fois.
+ */
+function UnsplashMark() {
+    return (
+        <svg
+            className="nc-wallpaper-option__mark"
+            viewBox="0 0 24 24"
+            width="11"
+            height="11"
+            fill="currentColor"
+            aria-hidden="true"
+            focusable="false"
+        >
+            <path d="M7.5 6.75V0h9v6.75h-9zm9 3.75H24V24H0V10.5h7.5v6.75h9V10.5z" />
+        </svg>
+    );
+}
 
 function WallpaperPreview({
     wallpaper,
@@ -320,8 +345,13 @@ export default function ThemeWallpaperPicker({
         const retry = failed === wallpaper.id;
         const selected = wallpaper.id === value;
         const credit = wallpaper.credit;
-        const creditLabel = creditLine(credit);
+        // Quand la marque est dessinée à côté, le nom suffit : « Photo de X ».
+        const marked = isUnsplash(credit);
+        const creditLabel = marked ? creditByline(credit) : creditLine(credit);
         const creditUrl = credit?.url;
+        // Ce qu'annonce un lecteur d'écran reste complet, marque comprise :
+        // le logo, lui, ne se lit pas.
+        const creditSpoken = creditLine(credit);
 
         return (
             <button
@@ -357,7 +387,7 @@ export default function ThemeWallpaperPicker({
                                 className="nc-wallpaper-option__credit nc-wallpaper-option__credit--link"
                                 role="link"
                                 tabIndex={0}
-                                aria-label={`Voir l'original — ${creditLabel}`}
+                                aria-label={`Voir l'original — ${creditSpoken}`}
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     void openExternalTarget(creditUrl);
@@ -373,11 +403,17 @@ export default function ThemeWallpaperPicker({
                                     void openExternalTarget(creditUrl);
                                 }}
                             >
-                                {creditLabel}
+                                {marked && <UnsplashMark />}
+                                <span className="nc-wallpaper-option__credit-text">
+                                    {creditLabel}
+                                </span>
                             </span>
                         ) : (
                             <span className="nc-wallpaper-option__credit">
-                                {creditLabel}
+                                {marked && <UnsplashMark />}
+                                <span className="nc-wallpaper-option__credit-text">
+                                    {creditLabel}
+                                </span>
                             </span>
                         ))}
                     {downloading && (
