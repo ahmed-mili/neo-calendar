@@ -1010,6 +1010,27 @@
     margin-top: 0;
 }
 
+/* ── La vignette d'une pièce jointe ──────────────────────────
+   Une ligne disant « image.png » ne dit pas laquelle : sur un événement qui en
+   porte trois, il faut les ouvrir une par une. Assez grande pour reconnaître
+   une capture d'écran, assez petite pour que la ligne reste une ligne. */
+.nc-linked-file-thumb {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    margin-right: 2px;
+    border-radius: 5px;
+    /* `cover` plutôt que `contain` : une capture d'écran est large, et la
+       montrer entière dans un carré la réduit à une bande illisible. */
+    object-fit: cover;
+    background: var(--nc-bg-hover);
+}
+
+/* L'icône dit le genre du fichier ; la vignette le montre déjà. */
+.nc-linked-file-thumb + .nc-linked-file-icon {
+    display: none;
+}
+
 /* ── L'écran d'une répétition écrite à la main ────────────────
    Il couvre ce qui l'a ouvert plutôt que de s'y déplier : on y fait une chose,
    et le panneau de l'événement attend derrière. Même surface que lui, pour que

@@ -96,3 +96,42 @@ export function isImageTarget(target: string): boolean {
     const extension = decoded.split(".").pop()?.toLowerCase() ?? "";
     return IMAGE_EXTENSIONS.has(extension);
 }
+
+/**
+ * The type a thumbnail is handed to the browser as.
+ *
+ * A `data:` URL carries no file name, so the type has to be stated: left to be
+ * guessed, a PNG announced as anything else simply does not draw. Read from
+ * what the file is called, because that is all a link to it says.
+ */
+export function imageMimeFor(target: string): string {
+    const extension = target.split(".").pop()?.toLowerCase() ?? "";
+    if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
+    if (extension === "svg") return "image/svg+xml";
+    if (IMAGE_EXTENSIONS.has(extension)) return `image/${extension}`;
+    // Unknown said plainly: the browser sniffs it and draws it if it can.
+    return "application/octet-stream";
+}
+
+/**
+ * Where an attachment sits, counted from the data folder.
+ *
+ * The two platforms write the link differently, and both are already in
+ * people's notes: the desktop writes it relative to the event's own folder
+ * (`.attachments/a.png`), the phone writes the whole path from the data folder
+ * (`Calendrier/attachments/a.png`). Reading one as if it were the other doubles
+ * the folder, and the file is simply not found — so the link says which it is,
+ * by whether it already begins with the folder the event is in.
+ */
+export function attachmentPathFor(
+    eventRelativePath: string,
+    target: string
+): string {
+    const slash = (value: string) => value.split("\\").join("/");
+    const event = slash(eventRelativePath);
+    const link = slash(target);
+    const cut = event.lastIndexOf("/");
+    if (cut < 0) return link;
+    const folder = event.slice(0, cut);
+    return link.startsWith(`${folder}/`) ? link : `${folder}/${link}`;
+}

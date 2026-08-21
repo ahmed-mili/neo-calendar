@@ -7,6 +7,7 @@ import android.database.Cursor;
 import android.graphics.Color;
 import android.util.Log;
 import android.net.Uri;
+import android.util.Base64;
 import android.provider.DocumentsContract;
 import android.webkit.*;
 import org.json.*;
@@ -598,6 +599,7 @@ public class MainActivity extends Activity {
       case "discover_desktop_obsidian_vaults": return new JSONArray();
       case "search_desktop_vault_notes": return new JSONArray();
       case "copy_desktop_attachment": return copyAttachment(tree(a),a);
+      case "read_desktop_attachment": return readAttachment(tree(a),a.getString("relativePath"));
       case "fetch_desktop_ics": return fetch(a.getString("url"));
       case "fetch_desktop_final_url": return finalUrl(a.getString("url"));
       /* The widget is handed a finished list rather than the calendar itself:
@@ -662,7 +664,31 @@ public class MainActivity extends Activity {
   private String createFolder(Uri tree,String name)throws Exception{name=validName(name,false);if(findChild(tree,name)!=null)throw new Exception("Un dossier portant ce nom existe deja.");DocumentsContract.createDocument(getContentResolver(),tree,DocumentsContract.Document.MIME_TYPE_DIR,name);return name;}
   private String renameFolder(Uri tree,String rel,String name)throws Exception{name=validName(name,false);Uri u=findPath(tree,rel);if(u==null)throw new Exception("Calendrier introuvable.");if(findChild(tree,name)!=null)throw new Exception("Un dossier portant ce nom existe deja.");DocumentsContract.renameDocument(getContentResolver(),u,name);return name;}
   private Object deleteFolder(Uri tree,String rel)throws Exception{Uri u=findPath(tree,rel);if(u==null)return null;if(!list(u).isEmpty())throw new Exception("Ce calendrier nest pas vide.");DocumentsContract.deleteDocument(getContentResolver(),u);return null;}
-  private JSONObject copyAttachment(Uri tree,JSONObject a)throws Exception{Uri src=Uri.parse(a.getString("sourcePath"));String event=a.getString("eventRelativePath");String base=event.contains("/")?event.substring(0,event.lastIndexOf('/')):"";Uri dir=base.isEmpty()?tree:findPath(tree,base);Uri attach=findChild(dir,"attachments");if(attach==null)attach=DocumentsContract.createDocument(getContentResolver(),dir,DocumentsContract.Document.MIME_TYPE_DIR,"attachments");String name=queryName(src);if(name==null||name.isBlank())name="attachment";name=uniqueName(attach,name);Uri dst=DocumentsContract.createDocument(getContentResolver(),attach,getContentResolver().getType(src)==null?"application/octet-stream":getContentResolver().getType(src),name);try(InputStream in=getContentResolver().openInputStream(src);OutputStream out=getContentResolver().openOutputStream(dst,"w")){byte[] b=new byte[8192];int n;while((n=in.read(b))>0)out.write(b,0,n);}String rel=(base.isEmpty()?"":base+"/")+"attachments/"+name;return new JSONObject().put("fileName",name).put("relativePath",rel).put("markdownPath",rel);}
+  private JSONObject copyAttachment(Uri tree,JSONObject a)throws Exception{Uri src=Uri.parse(a.getString("sourcePath"));String event=a.getString("eventRelativePath");String base=event.contains("/")?event.substring(0,event.lastIndexOf('/')):"";Uri dir=base.isEmpty()?tree:findPath(tree,base);/* Le point compte : loadWorkspace prend tout dossier qui n'en porte pas
+       pour un calendrier. Un evenement pose a la racine du dossier de donnees
+       se voyait donc creer un calendrier nomme "attachments" a cote de lui —
+       et des qu'un calendrier existe, les notes de la racine ne sont plus
+       lues du tout : le calendrier se vidait en attachant un fichier. Le
+       bureau ecrit ".attachments" depuis toujours, pour cette raison. */
+    Uri attach=findChild(dir,".attachments");if(attach==null)attach=findChild(dir,"attachments");if(attach==null)attach=DocumentsContract.createDocument(getContentResolver(),dir,DocumentsContract.Document.MIME_TYPE_DIR,".attachments");String name=queryName(src);if(name==null||name.isBlank())name="attachment";name=uniqueName(attach,name);Uri dst=DocumentsContract.createDocument(getContentResolver(),attach,getContentResolver().getType(src)==null?"application/octet-stream":getContentResolver().getType(src),name);try(InputStream in=getContentResolver().openInputStream(src);OutputStream out=getContentResolver().openOutputStream(dst,"w")){byte[] b=new byte[8192];int n;while((n=in.read(b))>0)out.write(b,0,n);}String rel=(base.isEmpty()?"":base+"/")+queryName(attach)+"/"+name;return new JSONObject().put("fileName",name).put("relativePath",rel).put("markdownPath",rel);}
+  /** Ce qu'une piece jointe peut peser avant qu'on refuse de la porter en
+   *  memoire : la vignette voyage encodee en texte a travers le pont. */
+  private static final long ATTACHMENT_PREVIEW_LIMIT = 8L * 1024 * 1024;
+  /** Le contenu d'une piece jointe, en base64, pour que la WebView la montre.
+   *
+   *  Elle ne peut pas ouvrir un `content://` : il est delivre a l'application,
+   *  pas a la page. Le fichier traverse donc le pont, un a la fois, et
+   *  seulement s'il se trouve bien dans le dossier choisi. */
+  private String readAttachment(Uri tree,String relativePath)throws Exception{
+    Uri file=findPath(tree,relativePath);
+    if(file==null)throw new Exception("Piece jointe introuvable: "+relativePath);
+    try(InputStream in=getContentResolver().openInputStream(file)){
+      if(in==null)throw new IOException("Lecture impossible");
+      byte[] bytes=readAll(in);
+      if(bytes.length>ATTACHMENT_PREVIEW_LIMIT)throw new Exception("Piece jointe trop lourde pour un apercu");
+      return Base64.encodeToString(bytes,Base64.NO_WRAP);
+    }
+  }
   private String fetch(String value)throws Exception{HttpURLConnection h=(HttpURLConnection)new URL(value).openConnection();h.setConnectTimeout(15000);h.setReadTimeout(20000);try(InputStream in=h.getInputStream()){return new String(readAll(in),StandardCharsets.UTF_8);}finally{h.disconnect();}}
   /**
    * Ou mene vraiment un lien de partage.

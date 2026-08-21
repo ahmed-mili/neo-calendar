@@ -186,6 +186,45 @@ export async function copyDesktopAttachment(
     });
 }
 
+/**
+ * Écrit une pièce jointe à partir de son contenu, et non d'un fichier existant.
+ *
+ * C'est le cas du presse-papiers : une capture d'écran n'est nulle part sur le
+ * disque, elle n'a que des octets. Le natif s'occupe du reste, exactement comme
+ * pour un fichier choisi dans une boîte de dialogue.
+ */
+export async function writeDesktopAttachment(
+    dataFolder: string,
+    eventRelativePath: string,
+    fileName: string,
+    contents: Uint8Array
+): Promise<DesktopAttachmentDto> {
+    return invoke<DesktopAttachmentDto>("write_desktop_attachment", {
+        dataFolder,
+        eventRelativePath,
+        fileName,
+        contents: Array.from(contents),
+    });
+}
+
+/**
+ * Le contenu d'une pièce jointe, en base64.
+ *
+ * La WebView ne peut pas ouvrir un `file://` — c'est tout l'intérêt de son
+ * isolement — donc une vignette se demande fichier par fichier plutôt qu'en
+ * ouvrant l'accès au disque pour toute l'application. Le natif refuse ce qui
+ * sort du dossier de données et ce qui est trop gros pour tenir en mémoire.
+ */
+export async function readDesktopAttachment(
+    dataFolder: string,
+    relativePath: string
+): Promise<string> {
+    return invoke<string>("read_desktop_attachment", {
+        dataFolder,
+        relativePath,
+    });
+}
+
 export async function fetchDesktopIcs(url: string): Promise<string> {
     return invoke<string>("fetch_desktop_ics", { url });
 }

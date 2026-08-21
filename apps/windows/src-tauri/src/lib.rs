@@ -1136,6 +1136,147 @@ fn copy_desktop_attachment(
     })
 }
 
+/// Ce qu'une pièce jointe peut peser avant qu'on refuse de la porter en mémoire.
+///
+/// La vignette voyage encodée en texte à travers le pont : une image de dix
+/// mégaoctets en ferait treize à traverser d'un coup, pour un carré de cent
+/// pixels. Au-delà, la ligne montre son nom et son icône, ce qu'elle a toujours
+/// fait.
+const ATTACHMENT_PREVIEW_LIMIT: u64 = 8 * 1024 * 1024;
+
+/// Là où vit le dossier des pièces jointes d'un événement, créé au besoin.
+fn attachment_directory(root: &Path, event_relative_path: &str) -> Result<PathBuf, String> {
+    let event_path = safe_join(root, event_relative_path)?;
+    if !is_markdown_file(&event_path) || !event_path.is_file() {
+        return Err("The event note does not exist.".to_string());
+    }
+    let event_directory = event_path
+        .parent()
+        .ok_or_else(|| "The event note has no parent folder.".to_string())?;
+    let directory = event_directory.join(".attachments");
+    fs::create_dir_all(&directory).map_err(|error| {
+        format!(
+            "Unable to create attachment folder '{}': {error}",
+            directory.display()
+        )
+    })?;
+    Ok(directory)
+}
+
+/// La pièce jointe telle que la note devra la nommer, une fois écrite.
+fn attachment_dto(
+    root: &Path,
+    event_relative_path: &str,
+    target: &Path,
+    fallback_name: &str,
+) -> Result<DesktopAttachmentDto, String> {
+    let event_path = safe_join(root, event_relative_path)?;
+    let event_directory = event_path
+        .parent()
+        .ok_or_else(|| "The event note has no parent folder.".to_string())?;
+    let file_name = target
+        .file_name()
+        .and_then(OsStr::to_str)
+        .map(str::to_string)
+        .unwrap_or_else(|| fallback_name.to_string());
+    let relative_path = target
+        .strip_prefix(root)
+        .map(normalized_relative)
+        .map_err(|_| format!("'{}' is outside the data folder.", target.display()))?;
+    let markdown_path = target
+        .strip_prefix(event_directory)
+        .map(normalized_relative)
+        .map_err(|_| format!("'{}' is outside the event folder.", target.display()))?;
+    Ok(DesktopAttachmentDto {
+        file_name,
+        relative_path,
+        markdown_path,
+    })
+}
+
+/// Écrit une pièce jointe à partir de son contenu, et non d'un fichier existant.
+///
+/// C'est ce que colle le presse-papiers : une capture d'écran n'est nulle part
+/// sur le disque, elle n'a que des octets. Le reste — dossier `.attachments`,
+/// nom validé, nom rendu unique — est celui de `copy_desktop_attachment`, parce
+/// qu'une pièce jointe collée est une pièce jointe comme une autre.
+#[tauri::command(rename_all = "camelCase")]
+fn write_desktop_attachment(
+    data_folder: String,
+    event_relative_path: String,
+    file_name: String,
+    contents: Vec<u8>,
+) -> Result<DesktopAttachmentDto, String> {
+    if contents.is_empty() {
+        return Err("The pasted attachment is empty.".to_string());
+    }
+    let root = root_path(&data_folder)?;
+    let validated_name = validate_single_name(&file_name, "attachment")?;
+    let directory = attachment_directory(&root, &event_relative_path)?;
+    let target = unique_attachment_path(&directory, &validated_name);
+    fs::write(&target, &contents).map_err(|error| {
+        format!(
+            "Unable to write attachment '{}': {error}",
+            target.display()
+        )
+    })?;
+    attachment_dto(&root, &event_relative_path, &target, &validated_name)
+}
+
+/// Le contenu d'une pièce jointe, encodé pour traverser le pont.
+///
+/// La WebView ne peut pas ouvrir un `file://` : c'est tout l'intérêt de son
+/// isolement. Plutôt qu'ouvrir un protocole d'accès aux fichiers pour toute
+/// l'application, ce qu'elle demande arrive ici, un fichier à la fois, et
+/// seulement s'il se trouve bien sous le dossier de données.
+#[tauri::command(rename_all = "camelCase")]
+fn read_desktop_attachment(data_folder: String, relative_path: String) -> Result<String, String> {
+    let root = root_path(&data_folder)?;
+    let path = safe_join(&root, &relative_path)?;
+    if !path.is_file() {
+        return Err(format!("'{}' does not exist.", path.display()));
+    }
+    let size = fs::metadata(&path)
+        .map(|meta| meta.len())
+        .map_err(|error| format!("Unable to read '{}': {error}", path.display()))?;
+    if size > ATTACHMENT_PREVIEW_LIMIT {
+        return Err("The attachment is too large to preview.".to_string());
+    }
+    let bytes =
+        fs::read(&path).map_err(|error| format!("Unable to read '{}': {error}", path.display()))?;
+    Ok(base64_encode(&bytes))
+}
+
+/// Base64, écrit ici plutôt qu'ajouté en dépendance.
+///
+/// Une caisse entière pour soixante-quatre caractères et trois lignes de
+/// décalage, dans un binaire qui n'en a aucun autre besoin, coûte plus cher à
+/// suivre qu'à écrire.
+fn base64_encode(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] =
+        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity((bytes.len() + 2) / 3 * 4);
+    for chunk in bytes.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = *chunk.get(1).unwrap_or(&0) as u32;
+        let b2 = *chunk.get(2).unwrap_or(&0) as u32;
+        let triple = (b0 << 16) | (b1 << 8) | b2;
+        out.push(ALPHABET[(triple >> 18 & 63) as usize] as char);
+        out.push(ALPHABET[(triple >> 12 & 63) as usize] as char);
+        out.push(if chunk.len() > 1 {
+            ALPHABET[(triple >> 6 & 63) as usize] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            ALPHABET[(triple & 63) as usize] as char
+        } else {
+            '='
+        });
+    }
+    out
+}
+
 #[tauri::command(rename_all = "camelCase")]
 fn fetch_desktop_ics(url: String) -> Result<String, String> {
     let trimmed = url.trim();
@@ -1242,6 +1383,8 @@ pub fn run() {
             discover_desktop_obsidian_vaults,
             search_desktop_vault_notes,
             copy_desktop_attachment,
+            write_desktop_attachment,
+            read_desktop_attachment,
             fetch_desktop_ics
         ])
         .run(tauri::generate_context!())

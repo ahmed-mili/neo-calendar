@@ -78,6 +78,7 @@ import { needsResolving } from "./shareLink";
 import { Toast, ToastMessage } from "./Toast";
 import { t } from "../i18n";
 import { readChecklist, toggleLine } from "./descriptionChecklist";
+import { imageMimeFor, isImageTarget } from "./pastedAttachment";
 import { isAndroidRuntime } from "./CalendarUtils";
 import { decideLinkedFileTap, LinkedFileTap } from "./linkedFileTap";
 import { swallowNextClick } from "./swallowNextClick";
@@ -1934,6 +1935,8 @@ interface LinksAttachmentsRowProps {
     searching?: boolean;
     onOpenLink?: (item: LinkedFileItem) => Promise<void> | void;
     onPickAttachment?: (eventId: string) => Promise<void>;
+    /** Le contenu d'une pièce jointe, pour en montrer une vignette. */
+    onReadAttachment?: (eventId: string, target: string) => Promise<string | null>;
 }
 
 interface LinkPopoverPosition {
@@ -2027,6 +2030,51 @@ const LINK_GLYPHS: Record<LinkKind, () => JSX.Element> = {
     web: GlobeIcon,
 };
 
+/**
+ * L'image d'une pièce jointe, quand c'en est une.
+ *
+ * Une ligne de texte disant `image.png` ne dit pas laquelle : sur un événement
+ * qui en porte trois, il faut les ouvrir une par une pour retrouver la bonne.
+ * Le contenu est demandé au natif fichier par fichier — la WebView ne peut pas
+ * ouvrir un `file://`, et c'est tout l'intérêt de son isolement — puis gardé en
+ * `data:` le temps que le panneau reste ouvert.
+ *
+ * Rien du tout si le fichier ne se lit pas, s'il est trop gros, ou si la
+ * plateforme ne sait pas le rendre : la ligne montre alors son nom et son
+ * icône, ce qu'elle a toujours fait.
+ */
+function LinkedFileThumbnail({
+    target,
+    name,
+    onRead,
+}: {
+    target: string;
+    name: string;
+    onRead: (target: string) => Promise<string | null>;
+}) {
+    const [source, setSource] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        let alive = true;
+        void onRead(target)
+            .then((base64) => {
+                if (!alive || !base64) return;
+                setSource(`data:${imageMimeFor(target)};base64,${base64}`);
+            })
+            .catch(() => {
+                // Une vignette absente n'est pas une erreur à raconter.
+            });
+        return () => {
+            alive = false;
+        };
+    }, [onRead, target]);
+
+    if (!source) return null;
+    return (
+        <img className="nc-linked-file-thumb" src={source} alt={name} />
+    );
+}
+
 function LinkedFileRow({
     item,
     eventId,
@@ -2038,10 +2086,13 @@ function LinkedFileRow({
     openTooltipFor,
     onTooltipOpen,
     onOpenLink,
+    onReadAttachment,
     tapTrackerRef,
 }: {
     item: LinkedFileItem;
     eventId: string | null;
+    /** Le contenu d'une pièce jointe, pour en montrer une vignette. */
+    onReadAttachment?: (target: string) => Promise<string | null>;
     onRemoveLink?: (eventId: string, target: string) => Promise<void>;
     onRenameLink?: (
         eventId: string,
@@ -2333,6 +2384,13 @@ function LinkedFileRow({
                     }
                 }}
             >
+                {onReadAttachment && isImageTarget(item.target) ? (
+                    <LinkedFileThumbnail
+                        target={item.target}
+                        name={displayName}
+                        onRead={onReadAttachment}
+                    />
+                ) : null}
                 <span className="nc-linked-file-icon" aria-hidden="true">
                     {React.createElement(
                         LINK_GLYPHS[linkKind(item.target, item.kind)]
@@ -2512,6 +2570,7 @@ export function LinksAttachmentsRow({
     onRenameLink,
     onOpenLink,
     onPickAttachment,
+    onReadAttachment,
 }: LinksAttachmentsRowProps) {
     const [open, setOpen] = React.useState(false);
     const [query, setQuery] = React.useState("");
@@ -2952,6 +3011,12 @@ export function LinksAttachmentsRow({
                                 })
                             }
                             onOpenLink={onOpenLink}
+                            onReadAttachment={
+                                onReadAttachment && eventId
+                                    ? (target: string) =>
+                                          onReadAttachment(eventId, target)
+                                    : undefined
+                            }
                             tapTrackerRef={tapTrackerRef}
                         />
                     ))}

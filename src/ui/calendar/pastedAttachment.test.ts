@@ -1,5 +1,7 @@
 import {
     attachmentExtension,
+    attachmentPathFor,
+    imageMimeFor,
     isImageTarget,
     pastedFileName,
 } from "./pastedAttachment";
@@ -105,5 +107,63 @@ describe("what gets a picture of itself in the panel", () => {
 
     it("survives a target written with URL escapes", () => {
         expect(isImageTarget(".attachments/mon%20image.png")).toBe(true);
+    });
+});
+
+describe("the type a thumbnail is handed to the browser as", () => {
+    /*
+     * A `data:` URL carries no file name, so the type has to be stated. Left to
+     * the browser to guess, a PNG announced as anything else simply does not
+     * draw.
+     */
+    it("is read from what the file is called", () => {
+        expect(imageMimeFor("a/b/photo.PNG")).toBe("image/png");
+        expect(imageMimeFor("photo.jpeg")).toBe("image/jpeg");
+        expect(imageMimeFor("photo.jpg")).toBe("image/jpeg");
+        expect(imageMimeFor("dessin.svg")).toBe("image/svg+xml");
+    });
+
+    // Unknown is better said than guessed: the browser sniffs it and draws it
+    // if it can.
+    it("says nothing it does not know", () => {
+        expect(imageMimeFor("archive.zip")).toBe("application/octet-stream");
+    });
+});
+
+describe("where an attachment actually sits", () => {
+    /*
+     * The two platforms write the link differently and both are already in
+     * people's notes: the desktop writes it relative to the event's folder,
+     * the phone writes the whole path from the data folder. Reading one as if
+     * it were the other doubles the folder and the file is not found.
+     */
+    it("is under the event's folder, when the link is written from there", () => {
+        expect(
+            attachmentPathFor(
+                "Développement/2026-08-21.md",
+                ".attachments/a.png"
+            )
+        ).toBe("Développement/.attachments/a.png");
+    });
+
+    it("is where the link says, when the link says all of it", () => {
+        expect(
+            attachmentPathFor(
+                "Développement/2026-08-21.md",
+                "Développement/attachments/a.png"
+            )
+        ).toBe("Développement/attachments/a.png");
+    });
+
+    it("is the link itself for an event at the top of the folder", () => {
+        expect(attachmentPathFor("2026-08-21.md", ".attachments/a.png")).toBe(
+            ".attachments/a.png"
+        );
+    });
+
+    it("reads a Windows path the same as any other", () => {
+        expect(
+            attachmentPathFor("Dév\\2026-08-21.md", ".attachments\\a.png")
+        ).toBe("Dév/.attachments/a.png");
     });
 });

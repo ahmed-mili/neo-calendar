@@ -56,6 +56,7 @@ import {
     withOccurrenceRemoved,
 } from "../../../src/ui/calendar/recurrenceDeletion";
 import { countedLabel } from "../../../src/ui/calendar/countedLabel";
+import { attachmentPathFor } from "../../../src/ui/calendar/pastedAttachment";
 import { escapeClosesEventsPanel } from "../../../src/ui/calendar/escapeClosing";
 import { useCalendarNavigation } from "../../../src/ui/calendar/useCalendarNavigation";
 import { useEventDragResize } from "../../../src/ui/calendar/useEventDragResize";
@@ -83,6 +84,8 @@ import ConfirmDialog from "./ConfirmDialog";
 import RecurringDeleteDialog from "./RecurringDeleteDialog";
 import {
     copyDesktopAttachment,
+    writeDesktopAttachment,
+    readDesktopAttachment,
     createDesktopCalendarFolder,
     deleteDesktopCalendarFolder,
     deleteDesktopEventFile,
@@ -1284,6 +1287,65 @@ export default function DesktopCalendar({
             await appendEventBody(eventId, markdown.join("\n"));
         },
         [appendEventBody, dataFolder]
+    );
+
+    /**
+     * Ce que Ctrl+V dépose sur un événement.
+     *
+     * Le chemin est le même que pour un fichier choisi dans une boîte de
+     * dialogue — dossier `.attachments`, nom rendu unique, lien ajouté au corps
+     * de la note — à ceci près qu'il n'y a pas de fichier de départ : une
+     * capture d'écran n'existe que sur le presse-papiers.
+     */
+    const pasteEventAttachment = useCallback(
+        async (
+            eventId: string,
+            fileName: string,
+            contents: Uint8Array
+        ): Promise<void> => {
+            const record = findStoredEvent(recordsRef.current, eventId);
+            if (!record || record.readOnly) {
+                throw new Error("This calendar is read-only.");
+            }
+            const attachment = await writeDesktopAttachment(
+                dataFolder,
+                record.relativePath,
+                fileName,
+                contents
+            );
+            await appendEventBody(eventId, markdownLinkForAttachment(attachment));
+        },
+        [appendEventBody, dataFolder]
+    );
+
+    /**
+     * Le contenu d'une pièce jointe, pour la montrer.
+     *
+     * Le chemin est celui écrit dans la note, relatif au dossier de
+     * l'événement ; c'est ici qu'il redevient un chemin dans le dossier de
+     * données. Rendu `null` plutôt que jeté quand le fichier ne se lit pas : la
+     * ligne montre alors son nom, ce qu'elle a toujours fait.
+     */
+    const readEventAttachment = useCallback(
+        async (eventId: string, target: string): Promise<string | null> => {
+            const record = findStoredEvent(recordsRef.current, eventId);
+            if (!record) return null;
+            let written = target;
+            try {
+                written = decodeURIComponent(target);
+            } catch {
+                // Une cible mal échappée se lit telle qu'elle est écrite.
+            }
+            try {
+                return await readDesktopAttachment(
+                    dataFolder,
+                    attachmentPathFor(record.relativePath, written)
+                );
+            } catch {
+                return null;
+            }
+        },
+        [dataFolder]
     );
 
     const addEvent = useCallback(
@@ -3251,6 +3313,8 @@ export default function DesktopCalendar({
                    entree pour lui sans jamais la recevoir. */
                 onDuplicate={(id: string) => void duplicateEvent(id)}
                 onPickEventAttachment={pickEventAttachments}
+                onPasteEventAttachment={pasteEventAttachment}
+                onReadEventAttachment={readEventAttachment}
             />
 
             <ContextMenu

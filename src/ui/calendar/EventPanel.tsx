@@ -18,6 +18,7 @@ import {
 import { usePopupDismiss } from "./usePopupDismiss";
 import { sheetHandleGlyph, useSheetDrag } from "./useSheetDrag";
 import { PANEL_EXIT_CLASS, panelHasLeft } from "./panelExit";
+import { attachmentExtension, pastedFileName } from "./pastedAttachment";
 import { usePopupDrag } from "./usePopupDrag";
 import { useEventFormState } from "./useEventFormState";
 import {
@@ -141,6 +142,17 @@ interface EventPanelProps {
     ) => Promise<void>;
     onOpenEventLink?: (item: EventLinkedItem) => Promise<void> | void;
     onPickEventAttachment?: (eventId: string) => Promise<void>;
+    /** Ce que Ctrl+V dépose : un nom et des octets, pas un fichier du disque. */
+    onPasteEventAttachment?: (
+        eventId: string,
+        fileName: string,
+        contents: Uint8Array
+    ) => Promise<void>;
+    /** Le contenu d'une pièce jointe en base64, pour en montrer une vignette. */
+    onReadEventAttachment?: (
+        eventId: string,
+        target: string
+    ) => Promise<string | null>;
 }
 
 interface CalendarDisplayInfo {
@@ -244,6 +256,8 @@ export default function EventPanel({
     onRenameEventLink,
     onOpenEventLink,
     onPickEventAttachment,
+    onPasteEventAttachment,
+    onReadEventAttachment,
 }: EventPanelProps) {
     const isDraft = eventId === null && draft !== null;
     const event = eventId ? cache.getEventById(eventId) : null;
@@ -623,6 +637,52 @@ export default function EventPanel({
                 : "Neo Calendar: this event could not be saved."
         );
     }, []);
+
+    /*
+     * Coller une image sur un événement.
+     *
+     * Le geste ordinaire pour une capture d'écran, et jusqu'ici il ne menait
+     * nulle part : il fallait l'enregistrer quelque part, puis la retrouver
+     * dans une boîte de dialogue. L'écouteur est posé sur le panneau et non
+     * sur la fenêtre, pour que coller ailleurs dans l'application reste ce que
+     * c'était.
+     *
+     * Le texte n'est jamais intercepté : tout copier-coller en porte, et le
+     * coller dans un champ doit l'écrire là où est le curseur.
+     */
+    useEffect(() => {
+        const popup = popupRef.current;
+        if (!visible || !popup || !eventId || !onPasteEventAttachment) return;
+
+        const onPaste = (event: ClipboardEvent) => {
+            const items = Array.from(event.clipboardData?.items ?? []);
+            const item = items.find(
+                (candidate) =>
+                    candidate.kind === "file" &&
+                    attachmentExtension(candidate.type)
+            );
+            if (!item) return;
+            const file = item.getAsFile();
+            if (!file) return;
+
+            event.preventDefault();
+            const name = pastedFileName(file.type, new Date(), file.name);
+            void file
+                .arrayBuffer()
+                .then((buffer) =>
+                    onPasteEventAttachment(
+                        eventId,
+                        name,
+                        new Uint8Array(buffer)
+                    )
+                )
+                .catch(reportSaveFailure);
+        };
+
+        popup.addEventListener("paste", onPaste);
+        return () => popup.removeEventListener("paste", onPaste);
+    }, [eventId, onPasteEventAttachment, reportSaveFailure, visible]);
+
 
     // ── Save ──────────────────────────────────────────────────
 
@@ -1421,6 +1481,7 @@ export default function EventPanel({
                         onRemoveLink={onRemoveEventLink}
                         onRenameLink={onRenameEventLink}
                         onOpenLink={onOpenEventLink}
+                        onReadAttachment={onReadEventAttachment}
                         onPickAttachment={onPickEventAttachment}
                     />
                 )}
