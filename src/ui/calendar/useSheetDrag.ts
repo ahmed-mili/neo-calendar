@@ -87,6 +87,17 @@ export function settleSheet({
     return ladder[nearest].anchor;
 }
 
+/**
+ * How much of a sheet is left showing at its lowest.
+ *
+ * A strip, not a third of the screen: a chevron and the title, enough to say
+ * the sheet is still there and to pull it back up, with the calendar underneath
+ * otherwise free to be read. Google Calendar leaves exactly this, and the
+ * lowest anchor is the only state in which the grid can be looked at while an
+ * event is open — standing at half the screen, it was not one.
+ */
+export const SHEET_PEEK = 96;
+
 /** Every anchor with the translation that puts the sheet there, top first. */
 function anchorLadder({
     restOffset,
@@ -97,8 +108,13 @@ function anchorLadder({
 }): { anchor: SheetAnchor; offset: number }[] {
     return [
         { anchor: "full" as const, offset: 0 },
-        { anchor: "half" as const, offset: restOffset / 2 },
-        { anchor: "low" as const, offset: restOffset },
+        { anchor: "half" as const, offset: restOffset },
+        // Never above the middle: a sheet no taller than the strip has nowhere
+        // lower to stand than where it already is.
+        {
+            anchor: "low" as const,
+            offset: Math.max(restOffset, height - SHEET_PEEK),
+        },
         { anchor: "closed" as const, offset: height },
     ];
 }

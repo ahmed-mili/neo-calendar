@@ -2117,9 +2117,17 @@ body.nc-platform-android
     display: flex !important;
     flex-direction: column !important;
 
-    height: clamp(196px, 24dvh, 232px) !important;
+    /*
+     * Haute comme la feuille d'un evenement, et c'est la poignee qui decide de
+     * ce qu'on en voit.
+     *
+     * Elle etait figee a 232 px : un carton qui ne pouvait ni grandir ni
+     * defiler, dont le contenu — 579 px de formulaire — etait simplement coupe.
+     * Les trois etats la deplacent, donc lui donner une hauteur fixe revenait a
+     * decouper le meme carton a trois endroits differents. La hauteur vient de
+     * la regle plus haut (min(92dvh, 780px)) ; le corps defile a l'interieur.
+     */
     min-height: 0 !important;
-    max-height: clamp(196px, 24dvh, 232px) !important;
 
     overflow: hidden !important;
 }
@@ -2460,9 +2468,13 @@ body.nc-platform-android
     min-width: 0 !important;
     max-width: none !important;
 
-    height: clamp(210px, 26dvh, 248px) !important;
-    min-height: clamp(210px, 26dvh, 248px) !important;
-    max-height: clamp(210px, 26dvh, 248px) !important;
+    /* La hauteur ne se decide plus ici : c'est la poignee qui dit ce qu'on
+       voit de la feuille, et une hauteur figee revenait a decouper le meme
+       carton a trois endroits differents. Elle vient de la regle commune aux
+       deux feuilles — min(92dvh, 780px) — et le corps defile dedans. */
+    height: min(92dvh, 780px) !important;
+    min-height: 0 !important;
+    max-height: none !important;
 
     margin: 0 !important;
     padding: 0 !important;
@@ -4004,25 +4016,24 @@ body.nc-platform-android
 /* === NEO ANDROID DRAFT SHEET SIZING V8.8 START === */
 
 /*
- * Two sizes, like the reference.
+ * Une seule taille, et trois positions.
  *
- * Tapping the grid to create an event opens a SHORT sheet: the grid and the
- * fresh draft (with its resize handles) stay visible above it, so the time can
- * still be adjusted by dragging. Only when a field is actually being edited —
- * which is also when the keyboard appears — does the sheet take the full
- * height it needs for the rest of the form.
+ * Il y avait deux tailles ici, decidees par `:focus-within` : courte a
+ * l'ouverture pour laisser voir le brouillon sur la grille, pleine des qu'un
+ * champ prenait le curseur. La poignee fait mieux ce que cela cherchait — voir
+ * la grille sans fermer la feuille — et le faisait a contretemps : la feuille
+ * grandissait toute seule au premier appui dans un champ.
  *
- * `:focus-within` is what drives it: no gesture plumbing, and the sheet grows
- * at exactly the moment the user starts typing. Content that does not fit the
- * short state is reachable by scrolling inside the sheet.
+ * La feuille a donc la hauteur de l'autre, et ce sont ses trois ancrages qui
+ * disent ce qu'on en voit. Le contenu qui depasse se lit en faisant defiler
+ * l'interieur.
  */
 body.nc-platform-android
     #nc-android-overlay-root
     .nc-event-popup.nc-event-popup--android-draft {
     top: auto !important;
-    height: auto !important;
-    max-height: min(38dvh, 340px) !important;
-    transition: max-height 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    height: min(92dvh, 780px) !important;
+    max-height: none !important;
 }
 
 /* The sheet reaches the screen edge, so its scrolling content must stop above
@@ -4033,16 +4044,12 @@ body.nc-platform-android #nc-android-overlay-root .nc-event-popup {
     padding-bottom: var(--nc-safe-bottom, 0px) !important;
 }
 
-/* Editing: back to the full-height sheet — content at the top, free space
-   below for the keyboard, exactly like the extended state of the reference. */
-body.nc-platform-android
-    #nc-android-overlay-root
-    .nc-event-popup.nc-event-popup--android-draft:focus-within {
-    top: calc(
-        var(--nc-safe-top, 0px) + var(--nc-sheet-top-gap)
-    ) !important;
-    max-height: none !important;
-}
+/* Rien au focus.
+   La feuille grandissait quand un champ prenait le curseur, en se re-ancrant
+   par le HAUT : deux mecanismes decidaient de sa taille, celui-ci et la
+   poignee, et au milieu la feuille se retrouvait posee a 331 px du haut avec
+   248 px de hauteur — un panneau coupe, le calendrier visible dessous. C'est
+   la poignee qui decide, maintenant, et elle seule. */
 
 @media (prefers-reduced-motion: reduce) {
     body.nc-platform-android

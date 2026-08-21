@@ -1,4 +1,5 @@
 import {
+    SHEET_PEEK,
     isDragHandleTarget,
     nextAnchorOnTap,
     offsetForAnchor,
@@ -13,14 +14,14 @@ import {
 const SHEET = { height: 600, restOffset: 240 };
 
 describe("settleSheet", () => {
-    it("settles back to rest when barely moved", () => {
-        expect(settleSheet({ ...SHEET, offset: 250, velocity: 0 })).toBe("low");
+    it("settles back to the strip when left near it", () => {
+        expect(settleSheet({ ...SHEET, offset: 520, velocity: 0 })).toBe("low");
     });
 
     // The middle anchor is the one the bar stands for: half way between filling
     // the screen and standing at rest.
     it("settles on the middle anchor when left near it", () => {
-        expect(settleSheet({ ...SHEET, offset: 130, velocity: 0 })).toBe(
+        expect(settleSheet({ ...SHEET, offset: 250, velocity: 0 })).toBe(
             "half"
         );
     });
@@ -29,14 +30,14 @@ describe("settleSheet", () => {
         expect(settleSheet({ ...SHEET, offset: 40, velocity: 0 })).toBe("full");
     });
 
-    it("dismisses when dragged past halfway to the bottom", () => {
-        expect(settleSheet({ ...SHEET, offset: 500, velocity: 0 })).toBe(
+    it("dismisses when dragged past the strip, towards the bottom", () => {
+        expect(settleSheet({ ...SHEET, offset: 580, velocity: 0 })).toBe(
             "closed"
         );
     });
 
     it("stays open when dragged down but not far enough", () => {
-        expect(settleSheet({ ...SHEET, offset: 330, velocity: 0 })).toBe("low");
+        expect(settleSheet({ ...SHEET, offset: 480, velocity: 0 })).toBe("low");
     });
 
     // A flick moves the sheet one step in the direction it was thrown. Throwing
@@ -46,29 +47,29 @@ describe("settleSheet", () => {
     });
 
     it("steps down one anchor on a downward flick from the middle", () => {
-        expect(settleSheet({ ...SHEET, offset: 125, velocity: 2 })).toBe("low");
+        expect(settleSheet({ ...SHEET, offset: 245, velocity: 2 })).toBe("low");
     });
 
-    it("dismisses on a downward flick from rest", () => {
-        expect(settleSheet({ ...SHEET, offset: 250, velocity: 2 })).toBe(
+    it("dismisses on a downward flick from the strip", () => {
+        expect(settleSheet({ ...SHEET, offset: 510, velocity: 2 })).toBe(
             "closed"
         );
     });
 
-    it("fills the screen on an upward flick from rest", () => {
-        expect(settleSheet({ ...SHEET, offset: 250, velocity: -2 })).toBe(
+    it("comes up one anchor on an upward flick from the strip", () => {
+        expect(settleSheet({ ...SHEET, offset: 510, velocity: -2 })).toBe(
             "half"
         );
     });
 
     it("fills the screen on an upward flick from near the top", () => {
-        expect(settleSheet({ ...SHEET, offset: 80, velocity: -2 })).toBe(
+        expect(settleSheet({ ...SHEET, offset: 200, velocity: -2 })).toBe(
             "full"
         );
     });
 
     it("ignores a slow drift that never reaches the flick threshold", () => {
-        expect(settleSheet({ ...SHEET, offset: 560, velocity: 0.2 })).toBe(
+        expect(settleSheet({ ...SHEET, offset: 590, velocity: 0.2 })).toBe(
             "closed"
         );
     });
@@ -76,22 +77,43 @@ describe("settleSheet", () => {
     // A sheet already laid out at its full height has a single resting anchor,
     // so the gesture degrades to pull-down-to-dismiss without special-casing.
     it("has only rest and dismissed when there is no half anchor", () => {
-        // With the rest anchor at the top, all three open anchors collapse onto
-        // it: there is one place to be open and one to be gone.
+        /*
+         * With the middle anchor at the top, the two upper anchors collapse
+         * onto it and only the strip and the bottom are left below. 120 is
+         * nearest the top, 560 nearest gone.
+         */
         const full = { height: 600, restOffset: 0 };
         expect(settleSheet({ ...full, offset: 120, velocity: 0 })).toBe("full");
-        expect(settleSheet({ ...full, offset: 400, velocity: 0 })).toBe(
+        expect(settleSheet({ ...full, offset: 560, velocity: 0 })).toBe(
             "closed"
         );
     });
 });
 
 describe("offsetForAnchor", () => {
+    /*
+     * The lowest anchor is a strip, not a third of the screen.
+     *
+     * Google Calendar leaves a chevron and a title showing and nothing else —
+     * enough to say the sheet is there and to pull it back up, and the calendar
+     * underneath is otherwise free. Ours stood at half the screen and called
+     * that its lowest, so there was no state in which the grid could actually
+     * be read while an event was open.
+     */
     it("places each anchor at its own translation", () => {
         expect(offsetForAnchor({ ...SHEET, anchor: "full" })).toBe(0);
-        expect(offsetForAnchor({ ...SHEET, anchor: "half" })).toBe(120);
-        expect(offsetForAnchor({ ...SHEET, anchor: "low" })).toBe(240);
+        expect(offsetForAnchor({ ...SHEET, anchor: "half" })).toBe(240);
+        expect(offsetForAnchor({ ...SHEET, anchor: "low" })).toBe(
+            600 - SHEET_PEEK
+        );
         expect(offsetForAnchor({ ...SHEET, anchor: "closed" })).toBe(600);
+    });
+
+    // A sheet no taller than the strip has nowhere lower to stand than where
+    // it already is.
+    it("never lowers a sheet past its own middle", () => {
+        const squat = { height: 300, restOffset: 250 };
+        expect(offsetForAnchor({ ...squat, anchor: "low" })).toBe(250);
     });
 });
 
