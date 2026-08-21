@@ -1,5 +1,17 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+
+/*
+ * Virtuel : `@tauri-apps/api` n'est installé que dans apps/windows, et les
+ * tests tournent depuis la racine, où `npm ci` ne descend pas. Les paramètres
+ * atteignent le pont natif depuis que le sélecteur de fonds d'écran ouvre la
+ * source d'une photo — un lien que la WebView Android n'ouvre pas seule. Le
+ * mock répond donc à la place du module plutôt qu'au-dessus de lui.
+ */
+jest.mock("@tauri-apps/api/core", () => ({ invoke: jest.fn() }), {
+    virtual: true,
+});
+
 import DesktopSettings from "./DesktopSettings";
 import { defaultDesktopWorkspacePreferences } from "./platform/desktopWorkspacePreferences";
 import { applyLanguage } from "../../../src/ui/i18n";
