@@ -201,7 +201,12 @@
        theme-aware (light/dark/custom) instead of relying on cascade accidents. */
     --nc-bg-primary: var(--background-primary);
     --nc-bg-secondary: var(--background-secondary);
-    --nc-bg-hover: var(--background-modifier-hover);
+    /* Un voile, pas une dalle. La couleur de survol du theme est la surface
+       deja melangee a 22 % vers l'encre : mesure sur le panneau en theme
+       sombre, une ligne allumee sortait a rgb(67, 69, 90) sur un fond
+       rgb(30, 30, 46) — un bloc gris pose sur du bleu nuit, ce a quoi
+       ressemblaient un champ Rappels rempli et une description ouverte. */
+    --nc-bg-hover: color-mix(in srgb, var(--text-normal) 10%, transparent);
     --nc-text-primary: var(--text-normal);
     --nc-text-secondary: var(--text-muted);
     --nc-text-faint: var(--text-faint);

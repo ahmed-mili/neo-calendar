@@ -682,7 +682,9 @@
 .nc-datepicker {
     position: fixed;
     z-index: 1000;
-    --nc-bg-hover: var(--background-modifier-hover);
+    /* Le meme voile que le panneau : ces surfaces sont les siennes, portalees
+       au <body> pour ne pas deborder de lui. */
+    --nc-bg-hover: color-mix(in srgb, var(--text-normal) 10%, transparent);
     --nc-text-primary: var(--text-normal);
     --nc-text-secondary: var(--text-muted);
     --nc-text-faint: var(--text-faint);
@@ -1266,7 +1268,9 @@
    remap is out of scope here), exactly like the calendar selector menu. */
 .nc-select-menu {
     position: fixed;
-    --nc-bg-hover: var(--background-modifier-hover);
+    /* Le meme voile que le panneau : ces surfaces sont les siennes, portalees
+       au <body> pour ne pas deborder de lui. */
+    --nc-bg-hover: color-mix(in srgb, var(--text-normal) 10%, transparent);
     --nc-text-primary: var(--text-normal);
     --nc-text-secondary: var(--text-muted);
     --nc-text-faint: var(--text-faint);
@@ -2188,7 +2192,9 @@
     /* Remap --nc-* here: portaled to <body>, the .nc-event-popup remap is out of
        scope, so source from Obsidian's native vars directly (else glass/colours
        bake empty). */
-    --nc-bg-hover: var(--background-modifier-hover);
+    /* Le meme voile que le panneau : ces surfaces sont les siennes, portalees
+       au <body> pour ne pas deborder de lui. */
+    --nc-bg-hover: color-mix(in srgb, var(--text-normal) 10%, transparent);
     --nc-text-primary: var(--text-normal);
     --nc-text-secondary: var(--text-muted);
     --nc-text-faint: var(--text-faint);

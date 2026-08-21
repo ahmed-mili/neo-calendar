@@ -687,6 +687,35 @@ body.nc-platform-android .nc-panel-icon-btn {
     border-radius: 12px;
 }
 
+/*
+ * Les deux couleurs d'un panneau qui recouvre le calendrier.
+ *
+ * Celle du drawer, d'abord — c'est la surface que tout ce qui s'ouvre depuis
+ * lui doit reprendre, sinon le meme geste mene a deux ecrans differents. Elle
+ * est ecrite comme un cran sous la surface du theme plutot qu'en la nommant :
+ * le drawer lit `--background-secondary` DANS le calendrier, ou la classe de
+ * theme l'emporte, tandis que les parametres sont portales au <body>, ou c'est
+ * la valeur generee par App.tsx qui gagne — plus claire. Une derivation, elle,
+ * donne le meme resultat des deux cotes.
+ *
+ * Puis ce qui se pose DESSUS, plus sombre encore, comme dans les reglages
+ * d'Obsidian : la page est le fond, les cartes s'y enfoncent. L'ecart entre
+ * les deux est celui qui existait avant, la page ayant simplement baisse d'un
+ * cran avec le reste.
+ */
+body.nc-platform-android {
+    --nc-android-panel-surface: color-mix(
+        in srgb,
+        var(--background-primary) 80%,
+        #000000 20%
+    );
+    --nc-android-panel-sunken: color-mix(
+        in srgb,
+        var(--background-primary) 62%,
+        #000000 38%
+    );
+}
+
 body.nc-platform-android .nc-panel-body {
     padding-bottom: max(18px, calc(var(--nc-mobile-safe-bottom) + 12px));
 }
@@ -851,7 +880,7 @@ body.nc-platform-android .nc-settings-backdrop {
      * the other way, as this did, is what made the screen read as one flat
      * slab whichever way the mix was tuned.
      */
-    background: var(--background-primary) !important;
+    background: var(--nc-android-panel-surface) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
@@ -906,11 +935,7 @@ body.nc-platform-android .nc-set-group__rows > * {
      * below them.
      */
     border-radius: 4px !important;
-    background: color-mix(
-        in srgb,
-        var(--background-primary) 78%,
-        #000000 22%
-    ) !important;
+    background: var(--nc-android-panel-sunken) !important;
 }
 
 /* The ends of the group carry its shape; everything between them stays square. */
@@ -2152,7 +2177,12 @@ body.nc-platform-android
     border-radius: 0 !important;
 
     background: var(--background-primary) !important;
-    box-shadow: 18px 0 48px color-mix(in srgb, var(--background-primary) 76%, transparent) !important;
+    /* Rien sur le fond d'ecran a cote. Ces 48 px etaient un #1e1e2e a 76 %,
+       donc plus CLAIR que le calendrier assombri en dessous : pas une ombre,
+       une brume qui sortait du bord du panneau et etalait la photo sur un
+       cinquieme de l'ecran. Le filet d'1 px du bord droit suffit a separer un
+       panneau du calendrier. */
+    box-shadow: none !important;
 
     overflow: hidden !important;
 }
@@ -4565,7 +4595,9 @@ body.nc-platform-android .nc-cep-slot .nc-cep {
     max-height: none;
     border-radius: 0;
     border-right: 1px solid rgba(255, 255, 255, 0.07);
-    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.38);
+    /* Comme le drawer sous lui, et pour la meme raison : ces 50 px de noir
+       faisaient la meme trainee, dans l'autre sens. */
+    box-shadow: none;
     pointer-events: auto;
     display: flex;
     flex-direction: column;

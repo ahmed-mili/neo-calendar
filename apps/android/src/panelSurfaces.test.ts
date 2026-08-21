@@ -1,34 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
+import { declarationsFor } from "./cssText";
 
 const css = fs.readFileSync(path.join(__dirname, "mobile.css"), "utf8");
-const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, "");
-const normalize = (value: string) => value.trim().replace(/\s+/g, " ");
-
-/**
- * The background the LAST rule on a selector declares.
- *
- * Last, and not first: several rules in this file paint the same surface, and
- * on Android nearly all of them carry `!important`, so what actually reaches
- * the screen is whichever comes last in the file. Reading the first match is
- * how the drawer could be believed to be `--background-primary` while the
- * phone showed something else.
- */
-function backgroundOf(selector: string): string {
-    let found: string | null = null;
-
-    for (const rule of withoutComments.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-        if (!rule[1].split(",").map(normalize).includes(selector)) continue;
-        for (const declaration of rule[2].split(";")) {
-            const [property, ...rest] = declaration.split(":");
-            if (normalize(property) !== "background") continue;
-            found = normalize(rest.join(":")).replace(/ ?!important$/, "");
-        }
-    }
-
-    if (found === null) throw new Error(`No background for: ${selector}`);
-    return found;
-}
 
 const DRAWER =
     "body.nc-platform-android .nc-sidebar:not(.nc-sidebar-collapsed)";
@@ -44,7 +18,9 @@ describe("the surfaces a panel covering the calendar is painted with", () => {
      * screen.
      */
     it("are the same for the drawer and the someday panel", () => {
-        expect(backgroundOf(SOMEDAY)).toBe(backgroundOf(DRAWER));
+        expect(declarationsFor(css, SOMEDAY).background).toBe(
+            declarationsFor(css, DRAWER).background
+        );
     });
 
     /*
@@ -54,7 +30,69 @@ describe("the surfaces a panel covering the calendar is painted with", () => {
      * is — a fallback never applies to a variable that IS defined.
      */
     it("name the theme's secondary surface, which is opaque here", () => {
-        expect(backgroundOf(DRAWER)).toContain("--background-secondary");
-        expect(backgroundOf(DRAWER)).not.toContain("--nc-bg-secondary");
+        expect(declarationsFor(css, DRAWER).background).toContain(
+            "--background-secondary"
+        );
+        expect(declarationsFor(css, DRAWER).background).not.toContain(
+            "--nc-bg-secondary"
+        );
+    });
+});
+
+describe("what a panel covering the calendar throws on the wallpaper beside it", () => {
+    /*
+     * Nothing, now. The drawer cast 48px of #1e1e2e at 76% — lighter than the
+     * dimmed calendar under it, so it did not read as a shadow but as a haze
+     * bleeding out of the panel's edge; the someday panel cast 50px of black
+     * doing the same in the other direction. Both smeared the photo behind
+     * them over a fifth of the screen. The 1px rule down the edge is what
+     * separates a panel from the calendar.
+     */
+    it("throws nothing at all", () => {
+        expect(declarationsFor(css, DRAWER)["box-shadow"]).toBe("none");
+        expect(declarationsFor(css, SOMEDAY)["box-shadow"]).toBe("none");
+    });
+
+    it("is edged instead", () => {
+        expect(declarationsFor(css, DRAWER)["border-right"]).toContain("1px");
+        expect(declarationsFor(css, SOMEDAY)["border-right"]).toContain("1px");
+    });
+});
+
+const SETTINGS = "body.nc-platform-android .nc-settings-backdrop";
+const SETTINGS_ROWS = "body.nc-platform-android .nc-set-group__rows > *";
+const PANEL_TOKENS = "body.nc-platform-android";
+
+describe("the surface the settings are written on", () => {
+    /*
+     * The settings are opened from the drawer and they now start from its
+     * colour, so the two do not read as different screens. They cannot simply
+     * name the drawer's variable: the settings are portaled to <body>, where
+     * --background-secondary is the value App.tsx generates — lighter — while
+     * inside the calendar the theme class wins with the darker one. The panel
+     * colour is therefore stated once, as a step down from the theme's surface.
+     */
+    it("is the one the drawer is painted with", () => {
+        expect(declarationsFor(css, SETTINGS).background).toContain(
+            "--nc-android-panel-surface"
+        );
+        expect(
+            declarationsFor(css, PANEL_TOKENS)["--nc-android-panel-surface"]
+        ).toBeDefined();
+    });
+
+    /*
+     * And what sits ON the page stays darker than the page, the way Obsidian's
+     * own settings do. Left where they were, the cards would have landed within
+     * a unit of the page's new colour and the screen would have read as one
+     * flat slab.
+     */
+    it("is lighter than the cards laid on it", () => {
+        expect(declarationsFor(css, SETTINGS_ROWS).background).toContain(
+            "--nc-android-panel-sunken"
+        );
+        expect(
+            declarationsFor(css, PANEL_TOKENS)["--nc-android-panel-sunken"]
+        ).toBeDefined();
     });
 });
