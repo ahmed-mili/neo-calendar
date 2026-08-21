@@ -17,6 +17,7 @@ import {
 } from "./EventPanel.helpers";
 import { usePopupDismiss } from "./usePopupDismiss";
 import { useSheetDrag } from "./useSheetDrag";
+import { PANEL_EXIT_CLASS, panelHasLeft } from "./panelExit";
 import { usePopupDrag } from "./usePopupDrag";
 import { useEventFormState } from "./useEventFormState";
 import {
@@ -468,10 +469,35 @@ export default function EventPanel({
         popupRef.current?.style.removeProperty("--nc-sheet-offset");
     }, []);
 
+    /*
+     * The desktop half of leaving.
+     *
+     * The sheet has a gesture behind it and slides itself out; the popup has
+     * none, so it is asked to play its exit animation and the calendar is only
+     * told the panel is closed once that animation reports itself over — see
+     * onAnimationEnd on the panel below.
+     */
+    const [leaving, setLeaving] = useState(false);
+
+    /** The panel's one way out: the sheet slides, the popup fades. */
+    const leave = React.useCallback(() => {
+        if (isNeoAndroidRuntime()) requestClose();
+        else setLeaving(true);
+    }, [requestClose]);
+
+    /* A panel that has just opened is never on its way out.
+       Keyed on what the panel is showing rather than on `draft`, which the
+       calendar rebuilds on every render: an object here would reset the flag
+       one render after it was raised, and nothing would ever leave. */
+    const showing = eventId ?? (draft ? String(+draft.start) : null);
+    useEffect(() => {
+        setLeaving(false);
+    }, [visible, showing]);
+
     /** What the X, the Escape key and a tap outside all call. */
     const requestCloseGuarded = React.useCallback(
-        () => guardExitRef.current(requestClose),
-        [requestClose]
+        () => guardExitRef.current(leave),
+        [leave]
     );
     closeRef.current = requestCloseGuarded;
 
@@ -554,7 +580,7 @@ export default function EventPanel({
         onDelete(eventId);
         // Nothing left to ask about: the note this panel was editing is gone.
         heldEditRef.current = false;
-        requestClose();
+        leave();
     };
 
     // Track original calendar to detect moves
@@ -842,9 +868,9 @@ export default function EventPanel({
             // catches up when the file lands — the bargain every other save in
             // this panel already makes.
             void applyScopedEdit(scope);
-            requestClose();
+            leave();
         },
-        [applyScopedEdit, requestClose]
+        [applyScopedEdit, leave]
     );
 
     /** Back to the panel, with everything typed still in it. */
@@ -1150,7 +1176,25 @@ export default function EventPanel({
             ref={popupRef}
             className={`nc-event-popup nc-placement-${position.placement}${
                 isDraft ? " nc-event-popup--draft" : ""
-            }${androidDraft ? " nc-event-popup--android-draft" : ""}`}
+            }${androidDraft ? " nc-event-popup--android-draft" : ""}${
+                leaving ? ` ${PANEL_EXIT_CLASS}` : ""
+            }`}
+            // The panel is taken off the screen when its exit animation says it
+            // is done, rather than after a duration copied out of the
+            // stylesheet: one place decides how long leaving takes, and the
+            // reduced-motion rule that shortens every animation to 1 ms is
+            // obeyed for free.
+            onAnimationEnd={(e) => {
+                if (
+                    !panelHasLeft({
+                        leaving,
+                        animationName: e.animationName,
+                        fromPanel: e.target === e.currentTarget,
+                    })
+                )
+                    return;
+                onClose();
+            }}
             role="dialog"
             aria-label={isDraft ? "New event" : "Event details"}
             style={{
@@ -1201,7 +1245,7 @@ export default function EventPanel({
                               // is held here; asking about the held edit on top
                               // of it would stack two answers on one gesture.
                               heldEditRef.current = false;
-                              requestClose();
+                              leave();
                           }
                         : undefined
                 }

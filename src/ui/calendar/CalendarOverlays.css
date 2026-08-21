@@ -258,6 +258,31 @@
     }
 }
 
+/* Le panneau repart par ou il est arrive.
+   Sans cette regle il s'evanouissait entre deux images — mesure a l'ecran :
+   plus rien 35 ms apres le clic sur la croix — alors qu'il avait mis 180 ms a
+   apparaitre. Une moitie de mouvement se lit comme une panne, pas comme de la
+   vivacite.
+   Plus court que l'entree et sur une courbe qui accelere (celle de
+   nc-calendar-event-exit) : ce qui s'en va n'a pas a se faire attendre.
+   `forwards` retient l'etat final, sinon le panneau reprend sa taille pleine
+   le temps de l'image qui separe la fin de l'animation du demontage. */
+.nc-event-popup.nc-popup-leaving {
+    animation: nc-popup-out 140ms cubic-bezier(0.4, 0, 1, 1) forwards;
+    pointer-events: none;
+}
+
+@keyframes nc-popup-out {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.96) translateY(-2px);
+    }
+}
+
 /* ── Right-click line indicator ─────────────────────────────── */
 
 .nc-context-line {
