@@ -1221,6 +1221,23 @@
     cursor: pointer;
 }
 
+/* La ligne en cours d'écriture, montrée telle qu'elle est écrite.
+   Mêmes métriques que la ligne rendue qu'elle remplace : passer de l'une à
+   l'autre ne doit pas faire sauter le texte d'un pixel. */
+.nc-panel-checklist-edit {
+    width: 100%;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--nc-text-primary);
+    font: inherit;
+    line-height: inherit;
+    outline: none;
+    resize: none;
+    overflow: hidden;
+}
+
 .nc-panel-checklist-line input {
     /* Alignee sur la premiere ligne du texte plutot que centree sur un bloc qui
        peut faire trois lignes de haut. */

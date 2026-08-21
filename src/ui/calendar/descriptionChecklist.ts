@@ -89,3 +89,105 @@ export function withStepsAppended(
     const written = description.trim();
     return written ? `${written}\n${lines.join("\n")}` : lines.join("\n");
 }
+
+/** Where a line begins and ends inside the whole text, or nothing. */
+function lineAt(
+    description: string,
+    index: number
+): { lines: string[]; line: string } | null {
+    const lines = description.split("\n");
+    const line = lines[index];
+    return line === undefined ? null : { lines, line };
+}
+
+/** The description with one line rewritten, and nothing else touched. */
+export function replaceLine(
+    description: string,
+    index: number,
+    replacement: string
+): string {
+    const found = lineAt(description, index);
+    if (!found) return description;
+    found.lines[index] = replacement;
+    return found.lines.join("\n");
+}
+
+/** Where the caret lands after a line has been cut or joined. */
+export interface CaretMove {
+    text: string;
+    /** Which line the caret is now on. */
+    focus: number;
+    /** How far into that line it sits. */
+    caret: number;
+}
+
+/** The bullet and box a continued step is written with, or nothing. */
+const stepPrefixOf = (line: string): string | null => {
+    const match = TASK_LINE.exec(line);
+    return match ? `${match[1]}${match[2]} [ ] ` : null;
+};
+
+/**
+ * Enter, in the middle of a line.
+ *
+ * The list continues by itself: the line after a step is a step. Every Markdown
+ * editor does this, and having to type `- [ ] ` again on each line is what puts
+ * people off writing them at all.
+ *
+ * Except on an empty step, which is how one leaves a list — without that there
+ * is no way back to prose underneath it.
+ */
+export function splitLine(
+    description: string,
+    index: number,
+    caret: number
+): CaretMove {
+    const found = lineAt(description, index);
+    if (!found) return { text: description, focus: index, caret };
+
+    const { lines, line } = found;
+    const before = line.slice(0, caret);
+    const after = line.slice(caret);
+
+    const prefix = stepPrefixOf(line);
+    if (prefix && !line.slice(prefix.length).trim() && !after.trim()) {
+        lines[index] = "";
+        return { text: lines.join("\n"), focus: index, caret: 0 };
+    }
+
+    const continued = prefix ?? "";
+    lines.splice(index, 1, before, continued + after);
+    return {
+        text: lines.join("\n"),
+        focus: index + 1,
+        caret: continued.length,
+    };
+}
+
+/**
+ * Backspace, at the very start of a line.
+ *
+ * A step loses its box first and stays where it is: that is how one takes a
+ * checkbox off a line without losing what it says. A line that is already plain
+ * joins the one above it, where the caret then sits at the join.
+ */
+export function mergeLine(description: string, index: number): CaretMove {
+    const found = lineAt(description, index);
+    if (!found) return { text: description, focus: index, caret: 0 };
+
+    const { lines, line } = found;
+    const match = TASK_LINE.exec(line);
+    if (match) {
+        lines[index] = match[4];
+        return { text: lines.join("\n"), focus: index, caret: 0 };
+    }
+
+    if (index === 0) return { text: description, focus: 0, caret: 0 };
+    const previous = lines[index - 1];
+    lines.splice(index - 1, 2, previous + line);
+    return {
+        text: lines.join("\n"),
+        focus: index - 1,
+        caret: previous.length,
+    };
+}
