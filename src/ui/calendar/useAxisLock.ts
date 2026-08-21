@@ -320,6 +320,32 @@ export function claimsGesture<T extends GestureNode>(
     return false;
 }
 
+/**
+ * La grille suit-elle encore le doigt ?
+ *
+ * Deux choses peuvent lui prendre le geste, et elles n'arrivent pas au même
+ * moment. Une poignée le réclame d'avance, par `touch-action: none`, et cela se
+ * lit dès le premier contact. Un événement, lui, ne se prend en main qu'au bout
+ * d'un appui long : au premier contact il n'y a encore rien à savoir, et c'est
+ * pourquoi la question se repose à chaque mouvement plutôt qu'une seule fois.
+ *
+ * Sans cette seconde lecture la grille défilait sous l'événement qu'on était en
+ * train de déplacer, pixel pour pixel avec le doigt (mesuré sur l'appareil :
+ * 18 px de doigt, 18 px de grille). Le bloc suivait le doigt, la grille suivait
+ * le doigt, et l'un par rapport à l'autre ne bougeait pas d'un jour : poser un
+ * événement sur un autre jour n'était pas difficile, c'était arithmétiquement
+ * impossible.
+ */
+export function gridOwnsGesture<T extends GestureNode>(
+    target: T | null,
+    scroller: GestureNode,
+    touchActionOf: (node: GestureNode) => string,
+    eventInHand: boolean
+): boolean {
+    if (eventInHand) return false;
+    return !claimsGesture(target, scroller, touchActionOf);
+}
+
 export interface AxisLockOptions {
     /** How many day columns fill the viewport. 0 leaves the grid unsnapped. */
     daysPerView?: number;
@@ -627,6 +653,11 @@ export function useAxisLock(
             frame = requestAnimationFrame(step);
         };
 
+        /* Posé par le drag lui-même sur cet élément (voir useTimeGridDrag) :
+           c'est le seul endroit que les deux connaissent, et le drag ne
+           traverse pas React pour venir jusqu'ici. */
+        const eventInHand = () => host.dataset.ncDragging === "true";
+
         const onTouchStart = (event: TouchEvent) => {
             stopFrame();
             axis = null;
@@ -642,11 +673,12 @@ export function useAxisLock(
             pinch = null;
             tracking =
                 event.touches.length === 1 &&
-                !claimsGesture(
+                gridOwnsGesture(
                     event.target instanceof Element ? event.target : null,
                     element,
                     (node) =>
-                        window.getComputedStyle(node as Element).touchAction
+                        window.getComputedStyle(node as Element).touchAction,
+                    eventInHand()
                 );
             if (!tracking) return;
 
@@ -676,6 +708,18 @@ export function useAxisLock(
             }
 
             if (!tracking) return;
+
+            // L'appui long a abouti pendant ce geste : ce que le doigt déplace
+            // n'est plus la grille. Elle rend la main sans rien terminer — il
+            // n'y a rien à laisser glisser ni de jour où se poser, le geste ne
+            // lui appartenait déjà plus.
+            if (eventInHand()) {
+                stopFrame();
+                tracking = false;
+                axis = null;
+                samples = [];
+                return;
+            }
 
             const touch = event.touches[0];
 

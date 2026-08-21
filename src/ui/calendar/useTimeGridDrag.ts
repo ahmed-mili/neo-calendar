@@ -195,6 +195,10 @@ export function useTimeGridDrag(
             const displayEvent = event.active.data.current
                 ?.event as DisplayEvent;
             setActiveEvent(displayEvent || null);
+            // Dit à la grille qu'elle n'est plus ce que le doigt déplace. Posé
+            // en direct comme la classe du panneau plus bas : le défilement
+            // tactile vit hors de React et lit l'élément, pas un state.
+            if (gridRef.current) gridRef.current.dataset.ncDragging = "true";
             const rect = event.active.rect.current.initial;
             if (rect) {
                 setDragWidth(rect.width);
@@ -228,7 +232,7 @@ export function useTimeGridDrag(
                 );
             }
         },
-        [buildPreview, dragTargets]
+        [buildPreview, dragTargets, gridRef]
     );
 
     const handleDragMove = useCallback(
@@ -288,6 +292,7 @@ export function useTimeGridDrag(
 
     const handleDragEnd = useCallback(
         (event: DragEndEvent) => {
+            if (gridRef.current) delete gridRef.current.dataset.ncDragging;
             setActiveEvent(null);
             setDragPreview(null);
             setDragPreviews([]);
@@ -368,10 +373,18 @@ export function useTimeGridDrag(
         },
         // computeDragProjection n'est plus une dependance : le garde-fou "no-op"
         // se lit desormais sur le resultat de projectDrag, pas sur le delta brut.
-        [onEventDrag, onEventUnschedule, projectDrag, dragTargets, isOverPanel]
+        [
+            onEventDrag,
+            onEventUnschedule,
+            projectDrag,
+            dragTargets,
+            isOverPanel,
+            gridRef,
+        ]
     );
 
     const handleDragCancel = useCallback(() => {
+        if (gridRef.current) delete gridRef.current.dataset.ncDragging;
         setActiveEvent(null);
         setDragPreview(null);
         setDragPreviews([]);
@@ -379,7 +392,7 @@ export function useTimeGridDrag(
         document
             .querySelector(".nc-cep")
             ?.classList.remove("nc-cep-drop-active");
-    }, []);
+    }, [gridRef]);
 
     return {
         activeEvent,

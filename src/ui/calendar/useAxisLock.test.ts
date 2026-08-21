@@ -4,6 +4,7 @@ import {
     MIN_GLIDE_VELOCITY,
     GestureNode,
     claimsGesture,
+    gridOwnsGesture,
     clampScroll,
     decayedVelocity,
     easeOutCubic,
@@ -86,6 +87,47 @@ describe("stillGliding", () => {
         expect(stillGliding(-MIN_GLIDE_VELOCITY / 2)).toBe(false);
         expect(stillGliding(MIN_GLIDE_VELOCITY)).toBe(true);
         expect(stillGliding(-3)).toBe(true);
+    });
+});
+
+describe("gridOwnsGesture", () => {
+    /** grip → chip → day column → scroller */
+    const build = () => {
+        const scroller: GestureNode = { parentElement: null };
+        const day: GestureNode = { parentElement: scroller };
+        const chip: GestureNode = { parentElement: day };
+        return { scroller, day, chip };
+    };
+
+    const styled =
+        (claimed: GestureNode[]) =>
+        (node: GestureNode): string =>
+            claimed.includes(node) ? "none" : "auto";
+
+    it("keeps the gesture when nothing else wants it", () => {
+        const { scroller, day } = build();
+        expect(gridOwnsGesture(day, scroller, styled([]), false)).toBe(true);
+    });
+
+    it("hands it to whatever declared it wanted it", () => {
+        const { scroller, chip } = build();
+        expect(gridOwnsGesture(chip, scroller, styled([chip]), false)).toBe(
+            false
+        );
+    });
+
+    /*
+     * The one that costs a measurement to believe: an event picked up by a long
+     * press declares nothing at all — dnd-kit leaves `touch-action:
+     * manipulation` on the block — and it is only in hand 220ms after the touch
+     * began. So the grid scrolled under the very event being moved, pixel for
+     * pixel with the finger: the block followed the finger, the grid followed
+     * the finger, and relative to one another nothing moved. Dropping an event
+     * on another day was not merely hard, it was arithmetically impossible.
+     */
+    it("lets go the moment an event is in hand, though nothing was declared", () => {
+        const { scroller, chip } = build();
+        expect(gridOwnsGesture(chip, scroller, styled([]), true)).toBe(false);
     });
 });
 
