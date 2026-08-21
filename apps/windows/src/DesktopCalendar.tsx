@@ -3246,6 +3246,10 @@ export default function DesktopCalendar({
                         setStorageError(errorMessage(reason));
                     }
                 }}
+                /* Dupliquer n'avait aucune porte sur telephone : ni clic
+                   droit, ni clavier, et le menu du panneau reservait bien une
+                   entree pour lui sans jamais la recevoir. */
+                onDuplicate={(id: string) => void duplicateEvent(id)}
                 onPickEventAttachment={pickEventAttachments}
             />
 

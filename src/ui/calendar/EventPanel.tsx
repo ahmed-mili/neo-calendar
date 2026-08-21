@@ -28,7 +28,7 @@ import {
     RepeatRow,
     TitleRow,
     DateRow,
-    RecurrenceRow,
+    CustomRecurrencePanel,
     RemindersRow,
     CalendarRow,
     TypeRow,
@@ -1097,6 +1097,11 @@ export default function EventPanel({
         scheduleAutoSave();
     };
 
+    /* The page where a rule is written by hand, open or not. Closed when the
+       panel opens on an event that already has one: it is shown as a summary
+       on the repeat row, and reopened only by asking for it again. */
+    const [customRecurrenceOpen, setCustomRecurrenceOpen] = useState(false);
+
     const chooseRepeat = (key: PresetKey | "once") => {
         if (key === "once") {
             setCustomRepeat(false);
@@ -1105,6 +1110,9 @@ export default function EventPanel({
             return;
         }
         setCustomRepeat(key === "custom");
+        // Choosing "Custom…" is a request to write a rule, so the page for
+        // writing it comes up rather than unfolding under the row.
+        setCustomRecurrenceOpen(key === "custom");
         form.setIsRecurring(true);
         form.setRecurrence(
             key === "custom"
@@ -1349,13 +1357,14 @@ export default function EventPanel({
                     onChoose={chooseRepeat}
                 />
 
-                {form.isRecurring && customRepeat && (
-                    <RecurrenceRow
+                {form.isRecurring && customRepeat && customRecurrenceOpen && (
+                    <CustomRecurrencePanel
                         recurrence={form.recurrence}
                         startDate={form.date}
                         firstDay={firstDay}
                         setRecurrence={form.setRecurrence}
                         onAutoSave={scheduleAutoSave}
+                        onClose={() => setCustomRecurrenceOpen(false)}
                     />
                 )}
 

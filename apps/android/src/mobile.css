@@ -901,6 +901,14 @@ body.nc-platform-android .nc-panel-menu-item {
     font-size: 15px;
 }
 
+/* Le menu prend la largeur de ce qu'il dit. A 15 px, « Supprimer la tache » ne
+   tenait pas dans les 160 px minimum et se pliait en deux ; un menu se lit d'un
+   coup d'oeil. */
+body.nc-platform-android .nc-panel-menu {
+    width: max-content;
+    max-width: min(88vw, 320px);
+}
+
 /* Up from below the screen to wherever the sheet rests — which is a translation
    now, so the arrival has to end on it rather than on zero. */
 @keyframes nc-android-sheet-in {

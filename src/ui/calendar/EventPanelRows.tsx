@@ -1082,13 +1082,42 @@ const PRESETS: { key: PresetKey; label: string }[] = [
     { key: "custom", label: t("Custom") },
 ];
 
-export function RecurrenceRow({
+/** The way back out of a screen that covers the one it was opened from. */
+function BackArrowIcon() {
+    return (
+        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+                d="M19 12H5M5 12l6-6M5 12l6 6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
+
+/**
+ * Building a repetition by hand, on a page of its own.
+ *
+ * It used to unfold inside the event panel: an interval, a row of days, three
+ * radio buttons and a date field, stacked under the row that opened them, in a
+ * sheet already holding everything else about the event. Two forms in one
+ * surface, and the one being filled in was the smaller of the two.
+ *
+ * It is its own screen now, the way Google Calendar does it — a title, a way
+ * back, and one thing at a time — with only the sections that mean something
+ * for the rule being written: how often, which days, and when it stops.
+ */
+export function CustomRecurrencePanel({
     recurrence,
     startDate,
     firstDay,
     setRecurrence,
     onAutoSave,
-}: RecurrenceRowProps) {
+    onClose,
+}: RecurrenceRowProps & { onClose: () => void }) {
     const update = (patch: Partial<RecurrenceState>) =>
         setRecurrence({ ...recurrence, ...patch });
     const commit = () => onAutoSave();
@@ -1098,206 +1127,234 @@ export function RecurrenceRow({
         let next = has
             ? recurrence.byDay.filter((c) => c !== code)
             : [...recurrence.byDay, code];
-        if (next.length === 0) next = [dayCodeOf(startDate)]; // guard: never empty
+        // A weekly rule with no day left is a rule that never comes round; the
+        // day the event starts on is the one it falls back to.
+        if (next.length === 0) next = [dayCodeOf(startDate)];
         setRecurrence({ ...recurrence, byDay: next });
     };
 
-    return (
-        <div className="nc-panel-row">
-            <span className="nc-panel-row-icon">
-                <RepeatIcon />
-            </span>
-            <div className="nc-panel-row-content">
-                {/* The five ordinary answers live in the picker the repeat row
-                    opens; what is left here is the rule someone is building by
-                    hand, which is the only thing "Custom" ever meant. */}
-                {
-                    <div className="nc-recur-custom">
-                        <div className="nc-recur-interval">
-                            <span>{t("Every")}</span>
-                            <input
-                                type="number"
-                                min={1}
-                                className="nc-recur-num"
-                                value={recurrence.interval}
-                                onChange={(e) =>
-                                    update({
-                                        interval: Math.max(
+    React.useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+            event.stopPropagation();
+            onClose();
+        };
+        document.addEventListener("keydown", onKey, true);
+        return () => document.removeEventListener("keydown", onKey, true);
+    }, [onClose]);
+
+    if (typeof document === "undefined") return null;
+
+    return ReactDOM.createPortal(
+        <div className="nc-recur-screen" role="dialog" aria-modal="true">
+            <header className="nc-recur-screen-header">
+                <button
+                    type="button"
+                    className="nc-recur-screen-back"
+                    aria-label={t("Close")}
+                    onClick={onClose}
+                >
+                    <BackArrowIcon />
+                </button>
+                <h2>{t("Custom recurrence")}</h2>
+                <button
+                    type="button"
+                    className="nc-recur-screen-done"
+                    onClick={onClose}
+                >
+                    {t("Complete")}
+                </button>
+            </header>
+
+            <div className="nc-recur-screen-body">
+                <section className="nc-recur-section">
+                    <h3>{t("Repeat frequency")}</h3>
+                    <div className="nc-recur-interval">
+                        <input
+                            type="number"
+                            min={1}
+                            className="nc-recur-num"
+                            aria-label={t("Repeat frequency")}
+                            value={recurrence.interval}
+                            onChange={(e) =>
+                                update({
+                                    interval: Math.max(
+                                        1,
+                                        Number(e.target.value) || 1
+                                    ),
+                                })
+                            }
+                            onBlur={commit}
+                        />
+                        <NcSelect
+                            className="nc-recur-freq"
+                            value={recurrence.freq}
+                            options={[
+                                { value: "daily", label: t("day(s)") },
+                                { value: "weekly", label: t("week(s)") },
+                                { value: "monthly", label: t("month(s)") },
+                                { value: "yearly", label: t("year(s)") },
+                            ]}
+                            onChange={(v) => {
+                                const freq = v as Freq;
+                                const byDay =
+                                    freq === "weekly"
+                                        ? [dayCodeOf(startDate)]
+                                        : [];
+                                update({ freq, byDay });
+                                onAutoSave();
+                            }}
+                        />
+                    </div>
+                </section>
+
+                {/* Which days, but only where the question means something: a
+                    monthly rule has no weekdays to pick from. */}
+                {recurrence.freq === "weekly" && (
+                    <section className="nc-recur-section">
+                        <h3>{t("Repeat on")}</h3>
+                        <div className="nc-day-picker">
+                            {orderedDayCodes(firstDay).map((code) => (
+                                <button
+                                    type="button"
+                                    key={code}
+                                    className={`nc-day-btn ${
+                                        recurrence.byDay.includes(code)
+                                            ? "nc-active"
+                                            : ""
+                                    }`}
+                                    aria-pressed={recurrence.byDay.includes(
+                                        code
+                                    )}
+                                    onClick={() => {
+                                        toggleDay(code);
+                                        onAutoSave();
+                                    }}
+                                >
+                                    {DAY_MAP[code]}
+                                </button>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {recurrence.freq === "monthly" && (
+                    <section className="nc-recur-section">
+                        <h3>{t("Repeat on")}</h3>
+                        <NcSelect
+                            className="nc-recur-monthmode"
+                            value={recurrence.monthMode}
+                            options={[
+                                {
+                                    value: "dayOfMonth",
+                                    label: t("Monthly on day {n}").replace(
+                                        "{n}",
+                                        String(Number(startDate.slice(8, 10)))
+                                    ),
+                                },
+                                {
+                                    value: "dayOfWeek",
+                                    label: t("Monthly on the same weekday"),
+                                },
+                            ]}
+                            onChange={(v) => {
+                                update({
+                                    monthMode:
+                                        v as RecurrenceState["monthMode"],
+                                });
+                                onAutoSave();
+                            }}
+                        />
+                    </section>
+                )}
+
+                <section className="nc-recur-section nc-recur-end">
+                    <h3>{t("Ends")}</h3>
+                    <label className="nc-recur-end-line">
+                        <input
+                            type="radio"
+                            name="recur-end"
+                            checked={recurrence.end.kind === "never"}
+                            onChange={() => {
+                                update({ end: { kind: "never" } });
+                                onAutoSave();
+                            }}
+                        />
+                        <span>{t("Never")}</span>
+                    </label>
+                    <label className="nc-recur-end-line">
+                        <input
+                            type="radio"
+                            name="recur-end"
+                            checked={recurrence.end.kind === "until"}
+                            onChange={() => {
+                                update({
+                                    end: { kind: "until", date: startDate },
+                                });
+                                onAutoSave();
+                            }}
+                        />
+                        <span>{t("On date")}</span>
+                        <DateField
+                            triggerClassName="nc-panel-date-trigger"
+                            date={
+                                recurrence.end.kind === "until"
+                                    ? recurrence.end.date
+                                    : ""
+                            }
+                            label={
+                                recurrence.end.kind === "until"
+                                    ? formatDateLong(recurrence.end.date)
+                                    : formatDateLong(startDate)
+                            }
+                            editable={recurrence.end.kind === "until"}
+                            firstDay={firstDay}
+                            setDate={(v) =>
+                                update({ end: { kind: "until", date: v } })
+                            }
+                            onAutoSave={onAutoSave}
+                        />
+                    </label>
+                    <label className="nc-recur-end-line">
+                        <input
+                            type="radio"
+                            name="recur-end"
+                            checked={recurrence.end.kind === "count"}
+                            onChange={() => {
+                                update({ end: { kind: "count", count: 13 } });
+                                onAutoSave();
+                            }}
+                        />
+                        <span>{t("After count")}</span>
+                        <input
+                            type="number"
+                            min={1}
+                            className="nc-recur-num"
+                            disabled={recurrence.end.kind !== "count"}
+                            value={
+                                recurrence.end.kind === "count"
+                                    ? recurrence.end.count
+                                    : 13
+                            }
+                            onChange={(e) =>
+                                update({
+                                    end: {
+                                        kind: "count",
+                                        count: Math.max(
                                             1,
                                             Number(e.target.value) || 1
                                         ),
-                                    })
-                                }
-                                onBlur={commit}
-                            />
-                            <NcSelect
-                                className="nc-recur-freq"
-                                value={recurrence.freq}
-                                options={[
-                                    { value: "daily", label: t("day(s)") },
-                                    { value: "weekly", label: t("week(s)") },
-                                    { value: "monthly", label: t("month(s)") },
-                                    { value: "yearly", label: t("year(s)") },
-                                ]}
-                                onChange={(v) => {
-                                    const freq = v as Freq;
-                                    const byDay =
-                                        freq === "weekly"
-                                            ? [dayCodeOf(startDate)]
-                                            : [];
-                                    update({ freq, byDay });
-                                    onAutoSave();
-                                }}
-                            />
-                        </div>
-
-                        {recurrence.freq === "weekly" && (
-                            <div className="nc-day-picker">
-                                {orderedDayCodes(firstDay).map((code) => (
-                                    <button
-                                        type="button"
-                                        key={code}
-                                        className={`nc-day-btn ${
-                                            recurrence.byDay.includes(code)
-                                                ? "nc-active"
-                                                : ""
-                                        }`}
-                                        onClick={() => {
-                                            toggleDay(code);
-                                            onAutoSave();
-                                        }}
-                                    >
-                                        {DAY_MAP[code]}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {recurrence.freq === "monthly" && (
-                            <NcSelect
-                                className="nc-recur-monthmode"
-                                value={recurrence.monthMode}
-                                options={[
-                                    {
-                                        value: "dayOfMonth",
-                                        label: t("Monthly on day {n}").replace(
-                                            "{n}",
-                                            String(
-                                                Number(startDate.slice(8, 10))
-                                            )
-                                        ),
                                     },
-                                    {
-                                        value: "dayOfWeek",
-                                        label: t("Monthly on the same weekday"),
-                                    },
-                                ]}
-                                onChange={(v) => {
-                                    update({ monthMode: v as any });
-                                    onAutoSave();
-                                }}
-                            />
-                        )}
-
-                        <div className="nc-recur-end">
-                            <span className="nc-panel-subrow-label">
-                                {t("Ends")}
-                            </span>
-                            <label>
-                                <input
-                                    type="radio"
-                                    name="recur-end"
-                                    checked={recurrence.end.kind === "never"}
-                                    onChange={() => {
-                                        update({ end: { kind: "never" } });
-                                        onAutoSave();
-                                    }}
-                                />
-                                <span>{t("Never")}</span>
-                            </label>
-                            <label>
-                                <input
-                                    type="radio"
-                                    name="recur-end"
-                                    checked={recurrence.end.kind === "until"}
-                                    onChange={() => {
-                                        update({
-                                            end: {
-                                                kind: "until",
-                                                date: startDate,
-                                            },
-                                        });
-                                        onAutoSave();
-                                    }}
-                                />
-                                <span>{t("On date")}</span>
-                                <DateField
-                                    triggerClassName="nc-panel-date-trigger"
-                                    date={
-                                        recurrence.end.kind === "until"
-                                            ? recurrence.end.date
-                                            : ""
-                                    }
-                                    label={
-                                        recurrence.end.kind === "until"
-                                            ? formatDateLong(
-                                                  recurrence.end.date
-                                              )
-                                            : ""
-                                    }
-                                    editable={recurrence.end.kind === "until"}
-                                    firstDay={firstDay}
-                                    setDate={(v) =>
-                                        update({
-                                            end: { kind: "until", date: v },
-                                        })
-                                    }
-                                    onAutoSave={onAutoSave}
-                                />
-                            </label>
-                            <label>
-                                <input
-                                    type="radio"
-                                    name="recur-end"
-                                    checked={recurrence.end.kind === "count"}
-                                    onChange={() => {
-                                        update({
-                                            end: { kind: "count", count: 13 },
-                                        });
-                                        onAutoSave();
-                                    }}
-                                />
-                                <span>{t("After count")}</span>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    className="nc-recur-num"
-                                    disabled={recurrence.end.kind !== "count"}
-                                    value={
-                                        recurrence.end.kind === "count"
-                                            ? recurrence.end.count
-                                            : 13
-                                    }
-                                    onChange={(e) =>
-                                        update({
-                                            end: {
-                                                kind: "count",
-                                                count: Math.max(
-                                                    1,
-                                                    Number(e.target.value) || 1
-                                                ),
-                                            },
-                                        })
-                                    }
-                                    onBlur={commit}
-                                />
-                                <span>{t("occurrences")}</span>
-                            </label>
-                        </div>
-                    </div>
-                }
+                                })
+                            }
+                            onBlur={commit}
+                        />
+                        <span>{t("occurrences")}</span>
+                    </label>
+                </section>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 

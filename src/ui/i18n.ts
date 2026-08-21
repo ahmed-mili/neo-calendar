@@ -123,6 +123,10 @@ const FR: Record<string, string> = {
     From: "De",
     To: "À",
     Ends: "Fin",
+    // L'écran où l'on écrit une répétition à la main.
+    "Custom recurrence": "Récurrence personnalisée",
+    "Repeat frequency": "Fréquence de répétition",
+    "Repeat on": "Répéter le",
     // Les trois fins possibles d'une répétition, et le résumé qui les relit.
     Never: "Jamais",
     "On date": "Le",

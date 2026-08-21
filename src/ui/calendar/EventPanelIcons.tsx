@@ -128,21 +128,24 @@ export const LinesIcon = () => (
         />
     </svg>
 );
+/*
+ * La fleche qui revient sur elle-meme, telle qu'Ahmed l'a fournie.
+ *
+ * Un trace plein plutot que deux traits : le dessin d'origine est une
+ * silhouette, et la redessiner au trait en aurait fait une autre icone.
+ * `currentColor` remplace la couleur figee du fichier pour qu'elle suive
+ * la ligne ou elle est posee — la meme icone sert de puce a la ligne de
+ * repetition, ou le texte est tantot vif tantot en retrait.
+ *
+ * Le viewBox est resserre sur le glyphe : le fichier le pose au milieu
+ * d'un carre de 1536, et laisse tel quel il serait dessine trois fois plus
+ * petit que les icones voisines.
+ */
 export const RepeatIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <svg width="16" height="16" viewBox="563 559 406 400">
         <path
-            d="M4 5.5h6a2.5 2.5 0 0 1 2.5 2.5v.5M12 10.5H6a2.5 2.5 0 0 1-2.5-2.5V7.5"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        />
-        <path
-            d="M5.5 4L4 5.5 5.5 7M10.5 9 12 10.5 10.5 12"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+            d="M 959 563 L 919 563 L 915 566 L 915 616 L 913 625 L 911 627 L 896 612 L 892 610 L 887 604 L 884 603 L 880 598 L 870 594 L 866 590 L 856 586 L 850 581 L 839 578 L 832 573 L 819 571 L 806 566 L 791 565 L 790 564 L 773 564 L 772 563 L 745 563 L 744 564 L 733 565 L 720 570 L 705 572 L 696 578 L 688 580 L 682 583 L 679 586 L 669 589 L 661 595 L 655 597 L 651 602 L 644 606 L 641 610 L 636 613 L 622 627 L 619 632 L 612 639 L 611 642 L 606 646 L 603 653 L 597 660 L 595 667 L 590 673 L 586 686 L 582 691 L 580 697 L 579 708 L 574 721 L 573 731 L 572 732 L 572 754 L 571 755 L 572 759 L 572 786 L 573 787 L 574 797 L 578 806 L 581 824 L 587 834 L 588 841 L 591 847 L 594 850 L 598 861 L 603 866 L 606 873 L 611 877 L 612 880 L 619 887 L 622 892 L 636 906 L 640 908 L 644 913 L 650 916 L 654 921 L 661 924 L 667 929 L 675 931 L 682 936 L 688 939 L 694 940 L 706 947 L 716 948 L 739 955 L 794 955 L 804 953 L 807 951 L 818 948 L 823 948 L 836 945 L 841 941 L 848 939 L 858 932 L 865 930 L 871 925 L 879 922 L 901 903 L 902 894 L 876 868 L 872 866 L 866 867 L 853 880 L 843 884 L 837 889 L 826 892 L 819 897 L 805 900 L 799 904 L 787 905 L 786 906 L 738 905 L 729 900 L 715 897 L 708 892 L 700 890 L 690 883 L 682 880 L 661 861 L 660 858 L 655 854 L 652 848 L 646 842 L 642 833 L 638 829 L 635 820 L 630 813 L 627 796 L 623 788 L 622 775 L 621 774 L 621 757 L 620 756 L 621 755 L 622 731 L 627 721 L 630 705 L 635 699 L 638 689 L 643 684 L 646 677 L 651 672 L 654 666 L 660 661 L 661 658 L 682 639 L 693 634 L 697 630 L 708 627 L 715 622 L 729 619 L 738 614 L 771 612 L 772 613 L 790 614 L 799 618 L 816 621 L 827 627 L 838 630 L 843 635 L 852 639 L 869 653 L 881 666 L 882 669 L 887 674 L 891 681 L 886 686 L 795 686 L 792 689 L 792 731 L 796 735 L 960 735 L 964 730 L 964 568 Z"
+            fill="currentColor"
         />
     </svg>
 );

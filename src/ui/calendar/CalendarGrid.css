@@ -686,10 +686,10 @@
 
 /* NO `to` keyframe, and that is the whole rule. An unspecified 100% is built
    from the element's OWN computed value, so each bar fades up to the opacity it
-   is supposed to wear — 0.45 for a past event (see .nc-past-event), 1 for the
-   rest. Written out as `opacity: 1` it was the animation's value that won the
-   cascade for the full 220ms: every past all-day event lit up to full strength
-   while the band grew and dropped back to 0.45 at the end, which read as the
+   is supposed to wear — whatever a past or dragged bar happens to be set to, 1
+   for the rest. Written out as `opacity: 1` it was the animation's value that
+   won the cascade for the full 220ms: every dimmed all-day event lit up to full
+   strength while the band grew and dropped back at the end, which read as the
    band briefly forgetting which of its events were over.
    Nothing else is animated. A `translateY` here used to bring the bar in from
    under the row above; on expand that is EVERY bar sliding 6px at once, and it
@@ -884,16 +884,35 @@
     white-space: nowrap;
 }
 
-.nc-event-block.nc-task-completed {
-    opacity: 0.6;
-}
+/* ── Ce qui est derriere soi, sans devenir illisible ──────────
+   Attenuer un bloc voulait dire `opacity` sur le bloc, ce qui ne l'attenue pas :
+   ca le rend transparent. Sur telephone le calendrier est une photo, donc le
+   fond d'ecran remontait a travers l'evenement et emportait son texte avec lui
+   — titre a peine lisible, heures invisibles, sur un ciel clair.
 
-.nc-event-block.nc-task-completed .nc-event-title {
-    opacity: 0.7;
+   Le bloc reste opaque et c'est son encre qu'on baisse. L'alpha du texte tombe
+   alors sur la couleur du bloc, qui est connue, et non sur ce que le fond
+   d'ecran montre a cet endroit. Le titre et l'heure lisent tous deux ces
+   variables (voir .nc-event-title / .nc-event-time), et un bloc selectionne les
+   repose en style inline avec l'encre calculee pour sa couleur. */
+.nc-event-block.nc-task-completed {
+    --nc-event-ink: var(--nc-text-secondary, var(--text-muted));
+    --nc-event-ink-muted: var(--nc-text-faint, var(--text-faint));
 }
 
 .nc-event-block.nc-past-event {
-    opacity: 0.45;
+    --nc-event-ink: var(--nc-text-secondary, var(--text-muted));
+    /* Melangee au fond du bloc plutot que prise dans le texte le plus pale du
+       theme : celui-la tombe a 3:1 sur cette surface, et c'est l'heure — la
+       chose qu'on venait justement lire. */
+    --nc-event-ink-muted: color-mix(
+        in srgb,
+        var(--nc-text-secondary, var(--text-muted)) 80%,
+        var(--background-primary)
+    );
+    /* Ce qui est passe se distingue encore du reste, mais par sa couleur plutot
+       que par son absence : la teinte du calendrier s'y fait discrete. */
+    filter: saturate(0.55);
 }
 
 /* Orange flash animation for date navigation */
