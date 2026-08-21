@@ -3216,6 +3216,38 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     display: grid;
 }
 
+/* La ligne « Tout télécharger », en tête de liste.
+   Pas de vignette : elle ne montre aucun fond en particulier, elle les ramène
+   tous. La première colonne disparaît donc, et un filet la sépare de ce qui se
+   choisit en dessous — c'est une action, pas un choix. */
+.nc-wallpaper-option--all {
+    /* `flex` plutôt qu'une grille à deux colonnes : la grille des options est
+       redéfinie ailleurs, à trois colonnes et plus spécifiquement, et le
+       libellé se retrouvait tassé dans la colonne de la vignette — « To… ». Une
+       ligne qui ne montre aucun fond n'a de toute façon pas de vignette à
+       aligner sur celles du dessous. */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid
+        color-mix(in srgb, var(--text-normal) 12%, transparent);
+    border-radius: 12px 12px 0 0;
+    font-weight: 500;
+}
+
+.nc-wallpaper-option--all:disabled {
+    cursor: default;
+}
+
+.nc-choice-dialog .nc-wallpaper-option--all,
+.nc-wallpaper-options .nc-wallpaper-option--all,
+body.nc-platform-android .nc-wallpaper-option--all {
+    display: flex;
+}
+
 .nc-choice-dialog .nc-wallpaper-option {
     grid-template-columns: 40px minmax(0, 1fr) 20px;
     gap: 14px;

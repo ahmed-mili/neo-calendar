@@ -27,6 +27,11 @@ import {
     needsDownloading,
     thumbUrlOf,
 } from "./themes/wallpaperDownload";
+import {
+    BatchProgress,
+    batchNote,
+    missingWallpapers,
+} from "./themes/wallpaperBatch";
 import { SettingsDialog } from "./SettingsPrimitives";
 import { placeFlyout } from "../../../src/ui/calendar/flyoutPlacement";
 import { t } from "../../../src/ui/i18n";
@@ -112,6 +117,8 @@ export default function ThemeWallpaperPicker({
     const [installed, setInstalled] = useState<Set<string>>(installedFiles);
     const [busy, setBusy] = useState<WallpaperId | null>(null);
     const [failed, setFailed] = useState<WallpaperId | null>(null);
+    /** Où en est le téléchargement de tout ce qui manque, quand il tourne. */
+    const [batch, setBatch] = useState<BatchProgress | null>(null);
 
     // Le dossier appartient à l'utilisateur et survit à l'application : le
     // relire à chaque ouverture plutôt que de croire une liste d'une autre fois.
@@ -241,6 +248,71 @@ export default function ThemeWallpaperPicker({
         [busy, missing, onChange]
     );
 
+    /**
+     * Tout ramener d'un coup.
+     *
+     * Les pleines résolutions arrivent quand on choisit un fond, ce qui va bien
+     * à qui en veut un et mal à qui installe l'application : choisir, attendre,
+     * rouvrir le menu, recommencer, autant de fois qu'il y a de photos. Un seul
+     * appui, et l'on regarde ailleurs.
+     *
+     * Une par une, et non toutes ensemble : sur une connexion de téléphone cela
+     * n'irait pas plus vite, et le compteur ne voudrait plus rien dire. Un
+     * échec au milieu n'arrête rien — une photo sur neuf n'est pas une raison
+     * d'abandonner les huit autres — il est compté et dit à la fin.
+     */
+    const fetchAll = useCallback(async () => {
+        if (busy || batch) return;
+        const pending = missingWallpapers(wallpapers, installed, fileNameOf);
+        if (!pending.length) return;
+
+        setFailed(null);
+        let failures = 0;
+        setBatch({ done: 0, total: pending.length, failed: 0 });
+        for (const [index, wallpaper] of pending.entries()) {
+            try {
+                await ensureWallpaper(wallpaper.imageUrl!);
+            } catch {
+                failures += 1;
+            }
+            setInstalled(installedFiles());
+            setBatch({
+                done: index + 1,
+                total: pending.length,
+                failed: failures,
+            });
+        }
+        // Rien à dire de plus quand tout est arrivé : la ligne disparaît.
+        if (!failures) setBatch(null);
+    }, [batch, busy, installed, wallpapers]);
+
+    const pending = remote
+        ? missingWallpapers(wallpapers, installed, fileNameOf)
+        : [];
+    const note = batchNote(batch, pending.length);
+    const running = !!batch && batch.done < batch.total;
+
+    /* En tête de liste, parce que c'est ce qu'on fait AVANT de choisir. */
+    const fetchAllRow = note ? (
+        <button
+            key="nc-wallpaper-fetch-all"
+            type="button"
+            className="nc-wallpaper-option nc-wallpaper-option--all"
+            disabled={!!busy || running}
+            aria-busy={running || undefined}
+            onClick={() => void fetchAll()}
+        >
+            <span className="nc-wallpaper-option__text">
+                <span className="nc-wallpaper-option__label">{note}</span>
+            </span>
+            {running ? (
+                <Loader2 size={18} className="nc-wallpaper-option__spin" />
+            ) : (
+                <Download size={16} className="nc-wallpaper-option__get" />
+            )}
+        </button>
+    ) : null;
+
     const options = wallpapers.map((wallpaper) => {
         const downloading = busy === wallpaper.id;
         const retry = failed === wallpaper.id;
@@ -344,6 +416,7 @@ export default function ThemeWallpaperPicker({
                         role="listbox"
                         aria-label={t("Wallpapers")}
                     >
+                        {fetchAllRow}
                         {options}
                     </div>,
                     document.body
@@ -357,7 +430,7 @@ export default function ThemeWallpaperPicker({
                 <SettingsDialog
                     title={t("Wallpapers")}
                     onClose={() => {
-                        if (!busy) setOpen(false);
+                        if (!busy && !running) setOpen(false);
                     }}
                 >
                     <div
@@ -366,6 +439,7 @@ export default function ThemeWallpaperPicker({
                         role="listbox"
                         aria-label={t("Wallpapers")}
                     >
+                        {fetchAllRow}
                         {options}
                     </div>
                 </SettingsDialog>
