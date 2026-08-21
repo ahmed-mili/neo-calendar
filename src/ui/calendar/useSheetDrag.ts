@@ -459,20 +459,10 @@ export function useSheetDrag({
             paint(offset);
         };
 
-        // The same movement a downward drag ends with, offered to every other
-        // way out so the sheet always leaves the way it arrived.
-        slideOutRef.current = () => {
-            if (closingTimer) return;
-            glideTo(height);
-            closingTimer = window.setTimeout(() => {
-                closingTimer = 0;
-                onClose();
-            }, SETTLE_MS);
-        };
-
         const settleAt = (anchor: SheetAnchor) => {
             if (anchor !== "closed") restAt(anchor);
             if (anchor === "closed") {
+                if (closingTimer) return;
                 glideTo(height);
                 closingTimer = window.setTimeout(() => {
                     closingTimer = 0;
@@ -485,12 +475,27 @@ export function useSheetDrag({
                 if (!gesture && !closingTimer) sheet.style.transition = "";
             }, SETTLE_MS);
         };
-        // A press on the handle moves the sheet the way a release does, so both
-        // arrive by the same movement.
-        settleAtRef.current = (to) => {
+
+        /*
+         * Every way out that is not a finger, measured first.
+         *
+         * `height` is filled in by `measure()`, and until this ran only a touch
+         * ever called it — so a sheet closed by the X without having been
+         * dragged first glided to an offset of ZERO, which is where it already
+         * was, and then vanished when the timer came round. That is the whole
+         * of "it closes oddly, with no animation": the movement was asked for
+         * and had nowhere to go. It bites hardest on the sheet that follows a
+         * draft, because committing the draft changes the sheet's variant and
+         * starts this effect over with the measurement cleared.
+         */
+        const leaveTo = (anchor: SheetAnchor) => {
             measure();
-            settleAt(to);
+            settleAt(anchor);
         };
+        // The same movement a downward drag ends with, offered to the X, the
+        // backdrop and the handle, so the sheet always leaves the way it came.
+        slideOutRef.current = () => leaveTo("closed");
+        settleAtRef.current = leaveTo;
 
         const onTouchStart = (event: TouchEvent) => {
             if (event.touches.length !== 1) return;
