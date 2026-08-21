@@ -15,6 +15,7 @@ import {
     computeOverlapGroups,
     startOfDay,
 } from "./CalendarUtils";
+import { draftPreviewBox, selectionBox } from "./draftPreviewBox";
 import EventBlock from "./EventBlock";
 import TimezoneColumn, {
     TimezoneColumnHeader,
@@ -571,8 +572,8 @@ function DayColumn({
         const pe = Math.min(e, dayEndMs);
         if (pe <= ps) return null;
         return {
-            top: scaledPx(eventTopHours(new Date(ps), dayStart)),
-            height: scaledPx((pe - ps) / 3600000),
+            topHours: eventTopHours(new Date(ps), dayStart),
+            durationHours: (pe - ps) / 3600000,
             hasStart: s >= dayStartMs && s < dayEndMs,
             hasEnd: e > dayStartMs && e <= dayEndMs,
         };
@@ -671,8 +672,7 @@ function DayColumn({
                     className="nc-selection-mirror"
                     data-draft-preview="true"
                     style={{
-                        top: draftPortion.top,
-                        height: draftPortion.height,
+                        ...draftPreviewBox(draftPortion),
                         backgroundColor: draftColor
                             ? draftColor + "25"
                             : undefined,
@@ -703,8 +703,7 @@ function DayColumn({
                 <div
                     className="nc-selection-mirror"
                     style={{
-                        top: selPortion.top,
-                        height: selPortion.height,
+                        ...selectionBox(selPortion),
                         backgroundColor: draftColor
                             ? draftColor + "25"
                             : undefined,

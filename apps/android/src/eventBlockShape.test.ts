@@ -47,3 +47,41 @@ describe("the shape of an event on a phone", () => {
         expect(shared).toContain("--nc-event-radius: 8px");
     });
 });
+
+const PREVIEW =
+    'body.nc-platform-android .nc-selection-mirror[data-draft-preview="true"]';
+const HANDLE = `${PREVIEW} .nc-draft-preview-resize`;
+const TOUCH = `${HANDLE}::after`;
+
+describe("the outline a draft is placed with", () => {
+    /*
+     * A draft is the event before it exists, so it is drawn as that event will
+     * be drawn. It sat flush against the day's rule instead, where every block
+     * is held 4px clear of it, so dropping the draft nudged the bar sideways —
+     * the calendar looked as though it were correcting the placement rather
+     * than keeping it.
+     */
+    it("clears the day's rule the way a block does", () => {
+        expect(declarationsFor(mobile, PREVIEW)["margin-left"]).toBe(
+            declarationsFor(mobile, BLOCK)["margin-left"]
+        );
+    });
+
+    it("is cornered like the block it becomes", () => {
+        expect(declarationsFor(mobile, PREVIEW)["border-radius"]).toBe(
+            declarationsFor(mobile, BLOCK)["border-radius"]
+        );
+    });
+
+    /*
+     * The two grips were 20px across on a bar barely 26px tall: they read as
+     * the thing being placed rather than as handles on it. Small enough to see
+     * past, and the invisible square that catches the finger is untouched — it
+     * is five times the size and does all the catching.
+     */
+    it("is gripped by something smaller than what it grips", () => {
+        expect(declarationsFor(mobile, HANDLE).width).toBe("12px");
+        expect(declarationsFor(mobile, HANDLE).height).toBe("12px");
+        expect(declarationsFor(mobile, TOUCH).width).toBe("58px");
+    });
+});

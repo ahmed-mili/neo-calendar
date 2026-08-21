@@ -12,7 +12,14 @@
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 const normalize = (value: string) => value.trim().replace(/\s+/g, " ");
 
-/** Everything the last rule on `selector` declares, `!important` dropped. */
+/**
+ * What `selector` ends up declaring, `!important` dropped.
+ *
+ * Every rule naming it is merged in source order, later winning, because these
+ * stylesheets state the same property on the same selector several times over —
+ * one pass per revision — and only the last of each reaches the screen. Reading
+ * one rule alone answers a question nobody asked.
+ */
 export function declarationsFor(
     css: string,
     selector: string
@@ -21,21 +28,24 @@ export function declarationsFor(
 
     for (const rule of stripComments(css).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
         if (!rule[1].split(",").map(normalize).includes(selector)) continue;
-        found = Object.fromEntries(
-            rule[2]
-                .split(";")
-                .map((declaration) => declaration.trim())
-                .filter(Boolean)
-                .map((declaration) => {
-                    const separator = declaration.indexOf(":");
-                    return [
-                        declaration.slice(0, separator).trim(),
-                        normalize(declaration.slice(separator + 1)).replace(
-                            / ?!important$/,
-                            ""
-                        ),
-                    ];
-                })
+        found = Object.assign(
+            found ?? {},
+            Object.fromEntries(
+                rule[2]
+                    .split(";")
+                    .map((declaration) => declaration.trim())
+                    .filter(Boolean)
+                    .map((declaration) => {
+                        const separator = declaration.indexOf(":");
+                        return [
+                            declaration.slice(0, separator).trim(),
+                            normalize(declaration.slice(separator + 1)).replace(
+                                / ?!important$/,
+                                ""
+                            ),
+                        ];
+                    })
+            )
         );
     }
 

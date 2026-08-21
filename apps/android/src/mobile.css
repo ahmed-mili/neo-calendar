@@ -1620,8 +1620,15 @@ body.nc-platform-android
 
     isolation: isolate;
     overflow: visible !important;
+    /* Le brouillon est l'evenement avant qu'il existe, donc il se dessine ou
+       l'evenement se dessinera : degage de la regle du jour comme un bloc, et
+       avec le meme angle. Sans cela, poser le brouillon decalait la barre de
+       4 px — le calendrier avait l'air de corriger le placement plutot que de
+       le garder. Le retrait vertical et celui de droite viennent de
+       draftPreviewBox, la ou les blocs prennent les leurs. */
+    margin-left: 4px !important;
     border: 2px solid var(--nc-android-draft-color) !important;
-    border-radius: 7px !important;
+    border-radius: 4px !important;
     background:
         color-mix(
             in srgb,
@@ -1644,7 +1651,7 @@ body.nc-platform-android
     position: absolute;
     z-index: 0;
     inset: 0;
-    border-radius: 5px;
+    border-radius: 2px;
     background: var(--nc-android-draft-color);
     opacity: 0.12;
     pointer-events: none;
@@ -2497,15 +2504,19 @@ body.nc-platform-android
 
     display: block !important;
 
-    width: 22px !important;
-    min-width: 22px !important;
-    height: 22px !important;
-    min-height: 22px !important;
+    /* Deux pastilles de 22 px sur une barre haute de 26 : elles se lisaient
+       comme la chose qu'on place plutot que comme les poignees qui la
+       tiennent. Le carre invisible qui attrape le doigt (::after, 58 px) ne
+       bouge pas et continue de tout attraper. */
+    width: 12px !important;
+    min-width: 12px !important;
+    height: 12px !important;
+    min-height: 12px !important;
 
     margin: 0 !important;
     padding: 0 !important;
 
-    border: 3px solid
+    border: 2px solid
         var(
             --nc-android-draft-color,
             currentColor
@@ -2530,18 +2541,19 @@ body.nc-platform-android
 body.nc-platform-android
     .nc-selection-mirror[data-draft-preview="true"]
     .nc-draft-preview-resize-top {
-    top: -11px !important;
+    /* Centrees la ou elles l'etaient : a cheval sur le bord, a 20 px du cote. */
+    top: -6px !important;
     right: auto !important;
     bottom: auto !important;
-    left: 9px !important;
+    left: 14px !important;
 }
 
 body.nc-platform-android
     .nc-selection-mirror[data-draft-preview="true"]
     .nc-draft-preview-resize-bottom {
     top: auto !important;
-    right: 9px !important;
-    bottom: -11px !important;
+    right: 14px !important;
+    bottom: -6px !important;
     left: auto !important;
 }
 
