@@ -1328,17 +1328,97 @@ fn fetch_desktop_ics(url: String) -> Result<String, String> {
     Ok(text)
 }
 
+/// Ce qui a ete telecharge et attend qu'on le pose.
+///
+/// Les octets sont gardes en memoire plutot qu'ecrits quelque part : ils ne
+/// survivent pas a la fermeture de l'application, et c'est voulu — au prochain
+/// lancement la verification recommence, et une mise a jour encore plus recente
+/// aura peut-etre paru entre-temps.
 #[cfg(desktop)]
-async fn install_available_update(
-    app: tauri::AppHandle,
-) -> tauri_plugin_updater::Result<()> {
-    if let Some(update) = app.updater()?.check().await? {
-        update
-            .download_and_install(|_, _| {}, || {})
-            .await?;
-        app.restart();
-    }
+#[derive(Default)]
+struct PendingUpdate(std::sync::Mutex<Option<(tauri_plugin_updater::Update, Vec<u8>)>>);
+
+/// Le pourcentage descendu, dit a la fenetre. -1 quand personne n'a annonce la
+/// taille du fichier : il n'y a alors rien d'honnete a compter.
+#[cfg(desktop)]
+const UPDATE_PROGRESS_EVENT: &str = "neo-update-progress";
+
+/// La version telechargee et prete a poser.
+#[cfg(desktop)]
+const UPDATE_READY_EVENT: &str = "neo-update-ready";
+
+/// Va chercher la mise a jour, et s'arrete la.
+///
+/// Elle s'installait toute seule au demarrage, puis redemarrait l'application
+/// sous les doigts de qui s'en servait. Le telechargement reste automatique —
+/// c'est la partie qui prend du temps et qu'on n'a aucune raison de demander —
+/// mais poser la nouvelle version est un geste, et il appartient a la personne
+/// devant l'ecran.
+#[cfg(desktop)]
+async fn fetch_available_update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
+    use tauri::Emitter;
+
+    let Some(update) = app.updater()?.check().await? else {
+        return Ok(());
+    };
+
+    let version = update.version.clone();
+    let mut received: u64 = 0;
+    let reporter = app.clone();
+    let bytes = update
+        .download(
+            move |chunk, total| {
+                received += chunk as u64;
+                let percent = match total {
+                    Some(size) if size > 0 => {
+                        ((received as f64 / size as f64) * 100.0).round().min(100.0) as i64
+                    }
+                    _ => -1,
+                };
+                let _ = reporter.emit(UPDATE_PROGRESS_EVENT, percent);
+            },
+            || {},
+        )
+        .await?;
+
+    app.state::<PendingUpdate>()
+        .0
+        .lock()
+        .map(|mut held| *held = Some((update, bytes)))
+        .ok();
+    let _ = app.emit(UPDATE_READY_EVENT, version);
     Ok(())
+}
+
+/// Pose la mise a jour deja telechargee, puis redemarre.
+///
+/// Rien a retelecharger : les octets sont la depuis le lancement. Un appel sans
+/// rien en attente n'est pas une erreur a montrer — la fenetre n'aurait pas du
+/// proposer le geste — mais il le dit, pour qu'un bouton qui ne fait rien se
+/// remarque pendant le developpement.
+#[cfg(desktop)]
+#[tauri::command]
+fn install_pending_update(app: tauri::AppHandle) -> Result<(), String> {
+    let held = app
+        .state::<PendingUpdate>()
+        .0
+        .lock()
+        .map_err(|_| "The pending update is unreadable.".to_string())?
+        .take();
+    let (update, bytes) = held.ok_or_else(|| "No update has been downloaded.".to_string())?;
+    update
+        .install(bytes)
+        .map_err(|error| format!("Unable to install the update: {error}"))?;
+    app.restart();
+}
+
+/// Sur telephone, la coque Android fait tout cela elle-meme : la commande
+/// existe pour que le meme code de fenetre puisse l'appeler sans savoir ou il
+/// tourne, et repond qu'il n'y a rien a poser.
+#[cfg(not(desktop))]
+#[tauri::command]
+fn install_pending_update() -> Result<(), String> {
+    Err("No update has been downloaded.".to_string())
 }
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -1359,9 +1439,10 @@ pub fn run() {
             {
                 app.handle()
                     .plugin(tauri_plugin_updater::Builder::new().build())?;
+                app.manage(PendingUpdate::default());
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    if let Err(error) = install_available_update(handle).await {
+                    if let Err(error) = fetch_available_update(handle).await {
                         eprintln!("Automatic update check failed: {error}");
                     }
                 });
@@ -1385,6 +1466,7 @@ pub fn run() {
             copy_desktop_attachment,
             write_desktop_attachment,
             read_desktop_attachment,
+            install_pending_update,
             fetch_desktop_ics
         ])
         .run(tauri::generate_context!())

@@ -83,6 +83,37 @@ describe("hidden calendar identity", () => {
     });
 });
 
+describe("room for the update control", () => {
+    /*
+     * The sidebar bar has 204px of content and the open control takes 114 of
+     * them: with the version number still there, "Mettre à jour" ran out of the
+     * panel and was cut mid-word. The number steps aside instead — it has
+     * nothing to say at the moment the errand is under the cursor.
+     */
+    it("folds the version number away while the control is open", () => {
+        for (const selector of [
+            ".nc-sidebar-top-right:has(.nc-update-control--ready:hover) .nc-sidebar-version",
+            ".nc-sidebar-top-right:has(.nc-update-control--ready:focus-visible) .nc-sidebar-version",
+        ]) {
+            const folded = declarationsFor(selector);
+            expect(folded["max-width"]).toBe("0");
+            expect(folded["margin-right"]).toBe("0");
+            expect(folded.opacity).toBe("0");
+        }
+    });
+
+    /*
+     * Folding only reads as one movement if it is animated, and a width can
+     * only be animated from a number — `auto` transitions to nothing.
+     */
+    it("gives the pill a width to animate from", () => {
+        const pill = declarationsFor(".nc-sidebar-version");
+        expect(pill["max-width"]).toBe("160px");
+        expect(pill.overflow).toBe("hidden");
+        expect(pill.transition).toContain("max-width");
+    });
+});
+
 describe("calendar removal wording", () => {
     it("removes the calendar from the list without presenting a file delete action", () => {
         expect(component).toContain('label: t("Remove from list")');

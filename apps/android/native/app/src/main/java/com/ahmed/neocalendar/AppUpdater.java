@@ -77,6 +77,11 @@ final class AppUpdater {
       reste : le bouton « Reessayer » d'une notification peut arriver apres
       que l'Activity a ete reconstruite. */
   private static Metadata lastAttempt;
+  /** Si cette tentative-la devait poser la version au bout, ou seulement la
+   *  descendre. « Reessayer » depuis la notification d'echec refait la meme
+   *  chose que ce qui a echoue : un telechargement demarre tout seul reste un
+   *  telechargement, et une installation demandee reste demandee. */
+  private static boolean lastAttemptInstalls;
 
   /** Read across the bridge by the web side; see appUpdates.ts. */
   static String pendingVersion() {
@@ -127,7 +132,11 @@ final class AppUpdater {
         if (metadata.versionCode <= currentVersionCode()) return;
         remember(metadata);
         if (metadata.versionCode == dismissedVersionCode()) return;
-        activity.runOnUiThread(() -> showPrompt(metadata));
+        /* On la descend tout de suite, sans rien demander : c'est la partie qui
+           prend du temps, et personne n'a de raison de dire non a un
+           telechargement. Poser la nouvelle version reste un geste — voir
+           installReady(), appele par le controle de la fenetre. */
+        activity.runOnUiThread(() -> download(metadata, false));
       } catch (Exception error) {
         // Offline, or GitHub having a moment. The next launch asks again.
         Log.w(TAG, "Update check failed", error);
@@ -215,7 +224,7 @@ final class AppUpdater {
    *  de zero — on refait la verification, qui aboutit au meme endroit. */
   void retryLastDownload() {
     if (lastAttempt != null) {
-      download(lastAttempt);
+      download(lastAttempt, lastAttemptInstalls);
       return;
     }
     checkNow();
@@ -276,7 +285,7 @@ final class AppUpdater {
       .setNegativeButton(R.string.update_later,
         (dialog, which) -> dismissVersion(metadata.versionCode))
       .setPositiveButton(R.string.update_install,
-        (dialog, which) -> download(metadata))
+        (dialog, which) -> download(metadata, true))
       .setOnCancelListener(ignored -> dismissVersion(metadata.versionCode))
       .show();
   }
@@ -300,7 +309,9 @@ final class AppUpdater {
     });
     view.findViewById(R.id.update_install).setOnClickListener(button -> {
       dialog.dismiss();
-      download(metadata);
+      // Ici quelqu'un a demande l'installation : elle s'ouvre au bout du
+      // telechargement, sans second geste.
+      download(metadata, true);
     });
     // Dismissing by back or by tapping outside is "later" too, and has to be
     // remembered as such — otherwise the prompt returns on the next launch
@@ -309,17 +320,29 @@ final class AppUpdater {
     dialog.show();
   }
 
-  private void download(Metadata metadata) {
+  /** L'APK descendu et verifie, qui attend qu'on demande a le poser. */
+  private File readyApk;
+
+  /** Ce que la fenetre appelle quand on presse « Mettre a jour ». */
+  void installReady() {
+    File apk = readyApk;
+    if (apk == null || !apk.isFile()) return;
+    activity.runOnUiThread(() -> requestInstall(apk));
+  }
+
+  private void download(Metadata metadata, boolean installWhenDone) {
     lastAttempt = metadata;
+    lastAttemptInstalls = installWhenDone;
     ensureChannel();
     notifyProgress(metadata, 0, true);
     reportProgress(-1);
     io.execute(() -> {
       try {
         File apk = downloadAndVerify(metadata);
+        readyApk = apk;
         reportProgress(-2);
         notifyReady(metadata, apk);
-        activity.runOnUiThread(() -> requestInstall(apk));
+        if (installWhenDone) activity.runOnUiThread(() -> requestInstall(apk));
       } catch (Exception error) {
         reportProgress(-2);
         notifyFailed();

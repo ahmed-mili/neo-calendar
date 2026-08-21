@@ -540,6 +540,9 @@ public class MainActivity extends Activity {
         button is drawn from. Returns synchronously: it is a field, not a
         fetch. */
     @JavascriptInterface public String pendingUpdate(){ return AppUpdater.pendingVersion(); }
+    /** Poser la mise a jour deja descendue. Rien a retelecharger : elle attend
+     *  sur le disque depuis la verification du lancement. */
+    @JavascriptInterface public void installPendingUpdate(){ if(appUpdater!=null) appUpdater.installReady(); }
     /** Les fonds deja presents dans le dossier, pour que le selecteur les
         marque au lieu de les reproposer. */
     @JavascriptInterface public String installedWallpapers(){

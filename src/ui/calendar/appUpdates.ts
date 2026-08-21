@@ -49,6 +49,7 @@ export const UPDATE_PROGRESS_EVENT = "neo-update-progress";
 interface UpdateBridge {
     checkForUpdates?: () => void;
     pendingUpdate?: () => string;
+    installPendingUpdate?: () => void;
 }
 
 function bridge(): UpdateBridge | null {
@@ -66,6 +67,24 @@ export function canCheckForUpdates(): boolean {
     return typeof bridge()?.checkForUpdates === "function";
 }
 
+/**
+ * La version déjà téléchargée, quand c'est le bureau qui l'a ramenée.
+ *
+ * Le téléphone garde la sienne dans sa coque et répond par le pont ; le bureau
+ * n'a pas de pont, alors ce qu'il rapporte se pose ici. Une seule question est
+ * ainsi posée par la fenêtre — « qu'est-ce qui attend ? » — et les deux camps y
+ * répondent chacun à leur manière.
+ */
+let downloadedVersion = "";
+
+/** Dit par le bureau quand le téléchargement automatique a fini. */
+export function noteDownloadedUpdate(version: string): void {
+    downloadedVersion = version;
+    if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent(UPDATE_EVENT));
+    }
+}
+
 /** The version the shell has found and is holding, or "" for none.
  *
  *  It outlives "Later": the prompt goes away, the fact does not, and that is
@@ -73,11 +92,11 @@ export function canCheckForUpdates(): boolean {
  *  across the bridge and returns a string the shell already has. */
 export function pendingUpdateVersion(): string {
     const host = bridge();
-    if (typeof host?.pendingUpdate !== "function") return "";
+    if (typeof host?.pendingUpdate !== "function") return downloadedVersion;
     try {
-        return host.pendingUpdate() || "";
+        return host.pendingUpdate() || downloadedVersion;
     } catch {
-        return "";
+        return downloadedVersion;
     }
 }
 
@@ -93,4 +112,43 @@ export function requestUpdateCheck(): boolean {
     } catch {
         return false;
     }
+}
+
+/**
+ * Pose la mise à jour déjà descendue, du côté qui l'a.
+ *
+ * Le téléphone la tient dans sa coque et l'installateur du système prend le
+ * relais ; le bureau passe par une commande native. Une seule fonction, parce
+ * que le contrôle qui appelle ne sait pas — et n'a pas à savoir — où il tourne.
+ *
+ * Rend `false` là où rien ne peut poser quoi que ce soit : une vieille coque
+ * sans la méthode, ou une fenêtre ouverte hors de toute application.
+ */
+export function installPendingUpdate(): boolean {
+    const host = bridge();
+    if (typeof host?.installPendingUpdate === "function") {
+        try {
+            host.installPendingUpdate();
+            return true;
+        } catch {
+            return false;
+        }
+    }
+    if (!installer) return false;
+    installer();
+    return true;
+}
+
+/**
+ * Ce qui pose la mise à jour là où il n'y a pas de pont.
+ *
+ * Le bureau l'enregistre au démarrage (voir desktopUpdates), plutôt que d'être
+ * importé depuis ici : le code partagé ne connaît pas la coque qui l'exécute, et
+ * un import dans ce sens ferait entrer Tauri dans un fichier que le téléphone
+ * charge aussi.
+ */
+let installer: (() => void) | null = null;
+
+export function setUpdateInstaller(install: () => void): void {
+    installer = install;
 }

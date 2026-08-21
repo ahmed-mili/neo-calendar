@@ -40,6 +40,10 @@ export default defineConfig({
                 replacement: here("./src/platform/path.ts"),
             },
             {
+                find: "@tauri-apps/api/event",
+                replacement: here("./src/platform/event.ts"),
+            },
+            {
                 find: "@tauri-apps/plugin-dialog",
                 replacement: here("./src/platform/dialog.ts"),
             },

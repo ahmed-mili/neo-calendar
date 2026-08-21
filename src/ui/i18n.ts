@@ -182,6 +182,9 @@ const FR: Record<string, string> = {
     "Check failed": "Échec",
     Offline: "Hors ligne",
     "Update available": "Mise à jour disponible",
+    // Le contrôle qui descend la mise à jour, puis propose de la poser.
+    "Downloading update": "Téléchargement de la mise à jour",
+    "Update now": "Mettre à jour",
     Update: "Mettre à jour",
     "Removing the date on a repeating event also removes the repeat. It becomes a single unscheduled entry.":
         "Retirer la date d'un événement qui se répète supprime aussi la répétition. Il devient une entrée unique non planifiée.",

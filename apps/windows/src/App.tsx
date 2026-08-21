@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { watchDesktopUpdates } from "./platform/desktopUpdates";
 import { CalendarDays, FolderOpen } from "lucide-react";
 import DesktopCalendar from "./DesktopCalendar";
 import DesktopErrorBoundary from "./DesktopErrorBoundary";
@@ -99,6 +100,27 @@ export default function App() {
     const wallpaperReady = useWallpaperReady(
         getWallpaper(effectiveTheme.wallpaperId).imageUrl
     );
+
+    /*
+     * Ce que le natif rapporte de sa mise à jour, redit à la fenêtre.
+     *
+     * L'écoute vit ici et pas dans le contrôle : le contrôle apparaît et
+     * disparaît avec ce qu'il a à dire, et une écoute qui se pose au moment où
+     * il apparaît aurait manqué tout ce qui s'est passé avant — c'est-à-dire le
+     * téléchargement, qui commence au lancement.
+     */
+    useEffect(() => {
+        let stop: (() => void) | null = null;
+        let dropped = false;
+        void watchDesktopUpdates().then((release) => {
+            if (dropped) release();
+            else stop = release;
+        });
+        return () => {
+            dropped = true;
+            stop?.();
+        };
+    }, []);
 
     useEffect(() => {
         const onAppearanceChange = (event: Event) => {

@@ -67,28 +67,21 @@
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
+    /* Une largeur chiffrée alors que rien ne la contraint : c'est ce qui rend
+       le repli animable plus bas — on ne peut pas partir de `auto`. Bien
+       au-dessus du plus long libellé (« Vérification… »), donc sans effet
+       tant que la pastille reste. */
+    max-width: 160px;
+    overflow: hidden;
+    transition: max-width var(--nc-transition-normal, 200ms ease),
+        padding var(--nc-transition-normal, 200ms ease),
+        margin var(--nc-transition-normal, 200ms ease),
+        opacity var(--nc-transition-fast, 120ms ease);
 }
 
 .nc-sidebar-version:hover:not(:disabled) {
     background: var(--nc-bg-hover);
     color: var(--nc-text-primary, var(--text-normal));
-}
-
-/* Something is waiting: the pill stops being a version number and becomes the
-   errand, in the same red as the dot on the menu button so the two read as one
-   piece of news rather than two. */
-.nc-sidebar-version-ready {
-    border-color: transparent;
-    background: var(--nc-update-accent, #f38ba8);
-    color: #11111b;
-    font-family: inherit;
-    font-weight: 700;
-}
-
-.nc-sidebar-version-ready:hover:not(:disabled) {
-    background: var(--nc-update-accent, #f38ba8);
-    color: #11111b;
-    filter: brightness(1.08);
 }
 
 .nc-sidebar-version:disabled {
@@ -109,12 +102,6 @@
     to {
         transform: rotate(360deg);
     }
-}
-
-/* Counting is not "disabled" in the greyed-out sense — it is the control doing
-   its job, and it must stay legible while it does. */
-.nc-sidebar-version-ready:disabled {
-    opacity: 1;
 }
 
 /* Where no check is reachable the number is not a control, and must not look
@@ -829,4 +816,123 @@
 .nc-sidebar-help-btn:hover {
     background: rgba(255, 255, 255, 0.05) !important;
     color: var(--nc-text-primary, var(--text-normal));
+}
+
+/* ── La mise à jour, en trois états ──────────────────────────
+   Elle descend toute seule, donc le contrôle ne demande rien : il compte, puis
+   il propose. Rien du reste du temps — il n'est pas rendu.
+
+   Un compteur pendant la descente, une pastille ronde ensuite, et sous le
+   curseur la pastille s'ouvre sur « Mettre à jour ». C'est la LARGEUR qui
+   s'anime et le libellé qui est là depuis le début : le faire apparaître au
+   survol le ferait arriver après le mouvement, d'un coup, au lieu de sortir
+   avec la pastille. */
+.nc-update-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--nc-accent, var(--interactive-accent));
+    color: var(--nc-accent-text, var(--text-on-accent));
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.nc-update-control--downloading {
+    /* Assez large pour « 100 % » dès le premier pour cent : un compteur dont la
+       pastille s'allonge à chaque dizaine tressaute sous les yeux. */
+    min-width: 46px;
+    justify-content: center;
+}
+
+/* Sans chiffre honnête à montrer, il tourne. */
+.nc-update-control--spinning::after {
+    content: "";
+    width: 12px;
+    height: 12px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: nc-update-spin 700ms linear infinite;
+}
+
+@keyframes nc-update-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.nc-update-control--ready {
+    width: 26px;
+    padding: 0;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: width var(--nc-transition-normal, 200ms ease),
+        padding var(--nc-transition-normal, 200ms ease);
+}
+
+.nc-update-control__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.nc-update-control__label {
+    /* Replié : la largeur nulle le retire sans le démonter, donc il glisse
+       dehors au lieu d'apparaître. */
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-width var(--nc-transition-normal, 200ms ease),
+        opacity var(--nc-transition-fast, 120ms ease);
+}
+
+.nc-update-control--ready:hover,
+.nc-update-control--ready:focus-visible {
+    width: auto;
+    padding: 0 12px 0 10px;
+}
+
+.nc-update-control--ready:hover .nc-update-control__label,
+.nc-update-control--ready:focus-visible .nc-update-control__label {
+    max-width: 160px;
+    opacity: 1;
+}
+
+/* Ce qui est à gauche s'écarte pour la laisser passer.
+   La barre du panneau mesure 204 px de contenu et la pastille ouverte en prend
+   114 : sans cela « Mettre à jour » sortait du panneau par la droite — coupé au
+   milieu du mot — et mordait sur le bouton de repli par la gauche. Le numéro de
+   version se replie sur la même durée que le libellé s'ouvre, si bien que l'un
+   chasse l'autre en un seul mouvement au lieu de deux qui se croisent. Il n'a
+   rien à dire à ce moment-là : ce qui compte est déjà sous le curseur. */
+.nc-sidebar-top-right:has(.nc-update-control--ready:hover) .nc-sidebar-version,
+.nc-sidebar-top-right:has(.nc-update-control--ready:focus-visible)
+    .nc-sidebar-version {
+    max-width: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-width: 0;
+    opacity: 0;
+}
+
+/* Au doigt il n'y a pas de survol : la pastille dit ce qu'elle fait tout de
+   suite, plutôt que d'attendre un geste qui n'arrivera jamais. */
+@media (hover: none) {
+    .nc-update-control--ready {
+        width: auto;
+        padding: 0 12px 0 10px;
+    }
+
+    .nc-update-control--ready .nc-update-control__label {
+        max-width: 160px;
+        opacity: 1;
+    }
 }

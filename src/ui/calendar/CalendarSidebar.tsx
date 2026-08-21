@@ -28,13 +28,14 @@ import { useSidebarReorder } from "./useSidebarReorder";
 import { isAndroidRuntime } from "./CalendarUtils";
 import {
     CHECK_RESULT_EVENT,
-    UPDATE_PROGRESS_EVENT,
+    installPendingUpdate,
     CheckResult,
     appVersion,
     canCheckForUpdates,
     requestUpdateCheck,
 } from "./appUpdates";
 import { useUpdateAvailable } from "./useUpdateAvailable";
+import { UpdateBadge } from "./UpdateBadge";
 import { t } from "../i18n";
 
 const ONLINE_TYPES = ["ical", "caldav", "icloud"];
@@ -133,22 +134,6 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
     const [checkResult, setCheckResult] = React.useState<CheckResult | null>(
         null
     );
-    // While an update downloads the pill becomes the progress readout: the same
-    // percentage the notification shows, so the two never disagree. -1 means the
-    // server never said how big the file is — there is no honest number then,
-    // and the control spins rather than inventing one. -2 means it is over.
-    const [progress, setProgress] = React.useState<number | null>(null);
-    React.useEffect(() => {
-        const onProgress = (event: Event) => {
-            const detail = (event as CustomEvent<{ percent?: number }>).detail;
-            const percent = detail?.percent ?? -2;
-            setProgress(percent === -2 ? null : percent);
-            if (percent !== -2) setCheckResult(null);
-        };
-        window.addEventListener(UPDATE_PROGRESS_EVENT, onProgress);
-        return () =>
-            window.removeEventListener(UPDATE_PROGRESS_EVENT, onProgress);
-    }, []);
     // The shell answers a hand-asked check through this event rather than
     // through a Toast, so the control that asked is the one that answers.
     React.useEffect(() => {
@@ -358,11 +343,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                             <button
                                 type="button"
                                 className={`nc-sidebar-version${
-                                    updateVersion || progress !== null
-                                        ? " nc-sidebar-version-ready"
-                                        : ""
-                                }${
-                                    progress === -1 || checkingUpdate
+                                    checkingUpdate
                                         ? " nc-sidebar-version-busy"
                                         : ""
                                 }`}
@@ -371,20 +352,18 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                     setCheckingUpdate(true);
                                     requestUpdateCheck();
                                 }}
-                                disabled={checkingUpdate || progress !== null}
-                                title={
-                                    updateVersion
-                                        ? t("Update available")
-                                        : t("Check for updates")
-                                }
+                                disabled={checkingUpdate}
+                                title={t("Check for updates")}
                             >
-                                <RefreshIcon size={12} />
+                                {/* La flèche propose d'aller voir. Quand la
+                                    version est déjà descendue et attend à
+                                    côté, il n'y a plus rien à aller chercher :
+                                    la pastille redevient un numéro, et la
+                                    nouvelle est dite une seule fois, par le
+                                    bouton bleu. */}
+                                {!updateVersion && <RefreshIcon size={12} />}
                                 <span>
-                                    {progress !== null
-                                        ? progress < 0
-                                            ? t("Updating…")
-                                            : `${progress} %`
-                                        : checkingUpdate
+                                    {checkingUpdate
                                         ? t("Checking…")
                                         : checkResult === "current"
                                         ? t("Up to date")
@@ -392,8 +371,6 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                         ? t("Offline")
                                         : checkResult === "failed"
                                         ? t("Check failed")
-                                        : updateVersion
-                                        ? t("Update")
                                         : `v${version}`}
                                 </span>
                             </button>
@@ -402,6 +379,11 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                 v{version}
                             </span>
                         ))}
+                    {/* Ce qui descend et ce qui attend d'être posé : le même
+                        contrôle des deux côtés, parce que c'est la même chose
+                        qui se passe. Il n'est là que lorsqu'il a quelque chose
+                        à dire. */}
+                    <UpdateBadge onInstall={() => installPendingUpdate()} />
                     {isAndroid && (
                         <button
                             className="nc-sidebar-top-btn nc-sidebar-settings-btn"
