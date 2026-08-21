@@ -54,6 +54,31 @@ export interface WallpaperDefinition {
     credit?: WallpaperCredit;
 }
 
+/**
+ * D'ou viennent les photos du catalogue.
+ *
+ * Ahmed, qui les a choisies, dit qu'elles viennent toutes d'Unsplash. Le lien
+ * pointe vers Unsplash et non vers chaque photo : rien n'a jamais note de
+ * quelle page chacune vient, et inventer vingt-cinq adresses reviendrait a
+ * designer vingt-cinq photos au hasard. Le jour ou les pages sont connues, il
+ * suffit de poser `url` sur l'entree concernee — c'est pour cela que le champ
+ * est par fond et non global.
+ */
+const UNSPLASH = { source: "Unsplash", url: "https://unsplash.com" } as const;
+
+/**
+ * Celle dont le fichier dit lui-meme comment elle a ete faite.
+ *
+ * `starlit-alpine-refuge.jpg` porte une signature C2PA d'OpenAI Media Service,
+ * dans le JPEG. Une image generee peut parfaitement etre publiee sur Unsplash,
+ * donc les deux tiennent ensemble : la source reste Unsplash, et ce que le
+ * fichier prouve n'est pas jete.
+ */
+const UNSPLASH_GENERATED = {
+    source: "Unsplash · image générée",
+    url: "https://unsplash.com",
+} as const;
+
 export const DEFAULT_WALLPAPER_ID: WallpaperId = "theme-default";
 export const DEFAULT_ANDROID_WALLPAPER_ID: WallpaperId = "android-alpenglow";
 
@@ -75,6 +100,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "android-rose-summit",
@@ -84,6 +110,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "starlit-alpine-refuge",
@@ -94,10 +121,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
-        /* Le fichier porte une signature C2PA d'OpenAI Media Service : elle est
-           dans le JPEG lui-meme, ce n'est pas une supposition. C'est la seule
-           des vingt-quatre images qui dise d'ou elle vient. */
-        credit: { source: "Image générée (OpenAI)" },
+        credit: UNSPLASH_GENERATED,
     },
     {
         id: "mountain-sunset",
@@ -107,6 +131,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "pc",
         aspect: "landscape",
+        credit: UNSPLASH,
     },
     {
         id: "alpine-crown",
@@ -116,6 +141,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "pc",
         aspect: "landscape",
+        credit: UNSPLASH,
     },
     {
         id: "dolomite-dawn",
@@ -125,6 +151,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "pc",
         aspect: "landscape",
+        credit: UNSPLASH,
     },
     {
         id: "dolomite-haze",
@@ -134,6 +161,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "pc",
         aspect: "landscape",
+        credit: UNSPLASH,
     },
     {
         id: "emerald-cove",
@@ -143,6 +171,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "pc",
         aspect: "landscape",
+        credit: UNSPLASH,
     },
     {
         id: "lofoten-fjord",
@@ -152,6 +181,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "pc",
         aspect: "landscape",
+        credit: UNSPLASH,
     },
     {
         id: "glacier-ridge",
@@ -161,6 +191,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "pc",
         aspect: "landscape",
+        credit: UNSPLASH,
     },
     {
         id: "golden-crest",
@@ -170,6 +201,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "ember-dolomites",
@@ -179,6 +211,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "turquoise-lagoon",
@@ -188,6 +221,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "stormy-fjord",
@@ -197,6 +231,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "glacier-plateau",
@@ -206,6 +241,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "alpine-lake-sunset",
@@ -216,6 +252,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "alpine-turquoise-lake",
@@ -226,6 +263,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "aurora-lake-night",
@@ -236,6 +274,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "coastal-city-night",
@@ -246,6 +285,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "milky-way-mountain",
@@ -256,6 +296,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "misty-forest-dawn",
@@ -266,6 +307,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "neon-city-sunset",
@@ -276,6 +318,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "orange-mountain-sunset",
@@ -286,6 +329,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "tropical-beach-aerial",
@@ -296,6 +340,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "turquoise-waves-aerial",
@@ -306,6 +351,7 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        credit: UNSPLASH,
     },
     {
         id: "none",

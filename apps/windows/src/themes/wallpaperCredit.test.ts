@@ -46,26 +46,38 @@ describe("which wallpapers still need somebody to say where they came from", () 
 
 describe("the catalogue as it stands", () => {
     /*
-     * A to-do list that cannot be lost, rather than credits quietly absent for
-     * years. The photographs were dropped into a folder and nothing recorded
-     * where they came from — no metadata in the files, nothing in the commits
-     * that added them — so the answer has to come from whoever chose them.
+     * Nothing recorded where the photographs came from — no metadata in the
+     * files, nothing in the commits that added them — so the answer came from
+     * Ahmed, who chose them: Unsplash, all of them.
      *
-     * This number goes DOWN as sources are supplied, and a new wallpaper added
-     * without one pushes it up, which is the point: the test says so instead of
-     * the omission going unnoticed.
+     * The test stays because a wallpaper added later without a source would
+     * push this off zero, and an omission that shows is one that gets fixed.
      */
-    it("still owes a source for most of its photographs", () => {
-        expect(needsCredit(WALLPAPERS).length).toBe(24);
+    it("owes nobody a source any more", () => {
+        expect(needsCredit(WALLPAPERS)).toEqual([]);
     });
 
-    // The one that says where it comes from does so from inside the file: a
-    // C2PA signature, not a guess.
-    it("credits the one image that carries its own provenance", () => {
+    /*
+     * One file says something about itself that the others do not: a C2PA
+     * signature from an OpenAI media service. A generated image can perfectly
+     * well be published on Unsplash, so both facts are kept — the source it
+     * was taken from, and what the file proves about how it was made.
+     */
+    it("keeps what one file proves about itself, beside its source", () => {
         const generated = WALLPAPERS.find(
             (wallpaper) => wallpaper.id === "starlit-alpine-refuge"
         );
-        expect(generated?.credit?.source).toBe("Image générée (OpenAI)");
+        expect(generated?.credit?.source).toBe("Unsplash · image générée");
+    });
+
+    // The link is to Unsplash and not to each photograph: which page each one
+    // came from was never written down, and twenty-five invented addresses
+    // would point at twenty-five photographs at random.
+    it("links to the source it can name", () => {
+        for (const wallpaper of WALLPAPERS) {
+            if (!wallpaper.credit) continue;
+            expect(wallpaper.credit.url).toBe("https://unsplash.com");
+        }
     });
 
     // Whatever is credited says at least where it comes from; an author on its
