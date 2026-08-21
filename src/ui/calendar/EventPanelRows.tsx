@@ -116,6 +116,33 @@ function ObsidianColorIcon() {
     );
 }
 
+/**
+ * The mark on a sheet's handle: a bar, or a chevron at either end of its range.
+ *
+ * One path, redrawn — rather than three icons — so the three states are
+ * plainly one thing changing rather than three things swapped.
+ */
+function SheetHandleGlyph({ glyph }: { glyph: "up" | "bar" | "down" }) {
+    const d =
+        glyph === "up"
+            ? "M4 13 L12 7 L20 13"
+            : glyph === "down"
+              ? "M4 7 L12 13 L20 7"
+              : "M4 10 L20 10";
+    return (
+        <svg width="24" height="20" viewBox="0 0 24 20" aria-hidden="true">
+            <path
+                d={d}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
+
 // ── Header ──────────────────────────────────────────────────
 
 interface PanelHeaderProps {
@@ -136,6 +163,8 @@ interface PanelHeaderProps {
     onClose: () => void;
     /** The grab area on a touch screen — see useSheetDrag. */
     headerRef?: React.RefObject<HTMLDivElement>;
+    /** How the sheet's handle is drawn, and what pressing it does. */
+    sheetHandle?: { glyph: "up" | "bar" | "down"; onPress: () => void };
 }
 
 export function PanelHeader({
@@ -153,6 +182,7 @@ export function PanelHeader({
     onDuplicate,
     onDeleteClick,
     onClose,
+    sheetHandle,
 }: PanelHeaderProps) {
     const android = isAndroidRuntime();
     return (
@@ -161,6 +191,22 @@ export function PanelHeader({
             ref={headerRef}
             onMouseDown={onHeaderMouseDown}
         >
+            {/* The bar across the top of a sheet, which says where the sheet
+                stands and moves it when pressed. Drawn as a chevron at the ends
+                of its range — up when the sheet can only grow, down when it
+                fills the screen — so the mark is both the state and the way out
+                of it. A real button, because it is one: it was a decoration
+                painted by ::before that could only be dragged. */}
+            {sheetHandle && (
+                <button
+                    type="button"
+                    className={`nc-sheet-handle nc-sheet-handle--${sheetHandle.glyph}`}
+                    aria-label={t("Resize panel")}
+                    onClick={sheetHandle.onPress}
+                >
+                    <SheetHandleGlyph glyph={sheetHandle.glyph} />
+                </button>
+            )}
             {/* The kind is said by the pills under the title now, so the
                 corner is free for what a task actually wants to say there:
                 whether it is done. An event has no such state and keeps its

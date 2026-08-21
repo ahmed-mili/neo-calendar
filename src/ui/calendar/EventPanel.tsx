@@ -16,7 +16,7 @@ import {
     shouldAutoCommitDraft,
 } from "./EventPanel.helpers";
 import { usePopupDismiss } from "./usePopupDismiss";
-import { useSheetDrag } from "./useSheetDrag";
+import { sheetHandleGlyph, useSheetDrag } from "./useSheetDrag";
 import { PANEL_EXIT_CLASS, panelHasLeft } from "./panelExit";
 import { usePopupDrag } from "./usePopupDrag";
 import { useEventFormState } from "./useEventFormState";
@@ -451,8 +451,13 @@ export default function EventPanel({
 
     // The grab handle across the top of the sheet is only drawn on Android, so
     // that is the only place the gesture belongs.
-    const { requestClose } = useSheetDrag({
-        enabled: visible && isNeoAndroidRuntime(),
+    const onSheet = isNeoAndroidRuntime();
+    const {
+        requestClose,
+        anchor: sheetAnchor,
+        pressHandle,
+    } = useSheetDrag({
+        enabled: visible && onSheet,
         sheetRef: popupRef,
         handleRef: headerRef,
         // A draft stands lower at rest than an existing event: it opens over a
@@ -484,6 +489,15 @@ export default function EventPanel({
         if (isNeoAndroidRuntime()) requestClose();
         else setLeaving(true);
     }, [requestClose]);
+
+    /* The bar across the top of the sheet, which only a sheet has. */
+    const sheetHandle = React.useMemo(
+        () =>
+            onSheet
+                ? { glyph: sheetHandleGlyph(sheetAnchor), onPress: pressHandle }
+                : undefined,
+        [onSheet, pressHandle, sheetAnchor]
+    );
 
     /* A panel that has just opened is never on its way out.
        Keyed on what the panel is showing rather than on `draft`, which the
@@ -1220,6 +1234,7 @@ export default function EventPanel({
         >
             <PanelHeader
                 headerRef={headerRef}
+                sheetHandle={sheetHandle}
                 isDraft={isDraft}
                 isTask={isTask}
                 label={headerLabel}

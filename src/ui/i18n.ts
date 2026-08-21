@@ -197,6 +197,7 @@ const FR: Record<string, string> = {
     Description: "Description",
     Empty: "Vide",
     "Add a description": "Ajouter une description",
+    "Resize panel": "Redimensionner le panneau",
     // La question posée en quittant le panneau après avoir modifié un jour
     // d'une série : cette occurrence seule, ou toute la série.
     "Save a recurring event": "Enregistrer un événement récurrent",

@@ -1,18 +1,26 @@
 import {
     isDragHandleTarget,
+    nextAnchorOnTap,
     offsetForAnchor,
     restOffsetFor,
     settleSheet,
+    sheetHandleGlyph,
     dragsSheetFromBody,
     rubberBand,
 } from "./useSheetDrag";
 
-/** A sheet 600px tall whose resting position is 240px down from the top. */
-const SHEET = { height: 600, halfOffset: 240 };
+/** A sheet 600px tall whose lowest open anchor is 240px down from the top. */
+const SHEET = { height: 600, restOffset: 240 };
 
 describe("settleSheet", () => {
     it("settles back to rest when barely moved", () => {
-        expect(settleSheet({ ...SHEET, offset: 250, velocity: 0 })).toBe(
+        expect(settleSheet({ ...SHEET, offset: 250, velocity: 0 })).toBe("low");
+    });
+
+    // The middle anchor is the one the bar stands for: half way between filling
+    // the screen and standing at rest.
+    it("settles on the middle anchor when left near it", () => {
+        expect(settleSheet({ ...SHEET, offset: 130, velocity: 0 })).toBe(
             "half"
         );
     });
@@ -28,15 +36,17 @@ describe("settleSheet", () => {
     });
 
     it("stays open when dragged down but not far enough", () => {
-        expect(settleSheet({ ...SHEET, offset: 330, velocity: 0 })).toBe(
-            "half"
-        );
+        expect(settleSheet({ ...SHEET, offset: 330, velocity: 0 })).toBe("low");
     });
 
     // A flick moves the sheet one step in the direction it was thrown. Throwing
     // it down from the top must not dismiss it: that is how a sheet loses work.
     it("steps down one anchor on a downward flick from the top", () => {
         expect(settleSheet({ ...SHEET, offset: 30, velocity: 2 })).toBe("half");
+    });
+
+    it("steps down one anchor on a downward flick from the middle", () => {
+        expect(settleSheet({ ...SHEET, offset: 125, velocity: 2 })).toBe("low");
     });
 
     it("dismisses on a downward flick from rest", () => {
@@ -66,8 +76,10 @@ describe("settleSheet", () => {
     // A sheet already laid out at its full height has a single resting anchor,
     // so the gesture degrades to pull-down-to-dismiss without special-casing.
     it("has only rest and dismissed when there is no half anchor", () => {
-        const full = { height: 600, halfOffset: 0 };
-        expect(settleSheet({ ...full, offset: 120, velocity: 0 })).toBe("half");
+        // With the rest anchor at the top, all three open anchors collapse onto
+        // it: there is one place to be open and one to be gone.
+        const full = { height: 600, restOffset: 0 };
+        expect(settleSheet({ ...full, offset: 120, velocity: 0 })).toBe("full");
         expect(settleSheet({ ...full, offset: 400, velocity: 0 })).toBe(
             "closed"
         );
@@ -77,16 +89,62 @@ describe("settleSheet", () => {
 describe("offsetForAnchor", () => {
     it("places each anchor at its own translation", () => {
         expect(offsetForAnchor({ ...SHEET, anchor: "full" })).toBe(0);
-        expect(offsetForAnchor({ ...SHEET, anchor: "half" })).toBe(240);
+        expect(offsetForAnchor({ ...SHEET, anchor: "half" })).toBe(120);
+        expect(offsetForAnchor({ ...SHEET, anchor: "low" })).toBe(240);
         expect(offsetForAnchor({ ...SHEET, anchor: "closed" })).toBe(600);
+    });
+});
+
+/*
+ * The three places the sheet can stand, and the one control that says which.
+ *
+ * Google Calendar draws a bar across the top of its sheet and turns it into a
+ * chevron at the ends of the range: pointing up when there is room to grow,
+ * down when there is room to shrink. Pressing it moves the sheet, so the mark
+ * is both the state and the way out of it.
+ */
+describe("what pressing the handle does", () => {
+    it("grows a sheet standing at its lowest", () => {
+        expect(nextAnchorOnTap("low")).toBe("half");
+    });
+
+    it("grows it again, to fill the screen", () => {
+        expect(nextAnchorOnTap("half")).toBe("full");
+    });
+
+    /*
+     * And from there it comes back to the middle rather than all the way down.
+     * Pressing settles into an alternation between the middle and the top: the
+     * lowest anchor is somewhere you drag to, not somewhere a press can strand
+     * you.
+     */
+    it("brings a full sheet back to the middle, not to the bottom", () => {
+        expect(nextAnchorOnTap("full")).toBe("half");
+        expect(nextAnchorOnTap(nextAnchorOnTap("full"))).toBe("full");
+    });
+});
+
+describe("what the handle is drawn as", () => {
+    it("points up when the sheet can only grow", () => {
+        expect(sheetHandleGlyph("low")).toBe("up");
+    });
+
+    it("is a bar in the middle, where it can go either way", () => {
+        expect(sheetHandleGlyph("half")).toBe("bar");
+    });
+
+    it("points down when the sheet fills the screen", () => {
+        expect(sheetHandleGlyph("full")).toBe("down");
     });
 });
 
 describe("isDragHandleTarget", () => {
     /** Stands in for a DOM node: only `closest` is consulted. */
-    const node = (control: boolean) => ({
-        closest: (selector: string) =>
-            control && selector.includes("button") ? {} : null,
+    const node = (control: boolean, handle = false) => ({
+        closest: (selector: string) => {
+            if (selector.includes("nc-sheet-handle")) return handle ? {} : null;
+            return control && selector.includes("button") ? {} : null;
+        },
     });
 
     it("lets the sheet take a touch on its bare header", () => {
@@ -106,6 +164,19 @@ describe("isDragHandleTarget", () => {
     it("ignores a touch that has no element behind it", () => {
         expect(isDragHandleTarget(null)).toBe(false);
         expect(isDragHandleTarget({} as unknown as EventTarget)).toBe(false);
+    });
+
+    /*
+     * Except the handle, which is a button and is also the one thing on the
+     * header everybody reaches for to drag. It answers a press by moving the
+     * sheet one anchor and a drag by following the finger; refusing the drag
+     * because it happens to be a <button> would take away the gesture the bar
+     * has always advertised.
+     */
+    it("keeps the sheet's own handle draggable, button or not", () => {
+        expect(
+            isDragHandleTarget(node(true, true) as unknown as EventTarget)
+        ).toBe(true);
     });
 });
 

@@ -665,20 +665,52 @@ body.nc-platform-android .nc-panel-header {
     touch-action: none;
 }
 
-body.nc-platform-android .nc-panel-header::before {
+/* La poignee est devenue un vrai bouton, dessine dans le header : ce trait
+   peint en ::before n'avait rien a dire de plus et se serait superpose a lui. */
+
+/*
+ * La barre en haut de la feuille.
+ *
+ * Elle dit ou la feuille se tient — chevron vers le haut quand elle ne peut que
+ * grandir, vers le bas quand elle occupe l'ecran, trait entre les deux — et une
+ * pression la deplace d'un cran. La zone de contact fait toute la largeur utile
+ * du header, parce qu'on vise ce trait au pouce sans regarder.
+ */
+body.nc-platform-android .nc-sheet-handle {
     position: absolute;
-    top: 7px;
+    top: 0;
     left: 50%;
-    width: 38px;
-    height: 4px;
-    border-radius: 999px;
-    background: color-mix(
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 96px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 0 0 12px 12px;
+    background: transparent;
+    color: color-mix(
         in srgb,
-        var(--nc-text-faint, var(--text-faint)) 58%,
+        var(--nc-text-faint, var(--text-faint)) 72%,
         transparent
     );
-    content: "";
+    cursor: pointer;
     transform: translateX(-50%);
+    /* Le geste de glissement lui appartient aussi (isDragHandleTarget la nomme
+       explicitement) : sans cela le navigateur prendrait le mouvement pour un
+       defilement avant que la feuille ne l'ait vu. */
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.nc-platform-android .nc-sheet-handle:active {
+    color: var(--nc-text-secondary, var(--text-muted));
+}
+
+/* Le trait est plus discret que les chevrons : c'est l'etat de repos, pas une
+   invitation. */
+body.nc-platform-android .nc-sheet-handle--bar svg {
+    opacity: 0.72;
 }
 
 body.nc-platform-android .nc-panel-icon-btn {
@@ -1820,15 +1852,6 @@ body.nc-platform-android
 
 body.nc-platform-android
     .nc-event-popup.nc-event-popup--android-draft
-    .nc-panel-header::before {
-    top: 9px !important;
-    width: 58px !important;
-    height: 5px !important;
-    background: rgba(255, 255, 255, 0.28) !important;
-}
-
-body.nc-platform-android
-    .nc-event-popup.nc-event-popup--android-draft
     .nc-panel-header-label {
     display: none !important;
 }
@@ -2054,17 +2077,6 @@ body.nc-platform-android
     flex: 0 0 auto !important;
     min-height: 46px !important;
     padding: 17px 14px 4px 22px !important;
-}
-
-body.nc-platform-android
-    .nc-event-popup.nc-event-popup--draft
-    .nc-panel-header::before,
-body.nc-platform-android
-    .nc-event-popup.nc-event-popup--android-draft
-    .nc-panel-header::before {
-    top: 9px !important;
-    width: 48px !important;
-    height: 4px !important;
 }
 
 body.nc-platform-android

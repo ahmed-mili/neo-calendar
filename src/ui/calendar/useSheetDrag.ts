@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useEffect, useLayoutEffect } from "react";
+import { swallowNextClick } from "./swallowNextClick";
 
 /**
  * The event sheet follows the finger.
@@ -16,8 +17,14 @@ import { useEffect, useLayoutEffect } from "react";
  * already-promoted element costs neither.
  */
 
-/** Where the sheet can come to rest. */
-export type SheetAnchor = "full" | "half" | "closed";
+/**
+ * Where the sheet can come to rest.
+ *
+ * Three of them are open, which is what the handle across the top says: `low`
+ * is where the sheet stands when nothing has moved it, `half` is the middle,
+ * and `full` fills the screen.
+ */
+export type SheetAnchor = "full" | "half" | "low" | "closed";
 
 /** Past this speed (px/ms) the flick decides on its own, whatever distance the
     finger covered. Below it the nearest anchor wins. */
@@ -46,55 +53,109 @@ const DRAGGING_CLASS = "nc-sheet-dragging";
  * Which anchor a release settles on.
  *
  * `offset` is how far the sheet currently sits below its fully-open position,
- * in pixels: 0 is filling the screen, `halfOffset` is its resting height, and
- * `height` is entirely off the bottom.
+ * in pixels: 0 is filling the screen, `restOffset` is its lowest open anchor,
+ * and `height` is entirely off the bottom.
  */
 export function settleSheet({
     offset,
-    halfOffset,
+    restOffset,
     height,
     velocity,
 }: {
     offset: number;
-    halfOffset: number;
+    restOffset: number;
     height: number;
     velocity: number;
 }): SheetAnchor {
+    const ladder = anchorLadder({ restOffset, height });
+    const nearest = ladder.reduce((best, rung, index) =>
+        Math.abs(rung.offset - offset) < Math.abs(ladder[best].offset - offset)
+            ? index
+            : best
+    , 0);
+
     // A flick moves the sheet one step in the direction it was thrown, rather
     // than to the nearest anchor: throwing a sheet downwards from the top and
     // watching it dismiss itself is how a sheet loses someone's work.
     if (velocity > FLICK_VELOCITY) {
-        return offset > halfOffset * 0.5 ? "closed" : "half";
+        return ladder[Math.min(nearest + 1, ladder.length - 1)].anchor;
     }
     if (velocity < -FLICK_VELOCITY) {
-        return offset > halfOffset * 0.5 ? "half" : "full";
+        return ladder[Math.max(nearest - 1, 0)].anchor;
     }
 
-    if (offset >= halfOffset + (height - halfOffset) * 0.5) return "closed";
-    if (offset >= halfOffset * 0.5) return "half";
-    return "full";
+    return ladder[nearest].anchor;
+}
+
+/** Every anchor with the translation that puts the sheet there, top first. */
+function anchorLadder({
+    restOffset,
+    height,
+}: {
+    restOffset: number;
+    height: number;
+}): { anchor: SheetAnchor; offset: number }[] {
+    return [
+        { anchor: "full" as const, offset: 0 },
+        { anchor: "half" as const, offset: restOffset / 2 },
+        { anchor: "low" as const, offset: restOffset },
+        { anchor: "closed" as const, offset: height },
+    ];
+}
+
+/**
+ * Where a press on the handle sends the sheet.
+ *
+ * Up a rung, and back to the middle from the top: pressing settles into an
+ * alternation between the middle and the top. The lowest anchor is somewhere
+ * a finger drags to, never somewhere a press can strand you — a control that
+ * grows a sheet must not, on its third press, shrink it to a strip.
+ */
+export function nextAnchorOnTap(anchor: SheetAnchor): SheetAnchor {
+    if (anchor === "low") return "half";
+    if (anchor === "half") return "full";
+    return "half";
+}
+
+/** What the handle is drawn as, which is also what pressing it will do. */
+export function sheetHandleGlyph(anchor: SheetAnchor): "up" | "bar" | "down" {
+    if (anchor === "low") return "up";
+    if (anchor === "full") return "down";
+    return "bar";
 }
 
 /** The translation, in pixels, that puts the sheet at a given anchor. */
 export function offsetForAnchor({
     anchor,
-    halfOffset,
+    restOffset,
     height,
 }: {
     anchor: SheetAnchor;
-    halfOffset: number;
+    restOffset: number;
     height: number;
 }): number {
-    if (anchor === "full") return 0;
-    if (anchor === "half") return halfOffset;
-    return height;
+    return (
+        anchorLadder({ restOffset, height }).find(
+            (rung) => rung.anchor === anchor
+        )?.offset ?? height
+    );
 }
 
 /** The header carries the close and menu buttons; a touch on one of them is
     that button's, or the sheet would swallow every tap on its own controls. */
 const CONTROL_SELECTOR = "button, a, input, textarea, select, [role='button']";
 
-/** A touch that lands on a control is that control's, not the sheet's. */
+/** The handle is a button too, and the one every finger reaches for. */
+export const SHEET_HANDLE_SELECTOR = ".nc-sheet-handle";
+
+/**
+ * A touch that lands on a control is that control's, not the sheet's.
+ *
+ * Except the handle. It is a button — pressing it moves the sheet one anchor —
+ * and it is also the bar everybody drags. Handing it to the control rule would
+ * take away the gesture it has advertised since before it could be pressed at
+ * all, so it is named back in.
+ */
 export function isDragHandleTarget(target: EventTarget | null): boolean {
     // Duck-typed rather than `instanceof Element`: the constructor only exists
     // where a DOM does, and this decision is worth testing without one.
@@ -102,6 +163,7 @@ export function isDragHandleTarget(target: EventTarget | null): boolean {
         closest?: (selector: string) => unknown;
     } | null;
     if (!element || typeof element.closest !== "function") return false;
+    if (element.closest(SHEET_HANDLE_SELECTOR)) return true;
     return !element.closest(CONTROL_SELECTOR);
 }
 
@@ -230,6 +292,10 @@ export interface SheetDrag {
      * desktop, and the moment before the first layout.
      */
     requestClose: () => void;
+    /** Which of the three open anchors the sheet is standing at. */
+    anchor: SheetAnchor;
+    /** What a press on the handle does: one rung, per nextAnchorOnTap. */
+    pressHandle: () => void;
 }
 
 export function useSheetDrag({
@@ -248,6 +314,20 @@ export function useSheetDrag({
     // Filled by the effect below while a sheet is on screen; the ref survives
     // the renders between, and is what the X and the backdrop call.
     const slideOutRef = React.useRef<(() => void) | null>(null);
+    /*
+     * Where the sheet stands, kept in state so the handle can be drawn as the
+     * mark for it — and in a ref beside it, because the press handler is built
+     * once and would otherwise read the anchor as it was when it was built.
+     * The drag itself never touches either: it writes transforms frame by
+     * frame and only reports where it came to rest.
+     */
+    const [anchor, setAnchor] = React.useState<SheetAnchor>("full");
+    const anchorRef = React.useRef<SheetAnchor>("full");
+    const settleAtRef = React.useRef<((to: SheetAnchor) => void) | null>(null);
+    const restAt = React.useCallback((to: SheetAnchor) => {
+        anchorRef.current = to;
+        setAnchor(to);
+    }, []);
     // Laid out before the first paint, so the sheet is never seen at its full
     // height for a frame before dropping to its resting one.
     useLayoutEffect(() => {
@@ -264,7 +344,8 @@ export function useSheetDrag({
         };
 
         // Wherever the last gesture left the sheet is not where the next one
-        // should open it.
+        // should open it — nor is the anchor it was left standing at.
+        restAt("full");
         sheet.style.removeProperty(OFFSET_PROPERTY);
         place();
 
@@ -334,7 +415,7 @@ export function useSheetDrag({
              * anchor before the first paint anyway.
              */
         };
-    }, [enabled, sheetRef, variant]);
+    }, [enabled, restAt, sheetRef, variant]);
 
     useEffect(() => {
         const sheet = sheetRef.current;
@@ -346,12 +427,12 @@ export function useSheetDrag({
         let frame = 0;
         let pending = 0;
         let height = 0;
-        let halfOffset = 0;
+        let restOffset = 0;
         let closingTimer = 0;
 
         const measure = () => {
             height = sheet.getBoundingClientRect().height;
-            halfOffset = restOffsetFor({ height, variant });
+            restOffset = restOffsetFor({ height, variant });
         };
 
         const paint = (offset: number) => {
@@ -390,6 +471,7 @@ export function useSheetDrag({
         };
 
         const settleAt = (anchor: SheetAnchor) => {
+            if (anchor !== "closed") restAt(anchor);
             if (anchor === "closed") {
                 glideTo(height);
                 closingTimer = window.setTimeout(() => {
@@ -398,10 +480,16 @@ export function useSheetDrag({
                 }, SETTLE_MS);
                 return;
             }
-            glideTo(offsetForAnchor({ anchor, halfOffset, height }));
+            glideTo(offsetForAnchor({ anchor, restOffset, height }));
             window.setTimeout(() => {
                 if (!gesture && !closingTimer) sheet.style.transition = "";
             }, SETTLE_MS);
+        };
+        // A press on the handle moves the sheet the way a release does, so both
+        // arrive by the same movement.
+        settleAtRef.current = (to) => {
+            measure();
+            settleAt(to);
         };
 
         const onTouchStart = (event: TouchEvent) => {
@@ -489,7 +577,11 @@ export function useSheetDrag({
                 return;
             }
 
-            settleAt(settleSheet({ offset, halfOffset, height, velocity }));
+            /* A drag that started on the handle still owes the browser a click,
+               and the handle answers a click by moving the sheet: released at
+               one anchor, it would immediately walk to the next. */
+            swallowNextClick();
+            settleAt(settleSheet({ offset, restOffset, height, velocity }));
         };
 
         const onTouchCancel = () => {
@@ -498,7 +590,8 @@ export function useSheetDrag({
             gesture = null;
             cancelFrame();
             body.classList.remove(DRAGGING_CLASS);
-            if (wasDragging) settleAt("half");
+            // Back where it stood: a cancelled gesture must not move anything.
+            if (wasDragging) settleAt(anchorRef.current);
         };
 
         sheet.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -515,10 +608,11 @@ export function useSheetDrag({
             document.removeEventListener("touchcancel", onTouchCancel);
             if (closingTimer) window.clearTimeout(closingTimer);
             slideOutRef.current = null;
+            settleAtRef.current = null;
             cancelFrame();
             body.classList.remove(DRAGGING_CLASS);
         };
-    }, [enabled, handleRef, onClose, sheetRef, variant]);
+    }, [enabled, handleRef, onClose, restAt, sheetRef, variant]);
 
     return {
         requestClose: React.useCallback(() => {
@@ -526,5 +620,9 @@ export function useSheetDrag({
             if (slideOut) slideOut();
             else onClose();
         }, [onClose]),
+        anchor,
+        pressHandle: React.useCallback(() => {
+            settleAtRef.current?.(nextAnchorOnTap(anchorRef.current));
+        }, []),
     };
 }
