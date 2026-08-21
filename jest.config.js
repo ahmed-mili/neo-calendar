@@ -37,5 +37,12 @@ module.exports = {
         "^react$": "<rootDir>/node_modules/react",
         "^react-dom$": "<rootDir>/node_modules/react-dom",
         "^react-dom/(.*)$": "<rootDir>/node_modules/react-dom/$1",
+        // Le pont natif n'est installé que dans apps/windows, et la suite tourne
+        // depuis la racine : sans cette ligne, tout fichier partagé qui importe
+        // @tauri-apps fait tomber la suite entière à l'import, avant le premier
+        // rendu. C'est arrivé deux fois, et deux versions sont sorties sans
+        // artefact pour cette raison. La doublure se laisse importer et refuse
+        // d'être appelée — voir test_helpers/tauriModuleStub.ts.
+        "^@tauri-apps/.*$": "<rootDir>/test_helpers/tauriModuleStub.ts",
     },
 };

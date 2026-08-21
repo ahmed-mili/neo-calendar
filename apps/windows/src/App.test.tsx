@@ -6,16 +6,6 @@ import { useDesktopBridge } from "./platform/useDesktopBridge";
 jest.mock("./platform/useDesktopBridge", () => ({
     useDesktopBridge: jest.fn(),
 }));
-/*
- * `desktopUpdates` parle au pont natif par `@tauri-apps/api`, qui n'est
- * installé que dans apps/windows : les tests tournent depuis la racine, où
- * `npm ci` ne descend pas, et le module manquant ferait tomber la suite
- * entière avant le premier rendu. Il est remplacé ici comme le pont juste
- * au-dessus — la coque n'est pas ce que ce fichier examine.
- */
-jest.mock("./platform/desktopUpdates", () => ({
-    watchDesktopUpdates: () => Promise.resolve(() => {}),
-}));
 jest.mock("./DesktopCalendar", () => ({
     __esModule: true,
     default: () =>
