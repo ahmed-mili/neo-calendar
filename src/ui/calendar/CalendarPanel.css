@@ -1041,7 +1041,11 @@
     align-items: center;
     gap: 10px;
     padding: 12px 14px;
-    border-bottom: 1px solid var(--nc-border, var(--background-modifier-border));
+    /* Un filet tire de l'encre et non de --nc-border : ce dernier vaut
+       `transparent` dans le theme par defaut, et les sections de cet ecran ne
+       se lisent que si elles se voient. */
+    border-bottom: 1px solid
+        color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 12%, transparent);
 }
 
 .nc-recur-screen-header h2 {
@@ -1093,7 +1097,8 @@
    l'écran comme une suite de décisions plutôt que comme un formulaire. */
 .nc-recur-section {
     padding: 16px 18px;
-    border-bottom: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-bottom: 1px solid
+        color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 12%, transparent);
 }
 
 .nc-recur-section:last-child {
@@ -1117,7 +1122,8 @@
     width: 64px;
     height: 44px;
     padding: 0 10px;
-    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border: 1px solid
+        color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 22%, transparent);
     border-radius: 8px;
     background: transparent;
     color: inherit;
@@ -1151,7 +1157,8 @@
     width: 40px;
     height: 40px;
     padding: 0;
-    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border: 1px solid
+        color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 22%, transparent);
     border-radius: 999px;
     background: transparent;
     color: inherit;

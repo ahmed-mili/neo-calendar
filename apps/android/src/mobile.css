@@ -743,6 +743,17 @@ body.nc-platform-android .nc-panel-checklist-line input::after {
     transform: translate(-50%, -50%);
 }
 
+/* L'ecran de recurrence commence sous la barre d'etat.
+   Il couvre tout, y compris ce que le systeme dessine en haut : sans cette
+   marge, son titre se superposait a l'heure et a la batterie. */
+body.nc-platform-android .nc-recur-screen-header {
+    padding-top: calc(12px + var(--nc-mobile-safe-top, 0px));
+}
+
+body.nc-platform-android .nc-recur-screen-body {
+    padding-bottom: calc(24px + var(--nc-mobile-safe-bottom, 0px));
+}
+
 body.nc-platform-android .nc-panel-icon-btn {
     width: 48px;
     height: 48px;

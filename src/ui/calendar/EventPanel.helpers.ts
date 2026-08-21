@@ -4,15 +4,6 @@ import {
     formatDatedDayWithYear,
 } from "./calendarFormatters";
 
-export const DAY_MAP: Record<string, string> = {
-    U: "S",
-    M: "M",
-    T: "T",
-    W: "W",
-    R: "T",
-    F: "F",
-    S: "S",
-};
 export const DAY_ORDER = ["U", "M", "T", "W", "R", "F", "S"] as const;
 
 export const POPUP_WIDTH = 300;

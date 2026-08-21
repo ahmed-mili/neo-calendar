@@ -2,7 +2,8 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { TaskStatus } from "../tasks";
 import { CalendarInfo } from "../../types";
-import { DAY_MAP, formatDateLong } from "./EventPanel.helpers";
+import { formatDateLong } from "./EventPanel.helpers";
+import { DAY_INITIALS } from "./dayInitials";
 import { placeFlyout } from "./flyoutPlacement";
 import { REMINDER_CHOICES, reminderLabelParts } from "./reminderChoices";
 import {
@@ -1231,7 +1232,7 @@ export function CustomRecurrencePanel({
                                         onAutoSave();
                                     }}
                                 >
-                                    {DAY_MAP[code]}
+                                    {DAY_INITIALS[code]}
                                 </button>
                             ))}
                         </div>
