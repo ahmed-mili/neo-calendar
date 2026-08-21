@@ -33,7 +33,6 @@ import {
     CalendarRow,
     TypeRow,
     StatusRow,
-    SubtasksRow,
     LinksAttachmentsRow,
     DescriptionRow,
 } from "./EventPanelRows";
@@ -1003,7 +1002,6 @@ export default function EventPanel({
         form.calendarIndex,
         form.taskStatus,
         form.description,
-        form.subtasks,
         isDraft,
         stableEvent,
         eventId,
@@ -1397,20 +1395,6 @@ export default function EventPanel({
                             form.setTaskStatus(s);
                             scheduleAutoSave();
                         }}
-                    />
-                )}
-
-                {/* The steps belong to a task, like the deadline above: an
-                    event has nothing to be part-way through. A series is left
-                    out for the same reason it has no status row — one list of
-                    steps for every Tuesday would be ticked off once and be
-                    wrong for every week after. */}
-                {isTask && !form.isRecurring && (
-                    <SubtasksRow
-                        subtasks={form.subtasks}
-                        editable={stableCalInfo.editable}
-                        setSubtasks={form.setSubtasks}
-                        onAutoSave={scheduleAutoSave}
                     />
                 )}
 

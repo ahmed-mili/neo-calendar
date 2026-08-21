@@ -34,3 +34,35 @@ describe("where a panel row starts on a phone", () => {
         );
     });
 });
+
+const ICON_BTN = "body.nc-platform-android .nc-panel-icon-btn";
+const DRAFT_ICON_BTN =
+    "body.nc-platform-android .nc-event-popup.nc-event-popup--android-draft .nc-panel-icon-btn";
+const HEADER_GLYPH =
+    "body.nc-platform-android .nc-panel-header .nc-panel-icon-btn svg";
+
+describe("the X that closes a sheet", () => {
+    /*
+     * It measured 38px with a 16px glyph inside it, in the corner of a sheet
+     * held at arm's length — reported as hard to hit, and it was. Forty-eight
+     * is what a thumb is drawn to, and the mark inside it grows with it: a
+     * small glyph in a large box is aimed at as though it were the size of the
+     * glyph.
+     */
+    it("is big enough to be aimed at", () => {
+        expect(declarationsFor(mobile, ICON_BTN).width).toBe("48px");
+        expect(declarationsFor(mobile, ICON_BTN).height).toBe("48px");
+    });
+
+    // The draft sheet restated the size a few hundred lines later, and later is
+    // what reaches the screen here.
+    it("is the same size on the sheet a new event opens in", () => {
+        expect(declarationsFor(mobile, DRAFT_ICON_BTN).width).toBe(
+            declarationsFor(mobile, ICON_BTN).width
+        );
+    });
+
+    it("carries a mark you can see from the same distance", () => {
+        expect(declarationsFor(mobile, HEADER_GLYPH).width).toBe("22px");
+    });
+});

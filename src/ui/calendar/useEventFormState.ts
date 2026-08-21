@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { DateTime } from "luxon";
 import { NeoEvent } from "../../types";
 import { getTaskStatus, isSeries, isTask, TaskStatus } from "../tasks";
-import { Subtask, readSubtasks, writeSubtasks } from "../tasks/subtasks";
+import { readSubtasks } from "../tasks/subtasks";
+import { withStepsAppended } from "./descriptionChecklist";
 import type { DraftInfo } from "./EventPanel";
 import {
     RecurrenceState,
@@ -171,7 +172,6 @@ export function useEventFormState({
     const [due, setDue] = useState<string | null>(null);
     // The steps the task is made of. Held as objects and written back as lines
     // (see ui/tasks/subtasks), so the panel never handles the stored syntax.
-    const [subtasks, setSubtasks] = useState<Subtask[]>([]);
     // Minutes before the start to be announced. Undefined while the event has
     // never said anything about it — the reminder from the settings then
     // applies; an empty list is the event asking for silence.
@@ -216,9 +216,17 @@ export function useEventFormState({
 
         if (event) {
             setTitle(event.title);
-            setDescription(event.description || "");
+            /* Les etapes rejoignent la description, une fois pour toutes.
+               Elles vivaient dans une liste a part : deux endroits pour dire ce
+               qu'il reste a faire, et un seul des deux etait la note. Verse ici
+               a l'ouverture et plus jamais reecrit dans le frontmatter, donc la
+               cle disparait de la note a la premiere sauvegarde. Tant que rien
+               n'est sauvegarde, le fichier garde sa liste et l'operation se
+               refait a l'identique — jamais deux fois. */
+            setDescription(
+                withStepsAppended(event.description || "", readSubtasks(event))
+            );
             setAllDay(!!event.allDay);
-            setSubtasks(readSubtasks(event));
             setReminders(event.reminders);
 
             if (event.type === "single" || event.type === undefined) {
@@ -292,7 +300,6 @@ export function useEventFormState({
             setRecurrence(defaultRecurrence(startDate));
             setTaskStatus(draft.defaultAsTask ? "todo" : null);
             setDue(null);
-            setSubtasks([]);
             setReminders(undefined);
             setCompletedDates(undefined);
             setSkipDates(undefined);
@@ -314,7 +321,6 @@ export function useEventFormState({
             );
             setTaskStatus(null);
             setDue(null);
-            setSubtasks([]);
             setReminders(undefined);
             setCompletedDates(undefined);
             setSkipDates(undefined);
@@ -342,14 +348,13 @@ export function useEventFormState({
     }, [event]);
 
     const buildPayload = useCallback((): NeoEvent => {
-        // The steps only belong to a task: switching an entry back to Event
-        // drops them the way it drops the deadline, rather than leaving an
-        // orphan list in the note.
-        const steps = taskStatus === null ? undefined : writeSubtasks(subtasks);
+        /* Plus de liste d'etapes ecrite : elles sont des lignes de la
+           description desormais. La cle absente du payload est une cle retiree
+           de la note (KEYS_DROPPED_WHEN_ABSENT), donc la premiere sauvegarde
+           d'un evenement migre emporte l'ancienne liste avec elle. */
         const announcements = remindersFor(reminders);
         return {
             title,
-            ...(steps ? { subtasks: steps } : {}),
             ...(announcements ? { reminders: announcements } : {}),
             ...(allDay
                 ? { allDay: true }
@@ -391,7 +396,6 @@ export function useEventFormState({
         endDate,
         taskStatus,
         due,
-        subtasks,
         reminders,
         completedDates,
         skipDates,
@@ -423,8 +427,6 @@ export function useEventFormState({
         setTaskStatus,
         due,
         setDue,
-        subtasks,
-        setSubtasks,
         reminders,
         setReminders,
         buildPayload,

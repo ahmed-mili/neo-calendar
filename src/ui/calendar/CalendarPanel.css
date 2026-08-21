@@ -1002,6 +1002,51 @@
     margin-top: 0;
 }
 
+/* ── La description, une fois lue ────────────────────────────
+   Hors edition, une ligne qui commence par `- [ ]` est une etape, comme partout
+   dans Obsidian. Le bloc entier ouvre l'edition au clic ; la case, elle, ne
+   fait que cocher — ouvrir l'editeur sous le doigt reprendrait la coche qu'on
+   vient de donner. Meme metrique que le champ qu'il remplace, pour que passer
+   de l'un a l'autre ne fasse pas sauter la ligne. */
+.nc-panel-checklist {
+    padding: 4px 6px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--nc-text-primary);
+    cursor: text;
+}
+
+.nc-panel-checklist-text {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.nc-panel-checklist-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    cursor: pointer;
+}
+
+.nc-panel-checklist-line input {
+    /* Alignee sur la premiere ligne du texte plutot que centree sur un bloc qui
+       peut faire trois lignes de haut. */
+    margin: 2px 0 0;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    accent-color: var(--nc-accent);
+    cursor: pointer;
+}
+
+/* Faite, donc plus a lire : barree et en retrait de l'attention, comme dans une
+   note. Le texte reste selectionnable, il n'est pas efface. */
+.nc-panel-checklist-line.nc-done span {
+    text-decoration: line-through;
+    color: var(--nc-text-faint);
+}
+
 .nc-panel-text-input::placeholder,
 .nc-panel-textarea::placeholder {
     color: var(--nc-text-faint);

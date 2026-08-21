@@ -713,10 +713,45 @@ body.nc-platform-android .nc-sheet-handle--bar svg {
     opacity: 0.72;
 }
 
-body.nc-platform-android .nc-panel-icon-btn {
+/*
+ * Assez grand pour qu'on le vise sans regarder.
+ *
+ * La croix faisait 38 px avec une marque de 16 dedans, dans le coin d'une
+ * feuille tenue a bout de bras. Une grande boite autour d'une petite marque ne
+ * sert a rien : on vise ce qu'on voit, donc les deux grandissent ensemble.
+ */
+/* Une case a cocher se vise au doigt, pas a la souris : la marque garde sa
+   taille de note, la zone qui l'attrape fait 44 px de haut comme le reste. */
+body.nc-platform-android .nc-panel-checklist-line {
+    padding: 6px 0;
+}
+
+body.nc-platform-android .nc-panel-checklist-line input {
+    position: relative;
+    width: 18px;
+    height: 18px;
+    margin: 1px 0 0;
+}
+
+body.nc-platform-android .nc-panel-checklist-line input::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
     width: 44px;
     height: 44px;
+    content: "";
+    transform: translate(-50%, -50%);
+}
+
+body.nc-platform-android .nc-panel-icon-btn {
+    width: 48px;
+    height: 48px;
     border-radius: 12px;
+}
+
+body.nc-platform-android .nc-panel-header .nc-panel-icon-btn svg {
+    width: 22px;
+    height: 22px;
 }
 
 /*
@@ -1873,8 +1908,10 @@ body.nc-platform-android
 body.nc-platform-android
     .nc-event-popup.nc-event-popup--android-draft
     .nc-panel-icon-btn {
-    width: 38px !important;
-    height: 38px !important;
+    /* La meme croix que sur la feuille d'un evenement existant : c'est le meme
+       geste, au meme endroit. */
+    width: 48px !important;
+    height: 48px !important;
     border-radius: 12px !important;
 }
 
