@@ -355,6 +355,19 @@ export interface AxisLockOptions {
         changed it, for anything measured in pixels that a render would
         otherwise have refreshed. */
     onScaleChange?: () => void;
+    /**
+     * Appelé quand l'échelle a fini de bouger, les doigts partis.
+     *
+     * La hauteur d'une heure change sans que React en sache rien : le pincement
+     * écrit un nombre et une variable CSS, image par image, et c'est ce qui rend
+     * le geste fluide. Tout ce qui est mesuré en pixels au rendu — la bande des
+     * journées entières et ses barres — reste alors sur la valeur du dernier
+     * rendu, et rien ne vient plus jamais la corriger : la bande gardait la
+     * taille d'heures qui n'existaient plus, et il fallait relancer
+     * l'application pour qu'elle retombe juste. Une seule notification à la fin
+     * du geste suffit à les remettre d'accord, sans payer un rendu par image.
+     */
+    onScaleSettled?: () => void;
 }
 
 export function useAxisLock(
@@ -762,6 +775,9 @@ export function useAxisLock(
                 if (event.touches.length === 0) pinch = null;
                 tracking = false;
                 axis = null;
+                // L'échelle ne bouge plus : ce qui a été mesuré en pixels
+                // pendant qu'elle bougeait est à remesurer.
+                optionsRef.current.onScaleSettled?.();
                 return;
             }
 
@@ -809,10 +825,15 @@ export function useAxisLock(
 
         const onTouchCancel = () => {
             const releasing = axis;
+            const pinching = pinch !== null;
             stopFrame();
             tracking = false;
             axis = null;
             pinch = null;
+            // Un pincement que le système reprend — un appel qui arrive, l'app
+            // qui passe en fond — a bougé l'échelle comme un autre, et n'aura
+            // pas de `touchend` pour le dire.
+            if (pinching) optionsRef.current.onScaleSettled?.();
             // A gesture taken away mid-swipe — the system claiming it for a
             // back-swipe, a call arriving — is still a gesture that asked for
             // something. It finishes the page it had committed to rather than

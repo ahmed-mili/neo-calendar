@@ -215,10 +215,22 @@ export default function TimeGrid(props: TimeGridProps) {
         }
     }, []);
 
+    /* Ce que le pincement a changé sans passer par React.
+       La grille suit la variable CSS toute seule ; la bande des journées
+       entières, elle, est posée en pixels au rendu, et personne ne la
+       redessinait quand l'heure changeait de taille. Un compteur qui avance à
+       la fin du geste rend un rendu — un seul, pas un par image — et tout ce
+       qui se mesure en heures retombe d'accord. */
+    const [, setScaleSettled] = useState(0);
+
     useAxisLock(scrollRootRef, gridRef, onAndroid(), {
         daysPerView: dates.length,
         freeScroll,
         onScaleChange: republishScrollTravel,
+        onScaleSettled: React.useCallback(
+            () => setScaleSettled((count) => count + 1),
+            []
+        ),
     });
 
     useInfiniteScroll({
