@@ -1,3 +1,5 @@
+import { WallpaperCredit } from "./wallpaperCredit";
+
 export const WALLPAPER_IDS = [
     "theme-default",
     "android-alpenglow",
@@ -40,6 +42,16 @@ export interface WallpaperDefinition {
     previewStyle: "theme" | "image" | "solid";
     target: WallpaperTarget;
     aspect: WallpaperAspect;
+    /**
+     * D'où vient l'image, quand on le sait.
+     *
+     * Le catalogue s'est rempli en deposant des fichiers dans un dossier, et
+     * rien n'a jamais note leur origine : la plupart des entrees n'ont donc pas
+     * encore de credit, et `needsCredit` (wallpaperCredit.ts) dit lesquelles.
+     * Absent vaut « on ne sait pas », jamais « personne » — un credit invente
+     * designe quelqu'un d'autre, ce qui est pire que pas de credit du tout.
+     */
+    credit?: WallpaperCredit;
 }
 
 export const DEFAULT_WALLPAPER_ID: WallpaperId = "theme-default";
@@ -82,6 +94,10 @@ export const WALLPAPERS: readonly WallpaperDefinition[] = [
         previewStyle: "image",
         target: "android",
         aspect: "portrait",
+        /* Le fichier porte une signature C2PA d'OpenAI Media Service : elle est
+           dans le JPEG lui-meme, ce n'est pas une supposition. C'est la seule
+           des vingt-quatre images qui dise d'ou elle vient. */
+        credit: { source: "Image générée (OpenAI)" },
     },
     {
         id: "mountain-sunset",

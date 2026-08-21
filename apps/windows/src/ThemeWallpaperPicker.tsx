@@ -20,6 +20,7 @@ import {
     WallpaperDefinition,
     WallpaperId,
 } from "./themes/wallpapers";
+import { creditLine } from "./themes/wallpaperCredit";
 import {
     ensureWallpaper,
     fileNameOf,
@@ -32,6 +33,7 @@ import {
     batchNote,
     missingWallpapers,
 } from "./themes/wallpaperBatch";
+import { openDesktopExternalTarget as openExternalTarget } from "./platform/desktopCalendarStore";
 import { SettingsDialog } from "./SettingsPrimitives";
 import { placeFlyout } from "../../../src/ui/calendar/flyoutPlacement";
 import { t } from "../../../src/ui/i18n";
@@ -317,6 +319,9 @@ export default function ThemeWallpaperPicker({
         const downloading = busy === wallpaper.id;
         const retry = failed === wallpaper.id;
         const selected = wallpaper.id === value;
+        const credit = wallpaper.credit;
+        const creditLabel = creditLine(credit);
+        const creditUrl = credit?.url;
 
         return (
             <button
@@ -339,6 +344,42 @@ export default function ThemeWallpaperPicker({
                     <span className="nc-wallpaper-option__label">
                         {wallpaper.label}
                     </span>
+                    {creditLabel &&
+                        (creditUrl ? (
+                            /* Cet élément cliquable évite un lien imbriqué
+                               dans le bouton, qui serait du HTML invalide et
+                               dont le clic serait avalé. Le sortir du bouton
+                               casserait la liste — ce bouton EST l'option de la
+                               listbox — donc il reste dedans, et arrête le clic
+                               pour ouvrir la source sans choisir le fond au
+                               passage. */
+                            <span
+                                className="nc-wallpaper-option__credit nc-wallpaper-option__credit--link"
+                                role="link"
+                                tabIndex={0}
+                                aria-label={`Voir l'original — ${creditLabel}`}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    void openExternalTarget(creditUrl);
+                                }}
+                                onKeyDown={(event) => {
+                                    if (
+                                        event.key !== "Enter" &&
+                                        event.key !== " "
+                                    )
+                                        return;
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    void openExternalTarget(creditUrl);
+                                }}
+                            >
+                                {creditLabel}
+                            </span>
+                        ) : (
+                            <span className="nc-wallpaper-option__credit">
+                                {creditLabel}
+                            </span>
+                        ))}
                     {downloading && (
                         <span className="nc-wallpaper-option__note">
                             Téléchargement…
