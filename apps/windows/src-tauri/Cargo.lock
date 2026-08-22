@@ -2139,7 +2139,7 @@ dependencies = [
 
 [[package]]
 name = "neo-calendar-windows"
-version = "1.51.2"
+version = "1.51.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -2151,6 +2151,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-store",
  "tauri-plugin-updater",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

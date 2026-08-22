@@ -115,6 +115,10 @@ export async function openDesktopExternalTarget(target: string): Promise<void> {
     await invoke("open_desktop_external_target", { target });
 }
 
+export async function writeDesktopClipboardText(value: string): Promise<void> {
+    await invoke("write_desktop_clipboard_text", { value });
+}
+
 export async function openDesktopLinkedPath(
     dataFolder: string,
     eventRelativePath: string,

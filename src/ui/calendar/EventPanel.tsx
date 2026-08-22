@@ -141,6 +141,7 @@ interface EventPanelProps {
         nextTarget?: string
     ) => Promise<void>;
     onOpenEventLink?: (item: EventLinkedItem) => Promise<void> | void;
+    onCopyEventLink?: (target: string) => Promise<void>;
     onPickEventAttachment?: (eventId: string) => Promise<void>;
     /** Ce que Ctrl+V dépose : un nom et des octets, pas un fichier du disque. */
     onPasteEventAttachment?: (
@@ -255,6 +256,7 @@ export default function EventPanel({
     onRemoveEventLink,
     onRenameEventLink,
     onOpenEventLink,
+    onCopyEventLink,
     onPickEventAttachment,
     onPasteEventAttachment,
     onReadEventAttachment,
@@ -1481,6 +1483,7 @@ export default function EventPanel({
                         onRemoveLink={onRemoveEventLink}
                         onRenameLink={onRenameEventLink}
                         onOpenLink={onOpenEventLink}
+                        onCopyLink={onCopyEventLink}
                         onReadAttachment={onReadEventAttachment}
                         onPickAttachment={onPickEventAttachment}
                     />

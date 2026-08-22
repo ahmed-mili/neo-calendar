@@ -36,7 +36,10 @@ import {
     setThemeCustomization,
 } from "./themes/appearancePreferences";
 import { folderName, readableFolderPath } from "./platform/documentPath";
-import type { DesktopDetectedVaultDto } from "./platform/desktopCalendarStore";
+import {
+    writeDesktopClipboardText,
+    type DesktopDetectedVaultDto,
+} from "./platform/desktopCalendarStore";
 import type {
     DesktopInitialView,
     DesktopWorkspacePreferences,
@@ -511,7 +514,7 @@ export default function DesktopSettings({
             });
 
         try {
-            await navigator.clipboard.writeText(payload);
+            await writeDesktopClipboardText(payload);
             setThemeMessage(t("Theme copied"));
         } catch {
             setThemeMessage(t("Could not copy the theme"));

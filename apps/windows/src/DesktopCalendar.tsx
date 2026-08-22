@@ -96,6 +96,7 @@ import {
     openDesktopExternalTarget,
     openDesktopLinkedPath,
     openDesktopPath,
+    writeDesktopClipboardText,
     searchDesktopVaultNotes,
     renameDesktopCalendarFolder,
     saveDesktopPreferences,
@@ -3308,6 +3309,7 @@ export default function DesktopCalendar({
                         setStorageError(errorMessage(reason));
                     }
                 }}
+                onCopyEventLink={writeDesktopClipboardText}
                 /* Dupliquer n'avait aucune porte sur telephone : ni clic
                    droit, ni clavier, et le menu du panneau reservait bien une
                    entree pour lui sans jamais la recevoir. */

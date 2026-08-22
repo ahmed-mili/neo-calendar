@@ -1942,6 +1942,7 @@ interface LinksAttachmentsRowProps {
     /** Le titre est encore en route : la ligne le montre plutôt que de mentir. */
     searching?: boolean;
     onOpenLink?: (item: LinkedFileItem) => Promise<void> | void;
+    onCopyLink?: (target: string) => Promise<void>;
     onPickAttachment?: (eventId: string) => Promise<void>;
     /** Le contenu d'une pièce jointe, pour en montrer une vignette. */
     onReadAttachment?: (
@@ -2095,9 +2096,11 @@ function LinkedFileRow({
     searching = false,
     onReload,
     onCopied,
+    onCopyFailed,
     openTooltipFor,
     onTooltipOpen,
     onOpenLink,
+    onCopyLink,
     onReadAttachment,
     onRemoveHint,
     tapTrackerRef,
@@ -2119,11 +2122,14 @@ function LinkedFileRow({
     onReload?: (item: LinkedFileItem) => void;
     /** L'adresse vient d'être copiée — au panneau de le dire à l'écran. */
     onCopied?: () => void;
+    /** Le presse-papiers a refusé l'écriture. */
+    onCopyFailed?: () => void;
     /** L'adresse de la ligne dont la bulle est ouverte, s'il y en a une. */
     openTooltipFor?: string | null;
     /** Cette ligne vient d'ouvrir la sienne. */
     onTooltipOpen?: (target: string) => void;
     onOpenLink?: (item: LinkedFileItem) => Promise<void> | void;
+    onCopyLink?: (target: string) => Promise<void>;
     /** La croix a été lâchée avant le bout : au panneau de dire pourquoi rien
         ne s'est passé. */
     onRemoveHint?: () => void;
@@ -2253,8 +2259,17 @@ function LinkedFileRow({
         event.preventDefault();
         event.stopPropagation();
         resetTapTracker();
-        await navigator.clipboard.writeText(item.target);
-        onCopied?.();
+        try {
+            if (onCopyLink) {
+                await onCopyLink(item.target);
+            } else {
+                await navigator.clipboard.writeText(item.target);
+            }
+            onCopied?.();
+        } catch {
+            onCopyFailed?.();
+            return;
+        }
         /* La bulle s'en va : elle n'existait que pour porter ce bouton, et la
            laisser ouverte oblige à la chasser d'un second geste. La coche qui
            s'y affichait une seconde n'a plus lieu d'être — le bandeau, lui,
@@ -2656,6 +2671,7 @@ export function LinksAttachmentsRow({
     onRemoveLink,
     onRenameLink,
     onOpenLink,
+    onCopyLink,
     onPickAttachment,
     onReadAttachment,
 }: LinksAttachmentsRowProps) {
@@ -3097,6 +3113,11 @@ export function LinksAttachmentsRow({
                                     detail: t("Paste it wherever you like"),
                                 })
                             }
+                            onCopyFailed={() =>
+                                setToast({
+                                    title: t("Could not copy link"),
+                                })
+                            }
                             onRemoveHint={() =>
                                 setToast({
                                     title: t("Hold to remove"),
@@ -3106,6 +3127,7 @@ export function LinksAttachmentsRow({
                                 })
                             }
                             onOpenLink={onOpenLink}
+                            onCopyLink={onCopyLink}
                             onReadAttachment={
                                 onReadAttachment && eventId
                                     ? (target: string) =>

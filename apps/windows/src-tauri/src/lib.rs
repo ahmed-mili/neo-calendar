@@ -9,6 +9,16 @@ use std::process::Command;
 use tauri::Manager;
 #[cfg(desktop)]
 use tauri_plugin_updater::UpdaterExt;
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::{
+    Foundation::GlobalFree,
+    System::{
+        DataExchange::{CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData},
+        Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE},
+        Ole::CF_UNICODETEXT,
+    },
+    UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOWNORMAL},
+};
 
 const PREFERENCES_FILE_NAME: &str = ".neo-calendar.json";
 const LEGACY_PREFERENCES_FILE_NAME: &str = ".neo-calendar-desktop.json";
@@ -696,29 +706,102 @@ fn find_obsidian_executable() -> Option<PathBuf> {
 
 #[cfg(target_os = "windows")]
 fn launch_with_windows_shell(target: &str) -> Result<(), String> {
-    let output = Command::new("powershell.exe")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-WindowStyle",
-            "Hidden",
-            "-Command",
-            "Start-Process -FilePath $args[0]",
-        ])
-        .arg(target)
-        .output()
-        .map_err(|error| format!("Unable to start the Windows shell: {error}"))?;
+    let wide_target = nul_terminated_utf16(target);
+    // ShellExecuteW hands the URL to the registered browser without asking a
+    // command-line parser to interpret it. The old PowerShell bridge parsed
+    // `&` in an ordinary query string as source code and rejected the link.
+    let result = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            std::ptr::null(),
+            wide_target.as_ptr(),
+            std::ptr::null(),
+            std::ptr::null(),
+            SW_SHOWNORMAL,
+        )
+    } as isize;
 
-    if output.status.success() {
-        return Ok(());
+    if shell_execute_succeeded(result) {
+        Ok(())
+    } else {
+        Err(format!(
+            "Windows could not open the linked item (ShellExecute error {result})."
+        ))
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn shell_execute_succeeded(result: isize) -> bool {
+    result > 32
+}
+
+#[cfg(target_os = "windows")]
+fn nul_terminated_utf16(value: &str) -> Vec<u16> {
+    value.encode_utf16().chain(std::iter::once(0)).collect()
+}
+
+#[cfg(target_os = "windows")]
+fn write_windows_clipboard_text(value: &str) -> Result<(), String> {
+    let wide = nul_terminated_utf16(value);
+
+    // The clipboard can briefly be held by another process. A few short
+    // retries make a click deterministic without blocking the UI noticeably.
+    let opened = (0..5).any(|attempt| {
+        if attempt > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        unsafe { OpenClipboard(std::ptr::null_mut()) != 0 }
+    });
+    if !opened {
+        return Err("Windows could not access the clipboard.".to_string());
     }
 
-    let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    Err(if detail.is_empty() {
-        "Windows could not open the linked item.".to_string()
-    } else {
-        detail
-    })
+    let result = unsafe {
+        if EmptyClipboard() == 0 {
+            Err("Windows could not clear the clipboard.".to_string())
+        } else {
+            let byte_len = wide.len() * std::mem::size_of::<u16>();
+            let memory = GlobalAlloc(GMEM_MOVEABLE, byte_len);
+            if memory.is_null() {
+                Err("Windows could not allocate clipboard memory.".to_string())
+            } else {
+                let destination = GlobalLock(memory) as *mut u16;
+                if destination.is_null() {
+                    GlobalFree(memory);
+                    Err("Windows could not lock clipboard memory.".to_string())
+                } else {
+                    std::ptr::copy_nonoverlapping(wide.as_ptr(), destination, wide.len());
+                    GlobalUnlock(memory);
+                    if SetClipboardData(CF_UNICODETEXT as u32, memory).is_null() {
+                        GlobalFree(memory);
+                        Err("Windows could not write to the clipboard.".to_string())
+                    } else {
+                        // Ownership of `memory` belongs to the system after a
+                        // successful SetClipboardData call.
+                        Ok(())
+                    }
+                }
+            }
+        }
+    };
+    unsafe {
+        CloseClipboard();
+    }
+    result
+}
+
+#[tauri::command]
+fn write_desktop_clipboard_text(value: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        return write_windows_clipboard_text(&value);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = value;
+        Err("Writing to the clipboard is only supported by this Windows build.".to_string())
+    }
 }
 
 #[tauri::command(rename_all = "camelCase")]
@@ -1558,6 +1641,7 @@ pub fn run() {
             open_desktop_path,
             open_desktop_external_target,
             open_desktop_linked_path,
+            write_desktop_clipboard_text,
             discover_desktop_obsidian_vaults,
             search_desktop_vault_notes,
             copy_desktop_attachment,
@@ -1574,6 +1658,27 @@ pub fn run() {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn windows_shell_accepts_only_success_codes_above_thirty_two() {
+        assert!(!shell_execute_succeeded(2));
+        assert!(!shell_execute_succeeded(32));
+        assert!(shell_execute_succeeded(33));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn native_text_keeps_query_strings_and_unicode_intact() {
+        let value = "https://example.com/recherche?q=été&lang=fr";
+        let encoded = nul_terminated_utf16(value);
+
+        assert_eq!(encoded.last(), Some(&0));
+        assert_eq!(
+            String::from_utf16(&encoded[..encoded.len() - 1]).unwrap(),
+            value
+        );
+    }
 
     fn temporary_root(name: &str) -> PathBuf {
         let root = env::temp_dir().join(format!("neo-calendar-tests-{name}"));

@@ -228,6 +228,7 @@ const FR: Record<string, string> = {
     "Copy link": "Copier le lien",
     "Rename link": "Renommer le lien",
     "Link copied": "Lien copié",
+    "Could not copy link": "Impossible de copier le lien",
     "Paste it wherever you like": "Collez-le où vous voulez",
     Link: "Lien",
     // Le champ ouvert, calqué sur Notion Calendar : il cherche autant qu'il
