@@ -20,19 +20,24 @@ function InstallIcon() {
     );
 }
 
+/** Le temps que la pastille reste ouverte quand le téléchargement vient de
+ *  finir : assez pour lire « Mettre à jour », pas assez pour occuper la barre. */
+const ANNOUNCE_MS = 4000;
+
 /**
  * La mise à jour : elle descend toute seule, puis elle attend un geste.
  *
- * Trois états et pas un de plus. Un compteur pendant la descente — le même
- * pourcentage que la notification, pour que les deux ne se contredisent
- * jamais. Une pastille ronde ensuite, discrète, qui ne dit rien tant qu'on ne
- * s'en approche pas. Et sous le curseur elle s'ouvre en « Mettre à jour »,
- * parce qu'une icône seule ne dit pas ce qu'elle va faire et que celle-ci
- * redémarre l'application.
+ * Un seul élément du début à la fin, et c'est tout l'intérêt : le compteur ne
+ * disparaît pas pour être remplacé par un bouton — il devient ce bouton. La
+ * pilule se resserre, le chiffre s'efface pendant que la flèche paraît. Deux
+ * éléments qui se relaient, comme avant, ne pouvaient rien animer du tout :
+ * React démonte le premier, le second arrive à sa taille finale, et l'oeil ne
+ * voit qu'une coupure.
  *
- * Rien du tout le reste du temps : l'ancien contrôle demandait qu'on aille
- * chercher les mises à jour et répondait « à jour », c'est-à-dire qu'il fallait
- * le lire à chaque lancement pour apprendre qu'il ne s'était rien passé.
+ * Arrivée à bout de course, elle s'ouvre d'elle-même sur « Mettre à jour » le
+ * temps qu'on le lise, puis se replie en pastille. Sans cela la nouvelle
+ * n'était dite qu'au survol : le compteur s'évanouissait en un rond muet de
+ * 26 px, et il fallait deviner qu'il fallait passer dessus.
  */
 export function UpdateBadge({ onInstall }: { onInstall: () => void }) {
     const ready = useUpdateAvailable();
@@ -50,31 +55,62 @@ export function UpdateBadge({ onInstall }: { onInstall: () => void }) {
     }, []);
 
     const state = updateControlState({ percent, ready });
+    const downloading = state.kind === "downloading";
+
+    /* Le dernier chiffre atteint, gardé après la fin du téléchargement : un
+       texte vidé au moment même où il devrait s'effacer ne s'efface pas, il
+       disparaît. Celui-ci reste en place, à l'opacité zéro, le temps du
+       fondu — masqué aux lecteurs d'écran, qui ont l'intitulé du bouton. */
+    const lastCount = React.useRef("");
+    React.useEffect(() => {
+        if (downloading && state.label) lastCount.current = state.label;
+    }, [downloading, state.label]);
+
+    /* S'ouvrir une fois, à l'instant précis où la descente s'achève — et pas
+       au montage : une pastille déjà prête quand le panneau s'ouvre n'a pas de
+       nouvelle à annoncer, elle attend depuis un moment. */
+    const [announced, setAnnounced] = React.useState(false);
+    const previousKind = React.useRef(state.kind);
+    React.useEffect(() => {
+        const was = previousKind.current;
+        previousKind.current = state.kind;
+        if (state.kind !== "ready" || was !== "downloading") return;
+        setAnnounced(true);
+        const timer = window.setTimeout(() => setAnnounced(false), ANNOUNCE_MS);
+        return () => window.clearTimeout(timer);
+    }, [state.kind]);
+
     if (state.kind === "idle") return null;
 
-    if (state.kind === "downloading") {
-        return (
-            <span
-                className={`nc-update-control nc-update-control--downloading${
-                    state.label ? "" : " nc-update-control--spinning"
-                }`}
-                role="status"
-                aria-label={t("Downloading update")}
-            >
-                {state.label ?? ""}
-            </span>
-        );
-    }
+    const label = downloading
+        ? t("Downloading update")
+        : `${t("Update")} ${state.label}`;
+    const classes = [
+        "nc-update-control",
+        downloading
+            ? "nc-update-control--downloading"
+            : "nc-update-control--ready",
+        downloading && !state.label ? "nc-update-control--spinning" : "",
+        !downloading && announced ? "nc-update-control--announced" : "",
+    ]
+        .filter(Boolean)
+        .join(" ");
 
     return (
         <button
             type="button"
-            className="nc-update-control nc-update-control--ready"
+            className={classes}
+            /* Rien à presser pendant la descente : presser n'interromprait que
+               ce qui est déjà en train de se faire. */
+            disabled={downloading}
             onClick={onInstall}
-            title={`${t("Update")} ${state.label}`}
-            aria-label={`${t("Update")} ${state.label}`}
+            title={label}
+            aria-label={label}
         >
-            <span className="nc-update-control__icon">
+            <span className="nc-update-control__count" aria-hidden="true">
+                {downloading ? state.label ?? "" : lastCount.current}
+            </span>
+            <span className="nc-update-control__icon" aria-hidden="true">
                 <InstallIcon />
             </span>
             {/* Le libellé est là en permanence et c'est la largeur qui s'ouvre :

@@ -828,11 +828,17 @@
    survol le ferait arriver après le mouvement, d'un coup, au lieu de sortir
    avec la pastille. */
 .nc-update-control {
+    /* Un seul élément du compteur au bouton : c'est lui qui se resserre quand
+       la descente s'achève, au lieu de deux contrôles qui se relaient sans que
+       rien puisse s'animer entre eux. Le chiffre est posé par-dessus, d'où le
+       repère de position ici. */
+    position: relative;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     height: 26px;
-    padding: 0 8px;
+    padding: 0;
     border: 0;
     border-radius: 999px;
     background: var(--nc-accent, var(--interactive-accent));
@@ -842,20 +848,60 @@
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     flex-shrink: 0;
+    overflow: hidden;
+    /* Sans cela, une largeur qui va vers `auto` ne s'anime pas : elle saute a
+       sa valeur finale et l'oeil ne voit qu'une coupure. C'est la permission
+       d'interpoler les mots-cles de taille, ignoree par les moteurs qui ne la
+       connaissent pas — ou l'on retombe simplement sur le saut. */
+    interpolate-size: allow-keywords;
+    transition: width var(--nc-transition-normal, 200ms ease),
+        padding var(--nc-transition-normal, 200ms ease);
 }
 
 .nc-update-control--downloading {
     /* Assez large pour « 100 % » dès le premier pour cent : un compteur dont la
        pastille s'allonge à chaque dizaine tressaute sous les yeux. */
-    min-width: 46px;
-    justify-content: center;
+    width: 46px;
+    cursor: default;
 }
 
-/* Sans chiffre honnête à montrer, il tourne. */
+/* Le chiffre ne pousse rien : il est posé au centre, et la flèche vit dessous
+   dans le flux — c'est elle qui donne sa largeur à la pastille ouverte. Les
+   deux se croisent en fondu là où, avant, l'un remplaçait l'autre d'un coup. */
+.nc-update-control__count {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity var(--nc-transition-fast, 120ms ease);
+}
+
+.nc-update-control__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    transition: opacity var(--nc-transition-fast, 120ms ease);
+}
+
+.nc-update-control--downloading .nc-update-control__icon {
+    opacity: 0;
+}
+
+.nc-update-control--ready .nc-update-control__count {
+    opacity: 0;
+}
+
+/* Sans chiffre honnête à montrer, il tourne. Au centre de la pastille et non
+   dans le flux : la flèche y attend son tour, invisible, et le compteur serait
+   sinon poussé de sa moitié de largeur. */
 .nc-update-control--spinning::after {
     content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
     width: 12px;
     height: 12px;
+    margin: -6px 0 0 -6px;
     border: 2px solid currentColor;
     border-right-color: transparent;
     border-radius: 50%;
@@ -870,17 +916,7 @@
 
 .nc-update-control--ready {
     width: 26px;
-    padding: 0;
-    justify-content: center;
     cursor: pointer;
-    overflow: hidden;
-    transition: width var(--nc-transition-normal, 200ms ease),
-        padding var(--nc-transition-normal, 200ms ease);
-}
-
-.nc-update-control__icon {
-    display: inline-flex;
-    flex-shrink: 0;
 }
 
 .nc-update-control__label {
@@ -893,15 +929,23 @@
         opacity var(--nc-transition-fast, 120ms ease);
 }
 
+/* Ouverte : sous le curseur, et une fois d'elle-même au bout du téléchargement
+   — la pastille dit alors ce qu'elle est venue dire, puis se replie. */
 .nc-update-control--ready:hover,
-.nc-update-control--ready:focus-visible {
+.nc-update-control--ready:focus-visible,
+.nc-update-control--announced {
     width: auto;
     padding: 0 12px 0 10px;
 }
 
 .nc-update-control--ready:hover .nc-update-control__label,
-.nc-update-control--ready:focus-visible .nc-update-control__label {
-    max-width: 160px;
+.nc-update-control--ready:focus-visible .nc-update-control__label,
+.nc-update-control--announced .nc-update-control__label {
+    /* La largeur du texte, et pas un plafond genereux : vers 160 px le libelle
+       atteignait ses 71 px de « Mettre à jour » en un tiers du temps, si bien
+       que l'ouverture etait finie en 60 ms — animee sur le papier, sechement
+       coupee a l'oeil. */
+    max-width: max-content;
     opacity: 1;
 }
 
@@ -914,7 +958,8 @@
    rien à dire à ce moment-là : ce qui compte est déjà sous le curseur. */
 .nc-sidebar-top-right:has(.nc-update-control--ready:hover) .nc-sidebar-version,
 .nc-sidebar-top-right:has(.nc-update-control--ready:focus-visible)
-    .nc-sidebar-version {
+    .nc-sidebar-version,
+.nc-sidebar-top-right:has(.nc-update-control--announced) .nc-sidebar-version {
     max-width: 0;
     margin-right: 0;
     padding-left: 0;
@@ -932,7 +977,7 @@
     }
 
     .nc-update-control--ready .nc-update-control__label {
-        max-width: 160px;
+        max-width: max-content;
         opacity: 1;
     }
 }

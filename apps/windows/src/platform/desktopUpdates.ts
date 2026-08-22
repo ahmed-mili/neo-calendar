@@ -31,13 +31,19 @@ export async function watchDesktopUpdates(): Promise<() => void> {
     const stopReady = await listen<string>(
         "neo-update-ready",
         ({ payload }) => {
-            // Le compteur s'efface : ce qui descendait est arrivé.
+            /* La version prête AVANT l'effacement du compteur, et l'ordre n'est
+               pas une coquetterie : le contrôle disparaît quand il n'a rien à
+               dire, or React 17 ne groupe pas deux états posés hors de ses
+               propres évènements. Le compteur effacé en premier laissait donc
+               un rendu sans rien — la pastille démontée puis remontée, et
+               l'animation de l'un vers l'autre perdue. */
+            noteDownloadedUpdate(payload);
+            // Ce qui descendait est arrivé : le compteur peut s'effacer.
             window.dispatchEvent(
                 new CustomEvent(UPDATE_PROGRESS_EVENT, {
                     detail: { percent: -2 },
                 })
             );
-            noteDownloadedUpdate(payload);
         }
     );
     return () => {
