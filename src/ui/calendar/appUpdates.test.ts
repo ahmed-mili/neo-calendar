@@ -1,8 +1,4 @@
-import {
-    appVersion,
-    canCheckForUpdates,
-    requestUpdateCheck,
-} from "./appUpdates";
+import { appVersion } from "./appUpdates";
 
 /* Les tests tournent en environnement `node` (voir jest.config.js) : il n'y a
    pas de `window`, ce qui est exactement l'un des cas a couvrir — le module est
@@ -10,7 +6,6 @@ import {
    retire pour verifier que l'absence ne jette pas. */
 type BridgeHost = {
     NeoAndroid?: {
-        checkForUpdates?: unknown;
         pendingUpdate?: unknown;
         installPendingUpdate?: unknown;
     };
@@ -61,55 +56,6 @@ describe("appVersion", () => {
         } finally {
             stamped.__NEO_VERSION__ = saved;
         }
-    });
-});
-
-describe("canCheckForUpdates", () => {
-    it("est faux quand il n'y a meme pas de window", () => {
-        expect(canCheckForUpdates()).toBe(false);
-    });
-
-    it("est faux sans pont", () => {
-        withWindow();
-        expect(canCheckForUpdates()).toBe(false);
-    });
-
-    /* Une coque plus ancienne porte un pont SANS cette methode. C'est pour ce
-       cas precis que la detection porte sur la methode et non sur la
-       plateforme : appeler ce qui n'existe pas jette dans la WebView. */
-    it("est faux quand le pont existe mais n'a pas la methode", () => {
-        withWindow({});
-        expect(canCheckForUpdates()).toBe(false);
-    });
-
-    it("est vrai quand la methode est la", () => {
-        withWindow({ checkForUpdates: () => undefined });
-        expect(canCheckForUpdates()).toBe(true);
-    });
-});
-
-describe("requestUpdateCheck", () => {
-    it("appelle la coque et le dit", () => {
-        const checkForUpdates = jest.fn();
-        withWindow({ checkForUpdates });
-        expect(requestUpdateCheck()).toBe(true);
-        expect(checkForUpdates).toHaveBeenCalledTimes(1);
-    });
-
-    it("rend faux sans pont, sans jeter", () => {
-        withWindow();
-        expect(requestUpdateCheck()).toBe(false);
-    });
-
-    /* Le pont traverse la frontiere WebView/Java : un echec la-bas remonte en
-       exception ici. Le bouton doit rendre la main, pas casser le panneau. */
-    it("avale une erreur venue du pont", () => {
-        withWindow({
-            checkForUpdates: () => {
-                throw new Error("bridge is gone");
-            },
-        });
-        expect(requestUpdateCheck()).toBe(false);
     });
 });
 

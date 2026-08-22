@@ -174,13 +174,6 @@ const FR: Record<string, string> = {
     // Taking the date off an event, which is what sends it back to the
     // unscheduled list — the reverse of "Add date" above.
     "Remove date": "Retirer la date",
-    // La version, a gauche de l'engrenage : c'est elle le bouton.
-    "Check for updates": "Rechercher des mises à jour",
-    "Checking…": "Vérification…",
-    "Updating…": "Mise à jour…",
-    "Up to date": "À jour",
-    "Check failed": "Échec",
-    Offline: "Hors ligne",
     "Update available": "Mise à jour disponible",
     // Le contrôle qui descend la mise à jour, puis propose de la poser.
     "Downloading update": "Téléchargement de la mise à jour",

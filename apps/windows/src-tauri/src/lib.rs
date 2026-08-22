@@ -1338,6 +1338,32 @@ fn fetch_desktop_ics(url: String) -> Result<String, String> {
 #[derive(Default)]
 struct PendingUpdate(std::sync::Mutex<Option<(tauri_plugin_updater::Update, Vec<u8>)>>);
 
+/// L'etat de la surveillance : une recherche a la fois, et pas deux a la
+/// minute.
+///
+/// Une application de bureau reste ouverte des jours. Cherchee au seul
+/// demarrage, une version publiee dans l'apres-midi n'etait vue qu'au prochain
+/// lancement — c'est-a-dire le lendemain, et c'est ce qui rendait un bouton
+/// « rechercher » indispensable. Elle se cherche maintenant toute seule, a
+/// intervalle et au retour sur la fenetre.
+#[cfg(desktop)]
+#[derive(Default)]
+struct UpdateWatch {
+    busy: std::sync::atomic::AtomicBool,
+    last: std::sync::Mutex<Option<std::time::Instant>>,
+}
+
+/// L'intervalle entre deux recherches pendant que l'application tourne. Une
+/// requete de 240 octets ; ce qui compte est de ne pas la refaire a chaque
+/// aller-retour sur la fenetre.
+#[cfg(desktop)]
+const UPDATE_POLL: std::time::Duration = std::time::Duration::from_secs(30 * 60);
+
+/// Le repos minimal entre deux recherches. Reprendre le focus dix fois en une
+/// minute ne doit pas faire dix requetes.
+#[cfg(desktop)]
+const UPDATE_QUIET: std::time::Duration = std::time::Duration::from_secs(5 * 60);
+
 /// Le pourcentage descendu, dit a la fenetre. -1 quand personne n'a annonce la
 /// taille du fichier : il n'y a alors rien d'honnete a compter.
 #[cfg(desktop)]
@@ -1390,6 +1416,49 @@ async fn fetch_available_update(app: tauri::AppHandle) -> tauri_plugin_updater::
     Ok(())
 }
 
+/// Chercher, si cela a un sens maintenant.
+///
+/// Trois raisons de ne rien faire : une version attend deja qu'on la pose (la
+/// suivante se cherchera apres l'installation), une recherche est en cours, ou
+/// la derniere est trop recente pour qu'une autre apprenne quoi que ce soit.
+#[cfg(desktop)]
+async fn fetch_if_due(app: tauri::AppHandle, force: bool) {
+    use std::sync::atomic::Ordering;
+
+    let held = app
+        .state::<PendingUpdate>()
+        .0
+        .lock()
+        .map(|held| held.is_some())
+        .unwrap_or(true);
+    if held {
+        return;
+    }
+
+    let watch = app.state::<UpdateWatch>();
+    if !force {
+        let recent = watch
+            .last
+            .lock()
+            .map(|last| last.map_or(false, |at| at.elapsed() < UPDATE_QUIET))
+            .unwrap_or(true);
+        if recent {
+            return;
+        }
+    }
+    if watch.busy.swap(true, Ordering::SeqCst) {
+        return;
+    }
+
+    if let Ok(mut last) = watch.last.lock() {
+        *last = Some(std::time::Instant::now());
+    }
+    if let Err(error) = fetch_available_update(app.clone()).await {
+        eprintln!("Automatic update check failed: {error}");
+    }
+    app.state::<UpdateWatch>().busy.store(false, Ordering::SeqCst);
+}
+
 /// Pose la mise a jour deja telechargee, puis redemarre.
 ///
 /// Rien a retelecharger : les octets sont la depuis le lancement. Un appel sans
@@ -1440,12 +1509,40 @@ pub fn run() {
                 app.handle()
                     .plugin(tauri_plugin_updater::Builder::new().build())?;
                 app.manage(PendingUpdate::default());
+                app.manage(UpdateWatch::default());
+
+                // Au demarrage, sans attendre le premier battement.
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    if let Err(error) = fetch_available_update(handle).await {
-                        eprintln!("Automatic update check failed: {error}");
-                    }
+                    fetch_if_due(handle, true).await;
                 });
+
+                // Puis toutes les demi-heures, tant que l'application tourne.
+                // Un fil a lui, plutot qu'un minuteur asynchrone : il n'y a
+                // rien a annuler et rien a attendre, et le sommeil d'un fil
+                // ne demande aucune dependance de plus.
+                let ticking = app.handle().clone();
+                std::thread::spawn(move || loop {
+                    std::thread::sleep(UPDATE_POLL);
+                    let handle = ticking.clone();
+                    tauri::async_runtime::block_on(fetch_if_due(handle, false));
+                });
+
+                // Et au retour sur la fenetre : revenir apres une heure
+                // ailleurs est le moment ou l'on s'attend a ce que
+                // l'application se soit tenue au courant.
+                if let Some(window) = app.get_webview_window("main") {
+                    let focused = app.handle().clone();
+                    window.on_window_event(move |event| {
+                        if !matches!(event, tauri::WindowEvent::Focused(true)) {
+                            return;
+                        }
+                        let handle = focused.clone();
+                        tauri::async_runtime::spawn(async move {
+                            fetch_if_due(handle, false).await;
+                        });
+                    });
+                }
             }
             Ok(())
         })

@@ -18,7 +18,6 @@ import {
     FolderIcon,
     LinkIcon,
     CircleHelpIcon,
-    RefreshIcon,
 } from "./Icons";
 import CalendarItemMenu, { CalendarMenuItem } from "./CalendarItemMenu";
 import ColorPicker from "./ColorPicker";
@@ -26,14 +25,7 @@ import ShortcutsPanel from "./ShortcutsPanel";
 import { ObsidianIcon } from "../components/ObsidianIcon";
 import { useSidebarReorder } from "./useSidebarReorder";
 import { isAndroidRuntime } from "./CalendarUtils";
-import {
-    CHECK_RESULT_EVENT,
-    installPendingUpdate,
-    CheckResult,
-    appVersion,
-    canCheckForUpdates,
-    requestUpdateCheck,
-} from "./appUpdates";
+import { installPendingUpdate, appVersion } from "./appUpdates";
 import { useUpdateAvailable } from "./useUpdateAvailable";
 import { UpdateBadge } from "./UpdateBadge";
 import { t } from "../i18n";
@@ -123,51 +115,14 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
     // Anchor for the section-header "..." menu (Open root folder).
     const [headerMenuAnchor, setHeaderMenuAnchor] =
         React.useState<DOMRect | null>(null);
-    // The number beside the gear, and whether a check is in flight. The shell
-    // answers out of band — a prompt if there is something newer, a word if
-    // there is not — so this only says "asked", never "up to date", and it
-    // clears itself: a label left reading "Checking…" because a request never
-    // came back would be a worse lie than saying nothing.
+    /* Le numéro, à gauche de l'engrenage. Un libellé, et rien de plus.
+       C'était un bouton : on le pressait pour demander une recherche, et il
+       répondait « À jour », « Hors ligne », « Échec ». Il ne reste rien à lui
+       demander — les deux coques cherchent au lancement, au retour sur
+       l'application et à intervalle — et un contrôle dont la seule réponse
+       possible est « rien n'a changé » se lit à chaque fois pour apprendre
+       qu'il ne s'est rien passé. */
     const version = appVersion();
-    const updateVersion = useUpdateAvailable();
-    const [checkingUpdate, setCheckingUpdate] = React.useState(false);
-    const [checkResult, setCheckResult] = React.useState<CheckResult | null>(
-        null
-    );
-    // The shell answers a hand-asked check through this event rather than
-    // through a Toast, so the control that asked is the one that answers.
-    React.useEffect(() => {
-        const onResult = (event: Event) => {
-            const detail = (event as CustomEvent<{ status?: string }>).detail;
-            setCheckingUpdate(false);
-            const status = detail?.status;
-            // « Trouvée » ne s'écrit pas ici : la pastille bleue la descend déjà
-            // à côté, et deux contrôles qui annoncent la même nouvelle se
-            // marchent dessus dans une barre de 204 px.
-            setCheckResult(
-                status === "found"
-                    ? null
-                    : status === "failed" || status === "offline"
-                    ? status
-                    : "current"
-            );
-        };
-        window.addEventListener(CHECK_RESULT_EVENT, onResult);
-        return () => window.removeEventListener(CHECK_RESULT_EVENT, onResult);
-    }, []);
-    // Both transient states hand the pill back to the version number on their
-    // own. A control left reading "Checking…" because an answer never arrived
-    // is a worse lie than one that says nothing.
-    React.useEffect(() => {
-        if (!checkingUpdate) return;
-        const timer = window.setTimeout(() => setCheckingUpdate(false), 8000);
-        return () => window.clearTimeout(timer);
-    }, [checkingUpdate]);
-    React.useEffect(() => {
-        if (!checkResult) return;
-        const timer = window.setTimeout(() => setCheckResult(null), 2500);
-        return () => window.clearTimeout(timer);
-    }, [checkResult]);
     // Collapse toggle for the calendar list (chevron next to the "Calendars"
     // header), mirroring Notion's collapsible section.
     const [calendarsCollapsed, setCalendarsCollapsed] = React.useState(false);
@@ -336,56 +291,12 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                     {/* Elsewhere the toolbar already carries settings, and an
                         event is made on the grid where it belongs — a second
                         pair of buttons up here was only ever a duplicate. */}
-                    {/* The version sits immediately left of the gear, and IS
-                        the control: there is nowhere else in the app to ask
-                        "am I up to date?", and a number you can press answers
-                        it without needing a row of its own.
-
-                        A button only where pressing it would reach something.
-                        On the desktop, which updates itself through Tauri,
-                        there is no bridge to call and the number stays a
-                        label — better than a control that does nothing. */}
-                    {version &&
-                        (canCheckForUpdates() ? (
-                            <button
-                                type="button"
-                                className={`nc-sidebar-version${
-                                    checkingUpdate
-                                        ? " nc-sidebar-version-busy"
-                                        : ""
-                                }`}
-                                onClick={() => {
-                                    setCheckResult(null);
-                                    setCheckingUpdate(true);
-                                    requestUpdateCheck();
-                                }}
-                                disabled={checkingUpdate}
-                                title={t("Check for updates")}
-                            >
-                                {/* La flèche propose d'aller voir. Quand la
-                                    version est déjà descendue et attend à
-                                    côté, il n'y a plus rien à aller chercher :
-                                    la pastille redevient un numéro, et la
-                                    nouvelle est dite une seule fois, par le
-                                    bouton bleu. */}
-                                {!updateVersion && <RefreshIcon size={12} />}
-                                <span>
-                                    {checkingUpdate
-                                        ? t("Checking…")
-                                        : checkResult === "current"
-                                        ? t("Up to date")
-                                        : checkResult === "offline"
-                                        ? t("Offline")
-                                        : checkResult === "failed"
-                                        ? t("Check failed")
-                                        : `v${version}`}
-                                </span>
-                            </button>
-                        ) : (
-                            <span className="nc-sidebar-version nc-sidebar-version-plain">
-                                v{version}
-                            </span>
-                        ))}
+                    {/* Le numéro, juste à gauche de l'engrenage. Ce qu'il y a
+                        à dire sur les mises à jour est dit par la pastille
+                        bleue, quand il y a quelque chose à dire. */}
+                    {version && (
+                        <span className="nc-sidebar-version">v{version}</span>
+                    )}
                     {/* Ce qui descend et ce qui attend d'être posé : le même
                         contrôle des deux côtés, parce que c'est la même chose
                         qui se passe. Il n'est là que lorsqu'il a quelque chose

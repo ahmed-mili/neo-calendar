@@ -48,13 +48,16 @@
 
 /* ── Version, immediately left of the gear ─────────────────── */
 
-/* It shipped as bare faint text and nobody could tell it was a control —
-   the one person using the app found out by being told. So: an outline, a
-   refresh glyph beside the number, and a hit area worth aiming at. */
+/* Un libellé, plus un bouton. Il en a eu l'air — un contour, un glyphe de
+   rafraîchissement, une zone à viser — parce qu'il fallait le presser pour
+   demander une recherche. Les deux coques cherchent d'elles-mêmes désormais,
+   au lancement, au retour sur l'application et à intervalle : il ne reste rien
+   à lui demander. Le contour, lui, reste : il tient le numéro à part du reste
+   de la barre, et c'est la forme sur laquelle la pastille bleue vient se
+   ranger. */
 .nc-sidebar-version {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
     margin-right: 4px;
     padding: 5px 9px;
     border: 1px solid var(--nc-border);
@@ -66,53 +69,17 @@
     font-size: 11px;
     line-height: 1;
     white-space: nowrap;
-    cursor: pointer;
+    cursor: default;
     /* Une largeur chiffrée alors que rien ne la contraint : c'est ce qui rend
        le repli animable plus bas — on ne peut pas partir de `auto`. Bien
-       au-dessus du plus long libellé (« Vérification… »), donc sans effet
-       tant que la pastille reste. */
+       au-dessus d'un numéro de version, donc sans effet tant que la pastille
+       ne s'ouvre pas à côté. */
     max-width: 160px;
     overflow: hidden;
     transition: max-width var(--nc-transition-normal, 200ms ease),
         padding var(--nc-transition-normal, 200ms ease),
         margin var(--nc-transition-normal, 200ms ease),
         opacity var(--nc-transition-fast, 120ms ease);
-}
-
-.nc-sidebar-version:hover:not(:disabled) {
-    background: var(--nc-bg-hover);
-    color: var(--nc-text-primary, var(--text-normal));
-}
-
-.nc-sidebar-version:disabled {
-    cursor: default;
-    opacity: 0.7;
-}
-
-/* Looking, or downloading with no total to count towards: the glyph turns.
-   A spinner is the honest answer only when there is no number — as soon as the
-   server says how big the file is, the pill counts instead, because "42 %"
-   tells you how long to wait and a spinner never does. */
-.nc-sidebar-version-busy .nc-icon-spin,
-.nc-sidebar-version-busy svg {
-    animation: nc-version-spin 900ms linear infinite;
-}
-
-@keyframes nc-version-spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Where no check is reachable the number is not a control, and must not look
-   like one. */
-.nc-sidebar-version-plain {
-    cursor: default;
-}
-
-.nc-sidebar-version-plain:hover {
-    background: transparent;
-    color: var(--nc-text-faint, var(--text-faint));
 }
 
 .nc-sidebar-title-row {

@@ -65,6 +65,19 @@ final class AppUpdater {
    *  lancement telecharge d'elle-meme — presser le numero de version pendant
    *  qu'elle travaille est un geste normal. */
   private static volatile boolean downloading;
+  /** Quand la derniere recherche a eu lieu, sur l'horloge depuis le demarrage
+   *  du telephone.
+   *
+   *  Chercher revient a demander 240 octets : c'est assez peu pour le faire a
+   *  chaque retour sur l'application, et c'est ce qui rend inutile un bouton
+   *  « rechercher ». Mais un retour, c'est aussi une rotation d'ecran, un
+   *  retour depuis l'installateur, un aller-retour d'une seconde vers une
+   *  autre application — d'ou ce repos minimal, qui coupe les rafales sans
+   *  rien couter a personne. */
+  private static long lastCheckAt = 0L;
+  /** Deux minutes : le temps qu'il faut pour qu'un retour sur l'application
+   *  soit un vrai retour et pas un rebond. */
+  private static final long CHECK_QUIET_MS = 120_000L;
   /** La derniere version qu'on a tente de telecharger. Statique comme le
       reste : le bouton « Reessayer » d'une notification peut arriver apres
       que l'Activity a ete reconstruite. */
@@ -91,7 +104,6 @@ final class AppUpdater {
   private final ExecutorService io;
   private File pendingApk;
   private Runnable onUpdateFound;
-  private java.util.function.Consumer<String> onCheckResult;
   private java.util.function.Consumer<Integer> onProgress;
 
   AppUpdater(Activity activity, ExecutorService io) {
@@ -112,7 +124,25 @@ final class AppUpdater {
    *  published, and the release APK it would offer carries a different signing
    *  certificate anyway. */
   void checkOnLaunch() {
+    check(true);
+  }
+
+  /** A chaque retour sur l'application, et c'est la le coeur de l'affaire.
+   *
+   *  Une application de telephone n'est presque jamais lancee : elle est
+   *  reprise. Cherchee au seul `onCreate`, une version publiee pendant qu'elle
+   *  dormait en arriere-plan n'etait vue qu'apres l'avoir fermee et rouverte a
+   *  la main — et c'est exactement ce qui obligeait a presser le numero de
+   *  version pour savoir. */
+  void checkOnResume() {
+    check(false);
+  }
+
+  private void check(boolean atLaunch) {
     if (BuildConfig.DEBUG) return;
+    long now = android.os.SystemClock.elapsedRealtime();
+    if (!atLaunch && now - lastCheckAt < CHECK_QUIET_MS) return;
+    lastCheckAt = now;
     io.execute(() -> {
       try {
         Metadata metadata = fetchMetadata();
@@ -126,52 +156,6 @@ final class AppUpdater {
         // Offline, or GitHub having a moment. The next launch asks again.
         Log.w(TAG, "Update check failed", error);
       }
-    });
-  }
-
-  /** Asked for by hand, from the version beside the gear.
-   *
-   *  Elle fait ce que fait la verification du lancement — elle descend ce
-   *  qu'elle trouve — et rien de plus. Elle ouvrait une boite de dialogue,
-   *  « Mise a jour disponible / Plus tard / Mettre a jour » : c'etait demander
-   *  deux fois la meme chose, une fois par oui-non et une fois par la pastille
-   *  bleue au bout du telechargement. Et le premier des deux tombait au pire
-   *  moment, avant que le fichier existe, quand repondre oui ne faisait
-   *  qu'attendre.
-   *
-   *  Ce qu'elle ajoute a la verification du lancement, c'est de repondre quand
-   *  il n'y a RIEN : une verification demandee dont on ne voit pas l'issue ne
-   *  se distingue pas d'un bouton qui ne marche pas. */
-  void checkNow() {
-    io.execute(() -> {
-      try {
-        Metadata metadata = fetchMetadata();
-        if (metadata.versionCode > currentVersionCode()) {
-          // Le compteur prend le relais, donc la pilule a fini de repondre.
-          report("found");
-          activity.runOnUiThread(() -> download(metadata));
-          return;
-        }
-        pendingVersion = "";
-        report("current");
-      } catch (Exception error) {
-        Log.w(TAG, "Manual update check failed", error);
-        // « Hors ligne » et « ca n'a pas marche » ne se corrigent pas de la
-        // meme facon : l'un demande du reseau, l'autre demande de reessayer.
-        report("offline".equals(error.getMessage()) ? "offline" : "failed");
-      }
-    });
-  }
-
-  /** The answer to a check asked for by hand, handed to the page.
-   *
-   *  It used to be a Toast: a grey lozenge over the calendar, in the system's
-   *  own styling, saying something about a button at the other end of the
-   *  screen. The button asked the question, so the button shows the answer —
-   *  see the version pill in CalendarSidebar.tsx. */
-  private void report(String status) {
-    activity.runOnUiThread(() -> {
-      if (onCheckResult != null) onCheckResult.accept(status);
     });
   }
 
@@ -191,10 +175,6 @@ final class AppUpdater {
 
   void setOnUpdateFound(Runnable listener) {
     onUpdateFound = listener;
-  }
-
-  void setOnCheckResult(java.util.function.Consumer<String> listener) {
-    onCheckResult = listener;
   }
 
   void setOnProgress(java.util.function.Consumer<Integer> listener) {
@@ -224,7 +204,7 @@ final class AppUpdater {
       download(lastAttempt);
       return;
     }
-    checkNow();
+    check(true);
   }
 
   /** Pas de reseau du tout : inutile d'aller au bout d'un delai d'attente pour

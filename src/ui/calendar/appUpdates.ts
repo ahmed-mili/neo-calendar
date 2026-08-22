@@ -2,11 +2,10 @@
  * What the app knows about its own version, and how it asks for a newer one.
  *
  * The version number is stamped in at build time by both Vite configs
- * (`__NEO_VERSION__`). The check itself belongs to the Android shell — it is
- * the side that can download an APK and hand it to the package installer — so
- * this module only reaches for the bridge and reports whether it is there.
- * Everywhere else (the desktop, which updates itself through Tauri) the version
- * is a label and nothing more.
+ * (`__NEO_VERSION__`), and is a label: nothing in the interface asks for a
+ * check any more. Both shells look on their own — at launch, on coming back to
+ * the app, and on a timer — so the only thing left to say across the bridge is
+ * what has been downloaded, and to ask for it to be installed.
  */
 
 /** Stamped by Vite's `define`. Absent in any build that does not set it, which
@@ -30,16 +29,6 @@ export function appVersion(): string {
  *  newer, so the badge appears without anyone waiting for a poll. */
 export const UPDATE_EVENT = "neo-update-available";
 
-/** Fired with `detail.status` once a check asked for BY HAND has finished:
- *  "current" when nothing is newer, "offline" when there is no network to look
- *  over, "failed" when the look was taken and did not work, "found" when there
- *  is something newer — auquel cas la coque la descend sans rien demander, et
- *  le contrôle qui avait posé la question n'a plus qu'à rendre la main au
- *  compteur. */
-export const CHECK_RESULT_EVENT = "neo-update-checked";
-
-export type CheckResult = "current" | "failed" | "offline" | "found";
-
 /** Fired while an update downloads, with `detail.percent`:
  *  0..100 as it goes, -1 when the server declined to say how big the file is
  *  (nothing honest to count, so the control spins instead), and -2 when it is
@@ -48,7 +37,6 @@ export type CheckResult = "current" | "failed" | "offline" | "found";
 export const UPDATE_PROGRESS_EVENT = "neo-update-progress";
 
 interface UpdateBridge {
-    checkForUpdates?: () => void;
     pendingUpdate?: () => string;
     installPendingUpdate?: () => void;
 }
@@ -57,15 +45,6 @@ function bridge(): UpdateBridge | null {
     if (typeof window === "undefined") return null;
     const host = (window as Window & { NeoAndroid?: UpdateBridge }).NeoAndroid;
     return host ?? null;
-}
-
-/** Whether asking for a check would reach anything.
- *
- *  Feature-detected on the method, not on the platform: an older APK carries a
- *  bridge without it, and calling a method that is not there throws inside the
- *  WebView rather than doing nothing quietly. */
-export function canCheckForUpdates(): boolean {
-    return typeof bridge()?.checkForUpdates === "function";
 }
 
 /**
@@ -98,20 +77,6 @@ export function pendingUpdateVersion(): string {
         return host.pendingUpdate() || downloadedVersion;
     } catch {
         return downloadedVersion;
-    }
-}
-
-/** Ask the shell to look now. It owns what happens next — the prompt if there
- *  is something newer, a word if there is not — because it is the side that
- *  knows, and a second answer rendered in here could only disagree with it. */
-export function requestUpdateCheck(): boolean {
-    const host = bridge();
-    if (typeof host?.checkForUpdates !== "function") return false;
-    try {
-        host.checkForUpdates();
-        return true;
-    } catch {
-        return false;
     }
 }
 

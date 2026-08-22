@@ -126,9 +126,6 @@ public class MainActivity extends Activity {
           "window.dispatchEvent(new Event('neo-update-available'))", null);
       }
     });
-    // The answer to a hand-asked check goes back to the control that asked it,
-    // rather than to a system Toast over the calendar. The status is one of a
-    // fixed set of words, so it is quoted straight into the event.
     appUpdater.setOnProgress(percent -> {
       if (webView != null) {
         webView.evaluateJavascript(
@@ -136,14 +133,6 @@ public class MainActivity extends Activity {
             + "{detail:{percent:" + percent + "}}))", null);
       }
     });
-    appUpdater.setOnCheckResult(status -> {
-      if (webView != null) {
-        webView.evaluateJavascript(
-          "window.dispatchEvent(new CustomEvent('neo-update-checked',"
-            + "{detail:{status:" + JSONObject.quote(status) + "}}))", null);
-      }
-    });
-
     // Hold the system splash screen until the interface has something to show.
     // Without this it lifts as soon as the activity can draw — which is before
     // the WebView has loaded, so the wallpaper appeared bare for a second or
@@ -427,7 +416,16 @@ public class MainActivity extends Activity {
       }
     );
   }
-  @Override protected void onResume(){super.onResume();if(appUpdater!=null)appUpdater.resumePendingInstall();}
+  /* Poser ce qui attendait, et regarder s'il y a du neuf. Les deux vont
+     ensemble : revenir sur l'application est le moment ou l'on s'attend a ce
+     qu'elle se soit tenue au courant, et c'est ce qui remplace le geste
+     d'aller chercher soi-meme. */
+  @Override protected void onResume() {
+    super.onResume();
+    if (appUpdater == null) return;
+    appUpdater.resumePendingInstall();
+    if (interfaceReady) appUpdater.checkOnResume();
+  }
   @Override protected void onDestroy(){io.shutdownNow();if(webView!=null){webView.removeJavascriptInterface("NeoAndroid");webView.destroy();}super.onDestroy();}
   @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);String id=pendingPickerId;pendingPickerId=null;if(id==null)return;if(result!=RESULT_OK||data==null){resolve(id,true,"null");return;}try{if(request==PICK_TREE){Uri uri=data.getData();if(uri==null){resolve(id,true,"null");return;}int flags=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);getContentResolver().takePersistableUriPermission(uri,flags);getSharedPreferences(PREF_FILE,MODE_PRIVATE).edit().putString(PREF_TREE,uri.toString()).apply();resolve(id,true,JSONObject.quote(uri.toString()));}else{JSONArray arr=new JSONArray();if(data.getClipData()!=null){for(int i=0;i<data.getClipData().getItemCount();i++)arr.put(data.getClipData().getItemAt(i).getUri().toString());}else if(data.getData()!=null)arr.put(data.getData().toString());resolve(id,true,arr.toString());}}catch(Exception e){resolve(id,false,e.getMessage());}}
   private void resolve(String id,boolean ok,String payload){String safeId=JSONObject.quote(id), safePayload=JSONObject.quote(payload==null?"":payload);runOnUiThread(()->webView.evaluateJavascript("window.__neoAndroidResolve&&window.__neoAndroidResolve("+safeId+","+ok+","+safePayload+")",null));}
@@ -532,10 +530,6 @@ public class MainActivity extends Activity {
 
   public class Bridge {
     @JavascriptInterface public void interfaceReady() { runOnUiThread(MainActivity.this::markInterfaceReady); }
-    /** The version beside the gear, pressed. Feature-detected from the web side
-        (see appUpdates.ts), so an older shell without this simply renders the
-        number as a label. */
-    @JavascriptInterface public void checkForUpdates(){ if(appUpdater!=null) appUpdater.checkNow(); }
     /** The version the shell is holding, or "" — what the badge on the menu
         button is drawn from. Returns synchronously: it is a field, not a
         fetch. */
