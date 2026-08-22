@@ -207,6 +207,54 @@ export function cappedPageStep(
 }
 
 /**
+ * Combien de pixels, de chaque côté de la grille, comptent comme « le bord »
+ * quand un événement y est tenu.
+ *
+ * Une bande, et pas une fraction : ce qui décide, c'est la distance qu'un pouce
+ * peut encore parcourir sans quitter l'écran, et elle ne change pas avec le
+ * nombre de jours affichés.
+ */
+export const EDGE_TURN_BAND_PX = 44;
+
+/**
+ * Le temps qu'un événement doit rester contre le bord avant que la grille
+ * tourne une page, puis entre deux pages.
+ *
+ * Plus long que la page elle-même (SETTLE_MS) : on doit voir où l'on arrive
+ * avant de repartir, sinon tenir le doigt une seconde de trop coûte trois
+ * jours.
+ */
+export const EDGE_TURN_INTERVAL_MS = 420;
+
+/**
+ * De quel côté la grille doit tourner quand l'événement est tenu là, ou 0 si le
+ * doigt n'est contre aucun bord.
+ *
+ * Déplacer un événement ne fait plus défiler la grille — c'est délibéré, elle a
+ * rendu la main au geste qui le porte — si bien qu'en vue 1 jour il fallait
+ * franchir plus d'une demi-colonne pour changer de jour, et que l'avant-veille
+ * était tout simplement hors d'atteinte. Le bord est la réponse habituelle : on
+ * y tient l'événement, et ce sont les jours qui viennent à lui.
+ *
+ * Les deux bandes ne peuvent pas se rejoindre : sur une grille étroite elles
+ * sont ramenées au quart de sa largeur chacune, sinon le milieu disparaît et
+ * n'importe quel point de la grille tournerait une page.
+ */
+export function edgeTurnDirection(
+    pointerX: number | null,
+    view: { left: number; right: number },
+    band = EDGE_TURN_BAND_PX
+): -1 | 0 | 1 {
+    if (pointerX === null) return 0;
+    const width = view.right - view.left;
+    const usable = Math.min(band, width / 4);
+    if (!(usable > 0)) return 0;
+    if (pointerX <= view.left + usable) return -1;
+    if (pointerX >= view.right - usable) return 1;
+    return 0;
+}
+
+/**
  * How many days one swipe turns: one, or none.
  *
  * A carousel came first here, then free scrolling with a snap at the end, and
@@ -663,8 +711,68 @@ export function useAxisLock(
            traverse pas React pour venir jusqu'ici. */
         const eventInHand = () => host.dataset.ncDragging === "true";
 
+        /** Le sens dans lequel le bord fait tourner la grille, et le rendez-vous
+            qui la fait tourner encore tant que l'événement y reste tenu. */
+        let edgeTurn: -1 | 0 | 1 = 0;
+        let edgeTimer = 0;
+        /** Les bords, mesurés une fois par geste : rien ne redimensionne la
+            grille pendant qu'on lui traverse les jours, et un
+            `getBoundingClientRect` par mouvement de doigt force une mise en
+            page pour redonner le même nombre. */
+        let edgeView: { left: number; right: number } | null = null;
+
+        const stopEdgeTurns = () => {
+            if (edgeTimer) window.clearInterval(edgeTimer);
+            edgeTimer = 0;
+            edgeTurn = 0;
+        };
+
+        /** Le geste est fini : les bords seront remesurés au prochain. */
+        const forgetEdges = () => {
+            stopEdgeTurns();
+            edgeView = null;
+        };
+
+        /**
+         * Tourne une page tant que l'événement est tenu contre un bord.
+         *
+         * Le rendez-vous est armé par la position du doigt et survit à son
+         * immobilité : tenir l'événement là sans plus bouger est précisément le
+         * geste, et un `touchmove` n'arrive que lorsque le doigt bouge. Il
+         * s'arrête quand le doigt revient au milieu, quand il se lève, et quand
+         * l'événement n'est plus en main.
+         *
+         * Une page toujours entière, jamais un défilement continu : les jours de
+         * cette grille se tournent, ils ne coulent pas, et une demi-colonne
+         * laissée sous le doigt est une demi-colonne que quelqu'un devrait
+         * rendre.
+         */
+        const followEdge = (clientX: number) => {
+            edgeView ??= element.getBoundingClientRect();
+            const direction = edgeTurnDirection(clientX, edgeView);
+            if (direction === edgeTurn) return;
+            stopEdgeTurns();
+            if (!direction) return;
+            edgeTurn = direction;
+            edgeTimer = window.setInterval(() => {
+                if (!eventInHand()) {
+                    stopEdgeTurns();
+                    return;
+                }
+                // La page précédente est encore en vol : rien à empiler
+                // dessus, le prochain rendez-vous la reprendra.
+                if (frame) return;
+                const width = measureColumn();
+                if (!(width > 0)) return;
+                // Le décalage des dates re-mesure la grille derrière nous.
+                forgetExtents();
+                slideDays(direction * width, settleOnDays);
+            }, EDGE_TURN_INTERVAL_MS);
+        };
+
         const onTouchStart = (event: TouchEvent) => {
             stopFrame();
+            forgetEdges();
             axis = null;
             samples = [];
             pageTravel = 0;
@@ -712,19 +820,27 @@ export function useAxisLock(
                 return;
             }
 
-            if (!tracking) return;
-
             // L'appui long a abouti pendant ce geste : ce que le doigt déplace
             // n'est plus la grille. Elle rend la main sans rien terminer — il
             // n'y a rien à laisser glisser ni de jour où se poser, le geste ne
-            // lui appartenait déjà plus.
+            // lui appartenait déjà plus — mais elle regarde encore où le doigt
+            // tient l'événement, parce qu'un bord tenu tourne une page.
+            //
+            // La main n'est rendue qu'une fois : `stopFrame` à chaque mouvement
+            // annulerait la page en train de se tourner.
             if (eventInHand()) {
-                stopFrame();
-                tracking = false;
-                axis = null;
-                samples = [];
+                if (tracking) {
+                    stopFrame();
+                    tracking = false;
+                    axis = null;
+                    samples = [];
+                }
+                const held = event.touches[0];
+                if (held) followEdge(held.clientX);
                 return;
             }
+
+            if (!tracking) return;
 
             const touch = event.touches[0];
 
@@ -760,6 +876,7 @@ export function useAxisLock(
         };
 
         const onTouchEnd = (event: TouchEvent) => {
+            forgetEdges();
             if (pinch) {
                 // A finger lifted out of a pinch leaves the other one resting
                 // on the grid, not scrolling with it. Nothing moves again until
@@ -816,6 +933,7 @@ export function useAxisLock(
         };
 
         const onTouchCancel = () => {
+            forgetEdges();
             const releasing = axis;
             const pinching = pinch !== null;
             stopFrame();
@@ -847,6 +965,7 @@ export function useAxisLock(
 
         return () => {
             stopFrame();
+            forgetEdges();
             element.style.touchAction = inheritedTouchAction;
             // Both together, or the grid would measure itself in hours of one
             // height and lay itself out in hours of another.

@@ -662,6 +662,14 @@ export default function TimeGrid(props: TimeGridProps) {
             // bottom edge made the grid scroll on its own, and because the drag
             // delta then accumulates the scrolled distance, the event landed far
             // from the pointer (e.g. dropped at 00:00) with no usable preview.
+            //
+            // Toujours coupé, et pour une deuxième raison depuis : les jours de
+            // cette grille se tournent au lieu de couler (useAxisLock), et un
+            // défilement continu la laisserait à cheval sur deux d'entre eux.
+            // Le glissement au bord tourne donc des pages entières, d'où
+            // `edgeTurnDirection` ; la projection, elle, ne se fie plus au delta
+            // pour trouver le jour visé mais aux colonnes elles-mêmes, qui
+            // portent leur date (voir `dayPositionUnderPointer`).
             autoScroll={false}
             onDragStart={handleDragStart}
             onDragMove={handleDragMove}

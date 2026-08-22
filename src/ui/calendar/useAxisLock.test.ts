@@ -9,6 +9,8 @@ import {
     decayedVelocity,
     easeOutCubic,
     cappedPageStep,
+    EDGE_TURN_BAND_PX,
+    edgeTurnDirection,
     pagesTurnedBy,
     VELOCITY_WINDOW_MS,
     lockedAxis,
@@ -343,5 +345,42 @@ describe("easeOutCubic", () => {
         // Fast first, easing in at the end — the shape of something settling.
         expect(easeOutCubic(0.5)).toBeCloseTo(0.875, 5);
         expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
+    });
+});
+
+describe("edgeTurnDirection", () => {
+    // Une vue 1 jour sur un téléphone : le rail des heures pris, il reste 384 px
+    // de grille visible.
+    const view = { left: 64, right: 448 };
+
+    it("ne tourne rien tant que le doigt tient l'événement au milieu", () => {
+        expect(edgeTurnDirection(256, view)).toBe(0);
+        expect(edgeTurnDirection(null, view)).toBe(0);
+    });
+
+    it("tourne vers la veille contre le bord gauche", () => {
+        expect(edgeTurnDirection(view.left + EDGE_TURN_BAND_PX, view)).toBe(-1);
+        expect(edgeTurnDirection(view.left, view)).toBe(-1);
+        // Un doigt poussé hors de la grille tient toujours le bord.
+        expect(edgeTurnDirection(view.left - 20, view)).toBe(-1);
+    });
+
+    it("tourne vers le lendemain contre le bord droit", () => {
+        expect(edgeTurnDirection(view.right - EDGE_TURN_BAND_PX, view)).toBe(1);
+        expect(edgeTurnDirection(view.right + 20, view)).toBe(1);
+    });
+
+    it("laisse un milieu même sur une grille étroite", () => {
+        // 100 px de large : les deux bandes valent 25 px chacune, et les 50 px
+        // du milieu ne tournent rien. À 44 px chacune elles se rejoindraient et
+        // toute la grille serait un bord.
+        const narrow = { left: 0, right: 100 };
+        expect(edgeTurnDirection(50, narrow)).toBe(0);
+        expect(edgeTurnDirection(25, narrow)).toBe(-1);
+        expect(edgeTurnDirection(75, narrow)).toBe(1);
+    });
+
+    it("ne tourne rien sur une grille sans largeur", () => {
+        expect(edgeTurnDirection(0, { left: 0, right: 0 })).toBe(0);
     });
 });

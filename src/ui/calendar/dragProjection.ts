@@ -86,6 +86,7 @@ export function readGridGeometry(gridEl: HTMLElement | null): GridGeometry {
     // Le panneau est un frere de la grille, hors du DndContext : introuvable
     // depuis gridEl, donc lu sur le document. Absent du DOM = panneau ferme.
     const panelEl = document.querySelector(".nc-cep") as HTMLElement | null;
+    const panelRect = panelEl?.getBoundingClientRect();
     const bandRect = bandEl?.getBoundingClientRect();
     const columns: ColumnRect[] = [];
     for (const col of Array.from(gridEl.querySelectorAll(".nc-timegrid-day"))) {
@@ -107,7 +108,15 @@ export function readGridGeometry(gridEl: HTMLElement | null): GridGeometry {
         viewport: scrollerEl
             ? toRect(scrollerEl.getBoundingClientRect())
             : null,
-        panel: panelEl ? toRect(panelEl.getBoundingClientRect()) : null,
+        // Un panneau ferme n'est pas une cible. Sur le bureau il quitte le DOM,
+        // mais sur le telephone il reste monte, glisse hors de l'ecran par la
+        // gauche : son bord droit tombe alors sur x = 0, et un doigt pousse
+        // contre le bord de l'ecran suffisait a deplanifier l'evenement qu'il
+        // tenait. Seul un panneau dont une partie est visible compte.
+        panel:
+            panelRect && panelRect.right > 0 && panelRect.width > 0
+                ? toRect(panelRect)
+                : null,
     };
 }
 
@@ -169,6 +178,58 @@ export function columnDateUnderPointer(
     return null;
 }
 
+/** Ou se trouve un pointeur, mesure en JOURS et non en pixels : la date de la
+    colonne qu'il survole, et la fraction de cette colonne deja parcourue.
+
+    C'est la seule lecture qui survive au defilement. Un delta en pixels dit de
+    combien le doigt a bouge, pas de combien de jours : des que la grille se
+    deplace sous lui — le glissement au bord, et le defilement infini qui
+    re-base les dates derriere — les pixels et les jours ne parlent plus de la
+    meme chose. Les colonnes, elles, portent leur date. */
+export interface DayPosition {
+    date: Date;
+    /** 0 au bord gauche de la colonne, 1 au bord droit. */
+    fraction: number;
+}
+
+export function dayPositionUnderPointer(
+    geo: GridGeometry,
+    pointerX: number | null
+): DayPosition | null {
+    if (pointerX === null) return null;
+    const v = geo.viewport;
+    if (v && (pointerX < v.left || pointerX > v.right)) return null;
+    for (const col of geo.columns) {
+        if (pointerX >= col.left && pointerX < col.right) {
+            const width = col.right - col.left;
+            return {
+                date: new Date(col.date),
+                fraction: width > 0 ? (pointerX - col.left) / width : 0,
+            };
+        }
+    }
+    return null;
+}
+
+/** De combien de jours on a bouge entre deux positions ainsi mesurees, ou
+    `null` si l'une des deux manque — le pointeur est hors des colonnes, ou la
+    grille n'etait pas mesurable au depart.
+
+    La fraction est ce qui garde le point de saisie : attraper un evenement
+    contre le bord droit de sa colonne ne doit pas le faire changer de jour au
+    premier pixel. C'est le meme demi-jour de tolerance qu'un arrondi sur les
+    pixels, exprime en jours. */
+export function dayShiftFromAnchor(
+    anchor: DayPosition | null | undefined,
+    current: DayPosition | null | undefined
+): number | null {
+    if (!anchor || !current) return null;
+    return Math.round(
+        dayShiftBetween(anchor.date, current.date) +
+            (current.fraction - anchor.fraction)
+    );
+}
+
 /** L'heure sous le pointeur, en heures decimales, snappee et bornee au jour. */
 export function computeDropHour(
     geo: GridGeometry,
@@ -215,6 +276,10 @@ export interface DraggedEvent {
 }
 
 export interface GridDragOptions {
+    /** La position, en jours, ou le geste a commence. Sans elle le decalage se
+        deduit du delta en pixels, ce qui ne vaut que tant que la grille ne
+        bouge pas sous le doigt. */
+    anchor?: DayPosition | null;
     /** Decalage en jours a appliquer au lieu de lire la colonne sous le
         pointeur. Les membres d'une multi-selection n'ont PAS ete saisis : ils
         partagent le pointeur de l'evenement attrape, et lire la colonne sous ce
@@ -256,13 +321,24 @@ export function gridDragDayShift(
     geo: GridGeometry,
     ev: DraggedEvent,
     delta: { x: number; y: number },
-    pointerX: number | null
+    pointerX: number | null,
+    anchor?: DayPosition | null
 ): number {
-    const dayOffset = horizontalDayOffset(geo, delta.x);
-    if (!(ev.allDay || isMultiDayTimed(ev))) return dayOffset;
-    const column = columnDateUnderPointer(geo, pointerX);
-    if (!column) return dayOffset;
-    return dayShiftBetween(startOfDay(ev.start), column);
+    if (ev.allDay || isMultiDayTimed(ev)) {
+        const column = columnDateUnderPointer(geo, pointerX);
+        if (column) return dayShiftBetween(startOfDay(ev.start), column);
+        return horizontalDayOffset(geo, delta.x);
+    }
+    // Les colonnes d'abord : elles portent leur date, donc elles disent la
+    // verite meme quand la grille a tourne des pages sous le doigt. Le delta en
+    // pixels reste la reponse quand le pointeur n'est sur aucune colonne — hors
+    // du viewport, sur le rail des heures — ou quand rien n'etait mesurable au
+    // depart du geste.
+    const measured = dayShiftFromAnchor(
+        anchor,
+        dayPositionUnderPointer(geo, pointerX)
+    );
+    return measured ?? horizontalDayOffset(geo, delta.x);
 }
 
 export function projectGridDrag(
@@ -275,7 +351,9 @@ export function projectGridDrag(
 ): DropSlot {
     // Un seul decalage de jours pour tout le reste de la fonction. Impose par
     // l'appelant pour les membres d'une multi-selection, sinon deduit du geste.
-    const shift = opts.dayShift ?? gridDragDayShift(geo, ev, delta, pointerX);
+    const shift =
+        opts.dayShift ??
+        gridDragDayShift(geo, ev, delta, pointerX, opts.anchor);
     const dayFrom = (d: Date): Date => {
         const day = startOfDay(d);
         day.setDate(day.getDate() + shift);

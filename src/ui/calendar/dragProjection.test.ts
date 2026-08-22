@@ -9,6 +9,9 @@ import {
     isOverPanel,
     projectPanelDrop,
     projectGridDrag,
+    gridDragDayShift,
+    dayPositionUnderPointer,
+    dayShiftFromAnchor,
     dayShiftBetween,
 } from "./dragProjection";
 
@@ -300,6 +303,93 @@ describe("projectGridDrag", () => {
         expect(out.start).toEqual(new Date(2026, 6, 21, 10, 0));
         expect(out.end.getTime() - out.start.getTime()).toBe(
             ev.end.getTime() - ev.start.getTime()
+        );
+    });
+});
+
+describe("dayPositionUnderPointer", () => {
+    it("situe le pointeur en jours plutot qu'en pixels", () => {
+        expect(dayPositionUnderPointer(geo(), 125)).toEqual({
+            date: new Date(2026, 6, 21),
+            fraction: 0.25,
+        });
+    });
+
+    it("ne situe rien hors des colonnes visibles", () => {
+        expect(dayPositionUnderPointer(geo(), 260)).toBeNull();
+        expect(dayPositionUnderPointer(geo(), null)).toBeNull();
+    });
+});
+
+describe("dayShiftFromAnchor", () => {
+    const at = (day: number, fraction: number) => ({
+        date: new Date(2026, 6, day),
+        fraction,
+    });
+
+    it("ne change pas de jour tant qu'une demi-colonne n'est pas parcourue", () => {
+        expect(dayShiftFromAnchor(at(20, 0.2), at(20, 0.6))).toBe(0);
+    });
+
+    it("change de jour des la demi-colonne franchie", () => {
+        expect(dayShiftFromAnchor(at(20, 0.2), at(20, 0.75))).toBe(1);
+    });
+
+    it("compte les jours passes sous un doigt immobile", () => {
+        // Le doigt est reste au meme endroit de la colonne : ce sont les jours
+        // qui ont defile dessous.
+        expect(dayShiftFromAnchor(at(20, 0.4), at(22, 0.4))).toBe(2);
+    });
+
+    it("ne repond rien sans ancre ni colonne", () => {
+        expect(dayShiftFromAnchor(null, at(20, 0.4))).toBeNull();
+        expect(dayShiftFromAnchor(at(20, 0.4), null)).toBeNull();
+    });
+});
+
+describe("gridDragDayShift", () => {
+    const timed = (start: Date, hours: number) => ({
+        start,
+        end: new Date(start.getTime() + hours * 3600000),
+        allDay: false,
+    });
+
+    // Les memes 200 px de grille, deux jours plus loin : c'est ce que le
+    // glissement au bord produit, et le defilement infini re-base les dates
+    // par-dessus sans que scrollLeft en garde la trace.
+    const turned = geo({
+        columns: [
+            { left: 0, right: 100, date: new Date(2026, 6, 22) },
+            { left: 100, right: 200, date: new Date(2026, 6, 23) },
+        ],
+    });
+
+    it("suit les colonnes quand la grille a tourne sous un doigt immobile", () => {
+        const ev = timed(new Date(2026, 6, 21, 10, 0), 1);
+        const anchor = dayPositionUnderPointer(geo(), 150);
+        expect(gridDragDayShift(turned, ev, { x: 0, y: 0 }, 150, anchor)).toBe(
+            2
+        );
+    });
+
+    it("s'en tient au delta quand le pointeur n'est sur aucune colonne", () => {
+        const ev = timed(new Date(2026, 6, 20, 10, 0), 1);
+        const anchor = dayPositionUnderPointer(geo(), 50);
+        // 260 est hors du viewport : plus de colonne a lire, le geste vaut ce
+        // que ses pixels disent (100 px = une colonne).
+        expect(gridDragDayShift(geo(), ev, { x: 100, y: 0 }, 260, anchor)).toBe(
+            1
+        );
+    });
+
+    it("ne change rien quand la grille n'a pas bouge", () => {
+        const ev = timed(new Date(2026, 6, 20, 10, 0), 1);
+        const anchor = dayPositionUnderPointer(geo(), 50);
+        expect(gridDragDayShift(geo(), ev, { x: 30, y: 0 }, 80, anchor)).toBe(
+            0
+        );
+        expect(gridDragDayShift(geo(), ev, { x: 60, y: 0 }, 110, anchor)).toBe(
+            1
         );
     });
 });

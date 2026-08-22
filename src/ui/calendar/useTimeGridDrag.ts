@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
     DragStartEvent,
     DragMoveEvent,
@@ -8,6 +8,7 @@ import {
     useSensor,
     useSensors,
 } from "@dnd-kit/core";
+import { getEventCoordinates } from "@dnd-kit/utilities";
 import { isMultiDayTimed } from "./CalendarUtils";
 import { DisplayEvent } from "../types";
 import {
@@ -15,6 +16,8 @@ import {
     isOverPanel as overPanel,
     projectGridDrag,
     gridDragDayShift,
+    dayPositionUnderPointer,
+    DayPosition,
 } from "./dragProjection";
 
 /** Un evenement n'est deplanifiable que s'il est unique et editable : une
@@ -24,24 +27,23 @@ import {
 const canDropOnPanel = (event: DisplayEvent): boolean =>
     event.editable && !event.isRecurring && !event.isSomeday;
 
-// Pointer Y at the current drag position = where it was grabbed + how far it
-// moved. The single source of truth for "where did the user drop", immune to
-// the dragged element's mismeasured box (an all-day bar can report the whole
-// grid height).
-function pointerYFrom(
+// Le pointeur au moment courant du drag = là où il a saisi, plus ce qu'il a
+// parcouru. Seule source de vérité pour « où a-t-on lâché », insensible à la
+// boîte mal mesurée de l'élément déplacé (une barre all-day peut annoncer la
+// hauteur de toute la grille).
+//
+// Les coordonnées de la saisie sont lues par `getEventCoordinates`, et pas sur
+// l'événement lui-même : un `TouchEvent` ne porte pas de `clientX`, il le range
+// dans `touches[0]`. Le téléphone n'avait donc AUCUN pointeur — tout ce qui se
+// lit sous le doigt (la colonne survolée, la bande all-day, le panneau) était
+// mort là-bas, et le jour visé ne pouvait venir que du delta en pixels.
+function pointerFrom(
     activatorEvent: Event | null,
-    deltaY: number
-): number | null {
-    const a = activatorEvent as (Event & { clientY?: number }) | null;
-    return a && typeof a.clientY === "number" ? a.clientY + deltaY : null;
-}
-
-function pointerXFrom(
-    activatorEvent: Event | null,
-    deltaX: number
-): number | null {
-    const a = activatorEvent as (Event & { clientX?: number }) | null;
-    return a && typeof a.clientX === "number" ? a.clientX + deltaX : null;
+    delta: { x: number; y: number }
+): { x: number | null; y: number | null } {
+    const at = activatorEvent ? getEventCoordinates(activatorEvent) : null;
+    if (!at) return { x: null, y: null };
+    return { x: at.x + delta.x, y: at.y + delta.y };
 }
 
 export function useTimeGridDrag(
@@ -95,10 +97,54 @@ export function useTimeGridDrag(
         })
     );
 
+    /** Où le geste a commencé, mesuré en jours, et où la grille en était. Les
+        deux sont relevés au moment de la saisie et lus jusqu'au lâcher. */
+    const anchorRef = useRef<DayPosition | null>(null);
+    const scrollOriginRef = useRef<{ left: number; top: number } | null>(null);
+
     // La geometrie est relue a chaque appel : la grille scrolle pendant le drag.
     const geometry = useCallback(
         () => readGridGeometry(gridRef.current),
         [gridRef]
+    );
+
+    const scroller = useCallback(
+        () =>
+            (gridRef.current?.querySelector(
+                ".nc-main-scroller"
+            ) as HTMLElement | null) ?? null,
+        [gridRef]
+    );
+
+    /**
+     * Où le doigt est VRAIMENT, à l'écran.
+     *
+     * dnd-kit ajoute à son delta le défilement survenu depuis le début du geste,
+     * pour que l'élément déplacé — qui vit dans la grille et part avec elle —
+     * reste sous le doigt. C'est ce qu'il faut à l'écran et l'inverse de ce
+     * qu'il faut ici : ajouté au point de saisie, ce delta-là désigne un point
+     * que le doigt n'a jamais visité, d'autant plus loin que la grille a tourné
+     * de pages. C'est pour cette raison que l'auto-défilement de dnd-kit avait
+     * été coupé : l'événement atterrissait à 00:00, très loin du pointeur.
+     *
+     * On le retranche donc, mesuré sur le même défileur et de la même façon —
+     * une différence de `scrollLeft` — si bien que le re-basage des dates, qui
+     * fausse les deux, s'annule entre les deux.
+     */
+    const viewportPointer = useCallback(
+        (
+            activatorEvent: Event | null,
+            delta: { x: number; y: number }
+        ): { x: number | null; y: number | null } => {
+            const el = scroller();
+            const origin = scrollOriginRef.current;
+            if (!el || !origin) return pointerFrom(activatorEvent, delta);
+            return pointerFrom(activatorEvent, {
+                x: delta.x - (el.scrollLeft - origin.left),
+                y: delta.y - (el.scrollTop - origin.top),
+            });
+        },
+        [scroller]
     );
 
     // Meme definition que celle utilisee par le drag venu du panneau : les deux
@@ -127,7 +173,7 @@ export function useTimeGridDrag(
                 delta,
                 pointerX,
                 pointerY,
-                { dayShift }
+                { dayShift, anchor: anchorRef.current }
             );
             return {
                 newStart: slot.start,
@@ -156,7 +202,13 @@ export function useTimeGridDrag(
             if (!inGroup) return { members: [grabbed], shift: undefined };
             return {
                 members: group,
-                shift: gridDragDayShift(geometry(), grabbed, delta, pointerX),
+                shift: gridDragDayShift(
+                    geometry(),
+                    grabbed,
+                    delta,
+                    pointerX,
+                    anchorRef.current
+                ),
             };
         },
         [getDragGroup, geometry]
@@ -199,13 +251,29 @@ export function useTimeGridDrag(
             // en direct comme la classe du panneau plus bas : le défilement
             // tactile vit hors de React et lit l'élément, pas un state.
             if (gridRef.current) gridRef.current.dataset.ncDragging = "true";
+            // D'où la grille part : tout ce qui suit se mesure par rapport à
+            // ces deux nombres, et le glissement au bord les fera bouger.
+            const el = scroller();
+            scrollOriginRef.current = el
+                ? { left: el.scrollLeft, top: el.scrollTop }
+                : null;
             const rect = event.active.rect.current.initial;
             if (rect) {
                 setDragWidth(rect.width);
             }
             if (displayEvent) {
-                const pointerX = pointerXFrom(event.activatorEvent, 0);
-                const pointerY = pointerYFrom(event.activatorEvent, 0);
+                const { x: pointerX, y: pointerY } = pointerFrom(
+                    event.activatorEvent,
+                    { x: 0, y: 0 }
+                );
+                // La saisie, exprimée en jours : la colonne sous le doigt et
+                // l'endroit de cette colonne. C'est à elle que tout le reste du
+                // geste se compare, et elle est la seule mesure que le
+                // défilement ne périme pas.
+                anchorRef.current = dayPositionUnderPointer(
+                    geometry(),
+                    pointerX
+                );
                 setDragPreview(
                     buildPreview(
                         displayEvent,
@@ -232,7 +300,7 @@ export function useTimeGridDrag(
                 );
             }
         },
-        [buildPreview, dragTargets, gridRef]
+        [buildPreview, dragTargets, geometry, gridRef, scroller]
     );
 
     const handleDragMove = useCallback(
@@ -240,8 +308,10 @@ export function useTimeGridDrag(
             const displayEvent = event.active.data.current
                 ?.event as DisplayEvent;
             if (!displayEvent) return;
-            const pointerX = pointerXFrom(event.activatorEvent, event.delta.x);
-            const pointerY = pointerYFrom(event.activatorEvent, event.delta.y);
+            const { x: pointerX, y: pointerY } = viewportPointer(
+                event.activatorEvent,
+                event.delta
+            );
 
             // Signale le panneau comme cible de depot. Classe posee en direct
             // plutot que par un state : le panneau est hors de l'arbre React de
@@ -287,7 +357,13 @@ export function useTimeGridDrag(
                 )
             );
         },
-        [buildPreview, dragTargets, onEventUnschedule, isOverPanel]
+        [
+            buildPreview,
+            dragTargets,
+            onEventUnschedule,
+            isOverPanel,
+            viewportPointer,
+        ]
     );
 
     const handleDragEnd = useCallback(
@@ -304,8 +380,10 @@ export function useTimeGridDrag(
                 ?.event as DisplayEvent;
             if (!displayEvent) return;
 
-            const pointerX = pointerXFrom(event.activatorEvent, event.delta.x);
-            const pointerY = pointerYFrom(event.activatorEvent, event.delta.y);
+            const { x: pointerX, y: pointerY } = viewportPointer(
+                event.activatorEvent,
+                event.delta
+            );
 
             // Lacher sur le panneau : l'evenement perd sa date. Le panneau
             // absorbe le geste meme quand l'evenement n'est pas deplanifiable
@@ -380,6 +458,7 @@ export function useTimeGridDrag(
             dragTargets,
             isOverPanel,
             gridRef,
+            viewportPointer,
         ]
     );
 
