@@ -52,7 +52,7 @@
         "@types/deep-equal": "^1.0.1",
         "@types/ical": "^0.8.0",
         "chrono-node": "^2.9.0",
-        "color": "^4.2.1",
+        "color": "^5.0.3",
         "dav": "^1.8.0",
         "deep-equal": "^2.1.0",
         "ical": "^0.8.0",
