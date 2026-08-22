@@ -237,8 +237,14 @@ const FR: Record<string, string> = {
     "Link copied": "Lien copié",
     "Paste it wherever you like": "Collez-le où vous voulez",
     Link: "Lien",
-    "Paste a link, or search the vault":
-        "Coller un lien, ou chercher dans le coffre",
+    // Le champ ouvert, calqué sur Notion Calendar : il cherche autant qu'il
+    // colle, et le disait dans l'autre sens.
+    "Search a document or paste a link":
+        "Rechercher un document ou coller un lien",
+    // La croix d'un lien : elle se tient, elle ne se tapote pas.
+    "Hold to remove": "Maintenir pour supprimer",
+    "Keep pressing the cross until it fills":
+        "Garder le doigt sur la croix jusqu'à ce qu'elle se remplisse",
     "No matching notes": "Aucune note correspondante",
     "Add Obsidian vaults in Settings to search notes.":
         "Ajoutez des coffres Obsidian dans les Réglages pour chercher des notes.",

@@ -20,6 +20,7 @@ import {
 import {
     ChevronDownIcon,
     LinkIcon,
+    SearchIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
     CheckIcon as CheckMarkIcon,
@@ -136,8 +137,8 @@ function SheetHandleGlyph({ glyph }: { glyph: "up" | "bar" | "down" }) {
         glyph === "up"
             ? "M4 13 L12 7 L20 13"
             : glyph === "down"
-              ? "M4 7 L12 13 L20 7"
-              : "M4 10 L20 10";
+            ? "M4 7 L12 13 L20 7"
+            : "M4 10 L20 10";
     return (
         <svg width="24" height="20" viewBox="0 0 24 20" aria-hidden="true">
             <path
@@ -1943,7 +1944,10 @@ interface LinksAttachmentsRowProps {
     onOpenLink?: (item: LinkedFileItem) => Promise<void> | void;
     onPickAttachment?: (eventId: string) => Promise<void>;
     /** Le contenu d'une pièce jointe, pour en montrer une vignette. */
-    onReadAttachment?: (eventId: string, target: string) => Promise<string | null>;
+    onReadAttachment?: (
+        eventId: string,
+        target: string
+    ) => Promise<string | null>;
 }
 
 interface LinkPopoverPosition {
@@ -2077,10 +2081,11 @@ function LinkedFileThumbnail({
     }, [onRead, target]);
 
     if (!source) return null;
-    return (
-        <img className="nc-linked-file-thumb" src={source} alt={name} />
-    );
+    return <img className="nc-linked-file-thumb" src={source} alt={name} />;
 }
+
+/** Le temps qu'il faut pour qu'un appui soit un choix et pas un ratage. */
+const HOLD_TO_REMOVE_MS = 550;
 
 function LinkedFileRow({
     item,
@@ -2094,6 +2099,7 @@ function LinkedFileRow({
     onTooltipOpen,
     onOpenLink,
     onReadAttachment,
+    onRemoveHint,
     tapTrackerRef,
 }: {
     item: LinkedFileItem;
@@ -2118,6 +2124,9 @@ function LinkedFileRow({
     /** Cette ligne vient d'ouvrir la sienne. */
     onTooltipOpen?: (target: string) => void;
     onOpenLink?: (item: LinkedFileItem) => Promise<void> | void;
+    /** La croix a été lâchée avant le bout : au panneau de dire pourquoi rien
+        ne s'est passé. */
+    onRemoveHint?: () => void;
     tapTrackerRef: React.MutableRefObject<LinkedFileTap | null>;
 }) {
     const rowRef = React.useRef<HTMLDivElement>(null);
@@ -2280,9 +2289,7 @@ function LinkedFileRow({
         }
     }, [displayName, draftName, eventId, item.target, onRenameLink, renaming]);
 
-    const remove = async (event: React.MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-        event.stopPropagation();
+    const remove = async () => {
         if (!eventId || !onRemoveLink || removing) return;
         setRemoving(true);
         try {
@@ -2294,6 +2301,54 @@ function LinkedFileRow({
         } finally {
             setRemoving(false);
         }
+    };
+
+    /*
+     * La croix ne supprime plus au premier contact.
+     *
+     * Sur un téléphone les boutons d'une ligne n'apparaissent qu'au premier
+     * appui, et le second — celui qui devait ouvrir le lien — tombe sur la
+     * croix qui vient de paraître à cet endroit. Un lien disparaissait donc
+     * sans que rien n'ait été demandé, et rien ne le ramenait.
+     *
+     * Elle se remplit maintenant sous le doigt et n'emporte la ligne qu'au
+     * bout. Relâchée avant, elle ne fait rien — et le dit, parce qu'un bouton
+     * qui ne fait rien passe autrement pour un bouton cassé.
+     */
+    const holdTimerRef = React.useRef<number | null>(null);
+    const [arming, setArming] = React.useState(false);
+
+    const clearHold = React.useCallback(() => {
+        if (holdTimerRef.current === null) return;
+        window.clearTimeout(holdTimerRef.current);
+        holdTimerRef.current = null;
+    }, []);
+
+    React.useEffect(() => () => clearHold(), [clearHold]);
+
+    const startHold = (event: React.PointerEvent<HTMLButtonElement>) => {
+        if (event.button !== 0 || removing) return;
+        event.preventDefault();
+        event.stopPropagation();
+        clearHold();
+        setArming(true);
+        holdTimerRef.current = window.setTimeout(() => {
+            holdTimerRef.current = null;
+            setArming(false);
+            /* Le seuil est atteint : le téléphone le dit sous le doigt, à
+               l'instant où il l'est. Sans cela on ne l'apprend qu'après, en
+               voyant la ligne partir. */
+            navigator.vibrate?.(18);
+            void remove();
+        }, HOLD_TO_REMOVE_MS);
+    };
+
+    const cancelHold = (event: React.PointerEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        if (holdTimerRef.current === null) return;
+        clearHold();
+        setArming(false);
+        onRemoveHint?.();
     };
 
     const openLinkedItem = async () => {
@@ -2509,14 +2564,39 @@ function LinkedFileRow({
                 {eventId && onRemoveLink && !renaming && (
                     <button
                         type="button"
-                        className="nc-linked-file-remove"
-                        aria-label={`${t("Remove")} ${displayName}`}
+                        className={`nc-linked-file-remove${
+                            arming ? " is-arming" : ""
+                        }`}
+                        /* Le remplissage dure ce que dure l'attente : une seule
+                           valeur, lue par l'animation plutôt que réécrite à
+                           côté d'elle. */
+                        style={
+                            {
+                                "--nc-hold-duration": `${HOLD_TO_REMOVE_MS}ms`,
+                            } as React.CSSProperties
+                        }
+                        aria-label={`${t("Hold to remove")} — ${displayName}`}
+                        title={t("Hold to remove")}
                         disabled={removing}
                         onMouseDown={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
                         }}
-                        onClick={(event) => void remove(event)}
+                        onPointerDown={startHold}
+                        onPointerUp={cancelHold}
+                        onPointerLeave={cancelHold}
+                        onPointerCancel={cancelHold}
+                        /* Un appui tenu ouvre sinon le menu de sélection du
+                           système par-dessus le geste en cours. */
+                        onContextMenu={(event) => event.preventDefault()}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            /* `detail` à zéro : Entrée ou la barre d'espace. Au
+                               clavier il n'y a pas de pression à tenir, et pas
+                               d'appui à côté non plus. */
+                            if (event.detail === 0) void remove();
+                        }}
                     >
                         <XIcon />
                     </button>
@@ -3017,6 +3097,14 @@ export function LinksAttachmentsRow({
                                     detail: t("Paste it wherever you like"),
                                 })
                             }
+                            onRemoveHint={() =>
+                                setToast({
+                                    title: t("Hold to remove"),
+                                    detail: t(
+                                        "Keep pressing the cross until it fills"
+                                    ),
+                                })
+                            }
                             onOpenLink={onOpenLink}
                             onReadAttachment={
                                 onReadAttachment && eventId
@@ -3069,6 +3157,14 @@ export function LinksAttachmentsRow({
                 </button>
             ) : (
                 <div className="nc-link-search-shell" ref={shellRef}>
+                    {/* La chaîne de la ligne fermée devient une loupe, à la
+                        même place et à la même taille : le contrôle change de
+                        métier sans changer d'endroit. Sans elle le champ
+                        s'ouvrait nu, et la ligne d'où il sortait n'était plus
+                        signalée par rien. */}
+                    <span className="nc-link-search-icon" aria-hidden="true">
+                        <SearchIcon />
+                    </span>
                     <input
                         ref={inputRef}
                         className="nc-link-search-input"
@@ -3084,9 +3180,9 @@ export function LinksAttachmentsRow({
                         autoCorrect="off"
                         spellCheck={false}
                         value={query}
-                        placeholder={t("Paste a link, or search the vault")}
+                        placeholder={t("Search a document or paste a link")}
                         disabled={saving}
-                        aria-label={t("Paste a link, or search the vault")}
+                        aria-label={t("Search a document or paste a link")}
                         aria-expanded={Boolean(position)}
                         onChange={(event) => setQuery(event.target.value)}
                         onBeforeInput={(event) => {
@@ -3515,9 +3611,11 @@ export function DescriptionRow({
                                         e.preventDefault();
                                         edit(
                                             index - 1,
-                                            (description.split("\n")[
-                                                index - 1
-                                            ] ?? "").length
+                                            (
+                                                description.split("\n")[
+                                                    index - 1
+                                                ] ?? ""
+                                            ).length
                                         );
                                         return;
                                     }
