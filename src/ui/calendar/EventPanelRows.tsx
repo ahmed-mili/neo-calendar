@@ -82,6 +82,7 @@ import {
     CaretMove,
     mergeLine,
     readChecklist,
+    taskPrefixLength,
     replaceLine,
     splitLine,
     toggleLine,
@@ -3560,10 +3561,17 @@ export function DescriptionRow({
         onCommit();
     };
 
-    /** Applies a cut or a join, and follows the caret to where it landed. */
+    /** Applies a cut or a join, and follows the caret to where it landed.
+     *
+     *  La coupe rend une position dans la ligne entiere ; le champ, lui, ne
+     *  tient que ce que la ligne dit. La case de la ligne d'arrivee est donc
+     *  retranchee — sans quoi une etape continuee ouvrirait avec le curseur six
+     *  caracteres plus loin que son premier. */
     const move = (next: CaretMove) => {
         setDescription(next.text);
-        caretRef.current = next.caret;
+        const landed = next.text.split("\n")[next.focus] ?? "";
+        const prefix = taskPrefixLength(landed) ?? 0;
+        caretRef.current = Math.max(0, next.caret - prefix);
         setEditing(next.focus);
     };
 
@@ -3598,41 +3606,50 @@ export function DescriptionRow({
             </span>
             <div className="nc-panel-row-content">
                 <div className="nc-panel-checklist">
-                    {lines.map((line, index) =>
-                        index === editing ? (
+                    {lines.map((line, index) => {
+                        const editingThis = index === editing;
+                        const raw = description.split("\n")[index] ?? "";
+                        /* Le prefixe est ce que la case occupe : le champ ne
+                           tient que le titre, donc tout ce qui en sort — le
+                           texte reecrit, la position du curseur — repasse par
+                           lui. Zero sur une ligne de prose. */
+                        const prefix = taskPrefixLength(raw) ?? 0;
+                        const field = (
                             <textarea
-                                key={index}
+                                key="edit"
                                 ref={lineRef}
                                 rows={1}
                                 className="nc-panel-checklist-edit"
-                                value={description.split("\n")[index] ?? ""}
+                                value={raw.slice(prefix)}
                                 onChange={(e) =>
                                     setDescription(
                                         replaceLine(
                                             description,
                                             index,
-                                            e.target.value
+                                            raw.slice(0, prefix) +
+                                                e.target.value
                                         )
                                     )
                                 }
                                 onBlur={leave}
                                 onKeyDown={(e) => {
-                                    const field = e.currentTarget;
+                                    const input = e.currentTarget;
+                                    const at = input.selectionStart;
                                     if (e.key === "Enter" && !e.shiftKey) {
                                         e.preventDefault();
                                         move(
                                             splitLine(
                                                 description,
                                                 index,
-                                                field.selectionStart
+                                                prefix + at
                                             )
                                         );
                                         return;
                                     }
                                     if (
                                         e.key === "Backspace" &&
-                                        field.selectionStart === 0 &&
-                                        field.selectionEnd === 0
+                                        at === 0 &&
+                                        input.selectionEnd === 0
                                     ) {
                                         e.preventDefault();
                                         move(mergeLine(description, index));
@@ -3643,24 +3660,22 @@ export function DescriptionRow({
                                        edges, and only there. */
                                     if (
                                         e.key === "ArrowUp" &&
-                                        field.selectionStart === 0 &&
+                                        at === 0 &&
                                         index > 0
                                     ) {
                                         e.preventDefault();
+                                        const above = lines[index - 1];
                                         edit(
                                             index - 1,
-                                            (
-                                                description.split("\n")[
-                                                    index - 1
-                                                ] ?? ""
-                                            ).length
+                                            above.kind === "task"
+                                                ? above.title.length
+                                                : above.text.length
                                         );
                                         return;
                                     }
                                     if (
                                         e.key === "ArrowDown" &&
-                                        field.selectionStart ===
-                                            field.value.length &&
+                                        at === input.value.length &&
                                         index < lines.length - 1
                                     ) {
                                         e.preventDefault();
@@ -3674,42 +3689,77 @@ export function DescriptionRow({
                                     }
                                 }}
                             />
-                        ) : line.kind === "task" ? (
-                            /* Une <div> et pas un <label> : un label
-                               renverrait le clic sur le texte a la case, et
-                               ce clic-la ouvre l'edition. Toucher le texte
-                               d'une etape doit y poser le curseur, comme
-                               dans une note ; seule la case coche. */
-                            <div
-                                key={index}
-                                className={`nc-panel-checklist-line${
-                                    line.done ? " nc-done" : ""
-                                }`}
-                                style={{
-                                    paddingLeft: `${line.indent.length * 6}px`,
-                                }}
-                                onClick={() => edit(index, line.title.length)}
-                                role="presentation"
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={line.done}
-                                    disabled={!editable}
-                                    /* The box is not a way into the text:
-                                       ticking one is a whole gesture on its
-                                       own, and opening the editor under the
-                                       finger would take the tick away. */
-                                    onClick={(e) => e.stopPropagation()}
-                                    onChange={() => {
-                                        setDescription(
-                                            toggleLine(description, index)
-                                        );
-                                        onCommit();
+                        );
+
+                        /* Une <div> et pas un <label> : un label
+                           renverrait le clic sur le texte a la case, et
+                           ce clic-la ouvre l'edition. Toucher le texte
+                           d'une etape doit y poser le curseur, comme
+                           dans une note ; seule la case coche.
+
+                           La case reste dessinee pendant qu'on ecrit la
+                           ligne, comme en apercu dans Obsidian : des que
+                           `- [ ] ` est tape la ligne EST une etape, et la
+                           voir redevenir ses cinq caracteres le temps de
+                           la remplir donne a croire qu'elle n'a pas pris.
+                           C'est aussi ce qui garde le meme <input> monte
+                           d'un etat a l'autre : cocher depuis la ligne
+                           ouverte perdrait le clic si la case naissait
+                           entre l'appui et le relachement. */
+                        if (line.kind === "task") {
+                            return (
+                                <div
+                                    key={index}
+                                    className={`nc-panel-checklist-line${
+                                        line.done ? " nc-done" : ""
+                                    }`}
+                                    style={{
+                                        paddingLeft: `${
+                                            line.indent.length * 6
+                                        }px`,
                                     }}
-                                />
-                                <span>{line.title}</span>
-                            </div>
-                        ) : (
+                                    onClick={
+                                        editingThis
+                                            ? undefined
+                                            : () =>
+                                                  edit(index, line.title.length)
+                                    }
+                                    role="presentation"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={line.done}
+                                        disabled={!editable}
+                                        /* The box is not a way into the text:
+                                           ticking one is a whole gesture on its
+                                           own, and opening the editor under the
+                                           finger would take the tick away. */
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={() => {
+                                            setDescription(
+                                                toggleLine(description, index)
+                                            );
+                                            onCommit();
+                                        }}
+                                    />
+                                    {editingThis ? (
+                                        field
+                                    ) : (
+                                        <span>{line.title}</span>
+                                    )}
+                                </div>
+                            );
+                        }
+
+                        if (editingThis) {
+                            return (
+                                <React.Fragment key={index}>
+                                    {field}
+                                </React.Fragment>
+                            );
+                        }
+
+                        return (
                             <p
                                 key={index}
                                 className="nc-panel-checklist-text"
@@ -3718,8 +3768,8 @@ export function DescriptionRow({
                             >
                                 {line.text || "\u00a0"}
                             </p>
-                        )
-                    )}
+                        );
+                    })}
                 </div>
             </div>
         </div>

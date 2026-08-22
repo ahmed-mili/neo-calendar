@@ -27,6 +27,21 @@ export type ChecklistLine =
  */
 const TASK_LINE = /^(\s*)([-*+]) \[(.)\] ?(.*)$/;
 
+/**
+ * Combien de caractères d'une ligne sont sa case plutôt que ce qu'elle dit, ou
+ * `null` si la ligne n'est pas une étape.
+ *
+ * Le titre est la fin de la ligne, donc la différence des deux longueurs donne
+ * le préfixe exact — l'espace facultatif après la case compris, qu'il soit là
+ * ou non. Ce qui l'utilise en a besoin pour écrire une ligne dont seul le titre
+ * a changé, et pour traduire une position de curseur mesurée dans le titre en
+ * une position dans la ligne entière.
+ */
+export function taskPrefixLength(line: string): number | null {
+    const match = TASK_LINE.exec(line);
+    return match ? line.length - match[4].length : null;
+}
+
 /** Marks other plugins write for "started", which is not "done". */
 const DONE_MARKS = new Set(["x", "X"]);
 

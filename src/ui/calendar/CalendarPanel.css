@@ -1238,6 +1238,15 @@
     overflow: hidden;
 }
 
+/* Le champ d'une etape vit a cote de sa case, dans la meme rangee flex : il
+   prend ce qui reste, et `min-width: 0` l'autorise a etre plus etroit que son
+   contenu, sans quoi une ligne longue pousserait la case hors du panneau. */
+.nc-panel-checklist-line .nc-panel-checklist-edit {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+}
+
 .nc-panel-checklist-line input {
     /* Alignee sur la premiere ligne du texte plutot que centree sur un bloc qui
        peut faire trois lignes de haut. */
@@ -1251,7 +1260,8 @@
 
 /* Faite, donc plus a lire : barree et en retrait de l'attention, comme dans une
    note. Le texte reste selectionnable, il n'est pas efface. */
-.nc-panel-checklist-line.nc-done span {
+.nc-panel-checklist-line.nc-done span,
+.nc-panel-checklist-line.nc-done .nc-panel-checklist-edit {
     text-decoration: line-through;
     color: var(--nc-text-faint);
 }

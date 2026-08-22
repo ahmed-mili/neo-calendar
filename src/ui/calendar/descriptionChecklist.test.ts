@@ -1,6 +1,7 @@
 import {
     mergeLine,
     readChecklist,
+    taskPrefixLength,
     replaceLine,
     splitLine,
     toggleLine,
@@ -207,5 +208,24 @@ describe("pressing Backspace at the start of a line", () => {
             focus: 0,
             caret: 0,
         });
+    });
+});
+
+describe("taskPrefixLength", () => {
+    it("mesure la case, espace facultatif compris", () => {
+        expect(taskPrefixLength("- [ ] Acheter du pain")).toBe(6);
+        expect(taskPrefixLength("    * [x] Poster")).toBe(10);
+    });
+
+    it("compte la case seule quand rien ne la suit", () => {
+        // La ligne qu'on vient de commencer : la case est là, le titre pas
+        // encore. `- [ ]` fait cinq caractères, l'espace n'y est pas.
+        expect(taskPrefixLength("- [ ]")).toBe(5);
+        expect(taskPrefixLength("- [ ] ")).toBe(6);
+    });
+
+    it("ne mesure rien sur une ligne qui n'est pas une étape", () => {
+        expect(taskPrefixLength("Du texte")).toBeNull();
+        expect(taskPrefixLength("- [] pas de case")).toBeNull();
     });
 });
