@@ -84,6 +84,7 @@ import ConfirmDialog from "./ConfirmDialog";
 import RecurringDeleteDialog from "./RecurringDeleteDialog";
 import {
     copyDesktopAttachment,
+    copyDesktopPath,
     writeDesktopAttachment,
     readDesktopAttachment,
     createDesktopCalendarFolder,
@@ -3266,6 +3267,18 @@ export default function DesktopCalendar({
                     const record = findStoredEvent(recordsRef.current, eventId);
                     if (record && !record.readOnly) {
                         void openDesktopPath(dataFolder, record.relativePath);
+                    }
+                }}
+                onCopyFilePath={async (eventId: string) => {
+                    const record = findStoredEvent(recordsRef.current, eventId);
+                    if (!record || record.readOnly) {
+                        throw new Error("The event note is unavailable.");
+                    }
+                    try {
+                        await copyDesktopPath(dataFolder, record.relativePath);
+                    } catch (reason) {
+                        setStorageError(errorMessage(reason));
+                        throw reason;
                     }
                 }}
                 onDelete={(eventId: string) =>

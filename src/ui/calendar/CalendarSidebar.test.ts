@@ -84,6 +84,18 @@ describe("hidden calendar identity", () => {
 });
 
 describe("room for the update control", () => {
+    it("centers the icon while the ready pill is collapsed", () => {
+        const control = declarationsFor(".nc-update-control");
+        const icon = declarationsFor(".nc-update-control__icon");
+        expect(control.gap).toBe("0");
+        expect(icon.width).toBe("15px");
+        expect(icon.height).toBe("15px");
+        expect(icon["justify-content"]).toBe("center");
+
+        const open = declarationsFor(".nc-update-control--ready:hover");
+        expect(open.gap).toBe("6px");
+    });
+
     /*
      * The sidebar bar has 204px of content and the open control takes 114 of
      * them: with the version number still there, "Mettre à jour" ran out of the

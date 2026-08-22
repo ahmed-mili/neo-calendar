@@ -168,6 +168,7 @@ interface PanelHeaderProps {
     onHeaderMouseDown: (e: React.MouseEvent) => void;
     onToggleMenu: () => void;
     onOpenFile: (id: string) => void;
+    onCopyFilePath?: (id: string) => void;
     onDuplicate?: (id: string) => void;
     onDeleteClick: () => void;
     onClose: () => void;
@@ -189,6 +190,7 @@ export function PanelHeader({
     onHeaderMouseDown,
     onToggleMenu,
     onOpenFile,
+    onCopyFilePath,
     onDuplicate,
     onDeleteClick,
     onClose,
@@ -249,6 +251,20 @@ export function PanelHeader({
                                     <span>{t("Open note")}</span>
                                 </button>
                             )}
+                            {!isDraft &&
+                                editable &&
+                                eventId &&
+                                !android &&
+                                onCopyFilePath && (
+                                    <button
+                                        type="button"
+                                        className="nc-panel-menu-item"
+                                        onClick={() => onCopyFilePath(eventId)}
+                                    >
+                                        <CopyIcon size={15} />
+                                        <span>{t("Copy path")}</span>
+                                    </button>
+                                )}
                             {!isDraft &&
                                 editable &&
                                 eventId &&

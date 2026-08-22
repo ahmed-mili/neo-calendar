@@ -38,6 +38,7 @@ import {
     DescriptionRow,
 } from "./EventPanelRows";
 import { FileTextIcon } from "./EventPanelIcons";
+import { Toast, ToastMessage } from "./Toast";
 import { t } from "../i18n";
 import {
     PresetKey,
@@ -118,6 +119,7 @@ interface EventPanelProps {
         calendarId?: string
     ) => void;
     onOpenFile: (id: string) => void;
+    onCopyFilePath?: (id: string) => Promise<void>;
     onDuplicate?: (id: string) => void;
     onDelete: (id: string) => void;
     firstDay: number;
@@ -244,6 +246,7 @@ export default function EventPanel({
     onClose,
     onDraftCommit,
     onOpenFile,
+    onCopyFilePath,
     onDuplicate,
     onDelete,
     firstDay,
@@ -275,6 +278,9 @@ export default function EventPanel({
     const popupRef = useRef<HTMLDivElement>(null);
     const titleInputRef = useRef<HTMLInputElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
+    const [copyPathToast, setCopyPathToast] = useState<ToastMessage | null>(
+        null
+    );
     const headerRef = useRef<HTMLDivElement>(null);
 
     const calInfo = resolveCalendarInfo(
@@ -1316,6 +1322,26 @@ export default function EventPanel({
                     setMenuOpen(false);
                     onOpenFile(id);
                 }}
+                onCopyFilePath={
+                    onCopyFilePath
+                        ? (id) => {
+                              setMenuOpen(false);
+                              void onCopyFilePath(id)
+                                  .then(() =>
+                                      setCopyPathToast({
+                                          title: t("Path copied"),
+                                          detail: t(
+                                              "Paste it wherever you like"
+                                          ),
+                                      })
+                                  )
+                                  .catch(() => {
+                                      // The desktop shell reports the concrete
+                                      // filesystem error in its usual banner.
+                                  });
+                          }
+                        : undefined
+                }
                 onDuplicate={
                     onDuplicate
                         ? (id) => {
@@ -1502,6 +1528,13 @@ export default function EventPanel({
                     isTask={isTask}
                     onCancel={cancelScopedEdit}
                     onConfirm={confirmScopedEdit}
+                />
+            )}
+
+            {copyPathToast && (
+                <Toast
+                    message={copyPathToast}
+                    onClose={() => setCopyPathToast(null)}
                 />
             )}
 

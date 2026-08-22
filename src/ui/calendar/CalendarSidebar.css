@@ -803,7 +803,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    /* Le libellé replié a une largeur nulle. Un `gap` permanent réservait
+       malgré tout 6 px à sa gauche et décalait donc l'icône dans la pastille
+       ronde. L'espace ne revient que lorsque le libellé s'ouvre. */
+    gap: 0;
     height: 26px;
     padding: 0;
     border: 0;
@@ -846,6 +849,11 @@
 
 .nc-update-control__icon {
     display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    line-height: 0;
     flex-shrink: 0;
     transition: opacity var(--nc-transition-fast, 120ms ease);
 }
@@ -903,6 +911,7 @@
 .nc-update-control--announced {
     width: auto;
     padding: 0 12px 0 10px;
+    gap: 6px;
 }
 
 .nc-update-control--ready:hover .nc-update-control__label,
@@ -941,6 +950,7 @@
     .nc-update-control--ready {
         width: auto;
         padding: 0 12px 0 10px;
+        gap: 6px;
     }
 
     .nc-update-control--ready .nc-update-control__label {

@@ -53,10 +53,12 @@ export async function watchDesktopUpdates(): Promise<() => void> {
 }
 
 /**
- * Pose la mise à jour déjà descendue, puis l'application redémarre.
+ * Pose la mise à jour la plus récente, puis l'application redémarre.
  *
- * Rien à retélécharger : les octets attendent depuis le lancement, c'est tout
- * l'intérêt d'avoir séparé les deux moitiés.
+ * Le natif réutilise les octets qui attendent si la release n'a pas bougé. Si
+ * une autre version est parue entre-temps, il la télécharge et la pose dans le
+ * même geste afin de ne pas redémarrer une première fois sur une version déjà
+ * dépassée.
  */
 export async function installPendingUpdate(): Promise<void> {
     await invoke("install_pending_update");

@@ -119,6 +119,13 @@ export async function writeDesktopClipboardText(value: string): Promise<void> {
     await invoke("write_desktop_clipboard_text", { value });
 }
 
+export async function copyDesktopPath(
+    dataFolder: string,
+    relativePath: string
+): Promise<void> {
+    await invoke("copy_desktop_path", { dataFolder, relativePath });
+}
+
 export async function openDesktopLinkedPath(
     dataFolder: string,
     eventRelativePath: string,

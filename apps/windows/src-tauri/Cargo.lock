@@ -2141,6 +2141,7 @@ dependencies = [
 name = "neo-calendar-windows"
 version = "1.51.3"
 dependencies = [
+ "semver",
  "serde",
  "serde_json",
  "tauri",

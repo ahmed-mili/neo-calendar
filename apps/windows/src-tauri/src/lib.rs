@@ -805,6 +805,26 @@ fn write_desktop_clipboard_text(value: String) -> Result<(), String> {
 }
 
 #[tauri::command(rename_all = "camelCase")]
+fn copy_desktop_path(data_folder: String, relative_path: String) -> Result<(), String> {
+    let root = root_path(&data_folder)?;
+    let path = safe_join(&root, &relative_path)?;
+    if !path.is_file() {
+        return Err(format!("File '{}' does not exist.", path.display()));
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        return write_windows_clipboard_text(&path.to_string_lossy());
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = path;
+        Err("Copying file paths is only supported by this Windows build.".to_string())
+    }
+}
+
+#[tauri::command(rename_all = "camelCase")]
 fn open_desktop_external_target(target: String) -> Result<(), String> {
     let trimmed = target.trim();
     let lower = trimmed.to_ascii_lowercase();
@@ -1456,6 +1476,34 @@ const UPDATE_PROGRESS_EVENT: &str = "neo-update-progress";
 #[cfg(desktop)]
 const UPDATE_READY_EVENT: &str = "neo-update-ready";
 
+/// Descend un installateur en publiant le meme avancement, que le transfert
+/// ait commence en arriere-plan ou juste avant l'installation.
+#[cfg(desktop)]
+async fn download_update(
+    app: &tauri::AppHandle,
+    update: &tauri_plugin_updater::Update,
+) -> tauri_plugin_updater::Result<Vec<u8>> {
+    use tauri::Emitter;
+
+    let mut received: u64 = 0;
+    let reporter = app.clone();
+    update
+        .download(
+            move |chunk, total| {
+                received += chunk as u64;
+                let percent = match total {
+                    Some(size) if size > 0 => {
+                        ((received as f64 / size as f64) * 100.0).round().min(100.0) as i64
+                    }
+                    _ => -1,
+                };
+                let _ = reporter.emit(UPDATE_PROGRESS_EVENT, percent);
+            },
+            || {},
+        )
+        .await
+}
+
 /// Va chercher la mise a jour, et s'arrete la.
 ///
 /// Elle s'installait toute seule au demarrage, puis redemarrait l'application
@@ -1472,23 +1520,7 @@ async fn fetch_available_update(app: tauri::AppHandle) -> tauri_plugin_updater::
     };
 
     let version = update.version.clone();
-    let mut received: u64 = 0;
-    let reporter = app.clone();
-    let bytes = update
-        .download(
-            move |chunk, total| {
-                received += chunk as u64;
-                let percent = match total {
-                    Some(size) if size > 0 => {
-                        ((received as f64 / size as f64) * 100.0).round().min(100.0) as i64
-                    }
-                    _ => -1,
-                };
-                let _ = reporter.emit(UPDATE_PROGRESS_EVENT, percent);
-            },
-            || {},
-        )
-        .await?;
+    let bytes = download_update(&app, &update).await?;
 
     app.state::<PendingUpdate>()
         .0
@@ -1542,25 +1574,92 @@ async fn fetch_if_due(app: tauri::AppHandle, force: bool) {
     app.state::<UpdateWatch>().busy.store(false, Ordering::SeqCst);
 }
 
-/// Pose la mise a jour deja telechargee, puis redemarre.
+fn latest_replaces_pending(pending_version: Option<&str>, latest_version: &str) -> bool {
+    let Some(pending_version) = pending_version else {
+        return true;
+    };
+    match (
+        semver::Version::parse(pending_version),
+        semver::Version::parse(latest_version),
+    ) {
+        (Ok(pending), Ok(latest)) => latest > pending,
+        _ => pending_version != latest_version,
+    }
+}
+
+/// Pose la version la plus recente, puis redemarre.
 ///
-/// Rien a retelecharger : les octets sont la depuis le lancement. Un appel sans
-/// rien en attente n'est pas une erreur a montrer — la fenetre n'aurait pas du
-/// proposer le geste — mais il le dit, pour qu'un bouton qui ne fait rien se
-/// remarque pendant le developpement.
+/// L'installateur garde normalement les octets descendus en arriere-plan. Mais
+/// une nouvelle release peut paraitre entre ce telechargement et le clic : poser
+/// aveuglement l'ancien paquet imposait alors un premier redemarrage, puis un
+/// second pour la vraie derniere version. Le clic relit donc les metadonnees et,
+/// si elles ont change, descend ce dernier paquet puis l'installe dans le meme
+/// geste. Sans reseau, le paquet deja verifie reste utilisable.
 #[cfg(desktop)]
 #[tauri::command]
-fn install_pending_update(app: tauri::AppHandle) -> Result<(), String> {
-    let held = app
+async fn install_pending_update(app: tauri::AppHandle) -> Result<(), String> {
+    let pending = app
         .state::<PendingUpdate>()
         .0
         .lock()
         .map_err(|_| "The pending update is unreadable.".to_string())?
         .take();
-    let (update, bytes) = held.ok_or_else(|| "No update has been downloaded.".to_string())?;
-    update
-        .install(bytes)
-        .map_err(|error| format!("Unable to install the update: {error}"))?;
+
+    let latest = match app.updater() {
+        Ok(updater) => match updater.check().await {
+            Ok(update) => update,
+            Err(error) if pending.is_some() => {
+                eprintln!("Unable to refresh the update before installation: {error}");
+                None
+            }
+            Err(error) => {
+                return Err(format!(
+                    "Unable to refresh the update before installation: {error}"
+                ));
+            }
+        },
+        Err(error) if pending.is_some() => {
+            eprintln!("Unable to prepare the updater before installation: {error}");
+            None
+        }
+        Err(error) => {
+            return Err(format!(
+                "Unable to prepare the updater before installation: {error}"
+            ));
+        }
+    };
+
+    let replace_pending = latest.as_ref().is_some_and(|update| {
+        latest_replaces_pending(
+            pending.as_ref().map(|(held, _)| held.version.as_str()),
+            &update.version,
+        )
+    });
+
+    let selected = if replace_pending {
+        let update = latest.expect("a replacement update was just checked");
+        match download_update(&app, &update).await {
+            Ok(bytes) => (update, bytes),
+            Err(error) => {
+                if let Some(pending) = pending {
+                    if let Ok(mut held) = app.state::<PendingUpdate>().0.lock() {
+                        *held = Some(pending);
+                    }
+                }
+                return Err(format!("Unable to download the latest update: {error}"));
+            }
+        }
+    } else {
+        pending.ok_or_else(|| "No update has been downloaded.".to_string())?
+    };
+
+    let (update, bytes) = selected;
+    if let Err(error) = update.install(&bytes) {
+        if let Ok(mut held) = app.state::<PendingUpdate>().0.lock() {
+            *held = Some((update, bytes));
+        }
+        return Err(format!("Unable to install the update: {error}"));
+    }
     app.restart();
 }
 
@@ -1642,6 +1741,7 @@ pub fn run() {
             open_desktop_external_target,
             open_desktop_linked_path,
             write_desktop_clipboard_text,
+            copy_desktop_path,
             discover_desktop_obsidian_vaults,
             search_desktop_vault_notes,
             copy_desktop_attachment,
@@ -1678,6 +1778,14 @@ mod tests {
             String::from_utf16(&encoded[..encoded.len() - 1]).unwrap(),
             value
         );
+    }
+
+    #[test]
+    fn a_new_release_replaces_an_older_download_before_installation() {
+        assert!(latest_replaces_pending(Some("1.51.2"), "1.51.3"));
+        assert!(!latest_replaces_pending(Some("1.51.3"), "1.51.3"));
+        assert!(!latest_replaces_pending(Some("1.51.3"), "1.51.2"));
+        assert!(latest_replaces_pending(None, "1.51.3"));
     }
 
     fn temporary_root(name: &str) -> PathBuf {
