@@ -11,9 +11,7 @@ type DraftSlot = {
     allDay: boolean;
 };
 
-type ResizeDraftCallback = (
-    range: DraftRange
-) => void;
+type ResizeDraftCallback = (range: DraftRange) => void;
 
 export function useTimeGridResize(
     events: DisplayEvent[],
@@ -25,15 +23,13 @@ export function useTimeGridResize(
     draftSlot: DraftSlot | null | undefined,
     onResizeDraft?: ResizeDraftCallback
 ) {
-    const [resizeState, setResizeState] =
-        useState<ResizeState | null>(null);
+    const [resizeState, setResizeState] = useState<ResizeState | null>(null);
 
-    const [resizePreview, setResizePreview] =
-        useState<{
-            eventId: string;
-            newStart: Date;
-            newEnd: Date;
-        } | null>(null);
+    const [resizePreview, setResizePreview] = useState<{
+        eventId: string;
+        newStart: Date;
+        newEnd: Date;
+    } | null>(null);
 
     const computeSnapped = useCallback(
         (
@@ -45,470 +41,292 @@ export function useTimeGridResize(
             newStart: Date;
             newEnd: Date;
         } => {
-            const pixelsPerQuarter =
-                currentHourHeight() / 4;
+            const pixelsPerQuarter = currentHourHeight() / 4;
 
             const snappedDeltaPixels =
-                Math.round(
-                    deltaY /
-                        pixelsPerQuarter
-                ) *
-                pixelsPerQuarter;
+                Math.round(deltaY / pixelsPerQuarter) * pixelsPerQuarter;
 
             const deltaMs =
-                (
-                    snappedDeltaPixels /
-                    currentHourHeight()
-                ) *
-                3600000;
+                (snappedDeltaPixels / currentHourHeight()) * 3600000;
 
             if (edge === "top") {
-                let newStart =
-                    new Date(
-                        originalStart.getTime() +
-                            deltaMs
-                    );
+                let newStart = new Date(originalStart.getTime() + deltaMs);
 
-                const maximumStart =
-                    new Date(
-                        originalEnd.getTime() -
-                            15 * 60000
-                    );
+                const maximumStart = new Date(
+                    originalEnd.getTime() - 15 * 60000
+                );
 
-                if (
-                    newStart.getTime() >
-                    maximumStart.getTime()
-                ) {
-                    newStart =
-                        maximumStart;
+                if (newStart.getTime() > maximumStart.getTime()) {
+                    newStart = maximumStart;
                 }
 
                 return {
                     newStart,
-                    newEnd:
-                        originalEnd,
+                    newEnd: originalEnd,
                 };
             }
 
-            let newEnd =
-                new Date(
-                    originalEnd.getTime() +
-                        deltaMs
-                );
+            let newEnd = new Date(originalEnd.getTime() + deltaMs);
 
-            const minimumEnd =
-                new Date(
-                    originalStart.getTime() +
-                        15 * 60000
-                );
+            const minimumEnd = new Date(originalStart.getTime() + 15 * 60000);
 
-            if (
-                newEnd.getTime() <
-                minimumEnd.getTime()
-            ) {
-                newEnd =
-                    minimumEnd;
+            if (newEnd.getTime() < minimumEnd.getTime()) {
+                newEnd = minimumEnd;
             }
 
             return {
-                newStart:
-                    originalStart,
+                newStart: originalStart,
                 newEnd,
             };
         },
         []
     );
 
-    const handleResizeStart =
-        useCallback(
-            (
-                eventId: string,
-                startY: number,
-                edge:
-                    ResizeEdge =
-                    "bottom"
-            ) => {
-                const event =
-                    events.find(
-                        (candidate) =>
-                            candidate.id ===
-                            eventId
-                    );
+    const handleResizeStart = useCallback(
+        (eventId: string, startY: number, edge: ResizeEdge = "bottom") => {
+            const event = events.find((candidate) => candidate.id === eventId);
 
-                if (!event) {
-                    return;
+            if (!event) {
+                return;
+            }
+
+            setResizeState({
+                eventId,
+                startY,
+                edge,
+                originalStart: event.start,
+                originalEnd: event.end,
+                dayDate: event.start,
+            });
+
+            setResizePreview({
+                eventId,
+                newStart: event.start,
+                newEnd: event.end,
+            });
+        },
+        [events]
+    );
+
+    const handleResizeMove = useCallback(
+        (event: PointerEvent) => {
+            if (!resizeState) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const result = computeSnapped(
+                resizeState.edge,
+                resizeState.originalStart,
+                resizeState.originalEnd,
+                event.clientY - resizeState.startY
+            );
+
+            setResizePreview((previous) => {
+                if (
+                    previous &&
+                    previous.newStart.getTime() === result.newStart.getTime() &&
+                    previous.newEnd.getTime() === result.newEnd.getTime()
+                ) {
+                    return previous;
                 }
 
-                setResizeState({
-                    eventId,
-                    startY,
-                    edge,
-                    originalStart:
-                        event.start,
-                    originalEnd:
-                        event.end,
-                    dayDate:
-                        event.start,
-                });
+                return {
+                    eventId: resizeState.eventId,
+                    newStart: result.newStart,
+                    newEnd: result.newEnd,
+                };
+            });
+        },
+        [resizeState, computeSnapped]
+    );
 
-                setResizePreview({
-                    eventId,
-                    newStart:
-                        event.start,
-                    newEnd:
-                        event.end,
-                });
-            },
-            [events]
-        );
+    const handleResizeEnd = useCallback(
+        (event: PointerEvent) => {
+            if (!resizeState) {
+                return;
+            }
 
-    const handleResizeMove =
-        useCallback(
-            (
-                event: PointerEvent
-            ) => {
-                if (!resizeState) {
-                    return;
-                }
+            event.preventDefault();
 
-                event.preventDefault();
+            const result = computeSnapped(
+                resizeState.edge,
+                resizeState.originalStart,
+                resizeState.originalEnd,
+                event.clientY - resizeState.startY
+            );
 
-                const result =
-                    computeSnapped(
-                        resizeState.edge,
-                        resizeState.originalStart,
-                        resizeState.originalEnd,
-                        event.clientY -
-                            resizeState.startY
-                    );
+            const changed =
+                result.newStart.getTime() !==
+                    resizeState.originalStart.getTime() ||
+                result.newEnd.getTime() !== resizeState.originalEnd.getTime();
 
-                setResizePreview(
-                    (previous) => {
-                        if (
-                            previous &&
-                            previous.newStart.getTime() ===
-                                result.newStart.getTime() &&
-                            previous.newEnd.getTime() ===
-                                result.newEnd.getTime()
-                        ) {
-                            return previous;
-                        }
-
-                        return {
-                            eventId:
-                                resizeState.eventId,
-                            newStart:
-                                result.newStart,
-                            newEnd:
-                                result.newEnd,
-                        };
-                    }
+            if (changed) {
+                void onEventResize(
+                    resizeState.eventId,
+                    result.newStart,
+                    result.newEnd
                 );
-            },
-            [
-                resizeState,
-                computeSnapped,
-            ]
-        );
+            }
 
-    const handleResizeEnd =
-        useCallback(
-            (
-                event: PointerEvent
-            ) => {
-                if (!resizeState) {
-                    return;
-                }
-
-                event.preventDefault();
-
-                const result =
-                    computeSnapped(
-                        resizeState.edge,
-                        resizeState.originalStart,
-                        resizeState.originalEnd,
-                        event.clientY -
-                            resizeState.startY
-                    );
-
-                const changed =
-                    result.newStart.getTime() !==
-                        resizeState.originalStart.getTime() ||
-                    result.newEnd.getTime() !==
-                        resizeState.originalEnd.getTime();
-
-                if (changed) {
-                    void onEventResize(
-                        resizeState.eventId,
-                        result.newStart,
-                        result.newEnd
-                    );
-                }
-
-                setResizeState(null);
-                setResizePreview(null);
-            },
-            [
-                resizeState,
-                onEventResize,
-                computeSnapped,
-            ]
-        );
+            setResizeState(null);
+            setResizePreview(null);
+        },
+        [resizeState, onEventResize, computeSnapped]
+    );
 
     useEffect(() => {
         if (!resizeState) {
             return;
         }
 
-        window.addEventListener(
-            "pointermove",
-            handleResizeMove,
-            {
-                passive: false,
-            }
-        );
+        window.addEventListener("pointermove", handleResizeMove, {
+            passive: false,
+        });
 
-        window.addEventListener(
-            "pointerup",
-            handleResizeEnd,
-            {
-                passive: false,
-            }
-        );
+        window.addEventListener("pointerup", handleResizeEnd, {
+            passive: false,
+        });
 
-        window.addEventListener(
-            "pointercancel",
-            handleResizeEnd,
-            {
-                passive: false,
-            }
-        );
+        window.addEventListener("pointercancel", handleResizeEnd, {
+            passive: false,
+        });
 
         return () => {
-            window.removeEventListener(
-                "pointermove",
-                handleResizeMove
-            );
+            window.removeEventListener("pointermove", handleResizeMove);
 
-            window.removeEventListener(
-                "pointerup",
-                handleResizeEnd
-            );
+            window.removeEventListener("pointerup", handleResizeEnd);
 
-            window.removeEventListener(
-                "pointercancel",
-                handleResizeEnd
-            );
+            window.removeEventListener("pointercancel", handleResizeEnd);
         };
-    }, [
-        resizeState,
-        handleResizeMove,
-        handleResizeEnd,
-    ]);
+    }, [resizeState, handleResizeMove, handleResizeEnd]);
 
-    const handleDraftResizeStart =
-        useCallback(
-            (
-                event:
-                    React.PointerEvent,
-                edge: ResizeEdge
-            ) => {
-                if (
-                    !draftSlot ||
-                    draftSlot.allDay
-                ) {
-                    return;
-                }
+    const handleDraftResizeStart = useCallback(
+        (event: React.PointerEvent, edge: ResizeEdge) => {
+            if (!draftSlot || draftSlot.allDay) {
+                return;
+            }
 
-                event.stopPropagation();
-                event.preventDefault();
-                event.nativeEvent.stopImmediatePropagation();
+            event.stopPropagation();
+            event.preventDefault();
+            event.nativeEvent.stopImmediatePropagation();
 
-                const pointerId =
-                    event.pointerId;
+            const pointerId = event.pointerId;
 
-                const handle =
-                    event.currentTarget as HTMLElement;
+            const handle = event.currentTarget as HTMLElement;
 
-                const startClientY =
-                    event.clientY;
+            const startClientY = event.clientY;
 
-                const originalStart =
-                    new Date(
-                        draftSlot.start
-                    );
+            const originalStart = new Date(draftSlot.start);
 
-                const originalEnd =
-                    new Date(
-                        draftSlot.end
-                    );
+            const originalEnd = new Date(draftSlot.end);
 
-                let lastStartMs =
-                    originalStart.getTime();
+            let lastStartMs = originalStart.getTime();
 
-                let lastEndMs =
-                    originalEnd.getTime();
+            let lastEndMs = originalEnd.getTime();
 
-                document.documentElement.classList.add(
+            document.documentElement.classList.add("nc-android-draft-resizing");
+
+            try {
+                handle.setPointerCapture(pointerId);
+            } catch {
+                // Pointer capture is optional.
+            }
+
+            const cleanup = () => {
+                window.removeEventListener("pointermove", onMove, true);
+
+                window.removeEventListener("pointerup", onEnd, true);
+
+                window.removeEventListener("pointercancel", onEnd, true);
+
+                document.documentElement.classList.remove(
                     "nc-android-draft-resizing"
                 );
 
                 try {
-                    handle.setPointerCapture(
-                        pointerId
-                    );
+                    handle.releasePointerCapture(pointerId);
                 } catch {
-                    // Pointer capture is optional.
+                    // WebView may already have released capture.
+                }
+            };
+
+            const onMove = (pointerEvent: PointerEvent) => {
+                if (pointerEvent.pointerId !== pointerId) {
+                    return;
                 }
 
-                const cleanup = () => {
-                    window.removeEventListener(
-                        "pointermove",
-                        onMove,
-                        true
-                    );
+                pointerEvent.preventDefault();
+                pointerEvent.stopImmediatePropagation();
 
-                    window.removeEventListener(
-                        "pointerup",
-                        onEnd,
-                        true
-                    );
-
-                    window.removeEventListener(
-                        "pointercancel",
-                        onEnd,
-                        true
-                    );
-
-                    document.documentElement.classList.remove(
-                        "nc-android-draft-resizing"
-                    );
-
-                    try {
-                        handle.releasePointerCapture(
-                            pointerId
-                        );
-                    } catch {
-                        // WebView may already have released capture.
-                    }
-                };
-
-                const onMove = (
-                    pointerEvent: PointerEvent
-                ) => {
-                    if (
-                        pointerEvent.pointerId !==
-                        pointerId
-                    ) {
-                        return;
-                    }
-
-                    pointerEvent.preventDefault();
-                    pointerEvent.stopImmediatePropagation();
-
-                    const result =
-                        computeSnapped(
-                            edge,
-                            originalStart,
-                            originalEnd,
-                            pointerEvent.clientY -
-                                startClientY
-                        );
-
-                    const nextStartMs =
-                        result.newStart.getTime();
-
-                    const nextEndMs =
-                        result.newEnd.getTime();
-
-                    if (
-                        nextStartMs ===
-                            lastStartMs &&
-                        nextEndMs ===
-                            lastEndMs
-                    ) {
-                        return;
-                    }
-
-                    lastStartMs =
-                        nextStartMs;
-
-                    lastEndMs =
-                        nextEndMs;
-
-                    onResizeDraft?.({
-                        start: result.newStart,
-                        end: result.newEnd,
-                    });
-                };
-
-                const onEnd = (
-                    pointerEvent: PointerEvent
-                ) => {
-                    if (
-                        pointerEvent.pointerId !==
-                        pointerId
-                    ) {
-                        return;
-                    }
-
-                    pointerEvent.preventDefault();
-                    pointerEvent.stopImmediatePropagation();
-
-                    const result =
-                        computeSnapped(
-                            edge,
-                            originalStart,
-                            originalEnd,
-                            pointerEvent.clientY -
-                                startClientY
-                        );
-
-                    onResizeDraft?.({
-                        start: result.newStart,
-                        end: result.newEnd,
-                    });
-
-                    cleanup();
-                };
-
-                window.addEventListener(
-                    "pointermove",
-                    onMove,
-                    {
-                        capture: true,
-                        passive: false,
-                    }
+                const result = computeSnapped(
+                    edge,
+                    originalStart,
+                    originalEnd,
+                    pointerEvent.clientY - startClientY
                 );
 
-                window.addEventListener(
-                    "pointerup",
-                    onEnd,
-                    {
-                        capture: true,
-                        passive: false,
-                    }
+                const nextStartMs = result.newStart.getTime();
+
+                const nextEndMs = result.newEnd.getTime();
+
+                if (nextStartMs === lastStartMs && nextEndMs === lastEndMs) {
+                    return;
+                }
+
+                lastStartMs = nextStartMs;
+
+                lastEndMs = nextEndMs;
+
+                onResizeDraft?.({
+                    start: result.newStart,
+                    end: result.newEnd,
+                });
+            };
+
+            const onEnd = (pointerEvent: PointerEvent) => {
+                if (pointerEvent.pointerId !== pointerId) {
+                    return;
+                }
+
+                pointerEvent.preventDefault();
+                pointerEvent.stopImmediatePropagation();
+
+                const result = computeSnapped(
+                    edge,
+                    originalStart,
+                    originalEnd,
+                    pointerEvent.clientY - startClientY
                 );
 
-                window.addEventListener(
-                    "pointercancel",
-                    onEnd,
-                    {
-                        capture: true,
-                        passive: false,
-                    }
-                );
+                onResizeDraft?.({
+                    start: result.newStart,
+                    end: result.newEnd,
+                });
 
-                console.info(
-                    `[NeoDraftResizeV72] start edge=${edge}`
-                );
-            },
-            [
-                draftSlot,
-                onResizeDraft,
-                computeSnapped,
-            ]
-        );
+                cleanup();
+            };
+
+            window.addEventListener("pointermove", onMove, {
+                capture: true,
+                passive: false,
+            });
+
+            window.addEventListener("pointerup", onEnd, {
+                capture: true,
+                passive: false,
+            });
+
+            window.addEventListener("pointercancel", onEnd, {
+                capture: true,
+                passive: false,
+            });
+
+            console.info(`[NeoDraftResizeV72] start edge=${edge}`);
+        },
+        [draftSlot, onResizeDraft, computeSnapped]
+    );
 
     return {
         resizeState,

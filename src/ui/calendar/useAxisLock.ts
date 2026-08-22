@@ -440,10 +440,7 @@ export function useAxisLock(
          * somewhere to pull to. That pull is a jump.
          */
         const measureColumn = () =>
-            measureColumnWidth(
-                element,
-                optionsRef.current.daysPerView ?? 0
-            );
+            measureColumnWidth(element, optionsRef.current.daysPerView ?? 0);
 
         const measureExtent = (on: ScrollAxis) =>
             on === "y"
@@ -517,8 +514,7 @@ export function useAxisLock(
                 startHourHeight: hourHeight,
                 // The moment the fingers came down on, which is what has to
                 // stay put while everything around it grows.
-                anchorHours:
-                    (element.scrollTop + span.midY - top) / hourHeight,
+                anchorHours: (element.scrollTop + span.midY - top) / hourHeight,
                 top,
                 midY: span.midY,
             };
@@ -616,11 +612,7 @@ export function useAxisLock(
          * on — and always by carrying on the way the finger was already going.
          */
         const turnPage = (scrollVelocity: number) => {
-            const turned = pagesTurnedBy(
-                pageTravel,
-                scrollVelocity,
-                pageWidth
-            );
+            const turned = pagesTurnedBy(pageTravel, scrollVelocity, pageWidth);
             // A gesture that interrupted the last one settling started between
             // two days; the day it is going to is one page from where that one
             // WOULD have landed, not from where the finger happened to catch it.

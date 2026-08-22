@@ -19,13 +19,10 @@ function hasHiddenDescendantFolder(
     selectedRoot?: string
 ): boolean {
     const normalized = path.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
-    const root = selectedRoot
-        ?.replace(/\\/g, "/")
-        .replace(/^\/+|\/+$/g, "");
+    const root = selectedRoot?.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
 
     const relative =
-        root &&
-        (normalized === root || normalized.startsWith(root + "/"))
+        root && (normalized === root || normalized.startsWith(root + "/"))
             ? normalized.slice(root.length).replace(/^\/+/, "")
             : normalized;
 
@@ -243,10 +240,7 @@ export function useCalendarManagement({
             .map((f: any) => f.path)
             .filter(
                 (dir: string) =>
-                    !hasHiddenDescendantFolder(
-                        dir,
-                        calendarRootFolder
-                    )
+                    !hasHiddenDescendantFolder(dir, calendarRootFolder)
             );
 
         if (calendarRootFolder) {

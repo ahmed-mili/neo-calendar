@@ -151,7 +151,11 @@ class DesktopEditableCalendar extends EditableCalendar {
                     candidate.relativePath === fromLocation.path
             );
         if (!record) throw new Error("Event does not exist or is read-only.");
-        await this.controller.updateEvent(idOf(record), record.event, toCalendar.id);
+        await this.controller.updateEvent(
+            idOf(record),
+            record.event,
+            toCalendar.id
+        );
         const updated = findStoredEvent(
             this.controller.getRecords(),
             record.id
@@ -266,7 +270,11 @@ export class DesktopEventCacheFacade {
             .getRecords()
             .find((candidate) => candidate.id === resolved);
         return record
-            ? { id: resolved, calendarId: record.calendarId, event: record.event }
+            ? {
+                  id: resolved,
+                  calendarId: record.calendarId,
+                  event: record.event,
+              }
             : null;
     }
 
@@ -279,7 +287,10 @@ export class DesktopEventCacheFacade {
         if (!record || record.readOnly) return false;
         return this.controller
             .getCalendars()
-            .some((calendar) => calendar.id === record.calendarId && calendar.editable);
+            .some(
+                (calendar) =>
+                    calendar.id === record.calendarId && calendar.editable
+            );
     }
 
     getInfoForEditableEvent(id: string): {
@@ -292,7 +303,9 @@ export class DesktopEventCacheFacade {
         }
         const calendar = this.calendars.get(record.calendarId);
         if (!(calendar instanceof EditableCalendar)) {
-            throw new Error("The event calendar is read-only or no longer exists.");
+            throw new Error(
+                "The event calendar is read-only or no longer exists."
+            );
         }
         return {
             calendar,

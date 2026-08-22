@@ -54,7 +54,8 @@ export default function ConfirmDialog({
         <div
             className="nc-confirm-backdrop"
             onMouseDown={(event) => {
-                if (event.target === event.currentTarget && !submitting) onClose();
+                if (event.target === event.currentTarget && !submitting)
+                    onClose();
             }}
         >
             <section

@@ -1315,7 +1315,10 @@ export default function DesktopCalendar({
                 fileName,
                 contents
             );
-            await appendEventBody(eventId, markdownLinkForAttachment(attachment));
+            await appendEventBody(
+                eventId,
+                markdownLinkForAttachment(attachment)
+            );
         },
         [appendEventBody, dataFolder]
     );

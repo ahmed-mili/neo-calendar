@@ -17,10 +17,7 @@ export const DEFAULT_WALLPAPER_EFFECTS: Readonly<WallpaperEffects> = {
 
 const STORAGE_KEY = "neo-calendar-wallpaper-effects-v1";
 
-const LIMITS: Record<
-    WallpaperEffectKey,
-    { min: number; max: number }
-> = {
+const LIMITS: Record<WallpaperEffectKey, { min: number; max: number }> = {
     backgroundBrightness: { min: 0, max: 1 },
     backgroundBlur: { min: 0, max: 20 },
     containerOpacity: { min: 0, max: 1 },
@@ -28,20 +25,14 @@ const LIMITS: Record<
 
 let installed = false;
 
-function clamp(
-    key: WallpaperEffectKey,
-    value: number
-): number {
+function clamp(key: WallpaperEffectKey, value: number): number {
     const limits = LIMITS[key];
 
     if (!Number.isFinite(value)) {
         return DEFAULT_WALLPAPER_EFFECTS[key];
     }
 
-    return Math.max(
-        limits.min,
-        Math.min(limits.max, value)
-    );
+    return Math.max(limits.min, Math.min(limits.max, value));
 }
 
 export function normalizeWallpaperEffects(
@@ -52,10 +43,7 @@ export function normalizeWallpaperEffects(
             "backgroundBrightness",
             Number(value?.backgroundBrightness)
         ),
-        backgroundBlur: clamp(
-            "backgroundBlur",
-            Number(value?.backgroundBlur)
-        ),
+        backgroundBlur: clamp("backgroundBlur", Number(value?.backgroundBlur)),
         containerOpacity: clamp(
             "containerOpacity",
             Number(value?.containerOpacity)
@@ -83,9 +71,7 @@ export function loadWallpaperEffects(): WallpaperEffects {
     }
 }
 
-function parseRgb(
-    value: string
-): [number, number, number] | null {
+function parseRgb(value: string): [number, number, number] | null {
     const match = value.match(
         /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i
     );
@@ -102,10 +88,7 @@ function parseRgb(
 }
 
 function readThemeSurfaceRgb(): [number, number, number] {
-    if (
-        typeof document === "undefined" ||
-        !document.body
-    ) {
+    if (typeof document === "undefined" || !document.body) {
         return [17, 17, 27];
     }
 
@@ -129,14 +112,8 @@ function readThemeSurfaceRgb(): [number, number, number] {
     return parseRgb(resolved) ?? [17, 17, 27];
 }
 
-function rgba(
-    rgb: [number, number, number],
-    alpha: number
-): string {
-    const safeAlpha =
-        Math.round(
-            Math.max(0, Math.min(1, alpha)) * 1000
-        ) / 1000;
+function rgba(rgb: [number, number, number], alpha: number): string {
+    const safeAlpha = Math.round(Math.max(0, Math.min(1, alpha)) * 1000) / 1000;
 
     return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${safeAlpha})`;
 }
@@ -150,67 +127,38 @@ function effectTargets(): HTMLElement[] {
         document.documentElement,
         document.body,
         document.getElementById("root"),
-        document.querySelector<HTMLElement>(
-            ".nc-desktop--calendar"
-        ),
-        document.querySelector<HTMLElement>(
-            ".nc-desktop-calendar"
-        ),
-    ].filter(
-        (target): target is HTMLElement =>
-            target instanceof HTMLElement
-    );
+        document.querySelector<HTMLElement>(".nc-desktop--calendar"),
+        document.querySelector<HTMLElement>(".nc-desktop-calendar"),
+    ].filter((target): target is HTMLElement => target instanceof HTMLElement);
 }
 
-export function applyWallpaperEffects(
-    effects: WallpaperEffects
-): void {
-    if (
-        typeof document === "undefined" ||
-        !document.body
-    ) {
+export function applyWallpaperEffects(effects: WallpaperEffects): void {
+    if (typeof document === "undefined" || !document.body) {
         return;
     }
 
-    const normalized =
-        normalizeWallpaperEffects(effects);
+    const normalized = normalizeWallpaperEffects(effects);
 
-    const surfaceRgb =
-        readThemeSurfaceRgb();
+    const surfaceRgb = readThemeSurfaceRgb();
 
-    const gridAlpha =
-        normalized.containerOpacity;
+    const gridAlpha = normalized.containerOpacity;
 
-    const chromeAlpha =
-        Math.min(
-            1,
-            normalized.containerOpacity + 0.08
-        );
+    const chromeAlpha = Math.min(1, normalized.containerOpacity + 0.08);
 
-    const sidebarAlpha =
-        Math.min(
-            1,
-            normalized.containerOpacity + 0.14
-        );
+    const sidebarAlpha = Math.min(1, normalized.containerOpacity + 0.14);
 
     const values: Record<string, string> = {
-        "--nc-wallpaper-brightness":
-            normalized.backgroundBrightness.toFixed(2),
+        "--nc-wallpaper-brightness": normalized.backgroundBrightness.toFixed(2),
 
-        "--nc-wallpaper-blur":
-            `${normalized.backgroundBlur.toFixed(0)}px`,
+        "--nc-wallpaper-blur": `${normalized.backgroundBlur.toFixed(0)}px`,
 
-        "--nc-container-opacity":
-            normalized.containerOpacity.toFixed(2),
+        "--nc-container-opacity": normalized.containerOpacity.toFixed(2),
 
-        "--nc-grid-container-background":
-            rgba(surfaceRgb, gridAlpha),
+        "--nc-grid-container-background": rgba(surfaceRgb, gridAlpha),
 
-        "--nc-chrome-container-background":
-            rgba(surfaceRgb, chromeAlpha),
+        "--nc-chrome-container-background": rgba(surfaceRgb, chromeAlpha),
 
-        "--nc-sidebar-container-background":
-            rgba(surfaceRgb, sidebarAlpha),
+        "--nc-sidebar-container-background": rgba(surfaceRgb, sidebarAlpha),
     };
 
     for (const target of effectTargets()) {
@@ -229,8 +177,7 @@ export function applyWallpaperEffects(
 export function saveWallpaperEffects(
     value: WallpaperEffects
 ): WallpaperEffects {
-    const normalized =
-        normalizeWallpaperEffects(value);
+    const normalized = normalizeWallpaperEffects(value);
 
     if (typeof window !== "undefined") {
         try {
@@ -247,12 +194,9 @@ export function saveWallpaperEffects(
 
     if (typeof window !== "undefined") {
         window.dispatchEvent(
-            new CustomEvent<WallpaperEffects>(
-                WALLPAPER_EFFECTS_CHANGE_EVENT,
-                {
-                    detail: normalized,
-                }
-            )
+            new CustomEvent<WallpaperEffects>(WALLPAPER_EFFECTS_CHANGE_EVENT, {
+                detail: normalized,
+            })
         );
     }
 
@@ -281,24 +225,19 @@ export function installWallpaperEffects(): void {
     installed = true;
 
     const applyStored = () => {
-        const oldRuntimeLayer =
-            document.getElementById(
-                "nc-android-wallpaper-filter-layer"
-            );
+        const oldRuntimeLayer = document.getElementById(
+            "nc-android-wallpaper-filter-layer"
+        );
 
         oldRuntimeLayer?.remove();
 
-        applyWallpaperEffects(
-            loadWallpaperEffects()
-        );
+        applyWallpaperEffects(loadWallpaperEffects());
     };
 
     if (document.readyState === "loading") {
-        document.addEventListener(
-            "DOMContentLoaded",
-            applyStored,
-            { once: true }
-        );
+        document.addEventListener("DOMContentLoaded", applyStored, {
+            once: true,
+        });
     } else {
         applyStored();
     }
@@ -312,9 +251,7 @@ export function installWallpaperEffects(): void {
     window.setTimeout(applyStored, 0);
     window.setTimeout(applyStored, 300);
 
-    console.info(
-        "[NeoWallpaperEffectsV84] installed"
-    );
+    console.info("[NeoWallpaperEffectsV84] installed");
 }
 
 installWallpaperEffects();

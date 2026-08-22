@@ -691,7 +691,6 @@ export default function EventPanel({
         return () => popup.removeEventListener("paste", onPaste);
     }, [eventId, onPasteEventAttachment, reportSaveFailure, visible]);
 
-
     // ── Save ──────────────────────────────────────────────────
 
     const isTask = form.taskStatus !== null;

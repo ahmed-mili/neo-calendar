@@ -166,20 +166,17 @@ export function useDraftEvent({
         [cache, draftSlot, settings]
     );
 
-    const resizeDraft = useCallback(
-        (range: DraftRange) => {
-            setDraftSlot((previous) =>
-                previous
-                    ? {
-                          ...previous,
-                          start: range.start,
-                          end: range.end,
-                      }
-                    : previous
-            );
-        },
-        []
-    );
+    const resizeDraft = useCallback((range: DraftRange) => {
+        setDraftSlot((previous) =>
+            previous
+                ? {
+                      ...previous,
+                      start: range.start,
+                      end: range.end,
+                  }
+                : previous
+        );
+    }, []);
 
     const discardDraft = useCallback(() => {
         setDraftSlot(null);

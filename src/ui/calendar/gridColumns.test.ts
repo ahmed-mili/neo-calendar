@@ -53,7 +53,12 @@ function gridOfColumns(
 
 /** A grid whose columns really are where `edges` says. */
 const gridShowing = (edges: number[], origin = 64) =>
-    gridOfColumns(edges, edges.map(() => 0), 400, origin);
+    gridOfColumns(
+        edges,
+        edges.map(() => 0),
+        400,
+        origin
+    );
 
 describe("measureColumnWidth", () => {
     it("keeps the fraction a whole-pixel measurement would round away", () => {
@@ -67,10 +72,7 @@ describe("measureColumnWidth", () => {
     // re-bases the range by whole days, so that pixel came off the grid on
     // every shift — and the seam opened one swipe at a time.
     it("measures the distance between two columns, not the width of one", () => {
-        const uneven = gridOfColumns(
-            [0, 171.3, 342.6],
-            [170.3, 171.3, 171.3]
-        );
+        const uneven = gridOfColumns([0, 171.3, 342.6], [170.3, 171.3, 171.3]);
         expect(measureColumnWidth(uneven, 2)).toBeCloseTo(171.3, 5);
     });
 

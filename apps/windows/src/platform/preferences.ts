@@ -9,7 +9,10 @@ export interface DesktopPreferences {
 }
 
 function pathKey(value: string): string {
-    return value.replace(/[\\/]+$/, "").replace(/\\/g, "/").toLowerCase();
+    return value
+        .replace(/[\\/]+$/, "")
+        .replace(/\\/g, "/")
+        .toLowerCase();
 }
 
 function normalizePathList(value: unknown): string[] {

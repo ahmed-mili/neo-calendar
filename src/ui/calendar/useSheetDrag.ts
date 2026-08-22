@@ -68,11 +68,14 @@ export function settleSheet({
     velocity: number;
 }): SheetAnchor {
     const ladder = anchorLadder({ restOffset, height });
-    const nearest = ladder.reduce((best, rung, index) =>
-        Math.abs(rung.offset - offset) < Math.abs(ladder[best].offset - offset)
-            ? index
-            : best
-    , 0);
+    const nearest = ladder.reduce(
+        (best, rung, index) =>
+            Math.abs(rung.offset - offset) <
+            Math.abs(ladder[best].offset - offset)
+                ? index
+                : best,
+        0
+    );
 
     // A flick moves the sheet one step in the direction it was thrown, rather
     // than to the nearest anchor: throwing a sheet downwards from the top and

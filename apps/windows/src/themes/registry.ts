@@ -13,7 +13,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#1e1e2e",
         ink: "#c6d0f5",
         uiFont: '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: false,
         contrast: 60,
         semanticColors: {
@@ -32,7 +33,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#1a1b26",
         ink: "#a9b1d6",
         uiFont: '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: false,
         contrast: 60,
         semanticColors: {
@@ -51,7 +53,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#2d2d2b",
         ink: "#f9f9f7",
         uiFont: '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: true,
         contrast: 60,
         semanticColors: {
@@ -70,7 +73,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#10141c",
         ink: "#bfbdb6",
         uiFont: '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: true,
         contrast: 60,
         semanticColors: {
@@ -89,7 +93,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#0d1117",
         ink: "#e6edf3",
         uiFont: '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: true,
         contrast: 60,
         semanticColors: {
@@ -108,7 +113,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#0f0f11",
         ink: "#e3e4e6",
         uiFont: '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: true,
         contrast: 60,
         semanticColors: {
@@ -127,7 +133,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#111827",
         ink: "#e4e4e7",
         uiFont: 'Satoshi, "Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: true,
         contrast: 60,
         semanticColors: {
@@ -146,7 +153,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#040805",
         ink: "#b8ffca",
         uiFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: true,
         contrast: 60,
         semanticColors: {
@@ -165,7 +173,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#282c34",
         ink: "#abb2bf",
         uiFont: '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: true,
         contrast: 60,
         semanticColors: {
@@ -184,7 +193,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#0b0b0f",
         ink: "#e6e6e6",
         uiFont: '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: true,
         contrast: 60,
         semanticColors: {
@@ -203,7 +213,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#101010",
         ink: "#fefefe",
         uiFont: '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: false,
         contrast: 60,
         semanticColors: {
@@ -222,7 +233,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#232136",
         ink: "#e0def4",
         uiFont: '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
-        codeFont: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
         opaqueWindows: false,
         contrast: 60,
         semanticColors: {
@@ -241,7 +253,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#000000",
         ink: "#ededed",
         uiFont: '"Geist Variable", Geist, "Inter Variable", Inter, "Segoe UI", system-ui, sans-serif',
-        codeFont: '"Geist Mono Variable", "Geist Mono", "JetBrains Mono Variable", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"Geist Mono Variable", "Geist Mono", "JetBrains Mono Variable", "Cascadia Code", Consolas, monospace',
         opaqueWindows: true,
         contrast: 50,
         semanticColors: {
@@ -260,7 +273,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         surface: "#1e1e1e",
         ink: "#d4d4d4",
         uiFont: '"Geist Variable", Geist, "Inter Variable", Inter, "Segoe UI", system-ui, sans-serif',
-        codeFont: '"Geist Mono Variable", "Geist Mono", "JetBrains Mono Variable", "Cascadia Code", Consolas, monospace',
+        codeFont:
+            '"Geist Mono Variable", "Geist Mono", "JetBrains Mono Variable", "Cascadia Code", Consolas, monospace',
         opaqueWindows: true,
         contrast: 50,
         semanticColors: {

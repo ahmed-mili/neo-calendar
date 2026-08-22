@@ -102,7 +102,9 @@ export default function QuickAdd({
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={t("Add event… (e.g. lunch with Alex tomorrow 12pm)")}
+                    placeholder={t(
+                        "Add event… (e.g. lunch with Alex tomorrow 12pm)"
+                    )}
                 />
             </form>
         </div>

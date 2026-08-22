@@ -1,19 +1,11 @@
-import React, {
-    useEffect,
-    useLayoutEffect,
-    useMemo,
-    useState,
-} from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
 import {
     loadWallpaperEffects,
     WALLPAPER_EFFECTS_CHANGE_EVENT,
     WallpaperEffects,
 } from "./themes/wallpaperEffects";
-import {
-    getWallpaper,
-    WallpaperId,
-} from "./themes/wallpapers";
+import { getWallpaper, WallpaperId } from "./themes/wallpapers";
 import { useWallpaperReady } from "./themes/useWallpaperReady";
 
 interface WallpaperRenderLayerProps {
@@ -26,24 +18,16 @@ function readThemeWallpaper(): string {
     const roots: Element[] = [
         document.documentElement,
         document.body,
-        document.querySelector(
-            ".nc-desktop--calendar"
-        ) as Element,
+        document.querySelector(".nc-desktop--calendar") as Element,
     ].filter(Boolean);
 
     for (const root of roots) {
-        const value =
-            window
-                .getComputedStyle(root)
-                .getPropertyValue(
-                    "--nc-wallpaper"
-                )
-                .trim();
+        const value = window
+            .getComputedStyle(root)
+            .getPropertyValue("--nc-wallpaper")
+            .trim();
 
-        if (
-            value &&
-            value.toLowerCase() !== "none"
-        ) {
+        if (value && value.toLowerCase() !== "none") {
             return value;
         }
     }
@@ -56,30 +40,21 @@ export default function WallpaperRenderLayer({
     appearanceMode,
     surface,
 }: WallpaperRenderLayerProps) {
-    const [effects, setEffects] =
-        useState<WallpaperEffects>(
-            () => loadWallpaperEffects()
-        );
+    const [effects, setEffects] = useState<WallpaperEffects>(() =>
+        loadWallpaperEffects()
+    );
 
-    const [themeWallpaper, setThemeWallpaper] =
-        useState("none");
+    const [themeWallpaper, setThemeWallpaper] = useState("none");
 
-    const wallpaper =
-        getWallpaper(wallpaperId);
+    const wallpaper = getWallpaper(wallpaperId);
 
     // Sur Android la photo vit dans le dossier de données, pas dans l'APK :
     // tant qu'elle n'y est pas, on peint le fond du thème.
-    const ready = useWallpaperReady(
-        wallpaper.imageUrl
-    );
+    const ready = useWallpaperReady(wallpaper.imageUrl);
 
     useEffect(() => {
-        const onEffectsChange = (
-            event: Event
-        ) => {
-            const detail = (
-                event as CustomEvent<WallpaperEffects>
-            ).detail;
+        const onEffectsChange = (event: Event) => {
+            const detail = (event as CustomEvent<WallpaperEffects>).detail;
 
             if (detail) {
                 setEffects(detail);
@@ -101,82 +76,54 @@ export default function WallpaperRenderLayer({
 
     useLayoutEffect(() => {
         const sync = () => {
-            setThemeWallpaper(
-                readThemeWallpaper()
-            );
+            setThemeWallpaper(readThemeWallpaper());
         };
 
         sync();
 
-        const first =
-            window.requestAnimationFrame(sync);
+        const first = window.requestAnimationFrame(sync);
 
-        const timer =
-            window.setTimeout(sync, 250);
+        const timer = window.setTimeout(sync, 250);
 
         return () => {
-            window.cancelAnimationFrame(
-                first
-            );
+            window.cancelAnimationFrame(first);
 
             window.clearTimeout(timer);
         };
-    }, [
-        wallpaperId,
-        appearanceMode,
-        surface,
-    ]);
+    }, [wallpaperId, appearanceMode, surface]);
 
     useEffect(() => {
-        document
-            .getElementById(
-                "nc-android-wallpaper-filter-layer"
-            )
-            ?.remove();
+        document.getElementById("nc-android-wallpaper-filter-layer")?.remove();
     }, []);
 
-    const backgroundImage =
-        useMemo(() => {
-            if (
-                wallpaper.previewStyle ===
-                "solid"
-            ) {
-                return "none";
-            }
+    const backgroundImage = useMemo(() => {
+        if (wallpaper.previewStyle === "solid") {
+            return "none";
+        }
 
-            const overlay =
-                appearanceMode === "light"
-                    ? "linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,.16))"
-                    : `linear-gradient(color-mix(in srgb, ${surface} 16%, transparent), color-mix(in srgb, ${surface} 24%, transparent))`;
+        const overlay =
+            appearanceMode === "light"
+                ? "linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,.16))"
+                : `linear-gradient(color-mix(in srgb, ${surface} 16%, transparent), color-mix(in srgb, ${surface} 24%, transparent))`;
 
-            const image =
-                wallpaper.previewStyle ===
-                    "image" &&
-                wallpaper.imageUrl &&
-                ready
-                    ? `url("${wallpaper.imageUrl}")`
-                    : themeWallpaper;
+        const image =
+            wallpaper.previewStyle === "image" && wallpaper.imageUrl && ready
+                ? `url("${wallpaper.imageUrl}")`
+                : themeWallpaper;
 
-            return (
-                image &&
-                image.toLowerCase() !==
-                    "none"
-            )
-                ? `${overlay}, ${image}`
-                : "none";
-        }, [
-            appearanceMode,
-            ready,
-            surface,
-            themeWallpaper,
-            wallpaper.imageUrl,
-            wallpaper.previewStyle,
-        ]);
+        return image && image.toLowerCase() !== "none"
+            ? `${overlay}, ${image}`
+            : "none";
+    }, [
+        appearanceMode,
+        ready,
+        surface,
+        themeWallpaper,
+        wallpaper.imageUrl,
+        wallpaper.previewStyle,
+    ]);
 
-    if (
-        typeof document === "undefined" ||
-        !document.body
-    ) {
+    if (typeof document === "undefined" || !document.body) {
         return null;
     }
 
@@ -184,12 +131,8 @@ export default function WallpaperRenderLayer({
         <div
             id="nc-wallpaper-render-layer"
             aria-hidden="true"
-            data-brightness={effects.backgroundBrightness.toFixed(
-                2
-            )}
-            data-blur={effects.backgroundBlur.toFixed(
-                0
-            )}
+            data-brightness={effects.backgroundBrightness.toFixed(2)}
+            data-blur={effects.backgroundBlur.toFixed(0)}
             style={{
                 backgroundColor: surface,
                 backgroundImage,

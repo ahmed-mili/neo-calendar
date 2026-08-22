@@ -113,13 +113,10 @@ export function useDesktopBridge() {
         };
     }, [preferences?.vaultFolders]);
 
-    const savePreferences = useCallback(
-        async (next: DesktopPreferences) => {
-            await saveDesktopPreferences(next);
-            setPreferences(next);
-        },
-        []
-    );
+    const savePreferences = useCallback(async (next: DesktopPreferences) => {
+        await saveDesktopPreferences(next);
+        setPreferences(next);
+    }, []);
 
     const chooseDataFolder = useCallback(async () => {
         setIsChoosingFolder(true);
@@ -249,9 +246,7 @@ export function useDesktopBridge() {
         const disabled = preferences?.disabledVaults ?? [];
         return detectedVaults.filter(
             (vault) =>
-                !disabled.some((path) =>
-                    isSameDesktopPath(path, vault.path)
-                )
+                !disabled.some((path) => isSameDesktopPath(path, vault.path))
         );
     }, [detectedVaults, preferences?.disabledVaults]);
 

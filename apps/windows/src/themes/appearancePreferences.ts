@@ -40,8 +40,10 @@ export interface EffectiveThemeAppearance {
 const STORAGE_KEY = "neo-calendar.appearance";
 export const APPEARANCE_CHANGE_EVENT = "neo-calendar:appearance-change";
 
-export const DEFAULT_UI_FONT = '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif';
-export const DEFAULT_CODE_FONT = '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace';
+export const DEFAULT_UI_FONT =
+    '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif';
+export const DEFAULT_CODE_FONT =
+    '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace';
 
 const DEFAULT_APPEARANCE: AppearancePreferences = {
     mode: "dark",
@@ -120,9 +122,8 @@ export function normalizeAppearancePreferences(
     const themeOverrides: Partial<Record<ThemeId, ThemeCustomization>> = {};
 
     for (const [themeId, customization] of Object.entries(overridesInput)) {
-        themeOverrides[themeId as ThemeId] = normalizeThemeCustomization(
-            customization
-        );
+        themeOverrides[themeId as ThemeId] =
+            normalizeThemeCustomization(customization);
     }
 
     return {
@@ -131,10 +132,7 @@ export function normalizeAppearancePreferences(
             typeof input.translucentSidebar === "boolean"
                 ? input.translucentSidebar
                 : DEFAULT_APPEARANCE.translucentSidebar,
-        contrast: clampContrast(
-            input.contrast,
-            DEFAULT_APPEARANCE.contrast
-        ),
+        contrast: clampContrast(input.contrast, DEFAULT_APPEARANCE.contrast),
         themeOverrides,
     };
 }
@@ -186,8 +184,7 @@ export function getEffectiveThemeAppearance(
         ink: override.ink ?? theme.ink,
         uiFont: override.uiFont ?? theme.uiFont ?? DEFAULT_UI_FONT,
         codeFont: override.codeFont ?? theme.codeFont ?? DEFAULT_CODE_FONT,
-        translucentSidebar:
-            override.translucentSidebar ?? !theme.opaqueWindows,
+        translucentSidebar: override.translucentSidebar ?? !theme.opaqueWindows,
         contrast: override.contrast ?? theme.contrast,
         wallpaperId: override.wallpaperId ?? getRuntimeDefaultWallpaperId(),
     };

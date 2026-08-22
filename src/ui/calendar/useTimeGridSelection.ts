@@ -15,12 +15,8 @@ function isAndroidRuntime(): boolean {
 
     return (
         Boolean(androidWindow.NeoAndroid) ||
-        document.documentElement.classList.contains(
-            "nc-platform-android"
-        ) ||
-        document.body?.classList.contains(
-            "nc-platform-android"
-        ) === true
+        document.documentElement.classList.contains("nc-platform-android") ||
+        document.body?.classList.contains("nc-platform-android") === true
     );
 }
 
@@ -30,11 +26,7 @@ function snappedHalfHour(date: Date): {
 } {
     const start = new Date(date);
 
-    start.setMinutes(
-        Math.round(start.getMinutes() / 15) * 15,
-        0,
-        0
-    );
+    start.setMinutes(Math.round(start.getMinutes() / 15) * 15, 0, 0);
 
     return {
         start,
@@ -47,8 +39,7 @@ export function useTimeGridSelection({
     onSelectRange,
     onEmptyContextMenu,
 }: UseTimeGridSelectionParams) {
-    const [selection, setSelection] =
-        useState<SelectionState | null>(null);
+    const [selection, setSelection] = useState<SelectionState | null>(null);
 
     const selectionRef = useRef<{
         isSelecting: boolean;
@@ -134,11 +125,7 @@ export function useTimeGridSelection({
     );
 
     const handleMouseDown = useCallback(
-        (
-            event: React.PointerEvent,
-            date: Date,
-            dayIndex: number
-        ) => {
+        (event: React.PointerEvent, date: Date, dayIndex: number) => {
             if (event.button !== 0) {
                 return;
             }
@@ -157,9 +144,7 @@ export function useTimeGridSelection({
                 return;
             }
 
-            const dayColumn = target.closest(
-                ".nc-timegrid-day"
-            );
+            const dayColumn = target.closest(".nc-timegrid-day");
 
             if (!dayColumn) {
                 return;
@@ -171,13 +156,9 @@ export function useTimeGridSelection({
                 return;
             }
 
-            const dayRect =
-                dayColumn.getBoundingClientRect();
+            const dayRect = dayColumn.getBoundingClientRect();
 
-            const startDate = positionToDate(
-                event.clientY - dayRect.top,
-                date
-            );
+            const startDate = positionToDate(event.clientY - dayRect.top, date);
 
             selectionRef.current = {
                 isSelecting: true,
@@ -193,51 +174,29 @@ export function useTimeGridSelection({
             event.preventDefault();
 
             const cleanup = () => {
-                document.removeEventListener(
-                    "pointermove",
-                    onMove,
-                    true
-                );
+                document.removeEventListener("pointermove", onMove, true);
 
-                document.removeEventListener(
-                    "pointerup",
-                    onUp,
-                    true
-                );
+                document.removeEventListener("pointerup", onUp, true);
 
-                document.removeEventListener(
-                    "pointercancel",
-                    onCancel,
-                    true
-                );
+                document.removeEventListener("pointercancel", onCancel, true);
 
-                document.removeEventListener(
-                    "scroll",
-                    onScrolled,
-                    true
-                );
+                document.removeEventListener("scroll", onScrolled, true);
             };
 
-            const onMove = (
-                pointerEvent: PointerEvent
-            ) => {
-                const current =
-                    selectionRef.current;
+            const onMove = (pointerEvent: PointerEvent) => {
+                const current = selectionRef.current;
 
                 if (
                     !current?.isSelecting ||
-                    pointerEvent.pointerId !==
-                        current.pointerId
+                    pointerEvent.pointerId !== current.pointerId
                 ) {
                     return;
                 }
 
                 if (!current.moved) {
                     const distance = Math.hypot(
-                        pointerEvent.clientX -
-                            current.startClientX,
-                        pointerEvent.clientY -
-                            current.startClientY
+                        pointerEvent.clientX - current.startClientX,
+                        pointerEvent.clientY - current.startClientY
                     );
 
                     if (distance < 10) {
@@ -262,27 +221,21 @@ export function useTimeGridSelection({
                     }
                 }
 
-                const overElement =
-                    document.elementFromPoint(
-                        pointerEvent.clientX,
-                        pointerEvent.clientY
-                    ) as HTMLElement | null;
+                const overElement = document.elementFromPoint(
+                    pointerEvent.clientX,
+                    pointerEvent.clientY
+                ) as HTMLElement | null;
 
-                const overColumn =
-                    overElement?.closest(
-                        ".nc-timegrid-day"
-                    ) as HTMLElement | null;
+                const overColumn = overElement?.closest(
+                    ".nc-timegrid-day"
+                ) as HTMLElement | null;
 
-                let endDayDate =
-                    current.dayDate;
+                let endDayDate = current.dayDate;
 
-                let column: Element | null =
-                    overColumn;
+                let column: Element | null = overColumn;
 
                 if (overColumn?.dataset.date) {
-                    endDayDate = new Date(
-                        overColumn.dataset.date
-                    );
+                    endDayDate = new Date(overColumn.dataset.date);
                 } else {
                     column =
                         gridRef.current?.querySelector(
@@ -294,24 +247,19 @@ export function useTimeGridSelection({
                     return;
                 }
 
-                const rect =
-                    column.getBoundingClientRect();
+                const rect = column.getBoundingClientRect();
 
-                const endDate =
-                    positionToDate(
-                        pointerEvent.clientY -
-                            rect.top,
-                        endDayDate
-                    );
+                const endDate = positionToDate(
+                    pointerEvent.clientY - rect.top,
+                    endDayDate
+                );
 
                 setSelection((previous) => {
                     if (!previous) {
                         return {
-                            startDate:
-                                current.startDate,
+                            startDate: current.startDate,
                             endDate,
-                            dayIndex:
-                                current.dayIndex,
+                            dayIndex: current.dayIndex,
                         };
                     }
 
@@ -322,80 +270,56 @@ export function useTimeGridSelection({
                 });
             };
 
-            const onUp = (
-                pointerEvent: PointerEvent
-            ) => {
-                const current =
-                    selectionRef.current;
+            const onUp = (pointerEvent: PointerEvent) => {
+                const current = selectionRef.current;
 
                 if (
                     !current?.isSelecting ||
-                    pointerEvent.pointerId !==
-                        current.pointerId
+                    pointerEvent.pointerId !== current.pointerId
                 ) {
                     return;
                 }
 
                 current.isSelecting = false;
 
-                if (
-                    !current.moved &&
-                    isAndroidRuntime()
-                ) {
+                if (!current.moved && isAndroidRuntime()) {
                     pointerEvent.preventDefault();
                     pointerEvent.stopImmediatePropagation();
 
-                    const range =
-                        snappedHalfHour(
-                            current.startDate
-                        );
+                    const range = snappedHalfHour(current.startDate);
 
                     setSelection(null);
                     selectionRef.current = null;
                     cleanup();
 
-                    onSelectRange(
-                        range.start,
-                        range.end,
-                        false
-                    );
+                    onSelectRange(range.start, range.end, false);
 
                     return;
                 }
 
                 setSelection((previous) => {
                     if (previous) {
-                        const difference =
-                            Math.abs(
-                                previous.endDate.getTime() -
-                                    previous.startDate.getTime()
+                        const difference = Math.abs(
+                            previous.endDate.getTime() -
+                                previous.startDate.getTime()
+                        );
+
+                        if (difference >= 15 * 60000) {
+                            const start = new Date(
+                                Math.min(
+                                    previous.startDate.getTime(),
+                                    previous.endDate.getTime()
+                                )
                             );
 
-                        if (
-                            difference >=
-                            15 * 60000
-                        ) {
-                            const start =
-                                new Date(
-                                    Math.min(
-                                        previous.startDate.getTime(),
-                                        previous.endDate.getTime()
-                                    )
-                                );
-
-                            const end =
-                                new Date(
-                                    Math.max(
-                                        previous.startDate.getTime(),
-                                        previous.endDate.getTime()
-                                    )
-                                );
-
-                            onSelectRange(
-                                start,
-                                end,
-                                false
+                            const end = new Date(
+                                Math.max(
+                                    previous.startDate.getTime(),
+                                    previous.endDate.getTime()
+                                )
                             );
+
+                            onSelectRange(start, end, false);
                         }
                     }
 
@@ -406,17 +330,10 @@ export function useTimeGridSelection({
                 cleanup();
             };
 
-            const onCancel = (
-                pointerEvent: PointerEvent
-            ) => {
-                const current =
-                    selectionRef.current;
+            const onCancel = (pointerEvent: PointerEvent) => {
+                const current = selectionRef.current;
 
-                if (
-                    current &&
-                    pointerEvent.pointerId !==
-                        current.pointerId
-                ) {
+                if (current && pointerEvent.pointerId !== current.pointerId) {
                     return;
                 }
 
@@ -439,97 +356,53 @@ export function useTimeGridSelection({
             };
 
             if (isAndroidRuntime()) {
-                document.addEventListener(
-                    "scroll",
-                    onScrolled,
-                    true
-                );
+                document.addEventListener("scroll", onScrolled, true);
             }
 
-            document.addEventListener(
-                "pointermove",
-                onMove,
-                true
-            );
+            document.addEventListener("pointermove", onMove, true);
 
-            document.addEventListener(
-                "pointerup",
-                onUp,
-                true
-            );
+            document.addEventListener("pointerup", onUp, true);
 
-            document.addEventListener(
-                "pointercancel",
-                onCancel,
-                true
-            );
+            document.addEventListener("pointercancel", onCancel, true);
         },
         [gridRef, onSelectRange]
     );
 
     const handleDoubleClick = useCallback(
-        (
-            event: React.MouseEvent,
-            date: Date
-        ) => {
+        (event: React.MouseEvent, date: Date) => {
             if (isAndroidRuntime()) {
                 return;
             }
 
-            const target =
-                event.target as HTMLElement;
+            const target = event.target as HTMLElement;
 
-            if (
-                target.closest(
-                    ".nc-event-block"
-                )
-            ) {
+            if (target.closest(".nc-event-block")) {
                 return;
             }
 
-            const dayColumn =
-                target.closest(
-                    ".nc-timegrid-day"
-                );
+            const dayColumn = target.closest(".nc-timegrid-day");
 
             if (!dayColumn) {
                 return;
             }
 
-            const rect =
-                dayColumn.getBoundingClientRect();
+            const rect = dayColumn.getBoundingClientRect();
 
-            const range =
-                snappedHalfHour(
-                    positionToDate(
-                        event.clientY -
-                            rect.top,
-                        date
-                    )
-                );
+            const range = snappedHalfHour(
+                positionToDate(event.clientY - rect.top, date)
+            );
 
             selectionRef.current = null;
             setSelection(null);
 
-            onSelectRange(
-                range.start,
-                range.end,
-                false
-            );
+            onSelectRange(range.start, range.end, false);
         },
         [onSelectRange]
     );
 
     const handleEmptyContext = useCallback(
-        (
-            event: React.MouseEvent,
-            day: Date
-        ) => {
-            if (
-                (
-                    event.target as HTMLElement
-                ).closest(".nc-event-block")
-            ) {
+        (event: React.MouseEvent, day: Date) => {
+            if ((event.target as HTMLElement).closest(".nc-event-block")) {
                 return;
             }
 
@@ -539,38 +412,20 @@ export function useTimeGridSelection({
                 return;
             }
 
-            const dayColumn =
-                (
-                    event.target as HTMLElement
-                ).closest(
-                    ".nc-timegrid-day"
-                );
+            const dayColumn = (event.target as HTMLElement).closest(
+                ".nc-timegrid-day"
+            );
 
             if (dayColumn) {
-                const rect =
-                    dayColumn.getBoundingClientRect();
+                const rect = dayColumn.getBoundingClientRect();
 
-                const clicked =
-                    positionToDate(
-                        event.clientY -
-                            rect.top,
-                        day
-                    );
+                const clicked = positionToDate(event.clientY - rect.top, day);
 
-                const start =
-                    snappedHalfHour(
-                        clicked
-                    ).start;
+                const start = snappedHalfHour(clicked).start;
 
-                onEmptyContextMenu(
-                    start,
-                    event.nativeEvent
-                );
+                onEmptyContextMenu(start, event.nativeEvent);
             } else {
-                onEmptyContextMenu(
-                    day,
-                    event.nativeEvent
-                );
+                onEmptyContextMenu(day, event.nativeEvent);
             }
         },
         [onEmptyContextMenu]

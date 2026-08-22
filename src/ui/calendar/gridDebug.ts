@@ -76,14 +76,16 @@ export function enableGridLineDebug(host: HTMLElement | null): () => void {
         // different heights and the row reads as crooked.
         const gutter = host.querySelector<HTMLElement>(".nc-left-rail-allday");
         const band = host.querySelector<HTMLElement>(".nc-allday-row");
-        const bandTop = gutter && band
-            ? band.getBoundingClientRect().top -
-              gutter.getBoundingClientRect().top
-            : Number.NaN;
-        const bandBottom = gutter && band
-            ? band.getBoundingClientRect().bottom -
-              gutter.getBoundingClientRect().bottom
-            : Number.NaN;
+        const bandTop =
+            gutter && band
+                ? band.getBoundingClientRect().top -
+                  gutter.getBoundingClientRect().top
+                : Number.NaN;
+        const bandBottom =
+            gutter && band
+                ? band.getBoundingClientRect().bottom -
+                  gutter.getBoundingClientRect().bottom
+                : Number.NaN;
 
         const gridLeft = scroller.getBoundingClientRect().left;
         const railRight = rail.getBoundingClientRect().right;

@@ -36,7 +36,10 @@ export function updateControlState({
        téléchargement (percent revenu à null), et non le compteur atteignant
        100 % — un fichier peut afficher 100 % pendant qu'on le vérifie. */
     if (percent !== null) {
-        return { kind: "downloading", label: percent < 0 ? null : `${percent} %` };
+        return {
+            kind: "downloading",
+            label: percent < 0 ? null : `${percent} %`,
+        };
     }
     if (!ready) return { kind: "idle", label: null };
     return { kind: "ready", label: ready };

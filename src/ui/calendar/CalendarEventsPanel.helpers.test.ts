@@ -245,7 +245,10 @@ describe("panelTimeframe", () => {
     it("calls an event that has ended past", () => {
         expect(
             panelTimeframe(
-                { start: at("2026-08-10T10:00:00"), end: at("2026-08-10T11:00:00") },
+                {
+                    start: at("2026-08-10T10:00:00"),
+                    end: at("2026-08-10T11:00:00"),
+                },
                 now
             )
         ).toBe("past");
@@ -254,7 +257,10 @@ describe("panelTimeframe", () => {
     it("calls an event that has not started future", () => {
         expect(
             panelTimeframe(
-                { start: at("2026-08-10T15:00:00"), end: at("2026-08-10T16:00:00") },
+                {
+                    start: at("2026-08-10T15:00:00"),
+                    end: at("2026-08-10T16:00:00"),
+                },
                 now
             )
         ).toBe("future");
@@ -263,7 +269,10 @@ describe("panelTimeframe", () => {
     it("calls an event that is running now", () => {
         expect(
             panelTimeframe(
-                { start: at("2026-08-10T13:30:00"), end: at("2026-08-10T14:30:00") },
+                {
+                    start: at("2026-08-10T13:30:00"),
+                    end: at("2026-08-10T14:30:00"),
+                },
                 now
             )
         ).toBe("now");
@@ -274,13 +283,19 @@ describe("panelTimeframe", () => {
         // "today" and "happening now" the same thing for something untimed.
         expect(
             panelTimeframe(
-                { start: at("2026-08-10T00:00:00"), end: at("2026-08-11T00:00:00") },
+                {
+                    start: at("2026-08-10T00:00:00"),
+                    end: at("2026-08-11T00:00:00"),
+                },
                 now
             )
         ).toBe("now");
         expect(
             panelTimeframe(
-                { start: at("2026-08-09T00:00:00"), end: at("2026-08-10T00:00:00") },
+                {
+                    start: at("2026-08-09T00:00:00"),
+                    end: at("2026-08-10T00:00:00"),
+                },
                 now
             )
         ).toBe("past");
@@ -289,7 +304,10 @@ describe("panelTimeframe", () => {
     it("treats the instant an event ends as over", () => {
         expect(
             panelTimeframe(
-                { start: at("2026-08-10T13:00:00"), end: at("2026-08-10T14:00:00") },
+                {
+                    start: at("2026-08-10T13:00:00"),
+                    end: at("2026-08-10T14:00:00"),
+                },
                 now
             )
         ).toBe("past");

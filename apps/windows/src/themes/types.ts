@@ -12,7 +12,7 @@ export const THEME_IDS = [
     "raycast",
     "rose-pine",
     "vercel",
-    "vscode-plus"
+    "vscode-plus",
 ] as const;
 
 export type ThemeId = (typeof THEME_IDS)[number];

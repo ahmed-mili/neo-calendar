@@ -48,9 +48,9 @@ describe("what the update control is showing", () => {
             kind: "downloading",
             label: "100 %",
         });
-        expect(updateControlState({ percent: null, ready: "1.50.0" }).kind).toBe(
-            "ready"
-        );
+        expect(
+            updateControlState({ percent: null, ready: "1.50.0" }).kind
+        ).toBe("ready");
     });
 
     /*

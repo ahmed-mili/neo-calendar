@@ -169,7 +169,11 @@ export function buildAutoCalendarEvents(
     source: DesktopAutoCalendarSource,
     currentYear: number
 ): NeoEvent[] {
-    const holidays = expandRules(source.rules, currentYear - 5, currentYear + 10);
+    const holidays = expandRules(
+        source.rules,
+        currentYear - 5,
+        currentYear + 10
+    );
     const used = new Map<string, number>();
     return holidays.map(({ date, name }) => {
         const base = `auto-${source.id}-${date}-${slug(name)}`;

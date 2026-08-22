@@ -246,7 +246,8 @@ describe("compat: NeoEvent → frontmatter (serialize & merge)", () => {
     });
 
     it("writes the steps of a task as a list", () => {
-        const page = "---\ntitle: Move\nallDay: true\ndate: 2026-08-12\n---" + body;
+        const page =
+            "---\ntitle: Move\nallDay: true\ndate: 2026-08-12\n---" + body;
         const event = parseEvent({
             title: "Move",
             allDay: true,

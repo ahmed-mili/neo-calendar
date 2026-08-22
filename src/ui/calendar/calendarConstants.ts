@@ -41,8 +41,8 @@ export function scaledPx(hours: number, offsetPx = 0): string {
         offsetPx === 0
             ? ""
             : offsetPx > 0
-              ? ` + ${offsetPx}px`
-              : ` - ${-offsetPx}px`;
+            ? ` + ${offsetPx}px`
+            : ` - ${-offsetPx}px`;
     return `calc(var(--nc-hour-height, ${HOUR_HEIGHT}px) * ${hours}${offset})`;
 }
 
@@ -56,8 +56,8 @@ export function scaledHeightPx(
         offsetPx === 0
             ? ""
             : offsetPx > 0
-              ? ` + ${offsetPx}px`
-              : ` - ${-offsetPx}px`
+            ? ` + ${offsetPx}px`
+            : ` - ${-offsetPx}px`
     })`;
 }
 export const OVERLAP_COL_GAP = 16; // px right-trim on every event
