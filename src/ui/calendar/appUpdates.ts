@@ -32,12 +32,13 @@ export const UPDATE_EVENT = "neo-update-available";
 
 /** Fired with `detail.status` once a check asked for BY HAND has finished:
  *  "current" when nothing is newer, "offline" when there is no network to look
- *  over, "failed" when the look was taken and did not work.
- *  A check that finds something opens the prompt instead, and says so through
- *  UPDATE_EVENT — so there is no "found" here. */
+ *  over, "failed" when the look was taken and did not work, "found" when there
+ *  is something newer — auquel cas la coque la descend sans rien demander, et
+ *  le contrôle qui avait posé la question n'a plus qu'à rendre la main au
+ *  compteur. */
 export const CHECK_RESULT_EVENT = "neo-update-checked";
 
-export type CheckResult = "current" | "failed" | "offline";
+export type CheckResult = "current" | "failed" | "offline" | "found";
 
 /** Fired while an update downloads, with `detail.percent`:
  *  0..100 as it goes, -1 when the server declined to say how big the file is

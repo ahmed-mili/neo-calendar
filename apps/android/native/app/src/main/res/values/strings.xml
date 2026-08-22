@@ -17,10 +17,6 @@
     <string name="widget_preview_time_four">"9 AM – 10 PM"</string>
     <string name="reminder_channel">"Rappels d’événements"</string>
     <string name="reminder_channel_description">"Prévient avant le début d’un événement."</string>
-    <string name="update_available">"Mise à jour disponible"</string>
-    <string name="update_message">"La version %1$s de Neo Calendar est disponible. Souhaitez-vous la télécharger et l’installer maintenant ?"</string>
-    <string name="update_install">"Mettre à jour"</string>
-    <string name="update_later">"Plus tard"</string>
     <string name="update_downloading">"Téléchargement de la mise à jour…"</string>
     <string name="update_failed">"La mise à jour n’a pas pu être vérifiée ou installée."</string>
     <string name="update_channel">"Mises à jour"</string>

@@ -141,8 +141,15 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
             const detail = (event as CustomEvent<{ status?: string }>).detail;
             setCheckingUpdate(false);
             const status = detail?.status;
+            // « Trouvée » ne s'écrit pas ici : la pastille bleue la descend déjà
+            // à côté, et deux contrôles qui annoncent la même nouvelle se
+            // marchent dessus dans une barre de 204 px.
             setCheckResult(
-                status === "failed" || status === "offline" ? status : "current"
+                status === "found"
+                    ? null
+                    : status === "failed" || status === "offline"
+                    ? status
+                    : "current"
             );
         };
         window.addEventListener(CHECK_RESULT_EVENT, onResult);

@@ -1,7 +1,6 @@
 package com.ahmed.neocalendar;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -13,15 +12,11 @@ import android.net.NetworkCapabilities;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
@@ -37,7 +32,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -53,35 +47,28 @@ final class AppUpdater {
     "/ahmed-mili/neo-calendar/releases/download/";
   private static final int MAX_METADATA_BYTES = 64 * 1024;
   private static final long MAX_APK_BYTES = 200L * 1024L * 1024L;
-  /** The version waved away, for THIS RUN of the app and no longer.
+  /** La version descendue, verifiee, et pas encore posee : celle que la
+   *  pastille de la fenetre propose d'installer.
    *
-   *  It was written to disk, and that made "Later" a refusal with no way back:
-   *  the launch check skipped that version for good, and the only route to it
-   *  was knowing that the number beside the gear is secretly a button. One
-   *  mis-tap and the update was unreachable to anyone who did not know.
-   *
-   *  "Later" now means later — the next time the app starts, it asks again.
-   *  Static so it survives the Activity being rebuilt (a rotation, a theme
-   *  change) without surviving the process, which is exactly what "this run"
-   *  means. The old key is left unread rather than migrated; a stale one on
-   *  disk simply stops mattering. */
-  private static long dismissedThisRun = 0L;
-  /** The version found and still not installed, held for the badge.
-   *
-   *  Static and separate from `dismissedThisRun` on purpose: "Later" puts the
-   *  PROMPT away, it does not make the update stop existing. The dot on the
-   *  menu button is drawn from this, so it stays until the version that
-   *  answers it is running. */
+   *  Elle n'est ecrite qu'une fois l'APK sur le disque. Annoncee des la
+   *  DECOUVERTE, comme avant, elle faisait d'un telechargement rate un bouton
+   *  bleu qui ne repondait a rien : il promettait de poser une version dont
+   *  aucun octet n'avait survecu. Statique pour survivre a une Activity
+   *  reconstruite — une rotation, un changement de theme — sans survivre au
+   *  processus, ou la verification du lancement reprend de toute facon. */
   private static String pendingVersion = "";
+  /** Une seule descente a la fois.
+   *
+   *  Deux threads sur le meme fichier .part ecrivent l'un par-dessus l'autre :
+   *  l'APK obtenu echoue au checksum, et tout le temps passe a le descendre est
+   *  perdu. Le cas n'a plus rien de theorique depuis que la verification du
+   *  lancement telecharge d'elle-meme — presser le numero de version pendant
+   *  qu'elle travaille est un geste normal. */
+  private static volatile boolean downloading;
   /** La derniere version qu'on a tente de telecharger. Statique comme le
       reste : le bouton « Reessayer » d'une notification peut arriver apres
       que l'Activity a ete reconstruite. */
   private static Metadata lastAttempt;
-  /** Si cette tentative-la devait poser la version au bout, ou seulement la
-   *  descendre. « Reessayer » depuis la notification d'echec refait la meme
-   *  chose que ce qui a echoue : un telechargement demarre tout seul reste un
-   *  telechargement, et une installation demandee reste demandee. */
-  private static boolean lastAttemptInstalls;
 
   /** Read across the bridge by the web side; see appUpdates.ts. */
   static String pendingVersion() {
@@ -130,13 +117,11 @@ final class AppUpdater {
       try {
         Metadata metadata = fetchMetadata();
         if (metadata.versionCode <= currentVersionCode()) return;
-        remember(metadata);
-        if (metadata.versionCode == dismissedVersionCode()) return;
         /* On la descend tout de suite, sans rien demander : c'est la partie qui
            prend du temps, et personne n'a de raison de dire non a un
            telechargement. Poser la nouvelle version reste un geste — voir
            installReady(), appele par le controle de la fenetre. */
-        activity.runOnUiThread(() -> download(metadata, false));
+        activity.runOnUiThread(() -> download(metadata));
       } catch (Exception error) {
         // Offline, or GitHub having a moment. The next launch asks again.
         Log.w(TAG, "Update check failed", error);
@@ -146,18 +131,25 @@ final class AppUpdater {
 
   /** Asked for by hand, from the version beside the gear.
    *
-   *  Two things it does that the launch check does not. It ignores the version
-   *  the user waved away: pressing the number IS reopening the question, and
-   *  answering "nothing new" to someone who just asked would be a lie by
-   *  omission. And it says so when there is nothing — a check with no visible
-   *  outcome is indistinguishable from a button that does not work. */
+   *  Elle fait ce que fait la verification du lancement — elle descend ce
+   *  qu'elle trouve — et rien de plus. Elle ouvrait une boite de dialogue,
+   *  « Mise a jour disponible / Plus tard / Mettre a jour » : c'etait demander
+   *  deux fois la meme chose, une fois par oui-non et une fois par la pastille
+   *  bleue au bout du telechargement. Et le premier des deux tombait au pire
+   *  moment, avant que le fichier existe, quand repondre oui ne faisait
+   *  qu'attendre.
+   *
+   *  Ce qu'elle ajoute a la verification du lancement, c'est de repondre quand
+   *  il n'y a RIEN : une verification demandee dont on ne voit pas l'issue ne
+   *  se distingue pas d'un bouton qui ne marche pas. */
   void checkNow() {
     io.execute(() -> {
       try {
         Metadata metadata = fetchMetadata();
         if (metadata.versionCode > currentVersionCode()) {
-          remember(metadata);
-          activity.runOnUiThread(() -> showPrompt(metadata));
+          // Le compteur prend le relais, donc la pilule a fini de repondre.
+          report("found");
+          activity.runOnUiThread(() -> download(metadata));
           return;
         }
         pendingVersion = "";
@@ -183,9 +175,14 @@ final class AppUpdater {
     });
   }
 
-  /** Hold the finding, and tell the page so the badge appears now rather than
-      at whatever moment it next happens to read. */
-  private void remember(Metadata metadata) {
+  /** L'APK est la, verifie : la pastille peut proposer de le poser.
+   *
+   *  Dit a la page tout de suite plutot qu'a la prochaine lecture qu'elle fera
+   *  d'elle-meme — et avant que le compteur s'efface, sinon le controle passe
+   *  par un rendu ou il n'a plus rien a dire, disparait, puis revient : la
+   *  transition du chiffre vers le bouton se jouerait sur un element demonte. */
+  private void holdReady(Metadata metadata, File apk) {
+    readyApk = apk;
     pendingVersion = metadata.version;
     activity.runOnUiThread(() -> {
       if (onUpdateFound != null) onUpdateFound.run();
@@ -224,7 +221,7 @@ final class AppUpdater {
    *  de zero — on refait la verification, qui aboutit au meme endroit. */
   void retryLastDownload() {
     if (lastAttempt != null) {
-      download(lastAttempt, lastAttemptInstalls);
+      download(lastAttempt);
       return;
     }
     checkNow();
@@ -256,70 +253,6 @@ final class AppUpdater {
     launchInstaller(apk);
   }
 
-  /** The app's own sheet, not the platform's grey one.
-   *
-   *  The window background is cleared to transparent so the rounded card in the
-   *  layout is what the eye sees; left to itself the dialog theme paints its own
-   *  square panel behind it and the corners come back as grey wedges. */
-  private void showPrompt(Metadata metadata) {
-    if (activity.isFinishing() || activity.isDestroyed()) return;
-    try {
-      showStyledPrompt(metadata);
-    } catch (Throwable broken) {
-      // The styled sheet is the only part of this that can fail on a device
-      // and not on a build: an attribute a ROM's theme resolves differently, a
-      // drawable it declines to inflate. It also runs on nobody's screen until
-      // a version NEWER than the installed one exists — so a fault here would
-      // ship quietly and only break the release after it, on every phone at
-      // once, at launch. Falling back to the platform's own dialog keeps that
-      // failure to what it is: an ugly prompt, not a calendar that cannot open.
-      Log.w(TAG, "Styled update prompt failed, falling back", broken);
-      showPlainPrompt(metadata);
-    }
-  }
-
-  private void showPlainPrompt(Metadata metadata) {
-    new AlertDialog.Builder(activity)
-      .setTitle(R.string.update_available)
-      .setMessage(activity.getString(R.string.update_message, metadata.version))
-      .setNegativeButton(R.string.update_later,
-        (dialog, which) -> dismissVersion(metadata.versionCode))
-      .setPositiveButton(R.string.update_install,
-        (dialog, which) -> download(metadata, true))
-      .setOnCancelListener(ignored -> dismissVersion(metadata.versionCode))
-      .show();
-  }
-
-  private void showStyledPrompt(Metadata metadata) {
-    View view = activity.getLayoutInflater().inflate(R.layout.update_dialog, null);
-    ((TextView) view.findViewById(R.id.update_message))
-      .setText(activity.getString(R.string.update_message, metadata.version));
-
-    AlertDialog dialog = new AlertDialog.Builder(activity, R.style.Theme_NeoCalendar_Dialog)
-      .setView(view)
-      .setCancelable(true)
-      .create();
-    if (dialog.getWindow() != null) {
-      dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-    }
-
-    view.findViewById(R.id.update_later).setOnClickListener(button -> {
-      dismissVersion(metadata.versionCode);
-      dialog.dismiss();
-    });
-    view.findViewById(R.id.update_install).setOnClickListener(button -> {
-      dialog.dismiss();
-      // Ici quelqu'un a demande l'installation : elle s'ouvre au bout du
-      // telechargement, sans second geste.
-      download(metadata, true);
-    });
-    // Dismissing by back or by tapping outside is "later" too, and has to be
-    // remembered as such — otherwise the prompt returns on the next launch
-    // having been answered.
-    dialog.setOnCancelListener(ignored -> dismissVersion(metadata.versionCode));
-    dialog.show();
-  }
-
   /** L'APK descendu et verifie, qui attend qu'on demande a le poser. */
   private File readyApk;
 
@@ -330,19 +263,35 @@ final class AppUpdater {
     activity.runOnUiThread(() -> requestInstall(apk));
   }
 
-  private void download(Metadata metadata, boolean installWhenDone) {
+  /**
+   * La descente, seul chemin vers une nouvelle version.
+   *
+   * La verification du lancement, celle demandee a la main et « Reessayer »
+   * aboutissent toutes les trois ici, et aucune ne pose quoi que ce soit au
+   * bout : l'APK verifie attend sur le disque, et c'est la pastille de la
+   * fenetre qui propose le geste. L'installateur du systeme s'ouvre quand on le
+   * demande, pas pendant qu'on faisait autre chose.
+   */
+  private void download(Metadata metadata) {
+    if (downloading) return;
+    // Deja descendue et verifiee : il ne manque que le geste, et la pastille
+    // le propose depuis la fin du telechargement.
+    if (readyApk != null && readyApk.isFile()
+        && metadata.version.equals(pendingVersion)) {
+      return;
+    }
+    downloading = true;
     lastAttempt = metadata;
-    lastAttemptInstalls = installWhenDone;
     ensureChannel();
     notifyProgress(metadata, 0, true);
     reportProgress(-1);
     io.execute(() -> {
       try {
         File apk = downloadAndVerify(metadata);
-        readyApk = apk;
+        // Prete d'abord, compteur efface ensuite : voir holdReady().
+        holdReady(metadata, apk);
         reportProgress(-2);
         notifyReady(metadata, apk);
-        if (installWhenDone) activity.runOnUiThread(() -> requestInstall(apk));
       } catch (Exception error) {
         reportProgress(-2);
         notifyFailed();
@@ -350,6 +299,8 @@ final class AppUpdater {
         activity.runOnUiThread(() ->
           Toast.makeText(activity, R.string.update_failed, Toast.LENGTH_LONG).show()
         );
+      } finally {
+        downloading = false;
       }
     });
   }
@@ -661,14 +612,6 @@ final class AppUpdater {
 
   private long currentVersionCode() {
     return BuildConfig.VERSION_CODE;
-  }
-
-  private long dismissedVersionCode() {
-    return dismissedThisRun;
-  }
-
-  private void dismissVersion(long versionCode) {
-    dismissedThisRun = versionCode;
   }
 
   private static byte[] readLimited(InputStream input, int limit) throws IOException {
