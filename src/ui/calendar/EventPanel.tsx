@@ -34,9 +34,8 @@ import {
     CalendarRow,
     TypeRow,
     StatusRow,
-    LinksAttachmentsRow,
-    DescriptionRow,
 } from "./EventPanelRows";
+import { DescriptionSection } from "./DescriptionSection";
 import { FileTextIcon } from "./EventPanelIcons";
 import { Toast, ToastMessage } from "./Toast";
 import { t } from "../i18n";
@@ -251,8 +250,6 @@ export default function EventPanel({
     onDelete,
     firstDay,
     linkVaults = [],
-    onFetchPage,
-    onResolveUrl,
     onSearchEventLinks,
     linkedItems = [],
     onAddEventLink,
@@ -1494,31 +1491,22 @@ export default function EventPanel({
                     />
                 )}
 
-                {(isDraft || stableCalInfo.editable) && (
-                    <LinksAttachmentsRow
-                        eventId={eventId}
-                        disabled={isDraft || !eventId}
-                        vaults={linkVaults}
-                        items={linkedItems}
-                        onOpenNote={() => eventId && onOpenFile(eventId)}
-                        onSearch={onSearchEventLinks}
-                        onFetchPage={onFetchPage}
-                        onResolveUrl={onResolveUrl}
-                        onAddLink={onAddEventLink}
-                        onRemoveLink={onRemoveEventLink}
-                        onRenameLink={onRenameEventLink}
-                        onOpenLink={onOpenEventLink}
-                        onCopyLink={onCopyEventLink}
-                        onReadAttachment={onReadEventAttachment}
-                        onPickAttachment={onPickEventAttachment}
-                    />
-                )}
-
-                <DescriptionRow
+                <DescriptionSection
                     description={form.description}
                     editable={stableCalInfo.editable}
                     setDescription={form.setDescription}
                     onCommit={onTitleCommit}
+                    eventId={eventId}
+                    vaults={linkVaults}
+                    items={linkedItems}
+                    onSearch={onSearchEventLinks}
+                    onAddLink={onAddEventLink}
+                    onRemoveLink={onRemoveEventLink}
+                    onRenameLink={onRenameEventLink}
+                    onOpenLink={onOpenEventLink}
+                    onCopyLink={onCopyEventLink}
+                    onPickAttachment={onPickEventAttachment}
+                    onReadAttachment={onReadEventAttachment}
                 />
             </form>
 

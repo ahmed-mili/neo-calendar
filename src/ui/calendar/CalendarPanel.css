@@ -1010,6 +1010,302 @@
     margin-top: 0;
 }
 
+/* La pièce jointe reste une action distincte. Les liens, eux, vivent dans la
+   description et n'occupent plus une ligne permanente du formulaire. */
+.nc-description-section {
+    min-width: 0;
+}
+
+.nc-description-attachments .nc-panel-row-link-attachments {
+    display: none !important;
+}
+
+.nc-description-attachments .nc-links-attachments {
+    margin-bottom: 0;
+}
+
+.nc-panel-body .nc-panel-row.nc-panel-row-attachment {
+    width: auto;
+    min-width: 0;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 2px 8px;
+    padding: 8px 10px;
+    border: 1px solid transparent !important;
+    border-radius: 8px;
+    color: var(--nc-text-primary, var(--text-normal));
+    background: transparent !important;
+    box-shadow: none !important;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        border-color var(--nc-transition-fast);
+}
+
+.nc-panel-row-attachment .nc-panel-row-icon {
+    margin-top: 0;
+}
+
+.nc-panel-body .nc-panel-row.nc-panel-row-attachment:hover:not(:disabled) {
+    border-color: var(
+        --nc-border,
+        var(--background-modifier-border)
+    ) !important;
+}
+
+.nc-panel-body
+    .nc-panel-row.nc-panel-row-attachment:focus-visible:not(:disabled) {
+    border-color: color-mix(
+        in srgb,
+        var(--nc-accent) 55%,
+        var(--nc-border, var(--background-modifier-border))
+    ) !important;
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+    outline: none;
+}
+
+.nc-panel-body .nc-panel-row.nc-panel-row-attachment:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+.nc-description-composer .nc-panel-row-content {
+    min-width: 0;
+    gap: 4px;
+}
+
+.nc-description-links {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+}
+
+.nc-description-links-checklist {
+    width: auto;
+    margin: -2px 18px 8px 50px;
+}
+
+.nc-description-link-wrap {
+    position: relative;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.nc-description-link-wrap:has(.nc-description-link-actions:not([hidden])) {
+    margin-top: 38px;
+}
+
+.nc-description-link {
+    display: block;
+    max-width: 100%;
+    padding: 0;
+    border: 0 !important;
+    color: var(--nc-accent, var(--interactive-accent));
+    background: transparent !important;
+    box-shadow: none !important;
+    font: inherit;
+    line-height: 1.45;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    cursor: pointer;
+}
+
+.nc-description-link:hover,
+.nc-description-link:focus-visible {
+    color: var(--nc-accent-strong, var(--interactive-accent-hover));
+    outline: none;
+}
+
+.nc-description-link:focus-visible {
+    border-radius: 3px;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--nc-accent) 22%, transparent) !important;
+}
+
+.nc-description-link-actions {
+    position: absolute;
+    bottom: calc(100% + 5px);
+    left: 0;
+    z-index: 40;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 9px;
+    background: var(--nc-bg-primary, var(--background-primary));
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.34);
+}
+
+.nc-description-link-actions[hidden] {
+    display: none !important;
+}
+
+.nc-description-link-actions button,
+.nc-description-link-dialog-close {
+    width: 30px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.nc-description-link-actions button:hover:not(:disabled),
+.nc-description-link-actions button:focus-visible,
+.nc-description-link-dialog-close:hover,
+.nc-description-link-dialog-close:focus-visible {
+    color: var(--nc-text-primary, var(--text-normal));
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+    outline: none;
+}
+
+.nc-description-link-actions button:disabled {
+    opacity: 0.38;
+    cursor: default;
+}
+
+.nc-description-link-status,
+.nc-description-link-error {
+    display: block;
+    margin-top: 3px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 11px;
+}
+
+.nc-description-link-error,
+.nc-description-link-dialog-error {
+    color: var(--text-error, #ef6b73);
+}
+
+.nc-description-link-dialog {
+    position: fixed;
+    z-index: 20060;
+    width: min(312px, calc(100vw - 16px));
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    padding: 18px 20px;
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 12px;
+    color: var(--nc-text-primary, var(--text-normal));
+    background: var(--nc-bg-primary, var(--background-primary));
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.48);
+}
+
+.nc-description-link-dialog-head {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 17px;
+}
+
+.nc-description-link-dialog-close {
+    flex: 0 0 auto;
+}
+
+.nc-description-link-dialog > input {
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+    padding: 7px 10px;
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 8px;
+    outline: none;
+    color: var(--nc-text-primary, var(--text-normal));
+    background: var(--nc-bg-secondary, var(--background-secondary));
+    box-shadow: none;
+    font: inherit;
+}
+
+.nc-description-link-dialog > input:focus {
+    border-color: var(--nc-accent, var(--interactive-accent));
+    box-shadow: 0 0 0 1px var(--nc-accent, var(--interactive-accent));
+}
+
+.nc-description-link-dialog-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 3px;
+}
+
+.nc-description-link-dialog-actions button {
+    min-height: 34px;
+    padding: 6px 12px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font: inherit;
+    cursor: pointer;
+}
+
+.nc-description-link-dialog-actions button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.nc-description-link-confirm {
+    color: var(--text-on-accent, #fff);
+    background: var(--nc-accent, var(--interactive-accent));
+}
+
+.nc-description-link-remove {
+    color: var(--nc-text-primary, var(--text-normal));
+    border-color: var(
+        --nc-border,
+        var(--background-modifier-border)
+    ) !important;
+    background: transparent;
+}
+
+.nc-description-mention-popover {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nc-description-mention-query {
+    flex: 0 0 auto;
+}
+
+.nc-description-mention-popover .nc-link-search-input {
+    pointer-events: none;
+}
+
+.nc-description-mention-popover .nc-link-result {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 420px) {
+    .nc-description-links-checklist {
+        margin-right: 12px;
+        margin-left: 44px;
+    }
+
+    .nc-description-link-dialog {
+        padding: 16px;
+    }
+
+    .nc-description-link-dialog-actions {
+        flex-wrap: wrap;
+    }
+}
+
 /* ── La vignette d'une pièce jointe ──────────────────────────
    Une ligne disant « image.png » ne dit pas laquelle : sur un événement qui en
    porte trois, il faut les ouvrir une par une. Assez grande pour reconnaître
@@ -1066,7 +1362,11 @@
        `transparent` dans le theme par defaut, et les sections de cet ecran ne
        se lisent que si elles se voient. */
     border-bottom: 1px solid
-        color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 12%, transparent);
+        color-mix(
+            in srgb,
+            var(--nc-text-primary, var(--text-normal)) 12%,
+            transparent
+        );
 }
 
 .nc-recur-screen-header h2 {
@@ -1119,7 +1419,11 @@
 .nc-recur-section {
     padding: 16px 18px;
     border-bottom: 1px solid
-        color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 12%, transparent);
+        color-mix(
+            in srgb,
+            var(--nc-text-primary, var(--text-normal)) 12%,
+            transparent
+        );
 }
 
 .nc-recur-section:last-child {
@@ -1144,7 +1448,11 @@
     height: 44px;
     padding: 0 10px;
     border: 1px solid
-        color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 22%, transparent);
+        color-mix(
+            in srgb,
+            var(--nc-text-primary, var(--text-normal)) 22%,
+            transparent
+        );
     border-radius: 8px;
     background: transparent;
     color: inherit;
@@ -1179,7 +1487,11 @@
     height: 40px;
     padding: 0;
     border: 1px solid
-        color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 22%, transparent);
+        color-mix(
+            in srgb,
+            var(--nc-text-primary, var(--text-normal)) 22%,
+            transparent
+        );
     border-radius: 999px;
     background: transparent;
     color: inherit;

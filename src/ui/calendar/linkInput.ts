@@ -143,6 +143,47 @@ export function urlMarkdown(value: string): string | null {
     return `[${labelFor(target)}](${target})`;
 }
 
+export interface DescriptionMention {
+    start: number;
+    end: number;
+    query: string;
+}
+
+/**
+ * The vault-note mention currently being written in a description.
+ *
+ * The last `@` on the current line owns everything up to the caret, including
+ * spaces, so note titles can be searched naturally. It starts a word (or a
+ * parenthesised word), never the middle of an email, identifier or URL.
+ */
+export function descriptionMentionAt(
+    value: string,
+    caret: number
+): DescriptionMention | null {
+    const end = Math.max(0, Math.min(caret, value.length));
+    const lineStart = value.lastIndexOf("\n", end - 1) + 1;
+    const start = value.lastIndexOf("@", end - 1);
+    if (start < lineStart) return null;
+
+    const before = value[start - 1] ?? "";
+    if (before && !/[\s(\[{]/.test(before)) return null;
+
+    const query = value.slice(start + 1, end);
+    if (query.includes("@") || query.includes("\n")) return null;
+    return { start, end, query };
+}
+
+/** Remove the `@query` after its selected note has been stored as a link. */
+export function withoutDescriptionMention(
+    value: string,
+    mention: DescriptionMention
+): { value: string; caret: number } {
+    const before = value.slice(0, mention.start);
+    let after = value.slice(mention.end);
+    if (before.endsWith(" ") && after.startsWith(" ")) after = after.slice(1);
+    return { value: before + after, caret: before.length };
+}
+
 /**
  * Whether two link targets are the same place.
  *
