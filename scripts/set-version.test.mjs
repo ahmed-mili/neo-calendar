@@ -2,12 +2,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+    cargoLockWithVersion,
     isVersion,
     nextVersion,
     nextVersionCode,
     replaceExactly,
     resolveVersion,
 } from "./set-version.mjs";
+
+test("met à jour Cargo.lock avec des fins de ligne Windows", () => {
+    const lock =
+        '[[package]]\r\nname = "neo-calendar-windows"\r\nversion = "1.52.1"\r\n';
+
+    assert.equal(
+        cargoLockWithVersion(lock, "1.53.0"),
+        '[[package]]\r\nname = "neo-calendar-windows"\r\nversion = "1.53.0"\r\n'
+    );
+});
 
 test("n'accepte qu'un numéro à trois nombres", () => {
     assert.equal(isVersion("1.0.3"), true);

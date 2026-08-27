@@ -191,6 +191,16 @@ export function nextVersionCode(gradleModule) {
     return Number(match[1]) + 1;
 }
 
+export function cargoLockWithVersion(cargoLock, version) {
+    return replaceExactly(
+        cargoLock,
+        /(name = "neo-calendar-windows"\r?\nversion = ")[^"]+(")/,
+        `$1${version}$2`,
+        1,
+        CARGO_LOCK
+    );
+}
+
 export async function setVersion(version) {
     if (!isVersion(version)) {
         throw new Error(
@@ -254,15 +264,7 @@ export async function setVersion(version) {
     );
 
     touched.push(
-        await edit(CARGO_LOCK, (text) =>
-            replaceExactly(
-                text,
-                /(name = "neo-calendar-windows"\nversion = ")[^"]+(")/,
-                `$1${version}$2`,
-                1,
-                CARGO_LOCK
-            )
-        )
+        await edit(CARGO_LOCK, (text) => cargoLockWithVersion(text, version))
     );
 
     touched.push(
