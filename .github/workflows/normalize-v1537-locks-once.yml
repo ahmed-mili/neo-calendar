@@ -23,6 +23,13 @@ jobs:
       - name: Restore lockfiles then apply only the version bump
         run: |
           git checkout origin/main -- package-lock.json apps/windows/package-lock.json apps/android/package-lock.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = 'package.json';
+          const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+          data.version = '1.53.6';
+          fs.writeFileSync(path, JSON.stringify(data, null, 4) + '\n');
+          NODE
           node scripts/set-version.mjs 1.53.7
           rm .github/workflows/normalize-v1537-locks-once.yml
       - name: Commit normalized locks
