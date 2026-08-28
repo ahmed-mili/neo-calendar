@@ -171,6 +171,6 @@ export function DescriptionAddLinkDialog({
                 </button>
             </div>
         </div>,
-        document.body
+        document.body,
     );
 }

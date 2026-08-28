@@ -48,18 +48,18 @@ describe("Ctrl+K description link dialog", () => {
         });
 
         const section = container.querySelector(
-            ".nc-description-section"
+            ".nc-description-section",
         ) as HTMLDivElement;
         expect(section).toBeTruthy();
 
         act(() => {
             section.dispatchEvent(
-                new Event(OPEN_DESCRIPTION_LINK_DIALOG_EVENT)
+                new Event(OPEN_DESCRIPTION_LINK_DIALOG_EVENT),
             );
         });
 
         const dialog = document.querySelector(
-            ".nc-description-add-link-dialog"
+            ".nc-description-add-link-dialog",
         ) as HTMLDivElement;
         expect(dialog).toBeTruthy();
         expect(dialog.getAttribute("aria-label")).toBe("Ajouter un Lien");
@@ -67,10 +67,10 @@ describe("Ctrl+K description link dialog", () => {
         expect(dialog.textContent).toContain("Confirmer");
 
         const label = dialog.querySelector(
-            'input[aria-label="Texte"]'
+            'input[aria-label="Texte"]',
         ) as HTMLInputElement;
         const target = dialog.querySelector(
-            'input[aria-label="Lien"]'
+            'input[aria-label="Lien"]',
         ) as HTMLInputElement;
         expect(label).toBeTruthy();
         expect(target).toBeTruthy();
@@ -79,11 +79,11 @@ describe("Ctrl+K description link dialog", () => {
         act(() =>
             Simulate.change(target, {
                 target: { value: "https://example.com/path" },
-            })
+            }),
         );
 
         const confirm = dialog.querySelector(
-            ".nc-description-link-confirm"
+            ".nc-description-link-confirm",
         ) as HTMLButtonElement;
         await act(async () => {
             Simulate.click(confirm);
@@ -92,10 +92,10 @@ describe("Ctrl+K description link dialog", () => {
 
         expect(onAddLink).toHaveBeenCalledWith(
             "Calendrier/2026-08-28.md",
-            "[OpenAI](https://example.com/path)"
+            "[OpenAI](https://example.com/path)",
         );
         expect(
-            document.querySelector(".nc-description-add-link-dialog")
+            document.querySelector(".nc-description-add-link-dialog"),
         ).toBeNull();
     });
 });

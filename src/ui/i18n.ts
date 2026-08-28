@@ -229,6 +229,7 @@ const FR: Record<string, string> = {
     "Add links and attachments": "Ajouter des liens et des fichiers",
     "Add another link or attachment": "Ajouter un autre lien ou fichier",
     "Add web link": "Ajouter un lien web",
+    "Add Link": "Ajouter un Lien",
     "Attach files": "Joindre des fichiers",
     Attachment: "Pièce jointe",
     "Linked file": "Fichier lié",

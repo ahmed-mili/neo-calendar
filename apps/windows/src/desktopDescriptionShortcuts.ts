@@ -34,7 +34,7 @@ export function handleDesktopDescriptionShortcut(event: KeyboardEvent): void {
     if (!command) return;
 
     const button = section.querySelector(
-        `.nc-description-tool[data-format-command="${command}"]`
+        `.nc-description-tool[data-format-command="${command}"]`,
     );
     if (!(button instanceof HTMLButtonElement) || button.disabled) return;
 
