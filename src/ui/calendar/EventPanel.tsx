@@ -115,7 +115,7 @@ interface EventPanelProps {
     onDraftCommit: (
         title: string,
         updates?: Partial<NeoEvent>,
-        calendarId?: string,
+        calendarId?: string
     ) => void;
     onOpenFile: (id: string) => void;
     onCopyFilePath?: (id: string) => Promise<void>;
@@ -129,7 +129,7 @@ interface EventPanelProps {
     onResolveUrl?: (url: string) => Promise<string>;
     onSearchEventLinks?: (
         query: string,
-        vaultPath?: string,
+        vaultPath?: string
     ) => Promise<EventLinkTarget[]>;
     linkedItems?: EventLinkedItem[];
     onAddEventLink?: (eventId: string, markdown: string) => Promise<void>;
@@ -139,7 +139,7 @@ interface EventPanelProps {
         eventId: string,
         target: string,
         label: string,
-        nextTarget?: string,
+        nextTarget?: string
     ) => Promise<void>;
     onOpenEventLink?: (item: EventLinkedItem) => Promise<void> | void;
     onCopyEventLink?: (target: string) => Promise<void>;
@@ -148,12 +148,12 @@ interface EventPanelProps {
     onPasteEventAttachment?: (
         eventId: string,
         fileName: string,
-        contents: Uint8Array,
+        contents: Uint8Array
     ) => Promise<void>;
     /** Le contenu d'une pièce jointe en base64, pour en montrer une vignette. */
     onReadEventAttachment?: (
         eventId: string,
-        target: string,
+        target: string
     ) => Promise<string | null>;
 }
 
@@ -168,7 +168,7 @@ export function resolveCalendarInfo(
     cache: EventCache,
     eventId: string | null,
     isDraft: boolean,
-    defaultCalendarId: string,
+    defaultCalendarId: string
 ): CalendarDisplayInfo {
     const fallbackColor = "var(--nc-accent)";
 
@@ -276,7 +276,7 @@ export default function EventPanel({
     const titleInputRef = useRef<HTMLInputElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const [copyPathToast, setCopyPathToast] = useState<ToastMessage | null>(
-        null,
+        null
     );
     const headerRef = useRef<HTMLDivElement>(null);
 
@@ -284,7 +284,7 @@ export default function EventPanel({
         cache,
         eventId,
         isDraft,
-        defaultCalendarId,
+        defaultCalendarId
     );
 
     // Stabilize calInfo across cache refreshes. When auto-save triggers a cache
@@ -310,9 +310,9 @@ export default function EventPanel({
     const editableCalendars = useMemo(
         () =>
             calendars.filter(
-                (cal) => cal.type === "local" || cal.type === "dailynote",
+                (cal) => cal.type === "local" || cal.type === "dailynote"
             ),
-        [calendars],
+        [calendars]
     );
 
     const form = useEventFormState({
@@ -385,7 +385,7 @@ export default function EventPanel({
         };
         if (eventId) {
             const el = document.querySelector(
-                `[data-event-id="${CSS.escape(eventId)}"]`,
+                `[data-event-id="${CSS.escape(eventId)}"]`
             );
             if (el) return remember(el.getBoundingClientRect());
         }
@@ -456,7 +456,7 @@ export default function EventPanel({
     // there is something to guard: a held edit on one day of a series, which
     // has to be answered for before the panel can go anywhere.
     const guardExitRef = React.useRef<(exit: () => void) => void>((exit) =>
-        exit(),
+        exit()
     );
 
     const closeRef = React.useRef<() => void>(onClose);
@@ -514,7 +514,7 @@ export default function EventPanel({
             onSheet
                 ? { glyph: sheetHandleGlyph(sheetAnchor), onPress: pressHandle }
                 : undefined,
-        [onSheet, pressHandle, sheetAnchor],
+        [onSheet, pressHandle, sheetAnchor]
     );
 
     /* A panel that has just opened is never on its way out.
@@ -529,7 +529,7 @@ export default function EventPanel({
     /** What the X, the Escape key and a tap outside all call. */
     const requestCloseGuarded = React.useCallback(
         () => guardExitRef.current(leave),
-        [leave],
+        [leave]
     );
     closeRef.current = requestCloseGuarded;
 
@@ -644,7 +644,7 @@ export default function EventPanel({
         new Notice(
             e instanceof NeoCalendarError
                 ? e.message
-                : "Neo Calendar: this event could not be saved.",
+                : "Neo Calendar: this event could not be saved."
         );
     }, []);
 
@@ -669,7 +669,7 @@ export default function EventPanel({
             const item = items.find(
                 (candidate) =>
                     candidate.kind === "file" &&
-                    attachmentExtension(candidate.type),
+                    attachmentExtension(candidate.type)
             );
             if (!item) return;
             const file = item.getAsFile();
@@ -683,8 +683,8 @@ export default function EventPanel({
                     onPasteEventAttachment(
                         eventId,
                         name,
-                        new Uint8Array(buffer),
-                    ),
+                        new Uint8Array(buffer)
+                    )
                 )
                 .catch(reportSaveFailure);
         };
@@ -765,7 +765,7 @@ export default function EventPanel({
                     if (updated) {
                         await cache.updateEventWithId(
                             eventId,
-                            mergeForSave(updated, form.buildPayload()),
+                            mergeForSave(updated, form.buildPayload())
                         );
                     }
                 } catch (e) {
@@ -775,7 +775,7 @@ export default function EventPanel({
                 try {
                     await cache.updateEventWithId(
                         eventId,
-                        mergeForSave(stableEvent, form.buildPayload()),
+                        mergeForSave(stableEvent, form.buildPayload())
                     );
                 } catch (e) {
                     reportSaveFailure(e);
@@ -870,14 +870,14 @@ export default function EventPanel({
                         if (moved) {
                             await cache.updateEventWithId(
                                 eventId,
-                                mergeForSave(moved, payload),
+                                mergeForSave(moved, payload)
                             );
                         }
                         return;
                     }
                     await cache.updateEventWithId(
                         eventId,
-                        mergeForSave(stableEvent, payload),
+                        mergeForSave(stableEvent, payload)
                     );
                     return;
                 }
@@ -889,8 +889,8 @@ export default function EventPanel({
                     stableEvent.type === "recurring"
                         ? stableEvent.startRecur
                         : stableEvent.type === "rrule"
-                          ? stableEvent.startDate
-                          : undefined;
+                        ? stableEvent.startDate
+                        : undefined;
                 const dateISO =
                     form.date && form.date !== seriesStart
                         ? form.date
@@ -906,7 +906,7 @@ export default function EventPanel({
                 await cache.addEvent(calendarId, single);
                 await cache.updateEventWithId(
                     eventId,
-                    seriesWithoutOccurrence(stableEvent, occurrenceDate),
+                    seriesWithoutOccurrence(stableEvent, occurrenceDate)
                 );
             } catch (e) {
                 reportSaveFailure(e);
@@ -921,7 +921,7 @@ export default function EventPanel({
             reportSaveFailure,
             stableCalInfo.currentId,
             stableEvent,
-        ],
+        ]
     );
 
     /*
@@ -952,7 +952,7 @@ export default function EventPanel({
             void applyScopedEdit(scope);
             leave();
         },
-        [applyScopedEdit, leave],
+        [applyScopedEdit, leave]
     );
 
     /** Back to the panel, with everything typed still in it. */
@@ -1130,17 +1130,17 @@ export default function EventPanel({
     const entryKind: EntryKind = isTask
         ? "task"
         : isBirthday
-          ? "birthday"
-          : "event";
+        ? "birthday"
+        : "event";
 
     const currentPreset: PresetKey = useMemo(
         () => matchPreset(form.recurrence, form.date),
-        [form.recurrence, form.date],
+        [form.recurrence, form.date]
     );
 
     const repeatSummary = useMemo(
         () => recurrenceSummary(form.recurrence, form.date),
-        [form.recurrence, form.date],
+        [form.recurrence, form.date]
     );
 
     /** True while a rule is being built by hand rather than picked. */
@@ -1188,7 +1188,7 @@ export default function EventPanel({
                 ? form.isRecurring
                     ? form.recurrence
                     : defaultRecurrence(form.date)
-                : presetToRecurrence(key, form.date),
+                : presetToRecurrence(key, form.date)
         );
         // A deadline describes one day, and a series has none.
         form.setDue(null);
@@ -1219,7 +1219,7 @@ export default function EventPanel({
 
     const duration = useMemo(
         () => computeDuration(form.startTime, form.endTime),
-        [form.startTime, form.endTime],
+        [form.startTime, form.endTime]
     );
     const dateLabel = useMemo(() => formatPanelDate(form.date), [form.date]);
 
@@ -1229,8 +1229,8 @@ export default function EventPanel({
             ? t("Done")
             : t("To do")
         : entryKind === "birthday"
-          ? t("Birthday")
-          : t("Event");
+        ? t("Birthday")
+        : t("Event");
     // End date, shown only when the event crosses midnight (endTime < startTime
     // means it ends the next day) — Notion shows both start and end dates.
     const endDateLabel = useMemo(() => {
@@ -1256,7 +1256,7 @@ export default function EventPanel({
     // NEO_ANDROID_PORTAL_TARGET_V3_START
     const androidDraft = isDraft && isNeoAndroidRuntime();
     const portalTarget = isNeoAndroidRuntime()
-        ? (document.getElementById("nc-android-overlay-root") ?? document.body)
+        ? document.getElementById("nc-android-overlay-root") ?? document.body
         : document.body;
     // NEO_ANDROID_PORTAL_TARGET_V3_END
 
@@ -1332,9 +1332,9 @@ export default function EventPanel({
                                       setCopyPathToast({
                                           title: t("Path copied"),
                                           detail: t(
-                                              "Paste it wherever you like",
+                                              "Paste it wherever you like"
                                           ),
-                                      }),
+                                      })
                                   )
                                   .catch(() => {
                                       // The desktop shell reports the concrete
@@ -1551,6 +1551,6 @@ export default function EventPanel({
                 </div>
             )}
         </div>,
-        portalTarget,
+        portalTarget
     );
 }

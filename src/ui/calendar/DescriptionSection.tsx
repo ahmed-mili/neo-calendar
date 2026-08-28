@@ -69,7 +69,7 @@ interface DescriptionSectionProps {
     items: DescriptionLinkedItem[];
     onSearch?: (
         query: string,
-        vaultPath?: string,
+        vaultPath?: string
     ) => Promise<DescriptionSearchTarget[]>;
     onAddLink?: (eventId: string, markdown: string) => Promise<void>;
     onRemoveLink?: (eventId: string, target: string) => Promise<void>;
@@ -77,14 +77,14 @@ interface DescriptionSectionProps {
         eventId: string,
         target: string,
         label: string,
-        nextTarget?: string,
+        nextTarget?: string
     ) => Promise<void>;
     onOpenLink?: (item: DescriptionLinkedItem) => Promise<void> | void;
     onCopyLink?: (target: string) => Promise<void>;
     onPickAttachment?: (eventId: string) => Promise<void>;
     onReadAttachment?: (
         eventId: string,
-        target: string,
+        target: string
     ) => Promise<string | null>;
 }
 
@@ -107,7 +107,7 @@ function portalTarget(): HTMLElement {
         document.body.classList.contains("nc-platform-android") ||
         document.documentElement.dataset.neoCalendarPlatform === "android";
     return android
-        ? (document.getElementById("nc-android-overlay-root") ?? document.body)
+        ? document.getElementById("nc-android-overlay-root") ?? document.body
         : document.body;
 }
 
@@ -122,7 +122,7 @@ function visibleLinkLabel(item: DescriptionLinkedItem): string {
 }
 
 export function editableDescriptionLinkLabel(
-    item: DescriptionLinkedItem,
+    item: DescriptionLinkedItem
 ): string {
     if (item.kind !== "web") return item.label || "";
     const current = item.label.trim();
@@ -149,7 +149,7 @@ function splitSearchPath(relativePath: string): {
 
 function checklistSnapshot(
     field: HTMLTextAreaElement,
-    description: string,
+    description: string
 ): FieldSnapshot | null {
     const checklist = field.closest(".nc-panel-checklist");
     if (!(checklist instanceof HTMLElement)) return null;
@@ -163,7 +163,7 @@ function checklistSnapshot(
     const text = replaceLine(
         description,
         index,
-        raw.slice(0, prefix) + field.value,
+        raw.slice(0, prefix) + field.value
     );
     const lineStart = lines
         .slice(0, index)
@@ -177,7 +177,7 @@ function checklistSnapshot(
 
 function snapshotForField(
     field: HTMLTextAreaElement,
-    description: string,
+    description: string
 ): FieldSnapshot | null {
     if (field.dataset.descriptionInput === "true") {
         return {
@@ -212,7 +212,7 @@ function DescriptionToolbar({
     const button = (
         label: string,
         icon: React.ReactNode,
-        command: DescriptionFormatCommand,
+        command: DescriptionFormatCommand
     ) => (
         <button
             type="button"
@@ -237,28 +237,28 @@ function DescriptionToolbar({
             {button(
                 t("Italic"),
                 <Italic size={16} strokeWidth={2} />,
-                "italic",
+                "italic"
             )}
             {button(
                 t("Underline"),
                 <Underline size={16} strokeWidth={2} />,
-                "underline",
+                "underline"
             )}
             <span className="nc-description-tool-separator" role="separator" />
             {button(
                 t("Numbered list"),
                 <ListOrdered size={16} strokeWidth={2} />,
-                "ordered-list",
+                "ordered-list"
             )}
             {button(
                 t("Bulleted list"),
                 <List size={16} strokeWidth={2} />,
-                "bullet-list",
+                "bullet-list"
             )}
             {button(
                 t("Checklist item"),
                 <ListTodo size={16} strokeWidth={2} />,
-                "checklist",
+                "checklist"
             )}
             <span className="nc-description-tool-separator" role="separator" />
             <button
@@ -276,7 +276,7 @@ function DescriptionToolbar({
             {button(
                 t("Clear formatting"),
                 <RemoveFormatting size={16} strokeWidth={2} />,
-                "clear",
+                "clear"
             )}
         </div>
     );
@@ -341,7 +341,7 @@ function DescriptionLinkRow({
             const width = Math.min(312, window.innerWidth - 16);
             const left = Math.max(
                 8,
-                Math.min(rect.left, window.innerWidth - width - 8),
+                Math.min(rect.left, window.innerWidth - width - 8)
             );
             const wantedTop = rect.bottom + 6;
             const top =
@@ -550,7 +550,7 @@ function DescriptionLinkRow({
                             </button>
                         </div>
                     </div>,
-                    portalTarget(),
+                    portalTarget()
                 )}
         </div>
     );
@@ -581,7 +581,7 @@ export function DescriptionSection({
     const [focusRequest, setFocusRequest] =
         React.useState<DescriptionFocusRequest | null>(null);
     const [mention, setMention] = React.useState<DescriptionMention | null>(
-        null,
+        null
     );
     const [results, setResults] = React.useState<DescriptionSearchTarget[]>([]);
     const [highlighted, setHighlighted] = React.useState(0);
@@ -592,12 +592,12 @@ export function DescriptionSection({
         React.useState<PickerPosition | null>(null);
     const [attaching, setAttaching] = React.useState(false);
     const [attachmentError, setAttachmentError] = React.useState<string | null>(
-        null,
+        null
     );
     const links = items.filter((item) => item.kind !== "attachment");
     const attachments = items.filter((item) => item.kind === "attachment");
     const checklist = readChecklist(description).some(
-        (line) => line.kind === "task",
+        (line) => line.kind === "task"
     );
 
     const resizeField = React.useCallback(() => {
@@ -634,7 +634,7 @@ export function DescriptionSection({
             descriptionRef.current = snapshot.text;
             setMention(next);
         },
-        [closeMention, editable, eventId, onAddLink, onSearch],
+        [closeMention, editable, eventId, onAddLink, onSearch]
     );
 
     React.useEffect(() => {
@@ -656,14 +656,14 @@ export function DescriptionSection({
                         setError(
                             reason instanceof Error
                                 ? reason.message
-                                : String(reason),
+                                : String(reason)
                         );
                     })
                     .finally(() => {
                         if (active) setLoading(false);
                     });
             },
-            mention.query.trim() ? 120 : 0,
+            mention.query.trim() ? 120 : 0
         );
         return () => {
             active = false;
@@ -679,17 +679,17 @@ export function DescriptionSection({
         const gap = 8;
         const width = Math.min(
             Math.max(rect.width, 500),
-            window.innerWidth - gap * 2,
+            window.innerWidth - gap * 2
         );
         const left = Math.max(
             gap,
-            Math.min(rect.left, window.innerWidth - width - gap),
+            Math.min(rect.left, window.innerWidth - width - gap)
         );
         const roomBelow = window.innerHeight - rect.bottom - gap;
         const roomAbove = rect.top - gap;
         const maxHeight = Math.max(
             150,
-            Math.min(300, Math.max(roomBelow, roomAbove)),
+            Math.min(300, Math.max(roomBelow, roomAbove))
         );
         const top =
             roomBelow < 180 && roomAbove > roomBelow
@@ -716,14 +716,14 @@ export function DescriptionSection({
                 return "added";
             } catch (reason) {
                 setError(
-                    reason instanceof Error ? reason.message : String(reason),
+                    reason instanceof Error ? reason.message : String(reason)
                 );
                 return "failed";
             } finally {
                 setSaving(false);
             }
         },
-        [eventId, items, onAddLink, saving],
+        [eventId, items, onAddLink, saving]
     );
 
     const pickResult = React.useCallback(
@@ -733,7 +733,7 @@ export function DescriptionSection({
             if (outcome === "failed") return;
             const next = withoutDescriptionMention(
                 descriptionRef.current,
-                mention,
+                mention
             );
             descriptionRef.current = next.value;
             setDescription(next.value);
@@ -748,11 +748,11 @@ export function DescriptionSection({
                 }
             });
         },
-        [addStoredLink, closeMention, mention, onCommit, setDescription],
+        [addStoredLink, closeMention, mention, onCommit, setDescription]
     );
 
     const handlePaste = (
-        event: React.ClipboardEvent<HTMLDivElement | HTMLTextAreaElement>,
+        event: React.ClipboardEvent<HTMLDivElement | HTMLTextAreaElement>
     ) => {
         const field = event.target as HTMLTextAreaElement;
         if (!(field instanceof HTMLTextAreaElement)) return;
@@ -778,7 +778,7 @@ export function DescriptionSection({
             event.preventDefault();
             event.stopPropagation();
             setHighlighted((current) =>
-                Math.min(current + 1, Math.max(0, results.length - 1)),
+                Math.min(current + 1, Math.max(0, results.length - 1))
             );
         } else if (event.key === "ArrowUp") {
             event.preventDefault();
@@ -803,7 +803,7 @@ export function DescriptionSection({
             await onPickAttachment(eventId);
         } catch (reason) {
             setAttachmentError(
-                reason instanceof Error ? reason.message : String(reason),
+                reason instanceof Error ? reason.message : String(reason)
             );
         } finally {
             setAttaching(false);
@@ -827,7 +827,7 @@ export function DescriptionSection({
             source.text,
             source.start,
             source.end,
-            command,
+            command
         );
         descriptionRef.current = next.text;
         setDescription(next.text);
@@ -955,7 +955,7 @@ export function DescriptionSection({
                         // click/tap always activates keyboard input.
                         if (
                             target.closest(
-                                "button, a, input, textarea, select, [role='button'], [role='link']",
+                                "button, a, input, textarea, select, [role='button'], [role='link']"
                             )
                         ) {
                             return;
@@ -1045,17 +1045,17 @@ export function DescriptionSection({
                                 readOnly
                                 tabIndex={-1}
                                 aria-label={t(
-                                    "Search a document or paste a link",
+                                    "Search a document or paste a link"
                                 )}
                                 placeholder={t(
-                                    "Search a document or paste a link",
+                                    "Search a document or paste a link"
                                 )}
                             />
                         </div>
                         {vaults.length === 0 ? (
                             <div className="nc-link-empty">
                                 {t(
-                                    "Add Obsidian vaults in Settings to search notes.",
+                                    "Add Obsidian vaults in Settings to search notes."
                                 )}
                             </div>
                         ) : results.length > 0 ? (
@@ -1112,7 +1112,7 @@ export function DescriptionSection({
                             </div>
                         )}
                     </div>,
-                    portalTarget(),
+                    portalTarget()
                 )}
         </div>
     );

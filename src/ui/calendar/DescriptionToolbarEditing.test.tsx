@@ -53,7 +53,7 @@ describe("description toolbar keyboard editing", () => {
     const nativeInput = (field: HTMLTextAreaElement, value: string) => {
         const setter = Object.getOwnPropertyDescriptor(
             HTMLTextAreaElement.prototype,
-            "value",
+            "value"
         )?.set;
         expect(setter).toBeTruthy();
         act(() => {
@@ -68,14 +68,14 @@ describe("description toolbar keyboard editing", () => {
         });
 
         const field = container.querySelector(
-            "textarea[data-description-input='true']",
+            "textarea[data-description-input='true']"
         ) as HTMLTextAreaElement;
         expect(field).toBeTruthy();
         act(() => field.focus());
         field.setSelectionRange(0, 0);
 
         const checklist = container.querySelector(
-            "button[data-format-command='checklist']",
+            "button[data-format-command='checklist']"
         ) as HTMLButtonElement;
         expect(checklist).toBeTruthy();
         act(() => {
@@ -102,7 +102,7 @@ describe("description toolbar keyboard editing", () => {
         expect(container.querySelector(".nc-panel-checklist-edit")).toBeNull();
 
         const bold = container.querySelector(
-            "button[data-format-command='bold']",
+            "button[data-format-command='bold']"
         ) as HTMLButtonElement;
         act(() => {
             Simulate.mouseDown(bold, { button: 0 });
@@ -120,10 +120,10 @@ describe("description toolbar keyboard editing", () => {
         });
 
         const composer = container.querySelector(
-            ".nc-description-composer",
+            ".nc-description-composer"
         ) as HTMLDivElement;
         const field = container.querySelector(
-            "textarea[data-description-input='true']",
+            "textarea[data-description-input='true']"
         ) as HTMLTextAreaElement;
         expect(document.activeElement).not.toBe(field);
 
@@ -142,7 +142,7 @@ describe("description toolbar keyboard editing", () => {
         });
 
         const bold = container.querySelector(
-            "button[data-format-command='bold']",
+            "button[data-format-command='bold']"
         ) as HTMLButtonElement;
         act(() => {
             Simulate.mouseDown(bold, { button: 0 });
@@ -151,7 +151,7 @@ describe("description toolbar keyboard editing", () => {
         flushAnimationFrames();
 
         const field = container.querySelector(
-            "textarea[data-description-input='true']",
+            "textarea[data-description-input='true']"
         ) as HTMLTextAreaElement;
         expect(field.value).toBe("****");
         expect(document.activeElement).toBe(field);
