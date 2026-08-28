@@ -1,0 +1,9 @@
+/* Windows desktop only: B / I / U are available through Ctrl shortcuts. */
+.nc-description-toolbar .nc-description-tool[data-format-command="bold"],
+.nc-description-toolbar .nc-description-tool[data-format-command="italic"],
+.nc-description-toolbar .nc-description-tool[data-format-command="underline"],
+.nc-description-toolbar
+    .nc-description-tool[data-format-command="underline"]
+    + .nc-description-tool-separator {
+    display: none !important;
+}
