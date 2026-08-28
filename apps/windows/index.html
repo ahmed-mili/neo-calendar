@@ -4,9 +4,64 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Neo Calendar</title>
+        <style>
+            /* Desktop only: B / I / U are available through Ctrl shortcuts. */
+            .nc-description-toolbar
+                .nc-description-tool[data-format-command="bold"],
+            .nc-description-toolbar
+                .nc-description-tool[data-format-command="italic"],
+            .nc-description-toolbar
+                .nc-description-tool[data-format-command="underline"],
+            .nc-description-toolbar
+                .nc-description-tool[data-format-command="underline"]
+                + .nc-description-tool-separator {
+                display: none !important;
+            }
+        </style>
     </head>
     <body>
         <div id="root"></div>
+        <script>
+            document.addEventListener(
+                "keydown",
+                (event) => {
+                    if (
+                        !event.ctrlKey ||
+                        event.metaKey ||
+                        event.altKey ||
+                        event.shiftKey ||
+                        event.repeat
+                    ) {
+                        return;
+                    }
+
+                    const commandByKey = {
+                        b: "bold",
+                        i: "italic",
+                        u: "underline",
+                    };
+                    const command = commandByKey[event.key.toLowerCase()];
+                    if (!command) return;
+
+                    const target = event.target;
+                    if (!(target instanceof HTMLTextAreaElement)) return;
+                    const section = target.closest(".nc-description-section");
+                    if (!section) return;
+
+                    const button = section.querySelector(
+                        `.nc-description-tool[data-format-command="${command}"]`
+                    );
+                    if (!(button instanceof HTMLButtonElement) || button.disabled) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    event.stopPropagation();
+                    button.click();
+                },
+                true
+            );
+        </script>
         <script type="module" src="/src/main.tsx"></script>
     </body>
 </html>
