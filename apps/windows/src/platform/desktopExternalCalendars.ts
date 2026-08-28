@@ -12,6 +12,8 @@ export interface DesktopIcalCalendarSource {
     name: string;
     url: string;
     color: string;
+    /** Direct child folder where the read-only feed is materialised as notes. */
+    directory?: string;
 }
 
 export interface DesktopAutoCalendarSource {
@@ -62,6 +64,18 @@ function stringValue(value: unknown): string | null {
     return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+/** Only a direct, cross-platform-safe child folder may be persisted. */
+function calendarDirectory(value: unknown): string | undefined {
+    const directory = stringValue(value);
+    if (!directory || directory === "." || directory === "..") return undefined;
+    if (/[<>:"/\\|?*\u0000-\u001f]/.test(directory)) return undefined;
+    if (/[. ]$/.test(directory)) return undefined;
+    if (/^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(directory)) {
+        return undefined;
+    }
+    return directory;
+}
+
 function normalizeIcalUrl(value: string): string {
     const trimmed = value.trim();
     return trimmed.startsWith("webcal://")
@@ -109,6 +123,9 @@ export function parseExternalCalendarSources(
                 name: stringValue(source.name) ?? url,
                 url,
                 color,
+                ...(calendarDirectory(source.directory)
+                    ? { directory: calendarDirectory(source.directory) }
+                    : {}),
             };
             const calendarId = externalCalendarId(parsed);
             if (!ids.has(calendarId)) {
