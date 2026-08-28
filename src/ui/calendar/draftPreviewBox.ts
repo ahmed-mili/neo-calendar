@@ -1,9 +1,4 @@
-import {
-    EVENT_VGAP,
-    OVERLAP_COL_GAP,
-    scaledHeightPx,
-    scaledPx,
-} from "./calendarConstants";
+import { scaledPx } from "./calendarConstants";
 
 /** A span of one day, as the grid measures it: from the top, for so long. */
 export interface DayPortion {
@@ -11,49 +6,37 @@ export interface DayPortion {
     durationHours: number;
 }
 
-/** Where something sits in its day column. */
+/** The vertical box used by both the live selection and its released draft. */
 export interface GridBox {
     top: string;
     height: string;
-    left: string;
-    width: string;
-}
-
-/**
- * The box a draft is drawn in while it is being placed.
- *
- * A draft is an event that does not exist yet, so it stands exactly where the
- * event will stand once it does. It did not: it filled its slot edge to edge,
- * running onto the hour line at its foot and out to the day's rule on either
- * side, while every event on the grid stops short of both. Dropping the draft
- * therefore moved it — the bar shifted the moment it became real, which reads
- * as the calendar correcting a mistake rather than as a placement being kept.
- *
- * The numbers are the ones the blocks themselves use, not copies: half the
- * vertical gap above, the whole of it taken out of the height, and the same
- * trim on the right that leaves room for the next column.
- */
-export function draftPreviewBox(portion: DayPortion): GridBox {
-    return {
-        top: scaledPx(portion.topHours, EVENT_VGAP / 2),
-        height: scaledHeightPx(portion.durationHours, -EVENT_VGAP),
-        left: "0px",
-        width: `calc(100% - ${OVERLAP_COL_GAP}px)`,
-    };
 }
 
 /**
  * The box the rectangle dragged across the grid is drawn in.
  *
- * Not a draft: it says which span of time is being chosen, so it covers exactly
- * that span. Trimmed like an event, it would show a selection shorter than the
- * one being made.
+ * It says which span of time is being chosen, so it covers exactly that span.
  */
-export function selectionBox(
-    portion: DayPortion
-): Pick<GridBox, "top" | "height"> {
+export function selectionBox(portion: DayPortion): GridBox {
     return {
         top: scaledPx(portion.topHours),
         height: scaledPx(portion.durationHours),
     };
+}
+
+/**
+ * The box a draft is drawn in immediately after the pointer is released.
+ *
+ * Releasing the pointer must not move or resize what the user just selected.
+ * The old draft preview adopted the normal event gaps here: it moved down by
+ * half EVENT_VGAP, became shorter by EVENT_VGAP and narrowed horizontally in
+ * the caller. That made the rectangle visibly jump at pointer-up even though
+ * its start/end times had not changed.
+ *
+ * A draft is still the placement gesture until it is actually committed, so it
+ * deliberately uses the exact same geometry as that gesture. The shared CSS
+ * supplies the same left/right edges for both states as well.
+ */
+export function draftPreviewBox(portion: DayPortion): GridBox {
+    return selectionBox(portion);
 }
