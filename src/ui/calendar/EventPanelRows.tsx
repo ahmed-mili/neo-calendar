@@ -3503,6 +3503,7 @@ interface DescriptionRowProps {
     editable: boolean;
     setDescription: (v: string) => void;
     onCommit: () => void;
+    toolbar?: React.ReactNode;
 }
 
 export function DescriptionRow({
@@ -3510,6 +3511,7 @@ export function DescriptionRow({
     editable,
     setDescription,
     onCommit,
+    toolbar,
 }: DescriptionRowProps) {
     const fieldRef = React.useRef<HTMLTextAreaElement>(null);
     /*
@@ -3582,6 +3584,7 @@ export function DescriptionRow({
                     <LinesIcon />
                 </span>
                 <div className="nc-panel-row-content">
+                    {toolbar}
                     <textarea
                         ref={fieldRef}
                         rows={1}
@@ -3605,6 +3608,7 @@ export function DescriptionRow({
                 <LinesIcon />
             </span>
             <div className="nc-panel-row-content">
+                {toolbar}
                 <div className="nc-panel-checklist">
                     {lines.map((line, index) => {
                         const editingThis = index === editing;

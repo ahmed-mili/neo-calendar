@@ -1,6 +1,15 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import { Paperclip } from "lucide-react";
+import {
+    Bold,
+    Italic,
+    List,
+    ListOrdered,
+    ListTodo,
+    Paperclip,
+    RemoveFormatting,
+    Underline,
+} from "lucide-react";
 import { BrandIcon } from "./BrandIcons";
 import { CopyIcon, PencilIcon, SearchIcon, XIcon } from "./Icons";
 import { LinesIcon } from "./EventPanelIcons";
@@ -18,6 +27,10 @@ import {
     replaceLine,
     taskPrefixLength,
 } from "./descriptionChecklist";
+import {
+    applyDescriptionFormat,
+    DescriptionFormatCommand,
+} from "./descriptionFormatting";
 import { t } from "../i18n";
 
 export interface DescriptionVaultOption {
@@ -180,6 +193,88 @@ function replaceSelection(snapshot: FieldSnapshot, inserted: string): string {
         snapshot.text.slice(0, snapshot.start) +
         inserted +
         snapshot.text.slice(snapshot.end)
+    );
+}
+
+function DescriptionToolbar({
+    attachmentDisabled,
+    onAttach,
+    onFormat,
+}: {
+    attachmentDisabled: boolean;
+    onAttach: () => void;
+    onFormat: (command: DescriptionFormatCommand) => void;
+}) {
+    const button = (
+        label: string,
+        icon: React.ReactNode,
+        command: DescriptionFormatCommand
+    ) => (
+        <button
+            type="button"
+            className="nc-description-tool"
+            aria-label={label}
+            data-tooltip={label}
+            data-format-command={command}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => onFormat(command)}
+        >
+            {icon}
+        </button>
+    );
+
+    return (
+        <div
+            className="nc-description-toolbar"
+            role="toolbar"
+            aria-label={t("Description formatting")}
+        >
+            {button(t("Bold"), <Bold size={16} strokeWidth={2} />, "bold")}
+            {button(
+                t("Italic"),
+                <Italic size={16} strokeWidth={2} />,
+                "italic"
+            )}
+            {button(
+                t("Underline"),
+                <Underline size={16} strokeWidth={2} />,
+                "underline"
+            )}
+            <span className="nc-description-tool-separator" role="separator" />
+            {button(
+                t("Numbered list"),
+                <ListOrdered size={16} strokeWidth={2} />,
+                "ordered-list"
+            )}
+            {button(
+                t("Bulleted list"),
+                <List size={16} strokeWidth={2} />,
+                "bullet-list"
+            )}
+            {button(
+                t("Checklist item"),
+                <ListTodo size={16} strokeWidth={2} />,
+                "checklist"
+            )}
+            <span className="nc-description-tool-separator" role="separator" />
+            <button
+                type="button"
+                className="nc-description-tool"
+                aria-label={t("Attachment")}
+                data-tooltip={t("Attachment")}
+                data-format-command="attachment"
+                disabled={attachmentDisabled}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={onAttach}
+            >
+                <Paperclip size={16} strokeWidth={2} />
+            </button>
+            {button(
+                t("Clear formatting"),
+                <RemoveFormatting size={16} strokeWidth={2} />,
+                "clear"
+            )}
+        </div>
     );
 }
 
@@ -518,12 +613,12 @@ export function DescriptionSection({
 
     const updateMention = React.useCallback(
         (field: HTMLTextAreaElement) => {
+            activeFieldRef.current = field;
             const snapshot = snapshotForField(field, descriptionRef.current);
             if (!snapshot || !editable || !eventId || !onSearch || !onAddLink) {
                 closeMention();
                 return;
             }
-            activeFieldRef.current = field;
             const next = descriptionMentionAt(snapshot.text, snapshot.start);
             if (!next) {
                 closeMention();
@@ -708,6 +803,37 @@ export function DescriptionSection({
         }
     };
 
+    const formatDescription = (command: DescriptionFormatCommand) => {
+        const rememberedField = activeFieldRef.current;
+        const activeField = rememberedField?.isConnected
+            ? rememberedField
+            : fieldRef.current;
+        const snapshot = activeField
+            ? snapshotForField(activeField, descriptionRef.current)
+            : null;
+        const source = snapshot ?? {
+            text: descriptionRef.current,
+            start: descriptionRef.current.length,
+            end: descriptionRef.current.length,
+        };
+        const next = applyDescriptionFormat(
+            source.text,
+            source.start,
+            source.end,
+            command
+        );
+        descriptionRef.current = next.text;
+        setDescription(next.text);
+        window.requestAnimationFrame(() => {
+            const field = fieldRef.current ?? activeFieldRef.current;
+            if (!field?.isConnected) return;
+            field.focus();
+            if (field.dataset.descriptionInput === "true") {
+                field.setSelectionRange(next.selectionStart, next.selectionEnd);
+            }
+        });
+    };
+
     return (
         <div
             className="nc-description-section"
@@ -718,6 +844,12 @@ export function DescriptionSection({
             onSelectCapture={(event) => {
                 const field = event.target;
                 if (field instanceof HTMLTextAreaElement) updateMention(field);
+            }}
+            onFocusCapture={(event) => {
+                const field = event.target;
+                if (field instanceof HTMLTextAreaElement) {
+                    activeFieldRef.current = field;
+                }
             }}
             onPasteCapture={handlePaste}
             onKeyDownCapture={handleKeyDown}
@@ -739,26 +871,6 @@ export function DescriptionSection({
                 </div>
             )}
 
-            {editable && (
-                <button
-                    type="button"
-                    className="nc-panel-row nc-panel-row-attachment"
-                    disabled={!eventId || !onPickAttachment || attaching}
-                    aria-label={
-                        eventId
-                            ? t("Attachment")
-                            : t("Available once the event is created")
-                    }
-                    onClick={() => void attach()}
-                >
-                    <span className="nc-panel-row-icon" aria-hidden="true">
-                        <Paperclip size={16} strokeWidth={2} />
-                    </span>
-                    <span className="nc-panel-row-label">
-                        {t("Attachment")}
-                    </span>
-                </button>
-            )}
             {attachmentError && (
                 <div className="nc-description-link-error" role="alert">
                     {attachmentError}
@@ -777,6 +889,19 @@ export function DescriptionSection({
                         editable={editable}
                         setDescription={setDescription}
                         onCommit={onCommit}
+                        toolbar={
+                            editable ? (
+                                <DescriptionToolbar
+                                    attachmentDisabled={
+                                        !eventId ||
+                                        !onPickAttachment ||
+                                        attaching
+                                    }
+                                    onAttach={() => void attach()}
+                                    onFormat={formatDescription}
+                                />
+                            ) : undefined
+                        }
                     />
                     {links.length > 0 && (
                         <div className="nc-description-links nc-description-links-checklist">
@@ -801,6 +926,15 @@ export function DescriptionSection({
                         <LinesIcon />
                     </span>
                     <div className="nc-panel-row-content">
+                        {editable && (
+                            <DescriptionToolbar
+                                attachmentDisabled={
+                                    !eventId || !onPickAttachment || attaching
+                                }
+                                onAttach={() => void attach()}
+                                onFormat={formatDescription}
+                            />
+                        )}
                         {links.length > 0 && (
                             <div className="nc-description-links">
                                 {links.map((item) => (

@@ -197,6 +197,14 @@ const FR: Record<string, string> = {
     Description: "Description",
     Empty: "Vide",
     "Add a description": "Ajouter une description",
+    "Description formatting": "Mise en forme de la description",
+    Bold: "Gras",
+    Italic: "Italique",
+    Underline: "Souligné",
+    "Numbered list": "Liste numérotée",
+    "Bulleted list": "Liste à puces",
+    "Checklist item": "Élément à vérifier",
+    "Clear formatting": "Effacer la mise en forme",
     "Resize panel": "Redimensionner le panneau",
     // La question posée en quittant le panneau après avoir modifié un jour
     // d'une série : cette occurrence seule, ou toute la série.
@@ -222,7 +230,7 @@ const FR: Record<string, string> = {
     "Add another link or attachment": "Ajouter un autre lien ou fichier",
     "Add web link": "Ajouter un lien web",
     "Attach files": "Joindre des fichiers",
-    Attachment: "Pièce-jointe",
+    Attachment: "Pièce jointe",
     "Linked file": "Fichier lié",
     "Linked files": "Fichiers liés",
     "Edit link": "Modifier le lien",

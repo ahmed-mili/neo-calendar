@@ -1010,8 +1010,8 @@
     margin-top: 0;
 }
 
-/* La pièce jointe reste une action distincte. Les liens, eux, vivent dans la
-   description et n'occupent plus une ligne permanente du formulaire. */
+/* La description garde toutes ses commandes dans une seule surface : l'icône
+   de ligne à gauche, la barre d'édition en haut et le texte juste dessous. */
 .nc-description-section {
     min-width: 0;
 }
@@ -1024,57 +1024,121 @@
     margin-bottom: 0;
 }
 
-.nc-panel-body .nc-panel-row.nc-panel-row-attachment {
-    width: auto;
-    min-width: 0;
-    min-height: 36px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 2px 8px;
-    padding: 8px 10px;
-    border: 1px solid transparent !important;
-    border-radius: 8px;
-    color: var(--nc-text-primary, var(--text-normal));
-    background: transparent !important;
-    box-shadow: none !important;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-    transition: background var(--nc-transition-fast),
-        border-color var(--nc-transition-fast);
-}
-
-.nc-panel-row-attachment .nc-panel-row-icon {
-    margin-top: 0;
-}
-
-.nc-panel-body .nc-panel-row.nc-panel-row-attachment:hover:not(:disabled) {
-    border-color: var(
-        --nc-border,
-        var(--background-modifier-border)
-    ) !important;
+.nc-panel-body .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar) {
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+    border-color: transparent;
 }
 
 .nc-panel-body
-    .nc-panel-row.nc-panel-row-attachment:focus-visible:not(:disabled) {
-    border-color: color-mix(
+    .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar):hover {
+    border-color: transparent;
+}
+
+.nc-panel-body
+    .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar):focus-within {
+    border-color: transparent;
+    border-bottom-color: var(--nc-accent, var(--interactive-accent));
+}
+
+.nc-description-toolbar {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    padding-bottom: 2px;
+    color: var(--nc-text-secondary, var(--text-muted));
+}
+
+.nc-description-toolbar .nc-description-tool {
+    position: relative;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: inherit;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: color var(--nc-transition-fast),
+        background var(--nc-transition-fast);
+}
+
+.nc-description-toolbar .nc-description-tool:hover:not(:disabled),
+.nc-description-toolbar .nc-description-tool:focus-visible:not(:disabled) {
+    color: var(--nc-text-primary, var(--text-normal));
+    background: color-mix(
         in srgb,
-        var(--nc-accent) 55%,
-        var(--nc-border, var(--background-modifier-border))
-    ) !important;
-    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+        var(--nc-text-primary, var(--text-normal)) 10%,
+        transparent
+    );
     outline: none;
 }
 
-.nc-panel-body .nc-panel-row.nc-panel-row-attachment:disabled {
+.nc-description-toolbar .nc-description-tool:disabled {
+    opacity: 0.38;
     cursor: default;
-    opacity: 0.45;
+}
+
+.nc-description-tool-separator {
+    flex: 0 0 1px;
+    width: 1px;
+    height: 18px;
+    margin: 0 4px;
+    background: var(--nc-border, var(--background-modifier-border));
+}
+
+.nc-description-tool::after {
+    position: absolute;
+    right: auto;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    z-index: 80;
+    content: attr(data-tooltip);
+    padding: 4px 7px;
+    border-radius: 3px;
+    color: #fff;
+    background: #3c4043;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.26);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.3;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-50%, 2px);
+    transition: opacity 80ms ease 360ms, visibility 0s linear 440ms,
+        transform 80ms ease 360ms;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .nc-description-tool:hover::after {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, 0);
+        transition-delay: 360ms, 360ms, 360ms;
+    }
+}
+
+.nc-description-tool:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+    transition-delay: 0ms;
 }
 
 .nc-description-composer .nc-panel-row-content {
     min-width: 0;
-    gap: 4px;
+    gap: 3px;
 }
 
 .nc-description-links {
@@ -1292,6 +1356,22 @@
 }
 
 @media (max-width: 420px) {
+    .nc-description-toolbar {
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        scrollbar-width: none;
+    }
+
+    .nc-description-toolbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    body.nc-platform-android .nc-description-toolbar .nc-description-tool {
+        flex-basis: 44px;
+        width: 44px;
+        height: 44px;
+    }
+
     .nc-description-links-checklist {
         margin-right: 12px;
         margin-left: 44px;

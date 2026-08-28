@@ -16,10 +16,10 @@ const baseProps = {
     vaults: [],
 };
 
-describe("the compact links and attachments flow", () => {
+describe("the description editing toolbar", () => {
     afterEach(() => applyLanguage("fr"));
 
-    it("keeps attachments as their own compact action", () => {
+    it("keeps every editing action icon-only and in the requested order", () => {
         applyLanguage("fr");
         const html = renderToStaticMarkup(
             <DescriptionSection
@@ -28,10 +28,60 @@ describe("the compact links and attachments flow", () => {
                 onPickAttachment={async () => {}}
             />
         );
+        const labels = [
+            "Gras",
+            "Italique",
+            "Souligné",
+            "Liste numérotée",
+            "Liste à puces",
+            "Élément à vérifier",
+            "Pièce jointe",
+            "Effacer la mise en forme",
+        ];
 
-        expect(html).toContain("Pièce-jointe");
-        expect(html).not.toContain("Ajouter des liens et des fichiers");
-        expect(html).toContain("nc-panel-row-attachment");
+        expect(html).toContain('role="toolbar"');
+        expect(html).not.toContain("nc-panel-row-attachment");
+        expect(html).not.toContain("nc-panel-row-label");
+        labels.forEach((label) => {
+            expect(html).toContain(`aria-label="${label}"`);
+            expect(html).toContain(`data-tooltip="${label}"`);
+        });
+        const positions = labels.map((label) =>
+            html.indexOf(`aria-label="${label}"`)
+        );
+        expect(positions.every((position) => position >= 0)).toBe(true);
+        expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    });
+
+    it("keeps the same toolbar when the description already has a checklist", () => {
+        applyLanguage("fr");
+        const html = renderToStaticMarkup(
+            <DescriptionSection
+                {...baseProps}
+                description={"- [ ] Vérifier le dossier"}
+                items={[]}
+                onPickAttachment={async () => {}}
+            />
+        );
+
+        expect(html).toContain('role="toolbar"');
+        expect(html).toContain('aria-label="Pièce jointe"');
+        expect(html).toContain("nc-panel-checklist");
+    });
+
+    it("keeps formatting available on drafts while disabling attachments", () => {
+        applyLanguage("fr");
+        const html = renderToStaticMarkup(
+            <DescriptionSection
+                {...baseProps}
+                eventId={null}
+                items={[]}
+                onPickAttachment={async () => {}}
+            />
+        );
+
+        expect(html).toMatch(/aria-label="Gras"(?![^>]*disabled)[^>]*>/);
+        expect(html).toMatch(/aria-label="Pièce jointe"[^>]*disabled=""[^>]*>/);
     });
 
     it("renders persisted web links inside the description", () => {
@@ -91,6 +141,7 @@ describe("the compact links and attachments flow", () => {
         );
 
         expect(html).toContain("file.pdf");
+        expect(html).not.toContain('role="toolbar"');
         expect(html).not.toContain("Maintenir pour supprimer");
     });
 });
