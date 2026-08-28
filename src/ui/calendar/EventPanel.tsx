@@ -538,22 +538,18 @@ export default function EventPanel({
         if (!isDraft || !visible) return;
 
         if (isNeoAndroidRuntime()) {
-            const active = document.activeElement;
-
-            if (active instanceof HTMLElement) {
-                active.blur();
+            // Android opens drafts without forcing the title keyboard.
+            // Never blur whichever element the user has chosen in the
+            // meantime: the old delayed blanket blur could cancel a tap
+            // on Description just after the sheet appeared.
+            if (document.activeElement === titleInputRef.current) {
+                titleInputRef.current?.blur();
             }
 
-            titleInputRef.current?.blur();
-
             window.setTimeout(() => {
-                const current = document.activeElement;
-
-                if (current instanceof HTMLElement) {
-                    current.blur();
+                if (document.activeElement === titleInputRef.current) {
+                    titleInputRef.current?.blur();
                 }
-
-                titleInputRef.current?.blur();
             }, 80);
 
             return;
@@ -581,6 +577,15 @@ export default function EventPanel({
         }
 
         requestAnimationFrame(() => {
+            const active = document.activeElement;
+            const editingElsewhere =
+                active instanceof HTMLInputElement ||
+                active instanceof HTMLTextAreaElement ||
+                active instanceof HTMLSelectElement ||
+                (active instanceof HTMLElement && active.isContentEditable);
+            // A fast click into Description during draft → event handoff
+            // wins over the legacy title refocus. Do not steal the caret.
+            if (editingElsewhere) return;
             titleInputRef.current?.focus();
         });
     }, [eventId, visible]);

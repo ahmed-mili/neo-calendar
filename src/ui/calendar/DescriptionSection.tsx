@@ -850,11 +850,19 @@ export function DescriptionSection({
     return (
         <div
             className="nc-description-section"
-            onInputCapture={(event) => {
+            onInput={(event) => {
                 const field = event.target;
-                if (field instanceof HTMLTextAreaElement) updateMention(field);
+                if (!(field instanceof HTMLTextAreaElement)) return;
+                // Mention bookkeeping must not re-render a controlled
+                // textarea during the native input event. WebView2 can
+                // otherwise restore the previous controlled value before
+                // React receives the change, making physical keystrokes
+                // look as if they were ignored.
+                window.requestAnimationFrame(() => {
+                    if (field.isConnected) updateMention(field);
+                });
             }}
-            onSelectCapture={(event) => {
+            onSelect={(event) => {
                 const field = event.target;
                 if (field instanceof HTMLTextAreaElement) updateMention(field);
             }}
@@ -935,7 +943,31 @@ export function DescriptionSection({
                     )}
                 </>
             ) : (
-                <div className="nc-panel-row nc-panel-row-desc nc-description-composer">
+                <div
+                    className="nc-panel-row nc-panel-row-desc nc-description-composer"
+                    onClick={(event) => {
+                        if (!editable) return;
+                        const target = event.target;
+                        if (!(target instanceof Element)) return;
+                        // The toolbar made the visual Description surface much
+                        // taller than the textarea itself. Treat the whole
+                        // non-interactive surface as the text field so a real
+                        // click/tap always activates keyboard input.
+                        if (
+                            target.closest(
+                                "button, a, input, textarea, select, [role='button'], [role='link']"
+                            )
+                        ) {
+                            return;
+                        }
+                        const field = fieldRef.current;
+                        if (!field?.isConnected) return;
+                        activeFieldRef.current = field;
+                        field.focus();
+                        const caret = field.value.length;
+                        field.setSelectionRange(caret, caret);
+                    }}
+                >
                     <span className="nc-panel-row-icon">
                         <LinesIcon />
                     </span>
@@ -972,9 +1004,14 @@ export function DescriptionSection({
                             data-description-input="true"
                             value={description}
                             placeholder={t("Add a description")}
-                            onChange={(event) =>
-                                setDescription(event.target.value)
-                            }
+                            onChange={(event) => {
+                                const value = event.target.value;
+                                // Keep the imperative snapshot in lockstep with
+                                // native typing; toolbar/mention logic reads it
+                                // before the next React render on some WebViews.
+                                descriptionRef.current = value;
+                                setDescription(value);
+                            }}
                             onBlur={onCommit}
                             readOnly={!editable}
                         />
