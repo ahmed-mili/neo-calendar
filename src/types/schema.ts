@@ -185,7 +185,9 @@ export const TYPE_DISCRIMINANT_KEYS = [
  * `subtasks` joins them on its own account: a task whose last step has been
  * deleted has no list, and "no list" has to reach the note as the line being
  * removed — a merge that only ever adds and overwrites would keep the steps
- * that were just thrown away.
+ * that were just thrown away. `description` follows the same rule: clearing
+ * the field removes the key, otherwise the old text is re-read on the next
+ * cache refresh and appears to make the editor reject the change.
  *
  * Everything NOT in this set is left exactly as found when the event does not
  * mention it, which is what protects keys the app knows nothing about.
@@ -193,6 +195,7 @@ export const TYPE_DISCRIMINANT_KEYS = [
 export const KEYS_DROPPED_WHEN_ABSENT = [
     ...TYPE_DISCRIMINANT_KEYS,
     "subtasks",
+    "description",
 ] as const;
 
 /**
