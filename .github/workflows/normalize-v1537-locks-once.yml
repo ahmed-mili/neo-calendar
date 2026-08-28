@@ -17,20 +17,24 @@ jobs:
         with:
           ref: fix/v1.53.7-draft-description-ics
           fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Restore lockfiles then apply only the version bump
+      - name: Restore lockfiles then change only their app versions
         run: |
           git checkout origin/main -- package-lock.json apps/windows/package-lock.json apps/android/package-lock.json
-          node - <<'NODE'
-          const fs = require('fs');
-          const path = 'package.json';
-          const data = JSON.parse(fs.readFileSync(path, 'utf8'));
-          data.version = '1.53.6';
-          fs.writeFileSync(path, JSON.stringify(data, null, 4) + '\n');
-          NODE
-          node scripts/set-version.mjs 1.53.7
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in [
+              'package-lock.json',
+              'apps/windows/package-lock.json',
+              'apps/android/package-lock.json',
+          ]:
+              path = Path(name)
+              text = path.read_text(encoding='utf-8')
+              old = '"version": "1.53.6"'
+              if text.count(old) < 2:
+                  raise SystemExit(f'{name}: expected two app version entries')
+              text = text.replace(old, '"version": "1.53.7"', 2)
+              path.write_text(text, encoding='utf-8')
+          PY
           rm .github/workflows/normalize-v1537-locks-once.yml
       - name: Commit normalized locks
         run: |
