@@ -1,8 +1,13 @@
 import { parseEvent } from "../../../../src/types";
 import { parseFrontmatter, type DesktopStoredEvent } from "./desktopEventFormat";
-import type { DesktopIcalCalendarSource } from "./desktopExternalCalendars";
+import {
+    parseExternalCalendarSources,
+    type DesktopIcalCalendarSource,
+} from "./desktopExternalCalendars";
 import {
     availableIcalDirectoryName,
+    displayCalendarIdForExternalSource,
+    planIcalDirectoryAssignments,
     planIcalNoteSync,
     scopedIcalEvent,
 } from "./icalNoteSync";
@@ -61,8 +66,6 @@ describe("note-backed iCalendar subscriptions", () => {
         expect(writes).toHaveLength(1);
         expect(writes[0].event.title).toBe("Course");
         expect(writes.some((write) => write.event.id === old.id)).toBe(false);
-        // No deletion list exists by design: absence from a rolling feed cannot
-        // erase the historical Markdown note already on disk.
         expect(old.relativePath).toBe("School/2026-08-14 Course.md");
     });
 
@@ -84,8 +87,7 @@ describe("note-backed iCalendar subscriptions", () => {
 
     it("does not rewrite an unchanged materialized event", () => {
         const old = stored();
-        const exact = old.event;
-        expect(planIcalNoteSync(source, [exact], [old])).toEqual([]);
+        expect(planIcalNoteSync(source, [old.event], [old])).toEqual([]);
     });
 
     it("namespaces identical UIDs from two feeds", () => {
@@ -102,5 +104,60 @@ describe("note-backed iCalendar subscriptions", () => {
         expect(availableIcalDirectoryName("School", used)).toBe(
             "School (ICS 2)"
         );
+    });
+
+    it("migrates a legacy feed to a dedicated folder and local display id", () => {
+        const legacy: DesktopIcalCalendarSource = {
+            type: "ical",
+            id: "legacy",
+            name: "Lectures",
+            url: "https://example.test/lectures.ics",
+            color: "#89b4fa",
+        };
+        const plan = planIcalDirectoryAssignments([legacy], ["Personal"]);
+        const migrated = plan.sources[0] as DesktopIcalCalendarSource;
+
+        expect(plan.changed).toBe(true);
+        expect(plan.directoriesToCreate).toEqual(["Lectures"]);
+        expect(migrated.directory).toBe("Lectures");
+        expect(displayCalendarIdForExternalSource(migrated)).toBe(
+            "local::Lectures"
+        );
+    });
+
+    it("never lets two feeds claim the same note folder", () => {
+        const first = { ...source };
+        const second = {
+            ...source,
+            id: "other",
+            url: "https://other.test/calendar.ics",
+        };
+        const plan = planIcalDirectoryAssignments([first, second], ["School"]);
+        const [one, two] = plan.sources as DesktopIcalCalendarSource[];
+
+        expect(one.directory).toBe("School");
+        expect(two.directory).toBe("School (ICS)");
+        expect(plan.directoriesToCreate).toEqual(["School (ICS)"]);
+    });
+
+    it("recreates a configured folder that is temporarily absent", () => {
+        const plan = planIcalDirectoryAssignments([source], ["Personal"]);
+        expect(plan.changed).toBe(false);
+        expect(plan.directoriesToCreate).toEqual(["School"]);
+    });
+
+    it("persists safe directory assignments but drops unsafe paths", () => {
+        const parsed = parseExternalCalendarSources([
+            { ...source, directory: "School" },
+            {
+                ...source,
+                id: "unsafe",
+                url: "https://unsafe.test/calendar.ics",
+                directory: "../School",
+            },
+        ]) as DesktopIcalCalendarSource[];
+
+        expect(parsed[0].directory).toBe("School");
+        expect(parsed[1].directory).toBeUndefined();
     });
 });
