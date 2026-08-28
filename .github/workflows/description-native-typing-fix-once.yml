@@ -22,6 +22,12 @@ jobs:
         with:
           node-version: 20
 
+      - name: Restore source formatting from main
+        run: git checkout origin/main -- src/ui/calendar/DescriptionSection.tsx src/ui/calendar/EventPanel.tsx src/ui/calendar/DescriptionToolbarEditing.test.tsx
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
       - name: Apply direct typing fix and regression coverage
         shell: bash
         run: |
@@ -250,19 +256,15 @@ jobs:
           test_path.write_text(test)
           PY
 
-          node scripts/set-version.mjs 1.53.5
           npx prettier --write src/ui/calendar/DescriptionSection.tsx src/ui/calendar/EventPanel.tsx src/ui/calendar/DescriptionToolbarEditing.test.tsx
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
 
       - name: Run full test suite
         run: npm test
 
-      - name: Commit verified fix
+      - name: Commit normalized verified fix
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/ui/calendar/DescriptionSection.tsx src/ui/calendar/EventPanel.tsx src/ui/calendar/DescriptionToolbarEditing.test.tsx package.json package-lock.json apps/windows/package.json apps/windows/package-lock.json apps/windows/src-tauri/tauri.conf.json apps/windows/src-tauri/Cargo.toml apps/windows/src-tauri/Cargo.lock apps/android/package.json apps/android/package-lock.json apps/android/native/app/build.gradle.kts
-          git commit -m "Fix direct typing in unified description editor"
+          git add src/ui/calendar/DescriptionSection.tsx src/ui/calendar/EventPanel.tsx src/ui/calendar/DescriptionToolbarEditing.test.tsx
+          git commit -m "Normalize description native typing fix"
           git push origin HEAD:fix/description-native-typing
