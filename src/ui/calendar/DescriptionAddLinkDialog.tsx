@@ -131,7 +131,7 @@ export function DescriptionAddLinkDialog({
                     disabled={saving}
                     onClick={close}
                 >
-                    <XIcon size={15} />
+                    <XIcon />
                 </button>
             </div>
             <input
