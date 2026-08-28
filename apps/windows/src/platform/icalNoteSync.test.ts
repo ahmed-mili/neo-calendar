@@ -1,5 +1,8 @@
-import { parseEvent } from "../../../../src/types";
-import { parseFrontmatter, type DesktopStoredEvent } from "./desktopEventFormat";
+import { parseEvent } from "../../../../src/types/schema";
+import {
+    parseFrontmatter,
+    type DesktopStoredEvent,
+} from "./desktopEventFormat";
 import {
     externalCalendarId,
     parseExternalCalendarSources,
@@ -31,8 +34,9 @@ const event = (date: string, id: string, title = "Course") =>
         allDay: true,
     });
 
-function stored(remote = event("2026-08-14", "ics::old::2026-08-14::single")):
-    DesktopStoredEvent {
+function stored(
+    remote = event("2026-08-14", "ics::old::2026-08-14::single")
+): DesktopStoredEvent {
     const materialized = scopedIcalEvent(source, remote, 0);
     return {
         id: materialized.id as string,

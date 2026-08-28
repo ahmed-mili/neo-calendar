@@ -28,7 +28,9 @@ export interface IcalDirectoryPlan {
 export function hasIcalDirectory(
     source: DesktopIcalCalendarSource
 ): source is DesktopIcalCalendarSource & { directory: string } {
-    return typeof source.directory === "string" && source.directory.trim() !== "";
+    return (
+        typeof source.directory === "string" && source.directory.trim() !== ""
+    );
 }
 
 /** Filesystem-safe display name used while migrating an old subscription. */
@@ -160,7 +162,10 @@ export function planIcalNoteSync(
         const event = scopedIcalEvent(source, remote, index);
         const id = event.id as string;
         const previous = existingById.get(id);
-        const contents = serializeEventMarkdown(event, previous?.contents ?? "");
+        const contents = serializeEventMarkdown(
+            event,
+            previous?.contents ?? ""
+        );
 
         if (previous && contents === previous.contents) return [];
 
