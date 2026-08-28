@@ -1,12 +1,12 @@
 import { parseEvent } from "../../../../src/types";
 import { parseFrontmatter, type DesktopStoredEvent } from "./desktopEventFormat";
 import {
+    externalCalendarId,
     parseExternalCalendarSources,
     type DesktopIcalCalendarSource,
 } from "./desktopExternalCalendars";
 import {
     availableIcalDirectoryName,
-    displayCalendarIdForExternalSource,
     planIcalDirectoryAssignments,
     planIcalNoteSync,
     scopedIcalEvent,
@@ -36,7 +36,7 @@ function stored(remote = event("2026-08-14", "ics::old::2026-08-14::single")):
     const materialized = scopedIcalEvent(source, remote, 0);
     return {
         id: materialized.id as string,
-        calendarId: "local::School",
+        calendarId: externalCalendarId(source),
         calendarPath: "School",
         relativePath: "School/2026-08-14 Course.md",
         fileName: "2026-08-14 Course.md",
@@ -67,6 +67,16 @@ describe("note-backed iCalendar subscriptions", () => {
         expect(writes[0].event.title).toBe("Course");
         expect(writes.some((write) => write.event.id === old.id)).toBe(false);
         expect(old.relativePath).toBe("School/2026-08-14 Course.md");
+    });
+
+    it("keeps the subscription logical id while writing into its note folder", () => {
+        const [write] = planIcalNoteSync(
+            source,
+            [event("2026-08-28", "ics::new::2026-08-28::single")],
+            []
+        );
+        expect(write.calendarId).toBe(externalCalendarId(source));
+        expect(write.calendarPath).toBe("School");
     });
 
     it("updates a still-present VEVENT in the same Markdown file and preserves its body", () => {
@@ -106,7 +116,7 @@ describe("note-backed iCalendar subscriptions", () => {
         );
     });
 
-    it("migrates a legacy feed to a dedicated folder and local display id", () => {
+    it("migrates a legacy feed to a dedicated folder", () => {
         const legacy: DesktopIcalCalendarSource = {
             type: "ical",
             id: "legacy",
@@ -120,9 +130,6 @@ describe("note-backed iCalendar subscriptions", () => {
         expect(plan.changed).toBe(true);
         expect(plan.directoriesToCreate).toEqual(["Lectures"]);
         expect(migrated.directory).toBe("Lectures");
-        expect(displayCalendarIdForExternalSource(migrated)).toBe(
-            "local::Lectures"
-        );
     });
 
     it("never lets two feeds claim the same note folder", () => {
