@@ -1,6 +1,5 @@
 import type { NeoEvent } from "../../../../src/types";
 import {
-    calendarIdFromPath,
     filenameForEvent,
     serializeEventMarkdown,
     type DesktopStoredEvent,
@@ -26,15 +25,6 @@ export interface IcalDirectoryPlan {
     changed: boolean;
 }
 
-/** A feed backed by notes always addresses the physical calendar folder. */
-export function displayCalendarIdForExternalSource(
-    source: DesktopExternalCalendarSource
-): string {
-    return source.type === "ical" && hasIcalDirectory(source)
-        ? calendarIdFromPath(source.directory)
-        : externalCalendarId(source);
-}
-
 export function hasIcalDirectory(
     source: DesktopIcalCalendarSource
 ): source is DesktopIcalCalendarSource & { directory: string } {
@@ -48,7 +38,8 @@ export function preferredIcalDirectoryName(name: string): string {
         .replace(/\s+/g, " ")
         .trim()
         .replace(/[. ]+$/, "");
-    const safe = cleaned && cleaned !== "." && cleaned !== ".." ? cleaned : "iCalendar";
+    const safe =
+        cleaned && cleaned !== "." && cleaned !== ".." ? cleaned : "iCalendar";
     return /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(safe)
         ? `${safe} Calendar`
         : safe;
@@ -88,7 +79,9 @@ export function planIcalDirectoryAssignments(
     sources: readonly DesktopExternalCalendarSource[],
     existingFolderNames: readonly string[]
 ): IcalDirectoryPlan {
-    const physical = new Set(existingFolderNames.map((name) => name.toLocaleLowerCase()));
+    const physical = new Set(
+        existingFolderNames.map((name) => name.toLocaleLowerCase())
+    );
     const claimed = new Set<string>();
     const directoriesToCreate: string[] = [];
     let changed = false;
@@ -113,7 +106,9 @@ export function planIcalDirectoryAssignments(
         }
 
         if (source.directory !== directory) changed = true;
-        return source.directory === directory ? source : { ...source, directory };
+        return source.directory === directory
+            ? source
+            : { ...source, directory };
     });
 
     return { sources: nextSources, directoriesToCreate, changed };
@@ -154,7 +149,7 @@ export function planIcalNoteSync(
     existingRecords: readonly DesktopStoredEvent[]
 ): IcalNoteWrite[] {
     const calendarPath = source.directory;
-    const calendarId = calendarIdFromPath(calendarPath);
+    const calendarId = externalCalendarId(source);
     const existingById = new Map(
         existingRecords
             .filter((record) => record.calendarPath === calendarPath)
