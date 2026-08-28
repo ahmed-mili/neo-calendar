@@ -1,0 +1,9 @@
+/* The shared event-panel stylesheet deliberately gives Android formatting
+   controls 44px-high touch targets. Splitting eight commands into four columns,
+   however, turns the description composer into a two-row block that dominates
+   the phone panel. Keep the touch height, but let the fractional grid shrink
+   each command horizontally so all eight commands stay on one compact row. */
+body.nc-platform-android .nc-description-toolbar {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    row-gap: 0;
+}
