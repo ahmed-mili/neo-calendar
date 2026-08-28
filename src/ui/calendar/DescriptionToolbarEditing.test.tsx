@@ -38,7 +38,9 @@ describe("description toolbar keyboard editing", () => {
     });
 
     afterEach(() => {
-        act(() => ReactDOM.unmountComponentAtNode(container));
+        act(() => {
+            ReactDOM.unmountComponentAtNode(container);
+        });
         container.remove();
         window.requestAnimationFrame = originalRequestAnimationFrame;
     });
@@ -49,7 +51,9 @@ describe("description toolbar keyboard editing", () => {
     };
 
     it("keeps a real textarea focused when the checklist command changes renderer", () => {
-        act(() => ReactDOM.render(<Harness />, container));
+        act(() => {
+            ReactDOM.render(<Harness />, container);
+        });
 
         const field = container.querySelector(
             "textarea[data-description-input='true']"
@@ -80,9 +84,9 @@ describe("description toolbar keyboard editing", () => {
     });
 
     it("opens the checklist line for typing when formatting an existing checklist", () => {
-        act(() =>
-            ReactDOM.render(<Harness initial="- [ ] Existing" />, container)
-        );
+        act(() => {
+            ReactDOM.render(<Harness initial="- [ ] Existing" />, container);
+        });
         expect(container.querySelector(".nc-panel-checklist-edit")).toBeNull();
 
         const bold = container.querySelector(
