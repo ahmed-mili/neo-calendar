@@ -136,7 +136,11 @@ import {
     parseIcalCalendarEvents,
     type DesktopExternalCalendarSource,
 } from "./platform/desktopExternalCalendars";
-import { mergeRemoteEvents } from "./platform/mergeRemoteEvents";
+import {
+    hasIcalDirectory,
+    planIcalDirectoryAssignments,
+    planIcalNoteSync,
+} from "./platform/icalNoteSync";
 import {
     defaultDesktopWorkspacePreferences,
     parseDesktopWorkspacePreferences,
@@ -378,6 +382,13 @@ function externalEventRecord(
         event: { ...event, id: eventId },
         readOnly: true,
     };
+}
+
+function hasPhysicalEventNote(record: DesktopStoredEvent): boolean {
+    return (
+        !record.relativePath.startsWith("@external/") &&
+        /\.md$/i.test(record.relativePath)
+    );
 }
 
 function anchorForEvent(eventId: string): DOMRect | null {
@@ -652,12 +663,13 @@ export default function DesktopCalendar({
     );
 
     /**
-     * Rapatrier les abonnements distants, après que le calendrier est à l'écran.
+     * Refresh subscriptions into durable Markdown notes.
      *
-     * Chacun remplace ses propres événements et ne touche à rien d'autre : ce
-     * que l'on vient de créer entre-temps reste, et un abonnement qui échoue ne
-     * fait pas disparaître les autres. C'est aussi pourquoi la fusion se fait
-     * sur l'état courant plutôt que sur une liste capturée au départ.
+     * A feed is only the latest window the provider chooses to expose; it is
+     * not our history database. New and changed VEVENTs are therefore written
+     * into the subscription's folder, while notes missing from a later fetch
+     * are deliberately left alone. This also makes the same history available
+     * on Windows and Android through the synced data folder.
      */
     const refreshRemoteCalendars = useCallback(
         async (sources: DesktopExternalCalendarSource[]) => {
@@ -675,11 +687,40 @@ export default function DesktopCalendar({
             const groups = await Promise.all(
                 remote.map(async (source) => {
                     try {
-                        const text = await fetchDesktopIcs(source.url);
-                        return parseIcalCalendarEvents(text).map(
-                            (event, index) =>
-                                externalEventRecord(source, event, index)
+                        if (!hasIcalDirectory(source)) {
+                            throw new Error(
+                                "The subscription has no note folder yet."
+                            );
+                        }
+                        const feed = await fetchDesktopIcs(source.url);
+                        const writes = planIcalNoteSync(
+                            source,
+                            parseIcalCalendarEvents(feed),
+                            recordsRef.current
                         );
+                        const records: DesktopStoredEvent[] = [];
+                        for (const write of writes) {
+                            const relativePath = await writeDesktopEventFile({
+                                dataFolder,
+                                calendarPath: write.calendarPath,
+                                previousRelativePath:
+                                    write.previousRelativePath,
+                                fileName: write.fileName,
+                                contents: write.contents,
+                            });
+                            records.push({
+                                id: write.event.id as string,
+                                calendarId: write.calendarId,
+                                calendarPath: write.calendarPath,
+                                relativePath,
+                                fileName:
+                                    fileNameFromRelativePath(relativePath),
+                                contents: write.contents,
+                                event: write.event,
+                                readOnly: true,
+                            });
+                        }
+                        return records;
                     } catch (reason) {
                         errors.push(`${source.name}: ${errorMessage(reason)}`);
                         return [];
@@ -688,13 +729,17 @@ export default function DesktopCalendar({
             );
 
             const arrived = groups.flat();
-            setStoredEvents((current) =>
-                mergeRemoteEvents(
-                    current,
-                    remote.map(externalCalendarId),
-                    arrived
-                )
-            );
+            if (arrived.length > 0) {
+                setStoredEvents((current) => {
+                    const byId = new Map(
+                        current.map((record) => [record.id, record])
+                    );
+                    for (const record of arrived) byId.set(record.id, record);
+                    const next = [...byId.values()];
+                    recordsRef.current = next;
+                    return next;
+                });
+            }
 
             if (errors.length) {
                 setStorageError(
@@ -704,7 +749,7 @@ export default function DesktopCalendar({
                 );
             }
         },
-        []
+        [dataFolder]
     );
 
     const reloadWorkspace = useCallback(async () => {
@@ -720,7 +765,7 @@ export default function DesktopCalendar({
             // replacing it: the file sits in a synced folder, so it can arrive
             // missing colours another device has, or not arrive at all while it
             // is being replaced.
-            const storedPreferences = await preferenceWriter.adopt(
+            let storedPreferences = await preferenceWriter.adopt(
                 reconcileWorkspacePreferences({
                     previous: preferenceWriter.isLoaded()
                         ? preferenceWriter.current()
@@ -731,6 +776,30 @@ export default function DesktopCalendar({
                     fileExisted: snapshot.preferencesFound,
                 })
             );
+            const directoryPlan = planIcalDirectoryAssignments(
+                storedPreferences.externalCalendars,
+                snapshot.calendars.map((calendar) => calendar.relativePath)
+            );
+            for (const directory of directoryPlan.directoriesToCreate) {
+                try {
+                    await createDesktopCalendarFolder(dataFolder, directory);
+                } catch (reason) {
+                    // A sync tool or another instance may have created the
+                    // assigned folder after the snapshot was read.
+                    if (!/already exists/i.test(errorMessage(reason))) {
+                        throw reason;
+                    }
+                }
+            }
+            if (directoryPlan.changed) {
+                storedPreferences = await preferenceWriter.mutate(
+                    (current) => ({
+                        ...current,
+                        externalCalendars: directoryPlan.sources,
+                    })
+                );
+            }
+
             const nextPreferences = withDeviceWorkspacePreferences(
                 storedPreferences,
                 deviceWorkspaceRef.current
@@ -739,18 +808,41 @@ export default function DesktopCalendar({
                 nextPreferences.order.map((path, index) => [path, index])
             );
 
-            const localCalendars = snapshot.calendars.map(
-                (calendar, index): DesktopCalendarModel => ({
-                    id: calendarIdFromPath(calendar.relativePath),
-                    relativePath: calendar.relativePath,
-                    name: calendar.name,
-                    color:
-                        nextPreferences.colors[calendar.relativePath] ??
-                        stableColor(calendar.relativePath, index),
-                    editable: true,
-                    type: "local",
-                })
+            const icalSourcesWithDirectories =
+                nextPreferences.externalCalendars.filter(
+                    (
+                        source
+                    ): source is Extract<
+                        DesktopExternalCalendarSource,
+                        { type: "ical" }
+                    > & { directory: string } =>
+                        source.type === "ical" && hasIcalDirectory(source)
+                );
+            const icalSourceByDirectory = new Map(
+                icalSourcesWithDirectories.map((source) => [
+                    source.directory.toLocaleLowerCase(),
+                    source,
+                ])
             );
+            const localCalendars = snapshot.calendars
+                .filter(
+                    (calendar) =>
+                        !icalSourceByDirectory.has(
+                            calendar.relativePath.toLocaleLowerCase()
+                        )
+                )
+                .map(
+                    (calendar, index): DesktopCalendarModel => ({
+                        id: calendarIdFromPath(calendar.relativePath),
+                        relativePath: calendar.relativePath,
+                        name: calendar.name,
+                        color:
+                            nextPreferences.colors[calendar.relativePath] ??
+                            stableColor(calendar.relativePath, index),
+                        editable: true,
+                        type: "local",
+                    })
+                );
             const externalCalendars = nextPreferences.externalCalendars.map(
                 (source, index): DesktopCalendarModel => {
                     const key = externalCalendarPreferenceKey(source);
@@ -783,22 +875,38 @@ export default function DesktopCalendar({
                     : left.name.localeCompare(right.name);
             });
 
-            const knownLocalIds = new Set<string>(
-                localCalendars.map((calendar) => calendar.id)
-            );
+            // The parser still validates a materialised feed note as a file in
+            // its physical folder. Once parsed, route it back to the logical
+            // read-only subscription id so the calendar identity stays stable.
+            const knownPhysicalIds = new Set<string>([
+                ...localCalendars.map((calendar) => calendar.id),
+                ...icalSourcesWithDirectories.map((source) =>
+                    calendarIdFromPath(source.directory)
+                ),
+            ]);
             const previousByPath = new Map(
                 recordsRef.current
-                    .filter((record) => !record.readOnly)
+                    .filter(hasPhysicalEventNote)
                     .map((record) => [record.relativePath, record.id])
             );
             const localEvents = snapshot.eventFiles
-                .map((file) => parseStoredEvent(file, knownLocalIds))
+                .map((file) => parseStoredEvent(file, knownPhysicalIds))
                 .filter((event): event is DesktopStoredEvent => event !== null)
-                .map((record) => ({
-                    ...record,
-                    id: previousByPath.get(record.relativePath) ?? record.id,
-                    readOnly: false,
-                }));
+                .map((record) => {
+                    const source = icalSourceByDirectory.get(
+                        record.calendarPath.toLocaleLowerCase()
+                    );
+                    return {
+                        ...record,
+                        id:
+                            previousByPath.get(record.relativePath) ??
+                            record.id,
+                        calendarId: source
+                            ? externalCalendarId(source)
+                            : record.calendarId,
+                        readOnly: Boolean(source),
+                    };
+                });
 
             const automaticEvents = nextPreferences.externalCalendars
                 .filter(
@@ -2376,20 +2484,39 @@ export default function DesktopCalendar({
                 );
             } else {
                 await persistPreferences((stored) => {
+                    const source = stored.externalCalendars.find(
+                        (candidate) =>
+                            externalCalendarId(candidate) === calendar.id
+                    );
+                    const archivePath =
+                        source?.type === "ical" && hasIcalDirectory(source)
+                            ? source.directory
+                            : null;
                     const nextColors = { ...stored.colors };
+                    const previousColor =
+                        nextColors[calendar.relativePath] ?? calendar.color;
                     delete nextColors[calendar.relativePath];
+                    if (archivePath) nextColors[archivePath] = previousColor;
+
+                    const remap = (values: string[]) => [
+                        ...new Set(
+                            values.flatMap((key) =>
+                                key === calendar.relativePath
+                                    ? archivePath
+                                        ? [archivePath]
+                                        : []
+                                    : [key]
+                            )
+                        ),
+                    ];
                     return {
                         ...stored,
                         colors: nextColors,
-                        order: stored.order.filter(
-                            (key) => key !== calendar.relativePath
-                        ),
-                        hiddenCalendarPaths: stored.hiddenCalendarPaths.filter(
-                            (key) => key !== calendar.relativePath
-                        ),
+                        order: remap(stored.order),
+                        hiddenCalendarPaths: remap(stored.hiddenCalendarPaths),
                         externalCalendars: stored.externalCalendars.filter(
-                            (source) =>
-                                externalCalendarId(source) !== calendar.id
+                            (candidate) =>
+                                externalCalendarId(candidate) !== calendar.id
                         ),
                     };
                 });
@@ -2603,6 +2730,19 @@ export default function DesktopCalendar({
                     icon: <DuplicateIcon />,
                     onClick: () => void duplicateEvent(contextMenu.eventId),
                 },
+                ...(hasPhysicalEventNote(record)
+                    ? [
+                          {
+                              label: t("Go to note"),
+                              icon: <FileTextIcon />,
+                              onClick: () =>
+                                  void openDesktopPath(
+                                      dataFolder,
+                                      record.relativePath
+                                  ),
+                          },
+                      ]
+                    : []),
             ];
         }
         return [
@@ -3133,6 +3273,14 @@ export default function DesktopCalendar({
                     const calendar = calendarById.get(calendarId);
                     if (calendar?.editable && calendar.type === "local") {
                         void openDesktopPath(dataFolder, calendar.relativePath);
+                        return;
+                    }
+                    const source = preferences.externalCalendars.find(
+                        (candidate) =>
+                            externalCalendarId(candidate) === calendarId
+                    );
+                    if (source?.type === "ical" && hasIcalDirectory(source)) {
+                        void openDesktopPath(dataFolder, source.directory);
                     }
                 }}
                 onOpenRootFolder={() => void openDesktopPath(dataFolder)}
@@ -3268,13 +3416,13 @@ export default function DesktopCalendar({
                 ) => void commitDraft(title, updates, calendarId)}
                 onOpenFile={(eventId: string) => {
                     const record = findStoredEvent(recordsRef.current, eventId);
-                    if (record && !record.readOnly) {
+                    if (record && hasPhysicalEventNote(record)) {
                         void openDesktopPath(dataFolder, record.relativePath);
                     }
                 }}
                 onCopyFilePath={async (eventId: string) => {
                     const record = findStoredEvent(recordsRef.current, eventId);
-                    if (!record || record.readOnly) {
+                    if (!record || !hasPhysicalEventNote(record)) {
                         throw new Error("The event note is unavailable.");
                     }
                     try {
