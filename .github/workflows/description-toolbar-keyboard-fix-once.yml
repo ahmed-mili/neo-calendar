@@ -1,4 +1,4 @@
-name: Apply description toolbar keyboard fix
+name: Verify description toolbar keyboard fix
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  patch-and-test:
+  verify:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -22,276 +22,28 @@ jobs:
         with:
           node-version: 20
 
-      - name: Patch description focus handoff
-        shell: bash
+      - name: Restore the lockfile style used by main
         run: |
-          python - <<'PY'
-          from pathlib import Path
+          git checkout origin/main -- package-lock.json
+          node scripts/set-version.mjs 1.53.4
+          npm install --package-lock-only --ignore-scripts
 
-          section_path = Path("src/ui/calendar/DescriptionSection.tsx")
-          section = section_path.read_text()
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
 
-          old_import = 'import { DescriptionRow, LinksAttachmentsRow } from "./EventPanelRows";'
-          new_import = '''import {
-              DescriptionFocusRequest,
-              DescriptionRow,
-              LinksAttachmentsRow,
-          } from "./EventPanelRows";'''
-          if old_import not in section:
-              raise SystemExit("DescriptionSection import anchor not found")
-          section = section.replace(old_import, new_import, 1)
-
-          state_anchor = '''    const descriptionRef = React.useRef(description);
-              descriptionRef.current = description;'''
-          if state_anchor not in section:
-              raise SystemExit("DescriptionSection state anchor not found")
-          section = section.replace(
-              state_anchor,
-              state_anchor
-              + '''
-              const focusRevisionRef = React.useRef(0);
-              const [focusRequest, setFocusRequest] =
-                  React.useState<DescriptionFocusRequest | null>(null);''',
-              1,
-          )
-
-          format_start = section.index("    const formatDescription")
-          block_start = section.index(
-              "        descriptionRef.current = next.text;", format_start
-          )
-          block_end = section.index("\n    };\n\n    return (", block_start)
-          section = (
-              section[:block_start]
-              + '''        descriptionRef.current = next.text;
-              setDescription(next.text);
-              setFocusRequest({
-                  revision: ++focusRevisionRef.current,
-                  selectionStart: next.selectionStart,
-                  selectionEnd: next.selectionEnd,
-              });
-              window.requestAnimationFrame(() => {
-                  // The plain composer owns this ref. A checklist command replaces
-                  // that textarea with DescriptionRow, whose focusRequest performs
-                  // the hand-off to the newly mounted line editor instead.
-                  const field = fieldRef.current;
-                  if (!field?.isConnected) return;
-                  field.focus();
-                  field.setSelectionRange(next.selectionStart, next.selectionEnd);
-              });'''
-              + section[block_end:]
-          )
-
-          row_start = section.index("                    <DescriptionRow")
-          toolbar_anchor = "                        toolbar={"
-          toolbar_pos = section.index(toolbar_anchor, row_start)
-          section = (
-              section[:toolbar_pos]
-              + "                        focusRequest={focusRequest}\n"
-              + section[toolbar_pos:]
-          )
-          section_path.write_text(section)
-
-          rows_path = Path("src/ui/calendar/EventPanelRows.tsx")
-          rows = rows_path.read_text()
-
-          props_start = rows.index("interface DescriptionRowProps {")
-          props_end = rows.index("\n}\n\nexport function DescriptionRow", props_start) + 2
-          rows = (
-              rows[:props_start]
-              + '''export interface DescriptionFocusRequest {
-              revision: number;
-              selectionStart: number;
-              selectionEnd: number;
-          }
-
-          interface DescriptionLineSelection {
-              index: number;
-              start: number;
-              end: number;
-          }
-
-          function descriptionLineSelection(
-              description: string,
-              selectionStart: number,
-              selectionEnd: number
-          ): DescriptionLineSelection {
-              const rawLines = description.split("\\n");
-              const start = Math.max(0, Math.min(selectionStart, description.length));
-              const end = Math.max(start, Math.min(selectionEnd, description.length));
-              let index = 0;
-              let lineStart = 0;
-
-              for (let current = 0; current < rawLines.length; current += 1) {
-                  const lineEnd = lineStart + rawLines[current].length;
-                  index = current;
-                  if (start <= lineEnd || current === rawLines.length - 1) break;
-                  lineStart = lineEnd + 1;
-              }
-
-              const raw = rawLines[index] ?? "";
-              const prefix = taskPrefixLength(raw) ?? 0;
-              const contentLength = Math.max(0, raw.length - prefix);
-              const clampLocal = (offset: number) =>
-                  Math.max(0, Math.min(offset - lineStart - prefix, contentLength));
-              const localStart = clampLocal(start);
-              const localEnd = Math.max(localStart, clampLocal(end));
-              return { index, start: localStart, end: localEnd };
-          }
-
-          interface DescriptionRowProps {
-              description: string;
-              editable: boolean;
-              setDescription: (v: string) => void;
-              onCommit: () => void;
-              toolbar?: React.ReactNode;
-              focusRequest?: DescriptionFocusRequest | null;
-          }'''
-              + rows[props_end:]
-          )
-
-          destructure = '''export function DescriptionRow({
-              description,
-              editable,
-              setDescription,
-              onCommit,
-              toolbar,
-          }: DescriptionRowProps) {'''
-          if destructure not in rows:
-              raise SystemExit("DescriptionRow destructure anchor not found")
-          rows = rows.replace(
-              destructure,
-              '''export function DescriptionRow({
-              description,
-              editable,
-              setDescription,
-              onCommit,
-              toolbar,
-              focusRequest,
-          }: DescriptionRowProps) {''',
-              1,
-          )
-
-          caret_anchor = '''    /** Where the caret goes once the line it belongs to is on screen. */
-              const caretRef = React.useRef<number | null>(null);
-              const lineRef = React.useRef<HTMLTextAreaElement>(null);'''
-          if caret_anchor not in rows:
-              raise SystemExit("DescriptionRow caret anchor not found")
-          rows = rows.replace(
-              caret_anchor,
-              '''    /** Where the selection goes once the line it belongs to is on screen. */
-              const selectionRef = React.useRef<{ start: number; end: number } | null>(
-                  null
-              );
-              const lineRef = React.useRef<HTMLTextAreaElement>(null);''',
-              1,
-          )
-
-          focus_token = "        const caret = caretRef.current;"
-          focus_token_pos = rows.index(focus_token)
-          focus_block_start = rows.rfind(
-              "    React.useLayoutEffect(() => {", 0, focus_token_pos
-          )
-          focus_block_end = rows.index("\n\n    const leave =", focus_token_pos)
-          rows = (
-              rows[:focus_block_start]
-              + '''    React.useLayoutEffect(() => {
-              const field = lineRef.current;
-              const selection = selectionRef.current;
-              if (!field || !selection) return;
-              selectionRef.current = null;
-              field.focus();
-              const start = Math.min(selection.start, field.value.length);
-              const end = Math.max(
-                  start,
-                  Math.min(selection.end, field.value.length)
-              );
-              field.setSelectionRange(start, end);
-          }, [editing]);
-
-              React.useLayoutEffect(() => {
-                  if (!focusRequest || !editable) return;
-
-                  if (!asNote) {
-                      const field = fieldRef.current;
-                      if (!field) return;
-                      field.focus();
-                      const start = Math.min(
-                          focusRequest.selectionStart,
-                          field.value.length
-                      );
-                      const end = Math.max(
-                          start,
-                          Math.min(focusRequest.selectionEnd, field.value.length)
-                      );
-                      field.setSelectionRange(start, end);
-                      return;
-                  }
-
-                  const target = descriptionLineSelection(
-                      description,
-                      focusRequest.selectionStart,
-                      focusRequest.selectionEnd
-                  );
-                  if (editing === target.index && lineRef.current) {
-                      const field = lineRef.current;
-                      field.focus();
-                      const start = Math.min(target.start, field.value.length);
-                      const end = Math.max(
-                          start,
-                          Math.min(target.end, field.value.length)
-                      );
-                      field.setSelectionRange(start, end);
-                      selectionRef.current = null;
-                      return;
-                  }
-
-                  selectionRef.current = {
-                      start: target.start,
-                      end: target.end,
-                  };
-                  setEditing(target.index);
-                  // Toolbar focus is a one-shot hand-off. Typing changes the
-                  // description but must not replay this request or reset the caret.
-                  // eslint-disable-next-line react-hooks/exhaustive-deps
-              }, [focusRequest?.revision]);
-
-              /** Opens a line for editing, with the caret placed inside it. */
-              const edit = (index: number, caret: number) => {
-                  if (!editable) return;
-                  selectionRef.current = { start: caret, end: caret };
-                  setEditing(index);
-              };'''
-              + rows[focus_block_end:]
-          )
-
-          move_anchor = "        caretRef.current = Math.max(0, next.caret - prefix);"
-          if move_anchor not in rows:
-              raise SystemExit("DescriptionRow move anchor not found")
-          rows = rows.replace(
-              move_anchor,
-              '''        const caret = Math.max(0, next.caret - prefix);
-              selectionRef.current = { start: caret, end: caret };''',
-              1,
-          )
-          rows_path.write_text(rows)
-          PY
-
-      - name: Add DOM regression-test environment
-        run: npm install --save-dev jest-environment-jsdom@29.7.0
-
-      - name: Bump patch version
-        run: node scripts/set-version.mjs 1.53.4
-
-      - name: Format changed sources
-        run: npx prettier --write src/ui/calendar/DescriptionSection.tsx src/ui/calendar/EventPanelRows.tsx src/ui/calendar/DescriptionToolbarEditing.test.tsx package.json package-lock.json
+      - name: Check formatting of changed sources
+        run: npx prettier --check src/ui/calendar/DescriptionSection.tsx src/ui/calendar/EventPanelRows.tsx src/ui/calendar/DescriptionToolbarEditing.test.tsx package.json
 
       - name: Run test suite
         run: npm test
 
-      - name: Commit tested fix
+      - name: Commit normalized lockfile if needed
         run: |
+          if git diff --quiet -- package-lock.json; then
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Fix keyboard editing after description toolbar actions"
+          git add package-lock.json
+          git commit -m "Keep root lockfile focused on toolbar regression test"
           git push origin HEAD:fix/description-toolbar-keyboard
