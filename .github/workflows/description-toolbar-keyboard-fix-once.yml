@@ -25,7 +25,6 @@ jobs:
       - name: Restore the lockfile style used by main
         run: |
           git checkout origin/main -- package-lock.json
-          node scripts/set-version.mjs 1.53.4
           npm install --package-lock-only --ignore-scripts
 
       - name: Install dependencies
