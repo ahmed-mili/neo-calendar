@@ -214,7 +214,7 @@ function DescriptionToolbar({
             type="button"
             className="nc-description-tool"
             aria-label={label}
-            data-tooltip={label}
+            title={label}
             data-format-command={command}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => onFormat(command)}
@@ -261,7 +261,7 @@ function DescriptionToolbar({
                 type="button"
                 className="nc-description-tool"
                 aria-label={t("Attachment")}
-                data-tooltip={t("Attachment")}
+                title={t("Attachment")}
                 data-format-command="attachment"
                 disabled={attachmentDisabled}
                 onMouseDown={(event) => event.preventDefault()}
