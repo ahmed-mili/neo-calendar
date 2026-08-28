@@ -27,7 +27,9 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Apply final integration
-        run: python3 scripts/complete-v1537.py
+        run: |
+          python3 scripts/complete-v1537.py
+          sed -i 's#../../../../src/types"#../../../../src/types/schema"#' apps/windows/src/platform/icalNoteSync.test.ts
 
       - name: Format changed TypeScript
         run: >-
