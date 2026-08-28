@@ -7,6 +7,7 @@ import {
 } from "./desktopEventFormat";
 import {
     externalCalendarId,
+    type DesktopExternalCalendarSource,
     type DesktopIcalCalendarSource,
 } from "./desktopExternalCalendars";
 
@@ -19,11 +20,21 @@ export interface IcalNoteWrite {
     contents: string;
 }
 
-/**
- * A feed subscription is backed by one real full-note calendar folder.
- * Sources written before that migration have no directory yet and temporarily
- * keep the old in-memory behaviour until the folder can be created.
- */
+export interface IcalDirectoryPlan {
+    sources: DesktopExternalCalendarSource[];
+    directoriesToCreate: string[];
+    changed: boolean;
+}
+
+/** A feed backed by notes always addresses the physical calendar folder. */
+export function displayCalendarIdForExternalSource(
+    source: DesktopExternalCalendarSource
+): string {
+    return source.type === "ical" && hasIcalDirectory(source)
+        ? calendarIdFromPath(source.directory)
+        : externalCalendarId(source);
+}
+
 export function hasIcalDirectory(
     source: DesktopIcalCalendarSource
 ): source is DesktopIcalCalendarSource & { directory: string } {
@@ -33,13 +44,14 @@ export function hasIcalDirectory(
 /** Filesystem-safe display name used while migrating an old subscription. */
 export function preferredIcalDirectoryName(name: string): string {
     const cleaned = name
-        .replace(/[\\/]/g, "-")
+        .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-")
         .replace(/\s+/g, " ")
         .trim()
         .replace(/[. ]+$/, "");
-    return cleaned && cleaned !== "." && cleaned !== ".."
-        ? cleaned
-        : "iCalendar";
+    const safe = cleaned && cleaned !== "." && cleaned !== ".." ? cleaned : "iCalendar";
+    return /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(safe)
+        ? `${safe} Calendar`
+        : safe;
 }
 
 /**
@@ -61,6 +73,50 @@ export function availableIcalDirectoryName(
         const candidate = `${base} (ICS ${suffix})`;
         if (!usedNames.has(candidate.toLocaleLowerCase())) return candidate;
     }
+}
+
+/**
+ * Give every iCalendar subscription one durable folder.
+ *
+ * Older preferences did not store a directory, so this is also the migration.
+ * Existing physical folders are treated as occupied unless the source already
+ * owns that exact directory. Two feeds are never allowed to silently share a
+ * folder. Missing configured folders are recreated rather than forgetting the
+ * association, which is important when a sync tool is still catching up.
+ */
+export function planIcalDirectoryAssignments(
+    sources: readonly DesktopExternalCalendarSource[],
+    existingFolderNames: readonly string[]
+): IcalDirectoryPlan {
+    const physical = new Set(existingFolderNames.map((name) => name.toLocaleLowerCase()));
+    const claimed = new Set<string>();
+    const directoriesToCreate: string[] = [];
+    let changed = false;
+
+    const nextSources = sources.map((source) => {
+        if (source.type !== "ical") return source;
+
+        const configured = hasIcalDirectory(source)
+            ? preferredIcalDirectoryName(source.directory)
+            : null;
+        let directory = configured;
+
+        if (!directory || claimed.has(directory.toLocaleLowerCase())) {
+            const unavailable = new Set([...physical, ...claimed]);
+            directory = availableIcalDirectoryName(source.name, unavailable);
+        }
+
+        const key = directory.toLocaleLowerCase();
+        claimed.add(key);
+        if (!physical.has(key) && !directoriesToCreate.includes(directory)) {
+            directoriesToCreate.push(directory);
+        }
+
+        if (source.directory !== directory) changed = true;
+        return source.directory === directory ? source : { ...source, directory };
+    });
+
+    return { sources: nextSources, directoriesToCreate, changed };
 }
 
 /**
@@ -109,13 +165,8 @@ export function planIcalNoteSync(
         const event = scopedIcalEvent(source, remote, index);
         const id = event.id as string;
         const previous = existingById.get(id);
-        const contents = serializeEventMarkdown(
-            event,
-            previous?.contents ?? ""
-        );
+        const contents = serializeEventMarkdown(event, previous?.contents ?? "");
 
-        // A refresh that learned nothing must not touch the file. Apart from
-        // reducing disk churn this avoids waking Syncthing/Drive on every poll.
         if (previous && contents === previous.contents) return [];
 
         return [
