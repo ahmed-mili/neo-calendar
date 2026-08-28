@@ -1,0 +1,79 @@
+name: Ctrl K link implementation (one time)
+
+on:
+  push:
+    branches:
+      - feature/description-ctrl-k-link-dialog
+
+permissions:
+  contents: write
+
+jobs:
+  implement-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/description-ctrl-k-link-dialog
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Wire the shared dialog into Description
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          const path = 'src/ui/calendar/DescriptionSection.tsx';
+          let text = fs.readFileSync(path, 'utf8');
+          const replaceOnce = (from, to, label) => {
+            if (!text.includes(from)) throw new Error(`Missing ${label}`);
+            text = text.replace(from, to);
+          };
+
+          replaceOnce(
+            'import { t } from "../i18n";',
+            'import { DescriptionAddLinkDialog } from "./DescriptionAddLinkDialog";\nimport { t } from "../i18n";',
+            'DescriptionAddLinkDialog import anchor'
+          );
+          replaceOnce(
+            '}: DescriptionSectionProps) {\n    const fieldRef = React.useRef<HTMLTextAreaElement>(null);',
+            '}: DescriptionSectionProps) {\n    const sectionRef = React.useRef<HTMLDivElement>(null);\n    const fieldRef = React.useRef<HTMLTextAreaElement>(null);',
+            'section ref anchor'
+          );
+          replaceOnce(
+            '        <div\n            className="nc-description-section"',
+            '        <div\n            ref={sectionRef}\n            className="nc-description-section"',
+            'description section root'
+          );
+          replaceOnce(
+            '        >\n            {attachments.length > 0 && (',
+            '        >\n            <DescriptionAddLinkDialog\n                hostRef={sectionRef}\n                eventId={eventId}\n                editable={editable}\n                items={items}\n                onAddLink={onAddLink}\n            />\n            {attachments.length > 0 && (',
+            'dialog render anchor'
+          );
+          fs.writeFileSync(path, text);
+
+          const i18nPath = 'src/ui/i18n.ts';
+          let i18n = fs.readFileSync(i18nPath, 'utf8');
+          const key = '    "Add web link": "Ajouter un lien web",';
+          if (!i18n.includes(key)) throw new Error('Missing Add web link translation anchor');
+          i18n = i18n.replace(key, `${key}\n    "Add Link": "Ajouter un Lien",`);
+          fs.writeFileSync(i18nPath, i18n);
+          NODE
+      - name: Format sources
+        run: npx prettier --write src/ui/calendar/DescriptionSection.tsx src/ui/calendar/DescriptionAddLinkDialog.tsx src/ui/calendar/DescriptionCtrlKLinkDialog.test.tsx src/ui/calendar/descriptionLinkShortcut.ts src/ui/i18n.ts apps/windows/src/desktopDescriptionShortcuts.ts apps/windows/src/desktopDescriptionShortcuts.test.ts
+      - name: Bump version to 1.53.6
+        run: node scripts/set-version.mjs 1.53.6
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run regression suite
+        run: npm test
+      - name: Commit verified implementation
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add Ctrl K link dialog and version 1.53.6"
+          git push origin HEAD:feature/description-ctrl-k-link-dialog
