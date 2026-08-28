@@ -3498,12 +3498,53 @@ export function RecurringScopeDialog({
 
 // ── Description row ────────────────────────────────────────
 
+export interface DescriptionFocusRequest {
+    revision: number;
+    selectionStart: number;
+    selectionEnd: number;
+}
+
+interface DescriptionLineSelection {
+    index: number;
+    start: number;
+    end: number;
+}
+
+function descriptionLineSelection(
+    description: string,
+    selectionStart: number,
+    selectionEnd: number
+): DescriptionLineSelection {
+    const rawLines = description.split("\n");
+    const start = Math.max(0, Math.min(selectionStart, description.length));
+    const end = Math.max(start, Math.min(selectionEnd, description.length));
+    let index = 0;
+    let lineStart = 0;
+
+    for (let current = 0; current < rawLines.length; current += 1) {
+        const lineEnd = lineStart + rawLines[current].length;
+        index = current;
+        if (start <= lineEnd || current === rawLines.length - 1) break;
+        lineStart = lineEnd + 1;
+    }
+
+    const raw = rawLines[index] ?? "";
+    const prefix = taskPrefixLength(raw) ?? 0;
+    const contentLength = Math.max(0, raw.length - prefix);
+    const clampLocal = (offset: number) =>
+        Math.max(0, Math.min(offset - lineStart - prefix, contentLength));
+    const localStart = clampLocal(start);
+    const localEnd = Math.max(localStart, clampLocal(end));
+    return { index, start: localStart, end: localEnd };
+}
+
 interface DescriptionRowProps {
     description: string;
     editable: boolean;
     setDescription: (v: string) => void;
     onCommit: () => void;
     toolbar?: React.ReactNode;
+    focusRequest?: DescriptionFocusRequest | null;
 }
 
 export function DescriptionRow({
@@ -3512,6 +3553,7 @@ export function DescriptionRow({
     setDescription,
     onCommit,
     toolbar,
+    focusRequest,
 }: DescriptionRowProps) {
     const fieldRef = React.useRef<HTMLTextAreaElement>(null);
     /*
@@ -3530,8 +3572,10 @@ export function DescriptionRow({
     const lines = readChecklist(description);
     const asNote = lines.some((line) => line.kind === "task");
     const [editing, setEditing] = React.useState<number | null>(null);
-    /** Where the caret goes once the line it belongs to is on screen. */
-    const caretRef = React.useRef<number | null>(null);
+    /** Where the selection goes once the line it belongs to is on screen. */
+    const selectionRef = React.useRef<{ start: number; end: number } | null>(
+        null
+    );
     const lineRef = React.useRef<HTMLTextAreaElement>(null);
 
     React.useLayoutEffect(() => {
@@ -3543,18 +3587,69 @@ export function DescriptionRow({
 
     React.useLayoutEffect(() => {
         const field = lineRef.current;
-        const caret = caretRef.current;
-        if (!field || caret === null) return;
-        caretRef.current = null;
+        const selection = selectionRef.current;
+        if (!field || !selection) return;
+        selectionRef.current = null;
         field.focus();
-        const at = Math.min(caret, field.value.length);
-        field.setSelectionRange(at, at);
+        const start = Math.min(selection.start, field.value.length);
+        const end = Math.max(
+            start,
+            Math.min(selection.end, field.value.length)
+        );
+        field.setSelectionRange(start, end);
     }, [editing]);
+
+    React.useLayoutEffect(() => {
+        if (!focusRequest || !editable) return;
+
+        if (!asNote) {
+            const field = fieldRef.current;
+            if (!field) return;
+            field.focus();
+            const start = Math.min(
+                focusRequest.selectionStart,
+                field.value.length
+            );
+            const end = Math.max(
+                start,
+                Math.min(focusRequest.selectionEnd, field.value.length)
+            );
+            field.setSelectionRange(start, end);
+            return;
+        }
+
+        const target = descriptionLineSelection(
+            description,
+            focusRequest.selectionStart,
+            focusRequest.selectionEnd
+        );
+        if (editing === target.index && lineRef.current) {
+            const field = lineRef.current;
+            field.focus();
+            const start = Math.min(target.start, field.value.length);
+            const end = Math.max(
+                start,
+                Math.min(target.end, field.value.length)
+            );
+            field.setSelectionRange(start, end);
+            selectionRef.current = null;
+            return;
+        }
+
+        selectionRef.current = {
+            start: target.start,
+            end: target.end,
+        };
+        setEditing(target.index);
+        // Toolbar focus is a one-shot hand-off. Typing changes the
+        // description but must not replay this request or reset the caret.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [focusRequest?.revision]);
 
     /** Opens a line for editing, with the caret placed inside it. */
     const edit = (index: number, caret: number) => {
         if (!editable) return;
-        caretRef.current = caret;
+        selectionRef.current = { start: caret, end: caret };
         setEditing(index);
     };
 
@@ -3573,7 +3668,8 @@ export function DescriptionRow({
         setDescription(next.text);
         const landed = next.text.split("\n")[next.focus] ?? "";
         const prefix = taskPrefixLength(landed) ?? 0;
-        caretRef.current = Math.max(0, next.caret - prefix);
+        const caret = Math.max(0, next.caret - prefix);
+        selectionRef.current = { start: caret, end: caret };
         setEditing(next.focus);
     };
 

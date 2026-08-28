@@ -80,7 +80,9 @@ describe("description toolbar keyboard editing", () => {
     });
 
     it("opens the checklist line for typing when formatting an existing checklist", () => {
-        act(() => ReactDOM.render(<Harness initial="- [ ] Existing" />, container));
+        act(() =>
+            ReactDOM.render(<Harness initial="- [ ] Existing" />, container)
+        );
         expect(container.querySelector(".nc-panel-checklist-edit")).toBeNull();
 
         const bold = container.querySelector(
