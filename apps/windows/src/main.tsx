@@ -10,6 +10,8 @@ import "./themes/catppuccin-mocha.css";
 import "./themes/tokyo-night.css";
 import "./themes/codex-themes.css";
 import "../../../src/ui/calendar/Calendar.css";
+import "./desktopDescriptionShortcuts.css";
+import "./desktopDescriptionShortcuts";
 import "./App.css";
 
 const root = document.getElementById("root");
