@@ -4,6 +4,8 @@ import * as ReactDOM from "react-dom";
 import { act, Simulate } from "react-dom/test-utils";
 import { DescriptionSection } from "./DescriptionSection";
 
+// This exercises the renderer hand-off introduced by the integrated toolbar:
+// toolbar actions must leave a real text editor focused, on desktop and WebView.
 function Harness({ initial = "" }: { initial?: string }) {
     const [description, setDescription] = React.useState(initial);
     return (
