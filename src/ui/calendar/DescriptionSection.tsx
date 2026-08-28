@@ -13,7 +13,11 @@ import {
 import { BrandIcon } from "./BrandIcons";
 import { CopyIcon, PencilIcon, SearchIcon, XIcon } from "./Icons";
 import { LinesIcon } from "./EventPanelIcons";
-import { DescriptionRow, LinksAttachmentsRow } from "./EventPanelRows";
+import {
+    DescriptionFocusRequest,
+    DescriptionRow,
+    LinksAttachmentsRow,
+} from "./EventPanelRows";
 import {
     DescriptionMention,
     descriptionMentionAt,
@@ -573,6 +577,9 @@ export function DescriptionSection({
     const activeFieldRef = React.useRef<HTMLTextAreaElement | null>(null);
     const descriptionRef = React.useRef(description);
     descriptionRef.current = description;
+    const focusRevisionRef = React.useRef(0);
+    const [focusRequest, setFocusRequest] =
+        React.useState<DescriptionFocusRequest | null>(null);
     const [mention, setMention] = React.useState<DescriptionMention | null>(
         null
     );
@@ -824,13 +831,19 @@ export function DescriptionSection({
         );
         descriptionRef.current = next.text;
         setDescription(next.text);
+        setFocusRequest({
+            revision: ++focusRevisionRef.current,
+            selectionStart: next.selectionStart,
+            selectionEnd: next.selectionEnd,
+        });
         window.requestAnimationFrame(() => {
-            const field = fieldRef.current ?? activeFieldRef.current;
+            // The plain composer owns this ref. A checklist command replaces
+            // that textarea with DescriptionRow, whose focusRequest performs
+            // the hand-off to the newly mounted line editor instead.
+            const field = fieldRef.current;
             if (!field?.isConnected) return;
             field.focus();
-            if (field.dataset.descriptionInput === "true") {
-                field.setSelectionRange(next.selectionStart, next.selectionEnd);
-            }
+            field.setSelectionRange(next.selectionStart, next.selectionEnd);
         });
     };
 
@@ -889,6 +902,7 @@ export function DescriptionSection({
                         editable={editable}
                         setDescription={setDescription}
                         onCommit={onCommit}
+                        focusRequest={focusRequest}
                         toolbar={
                             editable ? (
                                 <DescriptionToolbar
