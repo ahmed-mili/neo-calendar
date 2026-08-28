@@ -36,6 +36,23 @@ jobs:
           if (seen < 2) throw new Error('Root lockfile version entries not found');
           fs.writeFileSync(path, text);
           NODE
+      - name: Install dependencies without rewriting the restored lockfile
+        run: npm install --no-audit --no-fund
+      - name: Restore root lockfile after npm install
+        shell: bash
+        run: |
+          git show origin/main:package-lock.json > package-lock.json
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'package-lock.json';
+          let text = fs.readFileSync(path, 'utf8');
+          let seen = 0;
+          text = text.replace(/"version": "[^"]+"/g, (match) => {
+            seen += 1;
+            return seen <= 2 ? '"version": "1.53.6"' : match;
+          });
+          fs.writeFileSync(path, text);
+          NODE
       - name: Re-run regression suite
         run: npm test
       - name: Commit normalized lockfile
