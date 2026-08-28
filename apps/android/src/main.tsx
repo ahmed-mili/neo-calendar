@@ -16,6 +16,7 @@ import "../../windows/src/themes/codex-themes.css";
 import "../../../src/ui/calendar/Calendar.css";
 import "../../windows/src/App.css";
 import "./mobile.css";
+import "./descriptionToolbar.css";
 
 /* NEO_ANDROID_RUNTIME_V3_START */
 document.documentElement.classList.add("nc-platform-android");
