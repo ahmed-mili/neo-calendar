@@ -98,7 +98,9 @@ function toggleMenu(row: HTMLElement): void {
 }
 
 export function installDesktopDescriptionEditor(): void {
-    if (typeof window === "undefined" || typeof document === "undefined") return;
+    if (typeof window === "undefined" || typeof document === "undefined") {
+        return;
+    }
     const neoWindow = window as NeoWindow;
     if (neoWindow[INSTALLED_KEY]) return;
     neoWindow[INSTALLED_KEY] = true;
