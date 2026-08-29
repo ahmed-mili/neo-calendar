@@ -1,4 +1,7 @@
+import * as React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { formatPanelDate, panelEndDate } from "./EventPanel.helpers";
+import { DateRow } from "./EventPanelRows";
 
 describe("event panel date display", () => {
     it("keeps the main date compact by omitting the year", () => {
@@ -6,6 +9,46 @@ describe("event panel date display", () => {
 
         expect(label).toContain("28");
         expect(label).not.toContain("2026");
+    });
+
+    it("reproduces the reported Fri-to-Mon multi-day row with both compact dates visible", () => {
+        const startDate = "2026-08-28";
+        const endDate = panelEndDate(
+            startDate,
+            "2026-08-31",
+            false,
+            "14:15",
+            "15:15"
+        );
+        const startLabel = formatPanelDate(startDate);
+        const endLabel = formatPanelDate(endDate);
+
+        const html = renderToStaticMarkup(
+            React.createElement(DateRow, {
+                date: startDate,
+                dateLabel: startLabel,
+                endDateLabel: endLabel,
+                startTime: "14:15",
+                endTime: "15:15",
+                duration: "1h",
+                allDay: false,
+                isRecurring: false,
+                editable: true,
+                firstDay: 1,
+                setDate: jest.fn(),
+                setStartTime: jest.fn(),
+                setEndTime: jest.fn(),
+                onAutoSave: jest.fn(),
+            })
+        );
+
+        expect(html).toContain(startLabel);
+        expect(html).toContain(endLabel);
+        expect(html).toContain("14:15");
+        expect(html).toContain("15:15");
+        expect(html).toContain("1h");
+        expect(html).not.toContain("2026");
+        expect(html.match(/nc-panel-date-line/g)).toHaveLength(1);
     });
 
     it("uses the stored endDate for a real multi-day timed event", () => {
