@@ -5,7 +5,11 @@ import { act } from "react-dom/test-utils";
 import { DescriptionSection } from "../../../src/ui/calendar/DescriptionSection";
 import "./androidDescriptionEditor";
 
-function Harness() {
+function Harness({
+    eventId = "Calendrier/2026-08-29.md",
+}: {
+    eventId?: string | null;
+}) {
     const [description, setDescription] = React.useState("");
     return (
         <DescriptionSection
@@ -13,7 +17,7 @@ function Harness() {
             editable={true}
             setDescription={setDescription}
             onCommit={() => {}}
-            eventId="Calendrier/2026-08-29.md"
+            eventId={eventId}
             vaults={[]}
             items={[]}
             onPickAttachment={async () => {}}
@@ -58,6 +62,13 @@ describe("Android description editor", () => {
         act(() => {
             button.dispatchEvent(
                 new MouseEvent("pointerdown", {
+                    bubbles: true,
+                    cancelable: true,
+                    button: 0,
+                })
+            );
+            button.dispatchEvent(
+                new MouseEvent("pointerup", {
                     bubbles: true,
                     cancelable: true,
                     button: 0,
@@ -183,6 +194,43 @@ describe("Android description editor", () => {
             null
         );
         expect(field.value).toBe("****");
+        expect(document.activeElement).toBe(field);
+    });
+
+    it("keeps a new draft on the Android keyboard path with no + and accepts native input", () => {
+        act(() => {
+            ReactDOM.render(<Harness eventId={null} />, container);
+        });
+
+        const row = container.querySelector(
+            ".nc-description-composer"
+        ) as HTMLDivElement;
+        const icon = row.querySelector(
+            ":scope > .nc-panel-row-icon"
+        ) as HTMLElement;
+        const field = row.querySelector(
+            "textarea[data-description-input='true']"
+        ) as HTMLTextAreaElement;
+
+        act(() => {
+            row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        const accessory = document.getElementById(
+            "nc-description-android-accessory"
+        ) as HTMLDivElement;
+        const attachment = accessory.querySelector(
+            '[data-nc-description-command="attachment"]'
+        ) as HTMLButtonElement;
+
+        expect(document.activeElement).toBe(field);
+        expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
+        expect(accessory.hidden).toBe(false);
+        expect(accessory.dataset.mode).toBe("compact");
+        expect(attachment.disabled).toBe(true);
+
+        nativeKeyboardEdit(field, "d", "d", "insertText", "d");
+        expect(field.value).toBe("d");
         expect(document.activeElement).toBe(field);
     });
 });
