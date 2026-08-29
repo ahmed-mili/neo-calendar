@@ -17,6 +17,7 @@ import "../../../src/ui/calendar/Calendar.css";
 import "../../windows/src/App.css";
 import "./mobile.css";
 import "./descriptionToolbar.css";
+import "./androidDescriptionEditor";
 
 /* NEO_ANDROID_RUNTIME_V3_START */
 document.documentElement.classList.add("nc-platform-android");
@@ -44,7 +45,7 @@ function showFatalError(error: unknown): void {
                         "&": "&amp;",
                         "<": "&lt;",
                         ">": "&gt;",
-                        '"': "&quot;",
+                        '"': "&quot;,
                         "'": "&#039;",
                     }[character] ?? character)
             )}</pre>
