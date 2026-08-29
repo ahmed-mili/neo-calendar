@@ -1,0 +1,79 @@
+name: Normalize release lockfiles
+
+on:
+    push:
+        branches:
+            - ui/notion-panel-final
+
+permissions:
+    contents: write
+
+jobs:
+    normalize:
+        if: github.actor != 'github-actions[bot]'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  fetch-depth: 0
+                  ref: ui/notion-panel-final
+
+            - name: Restore lockfile formatting and bump only release versions
+              shell: bash
+              run: |
+                  git checkout origin/main -- \
+                    package-lock.json \
+                    apps/windows/package-lock.json \
+                    apps/android/package-lock.json
+
+                  python3 <<'PY'
+                  from pathlib import Path
+
+                  for raw in (
+                      'package-lock.json',
+                      'apps/windows/package-lock.json',
+                      'apps/android/package-lock.json',
+                  ):
+                      path = Path(raw)
+                      text = path.read_text(encoding='utf-8')
+                      old = '"version": "1.53.8"'
+                      count = text.count(old)
+                      if count < 2:
+                          raise RuntimeError(f'{raw}: expected at least two 1.53.8 version fields, found {count}')
+                      text = text.replace(old, '"version": "1.53.9"', 2)
+                      path.write_text(text, encoding='utf-8')
+                  PY
+
+                  python3 <<'PY'
+                  import subprocess
+
+                  paths = [
+                      'package-lock.json',
+                      'apps/windows/package-lock.json',
+                      'apps/android/package-lock.json',
+                  ]
+                  output = subprocess.check_output(
+                      ['git', 'diff', '--numstat', 'origin/main', '--', *paths],
+                      text=True,
+                  ).strip().splitlines()
+                  if len(output) != 3:
+                      raise RuntimeError(f'expected three lockfile diffs, got: {output}')
+                  for line in output:
+                      added, deleted, path = line.split('\t')
+                      if int(added) > 4 or int(deleted) > 4:
+                          raise RuntimeError(f'unexpected lockfile churn for {path}: +{added}/-{deleted}')
+                      print(line)
+                  PY
+
+                  git diff --check
+
+            - name: Commit normalized lockfiles
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  git rm .github/workflows/neo-calendar-clean-locks.yml
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add package-lock.json apps/windows/package-lock.json apps/android/package-lock.json
+                  git commit -m "Normalize 1.53.9 lockfile updates"
+                  git push origin HEAD:ui/notion-panel-final
