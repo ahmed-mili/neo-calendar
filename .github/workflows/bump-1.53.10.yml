@@ -1,0 +1,37 @@
+name: Prepare v1.53.10 version bump
+
+on:
+  push:
+    branches:
+      - chore/version-1.53.10
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+      - name: Set synchronized version
+        run: npm run version:set -- 1.53.10
+      - name: Validate version script
+        run: node --test scripts/set-version.test.mjs
+      - name: Commit version bump
+        shell: bash
+        run: |
+          git rm .github/workflows/bump-1.53.10.yml
+          git add package.json package-lock.json \
+            apps/windows/package.json apps/windows/package-lock.json \
+            apps/windows/src-tauri/tauri.conf.json apps/windows/src-tauri/Cargo.toml apps/windows/src-tauri/Cargo.lock \
+            apps/android/package.json apps/android/package-lock.json apps/android/native/app/build.gradle.kts
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Bump version to 1.53.10"
+          git push origin HEAD:chore/version-1.53.10
