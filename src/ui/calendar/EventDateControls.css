@@ -1,63 +1,92 @@
-/* Compact date options under the time/date pair, following Notion Calendar's
-   single-property treatment: these belong to Date, so they do not consume two
-   full panel rows of their own. */
+/* All-day and Repeat are the two compact actions of the Date property. Keep
+   them flat and side-by-side instead of turning them into two raised pills. */
 .nc-panel-date-options {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
     min-width: 0;
-    padding: 0 16px 10px 46px;
-    margin-top: -4px;
+    padding: 0 16px 8px;
+    margin-top: -2px;
 }
 
 .nc-panel-date-option {
     appearance: none;
     -webkit-appearance: none;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    justify-content: center;
-    max-width: 100%;
-    min-height: 26px;
-    padding: 3px 8px;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 0;
+    min-height: 34px;
+    padding: 6px 12px;
     border: none;
-    border-radius: 5px;
+    border-radius: 0;
     box-shadow: none !important;
-    background: var(--nc-bg-hover) !important;
+    background: transparent !important;
     color: var(--nc-text-secondary);
     font: inherit;
     font-size: 12.5px;
     font-weight: 400;
     line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-align: left;
     cursor: pointer;
     transition: background var(--nc-transition-fast),
-        color var(--nc-transition-fast), transform var(--nc-transition-fast);
+        color var(--nc-transition-fast);
+}
+
+.nc-panel-date-option + .nc-panel-date-option {
+    border-left: 1px solid var(--nc-border);
+}
+
+.nc-panel-date-option-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    color: var(--nc-text-faint);
+}
+
+.nc-panel-date-option-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .nc-panel-date-option:hover:not(:disabled),
 .nc-panel-date-option[aria-expanded="true"] {
-    background: color-mix(
-        in srgb,
-        var(--nc-text-primary) 13%,
-        transparent
-    ) !important;
+    background: var(--nc-bg-hover) !important;
     color: var(--nc-text-primary);
 }
 
-.nc-panel-date-option:active:not(:disabled) {
-    transform: translateY(1px);
+.nc-panel-date-option:hover:not(:disabled) .nc-panel-date-option-icon,
+.nc-panel-date-option[aria-expanded="true"] .nc-panel-date-option-icon {
+    color: var(--nc-text-secondary);
 }
 
-.nc-panel-date-option.nc-active {
+/* The active all-day state is the one schedule toggle that needs to read at a
+   glance: blue icon + stronger label, exactly like the accepted panel mock-up. */
+.nc-panel-date-option[data-date-option="all-day"].nc-active {
+    color: var(--nc-accent);
+    font-weight: 600;
+}
+
+.nc-panel-date-option[data-date-option="all-day"].nc-active
+    .nc-panel-date-option-icon {
+    color: var(--nc-accent);
+}
+
+/* A recurring rule stays understated; its text already tells which rule is on. */
+.nc-panel-date-option[data-date-option="repeat"].nc-active {
     color: var(--nc-text-primary);
-    background: color-mix(
-        in srgb,
-        var(--nc-text-primary) 12%,
-        transparent
-    ) !important;
+    font-weight: 500;
+}
+
+.nc-panel-date-option[data-date-option="repeat"].nc-active
+    .nc-panel-date-option-icon {
+    color: var(--nc-text-secondary);
 }
 
 .nc-panel-date-option:disabled {
@@ -75,10 +104,15 @@
     white-space: nowrap;
 }
 
-/* On touch, keep the compact appearance but give each control a comfortable
-   target without reintroducing separate full-width rows. */
+/* "View note" was removed from the accepted panel layout. The command still
+   exists elsewhere; the event editor itself ends after Description. */
+.nc-event-popup .nc-panel-foot {
+    display: none !important;
+}
+
+/* Touch keeps the same two-column composition, only enlarging the hit targets. */
 .nc-platform-android .nc-panel-date-option,
 body.nc-platform-android .nc-panel-date-option {
-    min-height: 30px;
-    padding-inline: 10px;
+    min-height: 40px;
+    padding-block: 8px;
 }

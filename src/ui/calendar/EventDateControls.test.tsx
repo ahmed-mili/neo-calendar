@@ -4,8 +4,10 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { act } from "react-dom/test-utils";
 import { DateOptionsRow } from "./EventDateControls";
+import { RemindersRow } from "./EventPanelRows";
+import { setReminderDisplayAllDay } from "./reminderChoices";
 
-describe("compact event date controls", () => {
+describe("event date controls", () => {
     let host: HTMLDivElement;
 
     beforeEach(() => {
@@ -24,6 +26,7 @@ describe("compact event date controls", () => {
         document.body.innerHTML = "";
         document.documentElement.classList.remove("nc-platform-android");
         document.documentElement.removeAttribute("data-neo-calendar-platform");
+        setReminderDisplayAllDay(false);
     });
 
     function renderControls(
@@ -54,17 +57,40 @@ describe("compact event date controls", () => {
                 left: 20,
                 top: 100,
                 right: 280,
-                bottom: 132,
+                bottom: 134,
                 width: 260,
-                height: 32,
+                height: 34,
                 toJSON: () => ({}),
             } as DOMRect);
 
         return props;
     }
 
-    it("replaces the old full 'Once' row with compact all-day and repeat controls", () => {
+    it("renders All-day and Repeat as the exact two flat schedule actions", () => {
         renderControls();
+
+        const controls = host.querySelectorAll(".nc-panel-date-option");
+        const allDay = host.querySelector(
+            '[data-date-option="all-day"]'
+        ) as HTMLButtonElement;
+        const repeat = host.querySelector(
+            '[data-date-option="repeat"]'
+        ) as HTMLButtonElement;
+
+        expect(controls).toHaveLength(2);
+        expect(allDay).not.toBeNull();
+        expect(repeat).not.toBeNull();
+        expect(allDay.querySelector(".nc-panel-date-option-icon svg")).not.toBeNull();
+        expect(repeat.querySelector(".nc-panel-date-option-icon svg")).not.toBeNull();
+        expect(allDay.getAttribute("aria-pressed")).toBe("false");
+        expect(allDay.classList.contains("nc-active")).toBe(false);
+        expect(repeat.textContent).toBe("Répéter");
+        expect(host.querySelector(".nc-panel-row-repeat")).toBeNull();
+        expect(host.querySelector(".nc-panel-row-allday")).toBeNull();
+    });
+
+    it("marks the all-day action active without changing the Repeat action", () => {
+        renderControls({ allDay: true });
 
         const allDay = host.querySelector(
             '[data-date-option="all-day"]'
@@ -73,11 +99,9 @@ describe("compact event date controls", () => {
             '[data-date-option="repeat"]'
         ) as HTMLButtonElement;
 
-        expect(allDay).not.toBeNull();
-        expect(repeat).not.toBeNull();
-        expect(repeat.textContent).toBe("Répéter");
-        expect(host.querySelector(".nc-panel-row-repeat")).toBeNull();
-        expect(host.querySelector(".nc-panel-row-allday")).toBeNull();
+        expect(allDay.getAttribute("aria-pressed")).toBe("true");
+        expect(allDay.classList.contains("nc-active")).toBe(true);
+        expect(repeat.classList.contains("nc-active")).toBe(false);
     });
 
     it("opens recurrence with the exact calendar-selector menu classes and native pointer/click path", () => {
@@ -128,6 +152,79 @@ describe("compact event date controls", () => {
         });
 
         expect(onToggleAllDay).toHaveBeenCalledTimes(1);
+    });
+
+    it("makes the reminder row use 09:00 + relative-day choices when All-day is active", () => {
+        function Harness() {
+            const [allDay, setAllDay] = React.useState(false);
+            const [reminders, setReminders] = React.useState<number[]>([]);
+            return (
+                <>
+                    <DateOptionsRow
+                        allDay={allDay}
+                        editable={true}
+                        onToggleAllDay={() => setAllDay((value) => !value)}
+                        isRecurring={false}
+                        currentPreset="daily"
+                        summary=""
+                        onChooseRepeat={() => {}}
+                    />
+                    <RemindersRow
+                        reminders={reminders}
+                        editable={true}
+                        setReminders={setReminders}
+                        onAutoSave={() => {}}
+                    />
+                </>
+            );
+        }
+
+        act(() => {
+            ReactDOM.render(<Harness />, host);
+        });
+        const allDay = host.querySelector(
+            '[data-date-option="all-day"]'
+        ) as HTMLButtonElement;
+        act(() => {
+            allDay.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        expect(allDay.getAttribute("aria-pressed")).toBe("true");
+
+        const reminders = host.querySelector(
+            ".nc-panel-reminders"
+        ) as HTMLDivElement;
+        reminders.getBoundingClientRect = () =>
+            ({
+                x: 20,
+                y: 180,
+                left: 20,
+                top: 180,
+                right: 280,
+                bottom: 214,
+                width: 260,
+                height: 34,
+                toJSON: () => ({}),
+            } as DOMRect);
+        act(() => {
+            reminders.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        const options = Array.from(
+            document.querySelectorAll<HTMLButtonElement>(
+                ".nc-reminders-menu .nc-reminders-option"
+            )
+        );
+        expect(options).toHaveLength(4);
+        expect(options[0].textContent).toContain("09:00");
+        expect(options[0].textContent).toContain("Same day");
+        expect(options[1].textContent).toContain("09:00");
+        expect(options[1].textContent).toContain("1 jour avant");
+
+        act(() => {
+            options[0].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        expect(reminders.textContent).toContain("09:00");
+        expect(reminders.textContent).toContain("Same day");
     });
 
     it("portals the same repeat menu into the Android overlay root", () => {

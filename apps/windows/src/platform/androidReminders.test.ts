@@ -53,8 +53,9 @@ describe("buildReminders", () => {
         expect(reminder.body).toBe("Dans 30 min · 14:00");
     });
 
-    // An all-day event has no hour to be ten minutes early for.
-    it("announces an all-day event the evening before", () => {
+    // Existing all-day events with no own reminder list keep their pre-upgrade
+    // default, so installing this version does not move a notification silently.
+    it("keeps the legacy default for an all-day event with no own reminders", () => {
         const [reminder] = build([
             event("whole", "2026-08-09T00:00:00", "2026-08-10T00:00:00", {
                 allDay: true,
@@ -65,6 +66,45 @@ describe("buildReminders", () => {
         evening.setHours(ALL_DAY_REMINDER_HOUR, 0, 0, 0);
         expect(reminder.atMs).toBe(+evening);
         expect(reminder.body).toBe("Demain, toute la journée");
+    });
+
+    it("fires an explicit all-day reminder at 09:00 on the same day", () => {
+        const [reminder] = build([
+            event("whole", "2026-08-09T00:00:00", "2026-08-10T00:00:00", {
+                allDay: true,
+                reminders: [-540],
+            }),
+        ]);
+
+        expect(reminder.atMs).toBe(+new Date("2026-08-09T09:00:00"));
+        expect(reminder.key).toBe("whole#day:-540");
+        expect(reminder.body).toBe("Toute la journée");
+    });
+
+    it("fires an explicit all-day reminder at 09:00 one day before", () => {
+        const [reminder] = build([
+            event("whole", "2026-08-09T00:00:00", "2026-08-10T00:00:00", {
+                allDay: true,
+                reminders: [900],
+            }),
+        ]);
+
+        expect(reminder.atMs).toBe(+new Date("2026-08-08T09:00:00"));
+        expect(reminder.key).toBe("whole#day:900");
+    });
+
+    it("keeps multiple all-day reminder times instead of collapsing them to one", () => {
+        const reminders = build([
+            event("whole", "2026-08-09T00:00:00", "2026-08-10T00:00:00", {
+                allDay: true,
+                reminders: [-540, 900],
+            }),
+        ]);
+
+        expect(reminders.map((item) => item.atMs)).toEqual([
+            +new Date("2026-08-08T09:00:00"),
+            +new Date("2026-08-09T09:00:00"),
+        ]);
     });
 
     /*
@@ -204,6 +244,17 @@ describe("reminders an event carries itself", () => {
         ).toEqual([]);
     });
 
+    it("keeps an all-day event quiet when its own reminder list is empty", () => {
+        expect(
+            build([
+                event("whole", "2026-08-09T00:00:00", "2026-08-10T00:00:00", {
+                    allDay: true,
+                    reminders: [],
+                }),
+            ])
+        ).toEqual([]);
+    });
+
     // The setting says "no reminder", but this event asked for one.
     it("speaks up for an event of its own even with reminders off", () => {
         expect(
@@ -211,6 +262,20 @@ describe("reminders an event carries itself", () => {
                 [
                     event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00", {
                         reminders: [10],
+                    }),
+                ],
+                0
+            )
+        ).toHaveLength(1);
+    });
+
+    it("also honours an all-day event's own reminder when defaults are off", () => {
+        expect(
+            build(
+                [
+                    event("whole", "2026-08-09T00:00:00", "2026-08-10T00:00:00", {
+                        allDay: true,
+                        reminders: [-540],
                     }),
                 ],
                 0

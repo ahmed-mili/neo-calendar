@@ -15,8 +15,7 @@ import { t } from "../../../../src/ui/i18n";
     every change anyway, so there is no point carrying months of them around. */
 export const REMINDER_HORIZON_DAYS = 30;
 
-/** An all-day event has no hour to be early for, so it is announced the evening
-    before, at this hour. */
+/** Legacy/default all-day reminder when an event has no own reminder list. */
 export const ALL_DAY_REMINDER_HOUR = 20;
 
 export interface Reminder {
@@ -62,6 +61,20 @@ function eveningBefore(start: Date): number {
     return +evening;
 }
 
+/**
+ * All-day reminders use the same persisted number[] as timed reminders, where
+ * the number is minutes before the event's midnight start. That deliberately
+ * permits negative values: -540 is 09:00 on the same day, 900 is 09:00 one day
+ * before. Date#setMinutes performs local calendar arithmetic, so crossing a DST
+ * boundary keeps the chosen wall-clock time instead of assuming every day has
+ * exactly 24 UTC hours.
+ */
+function allDayReminderAt(start: Date, offsetMinutes: number): number {
+    const at = new Date(start);
+    at.setMinutes(at.getMinutes() - offsetMinutes);
+    return +at;
+}
+
 export function buildReminders({
     events,
     now,
@@ -81,13 +94,24 @@ export function buildReminders({
             .filter((event) => !event.isSomeday)
             .filter((event) => event.start < horizon)
             .flatMap((event) => {
-                const offsets = offsetsFor(event, minutesBefore);
-                if (offsets.length === 0) return [];
                 const title = event.title || t("Untitled");
 
-                // An all-day event has no hour to be early for, so it is announced
-                // once the evening before however many reminders it carries.
                 if (event.allDay) {
+                    // An explicit list is the new all-day contract: every value
+                    // is a real day+clock reminder selected in the event panel.
+                    // [] still means silence. When no list exists at all, retain
+                    // the app's old default (evening before) so upgrading does
+                    // not silently move everybody's existing notifications.
+                    if (event.reminders) {
+                        return event.reminders.map((offset) => ({
+                            id: event.id,
+                            key: `${event.id}#day:${offset}`,
+                            atMs: allDayReminderAt(event.start, offset),
+                            title,
+                            body: t("All-day"),
+                        }));
+                    }
+                    if (minutesBefore <= 0) return [];
                     return [
                         {
                             id: event.id,
@@ -99,6 +123,8 @@ export function buildReminders({
                     ];
                 }
 
+                const offsets = offsetsFor(event, minutesBefore);
+                if (offsets.length === 0) return [];
                 return offsets.map((offset) => ({
                     id: event.id,
                     key: `${event.id}#${offset}`,
