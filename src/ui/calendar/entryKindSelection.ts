@@ -17,8 +17,9 @@ interface ApplyEntryKindSelectionArgs {
 /**
  * Applies the semantic side effects of the Event / Task / Birthday selector.
  * Birthday is represented by the existing all-day + yearly recurrence shape.
- * Leaving Birthday must remove that yearly marker or the next render infers
- * Birthday again and visually undoes the click. The all-day date is preserved.
+ * An explicit selection away from Birthday must remove that yearly marker or
+ * the next render infers Birthday again and visually undoes the click. The
+ * all-day date is preserved so the conversion does not invent a time.
  */
 export function applyEntryKindSelection({
     currentKind,
