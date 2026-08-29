@@ -45,7 +45,7 @@ function showFatalError(error: unknown): void {
                         "&": "&amp;",
                         "<": "&lt;",
                         ">": "&gt;",
-                        '"': "&quot;,
+                        '"': "&quot;",
                         "'": "&#039;",
                     }[character] ?? character)
             )}</pre>
