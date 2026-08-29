@@ -2,7 +2,9 @@ const MENU_OPEN_CLASS = "nc-description-menu-open";
 const ACTION_ATTRIBUTE = "data-nc-description-action";
 const INSTALLED_KEY = "__neoCalendarDesktopDescriptionEditorInstalled";
 
-type NeoWindow = Window & Record<string, unknown>;
+type NeoWindow = Window & {
+    [INSTALLED_KEY]?: boolean;
+};
 
 function descriptionRow(target: EventTarget | null): HTMLElement | null {
     if (!(target instanceof Element)) return null;
