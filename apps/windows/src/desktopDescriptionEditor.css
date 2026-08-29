@@ -1,0 +1,172 @@
+/*
+ * Description stays visually quiet until the user actually enters it.
+ * The existing LinesIcon occupies the same slot throughout; when the textarea
+ * receives focus it transforms away while the + grows into that slot. This is
+ * deliberately a transform transition rather than an instant icon swap so the
+ * control reads as one thing changing jobs.
+ */
+.nc-panel-row-desc > .nc-panel-row-icon {
+    position: relative;
+    overflow: visible;
+}
+
+.nc-panel-row-desc > .nc-panel-row-icon > svg {
+    transition: transform 180ms ease, opacity 130ms ease;
+    transform-origin: 50% 50%;
+}
+
+.nc-panel-row-desc > .nc-panel-row-icon::before,
+.nc-panel-row-desc > .nc-panel-row-icon::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    content: "";
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.35) rotate(-90deg);
+    transition: transform 180ms ease, opacity 130ms ease;
+    transform-origin: 50% 50%;
+}
+
+.nc-panel-row-desc > .nc-panel-row-icon::before {
+    width: 12px;
+    height: 1.5px;
+}
+
+.nc-panel-row-desc > .nc-panel-row-icon::after {
+    width: 1.5px;
+    height: 12px;
+}
+
+.nc-panel-row-desc
+    > .nc-panel-row-icon[data-nc-description-action="add"] {
+    cursor: pointer;
+}
+
+.nc-panel-row-desc
+    > .nc-panel-row-icon[data-nc-description-action="add"]
+    > svg {
+    opacity: 0;
+    transform: scale(0.55) rotate(90deg);
+}
+
+.nc-panel-row-desc
+    > .nc-panel-row-icon[data-nc-description-action="add"]::before,
+.nc-panel-row-desc
+    > .nc-panel-row-icon[data-nc-description-action="add"]::after {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+}
+
+.nc-panel-row-desc
+    > .nc-panel-row-icon[data-nc-description-action="add"]:focus-visible {
+    border-radius: 5px;
+    outline: 2px solid color-mix(in srgb, var(--nc-accent) 55%, transparent);
+    outline-offset: 3px;
+}
+
+/* The old toolbar remains the formatting engine, but it is no longer a
+   permanent row above "Add a description". It becomes the + popover. */
+.nc-description-section .nc-description-toolbar {
+    display: none !important;
+}
+
+.nc-description-section
+    .nc-panel-row-desc.nc-description-menu-open
+    .nc-description-toolbar {
+    position: fixed;
+    top: var(--nc-description-menu-top, 8px);
+    left: var(--nc-description-menu-left, 8px);
+    z-index: 20070;
+    display: flex !important;
+    width: var(--nc-description-menu-width, 236px);
+    max-width: calc(100vw - 16px);
+    max-height: min(318px, calc(100vh - 16px));
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 10px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    background: var(--nc-bg-primary, var(--background-primary));
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34);
+}
+
+.nc-description-section
+    .nc-panel-row-desc.nc-description-menu-open
+    .nc-description-toolbar
+    .nc-description-tool {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    flex: 0 0 34px;
+    justify-content: flex-start;
+    justify-self: auto;
+    gap: 10px;
+    padding: 0 10px;
+    border-radius: 7px;
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
+.nc-description-section
+    .nc-panel-row-desc.nc-description-menu-open
+    .nc-description-toolbar
+    .nc-description-tool::before {
+    display: none !important;
+}
+
+.nc-description-section
+    .nc-panel-row-desc.nc-description-menu-open
+    .nc-description-toolbar
+    .nc-description-tool::after {
+    overflow: hidden;
+    content: attr(title);
+    color: inherit;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-description-section
+    .nc-panel-row-desc.nc-description-menu-open
+    .nc-description-toolbar
+    .nc-description-tool-separator {
+    display: block;
+    width: auto;
+    height: 1px;
+    margin: 3px 4px;
+    background: var(--nc-border, var(--background-modifier-border));
+}
+
+/* CalendarPanel.css used :has(toolbar) to keep the former permanent toolbar
+   surface filled. The toolbar is hidden now, so restore the normal row states. */
+.nc-panel-body .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar) {
+    background: transparent;
+    border-color: transparent;
+}
+
+.nc-panel-body
+    .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar):hover {
+    border-color: var(--nc-border);
+}
+
+.nc-panel-body
+    .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar):focus-within {
+    border-color: var(--nc-border);
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+}
+
+.nc-panel-body
+    .nc-panel-row.nc-panel-row-desc.nc-description-menu-open:has(
+        .nc-description-toolbar
+    ) {
+    border-color: var(--nc-border);
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+}
