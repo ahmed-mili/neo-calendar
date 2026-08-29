@@ -8,7 +8,7 @@ import {
 
 const PUBLIC_KEY = "dW50cnVzdGVkIGNvbW1lbnQ6IHRlc3QgcHVibGljIGtleQpSV1Rlc3RLZXk=";
 
-test("adds signed passive Windows updater configuration", () => {
+test("adds signed quiet Windows updater configuration", () => {
     const configured = withUpdaterConfig(
         {
             bundle: { active: true },
@@ -23,7 +23,7 @@ test("adds signed passive Windows updater configuration", () => {
     assert.deepEqual(configured.plugins.updater, {
         pubkey: PUBLIC_KEY,
         endpoints: [UPDATER_ENDPOINT],
-        windows: { installMode: "passive" },
+        windows: { installMode: "quiet" },
     });
 });
 

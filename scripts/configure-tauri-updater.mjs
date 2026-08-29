@@ -34,7 +34,12 @@ export function withUpdaterConfig(config, publicKey) {
                 pubkey,
                 endpoints: [UPDATER_ENDPOINT],
                 windows: {
-                    installMode: "passive",
+                    // Neo Calendar owns the update UI. `passive` would display
+                    // a second Windows installer progress window on top of the
+                    // in-app dialog; `quiet` performs the same signed install
+                    // without that duplicate surface. Tauri still restarts the
+                    // app after a successful Windows install by default.
+                    installMode: "quiet",
                 },
             },
         },

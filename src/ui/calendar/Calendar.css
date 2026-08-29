@@ -16,6 +16,7 @@
 @import "./CalendarGrid.css";
 @import "./CalendarMonthList.css";
 @import "./CalendarOverlays.css";
+@import "./UpdateInstallDialog.css";
 @import "./CalendarPanel.css";
 @import "./EventDateControls.css";
 @import "./AddLocalCalendar.css";

@@ -36,6 +36,18 @@ export const UPDATE_EVENT = "neo-update-available";
  *  places, so they cannot disagree. */
 export const UPDATE_PROGRESS_EVENT = "neo-update-progress";
 
+/**
+ * Fired by the desktop bridge when Windows could not hand the downloaded
+ * package to the updater installer. A successful Windows install intentionally
+ * never fires a matching "done": Tauri launches the installer and exits this
+ * process, then the installer relaunches the freshly updated app.
+ */
+export const UPDATE_INSTALL_ERROR_EVENT = "neo-update-install-error";
+
+export interface UpdateInstallErrorDetail {
+    message: string;
+}
+
 interface UpdateBridge {
     pendingUpdate?: () => string;
     installPendingUpdate?: () => void;
@@ -45,6 +57,26 @@ function bridge(): UpdateBridge | null {
     if (typeof window === "undefined") return null;
     const host = (window as Window & { NeoAndroid?: UpdateBridge }).NeoAndroid;
     return host ?? null;
+}
+
+/**
+ * Turns a rejected native install into a DOM event the shared React surface can
+ * hear without importing Tauri. This is deliberately one-way: success ends the
+ * current Windows process, so there is no honest success callback to wait for.
+ */
+export function reportUpdateInstallError(error: unknown): void {
+    if (typeof window === "undefined") return;
+    const message =
+        error instanceof Error
+            ? error.message
+            : typeof error === "string"
+            ? error
+            : "Update installation failed.";
+    window.dispatchEvent(
+        new CustomEvent<UpdateInstallErrorDetail>(UPDATE_INSTALL_ERROR_EVENT, {
+            detail: { message },
+        })
+    );
 }
 
 /**
