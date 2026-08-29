@@ -37,7 +37,7 @@ interface DateOptionsRowProps {
     onChooseRepeat: (key: PresetKey | "once") => void;
 }
 
-function AllDayIcon() {
+function AllDayIcon({ active }: { active: boolean }) {
     return (
         <svg
             width="16"
@@ -45,18 +45,20 @@ function AllDayIcon() {
             viewBox="0 0 16 16"
             fill="none"
             aria-hidden="true"
+            data-all-day-icon-state={active ? "active" : "idle"}
         >
             <circle
                 cx="8"
                 cy="8"
-                r="2.6"
+                r={active ? "3" : "2.6"}
+                fill={active ? "currentColor" : "none"}
                 stroke="currentColor"
-                strokeWidth="1.25"
+                strokeWidth={active ? "1.05" : "1.25"}
             />
             <path
                 d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.15 1.15M11.45 11.45l1.15 1.15M12.6 3.4l-1.15 1.15M4.55 11.45 3.4 12.6"
                 stroke="currentColor"
-                strokeWidth="1.15"
+                strokeWidth={active ? "1.3" : "1.15"}
                 strokeLinecap="round"
             />
         </svg>
@@ -155,7 +157,7 @@ export function DateOptionsRow({
                 onClick={() => editable && onToggleAllDay()}
             >
                 <span className="nc-panel-date-option-icon">
-                    <AllDayIcon />
+                    <AllDayIcon active={allDay} />
                 </span>
                 <span className="nc-panel-date-option-label">
                     {t("All-day")}

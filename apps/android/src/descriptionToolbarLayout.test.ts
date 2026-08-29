@@ -19,6 +19,10 @@ const androidCss = fs.readFileSync(
     path.join(__dirname, "descriptionToolbar.css"),
     "utf8"
 );
+const editor = fs.readFileSync(
+    path.join(__dirname, "androidDescriptionEditor.ts"),
+    "utf8"
+);
 const css = `${sharedCss}\n${androidCss}`;
 const main = fs.readFileSync(path.join(__dirname, "main.tsx"), "utf8");
 
@@ -49,7 +53,19 @@ describe("the Android description keyboard accessory", () => {
         expect(button.height).toBe("44px");
     });
 
-    it("replaces the compact bar with one horizontally scrollable formatting strip", () => {
+    it("never applies the hidden expanded-view class to the Description section", () => {
+        expect(androidCss).toMatch(
+            /\.nc-description-android-expanded\s*\{[^}]*display: none;/s
+        );
+        expect(editor).toContain(
+            'const EXPANDED_CLASS = "nc-description-android-formatting-open";'
+        );
+        expect(editor).not.toContain(
+            'const EXPANDED_CLASS = "nc-description-android-expanded";'
+        );
+    });
+
+    it("replaces the compact icons inside the same bar with a horizontally scrollable touch strip", () => {
         const strip = declarationsFor(
             css,
             ".nc-description-android-format-scroll"
@@ -63,8 +79,12 @@ describe("the Android description keyboard accessory", () => {
         expect(strip["overflow-x"]).toBe("auto");
         expect(strip["overflow-y"]).toBe("hidden");
         expect(strip["scrollbar-width"]).toBe("none");
+        expect(strip["touch-action"]).toBe("pan-x");
         expect(tool["flex"]).toBe("0 0 44px");
         expect(tool.height).toBe("44px");
+        expect(androidCss).toMatch(
+            /\.nc-description-android-format-scroll \.nc-description-android-format-button\s*\{[^}]*touch-action: pan-x;/s
+        );
     });
 
     it("loads the Android correction after mobile.css and installs its interaction helper", () => {

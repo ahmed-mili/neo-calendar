@@ -112,12 +112,15 @@ describe("Android description editor", () => {
             );
         });
     };
-    it("shows paperclip + A after Description focus, never a +, then exposes a horizontal formatting strip without breaking typing", () => {
+    it("keeps the accessory visible when A swaps compact icons for the horizontal formatting strip", () => {
         act(() => {
             ReactDOM.render(<Harness />, container);
         });
         const row = container.querySelector(
             ".nc-description-composer"
+        ) as HTMLDivElement;
+        const section = row.closest(
+            ".nc-description-section"
         ) as HTMLDivElement;
         const icon = row.querySelector(
             ":scope > .nc-panel-row-icon"
@@ -146,16 +149,31 @@ describe("Android description editor", () => {
             )
         ).toBeTruthy();
         const formatToggle = accessory.querySelector(
-            '[data-nc-description-accessory="format"]'
+            '.nc-description-android-compact [data-nc-description-accessory="format"]'
         ) as HTMLButtonElement;
         expect(formatToggle.textContent).toBe("A");
+
+        // Exact regression: before the fix the section itself received the
+        // .nc-description-android-expanded class. CSS gives that class
+        // display:none for the accessory's inner view, which hid the textarea,
+        // caused focusout, and then hid the whole accessory.
         press(formatToggle);
+        expect(accessory.isConnected).toBe(true);
+        expect(accessory.hidden).toBe(false);
         expect(accessory.dataset.mode).toBe("expanded");
+        expect(section.classList.contains("nc-description-android-expanded")).toBe(
+            false
+        );
         expect(
-            accessory.querySelector(".nc-description-android-format-scroll")
-        ).toBeTruthy();
+            section.classList.contains("nc-description-android-formatting-open")
+        ).toBe(true);
+        const strip = accessory.querySelector(
+            ".nc-description-android-format-scroll"
+        ) as HTMLDivElement;
+        expect(strip).toBeTruthy();
         expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
         expect(document.activeElement).toBe(field);
+
         const bold = accessory.querySelector(
             '[data-nc-description-command="bold"]'
         ) as HTMLButtonElement;
@@ -176,6 +194,14 @@ describe("Android description editor", () => {
             null
         );
         expect(field.value).toBe("****");
+        expect(document.activeElement).toBe(field);
+
+        const expandedToggle = accessory.querySelector(
+            '.nc-description-android-expanded [data-nc-description-accessory="format"]'
+        ) as HTMLButtonElement;
+        press(expandedToggle);
+        expect(accessory.hidden).toBe(false);
+        expect(accessory.dataset.mode).toBe("compact");
         expect(document.activeElement).toBe(field);
     });
     it("keeps a new draft on the Android keyboard path with no + and accepts native input", () => {

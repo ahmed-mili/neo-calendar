@@ -74,8 +74,7 @@ export function reminderLabelParts(
 ): ReminderLabelParts {
     if (allDay) return allDayReminderLabelParts(minutes);
     if (minutes === 0) return { amount: t("At start of event"), suffix: "" };
-    if (minutes < 60)
-        return { amount: `${minutes} min`, suffix: t("before") };
+    if (minutes < 60) return { amount: `${minutes} min`, suffix: t("before") };
     const hours = minutes / 60;
     return {
         amount: `${hours} ${t(hours === 1 ? "hour" : "hours")}`,

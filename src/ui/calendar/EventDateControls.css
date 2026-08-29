@@ -34,10 +34,6 @@
         color var(--nc-transition-fast);
 }
 
-.nc-panel-date-option + .nc-panel-date-option {
-    border-left: 1px solid var(--nc-border);
-}
-
 .nc-panel-date-option-icon {
     display: inline-flex;
     align-items: center;
@@ -46,6 +42,8 @@
     height: 16px;
     flex: 0 0 16px;
     color: var(--nc-text-faint);
+    transition: color var(--nc-transition-fast),
+        transform var(--nc-transition-fast);
 }
 
 .nc-panel-date-option-label {
@@ -67,15 +65,16 @@
 }
 
 /* The active all-day state is the one schedule toggle that needs to read at a
-   glance: blue icon + stronger label, exactly like the accepted panel mock-up. */
+   glance: lit blue icon + stronger label, exactly like the accepted mock-up. */
 .nc-panel-date-option[data-date-option="all-day"].nc-active {
-    color: var(--nc-accent);
+    color: var(--nc-text-primary);
     font-weight: 600;
 }
 
 .nc-panel-date-option[data-date-option="all-day"].nc-active
     .nc-panel-date-option-icon {
     color: var(--nc-accent);
+    transform: scale(1.06);
 }
 
 /* A recurring rule stays understated; its text already tells which rule is on. */
