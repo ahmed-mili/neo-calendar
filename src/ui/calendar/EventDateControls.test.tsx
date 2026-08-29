@@ -18,13 +18,17 @@ describe("compact event date controls", () => {
     });
 
     afterEach(() => {
-        act(() => ReactDOM.unmountComponentAtNode(host));
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
         document.body.innerHTML = "";
         document.documentElement.classList.remove("nc-platform-android");
         document.documentElement.removeAttribute("data-neo-calendar-platform");
     });
 
-    function renderControls(overrides: Partial<React.ComponentProps<typeof DateOptionsRow>> = {}) {
+    function renderControls(
+        overrides: Partial<React.ComponentProps<typeof DateOptionsRow>> = {}
+    ) {
         const props: React.ComponentProps<typeof DateOptionsRow> = {
             allDay: false,
             editable: true,
@@ -40,7 +44,9 @@ describe("compact event date controls", () => {
             ReactDOM.render(<DateOptionsRow {...props} />, host);
         });
 
-        const row = host.querySelector(".nc-panel-date-options") as HTMLDivElement;
+        const row = host.querySelector(
+            ".nc-panel-date-options"
+        ) as HTMLDivElement;
         row.getBoundingClientRect = () =>
             ({
                 x: 20,
@@ -103,7 +109,9 @@ describe("compact event date controls", () => {
             options[2].dispatchEvent(new MouseEvent("click", { bubbles: true }));
         });
         expect(onChooseRepeat).toHaveBeenCalledWith("weekly");
-        expect(document.querySelector('[data-date-repeat-menu="true"]')).toBeNull();
+        expect(
+            document.querySelector('[data-date-repeat-menu="true"]')
+        ).toBeNull();
     });
 
     it("toggles all-day through a real button click", () => {
