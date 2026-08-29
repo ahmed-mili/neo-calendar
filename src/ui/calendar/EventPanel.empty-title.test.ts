@@ -11,6 +11,10 @@ const form = fs.readFileSync(
     "utf8"
 );
 const rows = fs.readFileSync(
+    path.join(__dirname, "EventPanelRowsLegacy.tsx"),
+    "utf8"
+);
+const rowsEntry = fs.readFileSync(
     path.join(__dirname, "EventPanelRows.tsx"),
     "utf8"
 );
@@ -25,6 +29,7 @@ describe("unnamed events", () => {
     it("keeps a dateless event unscheduled until a date is selected", () => {
         expect(form).toContain('type: "someday"');
         expect(form).toContain('type: "single"');
+        expect(rowsEntry).toContain('export * from "./EventPanelRowsLegacy"');
         expect(rows).toContain('label || date || t("Add date")');
     });
 
