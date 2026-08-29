@@ -43,7 +43,9 @@ describe("desktop description editor", () => {
         container.remove();
         document
             .querySelectorAll(".nc-description-menu-open")
-            .forEach((node) => node.classList.remove("nc-description-menu-open"));
+            .forEach((node) =>
+                node.classList.remove("nc-description-menu-open")
+            );
         window.requestAnimationFrame = originalRequestAnimationFrame;
     });
 
@@ -88,97 +90,86 @@ describe("desktop description editor", () => {
         });
     };
 
-    it(
-        "keeps the Lines icon at rest, turns it into the + action only after activation, then accepts physical-style typing",
-        () => {
-            act(() => {
-                ReactDOM.render(<Harness />, container);
-            });
+    it("keeps the Lines icon at rest, turns it into the + action only after activation, then accepts physical-style typing", () => {
+        act(() => {
+            ReactDOM.render(<Harness />, container);
+        });
 
-            const row = container.querySelector(
-                ".nc-description-composer"
-            ) as HTMLDivElement;
-            const icon = row.querySelector(
-                ":scope > .nc-panel-row-icon"
-            ) as HTMLElement;
-            const field = row.querySelector(
-                "textarea[data-description-input='true']"
-            ) as HTMLTextAreaElement;
+        const row = container.querySelector(
+            ".nc-description-composer"
+        ) as HTMLDivElement;
+        const icon = row.querySelector(
+            ":scope > .nc-panel-row-icon"
+        ) as HTMLElement;
+        const field = row.querySelector(
+            "textarea[data-description-input='true']"
+        ) as HTMLTextAreaElement;
 
-            expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
-            expect(row.classList.contains("nc-description-menu-open")).toBe(
-                false
+        expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
+        expect(row.classList.contains("nc-description-menu-open")).toBe(false);
+        expect(document.activeElement).not.toBe(field);
+
+        act(() => {
+            row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        expect(document.activeElement).toBe(field);
+        expect(icon.dataset.ncDescriptionAction).toBe("add");
+        expect(icon.getAttribute("aria-expanded")).toBe("false");
+        expect(row.classList.contains("nc-description-menu-open")).toBe(false);
+
+        act(() => {
+            icon.dispatchEvent(
+                new MouseEvent("pointerdown", {
+                    bubbles: true,
+                    cancelable: true,
+                    button: 0,
+                })
             );
-            expect(document.activeElement).not.toBe(field);
+        });
+        expect(row.classList.contains("nc-description-menu-open")).toBe(true);
+        expect(icon.getAttribute("aria-expanded")).toBe("true");
+        expect(document.activeElement).toBe(field);
 
-            act(() => {
-                row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-            });
-
-            expect(document.activeElement).toBe(field);
-            expect(icon.dataset.ncDescriptionAction).toBe("add");
-            expect(icon.getAttribute("aria-expanded")).toBe("false");
-            expect(row.classList.contains("nc-description-menu-open")).toBe(
-                false
+        const bold = row.querySelector(
+            "button[data-format-command='bold']"
+        ) as HTMLButtonElement;
+        act(() => {
+            bold.dispatchEvent(
+                new MouseEvent("mousedown", {
+                    bubbles: true,
+                    cancelable: true,
+                    button: 0,
+                })
             );
-
-            act(() => {
-                icon.dispatchEvent(
-                    new MouseEvent("pointerdown", {
-                        bubbles: true,
-                        cancelable: true,
-                        button: 0,
-                    })
-                );
-            });
-            expect(row.classList.contains("nc-description-menu-open")).toBe(
-                true
+            bold.dispatchEvent(
+                new MouseEvent("click", {
+                    bubbles: true,
+                    cancelable: true,
+                    button: 0,
+                })
             );
-            expect(icon.getAttribute("aria-expanded")).toBe("true");
-            expect(document.activeElement).toBe(field);
+        });
+        flushAnimationFrames();
 
-            const bold = row.querySelector(
-                "button[data-format-command='bold']"
-            ) as HTMLButtonElement;
-            act(() => {
-                bold.dispatchEvent(
-                    new MouseEvent("mousedown", {
-                        bubbles: true,
-                        cancelable: true,
-                        button: 0,
-                    })
-                );
-                bold.dispatchEvent(
-                    new MouseEvent("click", {
-                        bubbles: true,
-                        cancelable: true,
-                        button: 0,
-                    })
-                );
-            });
-            flushAnimationFrames();
+        expect(field.value).toBe("****");
+        expect(document.activeElement).toBe(field);
+        expect(row.classList.contains("nc-description-menu-open")).toBe(false);
 
-            expect(field.value).toBe("****");
-            expect(document.activeElement).toBe(field);
-            expect(row.classList.contains("nc-description-menu-open")).toBe(
-                false
-            );
+        field.setSelectionRange(2, 2);
+        nativeKeyboardEdit(field, "**a**", "a", "insertText", "a");
+        expect(field.value).toBe("**a**");
+        expect(document.activeElement).toBe(field);
 
-            field.setSelectionRange(2, 2);
-            nativeKeyboardEdit(field, "**a**", "a", "insertText", "a");
-            expect(field.value).toBe("**a**");
-            expect(document.activeElement).toBe(field);
-
-            field.setSelectionRange(3, 3);
-            nativeKeyboardEdit(
-                field,
-                "****",
-                "Backspace",
-                "deleteContentBackward",
-                null
-            );
-            expect(field.value).toBe("****");
-            expect(document.activeElement).toBe(field);
-        }
-    );
+        field.setSelectionRange(3, 3);
+        nativeKeyboardEdit(
+            field,
+            "****",
+            "Backspace",
+            "deleteContentBackward",
+            null
+        );
+        expect(field.value).toBe("****");
+        expect(document.activeElement).toBe(field);
+    });
 });
