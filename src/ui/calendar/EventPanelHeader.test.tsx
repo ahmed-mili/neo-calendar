@@ -155,7 +155,9 @@ describe("event panel header refresh", () => {
             document.body.appendChild(host);
 
             function Harness() {
-                const [taskStatus, setTaskStatus] = React.useState<"todo" | null>(null);
+                const [taskStatus, setTaskStatus] = React.useState<
+                    "todo" | null
+                >(null);
                 const [allDay, setAllDay] = React.useState(true);
                 const [isRecurring, setIsRecurring] = React.useState(true);
                 const [recurrence, setRecurrence] = React.useState(
@@ -218,5 +220,4 @@ describe("event panel header refresh", () => {
             expect(trigger.textContent).toContain(t("Event"));
         }
     );
-
 });
