@@ -5,7 +5,11 @@ import { act } from "react-dom/test-utils";
 import { DescriptionSection } from "../../../src/ui/calendar/DescriptionSection";
 import "./desktopDescriptionEditor";
 
-function Harness({ eventId = "Calendrier/2026-08-29.md" }: { eventId?: string | null }) {
+function Harness({
+    eventId = "Calendrier/2026-08-29.md",
+}: {
+    eventId?: string | null;
+}) {
     const [description, setDescription] = React.useState("");
     return (
         <DescriptionSection
@@ -25,7 +29,6 @@ describe("desktop description editor", () => {
     let container: HTMLDivElement;
     let animationFrames: FrameRequestCallback[];
     const originalRequestAnimationFrame = window.requestAnimationFrame;
-
     beforeEach(() => {
         container = document.createElement("div");
         document.body.appendChild(container);
@@ -35,7 +38,6 @@ describe("desktop description editor", () => {
             return animationFrames.length;
         };
     });
-
     afterEach(() => {
         act(() => {
             ReactDOM.unmountComponentAtNode(container);
@@ -48,12 +50,10 @@ describe("desktop description editor", () => {
             );
         window.requestAnimationFrame = originalRequestAnimationFrame;
     });
-
     const flushAnimationFrames = () => {
         const callbacks = animationFrames.splice(0);
         act(() => callbacks.forEach((callback) => callback(0)));
     };
-
     const nativeKeyboardEdit = (
         field: HTMLTextAreaElement,
         value: string,
@@ -66,7 +66,6 @@ describe("desktop description editor", () => {
             "value"
         )?.set;
         expect(setter).toBeTruthy();
-
         act(() => {
             field.dispatchEvent(
                 new KeyboardEvent("keydown", {
@@ -89,12 +88,10 @@ describe("desktop description editor", () => {
             );
         });
     };
-
     it("keeps the Lines icon at rest, turns it into the + action only after activation, then accepts physical-style typing", () => {
         act(() => {
             ReactDOM.render(<Harness />, container);
         });
-
         const row = container.querySelector(
             ".nc-description-composer"
         ) as HTMLDivElement;
@@ -104,20 +101,16 @@ describe("desktop description editor", () => {
         const field = row.querySelector(
             "textarea[data-description-input='true']"
         ) as HTMLTextAreaElement;
-
         expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
         expect(row.classList.contains("nc-description-menu-open")).toBe(false);
         expect(document.activeElement).not.toBe(field);
-
         act(() => {
             row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         });
-
         expect(document.activeElement).toBe(field);
         expect(icon.dataset.ncDescriptionAction).toBe("add");
         expect(icon.getAttribute("aria-expanded")).toBe("false");
         expect(row.classList.contains("nc-description-menu-open")).toBe(false);
-
         act(() => {
             icon.dispatchEvent(
                 new MouseEvent("pointerdown", {
@@ -130,7 +123,6 @@ describe("desktop description editor", () => {
         expect(row.classList.contains("nc-description-menu-open")).toBe(true);
         expect(icon.getAttribute("aria-expanded")).toBe("true");
         expect(document.activeElement).toBe(field);
-
         const bold = row.querySelector(
             "button[data-format-command='bold']"
         ) as HTMLButtonElement;
@@ -151,16 +143,13 @@ describe("desktop description editor", () => {
             );
         });
         flushAnimationFrames();
-
         expect(field.value).toBe("****");
         expect(document.activeElement).toBe(field);
         expect(row.classList.contains("nc-description-menu-open")).toBe(false);
-
         field.setSelectionRange(2, 2);
         nativeKeyboardEdit(field, "**a**", "a", "insertText", "a");
         expect(field.value).toBe("**a**");
         expect(document.activeElement).toBe(field);
-
         field.setSelectionRange(3, 3);
         nativeKeyboardEdit(
             field,
@@ -172,12 +161,10 @@ describe("desktop description editor", () => {
         expect(field.value).toBe("****");
         expect(document.activeElement).toBe(field);
     });
-
     it("activates the same + transform for a new draft and accepts native keyboard input", () => {
         act(() => {
             ReactDOM.render(<Harness eventId={null} />, container);
         });
-
         const row = container.querySelector(
             ".nc-description-composer"
         ) as HTMLDivElement;
@@ -187,16 +174,12 @@ describe("desktop description editor", () => {
         const field = row.querySelector(
             "textarea[data-description-input='true']"
         ) as HTMLTextAreaElement;
-
         expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
-
         act(() => {
             row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         });
-
         expect(document.activeElement).toBe(field);
         expect(icon.dataset.ncDescriptionAction).toBe("add");
-
         nativeKeyboardEdit(field, "d", "d", "insertText", "d");
         expect(field.value).toBe("d");
         expect(document.activeElement).toBe(field);
