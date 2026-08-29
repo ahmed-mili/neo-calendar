@@ -5,11 +5,7 @@ import { act } from "react-dom/test-utils";
 import { DescriptionSection } from "../../../src/ui/calendar/DescriptionSection";
 import "./androidDescriptionEditor";
 
-function Harness({
-    eventId = "Calendrier/2026-08-29.md",
-}: {
-    eventId?: string | null;
-}) {
+function Harness({ eventId = "Calendrier/2026-08-29.md" }: { eventId?: string | null }) {
     const [description, setDescription] = React.useState("");
     return (
         <DescriptionSection
