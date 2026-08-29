@@ -1,0 +1,1569 @@
+name: Finalize event panel refresh
+
+on:
+    push:
+        branches:
+            - ui/notion-panel-final
+
+permissions:
+    contents: write
+
+jobs:
+    finalize:
+        if: github.actor != 'github-actions[bot]'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  fetch-depth: 0
+                  ref: ui/notion-panel-final
+
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+              with:
+                  node-version: "20"
+                  cache: npm
+                  cache-dependency-path: |
+                      package-lock.json
+                      apps/windows/package-lock.json
+                      apps/android/package-lock.json
+
+            - name: Apply the complete panel refresh
+              shell: bash
+              run: |
+                  python3 <<'PY'
+                  from pathlib import Path
+                  import re
+
+                  root = Path('.')
+
+                  def read(path):
+                      return (root / path).read_text(encoding='utf-8')
+
+                  def write(path, text):
+                      (root / path).write_text(text, encoding='utf-8')
+
+                  def replace_once(text, old, new, label):
+                      count = text.count(old)
+                      if count != 1:
+                          raise RuntimeError(f'{label}: expected 1 occurrence, found {count}')
+                      return text.replace(old, new, 1)
+
+                  # ── A. Type selector in the header + title simplification ─────
+                  rows_path = 'src/ui/calendar/EventPanelRows.tsx'
+                  rows = read(rows_path)
+                  rows = replace_once(
+                      rows,
+                      'import { RecurringEditScope } from "./recurringEdit";\n',
+                      'import { RecurringEditScope } from "./recurringEdit";\nimport type { RecurringEditChange } from "./recurringEditChanges";\n',
+                      'RecurringEditChange import',
+                  )
+
+                  header_start = rows.index('interface PanelHeaderProps {')
+                  header_end = rows.index('// ── Title row', header_start)
+                  header = r'''interface PanelHeaderProps {
+                      isDraft: boolean;
+                      isTask: boolean;
+                      kind: EntryKind;
+                      setKind: (kind: EntryKind) => void;
+                      editable: boolean;
+                      eventId: string | null;
+                      menuOpen: boolean;
+                      menuRef: React.RefObject<HTMLDivElement>;
+                      onHeaderMouseDown: (e: React.MouseEvent) => void;
+                      onToggleMenu: () => void;
+                      onOpenFile: (id: string) => void;
+                      onCopyFilePath?: (id: string) => void;
+                      onDuplicate?: (id: string) => void;
+                      onDeleteClick: () => void;
+                      onClose: () => void;
+                      headerRef?: React.RefObject<HTMLDivElement>;
+                      sheetHandle?: { glyph: "up" | "bar" | "down"; onPress: () => void };
+                  }
+
+                  export function PanelHeader({
+                      isDraft,
+                      isTask,
+                      kind,
+                      setKind,
+                      editable,
+                      eventId,
+                      menuOpen,
+                      menuRef,
+                      headerRef,
+                      onHeaderMouseDown,
+                      onToggleMenu,
+                      onOpenFile,
+                      onCopyFilePath,
+                      onDuplicate,
+                      onDeleteClick,
+                      onClose,
+                      sheetHandle,
+                  }: PanelHeaderProps) {
+                      const android = isAndroidRuntime();
+                      const kindTriggerRef = React.useRef<HTMLButtonElement>(null);
+                      const kindMenuRef = React.useRef<HTMLDivElement>(null);
+                      const [kindOpen, setKindOpen] = React.useState(false);
+                      const [kindMenuStyle, setKindMenuStyle] = React.useState<React.CSSProperties>({});
+                      const selectedKind = ENTRY_KINDS.find((entry) => entry.key === kind) ?? ENTRY_KINDS[0];
+
+                      const toggleKind = (event: React.MouseEvent<HTMLButtonElement>) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          if (!editable) return;
+                          if (kindOpen) {
+                              setKindOpen(false);
+                              return;
+                          }
+                          const rect = kindTriggerRef.current?.getBoundingClientRect();
+                          if (!rect) return;
+                          const placement = placeFlyout(rect, window.innerHeight, {
+                              gap: 4,
+                              margin: 8,
+                              minHeight: 132,
+                          });
+                          const width = 176;
+                          const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+                          setKindMenuStyle({
+                              left,
+                              width,
+                              top: placement.top ?? undefined,
+                              bottom: placement.bottom ?? undefined,
+                              maxHeight: placement.maxHeight,
+                          });
+                          setKindOpen(true);
+                      };
+
+                      React.useEffect(() => {
+                          if (!kindOpen) return;
+                          const close = (event: PointerEvent) => {
+                              const target = event.target as Node;
+                              if (kindTriggerRef.current?.contains(target)) return;
+                              if (kindMenuRef.current?.contains(target)) return;
+                              setKindOpen(false);
+                          };
+                          const closeForLayout = () => setKindOpen(false);
+                          document.addEventListener("pointerdown", close, true);
+                          window.addEventListener("resize", closeForLayout);
+                          window.addEventListener("scroll", closeForLayout, true);
+                          return () => {
+                              document.removeEventListener("pointerdown", close, true);
+                              window.removeEventListener("resize", closeForLayout);
+                              window.removeEventListener("scroll", closeForLayout, true);
+                          };
+                      }, [kindOpen]);
+
+                      return (
+                          <>
+                              <div
+                                  className="nc-panel-header"
+                                  ref={headerRef}
+                                  onMouseDown={onHeaderMouseDown}
+                              >
+                                  {sheetHandle && (
+                                      <button
+                                          type="button"
+                                          className={`nc-sheet-handle nc-sheet-handle--${sheetHandle.glyph}`}
+                                          aria-label={t("Resize panel")}
+                                          onClick={sheetHandle.onPress}
+                                      >
+                                          <SheetHandleGlyph glyph={sheetHandle.glyph} />
+                                      </button>
+                                  )}
+
+                                  <button
+                                      ref={kindTriggerRef}
+                                      type="button"
+                                      className="nc-panel-kind-trigger"
+                                      aria-label={t("Type")}
+                                      aria-haspopup="menu"
+                                      aria-expanded={kindOpen}
+                                      disabled={!editable}
+                                      onPointerDown={(event) => event.stopPropagation()}
+                                      onMouseDown={(event) => event.stopPropagation()}
+                                      onClick={toggleKind}
+                                  >
+                                      <span>{selectedKind.label}</span>
+                                      {editable && <ChevronDownIcon size={13} />}
+                                  </button>
+
+                                  <div className="nc-panel-header-actions">
+                                      <div className="nc-panel-menu-wrap" ref={menuRef}>
+                                          <button
+                                              type="button"
+                                              className="nc-panel-icon-btn"
+                                              title={t("More")}
+                                              onClick={onToggleMenu}
+                                          >
+                                              <DotsIcon />
+                                          </button>
+                                          {menuOpen && (
+                                              <div className="nc-panel-menu">
+                                                  {!isDraft && eventId && !android && (
+                                                      <button
+                                                          type="button"
+                                                          className="nc-panel-menu-item"
+                                                          onClick={() => onOpenFile(eventId)}
+                                                      >
+                                                          <NoteIcon size={15} />
+                                                          <span>{t("Open note")}</span>
+                                                      </button>
+                                                  )}
+                                                  {!isDraft &&
+                                                      editable &&
+                                                      eventId &&
+                                                      !android &&
+                                                      onCopyFilePath && (
+                                                          <button
+                                                              type="button"
+                                                              className="nc-panel-menu-item"
+                                                              onClick={() => onCopyFilePath(eventId)}
+                                                          >
+                                                              <CopyIcon size={15} />
+                                                              <span>{t("Copy path")}</span>
+                                                          </button>
+                                                      )}
+                                                  {!isDraft &&
+                                                      editable &&
+                                                      eventId &&
+                                                      android &&
+                                                      onDuplicate && (
+                                                          <button
+                                                              type="button"
+                                                              className="nc-panel-menu-item"
+                                                              onClick={() => onDuplicate(eventId)}
+                                                          >
+                                                              <DuplicateIcon size={15} />
+                                                              <span>{t("Duplicate")}</span>
+                                                          </button>
+                                                      )}
+                                                  {!isDraft && editable && eventId && (
+                                                      <button
+                                                          type="button"
+                                                          className="nc-panel-menu-item nc-danger"
+                                                          onClick={onDeleteClick}
+                                                      >
+                                                          <TrashIcon size={15} />
+                                                          <span>
+                                                              {isTask ? t("Delete task") : t("Delete event")}
+                                                          </span>
+                                                      </button>
+                                                  )}
+                                              </div>
+                                          )}
+                                      </div>
+                                      <button
+                                          type="button"
+                                          className="nc-panel-icon-btn"
+                                          title={t("Close")}
+                                          onPointerUp={
+                                              isAndroidRuntime()
+                                                  ? (event) => {
+                                                        event.preventDefault();
+                                                        swallowNextClick();
+                                                        onClose();
+                                                    }
+                                                  : undefined
+                                          }
+                                          onClick={isAndroidRuntime() ? undefined : onClose}
+                                      >
+                                          <XIcon />
+                                      </button>
+                                  </div>
+                              </div>
+
+                              {kindOpen &&
+                                  ReactDOM.createPortal(
+                                      <div
+                                          ref={kindMenuRef}
+                                          className="nc-panel-kind-menu"
+                                          role="menu"
+                                          style={kindMenuStyle}
+                                          data-nc-popup-portal="true"
+                                          onPointerDown={(event) => event.stopPropagation()}
+                                          onMouseDown={(event) => event.stopPropagation()}
+                                      >
+                                          {ENTRY_KINDS.map((entry) => (
+                                              <button
+                                                  key={entry.key}
+                                                  type="button"
+                                                  role="menuitemradio"
+                                                  aria-checked={kind === entry.key}
+                                                  className={`nc-panel-kind-option${
+                                                      kind === entry.key ? " nc-active" : ""
+                                                  }`}
+                                                  data-kind={entry.key}
+                                                  onClick={(event) => {
+                                                      event.stopPropagation();
+                                                      setKindOpen(false);
+                                                      if (entry.key !== kind) setKind(entry.key);
+                                                  }}
+                                              >
+                                                  <span>{entry.label}</span>
+                                                  {kind === entry.key && <CheckMarkIcon size={14} />}
+                                              </button>
+                                          ))}
+                                      </div>,
+                                      getEventPanelPortalTarget()
+                                  )}
+                          </>
+                      );
+                  }
+
+                  '''
+                  rows = rows[:header_start] + header + rows[header_end:]
+
+                  rows = replace_once(
+                      rows,
+                      '''            <span className="nc-panel-title-icon">\n                <FileTextIcon />\n            </span>\n''',
+                      '',
+                      'title icon',
+                  )
+                  rows = replace_once(
+                      rows,
+                      'placeholder={t("Event Name")}',
+                      'placeholder={t("Title")}',
+                      'title placeholder',
+                  )
+
+                  type_start = rows.index('interface TypeRowProps {')
+                  type_end = rows.index('// ── Status row', type_start)
+                  rows = rows[:type_start] + rows[type_end:]
+
+                  # ── C. Compact recurring edit review dialog ─────────────────
+                  dialog_start = rows.index('interface RecurringScopeDialogProps {')
+                  dialog_end = rows.index('// ── Description row', dialog_start)
+                  dialog = r'''interface RecurringScopeDialogProps {
+                      isTask: boolean;
+                      changes: RecurringEditChange[];
+                      onCancel: () => void;
+                      onConfirm: (scope: RecurringEditScope) => void;
+                  }
+
+                  /**
+                   * One decision, made on exit, with the exact pending diff visible.
+                   * The buttons map directly to the two persistence paths in EventPanel:
+                   * occurrence keeps the detachment contract; series keeps the full update.
+                   */
+                  export function RecurringScopeDialog({
+                      isTask,
+                      changes,
+                      onCancel,
+                      onConfirm,
+                  }: RecurringScopeDialogProps) {
+                      React.useEffect(() => {
+                          const onKey = (event: KeyboardEvent) => {
+                              if (event.key !== "Escape") return;
+                              event.preventDefault();
+                              event.stopPropagation();
+                              onCancel();
+                          };
+                          document.addEventListener("keydown", onKey, true);
+                          return () => document.removeEventListener("keydown", onKey, true);
+                      }, [onCancel]);
+
+                      return ReactDOM.createPortal(
+                          <div
+                              className="nc-scope-overlay"
+                              role="dialog"
+                              aria-modal="true"
+                              aria-labelledby="nc-scope-title"
+                              onMouseDown={(event) => {
+                                  if (event.target === event.currentTarget) onCancel();
+                              }}
+                          >
+                              <div className="nc-scope-dialog">
+                                  <div className="nc-scope-title" id="nc-scope-title">
+                                      {isTask
+                                          ? t("Edit recurring task")
+                                          : t("Edit recurring event")}
+                                  </div>
+                                  <div className="nc-scope-subtitle">
+                                      {t("Choose how to apply these changes.")}
+                                  </div>
+
+                                  {changes.length > 0 && (
+                                      <div className="nc-scope-changes">
+                                          <div className="nc-scope-changes-title">{t("Changes")}</div>
+                                          <div className="nc-scope-change-list">
+                                              {changes.map((change) => (
+                                                  <div className="nc-scope-change" key={change.key}>
+                                                      <div className="nc-scope-change-label">
+                                                          {t(change.label)}
+                                                      </div>
+                                                      <div className="nc-scope-change-values">
+                                                          <span className="nc-scope-change-before">
+                                                              {t(change.before)}
+                                                          </span>
+                                                          <ArrowRightIcon size={13} />
+                                                          <span className="nc-scope-change-after">
+                                                              {t(change.after)}
+                                                          </span>
+                                                      </div>
+                                                  </div>
+                                              ))}
+                                          </div>
+                                      </div>
+                                  )}
+
+                                  <div className="nc-scope-choice-actions">
+                                      <button
+                                          type="button"
+                                          className="nc-scope-choice-btn"
+                                          onClick={() => onConfirm("occurrence")}
+                                      >
+                                          {isTask ? t("This task only") : t("This event only")}
+                                      </button>
+                                      <button
+                                          type="button"
+                                          className="nc-scope-choice-btn"
+                                          onClick={() => onConfirm("series")}
+                                      >
+                                          {isTask ? t("All tasks") : t("All events")}
+                                      </button>
+                                  </div>
+
+                                  <button
+                                      type="button"
+                                      className="nc-scope-cancel-btn"
+                                      onClick={onCancel}
+                                  >
+                                      {t("Cancel")}
+                                  </button>
+                              </div>
+                          </div>,
+                          getEventPanelPortalTarget()
+                      );
+                  }
+
+                  '''
+                  rows = rows[:dialog_start] + dialog + rows[dialog_end:]
+                  write(rows_path, rows)
+
+                  # ── EventPanel wiring and section structure ───────────────────
+                  panel_path = 'src/ui/calendar/EventPanel.tsx'
+                  panel = read(panel_path)
+                  panel = replace_once(panel, '    TypeRow,\n', '', 'TypeRow import')
+                  panel = replace_once(
+                      panel,
+                      '} from "./recurringEdit";\n',
+                      '} from "./recurringEdit";\nimport { recurringEditChanges } from "./recurringEditChanges";\n',
+                      'recurringEditChanges import',
+                  )
+                  panel = replace_once(
+                      panel,
+                      '                isTask={isTask}\n                label={headerLabel}\n                editable={stableCalInfo.editable}\n',
+                      '                isTask={isTask}\n                kind={entryKind}\n                setKind={setEntryKind}\n                editable={stableCalInfo.editable}\n',
+                      'PanelHeader kind props',
+                  )
+
+                  # Remove the full type row from the body.
+                  panel = replace_once(
+                      panel,
+                      '''\n                {/* What it is, before anything else about it. */}\n                <TypeRow\n                    kind={entryKind}\n                    editable={stableCalInfo.editable}\n                    setKind={setEntryKind}\n                />\n''',
+                      '',
+                      'TypeRow render',
+                  )
+
+                  # Header text is now the type selector itself; task status keeps its own status row.
+                  header_label_pattern = re.compile(
+                      r'\n    /\* Le coin du panneau :.*?\n    const headerLabel = isTask.*?\n        : t\("Event"\);\n',
+                      re.S,
+                  )
+                  panel, n = header_label_pattern.subn('\n', panel, count=1)
+                  if n != 1:
+                      raise RuntimeError(f'headerLabel block: expected 1, found {n}')
+
+                  # Group schedule rows without reordering any existing behavior.
+                  date_marker = '                <DateRow\n'
+                  cal_marker = '                <CalendarRow\n'
+                  desc_marker = '                <DescriptionSection\n'
+                  if panel.count(date_marker) != 1 or panel.count(cal_marker) != 1 or panel.count(desc_marker) != 1:
+                      raise RuntimeError('section markers were not unique')
+                  panel = panel.replace(
+                      date_marker,
+                      '                <div className="nc-panel-section nc-panel-section-schedule">\n' +
+                      '                    <DateRow\n',
+                      1,
+                  )
+                  panel = panel.replace(
+                      cal_marker,
+                      '                </div>\n\n                <div className="nc-panel-section nc-panel-section-properties">\n' +
+                      '                    <CalendarRow\n',
+                      1,
+                  )
+                  panel = panel.replace(
+                      desc_marker,
+                      '                </div>\n\n                <DescriptionSection\n',
+                      1,
+                  )
+
+                  # The new dialog reviews the exact payload that the unchanged persistence path receives.
+                  scope_guard = '''    const androidDraft = isDraft && isNeoAndroidRuntime();\n    const portalTarget = isNeoAndroidRuntime()\n        ? document.getElementById("nc-android-overlay-root") ?? document.body\n        : document.body;\n    // NEO_ANDROID_PORTAL_TARGET_V3_END\n'''
+                  scope_insert = scope_guard + '''\n    const scopeChanges =\n        scopeAsked && stableEvent\n            ? recurringEditChanges(stableEvent, form.buildPayload(), {\n                  previousCalendarId: originalCalendarIdRef.current,\n                  nextCalendarId: editableCalendars[form.calendarIndex]?.id ?? null,\n                  previousCalendarLabel: stableCalInfo.name,\n                  nextCalendarLabel:\n                      editableCalendars[form.calendarIndex]?.name ?? stableCalInfo.name,\n              })\n            : [];\n'''
+                  panel = replace_once(panel, scope_guard, scope_insert, 'scope changes calculation')
+                  panel = replace_once(
+                      panel,
+                      '                    isTask={isTask}\n                    onCancel={cancelScopedEdit}\n',
+                      '                    isTask={isTask}\n                    changes={scopeChanges}\n                    onCancel={cancelScopedEdit}\n',
+                      'scope dialog changes prop',
+                  )
+                  write(panel_path, panel)
+
+                  # Description becomes the final visual section; its input/event chain is untouched.
+                  description_path = 'src/ui/calendar/DescriptionSection.tsx'
+                  description = read(description_path)
+                  description = replace_once(
+                      description,
+                      'className="nc-description-section"',
+                      'className="nc-description-section nc-panel-section"',
+                      'DescriptionSection class',
+                  )
+                  write(description_path, description)
+
+                  # ── Pure, semantic recurring diff helper ──────────────────────
+                  changes_path = root / 'src/ui/calendar/recurringEditChanges.ts'
+                  if changes_path.exists():
+                      raise RuntimeError('recurringEditChanges.ts already exists')
+                  changes_path.write_text(r'''import { NeoEvent } from "../../types";
+                  import {
+                      eventToRecurrenceState,
+                      recurrenceSummary,
+                  } from "./recurrence";
+
+                  export type RecurringEditChangeKey =
+                      | "title"
+                      | "date"
+                      | "dates"
+                      | "startTime"
+                      | "endTime"
+                      | "allDay"
+                      | "repeat"
+                      | "calendar"
+                      | "status"
+                      | "reminders"
+                      | "description";
+
+                  export interface RecurringEditChange {
+                      key: RecurringEditChangeKey;
+                      label: string;
+                      before: string;
+                      after: string;
+                  }
+
+                  export interface RecurringEditChangeContext {
+                      previousCalendarId?: string | null;
+                      nextCalendarId?: string | null;
+                      previousCalendarLabel?: string;
+                      nextCalendarLabel?: string;
+                  }
+
+                  function recordOf(event: NeoEvent): Record<string, unknown> {
+                      return event as unknown as Record<string, unknown>;
+                  }
+
+                  function stringField(event: NeoEvent, key: string): string {
+                      const value = recordOf(event)[key];
+                      return typeof value === "string" ? value : "";
+                  }
+
+                  function startDateOf(event: NeoEvent): string {
+                      const record = recordOf(event);
+                      if (event.type === "recurring") {
+                          return typeof record.startRecur === "string" ? record.startRecur : "";
+                      }
+                      if (event.type === "rrule") {
+                          return typeof record.startDate === "string" ? record.startDate : "";
+                      }
+                      return typeof record.date === "string" ? record.date : "";
+                  }
+
+                  function endDateOf(event: NeoEvent): string {
+                      if (event.type !== "single" && event.type !== undefined) return "";
+                      return stringField(event, "endDate");
+                  }
+
+                  function shortText(value: string): string {
+                      const compact = value.replace(/\s+/g, " ").trim();
+                      if (!compact) return "Empty";
+                      return compact.length > 72 ? `${compact.slice(0, 69)}…` : compact;
+                  }
+
+                  function dateText(start: string, end: string): string {
+                      if (!start) return "None";
+                      return end && end !== start ? `${start} – ${end}` : start;
+                  }
+
+                  function statusText(event: NeoEvent): string {
+                      const record = recordOf(event);
+                      if (!Object.prototype.hasOwnProperty.call(record, "completed")) return "Event";
+                      if (record.completed === undefined || record.completed === null) return "Event";
+                      return typeof record.completed === "string" && record.completed
+                          ? "Done"
+                          : "To do";
+                  }
+
+                  function remindersText(event: NeoEvent): string {
+                      const value = recordOf(event).reminders;
+                      if (value === undefined) return "Default";
+                      if (!Array.isArray(value) || value.length === 0) return "None";
+                      return value
+                          .map((raw) => Number(raw))
+                          .filter((value) => Number.isFinite(value))
+                          .map((minutes) => {
+                              if (minutes === 0) return "At start of event";
+                              if (minutes % 1440 === 0) {
+                                  const days = minutes / 1440;
+                                  return `${days} day${days === 1 ? "" : "s"} before`;
+                              }
+                              if (minutes % 60 === 0) {
+                                  const hours = minutes / 60;
+                                  return `${hours} hour${hours === 1 ? "" : "s"} before`;
+                              }
+                              return `${minutes} min before`;
+                          })
+                          .join(", ");
+                  }
+
+                  function recurrenceState(event: NeoEvent) {
+                      return eventToRecurrenceState(event, startDateOf(event));
+                  }
+
+                  function recurrenceKey(event: NeoEvent): string {
+                      const state = recurrenceState(event);
+                      return JSON.stringify({
+                          isRecurring: state.isRecurring,
+                          recurrence: state.recurrence,
+                      });
+                  }
+
+                  function recurrenceText(event: NeoEvent): string {
+                      const state = recurrenceState(event);
+                      if (!state.isRecurring) return "Once";
+                      return recurrenceSummary(state.recurrence, startDateOf(event));
+                  }
+
+                  export function recurringEditChanges(
+                      stableEvent: NeoEvent,
+                      payload: NeoEvent,
+                      context: RecurringEditChangeContext = {},
+                  ): RecurringEditChange[] {
+                      const changes: RecurringEditChange[] = [];
+                      const add = (
+                          key: RecurringEditChangeKey,
+                          label: string,
+                          before: string,
+                          after: string,
+                      ) => {
+                          if (before === after) return;
+                          changes.push({ key, label, before, after });
+                      };
+
+                      add("title", "Title", shortText(stableEvent.title || ""), shortText(payload.title || ""));
+
+                      const beforeStart = startDateOf(stableEvent);
+                      const afterStart = startDateOf(payload);
+                      const beforeEnd = endDateOf(stableEvent);
+                      const afterEnd = endDateOf(payload);
+                      add(
+                          beforeEnd || afterEnd ? "dates" : "date",
+                          beforeEnd || afterEnd ? "Dates" : "Date",
+                          dateText(beforeStart, beforeEnd),
+                          dateText(afterStart, afterEnd),
+                      );
+
+                      add(
+                          "startTime",
+                          "Start time",
+                          stringField(stableEvent, "startTime") || "None",
+                          stringField(payload, "startTime") || "None",
+                      );
+                      add(
+                          "endTime",
+                          "End time",
+                          stringField(stableEvent, "endTime") || "None",
+                          stringField(payload, "endTime") || "None",
+                      );
+                      add(
+                          "allDay",
+                          "All day",
+                          stableEvent.allDay ? "On" : "Off",
+                          payload.allDay ? "On" : "Off",
+                      );
+
+                      if (recurrenceKey(stableEvent) !== recurrenceKey(payload)) {
+                          changes.push({
+                              key: "repeat",
+                              label: "Repeat",
+                              before: recurrenceText(stableEvent),
+                              after: recurrenceText(payload),
+                          });
+                      }
+
+                      if (
+                          context.previousCalendarId != null &&
+                          context.nextCalendarId != null &&
+                          context.previousCalendarId !== context.nextCalendarId
+                      ) {
+                          changes.push({
+                              key: "calendar",
+                              label: "Calendar",
+                              before: context.previousCalendarLabel || context.previousCalendarId,
+                              after: context.nextCalendarLabel || context.nextCalendarId,
+                          });
+                      }
+
+                      add("status", "Status", statusText(stableEvent), statusText(payload));
+                      add("reminders", "Reminders", remindersText(stableEvent), remindersText(payload));
+                      add(
+                          "description",
+                          "Description",
+                          shortText(stringField(stableEvent, "description")),
+                          shortText(stringField(payload, "description")),
+                      );
+
+                      return changes;
+                  }
+                  ''', encoding='utf-8')
+
+                  changes_test_path = root / 'src/ui/calendar/recurringEditChanges.test.ts'
+                  changes_test_path.write_text(r'''import { NeoEvent } from "../../types";
+                  import { recurringEditChanges } from "./recurringEditChanges";
+
+                  const series = (extra: Record<string, unknown> = {}): NeoEvent =>
+                      ({
+                          title: "Standup",
+                          allDay: false,
+                          startTime: "08:00",
+                          endTime: "08:30",
+                          type: "rrule",
+                          startDate: "2026-08-05",
+                          rrule: "FREQ=WEEKLY;BYDAY=WE",
+                          description: "Tour de table",
+                          reminders: [10],
+                          ...extra,
+                      } as unknown as NeoEvent);
+
+                  describe("recurringEditChanges", () => {
+                      it("lists only fields that really changed", () => {
+                          const changes = recurringEditChanges(
+                              series(),
+                              series({
+                                  title: "Client demo",
+                                  startTime: "09:00",
+                                  description: "Demo and questions",
+                              }),
+                          );
+
+                          expect(changes.map((change) => change.key)).toEqual([
+                              "title",
+                              "startTime",
+                              "description",
+                          ]);
+                          expect(changes[0]).toMatchObject({
+                              before: "Standup",
+                              after: "Client demo",
+                          });
+                      });
+
+                      it("omits unchanged recurrence and reports a semantic recurrence change", () => {
+                          expect(recurringEditChanges(series(), series()).map((change) => change.key)).not.toContain(
+                              "repeat",
+                          );
+
+                          const changed = recurringEditChanges(
+                              series(),
+                              series({ rrule: "FREQ=DAILY" }),
+                          );
+                          expect(changed.map((change) => change.key)).toContain("repeat");
+                      });
+
+                      it("reports calendar, reminders, all-day and task-status changes readably", () => {
+                          const changes = recurringEditChanges(
+                              series(),
+                              series({
+                                  allDay: true,
+                                  startTime: undefined,
+                                  endTime: undefined,
+                                  completed: false,
+                                  reminders: [60],
+                              }),
+                              {
+                                  previousCalendarId: "work",
+                                  nextCalendarId: "personal",
+                                  previousCalendarLabel: "Work",
+                                  nextCalendarLabel: "Personal",
+                              },
+                          );
+
+                          expect(changes).toEqual(
+                              expect.arrayContaining([
+                                  expect.objectContaining({ key: "allDay", before: "Off", after: "On" }),
+                                  expect.objectContaining({ key: "calendar", before: "Work", after: "Personal" }),
+                                  expect.objectContaining({ key: "status", before: "Event", after: "To do" }),
+                                  expect.objectContaining({ key: "reminders", after: "1 hour before" }),
+                              ]),
+                          );
+                      });
+
+                      it("shortens long description values so the dialog cannot grow horizontally", () => {
+                          const changes = recurringEditChanges(
+                              series(),
+                              series({ description: "x".repeat(120) }),
+                          );
+                          const description = changes.find((change) => change.key === "description");
+                          expect(description?.after.endsWith("…")).toBe(true);
+                          expect(description?.after.length).toBeLessThanOrEqual(72);
+                      });
+                  });
+                  ''', encoding='utf-8')
+
+                  # Dialog interaction coverage: direct choices map to the two existing scope values,
+                  # while Cancel and Escape never call persistence.
+                  dialog_test_path = root / 'src/ui/calendar/RecurringScopeDialog.test.tsx'
+                  dialog_test_path.write_text(r'''/** @jest-environment jsdom */
+                  import * as React from "react";
+                  import * as ReactDOM from "react-dom";
+                  import { act, Simulate } from "react-dom/test-utils";
+                  import { RecurringScopeDialog } from "./EventPanelRows";
+                  import { RecurringEditChange } from "./recurringEditChanges";
+
+                  const changes: RecurringEditChange[] = [
+                      {
+                          key: "title",
+                          label: "Title",
+                          before: "Standup",
+                          after: "Client demo",
+                      },
+                  ];
+
+                  function button(label: string): HTMLButtonElement {
+                      const match = Array.from(document.body.querySelectorAll("button")).find(
+                          (element) => element.textContent?.trim() === label,
+                      );
+                      if (!(match instanceof HTMLButtonElement)) {
+                          throw new Error(`Button not found: ${label}`);
+                      }
+                      return match;
+                  }
+
+                  describe("RecurringScopeDialog", () => {
+                      afterEach(() => {
+                          document.body.innerHTML = "";
+                      });
+
+                      it("shows only the pending change and maps This event only to occurrence", () => {
+                          const onConfirm = jest.fn();
+                          const onCancel = jest.fn();
+                          act(() => {
+                              ReactDOM.render(
+                                  <RecurringScopeDialog
+                                      isTask={false}
+                                      changes={changes}
+                                      onCancel={onCancel}
+                                      onConfirm={onConfirm}
+                                  />,
+                                  document.createElement("div"),
+                              );
+                          });
+
+                          expect(document.body.textContent).toContain("Edit recurring event");
+                          expect(document.body.textContent).toContain("Changes");
+                          expect(document.body.textContent).toContain("Standup");
+                          expect(document.body.textContent).toContain("Client demo");
+
+                          act(() => Simulate.click(button("This event only")));
+                          expect(onConfirm).toHaveBeenCalledWith("occurrence");
+                          expect(onCancel).not.toHaveBeenCalled();
+                      });
+
+                      it("maps All events to the unchanged series path", () => {
+                          const onConfirm = jest.fn();
+                          act(() => {
+                              ReactDOM.render(
+                                  <RecurringScopeDialog
+                                      isTask={false}
+                                      changes={changes}
+                                      onCancel={() => {}}
+                                      onConfirm={onConfirm}
+                                  />,
+                                  document.createElement("div"),
+                              );
+                          });
+
+                          act(() => Simulate.click(button("All events")));
+                          expect(onConfirm).toHaveBeenCalledWith("series");
+                      });
+
+                      it("cancels without invoking either persistence scope", () => {
+                          const onConfirm = jest.fn();
+                          const onCancel = jest.fn();
+                          act(() => {
+                              ReactDOM.render(
+                                  <RecurringScopeDialog
+                                      isTask={false}
+                                      changes={changes}
+                                      onCancel={onCancel}
+                                      onConfirm={onConfirm}
+                                  />,
+                                  document.createElement("div"),
+                              );
+                          });
+
+                          act(() => Simulate.click(button("Cancel")));
+                          expect(onCancel).toHaveBeenCalledTimes(1);
+                          expect(onConfirm).not.toHaveBeenCalled();
+                      });
+                  });
+                  ''', encoding='utf-8')
+
+                  # Native keyboard path + non-draggable header selector regression coverage.
+                  header_test_path = root / 'src/ui/calendar/EventPanelHeader.test.tsx'
+                  header_test_path.write_text(r'''/** @jest-environment jsdom */
+                  import * as React from "react";
+                  import * as ReactDOM from "react-dom";
+                  import { act, Simulate } from "react-dom/test-utils";
+                  import { PanelHeader, TitleRow } from "./EventPanelRows";
+
+                  function titleNativeInput(field: HTMLInputElement, value: string) {
+                      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+                      expect(setter).toBeTruthy();
+                      act(() => {
+                          field.dispatchEvent(new KeyboardEvent("keydown", { key: value.slice(-1), bubbles: true }));
+                          field.dispatchEvent(
+                              new InputEvent("beforeinput", {
+                                  bubbles: true,
+                                  inputType: "insertText",
+                                  data: value.slice(-1),
+                              }),
+                          );
+                          setter?.call(field, value);
+                          field.dispatchEvent(
+                              new InputEvent("input", {
+                                  bubbles: true,
+                                  inputType: "insertText",
+                                  data: value.slice(-1),
+                              }),
+                          );
+                      });
+                  }
+
+                  describe("event panel header refresh", () => {
+                      afterEach(() => {
+                          document.body.innerHTML = "";
+                      });
+
+                      it("opens the type menu without starting panel drag and changes kind", () => {
+                          const host = document.createElement("div");
+                          document.body.appendChild(host);
+                          const setKind = jest.fn();
+                          const onHeaderMouseDown = jest.fn();
+                          const menuRef = React.createRef<HTMLDivElement>();
+                          const headerRef = React.createRef<HTMLDivElement>();
+
+                          act(() => {
+                              ReactDOM.render(
+                                  <PanelHeader
+                                      isDraft={false}
+                                      isTask={false}
+                                      kind="event"
+                                      setKind={setKind}
+                                      editable={true}
+                                      eventId="event.md"
+                                      menuOpen={false}
+                                      menuRef={menuRef}
+                                      headerRef={headerRef}
+                                      onHeaderMouseDown={onHeaderMouseDown}
+                                      onToggleMenu={() => {}}
+                                      onOpenFile={() => {}}
+                                      onDeleteClick={() => {}}
+                                      onClose={() => {}}
+                                  />,
+                                  host,
+                              );
+                          });
+
+                          const trigger = host.querySelector(".nc-panel-kind-trigger") as HTMLButtonElement;
+                          expect(trigger).toBeTruthy();
+                          act(() => {
+                              Simulate.mouseDown(trigger, { button: 0 });
+                              Simulate.click(trigger);
+                          });
+                          expect(onHeaderMouseDown).not.toHaveBeenCalled();
+
+                          const task = document.body.querySelector(
+                              ".nc-panel-kind-option[data-kind='task']",
+                          ) as HTMLButtonElement;
+                          expect(task).toBeTruthy();
+                          act(() => Simulate.click(task));
+                          expect(setKind).toHaveBeenCalledWith("task");
+                      });
+
+                      it("keeps Title on the native keyboard to DOM to React path", () => {
+                          const host = document.createElement("div");
+                          document.body.appendChild(host);
+
+                          function Harness() {
+                              const [title, setTitle] = React.useState("");
+                              const ref = React.useRef<HTMLInputElement>(null);
+                              return (
+                                  <TitleRow
+                                      title={title}
+                                      editable={true}
+                                      inputRef={ref}
+                                      onChange={setTitle}
+                                      onCommit={() => {}}
+                                  />
+                              );
+                          }
+
+                          act(() => ReactDOM.render(<Harness />, host));
+                          const field = host.querySelector(".nc-panel-title-input") as HTMLInputElement;
+                          expect(field.placeholder).toBe("Title");
+                          expect(host.querySelector(".nc-panel-title-icon")).toBeNull();
+
+                          act(() => field.focus());
+                          expect(document.activeElement).toBe(field);
+                          titleNativeInput(field, "T");
+                          titleNativeInput(field, "Ti");
+                          titleNativeInput(field, "Title");
+                          expect(field.value).toBe("Title");
+
+                          field.setSelectionRange(4, 5);
+                          act(() => {
+                              field.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", bubbles: true }));
+                              const setter = Object.getOwnPropertyDescriptor(
+                                  HTMLInputElement.prototype,
+                                  "value",
+                              )?.set;
+                              setter?.call(field, "Titl");
+                              field.dispatchEvent(
+                                  new InputEvent("input", {
+                                      bubbles: true,
+                                      inputType: "deleteContentBackward",
+                                  }),
+                              );
+                          });
+                          expect(field.value).toBe("Titl");
+                      });
+                  });
+                  ''', encoding='utf-8')
+
+                  # ── B. Single-surface styling and section hairlines ───────────
+                  css_path = 'src/ui/calendar/CalendarPanel.css'
+                  css = read(css_path)
+                  if 'NEO_NOTION_PANEL_REFRESH_V1_START' in css:
+                      raise RuntimeError('desktop refresh CSS already present')
+                  css += r'''
+
+                  /* NEO_NOTION_PANEL_REFRESH_V1_START
+                   * One visual surface at rest. Group boundaries, not every row, carry
+                   * the hierarchy. All colors stay on Neo Calendar variables. */
+                  .nc-panel-body .nc-panel-row + .nc-panel-row {
+                      border-top: 0;
+                  }
+
+                  .nc-panel-section {
+                      min-width: 0;
+                  }
+
+                  .nc-panel-title-row + .nc-panel-section,
+                  .nc-panel-section + .nc-panel-section {
+                      border-top: 1px solid var(--nc-border);
+                  }
+
+                  .nc-panel-row {
+                      gap: 6px;
+                      padding: 6px 16px;
+                  }
+
+                  .nc-panel-row-icon {
+                      width: 20px;
+                      height: 20px;
+                  }
+
+                  .nc-panel-row-icon > svg {
+                      width: 16px;
+                      height: 16px;
+                  }
+
+                  .nc-panel-header-actions {
+                      margin-left: auto;
+                  }
+
+                  .nc-panel-kind-trigger {
+                      appearance: none;
+                      display: inline-flex;
+                      align-items: center;
+                      gap: 4px;
+                      min-width: 0;
+                      min-height: 28px;
+                      padding: 3px 6px;
+                      border: 1px solid transparent;
+                      border-radius: 6px;
+                      background: transparent !important;
+                      box-shadow: none !important;
+                      color: var(--nc-text-primary);
+                      font: inherit;
+                      font-size: 12px;
+                      font-weight: 500;
+                      line-height: 18px;
+                      cursor: pointer;
+                  }
+
+                  .nc-panel-kind-trigger:hover:not(:disabled),
+                  .nc-panel-kind-trigger[aria-expanded="true"] {
+                      background: var(--nc-bg-hover) !important;
+                  }
+
+                  .nc-panel-kind-trigger:disabled {
+                      cursor: default;
+                      opacity: 0.72;
+                  }
+
+                  .nc-panel-kind-menu {
+                      position: fixed;
+                      z-index: 10040;
+                      overflow-y: auto;
+                      overflow-x: hidden;
+                      padding: 4px;
+                      border: 1px solid var(--nc-border);
+                      border-radius: 7px;
+                      background: var(--nc-bg-primary);
+                      box-shadow: 0 8px 24px var(--background-modifier-box-shadow);
+                  }
+
+                  .nc-panel-kind-option {
+                      appearance: none;
+                      width: 100%;
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      gap: 8px;
+                      min-height: 30px;
+                      padding: 5px 8px;
+                      border: 0;
+                      border-radius: 5px;
+                      background: transparent !important;
+                      box-shadow: none !important;
+                      color: var(--nc-text-primary);
+                      font: inherit;
+                      font-size: 13px;
+                      text-align: left;
+                      cursor: pointer;
+                  }
+
+                  .nc-panel-kind-option:hover,
+                  .nc-panel-kind-option.nc-active {
+                      background: var(--nc-bg-hover) !important;
+                  }
+
+                  .nc-panel-title-row {
+                      gap: 0;
+                      margin: 0 9px 8px;
+                      padding: 4px 7px;
+                      border: 1px solid transparent;
+                      border-radius: 6px;
+                      background: transparent;
+                  }
+
+                  .nc-panel-title-row:hover {
+                      border-color: var(--nc-border);
+                      background: transparent;
+                  }
+
+                  .nc-panel-title-row:focus-within {
+                      border-color: transparent;
+                      background: var(--nc-bg-hover);
+                  }
+
+                  .nc-panel-title-input {
+                      width: 100%;
+                      min-width: 0;
+                      padding: 0;
+                      border: 0;
+                      background: transparent;
+                      font-size: 13px;
+                      font-weight: 400;
+                      line-height: 20px;
+                  }
+
+                  .nc-panel-reminders {
+                      box-sizing: border-box;
+                      border: 1px solid transparent;
+                      background: transparent !important;
+                  }
+
+                  .nc-panel-reminders:hover:not(.nc-panel-reminders-readonly) {
+                      border-color: var(--nc-border);
+                      background: transparent !important;
+                  }
+
+                  .nc-panel-reminders:focus-visible {
+                      border-color: transparent;
+                      background: var(--nc-bg-hover) !important;
+                  }
+
+                  .nc-panel-reminder-chip {
+                      background: transparent !important;
+                  }
+
+                  .nc-panel-body .nc-panel-row.nc-panel-row-desc,
+                  .nc-panel-body .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar) {
+                      background: transparent;
+                      border-color: transparent;
+                  }
+
+                  .nc-panel-body .nc-panel-row.nc-panel-row-desc:hover,
+                  .nc-panel-body .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar):hover {
+                      background: transparent;
+                      border-color: var(--nc-border);
+                  }
+
+                  .nc-panel-body .nc-panel-row.nc-panel-row-desc:focus-within,
+                  .nc-panel-body .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar):focus-within {
+                      background: var(--nc-bg-hover);
+                      border-color: transparent;
+                      border-bottom-color: var(--nc-accent);
+                  }
+
+                  .nc-description-section .nc-links-attachments:has(.nc-linked-files) {
+                      border-bottom: 1px solid var(--nc-border);
+                  }
+
+                  .nc-scope-overlay {
+                      box-sizing: border-box;
+                      padding: 12px;
+                      overflow: auto;
+                  }
+
+                  .nc-scope-dialog {
+                      box-sizing: border-box;
+                      width: min(360px, calc(100vw - 24px));
+                      max-width: 100%;
+                      overflow-x: hidden;
+                      padding: 16px;
+                      border-radius: 10px;
+                  }
+
+                  .nc-scope-title {
+                      font-size: 15px;
+                      font-weight: 600;
+                      line-height: 1.3;
+                  }
+
+                  .nc-scope-subtitle {
+                      margin-top: 4px;
+                      color: var(--nc-text-secondary);
+                      font-size: 12px;
+                      line-height: 1.4;
+                  }
+
+                  .nc-scope-changes {
+                      min-width: 0;
+                      margin-top: 14px;
+                      padding: 10px;
+                      border: 1px solid var(--nc-border);
+                      border-radius: 7px;
+                      background: transparent;
+                  }
+
+                  .nc-scope-changes-title {
+                      margin-bottom: 7px;
+                      color: var(--nc-text-secondary);
+                      font-size: 11px;
+                      font-weight: 600;
+                      text-transform: uppercase;
+                      letter-spacing: 0.04em;
+                  }
+
+                  .nc-scope-change-list {
+                      display: grid;
+                      gap: 7px;
+                      min-width: 0;
+                  }
+
+                  .nc-scope-change {
+                      display: grid;
+                      grid-template-columns: minmax(70px, 0.7fr) minmax(0, 1.6fr);
+                      gap: 8px;
+                      align-items: start;
+                      min-width: 0;
+                      font-size: 12px;
+                  }
+
+                  .nc-scope-change-label {
+                      color: var(--nc-text-secondary);
+                  }
+
+                  .nc-scope-change-values {
+                      display: flex;
+                      align-items: center;
+                      gap: 5px;
+                      min-width: 0;
+                  }
+
+                  .nc-scope-change-before,
+                  .nc-scope-change-after {
+                      min-width: 0;
+                      overflow: hidden;
+                      text-overflow: ellipsis;
+                      white-space: nowrap;
+                  }
+
+                  .nc-scope-change-before {
+                      color: var(--nc-text-secondary);
+                  }
+
+                  .nc-scope-choice-actions {
+                      display: grid;
+                      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                      gap: 8px;
+                      margin-top: 14px;
+                  }
+
+                  .nc-scope-choice-btn,
+                  .nc-scope-cancel-btn {
+                      appearance: none;
+                      min-width: 0;
+                      min-height: 36px;
+                      border: 1px solid var(--nc-border);
+                      border-radius: 7px;
+                      box-shadow: none !important;
+                      font: inherit;
+                      font-size: 12px;
+                      cursor: pointer;
+                  }
+
+                  .nc-scope-choice-btn {
+                      background: var(--nc-bg-hover) !important;
+                      color: var(--nc-text-primary);
+                  }
+
+                  .nc-scope-choice-btn:hover {
+                      border-color: var(--nc-accent);
+                  }
+
+                  .nc-scope-cancel-btn {
+                      width: 100%;
+                      margin-top: 8px;
+                      background: transparent !important;
+                      color: var(--nc-text-secondary);
+                  }
+
+                  .nc-scope-cancel-btn:hover {
+                      background: var(--nc-bg-hover) !important;
+                      color: var(--nc-text-primary);
+                  }
+                  /* NEO_NOTION_PANEL_REFRESH_V1_END */
+                  '''
+
+                  # Prove the legacy chips are unused outside styling before removing their rules.
+                  legacy_tokens = ('nc-panel-chips', 'nc-recur-presets', 'nc-chip')
+                  consumers = []
+                  for path in root.rglob('*'):
+                      if not path.is_file() or '.git' in path.parts or 'node_modules' in path.parts:
+                          continue
+                      rel = path.as_posix()
+                      if rel in (css_path, 'apps/android/src/mobile.css'):
+                          continue
+                      if path.suffix.lower() not in {'.ts', '.tsx', '.js', '.jsx', '.html', '.md'}:
+                          continue
+                      try:
+                          source = path.read_text(encoding='utf-8')
+                      except UnicodeDecodeError:
+                          continue
+                      if any(token in source for token in legacy_tokens):
+                          consumers.append(rel)
+                  if consumers:
+                      print('Legacy chip CSS retained; consumers still exist:', consumers)
+                  else:
+                      # The legacy selectors are simple leaf rules. Remove only rules whose selector
+                      # explicitly names one of the proven-unused classes.
+                      legacy_rule = re.compile(
+                          r'(?ms)^\s*[^{}]*(?:\.nc-panel-chips|\.nc-recur-presets|\.nc-chip)[^{}]*\{[^{}]*\}\s*'
+                      )
+                      previous = None
+                      while previous != css:
+                          previous = css
+                          css = legacy_rule.sub('', css)
+                      if any(token in css for token in legacy_tokens):
+                          raise RuntimeError('legacy chip selectors remain after proven-unused cleanup')
+                      print('Removed proven-unused legacy chip CSS.')
+
+                  write(css_path, css)
+
+                  mobile_path = 'apps/android/src/mobile.css'
+                  mobile = read(mobile_path)
+                  if 'NEO_NOTION_PANEL_REFRESH_ANDROID_V1_START' in mobile:
+                      raise RuntimeError('android refresh CSS already present')
+                  mobile += r'''
+
+                  /* NEO_NOTION_PANEL_REFRESH_ANDROID_V1_START */
+                  body.nc-platform-android .nc-panel-title-row {
+                      box-sizing: border-box;
+                      min-height: 44px;
+                      margin: 0 10px 8px;
+                      padding: 6px 8px;
+                      gap: 0;
+                      border: 1px solid transparent;
+                      border-radius: 6px;
+                      background: transparent !important;
+                      box-shadow: none !important;
+                  }
+
+                  body.nc-platform-android .nc-panel-title-row:hover {
+                      border-color: var(--nc-border);
+                      background: transparent !important;
+                  }
+
+                  body.nc-platform-android .nc-panel-title-row:focus-within {
+                      border-color: transparent;
+                      background: var(--nc-bg-hover) !important;
+                  }
+
+                  body.nc-platform-android .nc-panel-title-input,
+                  body.nc-platform-android .nc-event-popup.nc-event-popup-draft .nc-panel-title-input {
+                      width: 100%;
+                      min-height: 30px !important;
+                      padding: 0;
+                      font-size: 16px !important;
+                      font-weight: 400 !important;
+                      line-height: 1.25;
+                  }
+
+                  body.nc-platform-android .nc-panel-title-input::placeholder {
+                      font-weight: 400;
+                  }
+
+                  body.nc-platform-android .nc-panel-kind-trigger {
+                      min-height: 40px;
+                      padding: 7px 8px;
+                      font-size: 13px;
+                  }
+
+                  body.nc-platform-android .nc-panel-kind-option {
+                      min-height: 44px;
+                      padding: 9px 10px;
+                  }
+
+                  body.nc-platform-android .nc-scope-dialog {
+                      width: min(380px, calc(100vw - 20px));
+                      padding: 14px;
+                  }
+
+                  body.nc-platform-android .nc-scope-choice-btn,
+                  body.nc-platform-android .nc-scope-cancel-btn {
+                      min-height: 46px;
+                  }
+                  /* NEO_NOTION_PANEL_REFRESH_ANDROID_V1_END */
+                  '''
+                  if not consumers:
+                      previous = None
+                      while previous != mobile:
+                          previous = mobile
+                          mobile = legacy_rule.sub('', mobile)
+                      if any(token in mobile for token in legacy_tokens):
+                          raise RuntimeError('android legacy chip selectors remain after proven-unused cleanup')
+                  write(mobile_path, mobile)
+
+                  # ── French strings for the new visible copy ───────────────────
+                  i18n_path = 'src/ui/i18n.ts'
+                  i18n = read(i18n_path)
+                  i18n = replace_once(
+                      i18n,
+                      '    "Event Name": "Titre",\n',
+                      '    "Event Name": "Titre",\n    Title: "Titre",\n',
+                      'Title translation',
+                  )
+                  i18n = replace_once(
+                      i18n,
+                      '    "Save a recurring task": "Enregistrer une tâche récurrente",\n',
+                      '''    "Save a recurring task": "Enregistrer une tâche récurrente",\n    "Edit recurring event": "Modifier un événement récurrent",\n    "Edit recurring task": "Modifier une tâche récurrente",\n    "Choose how to apply these changes.": "Choisissez comment appliquer ces modifications.",\n    Changes: "Modifications",\n    "This event only": "Cet événement uniquement",\n    "This task only": "Cette tâche uniquement",\n    Dates: "Dates",\n    "Start time": "Heure de début",\n    "End time": "Heure de fin",\n    Calendar: "Calendrier",\n    Default: "Par défaut",\n    None: "Aucun",\n    On: "Activé",\n    Off: "Désactivé",\n''',
+                      'recurring dialog translations',
+                  )
+                  write(i18n_path, i18n)
+
+                  # A small static contract guards the single-surface / mobile title overrides.
+                  style_test_path = root / 'src/ui/calendar/EventPanelRefresh.style.test.ts'
+                  style_test_path.write_text(r'''import fs from "node:fs";
+                  import path from "node:path";
+
+                  const root = path.resolve(__dirname, "../../..");
+                  const desktop = fs.readFileSync(path.join(root, "src/ui/calendar/CalendarPanel.css"), "utf8");
+                  const mobile = fs.readFileSync(path.join(root, "apps/android/src/mobile.css"), "utf8");
+                  const panel = fs.readFileSync(path.join(root, "src/ui/calendar/EventPanel.tsx"), "utf8");
+
+                  describe("event panel visual refresh contract", () => {
+                      it("uses section hairlines instead of a card border between every row", () => {
+                          expect(desktop).toContain(".nc-panel-section + .nc-panel-section");
+                          expect(desktop).toContain(".nc-panel-body .nc-panel-row + .nc-panel-row");
+                          expect(desktop).toMatch(/\.nc-panel-body \.nc-panel-row \+ \.nc-panel-row\s*\{\s*border-top: 0;/);
+                          expect(panel).toContain("nc-panel-section-schedule");
+                          expect(panel).toContain("nc-panel-section-properties");
+                      });
+
+                      it("keeps reminders and description flat at rest", () => {
+                          expect(desktop).toMatch(/\.nc-panel-reminders\s*\{[^}]*background: transparent !important;/s);
+                          expect(desktop).toContain(".nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar)");
+                      });
+
+                      it("keeps the Android title touch-sized without the old heading weight winning", () => {
+                          expect(mobile).toContain("NEO_NOTION_PANEL_REFRESH_ANDROID_V1_START");
+                          expect(mobile).toMatch(/\.nc-panel-title-input,[\s\S]*font-size: 16px !important;[\s\S]*font-weight: 400 !important;/);
+                      });
+                  });
+                  ''', encoding='utf-8')
+                  PY
+
+            - name: Set version 1.53.9 everywhere
+              run: node scripts/set-version.mjs 1.53.9
+
+            - name: Install root dependencies
+              run: npm install --no-audit --no-fund
+
+            - name: Install Windows dependencies
+              run: npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
+
+            - name: Install Android dependencies
+              run: npm --prefix apps/android install --ignore-scripts --no-audit --no-fund
+
+            - name: Format changed TypeScript
+              shell: bash
+              run: |
+                  npx prettier --write \
+                    src/ui/calendar/EventPanelRows.tsx \
+                    src/ui/calendar/EventPanel.tsx \
+                    src/ui/calendar/DescriptionSection.tsx \
+                    src/ui/calendar/recurringEditChanges.ts \
+                    src/ui/calendar/recurringEditChanges.test.ts \
+                    src/ui/calendar/RecurringScopeDialog.test.tsx \
+                    src/ui/calendar/EventPanelHeader.test.tsx \
+                    src/ui/calendar/EventPanelRefresh.style.test.ts \
+                    src/ui/i18n.ts
+
+            - name: Exact description keyboard regression
+              run: npx jest src/ui/calendar/DescriptionToolbarEditing.test.tsx --runInBand
+
+            - name: New panel regressions
+              run: npx jest src/ui/calendar/EventPanelHeader.test.tsx src/ui/calendar/recurringEditChanges.test.ts src/ui/calendar/RecurringScopeDialog.test.tsx src/ui/calendar/EventPanelRefresh.style.test.ts src/ui/calendar/recurringEdit.test.ts --runInBand
+
+            - name: Full test suite
+              run: npm test
+
+            - name: Windows frontend build
+              run: npm --prefix apps/windows run build
+
+            - name: Android frontend build
+              run: npm --prefix apps/android run build
+
+            - name: Commit finished implementation
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  git rm .github/workflows/neo-calendar-finalize.yml
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add -A
+                  git diff --cached --stat
+                  git commit -m "Finish event panel refresh and recurring edit review"
+                  git push origin HEAD:ui/notion-panel-final
