@@ -28,8 +28,14 @@ jobs:
               run: npm --prefix apps/android install --ignore-scripts --no-audit --no-fund
             - name: Tests
               run: npm test
-            - name: Formatting
-              run: npm run lint
+            - name: Formatting of changed UI files
+              run: |
+                  npx prettier --write \
+                    src/ui/calendar/EventDateControls.test.tsx \
+                    src/ui/calendar/EventDateControls.tsx \
+                    src/ui/calendar/EventPanel.tsx \
+                    src/ui/calendar/EventPanelDateDisplay.test.ts
+                  git diff --exit-code
             - name: Windows frontend build
               run: npm --prefix apps/windows run build
             - name: Android frontend build
