@@ -1,9 +1,152 @@
-/* The shared event-panel stylesheet deliberately gives Android formatting
-   controls 44px-high touch targets. Splitting eight commands into four columns,
-   however, turns the description composer into a two-row block that dominates
-   the phone panel. Keep the touch height, but let the fractional grid shrink
-   each command horizontally so all eight commands stay on one compact row. */
-body.nc-platform-android .nc-description-toolbar {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    row-gap: 0;
+/* Android never turns the Description icon into a +. The compact keyboard
+   accessory owns entry into formatting; the React toolbar stays in the DOM as
+   the formatting engine, but is not itself painted. */
+body.nc-platform-android .nc-description-section .nc-description-toolbar {
+    display: none !important;
+}
+
+body.nc-platform-android
+    .nc-panel-body
+    .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar) {
+    background: transparent;
+    border-color: transparent;
+}
+
+body.nc-platform-android
+    .nc-panel-body
+    .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar):focus-within {
+    border-color: var(--nc-border);
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+}
+
+.nc-description-android-accessory {
+    position: fixed;
+    right: 0;
+    bottom: calc(
+        var(--nc-description-keyboard-inset, 0px) +
+            env(safe-area-inset-bottom, 0px)
+    );
+    left: 0;
+    z-index: 20090;
+    height: 48px;
+    min-height: 48px;
+    color: var(--nc-text-primary, var(--text-normal));
+    background: var(--nc-bg-primary, var(--background-primary));
+    border-top: 1px solid var(--nc-border, var(--background-modifier-border));
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+.nc-description-android-accessory[hidden] {
+    display: none !important;
+}
+
+.nc-description-android-compact,
+.nc-description-android-expanded {
+    width: 100%;
+    height: 100%;
+    align-items: center;
+}
+
+.nc-description-android-compact {
+    display: flex;
+    gap: 4px;
+    padding: 2px 8px;
+}
+
+.nc-description-android-expanded {
+    display: none;
+    min-width: 0;
+}
+
+.nc-description-android-accessory[data-mode="expanded"]
+    .nc-description-android-compact {
+    display: none;
+}
+
+.nc-description-android-accessory[data-mode="expanded"]
+    .nc-description-android-expanded {
+    display: flex;
+}
+
+.nc-description-android-accessory-button,
+.nc-description-android-format-button {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    background: transparent !important;
+    box-shadow: none !important;
+    font-family: inherit;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.nc-description-android-accessory-button:active:not(:disabled),
+.nc-description-android-format-button:active:not(:disabled),
+.nc-description-android-accessory-button:focus-visible:not(:disabled),
+.nc-description-android-format-button:focus-visible:not(:disabled) {
+    color: var(--nc-text-primary, var(--text-normal));
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+    outline: none;
+}
+
+.nc-description-android-accessory-button:disabled,
+.nc-description-android-format-button:disabled {
+    opacity: 0.32;
+}
+
+.nc-description-android-format-toggle {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.nc-description-android-accessory[data-mode="expanded"]
+    .nc-description-android-format-toggle {
+    border-right: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 0;
+}
+
+.nc-description-android-format-scroll {
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 8px 2px 4px;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.nc-description-android-format-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.nc-description-android-underlined {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.nc-description-android-format-text {
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: -0.04em;
 }
