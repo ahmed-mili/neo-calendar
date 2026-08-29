@@ -1236,16 +1236,21 @@ export default function EventPanel({
     // Multi-day events already own an explicit endDate. The previous UI ignored
     // it and only guessed "tomorrow" from an overnight time range, which made a
     // Fri→Mon event either look single-day or show the wrong Saturday endpoint.
-    const endDateLabel = useMemo(() => {
-        const end = panelEndDate(
-            form.date,
-            form.endDate,
-            form.allDay,
-            form.startTime,
-            form.endTime
-        );
-        return end ? formatPanelDate(end) : "";
-    }, [form.date, form.endDate, form.allDay, form.startTime, form.endTime]);
+    const endDateValue = useMemo(
+        () =>
+            panelEndDate(
+                form.date,
+                form.endDate,
+                form.allDay,
+                form.startTime,
+                form.endTime
+            ),
+        [form.date, form.endDate, form.allDay, form.startTime, form.endTime]
+    );
+    const endDateLabel = useMemo(
+        () => (endDateValue ? formatPanelDate(endDateValue) : ""),
+        [endDateValue]
+    );
 
     const computedLeft = dragOffset ? dragOffset.x : position.left;
     const computedTop = dragOffset ? dragOffset.y : position.top;
@@ -1397,6 +1402,7 @@ export default function EventPanel({
                     date={form.date}
                     dateLabel={dateLabel}
                     endDateLabel={endDateLabel}
+                    endDate={endDateValue}
                     startTime={form.startTime}
                     endTime={form.endTime}
                     duration={duration}
@@ -1405,6 +1411,7 @@ export default function EventPanel({
                     editable={stableCalInfo.editable}
                     firstDay={firstDay}
                     setDate={form.setDate}
+                    setEndDate={form.setEndDate}
                     setStartTime={form.setStartTime}
                     setEndTime={form.setEndTime}
                     // Back to the unscheduled list. Every field that only a

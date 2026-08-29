@@ -28,6 +28,7 @@ describe("event panel date display", () => {
                 date: startDate,
                 dateLabel: startLabel,
                 endDateLabel: endLabel,
+                endDate,
                 startTime: "14:15",
                 endTime: "15:15",
                 duration: "1h",
