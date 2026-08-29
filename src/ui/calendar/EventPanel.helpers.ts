@@ -1,8 +1,4 @@
-import {
-    appendYear,
-    formatDatedDay,
-    formatDatedDayWithYear,
-} from "./calendarFormatters";
+import { formatDatedDay, formatDatedDayWithYear } from "./calendarFormatters";
 
 export const DAY_ORDER = ["U", "M", "T", "W", "R", "F", "S"] as const;
 
@@ -54,20 +50,48 @@ export function formatDateParts(
 }
 
 /**
- * The date, as the panel writes it: `Dim. 16 août 2026`.
+ * Compact date used inside the event sheet.
  *
- * Two things set it apart from the same date on the grid. The weekday starts
- * with a capital, because here it opens a line rather than sitting inside one.
- * And the year is always there: the grid says which year it is on every screen,
- * a sheet opened over it does not, and "16 août" alone is a date you have to go
- * back and check.
+ * The sheet already sits on top of the calendar, so repeating the year on every
+ * date wastes the narrowest part of the UI. Keep only weekday + day + month,
+ * matching Notion Calendar's compact event editor (for example "Ven. 28 août").
  */
 export function formatPanelDate(dateStr: string): string {
     if (!dateStr) return "";
     const d = new Date(dateStr + "T00:00:00");
     if (Number.isNaN(d.getTime())) return "";
-    const label = appendYear(formatDatedDay(d), d.getFullYear());
+    const label = formatDatedDay(d);
     return label.charAt(0).toLocaleUpperCase() + label.slice(1);
+}
+
+/**
+ * The real second date shown by the event sheet.
+ *
+ * Explicit multi-day events already carry `endDate`; that is authoritative.
+ * The old panel ignored it and only guessed "tomorrow" from an overnight time
+ * range, so a Friday→Monday event either looked single-day or showed Saturday.
+ * Keep that overnight fallback only for old/single-day timed events that do not
+ * have an explicit end date.
+ */
+export function panelEndDate(
+    date: string,
+    endDate: string | undefined,
+    allDay: boolean,
+    startTime: string,
+    endTime: string
+): string {
+    if (endDate && endDate !== date) return endDate;
+    if (allDay || !date || !startTime || !endTime || endTime >= startTime) {
+        return "";
+    }
+
+    const d = new Date(date + "T00:00:00");
+    if (Number.isNaN(d.getTime())) return "";
+    d.setDate(d.getDate() + 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
 }
 
 export function formatDateLong(dateStr: string): string {
