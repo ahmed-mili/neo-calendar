@@ -45,7 +45,9 @@ describe("integrated update installation", () => {
     });
 
     afterEach(() => {
-        act(() => ReactDOM.unmountComponentAtNode(host));
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
         act(() => noteDownloadedUpdate(""));
         document.body.classList.remove("nc-platform-android");
         document.body.innerHTML = "";
@@ -53,7 +55,9 @@ describe("integrated update installation", () => {
 
     it("keeps the Windows install inside Neo Calendar until the updater takes over", () => {
         const onInstall = jest.fn();
-        act(() => ReactDOM.render(<UpdateBadge onInstall={onInstall} />, host));
+        act(() => {
+            ReactDOM.render(<UpdateBadge onInstall={onInstall} />, host);
+        });
         act(() => noteDownloadedUpdate("1.54.0"));
 
         const updateButton = host.querySelector(
@@ -105,7 +109,9 @@ describe("integrated update installation", () => {
     it("leaves Android on the native package-installer path", () => {
         document.body.classList.add("nc-platform-android");
         const onInstall = jest.fn();
-        act(() => ReactDOM.render(<UpdateBadge onInstall={onInstall} />, host));
+        act(() => {
+            ReactDOM.render(<UpdateBadge onInstall={onInstall} />, host);
+        });
         act(() => noteDownloadedUpdate("1.54.0"));
 
         const updateButton = host.querySelector(
