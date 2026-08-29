@@ -108,86 +108,81 @@ describe("Android description editor", () => {
         });
     };
 
-    it(
-        "shows paperclip + A after Description focus, never a +, then exposes a horizontal formatting strip without breaking typing",
-        () => {
-            act(() => {
-                ReactDOM.render(<Harness />, container);
-            });
+    it("shows paperclip + A after Description focus, never a +, then exposes a horizontal formatting strip without breaking typing", () => {
+        act(() => {
+            ReactDOM.render(<Harness />, container);
+        });
 
-            const row = container.querySelector(
-                ".nc-description-composer"
-            ) as HTMLDivElement;
-            const icon = row.querySelector(
-                ":scope > .nc-panel-row-icon"
-            ) as HTMLElement;
-            const field = row.querySelector(
-                "textarea[data-description-input='true']"
-            ) as HTMLTextAreaElement;
+        const row = container.querySelector(
+            ".nc-description-composer"
+        ) as HTMLDivElement;
+        const icon = row.querySelector(
+            ":scope > .nc-panel-row-icon"
+        ) as HTMLElement;
+        const field = row.querySelector(
+            "textarea[data-description-input='true']"
+        ) as HTMLTextAreaElement;
 
-            expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
-            expect(
-                document.getElementById("nc-description-android-accessory")
-            ).toBeNull();
+        expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
+        expect(
+            document.getElementById("nc-description-android-accessory")
+        ).toBeNull();
 
-            act(() => {
-                row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-            });
+        act(() => {
+            row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
 
-            expect(document.activeElement).toBe(field);
-            expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
+        expect(document.activeElement).toBe(field);
+        expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
 
-            const accessory = document.getElementById(
-                "nc-description-android-accessory"
-            ) as HTMLDivElement;
-            expect(accessory).toBeTruthy();
-            expect(accessory.hidden).toBe(false);
-            expect(accessory.dataset.mode).toBe("compact");
-            expect(
-                accessory.querySelector(
-                    '[data-nc-description-command="attachment"]'
-                )
-            ).toBeTruthy();
+        const accessory = document.getElementById(
+            "nc-description-android-accessory"
+        ) as HTMLDivElement;
+        expect(accessory).toBeTruthy();
+        expect(accessory.hidden).toBe(false);
+        expect(accessory.dataset.mode).toBe("compact");
+        expect(
+            accessory.querySelector(
+                '[data-nc-description-command="attachment"]'
+            )
+        ).toBeTruthy();
 
-            const formatToggle = accessory.querySelector(
-                '[data-nc-description-accessory="format"]'
-            ) as HTMLButtonElement;
-            expect(formatToggle.textContent).toBe("A");
-            press(formatToggle);
+        const formatToggle = accessory.querySelector(
+            '[data-nc-description-accessory="format"]'
+        ) as HTMLButtonElement;
+        expect(formatToggle.textContent).toBe("A");
+        press(formatToggle);
 
-            expect(accessory.dataset.mode).toBe("expanded");
-            expect(
-                accessory.querySelector(
-                    ".nc-description-android-format-scroll"
-                )
-            ).toBeTruthy();
-            expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
-            expect(document.activeElement).toBe(field);
+        expect(accessory.dataset.mode).toBe("expanded");
+        expect(
+            accessory.querySelector(".nc-description-android-format-scroll")
+        ).toBeTruthy();
+        expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
+        expect(document.activeElement).toBe(field);
 
-            const bold = accessory.querySelector(
-                '[data-nc-description-command="bold"]'
-            ) as HTMLButtonElement;
-            press(bold);
-            flushAnimationFrames();
+        const bold = accessory.querySelector(
+            '[data-nc-description-command="bold"]'
+        ) as HTMLButtonElement;
+        press(bold);
+        flushAnimationFrames();
 
-            expect(field.value).toBe("****");
-            expect(document.activeElement).toBe(field);
+        expect(field.value).toBe("****");
+        expect(document.activeElement).toBe(field);
 
-            field.setSelectionRange(2, 2);
-            nativeKeyboardEdit(field, "**a**", "a", "insertText", "a");
-            expect(field.value).toBe("**a**");
-            expect(document.activeElement).toBe(field);
+        field.setSelectionRange(2, 2);
+        nativeKeyboardEdit(field, "**a**", "a", "insertText", "a");
+        expect(field.value).toBe("**a**");
+        expect(document.activeElement).toBe(field);
 
-            field.setSelectionRange(3, 3);
-            nativeKeyboardEdit(
-                field,
-                "****",
-                "Backspace",
-                "deleteContentBackward",
-                null
-            );
-            expect(field.value).toBe("****");
-            expect(document.activeElement).toBe(field);
-        }
-    );
+        field.setSelectionRange(3, 3);
+        nativeKeyboardEdit(
+            field,
+            "****",
+            "Backspace",
+            "deleteContentBackward",
+            null
+        );
+        expect(field.value).toBe("****");
+        expect(document.activeElement).toBe(field);
+    });
 });
