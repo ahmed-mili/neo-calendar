@@ -5,7 +5,7 @@ on:
     workflow_dispatch:
 
 permissions:
-    contents: write
+    contents: read
 
 jobs:
     validate:
@@ -50,28 +50,3 @@ jobs:
               run: npm --prefix apps/windows run build
             - name: Android frontend build
               run: npm --prefix apps/android run build
-            - name: Apply official 1.55.1 version bump once
-              if: github.event_name == 'pull_request' && github.head_ref == 'fix/event-panel-schedule-1.55.1'
-              shell: bash
-              run: |
-                  set -euo pipefail
-                  current=$(node -p "require('./package.json').version")
-                  if [ "$current" = "1.55.1" ]; then
-                    echo "Version already synchronized."
-                    exit 0
-                  fi
-                  test "$current" = "1.55.0"
-                  node scripts/set-version.mjs 1.55.1
-                  test "$(node -p "require('./package.json').version")" = "1.55.1"
-                  grep -q 'versionCode = 133' apps/android/native/app/build.gradle.kts
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git add package.json package-lock.json \
-                    apps/windows/package.json apps/windows/package-lock.json \
-                    apps/android/package.json apps/android/package-lock.json \
-                    apps/windows/src-tauri/tauri.conf.json \
-                    apps/windows/src-tauri/Cargo.toml \
-                    apps/windows/src-tauri/Cargo.lock \
-                    apps/android/native/app/build.gradle.kts
-                  git commit -m "Bump version to 1.55.1"
-                  git push origin HEAD:${{ github.head_ref }}
