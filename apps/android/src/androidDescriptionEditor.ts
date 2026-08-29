@@ -9,6 +9,7 @@ type NeoWindow = Window & Record<string, unknown>;
 
 let activeSection: HTMLElement | null = null;
 let expanded = false;
+let swallowCompatibilityClick = false;
 
 function descriptionSection(target: EventTarget | null): HTMLElement | null {
     if (!(target instanceof Element)) return null;
@@ -146,6 +147,27 @@ function descriptionControl(target: Element): HTMLElement | null {
     );
 }
 
+function runControl(control: HTMLElement): void {
+    if (!activeSection) return;
+
+    const accessory = control.dataset.ncDescriptionAccessory;
+    if (accessory === "format") {
+        toggleFormatting();
+        return;
+    }
+    if (accessory === "link") {
+        activeSection.dispatchEvent(
+            new Event(OPEN_DESCRIPTION_LINK_DIALOG_EVENT)
+        );
+        return;
+    }
+
+    const command = control.dataset.ncDescriptionCommand;
+    if (!command) return;
+    const button = realCommandButton(activeSection, command);
+    if (button && !button.disabled) button.click();
+}
+
 export function installAndroidDescriptionEditor(): void {
     if (typeof window === "undefined" || typeof document === "undefined") {
         return;
@@ -192,8 +214,27 @@ export function installAndroidDescriptionEditor(): void {
             if (!(target instanceof Element)) return;
             if (!descriptionControl(target)) return;
             // Keeping the textarea focused is what keeps the Android keyboard
-            // open. Commands are forwarded to React's real, hidden toolbar.
+            // open. The command itself runs on pointerup so a real touch does
+            // not depend on a compatibility click surviving preventDefault().
             event.preventDefault();
+        },
+        true
+    );
+
+    document.addEventListener(
+        "pointerup",
+        (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const control = descriptionControl(target);
+            if (!control || !activeSection) return;
+            event.preventDefault();
+            event.stopPropagation();
+            runControl(control);
+            swallowCompatibilityClick = true;
+            window.setTimeout(() => {
+                swallowCompatibilityClick = false;
+            }, 0);
         },
         true
     );
@@ -207,23 +248,13 @@ export function installAndroidDescriptionEditor(): void {
             if (!control || !activeSection) return;
             event.preventDefault();
             event.stopPropagation();
-
-            const accessory = control.dataset.ncDescriptionAccessory;
-            if (accessory === "format") {
-                toggleFormatting();
+            if (swallowCompatibilityClick) {
+                swallowCompatibilityClick = false;
                 return;
             }
-            if (accessory === "link") {
-                activeSection.dispatchEvent(
-                    new Event(OPEN_DESCRIPTION_LINK_DIALOG_EVENT)
-                );
-                return;
-            }
-
-            const command = control.dataset.ncDescriptionCommand;
-            if (!command) return;
-            const button = realCommandButton(activeSection, command);
-            if (button && !button.disabled) button.click();
+            // Keyboard activation has no pointer sequence, so click remains the
+            // accessibility fallback for the same controls.
+            runControl(control);
         },
         true
     );
