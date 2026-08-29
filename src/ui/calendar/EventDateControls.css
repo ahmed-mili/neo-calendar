@@ -1,0 +1,84 @@
+/* Compact date options under the time/date pair, following Notion Calendar's
+   single-property treatment: these belong to Date, so they do not consume two
+   full panel rows of their own. */
+.nc-panel-date-options {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+    padding: 0 16px 10px 46px;
+    margin-top: -4px;
+}
+
+.nc-panel-date-option {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    min-height: 26px;
+    padding: 3px 8px;
+    border: none;
+    border-radius: 5px;
+    box-shadow: none !important;
+    background: var(--nc-bg-hover) !important;
+    color: var(--nc-text-secondary);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast), transform var(--nc-transition-fast);
+}
+
+.nc-panel-date-option:hover:not(:disabled),
+.nc-panel-date-option[aria-expanded="true"] {
+    background: color-mix(
+        in srgb,
+        var(--nc-text-primary) 13%,
+        transparent
+    ) !important;
+    color: var(--nc-text-primary);
+}
+
+.nc-panel-date-option:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.nc-panel-date-option.nc-active {
+    color: var(--nc-text-primary);
+    background: color-mix(
+        in srgb,
+        var(--nc-text-primary) 12%,
+        transparent
+    ) !important;
+}
+
+.nc-panel-date-option:disabled {
+    opacity: 0.48;
+    cursor: default;
+}
+
+/* The Repeat popup intentionally has no visual rules of its own: it uses
+   .nc-cal-select-menu / .nc-cal-select-option verbatim, so changing the
+   Calendar menu's glass, radius, shadow, hover or spacing changes this menu too. */
+.nc-repeat-select-menu .nc-cal-select-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* On touch, keep the compact appearance but give each control a comfortable
+   target without reintroducing separate full-width rows. */
+.nc-platform-android .nc-panel-date-option,
+body.nc-platform-android .nc-panel-date-option {
+    min-height: 30px;
+    padding-inline: 10px;
+}

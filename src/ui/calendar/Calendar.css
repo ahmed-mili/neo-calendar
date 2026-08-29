@@ -17,6 +17,7 @@
 @import "./CalendarMonthList.css";
 @import "./CalendarOverlays.css";
 @import "./CalendarPanel.css";
+@import "./EventDateControls.css";
 @import "./AddLocalCalendar.css";
 @import "./CalendarVisibilityTransitions.css";
 /* En dernier : corrige, pour un pointeur tactile, ce que les partiels

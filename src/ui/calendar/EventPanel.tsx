@@ -10,6 +10,7 @@ import {
     formatDateLong,
     formatDateParts,
     formatPanelDate,
+    panelEndDate,
     computeDuration,
     computePopupPosition,
     hasDraftCreationIntent,
@@ -22,11 +23,9 @@ import { attachmentExtension, pastedFileName } from "./pastedAttachment";
 import { usePopupDrag } from "./usePopupDrag";
 import { useEventFormState } from "./useEventFormState";
 import {
-    AllDayRow,
     EntryKind,
     PanelHeader,
     RecurringScopeDialog,
-    RepeatRow,
     TitleRow,
     DateRow,
     CustomRecurrencePanel,
@@ -35,6 +34,7 @@ import {
     TypeRow,
     StatusRow,
 } from "./EventPanelRows";
+import { DateOptionsRow } from "./EventDateControls";
 import { DescriptionSection } from "./DescriptionSection";
 import { FileTextIcon } from "./EventPanelIcons";
 import { Toast, ToastMessage } from "./Toast";
@@ -1063,6 +1063,7 @@ export default function EventPanel({
     }, [
         form.title,
         form.date,
+        form.endDate,
         form.startTime,
         form.endTime,
         form.allDay,
@@ -1231,16 +1232,25 @@ export default function EventPanel({
         : entryKind === "birthday"
         ? t("Birthday")
         : t("Event");
-    // End date, shown only when the event crosses midnight (endTime < startTime
-    // means it ends the next day) — Notion shows both start and end dates.
-    const endDateLabel = useMemo(() => {
-        if (form.allDay || !form.startTime || !form.endTime) return "";
-        if (form.endTime >= form.startTime) return "";
-        const d = new Date(form.date + "T00:00:00");
-        if (Number.isNaN(d.getTime())) return "";
-        d.setDate(d.getDate() + 1);
-        return formatPanelDate(d.toISOString().slice(0, 10));
-    }, [form.allDay, form.startTime, form.endTime, form.date]);
+
+    // Multi-day events already own an explicit endDate. The previous UI ignored
+    // it and only guessed "tomorrow" from an overnight time range, which made a
+    // Fri→Mon event either look single-day or show the wrong Saturday endpoint.
+    const endDateValue = useMemo(
+        () =>
+            panelEndDate(
+                form.date,
+                form.endDate,
+                form.allDay,
+                form.startTime,
+                form.endTime
+            ),
+        [form.date, form.endDate, form.allDay, form.startTime, form.endTime]
+    );
+    const endDateLabel = useMemo(
+        () => (endDateValue ? formatPanelDate(endDateValue) : ""),
+        [endDateValue]
+    );
 
     const computedLeft = dragOffset ? dragOffset.x : position.left;
     const computedTop = dragOffset ? dragOffset.y : position.top;
@@ -1392,6 +1402,7 @@ export default function EventPanel({
                     date={form.date}
                     dateLabel={dateLabel}
                     endDateLabel={endDateLabel}
+                    endDate={endDateValue}
                     startTime={form.startTime}
                     endTime={form.endTime}
                     duration={duration}
@@ -1400,6 +1411,7 @@ export default function EventPanel({
                     editable={stableCalInfo.editable}
                     firstDay={firstDay}
                     setDate={form.setDate}
+                    setEndDate={form.setEndDate}
                     setStartTime={form.setStartTime}
                     setEndTime={form.setEndTime}
                     // Back to the unscheduled list. Every field that only a
@@ -1414,9 +1426,9 @@ export default function EventPanel({
                     // same reasoning: see buildUnscheduledPayload.
                     //
                     // Nothing is saved from here. The panel's change-watching
-                    // effect already follows date, allDay, startTime, endTime
-                    // and isRecurring, and fires once React has applied all
-                    // five — one write, of the finished state.
+                    // effect already follows date, endDate, allDay, startTime,
+                    // endTime and isRecurring, and fires once React has applied
+                    // the finished state.
                     onClearDate={
                         isDraft
                             ? undefined
@@ -1432,18 +1444,14 @@ export default function EventPanel({
                     onAutoSave={autoSave}
                 />
 
-                <AllDayRow
+                <DateOptionsRow
                     allDay={form.allDay}
                     editable={stableCalInfo.editable}
-                    onToggle={toggleAllDay}
-                />
-
-                <RepeatRow
+                    onToggleAllDay={toggleAllDay}
                     isRecurring={form.isRecurring}
                     currentPreset={currentPreset}
                     summary={repeatSummary}
-                    editable={stableCalInfo.editable}
-                    onChoose={chooseRepeat}
+                    onChooseRepeat={chooseRepeat}
                 />
 
                 {form.isRecurring && customRepeat && customRecurrenceOpen && (

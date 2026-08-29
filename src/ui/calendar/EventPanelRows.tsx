@@ -389,6 +389,9 @@ interface DateRowProps {
     /** End-date label, shown only when the event crosses midnight (ends the
         next day) — like Notion's two-date display. Empty otherwise. */
     endDateLabel?: string;
+    /** The actual date represented by endDateLabel. When present, the end of
+        the range is editable with the same picker as its start. */
+    endDate?: string;
     startTime: string;
     endTime: string;
     duration: string;
@@ -397,6 +400,7 @@ interface DateRowProps {
     editable: boolean;
     firstDay: number;
     setDate: (v: string) => void;
+    setEndDate?: (v: string | undefined) => void;
     setStartTime: (v: string) => void;
     setEndTime: (v: string) => void;
     /** Send this event back to the unscheduled list. Absent on a draft, which
@@ -661,6 +665,7 @@ function DateField({
                                             <button
                                                 type="button"
                                                 key={i}
+                                                data-date-value={toISODate(day)}
                                                 className={`nc-datepicker-day${
                                                     out ? " nc-out" : ""
                                                 }${today ? " nc-today" : ""}${
@@ -709,6 +714,7 @@ export function DateRow({
     date,
     dateLabel,
     endDateLabel,
+    endDate,
     startTime,
     endTime,
     duration,
@@ -717,6 +723,7 @@ export function DateRow({
     editable,
     firstDay,
     setDate,
+    setEndDate,
     setStartTime,
     setEndTime,
     onClearDate,
@@ -799,14 +806,23 @@ export function DateRow({
                         }
                         onAutoSave={onAutoSave}
                     />
-                    {endDateLabel && (
+                    {endDateLabel && endDate && (
                         <>
                             <span className="nc-panel-arrow">
                                 <ArrowRightIcon />
                             </span>
-                            <span className="nc-panel-date-label">
-                                {endDateLabel}
-                            </span>
+                            <DateField
+                                date={endDate}
+                                label={endDateLabel}
+                                editable={editable && Boolean(setEndDate)}
+                                firstDay={firstDay}
+                                setDate={(next) =>
+                                    setEndDate?.(
+                                        next === date ? undefined : next
+                                    )
+                                }
+                                onAutoSave={onAutoSave}
+                            />
                         </>
                     )}
                 </div>

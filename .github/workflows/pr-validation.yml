@@ -1,0 +1,52 @@
+name: PR validation
+
+on:
+    pull_request:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    validate:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  ref: ${{ github.event.pull_request.head.sha || github.sha }}
+                  fetch-depth: 0
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+              with:
+                  node-version: "20"
+                  cache: npm
+                  cache-dependency-path: |
+                      package-lock.json
+                      apps/windows/package-lock.json
+                      apps/android/package-lock.json
+            - name: Install root dependencies
+              run: npm install --no-audit --no-fund
+            - name: Install Windows dependencies
+              run: npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
+            - name: Install Android dependencies
+              run: npm --prefix apps/android install --ignore-scripts --no-audit --no-fund
+            - name: Tests
+              run: npm test
+            - name: Formatting of changed TypeScript files
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${{ github.event_name }}" = "pull_request" ]; then
+                    BASE="${{ github.event.pull_request.base.sha }}"
+                    HEAD="${{ github.event.pull_request.head.sha }}"
+                  else
+                    HEAD="$(git rev-parse HEAD)"
+                    BASE="$(git rev-parse HEAD^)"
+                  fi
+                  git diff --name-only --diff-filter=ACMR "$BASE" "$HEAD" -- '*.ts' '*.tsx' > /tmp/changed-ts-files
+                  if [ -s /tmp/changed-ts-files ]; then
+                    xargs npx prettier --check < /tmp/changed-ts-files
+                  fi
+            - name: Windows frontend build
+              run: npm --prefix apps/windows run build
+            - name: Android frontend build
+              run: npm --prefix apps/android run build
