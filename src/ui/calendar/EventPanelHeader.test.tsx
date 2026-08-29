@@ -182,10 +182,19 @@ describe("event panel header refresh", () => {
                                 currentKind: kind,
                                 nextKind,
                                 date: "2026-08-29",
+                                currentAllDay: allDay,
+                                currentIsRecurring: isRecurring,
+                                currentRecurrence: recurrence,
+                                currentStartTime: "",
+                                currentEndTime: "",
+                                birthdayReturnState: null,
+                                setBirthdayReturnState: () => {},
                                 setTaskStatus,
                                 setAllDay,
                                 setIsRecurring,
                                 setRecurrence,
+                                setStartTime: () => {},
+                                setEndTime: () => {},
                                 setDue: () => setDue(null),
                                 setCustomRepeat,
                             })
@@ -220,4 +229,185 @@ describe("event panel header refresh", () => {
             expect(trigger.textContent).toContain(t("Event"));
         }
     );
+
+    it.each([false, true])(
+        "restores the original timed slot through Event -> Birthday -> Event (draft=%s)",
+        (isDraft) => {
+            const host = document.createElement("div");
+            document.body.appendChild(host);
+
+            function Harness() {
+                const [taskStatus, setTaskStatus] = React.useState<
+                    "todo" | null
+                >(null);
+                const [allDay, setAllDay] = React.useState(false);
+                const [isRecurring, setIsRecurring] = React.useState(false);
+                const [recurrence, setRecurrence] = React.useState(
+                    presetToRecurrence("weekly", "2026-08-29")
+                );
+                const [startTime, setStartTime] = React.useState("09:15");
+                const [endTime, setEndTime] = React.useState("10:00");
+                const [, setDue] = React.useState<string | null>(null);
+                const [, setCustomRepeat] = React.useState(false);
+                const birthdayReturnState = React.useRef<
+                    import("./entryKindSelection").BirthdayReturnState | null
+                >(null);
+
+                const kind =
+                    taskStatus !== null
+                        ? "task"
+                        : allDay && isRecurring && recurrence.freq === "yearly"
+                        ? "birthday"
+                        : "event";
+
+                return (
+                    <>
+                        <PanelHeader
+                            isDraft={isDraft}
+                            isTask={taskStatus !== null}
+                            kind={kind}
+                            setKind={(nextKind) =>
+                                applyEntryKindSelection({
+                                    currentKind: kind,
+                                    nextKind,
+                                    date: "2026-08-29",
+                                    currentAllDay: allDay,
+                                    currentIsRecurring: isRecurring,
+                                    currentRecurrence: recurrence,
+                                    currentStartTime: startTime,
+                                    currentEndTime: endTime,
+                                    birthdayReturnState:
+                                        birthdayReturnState.current,
+                                    setBirthdayReturnState: (state) => {
+                                        birthdayReturnState.current = state;
+                                    },
+                                    setTaskStatus,
+                                    setAllDay,
+                                    setIsRecurring,
+                                    setRecurrence,
+                                    setStartTime,
+                                    setEndTime,
+                                    setDue: () => setDue(null),
+                                    setCustomRepeat,
+                                })
+                            }
+                            editable={true}
+                            eventId={isDraft ? null : "timed-event.md"}
+                            menuOpen={false}
+                            menuRef={React.createRef<HTMLDivElement>()}
+                            headerRef={React.createRef<HTMLDivElement>()}
+                            onHeaderMouseDown={() => {}}
+                            onToggleMenu={() => {}}
+                            onOpenFile={() => {}}
+                            onDeleteClick={() => {}}
+                            onClose={() => {}}
+                        />
+                        <output
+                            data-schedule-state="true"
+                            data-all-day={String(allDay)}
+                            data-start-time={startTime}
+                            data-end-time={endTime}
+                            data-recurring={String(isRecurring)}
+                        />
+                    </>
+                );
+            }
+
+            act(() => ReactDOM.render(<Harness />, host));
+
+            const readSchedule = () =>
+                host.querySelector(
+                    '[data-schedule-state="true"]'
+                ) as HTMLOutputElement;
+            const readTrigger = () =>
+                host.querySelector(
+                    ".nc-panel-kind-trigger"
+                ) as HTMLButtonElement;
+            const choose = (kind: "event" | "birthday") => {
+                act(() => Simulate.click(readTrigger()));
+                const option = document.body.querySelector(
+                    `.nc-panel-kind-option[data-kind='${kind}']`
+                ) as HTMLButtonElement;
+                expect(option).toBeTruthy();
+                act(() => Simulate.click(option));
+            };
+
+            expect(readTrigger().textContent).toContain(t("Event"));
+            expect(readSchedule().dataset.allDay).toBe("false");
+            expect(readSchedule().dataset.startTime).toBe("09:15");
+            expect(readSchedule().dataset.endTime).toBe("10:00");
+
+            choose("birthday");
+            expect(readTrigger().textContent).toContain(t("Birthday"));
+            expect(readSchedule().dataset.allDay).toBe("true");
+            expect(readSchedule().dataset.startTime).toBe("09:15");
+            expect(readSchedule().dataset.endTime).toBe("10:00");
+
+            choose("event");
+            expect(readTrigger().textContent).toContain(t("Event"));
+            expect(readSchedule().dataset.allDay).toBe("false");
+            expect(readSchedule().dataset.startTime).toBe("09:15");
+            expect(readSchedule().dataset.endTime).toBe("10:00");
+            expect(readSchedule().dataset.recurring).toBe("false");
+        }
+    );
+
+    it("does not turn an originally all-day Event into a timed Event after Birthday", () => {
+        let returnState:
+            | import("./entryKindSelection").BirthdayReturnState
+            | null = null;
+        let allDay = true;
+        let recurring = false;
+        let recurrence = presetToRecurrence("weekly", "2026-08-29");
+        let startTime = "";
+        let endTime = "";
+
+        const apply = (
+            currentKind: "event" | "birthday",
+            nextKind: "event" | "birthday"
+        ) =>
+            applyEntryKindSelection({
+                currentKind,
+                nextKind,
+                date: "2026-08-29",
+                currentAllDay: allDay,
+                currentIsRecurring: recurring,
+                currentRecurrence: recurrence,
+                currentStartTime: startTime,
+                currentEndTime: endTime,
+                birthdayReturnState: returnState,
+                setBirthdayReturnState: (state) => {
+                    returnState = state;
+                },
+                setTaskStatus: () => {},
+                setAllDay: (value) => {
+                    allDay = value;
+                },
+                setIsRecurring: (value) => {
+                    recurring = value;
+                },
+                setRecurrence: (value) => {
+                    recurrence = value;
+                },
+                setStartTime: (value) => {
+                    startTime = value;
+                },
+                setEndTime: (value) => {
+                    endTime = value;
+                },
+                setDue: () => {},
+                setCustomRepeat: () => {},
+            });
+
+        apply("event", "birthday");
+        expect(allDay).toBe(true);
+        expect(recurring).toBe(true);
+        expect(recurrence.freq).toBe("yearly");
+
+        apply("birthday", "event");
+        expect(allDay).toBe(true);
+        expect(recurring).toBe(false);
+        expect(startTime).toBe("");
+        expect(endTime).toBe("");
+    });
 });

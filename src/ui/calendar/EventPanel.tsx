@@ -55,7 +55,10 @@ import {
     seriesWithoutOccurrence,
 } from "./recurringEdit";
 import { recurringEditChanges } from "./recurringEditChanges";
-import { applyEntryKindSelection } from "./entryKindSelection";
+import {
+    applyEntryKindSelection,
+    BirthdayReturnState,
+} from "./entryKindSelection";
 
 /* NEO_ANDROID_RUNTIME_HELPER_V3_START */
 function isNeoAndroidRuntime(): boolean {
@@ -1151,6 +1154,17 @@ export default function EventPanel({
         setCustomRepeat(false);
     }, [eventId]);
 
+    // Birthday is a temporary presentation of an existing entry. Keep the
+    // schedule it replaced so Event -> Birthday -> Event is reversible while
+    // the panel stays open (including the exact timed-grid position).
+    const birthdayReturnStateRef = useRef<BirthdayReturnState | null>(null);
+    const birthdayReturnOwner =
+        eventId ??
+        (draft ? `${draft.start.getTime()}:${draft.end.getTime()}` : null);
+    useEffect(() => {
+        birthdayReturnStateRef.current = null;
+    }, [birthdayReturnOwner]);
+
     const toggleAllDay = () => {
         const next = !form.allDay;
         form.setAllDay(next);
@@ -1207,10 +1221,21 @@ export default function EventPanel({
             currentKind: entryKind,
             nextKind: kind,
             date: form.date,
+            currentAllDay: form.allDay,
+            currentIsRecurring: form.isRecurring,
+            currentRecurrence: form.recurrence,
+            currentStartTime: form.startTime,
+            currentEndTime: form.endTime,
+            birthdayReturnState: birthdayReturnStateRef.current,
+            setBirthdayReturnState: (state) => {
+                birthdayReturnStateRef.current = state;
+            },
             setTaskStatus: form.setTaskStatus,
             setAllDay: form.setAllDay,
             setIsRecurring: form.setIsRecurring,
             setRecurrence: form.setRecurrence,
+            setStartTime: form.setStartTime,
+            setEndTime: form.setEndTime,
             setDue: form.setDue,
             setCustomRepeat,
         });
