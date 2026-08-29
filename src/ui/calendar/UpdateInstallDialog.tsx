@@ -94,7 +94,9 @@ export function UpdateInstallDialog({
 
                 <div className="nc-update-install-heading">
                     <h2 id="nc-update-install-title">{copy.title}</h2>
-                    <span className="nc-update-install-version">v{version}</span>
+                    <span className="nc-update-install-version">
+                        v{version}
+                    </span>
                 </div>
 
                 {phase === "installing" ? (
