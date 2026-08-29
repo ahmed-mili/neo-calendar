@@ -247,15 +247,10 @@ describe("reminders an event carries itself", () => {
     it("keeps an all-day event quiet when its own reminder list is empty", () => {
         expect(
             build([
-                event(
-                    "whole",
-                    "2026-08-09T00:00:00",
-                    "2026-08-10T00:00:00",
-                    {
-                        allDay: true,
-                        reminders: [],
-                    }
-                ),
+                event("whole", "2026-08-09T00:00:00", "2026-08-10T00:00:00", {
+                    allDay: true,
+                    reminders: [],
+                }),
             ])
         ).toEqual([]);
     });

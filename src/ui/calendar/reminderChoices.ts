@@ -52,8 +52,7 @@ export function allDayReminderLabelParts(
 ): ReminderLabelParts {
     const minutesFromEventDayStart = -minutesBeforeMidnight;
     const dayIndex = Math.floor(minutesFromEventDayStart / 1440);
-    const minutesOfDay =
-        ((minutesFromEventDayStart % 1440) + 1440) % 1440;
+    const minutesOfDay = ((minutesFromEventDayStart % 1440) + 1440) % 1440;
     const hours = Math.floor(minutesOfDay / 60);
     const minutes = minutesOfDay % 60;
     const daysBefore = Math.max(0, -dayIndex);

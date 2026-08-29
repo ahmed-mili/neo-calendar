@@ -210,9 +210,7 @@ describe("event date controls", () => {
                 toJSON: () => ({}),
             } as DOMRect);
         act(() => {
-            reminders.dispatchEvent(
-                new MouseEvent("click", { bubbles: true })
-            );
+            reminders.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         });
 
         const options = Array.from(
