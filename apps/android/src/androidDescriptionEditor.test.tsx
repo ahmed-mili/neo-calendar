@@ -161,9 +161,9 @@ describe("Android description editor", () => {
         expect(accessory.isConnected).toBe(true);
         expect(accessory.hidden).toBe(false);
         expect(accessory.dataset.mode).toBe("expanded");
-        expect(section.classList.contains("nc-description-android-expanded")).toBe(
-            false
-        );
+        expect(
+            section.classList.contains("nc-description-android-expanded")
+        ).toBe(false);
         expect(
             section.classList.contains("nc-description-android-formatting-open")
         ).toBe(true);

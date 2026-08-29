@@ -37,9 +37,7 @@ describe("event panel schedule refresh styles", () => {
         expect(controls).toContain(
             'data-all-day-icon-state={active ? "active" : "idle"}'
         );
-        expect(controls).toContain(
-            'fill={active ? "currentColor" : "none"}'
-        );
+        expect(controls).toContain('fill={active ? "currentColor" : "none"}');
     });
 
     it("leaves Repeat understated when its rule is active", () => {
