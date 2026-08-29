@@ -87,16 +87,16 @@ function placeAccessory(): void {
 }
 
 function syncCommandAvailability(root: HTMLElement): void {
-    root.querySelectorAll<HTMLButtonElement>("[data-nc-description-command]").forEach(
-        (button) => {
-            const command = button.dataset.ncDescriptionCommand;
-            const real =
-                activeSection && command
-                    ? realCommandButton(activeSection, command)
-                    : null;
-            button.disabled = !real || real.disabled;
-        }
-    );
+    root.querySelectorAll<HTMLButtonElement>(
+        "[data-nc-description-command]"
+    ).forEach((button) => {
+        const command = button.dataset.ncDescriptionCommand;
+        const real =
+            activeSection && command
+                ? realCommandButton(activeSection, command)
+                : null;
+        button.disabled = !real || real.disabled;
+    });
 }
 
 function syncAccessory(): void {
@@ -147,7 +147,9 @@ function descriptionControl(target: Element): HTMLElement | null {
 }
 
 export function installAndroidDescriptionEditor(): void {
-    if (typeof window === "undefined" || typeof document === "undefined") return;
+    if (typeof window === "undefined" || typeof document === "undefined") {
+        return;
+    }
     const neoWindow = window as NeoWindow;
     if (neoWindow[INSTALLED_KEY]) return;
     neoWindow[INSTALLED_KEY] = true;
@@ -233,7 +235,9 @@ export function installAndroidDescriptionEditor(): void {
             const target = event.target;
             if (!(target instanceof Node)) return;
             const root = document.getElementById(ACCESSORY_ID);
-            if (!activeSection.contains(target) && !root?.contains(target)) return;
+            if (!activeSection.contains(target) && !root?.contains(target)) {
+                return;
+            }
             expanded = false;
             syncAccessory();
         },
