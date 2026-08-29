@@ -5,7 +5,7 @@ import { act } from "react-dom/test-utils";
 import { DescriptionSection } from "../../../src/ui/calendar/DescriptionSection";
 import "./desktopDescriptionEditor";
 
-function Harness() {
+function Harness({ eventId = "Calendrier/2026-08-29.md" }: { eventId?: string | null }) {
     const [description, setDescription] = React.useState("");
     return (
         <DescriptionSection
@@ -13,7 +13,7 @@ function Harness() {
             editable={true}
             setDescription={setDescription}
             onCommit={() => {}}
-            eventId="Calendrier/2026-08-29.md"
+            eventId={eventId}
             vaults={[]}
             items={[]}
             onPickAttachment={async () => {}}
@@ -170,6 +170,35 @@ describe("desktop description editor", () => {
             null
         );
         expect(field.value).toBe("****");
+        expect(document.activeElement).toBe(field);
+    });
+
+    it("activates the same + transform for a new draft and accepts native keyboard input", () => {
+        act(() => {
+            ReactDOM.render(<Harness eventId={null} />, container);
+        });
+
+        const row = container.querySelector(
+            ".nc-description-composer"
+        ) as HTMLDivElement;
+        const icon = row.querySelector(
+            ":scope > .nc-panel-row-icon"
+        ) as HTMLElement;
+        const field = row.querySelector(
+            "textarea[data-description-input='true']"
+        ) as HTMLTextAreaElement;
+
+        expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
+
+        act(() => {
+            row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        expect(document.activeElement).toBe(field);
+        expect(icon.dataset.ncDescriptionAction).toBe("add");
+
+        nativeKeyboardEdit(field, "d", "d", "insertText", "d");
+        expect(field.value).toBe("d");
         expect(document.activeElement).toBe(field);
     });
 });
