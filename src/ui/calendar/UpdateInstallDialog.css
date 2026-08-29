@@ -1,0 +1,254 @@
+/* ── Integrated Windows updater ──────────────────────────────── */
+
+.nc-update-install-backdrop {
+    --nc-update-surface: var(--background-primary, #17171c);
+    --nc-update-border: var(--background-modifier-border, rgba(255, 255, 255, 0.12));
+    --nc-update-text: var(--text-normal, #f2f2f4);
+    --nc-update-muted: var(--text-muted, #a6a6ad);
+    --nc-update-accent: var(--interactive-accent, #7c6df2);
+    --nc-update-accent-text: var(--text-on-accent, #fff);
+    --nc-update-error: var(--text-error, #e05252);
+
+    position: fixed;
+    inset: 0;
+    z-index: 20050;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.48);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.nc-update-install-dialog {
+    width: min(420px, calc(100vw - 32px));
+    box-sizing: border-box;
+    padding: 24px;
+    border: 1px solid var(--nc-update-border);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--nc-update-surface) 96%, transparent);
+    box-shadow: 0 28px 72px rgba(0, 0, 0, 0.46),
+        0 6px 18px rgba(0, 0, 0, 0.2);
+    color: var(--nc-update-text);
+    animation: nc-update-dialog-in 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.nc-update-install-mark {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 18px;
+    border-radius: 13px;
+    color: var(--nc-update-accent-text);
+    background: var(--nc-update-accent);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--nc-update-accent) 28%, transparent);
+}
+
+.nc-update-install-mark svg {
+    width: 21px;
+    height: 21px;
+}
+
+.nc-update-install-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.nc-update-install-heading h2 {
+    min-width: 0;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 650;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+}
+
+.nc-update-install-version {
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--nc-update-muted);
+}
+
+.nc-update-install-status {
+    margin: 9px 0 14px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--nc-update-muted);
+}
+
+.nc-update-install-progress {
+    position: relative;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--nc-update-text) 10%, transparent);
+}
+
+.nc-update-install-progress > span {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 38%;
+    border-radius: inherit;
+    background: var(--nc-update-accent);
+    animation: nc-update-install-progress 1.15s ease-in-out infinite;
+}
+
+.nc-update-install-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.nc-update-install-step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: 11px;
+    color: color-mix(in srgb, var(--nc-update-muted) 74%, transparent);
+}
+
+.nc-update-install-step i {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    border: 1px solid color-mix(in srgb, var(--nc-update-muted) 48%, transparent);
+    border-radius: 50%;
+    font-style: normal;
+    font-size: 10px;
+    line-height: 1;
+}
+
+.nc-update-install-step.nc-done,
+.nc-update-install-step.nc-active {
+    color: var(--nc-update-text);
+}
+
+.nc-update-install-step.nc-done i {
+    border-color: var(--nc-update-accent);
+    color: var(--nc-update-accent-text);
+    background: var(--nc-update-accent);
+}
+
+.nc-update-install-step.nc-active i {
+    border: 4px solid color-mix(in srgb, var(--nc-update-accent) 32%, transparent);
+    background: var(--nc-update-accent);
+    background-clip: padding-box;
+}
+
+.nc-update-install-hint {
+    margin: 18px 0 0;
+    padding-top: 15px;
+    border-top: 1px solid var(--nc-update-border);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--nc-update-muted);
+}
+
+.nc-update-install-dialog--failed .nc-update-install-mark {
+    color: #fff;
+    background: var(--nc-update-error);
+    box-shadow: none;
+}
+
+.nc-update-install-status--error {
+    color: var(--nc-update-text);
+}
+
+.nc-update-install-error-detail {
+    max-height: 96px;
+    margin: 0;
+    padding: 10px 12px;
+    overflow: auto;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--nc-update-error) 9%, transparent);
+    color: var(--nc-update-muted);
+    font-family: var(--font-monospace, monospace);
+    font-size: 11px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.nc-update-install-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.nc-update-install-actions button {
+    min-height: 36px;
+    padding: 7px 13px;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.nc-update-install-secondary {
+    border: 1px solid var(--nc-update-border);
+    color: var(--nc-update-text);
+    background: transparent !important;
+}
+
+.nc-update-install-primary {
+    border: 1px solid transparent;
+    color: var(--nc-update-accent-text);
+    background: var(--nc-update-accent) !important;
+}
+
+@keyframes nc-update-dialog-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes nc-update-install-progress {
+    from {
+        transform: translateX(-110%);
+    }
+    50% {
+        transform: translateX(120%);
+    }
+    to {
+        transform: translateX(280%);
+    }
+}
+
+@media (max-width: 520px) {
+    .nc-update-install-backdrop {
+        padding: 16px;
+    }
+
+    .nc-update-install-dialog {
+        width: 100%;
+        padding: 20px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nc-update-install-dialog {
+        animation: none;
+    }
+
+    .nc-update-install-progress > span {
+        width: 100%;
+        opacity: 0.58;
+        animation: none;
+    }
+}

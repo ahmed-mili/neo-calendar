@@ -1,7 +1,13 @@
 import * as React from "react";
-import { UPDATE_PROGRESS_EVENT } from "./appUpdates";
+import {
+    UPDATE_INSTALL_ERROR_EVENT,
+    UPDATE_PROGRESS_EVENT,
+    UpdateInstallErrorDetail,
+} from "./appUpdates";
+import { isAndroidRuntime } from "./CalendarUtils";
 import { useUpdateAvailable } from "./useUpdateAvailable";
 import { updateControlState } from "./updateControl";
+import { UpdateInstallDialog } from "./UpdateInstallDialog";
 import { t } from "../i18n";
 
 /** La flèche qui rentre dans son bac : ce qui est descendu, à poser. */
@@ -24,6 +30,11 @@ function InstallIcon() {
  *  finir : assez pour lire « Mettre à jour », pas assez pour occuper la barre. */
 const ANNOUNCE_MS = 4000;
 
+type InstallUiState =
+    | { phase: "idle" }
+    | { phase: "installing"; version: string }
+    | { phase: "failed"; version: string; message: string };
+
 /**
  * La mise à jour : elle descend toute seule, puis elle attend un geste.
  *
@@ -38,10 +49,18 @@ const ANNOUNCE_MS = 4000;
  * temps qu'on le lise, puis se replie en pastille. Sans cela la nouvelle
  * n'était dite qu'au survol : le compteur s'évanouissait en un rond muet de
  * 26 px, et il fallait deviner qu'il fallait passer dessus.
+ *
+ * Sur Windows, le clic ouvre aussi le passage d'installation dans Neo Calendar.
+ * Android garde son comportement natif : son installateur système est le seul
+ * endroit autorisé à poser l'APK, donc aucun faux modal de bureau n'y apparaît.
  */
 export function UpdateBadge({ onInstall }: { onInstall: () => void }) {
     const ready = useUpdateAvailable();
     const [percent, setPercent] = React.useState<number | null>(null);
+    const [installUi, setInstallUi] = React.useState<InstallUiState>({
+        phase: "idle",
+    });
+    const android = isAndroidRuntime();
 
     React.useEffect(() => {
         const onProgress = (event: Event) => {
@@ -53,6 +72,28 @@ export function UpdateBadge({ onInstall }: { onInstall: () => void }) {
         return () =>
             window.removeEventListener(UPDATE_PROGRESS_EVENT, onProgress);
     }, []);
+
+    React.useEffect(() => {
+        if (android) return;
+        const onInstallError = (event: Event) => {
+            const detail = (event as CustomEvent<UpdateInstallErrorDetail>)
+                .detail;
+            setInstallUi((current) => {
+                if (current.phase === "idle") return current;
+                return {
+                    phase: "failed",
+                    version: current.version,
+                    message: detail?.message ?? "",
+                };
+            });
+        };
+        window.addEventListener(UPDATE_INSTALL_ERROR_EVENT, onInstallError);
+        return () =>
+            window.removeEventListener(
+                UPDATE_INSTALL_ERROR_EVENT,
+                onInstallError
+            );
+    }, [android]);
 
     const state = updateControlState({ percent, ready });
     const downloading = state.kind === "downloading";
@@ -80,7 +121,27 @@ export function UpdateBadge({ onInstall }: { onInstall: () => void }) {
         return () => window.clearTimeout(timer);
     }, [state.kind]);
 
-    if (state.kind === "idle") return null;
+    const startInstall = React.useCallback(() => {
+        if (!android) {
+            setInstallUi({ phase: "installing", version: ready });
+        }
+        onInstall();
+    }, [android, onInstall, ready]);
+
+    const dialog =
+        !android && installUi.phase !== "idle" ? (
+            <UpdateInstallDialog
+                version={installUi.version}
+                phase={installUi.phase}
+                message={
+                    installUi.phase === "failed" ? installUi.message : undefined
+                }
+                onRetry={startInstall}
+                onClose={() => setInstallUi({ phase: "idle" })}
+            />
+        ) : null;
+
+    if (state.kind === "idle") return dialog;
 
     const label = downloading
         ? t("Downloading update")
@@ -97,26 +158,31 @@ export function UpdateBadge({ onInstall }: { onInstall: () => void }) {
         .join(" ");
 
     return (
-        <button
-            type="button"
-            className={classes}
-            /* Rien à presser pendant la descente : presser n'interromprait que
-               ce qui est déjà en train de se faire. */
-            disabled={downloading}
-            onClick={onInstall}
-            title={label}
-            aria-label={label}
-        >
-            <span className="nc-update-control__count" aria-hidden="true">
-                {downloading ? state.label ?? "" : lastCount.current}
-            </span>
-            <span className="nc-update-control__icon" aria-hidden="true">
-                <InstallIcon />
-            </span>
-            {/* Le libellé est là en permanence et c'est la largeur qui s'ouvre :
-                l'apparaître au survol le ferait arriver après le mouvement,
-                d'un coup, au lieu de sortir avec la pastille. */}
-            <span className="nc-update-control__label">{t("Update now")}</span>
-        </button>
+        <>
+            <button
+                type="button"
+                className={classes}
+                /* Rien à presser pendant la descente : presser n'interromprait que
+                   ce qui est déjà en train de se faire. */
+                disabled={downloading}
+                onClick={startInstall}
+                title={label}
+                aria-label={label}
+            >
+                <span className="nc-update-control__count" aria-hidden="true">
+                    {downloading ? state.label ?? "" : lastCount.current}
+                </span>
+                <span className="nc-update-control__icon" aria-hidden="true">
+                    <InstallIcon />
+                </span>
+                {/* Le libellé est là en permanence et c'est la largeur qui s'ouvre :
+                    l'apparaître au survol le ferait arriver après le mouvement,
+                    d'un coup, au lieu de sortir avec la pastille. */}
+                <span className="nc-update-control__label">
+                    {t("Update now")}
+                </span>
+            </button>
+            {dialog}
+        </>
     );
 }

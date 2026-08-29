@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import {
     UPDATE_PROGRESS_EVENT,
     noteDownloadedUpdate,
+    reportUpdateInstallError,
     setUpdateInstaller,
 } from "../../../../src/ui/calendar/appUpdates";
 
@@ -16,8 +17,13 @@ import {
  */
 export async function watchDesktopUpdates(): Promise<() => void> {
     // Le contrôle appelle une seule fonction, où qu'il tourne : c'est ici que le
-    // bureau dit comment il pose la sienne.
-    setUpdateInstaller(() => void installPendingUpdate());
+    // bureau dit comment il pose la sienne. Une installation réussie termine le
+    // processus Windows lorsque Tauri remet le paquet à l'installateur ; seul
+    // un rejet revient donc jusqu'ici, et celui-là doit rouvrir le modal avec
+    // une erreur plutôt que devenir une promesse rejetée invisible.
+    setUpdateInstaller(() => {
+        void installPendingUpdate().catch(reportUpdateInstallError);
+    });
     const stopProgress = await listen<number>(
         "neo-update-progress",
         ({ payload }) => {
