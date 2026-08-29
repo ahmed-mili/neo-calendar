@@ -24,6 +24,11 @@ describe("description toolbar formatting", () => {
             expected: "Un <u>mot</u> utile",
             selection: [6, 9],
         },
+        {
+            command: "inline-code",
+            expected: "Un `mot` utile",
+            selection: [4, 7],
+        },
     ])(
         "applies $command around the selected text",
         ({ command, expected, selection }) => {
@@ -49,6 +54,10 @@ describe("description toolbar formatting", () => {
         { command: "ordered-list", expected: "1. Alpha\n2. Beta" },
         { command: "bullet-list", expected: "- Alpha\n- Beta" },
         { command: "checklist", expected: "- [ ] Alpha\n- [ ] Beta" },
+        { command: "heading-1", expected: "# Alpha\n# Beta" },
+        { command: "heading-2", expected: "## Alpha\n## Beta" },
+        { command: "heading-3", expected: "### Alpha\n### Beta" },
+        { command: "quote", expected: "> Alpha\n> Beta" },
     ])("applies $command to every selected line", ({ command, expected }) => {
         const result = applyDescriptionFormat(
             "Alpha\nBeta",
@@ -60,27 +69,44 @@ describe("description toolbar formatting", () => {
         expect(result.text).toBe(expected);
     });
 
-    it("replaces an existing list kind instead of stacking prefixes", () => {
+    it("replaces an existing list or block prefix instead of stacking prefixes", () => {
         const result = applyDescriptionFormat(
-            "- Alpha\n- [ ] Beta",
+            "- Alpha\n> Beta\n### Gamma",
             0,
-            "- Alpha\n- [ ] Beta".length,
+            "- Alpha\n> Beta\n### Gamma".length,
             "ordered-list"
         );
 
-        expect(result.text).toBe("1. Alpha\n2. Beta");
+        expect(result.text).toBe("1. Alpha\n2. Beta\n3. Gamma");
     });
 
-    it("clears inline and list formatting from the selection", () => {
-        const formatted =
-            "**Fort** et _vite_\n- [ ] Vérifier\n2. Fin\n<u>ligne</u>";
-        const result = applyDescriptionFormat(
-            formatted,
-            0,
-            formatted.length,
-            "clear"
-        );
+    it("inserts a horizontal rule on its own line at the caret", () => {
+        const result = applyDescriptionFormat("AvantAprès", 5, 5, "horizontal-rule");
 
-        expect(result.text).toBe("Fort et vite\nVérifier\nFin\nligne");
+        expect(result).toEqual({
+            text: "Avant\n---\nAprès",
+            selectionStart: 10,
+            selectionEnd: 10,
+        });
+    });
+
+    it("has no clear-formatting command anymore", () => {
+        const unavailable: string = "clear";
+        expect(
+            [
+                "bold",
+                "italic",
+                "underline",
+                "inline-code",
+                "ordered-list",
+                "bullet-list",
+                "checklist",
+                "heading-1",
+                "heading-2",
+                "heading-3",
+                "quote",
+                "horizontal-rule",
+            ] satisfies DescriptionFormatCommand[]
+        ).not.toContain(unavailable);
     });
 });
