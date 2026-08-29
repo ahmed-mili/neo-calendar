@@ -5,7 +5,11 @@ import { act } from "react-dom/test-utils";
 import { DescriptionSection } from "../../../src/ui/calendar/DescriptionSection";
 import "./androidDescriptionEditor";
 
-function Harness({ eventId = "Calendrier/2026-08-29.md" }: { eventId?: string | null }) {
+function Harness({
+    eventId = "Calendrier/2026-08-29.md",
+}: {
+    eventId?: string | null;
+}) {
     const [description, setDescription] = React.useState("");
     return (
         <DescriptionSection
@@ -25,7 +29,6 @@ describe("Android description editor", () => {
     let container: HTMLDivElement;
     let animationFrames: FrameRequestCallback[];
     const originalRequestAnimationFrame = window.requestAnimationFrame;
-
     beforeEach(() => {
         document.documentElement.classList.add("nc-platform-android");
         document.body.classList.add("nc-platform-android");
@@ -37,7 +40,6 @@ describe("Android description editor", () => {
             return animationFrames.length;
         };
     });
-
     afterEach(() => {
         act(() => {
             ReactDOM.unmountComponentAtNode(container);
@@ -48,12 +50,10 @@ describe("Android description editor", () => {
         document.body.classList.remove("nc-platform-android");
         window.requestAnimationFrame = originalRequestAnimationFrame;
     });
-
     const flushAnimationFrames = () => {
         const callbacks = animationFrames.splice(0);
         act(() => callbacks.forEach((callback) => callback(0)));
     };
-
     const press = (button: HTMLElement) => {
         act(() => {
             button.dispatchEvent(
@@ -79,7 +79,6 @@ describe("Android description editor", () => {
             );
         });
     };
-
     const nativeKeyboardEdit = (
         field: HTMLTextAreaElement,
         value: string,
@@ -92,7 +91,6 @@ describe("Android description editor", () => {
             "value"
         )?.set;
         expect(setter).toBeTruthy();
-
         act(() => {
             field.dispatchEvent(
                 new KeyboardEvent("keydown", {
@@ -114,12 +112,10 @@ describe("Android description editor", () => {
             );
         });
     };
-
     it("shows paperclip + A after Description focus, never a +, then exposes a horizontal formatting strip without breaking typing", () => {
         act(() => {
             ReactDOM.render(<Harness />, container);
         });
-
         const row = container.querySelector(
             ".nc-description-composer"
         ) as HTMLDivElement;
@@ -129,19 +125,15 @@ describe("Android description editor", () => {
         const field = row.querySelector(
             "textarea[data-description-input='true']"
         ) as HTMLTextAreaElement;
-
         expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
         expect(
             document.getElementById("nc-description-android-accessory")
         ).toBeNull();
-
         act(() => {
             row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         });
-
         expect(document.activeElement).toBe(field);
         expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
-
         const accessory = document.getElementById(
             "nc-description-android-accessory"
         ) as HTMLDivElement;
@@ -153,34 +145,28 @@ describe("Android description editor", () => {
                 '[data-nc-description-command="attachment"]'
             )
         ).toBeTruthy();
-
         const formatToggle = accessory.querySelector(
             '[data-nc-description-accessory="format"]'
         ) as HTMLButtonElement;
         expect(formatToggle.textContent).toBe("A");
         press(formatToggle);
-
         expect(accessory.dataset.mode).toBe("expanded");
         expect(
             accessory.querySelector(".nc-description-android-format-scroll")
         ).toBeTruthy();
         expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
         expect(document.activeElement).toBe(field);
-
         const bold = accessory.querySelector(
             '[data-nc-description-command="bold"]'
         ) as HTMLButtonElement;
         press(bold);
         flushAnimationFrames();
-
         expect(field.value).toBe("****");
         expect(document.activeElement).toBe(field);
-
         field.setSelectionRange(2, 2);
         nativeKeyboardEdit(field, "**a**", "a", "insertText", "a");
         expect(field.value).toBe("**a**");
         expect(document.activeElement).toBe(field);
-
         field.setSelectionRange(3, 3);
         nativeKeyboardEdit(
             field,
@@ -192,12 +178,10 @@ describe("Android description editor", () => {
         expect(field.value).toBe("****");
         expect(document.activeElement).toBe(field);
     });
-
     it("keeps a new draft on the Android keyboard path with no + and accepts native input", () => {
         act(() => {
             ReactDOM.render(<Harness eventId={null} />, container);
         });
-
         const row = container.querySelector(
             ".nc-description-composer"
         ) as HTMLDivElement;
@@ -207,24 +191,20 @@ describe("Android description editor", () => {
         const field = row.querySelector(
             "textarea[data-description-input='true']"
         ) as HTMLTextAreaElement;
-
         act(() => {
             row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         });
-
         const accessory = document.getElementById(
             "nc-description-android-accessory"
         ) as HTMLDivElement;
         const attachment = accessory.querySelector(
             '[data-nc-description-command="attachment"]'
         ) as HTMLButtonElement;
-
         expect(document.activeElement).toBe(field);
         expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
         expect(accessory.hidden).toBe(false);
         expect(accessory.dataset.mode).toBe("compact");
         expect(attachment.disabled).toBe(true);
-
         nativeKeyboardEdit(field, "d", "d", "insertText", "d");
         expect(field.value).toBe("d");
         expect(document.activeElement).toBe(field);
