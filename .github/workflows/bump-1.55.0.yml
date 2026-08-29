@@ -1,0 +1,32 @@
+name: Bump v1.55.0 once
+
+on:
+    push:
+        branches:
+            - "feature/description-editor-1.55.0"
+
+permissions:
+    contents: write
+
+jobs:
+    bump:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+              with:
+                  fetch-depth: 0
+
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+              with:
+                  node-version: "20"
+
+            - name: Synchroniser la version 1.55.0
+              run: |
+                  node scripts/set-version.mjs 1.55.0
+                  rm .github/workflows/bump-1.55.0.yml
+
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add --all
+                  git commit -m "Bump version to 1.55.0"
+                  git push origin HEAD:feature/description-editor-1.55.0
