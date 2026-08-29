@@ -1,128 +1,52 @@
-name: Normalize date controls branch
+name: PR validation
 
 on:
     pull_request:
     workflow_dispatch:
 
 permissions:
-    contents: write
+    contents: read
 
 jobs:
-    normalize:
-        if: github.head_ref == 'feature/notion-date-controls'
+    validate:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
               with:
-                  ref: feature/notion-date-controls
+                  ref: ${{ github.event.pull_request.head.sha || github.sha }}
                   fetch-depth: 0
             - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
               with:
                   node-version: "20"
                   cache: npm
+                  cache-dependency-path: |
+                      package-lock.json
+                      apps/windows/package-lock.json
+                      apps/android/package-lock.json
             - name: Install root dependencies
               run: npm install --no-audit --no-fund
-            - name: Restore the original EventPanelRows implementation layout
+            - name: Install Windows dependencies
+              run: npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
+            - name: Install Android dependencies
+              run: npm --prefix apps/android install --ignore-scripts --no-audit --no-fund
+            - name: Tests
+              run: npm test
+            - name: Formatting of changed TypeScript files
               shell: bash
               run: |
                   set -euo pipefail
-                  if [ -f src/ui/calendar/EventPanelRowsLegacy.tsx ]; then
-                    cp src/ui/calendar/EventPanelRowsLegacy.tsx src/ui/calendar/EventPanelRows.tsx
-                    rm src/ui/calendar/EventPanelRowsLegacy.tsx
+                  if [ "${{ github.event_name }}" = "pull_request" ]; then
+                    BASE="${{ github.event.pull_request.base.sha }}"
+                    HEAD="${{ github.event.pull_request.head.sha }}"
+                  else
+                    HEAD="$(git rev-parse HEAD)"
+                    BASE="$(git rev-parse HEAD^)"
                   fi
-                  node <<'NODE'
-                  const fs = require('fs');
-                  const path = 'src/ui/calendar/EventPanel.tsx';
-                  let source = fs.readFileSync(path, 'utf8');
-                  source = source.replace('    DateOptionsRow,\n', '');
-                  if (!source.includes('from "./EventDateControls"')) {
-                    source = source.replace(
-                      '} from "./EventPanelRows";\n',
-                      '} from "./EventPanelRows";\nimport { DateOptionsRow } from "./EventDateControls";\n'
-                    );
-                  }
-                  fs.writeFileSync(path, source);
-                  NODE
-                  cat > src/ui/calendar/EventPanel.empty-title.test.ts <<'EOF'
-                  import * as fs from "fs";
-                  import * as path from "path";
-                  import {
-                      hasDraftCreationIntent,
-                      shouldAutoCommitDraft,
-                  } from "./EventPanel.helpers";
-
-                  const panel = fs.readFileSync(path.join(__dirname, "EventPanel.tsx"), "utf8");
-                  const form = fs.readFileSync(
-                      path.join(__dirname, "useEventFormState.ts"),
-                      "utf8"
-                  );
-                  const rows = fs.readFileSync(
-                      path.join(__dirname, "EventPanelRows.tsx"),
-                      "utf8"
-                  );
-
-                  describe("unnamed events", () => {
-                      it("does not suppress saves or delete an event when its title is empty", () => {
-                          expect(panel).not.toContain("if (!form.title) return");
-                          expect(panel).not.toContain("onRevertToDraft");
-                          expect(panel).toContain("onDraftCommit(form.title.trim(), payload");
-                      });
-
-                      it("keeps a dateless event unscheduled until a date is selected", () => {
-                          expect(form).toContain('type: "someday"');
-                          expect(form).toContain('type: "single"');
-                          expect(rows).toContain('label || date || t("Add date")');
-                      });
-
-                      it("does not persist an unnamed grid draft from a simple click", () => {
-                          expect(hasDraftCreationIntent("   ")).toBe(false);
-                          expect(
-                              shouldAutoCommitDraft({
-                                  isDraft: true,
-                                  hasDraft: true,
-                                  date: "2026-07-20",
-                                  title: "",
-                                  alreadyCommitting: false,
-                              })
-                          ).toBe(false);
-                      });
-
-                      it("still auto-commits a grid draft after the user enters a title", () => {
-                          expect(
-                              shouldAutoCommitDraft({
-                                  isDraft: true,
-                                  hasDraft: true,
-                                  date: "2026-07-20",
-                                  title: "Réunion",
-                                  alreadyCommitting: false,
-                              })
-                          ).toBe(true);
-                      });
-                  });
-                  EOF
-            - name: Format changed date-control sources
-              run: |
-                  npx prettier --write \
-                    src/ui/calendar/EventDateControls.test.tsx \
-                    src/ui/calendar/EventDateControls.tsx \
-                    src/ui/calendar/EventPanel.tsx \
-                    src/ui/calendar/EventPanelDateDisplay.test.ts \
-                    src/ui/calendar/EventPanel.empty-title.test.ts
-            - name: Commit normalized implementation
-              shell: bash
-              run: |
-                  set -euo pipefail
-                  if git diff --quiet; then
-                    exit 0
+                  git diff --name-only --diff-filter=ACMR "$BASE" "$HEAD" -- '*.ts' '*.tsx' > /tmp/changed-ts-files
+                  if [ -s /tmp/changed-ts-files ]; then
+                    xargs npx prettier --check < /tmp/changed-ts-files
                   fi
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git add src/ui/calendar/EventPanelRows.tsx \
-                          src/ui/calendar/EventPanelRowsLegacy.tsx \
-                          src/ui/calendar/EventPanel.tsx \
-                          src/ui/calendar/EventDateControls.tsx \
-                          src/ui/calendar/EventDateControls.test.tsx \
-                          src/ui/calendar/EventPanelDateDisplay.test.ts \
-                          src/ui/calendar/EventPanel.empty-title.test.ts
-                  git commit -m "Normalize compact date controls implementation"
-                  git push origin HEAD:feature/notion-date-controls
+            - name: Windows frontend build
+              run: npm --prefix apps/windows run build
+            - name: Android frontend build
+              run: npm --prefix apps/android run build
