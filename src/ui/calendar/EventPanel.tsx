@@ -55,6 +55,7 @@ import {
     seriesWithoutOccurrence,
 } from "./recurringEdit";
 import { recurringEditChanges } from "./recurringEditChanges";
+import { applyEntryKindSelection } from "./entryKindSelection";
 
 /* NEO_ANDROID_RUNTIME_HELPER_V3_START */
 function isNeoAndroidRuntime(): boolean {
@@ -1197,22 +1198,22 @@ export default function EventPanel({
     };
 
     /**
-     * Choosing what an entry is.
-     *
-     * A birthday is the only one of the three that is more than a label: it
-     * takes the whole day and comes back each year, which is what makes it one.
-     * Turning it off leaves those where they are — the entry keeps the shape it
-     * was given, and only stops being CALLED a birthday.
+     * Choosing what an entry is. Birthday is encoded by the existing all-day +
+     * yearly shape, so explicitly leaving it must clear that yearly marker; if
+     * it does not, `entryKind` is inferred as Birthday again on the next render.
      */
     const setEntryKind = (kind: EntryKind) => {
-        form.setTaskStatus(kind === "task" ? "todo" : null);
-        if (kind === "birthday") {
-            form.setAllDay(true);
-            form.setIsRecurring(true);
-            form.setRecurrence(presetToRecurrence("yearly", form.date));
-            form.setDue(null);
-            setCustomRepeat(false);
-        }
+        applyEntryKindSelection({
+            currentKind: entryKind,
+            nextKind: kind,
+            date: form.date,
+            setTaskStatus: form.setTaskStatus,
+            setAllDay: form.setAllDay,
+            setIsRecurring: form.setIsRecurring,
+            setRecurrence: form.setRecurrence,
+            setDue: form.setDue,
+            setCustomRepeat,
+        });
         scheduleAutoSave();
     };
 

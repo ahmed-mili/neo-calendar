@@ -4,6 +4,8 @@ import * as ReactDOM from "react-dom";
 import { act, Simulate } from "react-dom/test-utils";
 import { PanelHeader, TitleRow } from "./EventPanelRows";
 import { t } from "../i18n";
+import { applyEntryKindSelection } from "./entryKindSelection";
+import { presetToRecurrence } from "./recurrence";
 
 function titleNativeInput(field: HTMLInputElement, value: string) {
     const setter = Object.getOwnPropertyDescriptor(
@@ -145,4 +147,77 @@ describe("event panel header refresh", () => {
         });
         expect(field.value).toBe("Titl");
     });
+
+    it.each([false, true])(
+        "switches Birthday back to Event through the real menu (draft=%s)",
+        (isDraft) => {
+            const host = document.createElement("div");
+            document.body.appendChild(host);
+
+            function Harness() {
+                const [taskStatus, setTaskStatus] = React.useState<
+                    "todo" | null
+                >(null);
+                const [allDay, setAllDay] = React.useState(true);
+                const [isRecurring, setIsRecurring] = React.useState(true);
+                const [recurrence, setRecurrence] = React.useState(
+                    presetToRecurrence("yearly", "2026-08-29")
+                );
+                const [, setDue] = React.useState<string | null>(null);
+                const [, setCustomRepeat] = React.useState(false);
+                const kind =
+                    taskStatus !== null
+                        ? "task"
+                        : allDay && isRecurring && recurrence.freq === "yearly"
+                        ? "birthday"
+                        : "event";
+
+                return (
+                    <PanelHeader
+                        isDraft={isDraft}
+                        isTask={taskStatus !== null}
+                        kind={kind}
+                        setKind={(nextKind) =>
+                            applyEntryKindSelection({
+                                currentKind: kind,
+                                nextKind,
+                                date: "2026-08-29",
+                                setTaskStatus,
+                                setAllDay,
+                                setIsRecurring,
+                                setRecurrence,
+                                setDue: () => setDue(null),
+                                setCustomRepeat,
+                            })
+                        }
+                        editable={true}
+                        eventId={isDraft ? null : "birthday.md"}
+                        menuOpen={false}
+                        menuRef={React.createRef<HTMLDivElement>()}
+                        headerRef={React.createRef<HTMLDivElement>()}
+                        onHeaderMouseDown={() => {}}
+                        onToggleMenu={() => {}}
+                        onOpenFile={() => {}}
+                        onDeleteClick={() => {}}
+                        onClose={() => {}}
+                    />
+                );
+            }
+
+            act(() => ReactDOM.render(<Harness />, host));
+            const trigger = host.querySelector(
+                ".nc-panel-kind-trigger"
+            ) as HTMLButtonElement;
+            expect(trigger.textContent).toContain(t("Birthday"));
+
+            act(() => Simulate.click(trigger));
+            const eventOption = document.body.querySelector(
+                ".nc-panel-kind-option[data-kind='event']"
+            ) as HTMLButtonElement;
+            expect(eventOption).toBeTruthy();
+            act(() => Simulate.click(eventOption));
+
+            expect(trigger.textContent).toContain(t("Event"));
+        }
+    );
 });
