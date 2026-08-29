@@ -2,10 +2,15 @@ export type DescriptionFormatCommand =
     | "bold"
     | "italic"
     | "underline"
+    | "inline-code"
     | "ordered-list"
     | "bullet-list"
     | "checklist"
-    | "clear";
+    | "heading-1"
+    | "heading-2"
+    | "heading-3"
+    | "quote"
+    | "horizontal-rule";
 
 export interface DescriptionFormatResult {
     text: string;
@@ -19,6 +24,7 @@ const INLINE_MARKS: Partial<
     bold: ["**", "**"],
     italic: ["_", "_"],
     underline: ["<u>", "</u>"],
+    "inline-code": ["`", "`"],
 };
 
 function normalizedSelection(
@@ -40,24 +46,56 @@ function lineRange(text: string, start: number, end: number): [number, number] {
 
 function splitLinePrefix(line: string): { indent: string; content: string } {
     const match =
-        /^(\s*)(?:(?:- \[[ xX]\] )|(?:[-*+] )|(?:\d+[.)] ))?(.*)$/.exec(line);
+        /^(\s*)(?:(?:#{1,3} )|(?:> )|(?:- \[[ xX]\] )|(?:[-*+] )|(?:\d+[.)] ))?(.*)$/.exec(
+            line
+        );
     return {
         indent: match?.[1] ?? "",
         content: match?.[2] ?? line,
     };
 }
 
-function clearInlineFormatting(text: string): string {
-    let next = text;
-    let previous = "";
-    while (next !== previous) {
-        previous = next;
-        next = next
-            .replace(/<u>([\s\S]*?)<\/u>/g, "$1")
-            .replace(/\*\*([\s\S]*?)\*\*/g, "$1")
-            .replace(/_([^_\n]+)_/g, "$1");
+function linePrefix(
+    command: Exclude<
+        DescriptionFormatCommand,
+        "bold" | "italic" | "underline" | "inline-code" | "horizontal-rule"
+    >,
+    index: number
+): string {
+    switch (command) {
+        case "heading-1":
+            return "# ";
+        case "heading-2":
+            return "## ";
+        case "heading-3":
+            return "### ";
+        case "quote":
+            return "> ";
+        case "ordered-list":
+            return `${index + 1}. `;
+        case "checklist":
+            return "- [ ] ";
+        case "bullet-list":
+            return "- ";
     }
-    return next;
+}
+
+function insertHorizontalRule(
+    text: string,
+    start: number,
+    end: number
+): DescriptionFormatResult {
+    const before = text.slice(0, start);
+    const after = text.slice(end);
+    const leadingBreak = before.length > 0 && !before.endsWith("\n") ? "\n" : "";
+    const trailingBreak = after.length > 0 && !after.startsWith("\n") ? "\n" : "";
+    const inserted = `${leadingBreak}---${trailingBreak}`;
+    const caret = start + inserted.length;
+    return {
+        text: before + inserted + after,
+        selectionStart: caret,
+        selectionEnd: caret,
+    };
 }
 
 export function applyDescriptionFormat(
@@ -87,21 +125,16 @@ export function applyDescriptionFormat(
         };
     }
 
+    if (command === "horizontal-rule") {
+        return insertHorizontalRule(text, start, end);
+    }
+
     const [from, to] = lineRange(text, start, end);
     const lines = text.slice(from, to).split("\n");
     const formatted = lines
         .map((line, index) => {
             const { indent, content } = splitLinePrefix(line);
-            if (command === "clear") {
-                return indent + clearInlineFormatting(content);
-            }
-            const prefix =
-                command === "ordered-list"
-                    ? `${index + 1}. `
-                    : command === "checklist"
-                    ? "- [ ] "
-                    : "- ";
-            return indent + prefix + content;
+            return indent + linePrefix(command, index) + content;
         })
         .join("\n");
 
