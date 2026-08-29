@@ -80,8 +80,12 @@ describe("event date controls", () => {
         expect(controls).toHaveLength(2);
         expect(allDay).not.toBeNull();
         expect(repeat).not.toBeNull();
-        expect(allDay.querySelector(".nc-panel-date-option-icon svg")).not.toBeNull();
-        expect(repeat.querySelector(".nc-panel-date-option-icon svg")).not.toBeNull();
+        expect(
+            allDay.querySelector(".nc-panel-date-option-icon svg")
+        ).not.toBeNull();
+        expect(
+            repeat.querySelector(".nc-panel-date-option-icon svg")
+        ).not.toBeNull();
         expect(allDay.getAttribute("aria-pressed")).toBe("false");
         expect(allDay.classList.contains("nc-active")).toBe(false);
         expect(repeat.textContent).toBe("Répéter");
@@ -206,7 +210,9 @@ describe("event date controls", () => {
                 toJSON: () => ({}),
             } as DOMRect);
         act(() => {
-            reminders.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+            reminders.dispatchEvent(
+                new MouseEvent("click", { bubbles: true })
+            );
         });
 
         const options = Array.from(
@@ -221,7 +227,9 @@ describe("event date controls", () => {
         expect(options[1].textContent).toContain("1 jour avant");
 
         act(() => {
-            options[0].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+            options[0].dispatchEvent(
+                new MouseEvent("click", { bubbles: true })
+            );
         });
         expect(reminders.textContent).toContain("09:00");
         expect(reminders.textContent).toContain("Same day");

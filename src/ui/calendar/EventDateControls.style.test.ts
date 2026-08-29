@@ -15,9 +15,7 @@ describe("event panel schedule refresh styles", () => {
         expect(css).toMatch(
             /\.nc-panel-date-option\s*\{[^}]*background: transparent !important;/s
         );
-        expect(css).toContain(
-            ".nc-panel-date-option + .nc-panel-date-option"
-        );
+        expect(css).toContain(".nc-panel-date-option + .nc-panel-date-option");
     });
 
     it("makes active All-day use the accent while leaving Repeat understated", () => {

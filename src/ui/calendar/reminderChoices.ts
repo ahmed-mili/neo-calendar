@@ -24,9 +24,7 @@ let allDayDisplay = false;
 
 export function setReminderDisplayAllDay(allDay: boolean): void {
     allDayDisplay = allDay;
-    const next = allDay
-        ? ALL_DAY_REMINDER_CHOICES
-        : TIMED_REMINDER_CHOICES;
+    const next = allDay ? ALL_DAY_REMINDER_CHOICES : TIMED_REMINDER_CHOICES;
     REMINDER_CHOICES.splice(0, REMINDER_CHOICES.length, ...next);
 }
 
@@ -66,8 +64,8 @@ export function allDayReminderLabelParts(
             daysBefore === 0
                 ? t("Same day")
                 : daysBefore === 1
-                  ? `${t("1 day")} ${t("before")}`
-                  : `${daysBefore} ${t("days")} ${t("before")}`,
+                ? `${t("1 day")} ${t("before")}`
+                : `${daysBefore} ${t("days")} ${t("before")}`,
     };
 }
 

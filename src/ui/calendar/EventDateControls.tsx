@@ -39,8 +39,20 @@ interface DateOptionsRowProps {
 
 function AllDayIcon() {
     return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <circle cx="8" cy="8" r="2.6" stroke="currentColor" strokeWidth="1.25" />
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+        >
+            <circle
+                cx="8"
+                cy="8"
+                r="2.6"
+                stroke="currentColor"
+                strokeWidth="1.25"
+            />
             <path
                 d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.15 1.15M11.45 11.45l1.15 1.15M12.6 3.4l-1.15 1.15M4.55 11.45 3.4 12.6"
                 stroke="currentColor"
@@ -145,7 +157,9 @@ export function DateOptionsRow({
                 <span className="nc-panel-date-option-icon">
                     <AllDayIcon />
                 </span>
-                <span className="nc-panel-date-option-label">{t("All-day")}</span>
+                <span className="nc-panel-date-option-label">
+                    {t("All-day")}
+                </span>
             </button>
             <button
                 type="button"
@@ -162,7 +176,9 @@ export function DateOptionsRow({
                 <span className="nc-panel-date-option-icon">
                     <RepeatIcon />
                 </span>
-                <span className="nc-panel-date-option-label">{repeatLabel}</span>
+                <span className="nc-panel-date-option-label">
+                    {repeatLabel}
+                </span>
             </button>
 
             {open &&
