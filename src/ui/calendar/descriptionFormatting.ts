@@ -6,6 +6,7 @@ export type DescriptionFormatCommand =
     | "ordered-list"
     | "bullet-list"
     | "checklist"
+    | "subtask"
     | "heading-1"
     | "heading-2"
     | "heading-3"
@@ -75,6 +76,8 @@ function linePrefix(
             return `${index + 1}. `;
         case "checklist":
             return "- [ ] ";
+        case "subtask":
+            return "    - [ ] ";
         case "bullet-list":
             return "- ";
     }
@@ -134,7 +137,9 @@ export function applyDescriptionFormat(
     const formatted = lines
         .map((line, index) => {
             const { indent, content } = splitLinePrefix(line);
-            return indent + linePrefix(command, index) + content;
+            const prefix = linePrefix(command, index);
+            const nextIndent = command === "subtask" ? "" : indent;
+            return nextIndent + prefix + content;
         })
         .join("\n");
 
