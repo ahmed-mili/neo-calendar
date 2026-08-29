@@ -5,7 +5,9 @@ const ACTIVE_CLASS = "nc-description-android-active";
 const EXPANDED_CLASS = "nc-description-android-expanded";
 const INSTALLED_KEY = "__neoCalendarAndroidDescriptionEditorInstalled";
 
-type NeoWindow = Window & Record<string, unknown>;
+type NeoWindow = Window & {
+    [INSTALLED_KEY]?: boolean;
+};
 
 let activeSection: HTMLElement | null = null;
 let expanded = false;
