@@ -134,6 +134,11 @@ body.nc-platform-android
     scrollbar-width: none;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+}
+
+.nc-description-android-format-scroll .nc-description-android-format-button {
+    touch-action: pan-x;
 }
 
 .nc-description-android-format-scroll::-webkit-scrollbar {

@@ -2,7 +2,7 @@ import { OPEN_DESCRIPTION_LINK_DIALOG_EVENT } from "../../../src/ui/calendar/des
 
 const ACCESSORY_ID = "nc-description-android-accessory";
 const ACTIVE_CLASS = "nc-description-android-active";
-const EXPANDED_CLASS = "nc-description-android-expanded";
+const EXPANDED_CLASS = "nc-description-android-formatting-open";
 const INSTALLED_KEY = "__neoCalendarAndroidDescriptionEditorInstalled";
 
 type NeoWindow = Window & {
