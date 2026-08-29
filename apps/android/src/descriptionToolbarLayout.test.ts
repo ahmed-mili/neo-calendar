@@ -22,56 +22,62 @@ const androidCss = fs.readFileSync(
 const css = `${sharedCss}\n${androidCss}`;
 const main = fs.readFileSync(path.join(__dirname, "main.tsx"), "utf8");
 
-const declarationsOrEmpty = (selector: string) => {
-    try {
-        return declarationsFor(css, selector);
-    } catch {
-        return {};
-    }
-};
-
-describe("the description toolbar inside the event panel", () => {
-    it("keeps every desktop command inside the available width", () => {
-        const toolbar = declarationsFor(css, ".nc-description-toolbar");
-
-        expect(toolbar.display).toBe("grid");
-        expect(toolbar["grid-template-columns"]).toBe(
-            "repeat(8, minmax(0, 1fr))"
-        );
-        expect(toolbar["overflow-x"]).toBeUndefined();
-    });
-
-    it("keeps all Android commands on one compact row", () => {
+describe("the Android description keyboard accessory", () => {
+    it("keeps the React formatting engine out of the permanent Description row", () => {
         const toolbar = declarationsFor(
             css,
-            "body.nc-platform-android .nc-description-toolbar"
+            "body.nc-platform-android .nc-description-section .nc-description-toolbar"
+        );
+
+        expect(toolbar.display).toBe("none");
+    });
+
+    it("anchors the compact accessory above the visible keyboard viewport", () => {
+        const accessory = declarationsFor(
+            css,
+            ".nc-description-android-accessory"
+        );
+        const button = declarationsFor(
+            css,
+            ".nc-description-android-accessory-button"
+        );
+
+        expect(accessory.position).toBe("fixed");
+        expect(accessory.bottom).toContain("--nc-description-keyboard-inset");
+        expect(accessory.height).toBe("48px");
+        expect(button.width).toBe("44px");
+        expect(button.height).toBe("44px");
+    });
+
+    it("replaces the compact bar with one horizontally scrollable formatting strip", () => {
+        const strip = declarationsFor(
+            css,
+            ".nc-description-android-format-scroll"
         );
         const tool = declarationsFor(
             css,
-            "body.nc-platform-android .nc-description-toolbar .nc-description-tool"
+            ".nc-description-android-format-button"
         );
 
-        expect(toolbar["grid-template-columns"]).toBe(
-            "repeat(8, minmax(0, 1fr))"
-        );
-        expect(toolbar["row-gap"]).toBe("0");
-        expect(tool.width).toBe("min(44px, 100%)");
+        expect(strip.display).toBe("flex");
+        expect(strip["overflow-x"]).toBe("auto");
+        expect(strip["overflow-y"]).toBe("hidden");
+        expect(strip["scrollbar-width"]).toBe("none");
+        expect(tool["flex"]).toBe("0 0 44px");
         expect(tool.height).toBe("44px");
     });
 
-    it("loads the Android correction after the general mobile stylesheet", () => {
+    it("loads the Android correction after mobile.css and installs its interaction helper", () => {
         const mobileImport = main.indexOf('import "./mobile.css";');
         const toolbarImport = main.indexOf(
             'import "./descriptionToolbar.css";'
         );
+        const editorImport = main.indexOf(
+            'import "./androidDescriptionEditor";'
+        );
 
         expect(mobileImport).toBeGreaterThanOrEqual(0);
         expect(toolbarImport).toBeGreaterThan(mobileImport);
-    });
-
-    it("does not let hidden tooltips widen the scrolling panel", () => {
-        const tooltip = declarationsOrEmpty(".nc-description-tool::after");
-
-        expect(tooltip.content).toBeUndefined();
+        expect(editorImport).toBeGreaterThan(toolbarImport);
     });
 });
