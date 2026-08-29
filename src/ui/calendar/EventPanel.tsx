@@ -31,7 +31,6 @@ import {
     CustomRecurrencePanel,
     RemindersRow,
     CalendarRow,
-    TypeRow,
     StatusRow,
 } from "./EventPanelRows";
 import { DateOptionsRow } from "./EventDateControls";
@@ -55,6 +54,7 @@ import {
     occurrenceIsDone,
     seriesWithoutOccurrence,
 } from "./recurringEdit";
+import { recurringEditChanges } from "./recurringEditChanges";
 
 /* NEO_ANDROID_RUNTIME_HELPER_V3_START */
 function isNeoAndroidRuntime(): boolean {
@@ -1224,15 +1224,6 @@ export default function EventPanel({
     );
     const dateLabel = useMemo(() => formatPanelDate(form.date), [form.date]);
 
-    /* Le coin du panneau : l'état de la tâche, ou ce que l'entrée est. */
-    const headerLabel = isTask
-        ? form.taskStatus === "complete"
-            ? t("Done")
-            : t("To do")
-        : entryKind === "birthday"
-        ? t("Birthday")
-        : t("Event");
-
     // Multi-day events already own an explicit endDate. The previous UI ignored
     // it and only guessed "tomorrow" from an overnight time range, which made a
     // Fri→Mon event either look single-day or show the wrong Saturday endpoint.
@@ -1269,6 +1260,19 @@ export default function EventPanel({
         ? document.getElementById("nc-android-overlay-root") ?? document.body
         : document.body;
     // NEO_ANDROID_PORTAL_TARGET_V3_END
+
+    const scopeChanges =
+        scopeAsked && stableEvent
+            ? recurringEditChanges(stableEvent, form.buildPayload(), {
+                  previousCalendarId: originalCalendarIdRef.current,
+                  nextCalendarId:
+                      editableCalendars[form.calendarIndex]?.id ?? null,
+                  previousCalendarLabel: stableCalInfo.name,
+                  nextCalendarLabel:
+                      editableCalendars[form.calendarIndex]?.name ??
+                      stableCalInfo.name,
+              })
+            : [];
 
     return ReactDOM.createPortal(
         <div
@@ -1322,7 +1326,8 @@ export default function EventPanel({
                 sheetHandle={sheetHandle}
                 isDraft={isDraft}
                 isTask={isTask}
-                label={headerLabel}
+                kind={entryKind}
+                setKind={setEntryKind}
                 editable={stableCalInfo.editable}
                 eventId={eventId}
                 menuOpen={menuOpen}
@@ -1391,118 +1396,117 @@ export default function EventPanel({
                     onCommit={onTitleCommit}
                 />
 
-                {/* What it is, before anything else about it. */}
-                <TypeRow
-                    kind={entryKind}
-                    editable={stableCalInfo.editable}
-                    setKind={setEntryKind}
-                />
-
-                <DateRow
-                    date={form.date}
-                    dateLabel={dateLabel}
-                    endDateLabel={endDateLabel}
-                    endDate={endDateValue}
-                    startTime={form.startTime}
-                    endTime={form.endTime}
-                    duration={duration}
-                    allDay={form.allDay}
-                    isRecurring={form.isRecurring}
-                    editable={stableCalInfo.editable}
-                    firstDay={firstDay}
-                    setDate={form.setDate}
-                    setEndDate={form.setEndDate}
-                    setStartTime={form.setStartTime}
-                    setEndTime={form.setEndTime}
-                    // Back to the unscheduled list. Every field that only a
-                    // DATED event can carry has to go with the date, because
-                    // buildPayload reads them all: a repeat left standing would
-                    // send the payload down the rrule branch and write a series
-                    // whose start date is the empty string, and times left
-                    // standing would keep `allDay: false` — the one thing a
-                    // someday can never be — leaving stale hours in the note.
-                    //
-                    // The same note the drag-onto-the-panel route writes, by the
-                    // same reasoning: see buildUnscheduledPayload.
-                    //
-                    // Nothing is saved from here. The panel's change-watching
-                    // effect already follows date, endDate, allDay, startTime,
-                    // endTime and isRecurring, and fires once React has applied
-                    // the finished state.
-                    onClearDate={
-                        isDraft
-                            ? undefined
-                            : () => {
-                                  form.setDate("");
-                                  form.setEndDate(undefined);
-                                  form.setIsRecurring(false);
-                                  form.setAllDay(true);
-                                  form.setStartTime("");
-                                  form.setEndTime("");
-                              }
-                    }
-                    onAutoSave={autoSave}
-                />
-
-                <DateOptionsRow
-                    allDay={form.allDay}
-                    editable={stableCalInfo.editable}
-                    onToggleAllDay={toggleAllDay}
-                    isRecurring={form.isRecurring}
-                    currentPreset={currentPreset}
-                    summary={repeatSummary}
-                    onChooseRepeat={chooseRepeat}
-                />
-
-                {form.isRecurring && customRepeat && customRecurrenceOpen && (
-                    <CustomRecurrencePanel
-                        recurrence={form.recurrence}
-                        startDate={form.date}
+                <div className="nc-panel-section nc-panel-section-schedule">
+                    <DateRow
+                        date={form.date}
+                        dateLabel={dateLabel}
+                        endDateLabel={endDateLabel}
+                        endDate={endDateValue}
+                        startTime={form.startTime}
+                        endTime={form.endTime}
+                        duration={duration}
+                        allDay={form.allDay}
+                        isRecurring={form.isRecurring}
+                        editable={stableCalInfo.editable}
                         firstDay={firstDay}
-                        setRecurrence={form.setRecurrence}
-                        onAutoSave={scheduleAutoSave}
-                        onClose={() => setCustomRecurrenceOpen(false)}
+                        setDate={form.setDate}
+                        setEndDate={form.setEndDate}
+                        setStartTime={form.setStartTime}
+                        setEndTime={form.setEndTime}
+                        // Back to the unscheduled list. Every field that only a
+                        // DATED event can carry has to go with the date, because
+                        // buildPayload reads them all: a repeat left standing would
+                        // send the payload down the rrule branch and write a series
+                        // whose start date is the empty string, and times left
+                        // standing would keep `allDay: false` — the one thing a
+                        // someday can never be — leaving stale hours in the note.
+                        //
+                        // The same note the drag-onto-the-panel route writes, by the
+                        // same reasoning: see buildUnscheduledPayload.
+                        //
+                        // Nothing is saved from here. The panel's change-watching
+                        // effect already follows date, endDate, allDay, startTime,
+                        // endTime and isRecurring, and fires once React has applied
+                        // the finished state.
+                        onClearDate={
+                            isDraft
+                                ? undefined
+                                : () => {
+                                      form.setDate("");
+                                      form.setEndDate(undefined);
+                                      form.setIsRecurring(false);
+                                      form.setAllDay(true);
+                                      form.setStartTime("");
+                                      form.setEndTime("");
+                                  }
+                        }
+                        onAutoSave={autoSave}
                     />
-                )}
 
-                <CalendarRow
-                    editableCalendars={editableCalendars}
-                    calendarIndex={form.calendarIndex}
-                    editable={stableCalInfo.editable}
-                    readOnlyCalendar={
-                        stableCalInfo.editable || isDraft
-                            ? null
-                            : {
-                                  name: stableCalInfo.name,
-                                  color: stableCalInfo.color,
-                              }
-                    }
-                    onChange={form.setCalendarIndex}
-                    onAutoSave={autoSave}
-                />
+                    <DateOptionsRow
+                        allDay={form.allDay}
+                        editable={stableCalInfo.editable}
+                        onToggleAllDay={toggleAllDay}
+                        isRecurring={form.isRecurring}
+                        currentPreset={currentPreset}
+                        summary={repeatSummary}
+                        onChooseRepeat={chooseRepeat}
+                    />
 
-                {/* Only for something that happens at a time: an entry
+                    {form.isRecurring &&
+                        customRepeat &&
+                        customRecurrenceOpen && (
+                            <CustomRecurrencePanel
+                                recurrence={form.recurrence}
+                                startDate={form.date}
+                                firstDay={firstDay}
+                                setRecurrence={form.setRecurrence}
+                                onAutoSave={scheduleAutoSave}
+                                onClose={() => setCustomRecurrenceOpen(false)}
+                            />
+                        )}
+                </div>
+
+                <div className="nc-panel-section nc-panel-section-properties">
+                    <CalendarRow
+                        editableCalendars={editableCalendars}
+                        calendarIndex={form.calendarIndex}
+                        editable={stableCalInfo.editable}
+                        readOnlyCalendar={
+                            stableCalInfo.editable || isDraft
+                                ? null
+                                : {
+                                      name: stableCalInfo.name,
+                                      color: stableCalInfo.color,
+                                  }
+                        }
+                        onChange={form.setCalendarIndex}
+                        onAutoSave={autoSave}
+                    />
+
+                    {/* Only for something that happens at a time: an entry
                     waiting in the unscheduled list has no moment to be early
                     for. */}
-                {(form.date || form.isRecurring) && (
-                    <RemindersRow
-                        reminders={form.reminders}
-                        editable={stableCalInfo.editable}
-                        setReminders={form.setReminders}
-                        onAutoSave={scheduleAutoSave}
-                    />
-                )}
+                    {(form.date || form.isRecurring) && (
+                        <RemindersRow
+                            reminders={form.reminders}
+                            editable={stableCalInfo.editable}
+                            setReminders={form.setReminders}
+                            onAutoSave={scheduleAutoSave}
+                        />
+                    )}
 
-                {isTask && !form.isRecurring && (
-                    <StatusRow
-                        taskStatus={form.taskStatus}
-                        editable={stableCalInfo.editable}
-                        setStatus={(s) => {
-                            form.setTaskStatus(s);
-                            scheduleAutoSave();
-                        }}
-                    />
-                )}
+                    {isTask && !form.isRecurring && (
+                        <StatusRow
+                            taskStatus={form.taskStatus}
+                            editable={stableCalInfo.editable}
+                            setStatus={(s) => {
+                                form.setTaskStatus(s);
+                                scheduleAutoSave();
+                            }}
+                        />
+                    )}
+                </div>
 
                 <DescriptionSection
                     description={form.description}
@@ -1526,6 +1530,7 @@ export default function EventPanel({
             {scopeAsked && (
                 <RecurringScopeDialog
                     isTask={isTask}
+                    changes={scopeChanges}
                     onCancel={cancelScopedEdit}
                     onConfirm={confirmScopedEdit}
                 />

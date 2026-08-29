@@ -92,6 +92,7 @@ import { isAndroidRuntime } from "./CalendarUtils";
 import { decideLinkedFileTap, LinkedFileTap } from "./linkedFileTap";
 import { swallowNextClick } from "./swallowNextClick";
 import { RecurringEditScope } from "./recurringEdit";
+import type { RecurringEditChange } from "./recurringEditChanges";
 
 function getEventPanelPortalTarget(): HTMLElement {
     const isAndroid =
@@ -158,10 +159,9 @@ function SheetHandleGlyph({ glyph }: { glyph: "up" | "bar" | "down" }) {
 
 interface PanelHeaderProps {
     isDraft: boolean;
-    /** What the panel is showing, which is what its header says it is. */
     isTask: boolean;
-    /** The word top-left: a task's own state, or the kind of the entry. */
-    label: string;
+    kind: EntryKind;
+    setKind: (kind: EntryKind) => void;
     editable: boolean;
     eventId: string | null;
     menuOpen: boolean;
@@ -173,16 +173,15 @@ interface PanelHeaderProps {
     onDuplicate?: (id: string) => void;
     onDeleteClick: () => void;
     onClose: () => void;
-    /** The grab area on a touch screen — see useSheetDrag. */
     headerRef?: React.RefObject<HTMLDivElement>;
-    /** How the sheet's handle is drawn, and what pressing it does. */
     sheetHandle?: { glyph: "up" | "bar" | "down"; onPress: () => void };
 }
 
 export function PanelHeader({
     isDraft,
     isTask,
-    label,
+    kind,
+    setKind,
     editable,
     eventId,
     menuOpen,
@@ -198,143 +197,228 @@ export function PanelHeader({
     sheetHandle,
 }: PanelHeaderProps) {
     const android = isAndroidRuntime();
+    const entryKinds: Array<{ key: EntryKind; label: string }> = [
+        { key: "event", label: t("Event") },
+        { key: "task", label: t("Task") },
+        { key: "birthday", label: t("Birthday") },
+    ];
+    const kindTriggerRef = React.useRef<HTMLButtonElement>(null);
+    const kindMenuRef = React.useRef<HTMLDivElement>(null);
+    const [kindOpen, setKindOpen] = React.useState(false);
+    const [kindMenuStyle, setKindMenuStyle] =
+        React.useState<React.CSSProperties>({});
+    const selectedKind =
+        entryKinds.find((entry) => entry.key === kind) ?? entryKinds[0];
+
+    const toggleKind = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!editable) return;
+        if (kindOpen) {
+            setKindOpen(false);
+            return;
+        }
+        const rect = kindTriggerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const placement = placeFlyout(rect, window.innerHeight, {
+            gap: 4,
+            margin: 8,
+            minHeight: 132,
+        });
+        const width = 176;
+        const left = Math.max(
+            8,
+            Math.min(rect.left, window.innerWidth - width - 8)
+        );
+        setKindMenuStyle({
+            left,
+            width,
+            top: placement.top ?? undefined,
+            bottom: placement.bottom ?? undefined,
+            maxHeight: placement.maxHeight,
+        });
+        setKindOpen(true);
+    };
+
+    React.useEffect(() => {
+        if (!kindOpen) return;
+        const close = (event: PointerEvent) => {
+            const target = event.target as Node;
+            if (kindTriggerRef.current?.contains(target)) return;
+            if (kindMenuRef.current?.contains(target)) return;
+            setKindOpen(false);
+        };
+        const closeForLayout = () => setKindOpen(false);
+        document.addEventListener("pointerdown", close, true);
+        window.addEventListener("resize", closeForLayout);
+        window.addEventListener("scroll", closeForLayout, true);
+        return () => {
+            document.removeEventListener("pointerdown", close, true);
+            window.removeEventListener("resize", closeForLayout);
+            window.removeEventListener("scroll", closeForLayout, true);
+        };
+    }, [kindOpen]);
+
     return (
-        <div
-            className="nc-panel-header"
-            ref={headerRef}
-            onMouseDown={onHeaderMouseDown}
-        >
-            {/* The bar across the top of a sheet, which says where the sheet
-                stands and moves it when pressed. Drawn as a chevron at the ends
-                of its range — up when the sheet can only grow, down when it
-                fills the screen — so the mark is both the state and the way out
-                of it. A real button, because it is one: it was a decoration
-                painted by ::before that could only be dragged. */}
-            {sheetHandle && (
+        <>
+            <div
+                className="nc-panel-header"
+                ref={headerRef}
+                onMouseDown={onHeaderMouseDown}
+            >
+                {sheetHandle && (
+                    <button
+                        type="button"
+                        className={`nc-sheet-handle nc-sheet-handle--${sheetHandle.glyph}`}
+                        aria-label={t("Resize panel")}
+                        onClick={sheetHandle.onPress}
+                    >
+                        <SheetHandleGlyph glyph={sheetHandle.glyph} />
+                    </button>
+                )}
+
                 <button
+                    ref={kindTriggerRef}
                     type="button"
-                    className={`nc-sheet-handle nc-sheet-handle--${sheetHandle.glyph}`}
-                    aria-label={t("Resize panel")}
-                    onClick={sheetHandle.onPress}
+                    className="nc-panel-kind-trigger"
+                    aria-label={t("Type")}
+                    aria-haspopup="menu"
+                    aria-expanded={kindOpen}
+                    disabled={!editable}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onClick={toggleKind}
                 >
-                    <SheetHandleGlyph glyph={sheetHandle.glyph} />
+                    <span>{selectedKind.label}</span>
+                    {editable && <ChevronDownIcon size={13} />}
                 </button>
-            )}
-            {/* The kind is said by the pills under the title now, so the
-                corner is free for what a task actually wants to say there:
-                whether it is done. An event has no such state and keeps its
-                name. */}
-            <span className="nc-panel-header-label">{label}</span>
-            <div className="nc-panel-header-actions">
-                <div className="nc-panel-menu-wrap" ref={menuRef}>
+
+                <div className="nc-panel-header-actions">
+                    <div className="nc-panel-menu-wrap" ref={menuRef}>
+                        <button
+                            type="button"
+                            className="nc-panel-icon-btn"
+                            title={t("More")}
+                            onClick={onToggleMenu}
+                        >
+                            <DotsIcon />
+                        </button>
+                        {menuOpen && (
+                            <div className="nc-panel-menu">
+                                {!isDraft && eventId && !android && (
+                                    <button
+                                        type="button"
+                                        className="nc-panel-menu-item"
+                                        onClick={() => onOpenFile(eventId)}
+                                    >
+                                        <NoteIcon size={15} />
+                                        <span>{t("Open note")}</span>
+                                    </button>
+                                )}
+                                {!isDraft &&
+                                    editable &&
+                                    eventId &&
+                                    !android &&
+                                    onCopyFilePath && (
+                                        <button
+                                            type="button"
+                                            className="nc-panel-menu-item"
+                                            onClick={() =>
+                                                onCopyFilePath(eventId)
+                                            }
+                                        >
+                                            <CopyIcon size={15} />
+                                            <span>{t("Copy path")}</span>
+                                        </button>
+                                    )}
+                                {!isDraft &&
+                                    editable &&
+                                    eventId &&
+                                    android &&
+                                    onDuplicate && (
+                                        <button
+                                            type="button"
+                                            className="nc-panel-menu-item"
+                                            onClick={() => onDuplicate(eventId)}
+                                        >
+                                            <DuplicateIcon size={15} />
+                                            <span>{t("Duplicate")}</span>
+                                        </button>
+                                    )}
+                                {!isDraft && editable && eventId && (
+                                    <button
+                                        type="button"
+                                        className="nc-panel-menu-item nc-danger"
+                                        onClick={onDeleteClick}
+                                    >
+                                        <TrashIcon size={15} />
+                                        <span>
+                                            {isTask
+                                                ? t("Delete task")
+                                                : t("Delete event")}
+                                        </span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
                     <button
                         type="button"
                         className="nc-panel-icon-btn"
-                        title={t("More")}
-                        onClick={onToggleMenu}
+                        title={t("Close")}
+                        onPointerUp={
+                            isAndroidRuntime()
+                                ? (event) => {
+                                      event.preventDefault();
+                                      swallowNextClick();
+                                      onClose();
+                                  }
+                                : undefined
+                        }
+                        onClick={isAndroidRuntime() ? undefined : onClose}
                     >
-                        <DotsIcon />
+                        <XIcon />
                     </button>
-                    {menuOpen && (
-                        <div className="nc-panel-menu">
-                            {/* The sheet already carries a "View note" button at
-                                its foot on a phone, and opening the note is not
-                                what the menu gets used for there. The slot goes
-                                to duplicating instead, which has no other way in
-                                without a keyboard or a right click. */}
-                            {!isDraft && eventId && !android && (
-                                <button
-                                    type="button"
-                                    className="nc-panel-menu-item"
-                                    onClick={() => onOpenFile(eventId)}
-                                >
-                                    <NoteIcon size={15} />
-                                    <span>{t("Open note")}</span>
-                                </button>
-                            )}
-                            {!isDraft &&
-                                editable &&
-                                eventId &&
-                                !android &&
-                                onCopyFilePath && (
-                                    <button
-                                        type="button"
-                                        className="nc-panel-menu-item"
-                                        onClick={() => onCopyFilePath(eventId)}
-                                    >
-                                        <CopyIcon size={15} />
-                                        <span>{t("Copy path")}</span>
-                                    </button>
-                                )}
-                            {!isDraft &&
-                                editable &&
-                                eventId &&
-                                android &&
-                                onDuplicate && (
-                                    <button
-                                        type="button"
-                                        className="nc-panel-menu-item"
-                                        onClick={() => onDuplicate(eventId)}
-                                    >
-                                        <DuplicateIcon size={15} />
-                                        <span>{t("Duplicate")}</span>
-                                    </button>
-                                )}
-                            {!isDraft && editable && eventId && (
-                                <button
-                                    type="button"
-                                    className="nc-panel-menu-item nc-danger"
-                                    onClick={onDeleteClick}
-                                >
-                                    <TrashIcon size={15} />
-                                    <span>
-                                        {isTask
-                                            ? t("Delete task")
-                                            : t("Delete event")}
-                                    </span>
-                                </button>
-                            )}
-                        </div>
-                    )}
                 </div>
-                {/*
-                 * On a phone this closes on pointer-up rather than on click.
-                 *
-                 * The first tap on a sheet that has a focused field spends
-                 * itself dismissing the keyboard: the layout shifts under the
-                 * finger between press and release, the release no longer
-                 * lands on the button it started on, and the browser never
-                 * synthesises a click. The X needed two taps, and the first
-                 * one looked like it had done something else entirely.
-                 * Pointer-up is delivered to the element the press began on,
-                 * whatever moved in between.
-                 *
-                 * Closing that early is what makes the guard below necessary:
-                 * the sheet is gone by the time the tap's click is delivered,
-                 * and the corner it occupied belongs to the calendar's app bar
-                 * — the search icon and the today badge sit at exactly these
-                 * coordinates. Until the guard, closing the sheet opened the
-                 * search bar.
-                 */}
-                <button
-                    type="button"
-                    className="nc-panel-icon-btn"
-                    title={t("Close")}
-                    onPointerUp={
-                        isAndroidRuntime()
-                            ? (event) => {
-                                  event.preventDefault();
-                                  swallowNextClick();
-                                  onClose();
-                              }
-                            : undefined
-                    }
-                    onClick={isAndroidRuntime() ? undefined : onClose}
-                >
-                    <XIcon />
-                </button>
             </div>
-        </div>
+
+            {kindOpen &&
+                ReactDOM.createPortal(
+                    <div
+                        ref={kindMenuRef}
+                        className="nc-panel-kind-menu"
+                        role="menu"
+                        style={kindMenuStyle}
+                        data-nc-popup-portal="true"
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onMouseDown={(event) => event.stopPropagation()}
+                    >
+                        {entryKinds.map((entry) => (
+                            <button
+                                key={entry.key}
+                                type="button"
+                                role="menuitemradio"
+                                aria-checked={kind === entry.key}
+                                className={`nc-panel-kind-option${
+                                    kind === entry.key ? " nc-active" : ""
+                                }`}
+                                data-kind={entry.key}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setKindOpen(false);
+                                    if (entry.key !== kind) setKind(entry.key);
+                                }}
+                            >
+                                <span>{entry.label}</span>
+                                {kind === entry.key && (
+                                    <CheckMarkIcon size={14} />
+                                )}
+                            </button>
+                        ))}
+                    </div>,
+                    getEventPanelPortalTarget()
+                )}
+        </>
     );
 }
 
@@ -357,15 +441,12 @@ export function TitleRow({
 }: TitleRowProps) {
     return (
         <div className="nc-panel-title-row">
-            <span className="nc-panel-title-icon">
-                <FileTextIcon />
-            </span>
             <input
                 ref={inputRef}
                 type="text"
                 className="nc-panel-title-input"
                 value={title}
-                placeholder={t("Event Name")}
+                placeholder={t("Title")}
                 required
                 onChange={(e) => onChange(e.target.value)}
                 onBlur={onCommit}
@@ -1822,61 +1903,6 @@ export function RemindersRow({
  * be migrated.
  */
 export type EntryKind = "event" | "task" | "birthday";
-
-interface TypeRowProps {
-    kind: EntryKind;
-    editable: boolean;
-    setKind: (kind: EntryKind) => void;
-}
-
-/**
- * Event or task — the choice, made explicitly.
- *
- * The two are one object in the schema, told apart only by whether they carry
- * a `completed` field, so this row is simply what switches that field on and
- * off. An event occupies a slot and is over when it has passed; a task is
- * something to get done and keeps a done/not-done state until it is.
- *
- * A recurring series has nowhere to record "done" (the schema gives
- * `completed` to `single` and `someday` only), so the panel hides this row for
- * recurring events rather than offering a choice that cannot be saved.
- */
-const ENTRY_KINDS: { key: EntryKind; label: string }[] = [
-    { key: "event", label: t("Event") },
-    { key: "task", label: t("Task") },
-    { key: "birthday", label: t("Birthday") },
-];
-
-/**
- * The three kinds, under the title.
- *
- * It sits at the top of the sheet now, where the entry says what it is before
- * it says anything else — the row it used to be, halfway down between the
- * deadline and the steps, answered a question that had already been answered by
- * everything above it.
- */
-export function TypeRow({ kind, editable, setKind }: TypeRowProps) {
-    return (
-        <div className="nc-panel-row nc-panel-row-kind">
-            <div className="nc-type-group" role="group">
-                {ENTRY_KINDS.map((entry) => (
-                    <button
-                        key={entry.key}
-                        type="button"
-                        className={`nc-type-pill ${
-                            kind === entry.key ? "nc-active" : ""
-                        }`}
-                        onClick={() => editable && setKind(entry.key)}
-                        disabled={!editable}
-                        aria-pressed={kind === entry.key}
-                    >
-                        {entry.label}
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-}
 
 // ── Status row ─────────────────────────────────────────────
 
@@ -3421,29 +3447,27 @@ export function LinksAttachmentsRow({
 // ── "This one, or all of them?" ─────────────────────────────
 
 interface RecurringScopeDialogProps {
-    /** A series of tasks and a series of events are not asked about alike. */
     isTask: boolean;
+    changes: RecurringEditChange[];
     onCancel: () => void;
     onConfirm: (scope: RecurringEditScope) => void;
 }
 
 /**
- * The question a calendar has to ask before writing one day of a series.
- *
- * It comes up on the way out, once, holding everything typed since the panel
- * opened — not on each field, which would put a dialog between a person and
- * their own typing. "Cancel" hands the panel back with the edit intact.
+ * One decision, made on exit, with the exact pending diff visible.
+ * The buttons map directly to the two persistence paths in EventPanel:
+ * occurrence keeps the detachment contract; series keeps the full update.
  */
 export function RecurringScopeDialog({
     isTask,
+    changes,
     onCancel,
     onConfirm,
 }: RecurringScopeDialogProps) {
-    const [scope, setScope] = React.useState<RecurringEditScope>("occurrence");
-
     React.useEffect(() => {
         const onKey = (event: KeyboardEvent) => {
             if (event.key !== "Escape") return;
+            event.preventDefault();
             event.stopPropagation();
             onCancel();
         };
@@ -3451,61 +3475,79 @@ export function RecurringScopeDialog({
         return () => document.removeEventListener("keydown", onKey, true);
     }, [onCancel]);
 
-    const choices: { value: RecurringEditScope; label: string }[] = [
-        {
-            value: "occurrence",
-            label: isTask ? t("This task") : t("This event"),
-        },
-        {
-            value: "series",
-            label: isTask ? t("All tasks") : t("All events"),
-        },
-    ];
-
     return ReactDOM.createPortal(
         <div
             className="nc-scope-overlay"
             role="dialog"
             aria-modal="true"
+            aria-labelledby="nc-scope-title"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) onCancel();
             }}
         >
             <div className="nc-scope-dialog">
-                <div className="nc-scope-title">
+                <div className="nc-scope-title" id="nc-scope-title">
                     {isTask
-                        ? t("Save a recurring task")
-                        : t("Save a recurring event")}
+                        ? t("Edit recurring task")
+                        : t("Edit recurring event")}
                 </div>
-                <div className="nc-scope-choices">
-                    {choices.map((choice) => (
-                        <label className="nc-scope-choice" key={choice.value}>
-                            <input
-                                type="radio"
-                                name="nc-recurring-scope"
-                                checked={scope === choice.value}
-                                onChange={() => setScope(choice.value)}
-                            />
-                            <span>{choice.label}</span>
-                        </label>
-                    ))}
+                <div className="nc-scope-subtitle">
+                    {t("Choose how to apply these changes.")}
                 </div>
-                <div className="nc-scope-actions">
+
+                {changes.length > 0 && (
+                    <div className="nc-scope-changes">
+                        <div className="nc-scope-changes-title">
+                            {t("Changes")}
+                        </div>
+                        <div className="nc-scope-change-list">
+                            {changes.map((change) => (
+                                <div
+                                    className="nc-scope-change"
+                                    key={change.key}
+                                >
+                                    <div className="nc-scope-change-label">
+                                        {t(change.label)}
+                                    </div>
+                                    <div className="nc-scope-change-values">
+                                        <span className="nc-scope-change-before">
+                                            {t(change.before)}
+                                        </span>
+                                        <ArrowRightIcon />
+                                        <span className="nc-scope-change-after">
+                                            {t(change.after)}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div className="nc-scope-choice-actions">
                     <button
                         type="button"
-                        className="nc-scope-btn"
-                        onClick={onCancel}
+                        className="nc-scope-choice-btn"
+                        onClick={() => onConfirm("occurrence")}
                     >
-                        {t("Cancel")}
+                        {isTask ? t("This task only") : t("This event only")}
                     </button>
                     <button
                         type="button"
-                        className="nc-scope-btn nc-scope-btn-primary"
-                        onClick={() => onConfirm(scope)}
+                        className="nc-scope-choice-btn"
+                        onClick={() => onConfirm("series")}
                     >
-                        {t("Save")}
+                        {isTask ? t("All tasks") : t("All events")}
                     </button>
                 </div>
+
+                <button
+                    type="button"
+                    className="nc-scope-cancel-btn"
+                    onClick={onCancel}
+                >
+                    {t("Cancel")}
+                </button>
             </div>
         </div>,
         getEventPanelPortalTarget()
