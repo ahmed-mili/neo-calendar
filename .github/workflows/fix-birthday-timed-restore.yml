@@ -1,0 +1,257 @@
+name: Fix Birthday timed-position restore
+
+on:
+  push:
+    branches:
+      - fix/birthday-restore-timed-position
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Apply exact Event to Birthday to Event restore fix
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          helper = Path('src/ui/calendar/entryKindSelection.ts')
+          helper.write_text('''import { presetToRecurrence, RecurrenceState } from "./recurrence";\n\nexport type EntryKindSelection = "event" | "task" | "birthday";\n\n/** The schedule an entry had immediately before Birthday temporarily forced it all-day/yearly. */\nexport interface BirthdayReturnState {\n    allDay: boolean;\n    isRecurring: boolean;\n    recurrence: RecurrenceState;\n    startTime: string;\n    endTime: string;\n}\n\ninterface ApplyEntryKindSelectionArgs {\n    currentKind: EntryKindSelection;\n    nextKind: EntryKindSelection;\n    date: string;\n    currentAllDay: boolean;\n    currentIsRecurring: boolean;\n    currentRecurrence: RecurrenceState;\n    currentStartTime: string;\n    currentEndTime: string;\n    birthdayReturnState: BirthdayReturnState | null;\n    setBirthdayReturnState: (state: BirthdayReturnState | null) => void;\n    setTaskStatus: (status: "todo" | null) => void;\n    setAllDay: (value: boolean) => void;\n    setIsRecurring: (value: boolean) => void;\n    setRecurrence: (value: RecurrenceState) => void;\n    setStartTime: (value: string) => void;\n    setEndTime: (value: string) => void;\n    setDue: (value: null) => void;\n    setCustomRepeat: (value: boolean) => void;\n}\n\n/**\n * Applies the semantic side effects of the Event / Task / Birthday selector.\n *\n * Birthday temporarily forces an entry to all-day + yearly recurrence. Before\n * doing that, remember the schedule already in the form. Leaving Birthday in\n * the same edit restores that schedule, so a timed Event returns to the exact\n * timed-grid slot it occupied instead of staying in the all-day lane.\n *\n * An already-persisted Birthday has no in-memory return state; for that case we\n * keep the existing all-day shape while removing the yearly Birthday marker.\n */\nexport function applyEntryKindSelection({\n    currentKind,\n    nextKind,\n    date,\n    currentAllDay,\n    currentIsRecurring,\n    currentRecurrence,\n    currentStartTime,\n    currentEndTime,\n    birthdayReturnState,\n    setBirthdayReturnState,\n    setTaskStatus,\n    setAllDay,\n    setIsRecurring,\n    setRecurrence,\n    setStartTime,\n    setEndTime,\n    setDue,\n    setCustomRepeat,\n}: ApplyEntryKindSelectionArgs): void {\n    if (currentKind !== "birthday" && nextKind === "birthday") {\n        setBirthdayReturnState({\n            allDay: currentAllDay,\n            isRecurring: currentIsRecurring,\n            recurrence: currentRecurrence,\n            startTime: currentStartTime,\n            endTime: currentEndTime,\n        });\n    }\n\n    setTaskStatus(nextKind === "task" ? "todo" : null);\n\n    if (currentKind === "birthday" && nextKind !== "birthday") {\n        if (birthdayReturnState) {\n            setAllDay(birthdayReturnState.allDay);\n            setStartTime(birthdayReturnState.startTime);\n            setEndTime(birthdayReturnState.endTime);\n            setIsRecurring(birthdayReturnState.isRecurring);\n            if (birthdayReturnState.isRecurring) {\n                setRecurrence(birthdayReturnState.recurrence);\n            }\n        } else {\n            setIsRecurring(false);\n        }\n        setBirthdayReturnState(null);\n        setCustomRepeat(false);\n    }\n\n    if (nextKind === "birthday") {\n        setAllDay(true);\n        setIsRecurring(true);\n        setRecurrence(presetToRecurrence("yearly", date));\n        setDue(null);\n        setCustomRepeat(false);\n    }\n}\n''', encoding='utf-8')
+
+          panel = Path('src/ui/calendar/EventPanel.tsx')
+          text = panel.read_text(encoding='utf-8')
+          old_import = 'import { applyEntryKindSelection } from "./entryKindSelection";\n'
+          new_import = '''import {\n    applyEntryKindSelection,\n    BirthdayReturnState,\n} from "./entryKindSelection";\n'''
+          assert old_import in text
+          text = text.replace(old_import, new_import, 1)
+
+          old_custom = '''    const [customRepeat, setCustomRepeat] = useState(false);\n    useEffect(() => {\n        setCustomRepeat(false);\n    }, [eventId]);\n\n    const toggleAllDay = () => {\n'''
+          new_custom = '''    const [customRepeat, setCustomRepeat] = useState(false);\n    useEffect(() => {\n        setCustomRepeat(false);\n    }, [eventId]);\n\n    // Birthday is a temporary presentation of an existing entry. Keep the\n    // schedule it replaced so Event -> Birthday -> Event is reversible while\n    // the panel stays open (including the exact timed-grid position).\n    const birthdayReturnStateRef = useRef<BirthdayReturnState | null>(null);\n    const birthdayReturnOwner = eventId ??\n        (draft ? `${draft.start.getTime()}:${draft.end.getTime()}` : null);\n    useEffect(() => {\n        birthdayReturnStateRef.current = null;\n    }, [birthdayReturnOwner]);\n\n    const toggleAllDay = () => {\n'''
+          assert old_custom in text
+          text = text.replace(old_custom, new_custom, 1)
+
+          old_call = '''        applyEntryKindSelection({\n            currentKind: entryKind,\n            nextKind: kind,\n            date: form.date,\n            setTaskStatus: form.setTaskStatus,\n            setAllDay: form.setAllDay,\n            setIsRecurring: form.setIsRecurring,\n            setRecurrence: form.setRecurrence,\n            setDue: form.setDue,\n            setCustomRepeat,\n        });\n'''
+          new_call = '''        applyEntryKindSelection({\n            currentKind: entryKind,\n            nextKind: kind,\n            date: form.date,\n            currentAllDay: form.allDay,\n            currentIsRecurring: form.isRecurring,\n            currentRecurrence: form.recurrence,\n            currentStartTime: form.startTime,\n            currentEndTime: form.endTime,\n            birthdayReturnState: birthdayReturnStateRef.current,\n            setBirthdayReturnState: (state) => {\n                birthdayReturnStateRef.current = state;\n            },\n            setTaskStatus: form.setTaskStatus,\n            setAllDay: form.setAllDay,\n            setIsRecurring: form.setIsRecurring,\n            setRecurrence: form.setRecurrence,\n            setStartTime: form.setStartTime,\n            setEndTime: form.setEndTime,\n            setDue: form.setDue,\n            setCustomRepeat,\n        });\n'''
+          assert old_call in text
+          text = text.replace(old_call, new_call, 1)
+          panel.write_text(text, encoding='utf-8')
+
+          test = Path('src/ui/calendar/EventPanelHeader.test.tsx')
+          text = test.read_text(encoding='utf-8')
+
+          old_existing_call = '''                            applyEntryKindSelection({\n                                currentKind: kind,\n                                nextKind,\n                                date: "2026-08-29",\n                                setTaskStatus,\n                                setAllDay,\n                                setIsRecurring,\n                                setRecurrence,\n                                setDue: () => setDue(null),\n                                setCustomRepeat,\n                            })\n'''
+          new_existing_call = '''                            applyEntryKindSelection({\n                                currentKind: kind,\n                                nextKind,\n                                date: "2026-08-29",\n                                currentAllDay: allDay,\n                                currentIsRecurring: isRecurring,\n                                currentRecurrence: recurrence,\n                                currentStartTime: "",\n                                currentEndTime: "",\n                                birthdayReturnState: null,\n                                setBirthdayReturnState: () => {},\n                                setTaskStatus,\n                                setAllDay,\n                                setIsRecurring,\n                                setRecurrence,\n                                setStartTime: () => {},\n                                setEndTime: () => {},\n                                setDue: () => setDue(null),\n                                setCustomRepeat,\n                            })\n'''
+          assert old_existing_call in text
+          text = text.replace(old_existing_call, new_existing_call, 1)
+
+          test_case = r'''
+
+    it.each([false, true])(
+        "restores the original timed slot through Event -> Birthday -> Event (draft=%s)",
+        (isDraft) => {
+            const host = document.createElement("div");
+            document.body.appendChild(host);
+
+            function Harness() {
+                const [taskStatus, setTaskStatus] = React.useState<
+                    "todo" | null
+                >(null);
+                const [allDay, setAllDay] = React.useState(false);
+                const [isRecurring, setIsRecurring] = React.useState(false);
+                const [recurrence, setRecurrence] = React.useState(
+                    presetToRecurrence("weekly", "2026-08-29")
+                );
+                const [startTime, setStartTime] = React.useState("09:15");
+                const [endTime, setEndTime] = React.useState("10:00");
+                const [, setDue] = React.useState<string | null>(null);
+                const [, setCustomRepeat] = React.useState(false);
+                const birthdayReturnState = React.useRef<
+                    import("./entryKindSelection").BirthdayReturnState | null
+                >(null);
+
+                const kind =
+                    taskStatus !== null
+                        ? "task"
+                        : allDay && isRecurring && recurrence.freq === "yearly"
+                        ? "birthday"
+                        : "event";
+
+                return (
+                    <>
+                        <PanelHeader
+                            isDraft={isDraft}
+                            isTask={taskStatus !== null}
+                            kind={kind}
+                            setKind={(nextKind) =>
+                                applyEntryKindSelection({
+                                    currentKind: kind,
+                                    nextKind,
+                                    date: "2026-08-29",
+                                    currentAllDay: allDay,
+                                    currentIsRecurring: isRecurring,
+                                    currentRecurrence: recurrence,
+                                    currentStartTime: startTime,
+                                    currentEndTime: endTime,
+                                    birthdayReturnState:
+                                        birthdayReturnState.current,
+                                    setBirthdayReturnState: (state) => {
+                                        birthdayReturnState.current = state;
+                                    },
+                                    setTaskStatus,
+                                    setAllDay,
+                                    setIsRecurring,
+                                    setRecurrence,
+                                    setStartTime,
+                                    setEndTime,
+                                    setDue: () => setDue(null),
+                                    setCustomRepeat,
+                                })
+                            }
+                            editable={true}
+                            eventId={isDraft ? null : "timed-event.md"}
+                            menuOpen={false}
+                            menuRef={React.createRef<HTMLDivElement>()}
+                            headerRef={React.createRef<HTMLDivElement>()}
+                            onHeaderMouseDown={() => {}}
+                            onToggleMenu={() => {}}
+                            onOpenFile={() => {}}
+                            onDeleteClick={() => {}}
+                            onClose={() => {}}
+                        />
+                        <output
+                            data-schedule-state="true"
+                            data-all-day={String(allDay)}
+                            data-start-time={startTime}
+                            data-end-time={endTime}
+                            data-recurring={String(isRecurring)}
+                        />
+                    </>
+                );
+            }
+
+            act(() => ReactDOM.render(<Harness />, host));
+
+            const readSchedule = () =>
+                host.querySelector(
+                    '[data-schedule-state="true"]'
+                ) as HTMLOutputElement;
+            const readTrigger = () =>
+                host.querySelector(
+                    ".nc-panel-kind-trigger"
+                ) as HTMLButtonElement;
+            const choose = (kind: "event" | "birthday") => {
+                act(() => Simulate.click(readTrigger()));
+                const option = document.body.querySelector(
+                    `.nc-panel-kind-option[data-kind='${kind}']`
+                ) as HTMLButtonElement;
+                expect(option).toBeTruthy();
+                act(() => Simulate.click(option));
+            };
+
+            expect(readTrigger().textContent).toContain(t("Event"));
+            expect(readSchedule().dataset.allDay).toBe("false");
+            expect(readSchedule().dataset.startTime).toBe("09:15");
+            expect(readSchedule().dataset.endTime).toBe("10:00");
+
+            choose("birthday");
+            expect(readTrigger().textContent).toContain(t("Birthday"));
+            expect(readSchedule().dataset.allDay).toBe("true");
+            // Birthday hides the timed placement, but must not destroy it.
+            expect(readSchedule().dataset.startTime).toBe("09:15");
+            expect(readSchedule().dataset.endTime).toBe("10:00");
+
+            choose("event");
+            expect(readTrigger().textContent).toContain(t("Event"));
+            expect(readSchedule().dataset.allDay).toBe("false");
+            expect(readSchedule().dataset.startTime).toBe("09:15");
+            expect(readSchedule().dataset.endTime).toBe("10:00");
+            expect(readSchedule().dataset.recurring).toBe("false");
+        }
+    );
+
+    it("does not turn an originally all-day Event into a timed Event after Birthday", () => {
+        let returnState: import("./entryKindSelection").BirthdayReturnState | null =
+            null;
+        let allDay = true;
+        let recurring = false;
+        let recurrence = presetToRecurrence("weekly", "2026-08-29");
+        let startTime = "";
+        let endTime = "";
+
+        const apply = (currentKind: "event" | "birthday", nextKind: "event" | "birthday") =>
+            applyEntryKindSelection({
+                currentKind,
+                nextKind,
+                date: "2026-08-29",
+                currentAllDay: allDay,
+                currentIsRecurring: recurring,
+                currentRecurrence: recurrence,
+                currentStartTime: startTime,
+                currentEndTime: endTime,
+                birthdayReturnState: returnState,
+                setBirthdayReturnState: (state) => {
+                    returnState = state;
+                },
+                setTaskStatus: () => {},
+                setAllDay: (value) => {
+                    allDay = value;
+                },
+                setIsRecurring: (value) => {
+                    recurring = value;
+                },
+                setRecurrence: (value) => {
+                    recurrence = value;
+                },
+                setStartTime: (value) => {
+                    startTime = value;
+                },
+                setEndTime: (value) => {
+                    endTime = value;
+                },
+                setDue: () => {},
+                setCustomRepeat: () => {},
+            });
+
+        apply("event", "birthday");
+        expect(allDay).toBe(true);
+        expect(recurring).toBe(true);
+        expect(recurrence.freq).toBe("yearly");
+
+        apply("birthday", "event");
+        expect(allDay).toBe(true);
+        expect(recurring).toBe(false);
+        expect(startTime).toBe("");
+        expect(endTime).toBe("");
+    });
+'''
+          marker = '\n});\n'
+          pos = text.rfind(marker)
+          assert pos != -1
+          text = text[:pos] + test_case + text[pos:]
+          test.write_text(text, encoding='utf-8')
+          PY
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Format changed TypeScript files
+        run: npx prettier --write src/ui/calendar/entryKindSelection.ts src/ui/calendar/EventPanel.tsx src/ui/calendar/EventPanelHeader.test.tsx
+      - name: Run exact regression
+        run: npx jest src/ui/calendar/EventPanelHeader.test.tsx --runInBand
+      - name: Commit fix and remove temporary workflow
+        shell: bash
+        run: |
+          git rm .github/workflows/fix-birthday-timed-restore.yml
+          git add src/ui/calendar/entryKindSelection.ts src/ui/calendar/EventPanel.tsx src/ui/calendar/EventPanelHeader.test.tsx
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Restore timed event position after Birthday"
+          git push origin HEAD:fix/birthday-restore-timed-position
