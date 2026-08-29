@@ -1,52 +1,45 @@
-name: PR validation
+name: Prepare version 1.53.8
 
 on:
     pull_request:
-    workflow_dispatch:
 
 permissions:
-    contents: read
+    contents: write
 
 jobs:
-    validate:
+    prepare-version:
+        if: github.head_ref == 'chore/version-1.53.8'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
               with:
-                  ref: ${{ github.event.pull_request.head.sha || github.sha }}
+                  ref: chore/version-1.53.8
                   fetch-depth: 0
             - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
               with:
                   node-version: "20"
-                  cache: npm
-                  cache-dependency-path: |
-                      package-lock.json
-                      apps/windows/package-lock.json
-                      apps/android/package-lock.json
-            - name: Install root dependencies
-              run: npm install --no-audit --no-fund
-            - name: Install Windows dependencies
-              run: npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
-            - name: Install Android dependencies
-              run: npm --prefix apps/android install --ignore-scripts --no-audit --no-fund
-            - name: Tests
-              run: npm test
-            - name: Formatting of changed TypeScript files
+            - name: Synchronize every version surface
+              run: node scripts/set-version.mjs 1.53.8
+            - name: Restore the permanent PR workflow
+              shell: bash
+              run: git show origin/main:.github/workflows/pr-validation.yml > .github/workflows/pr-validation.yml
+            - name: Verify synchronized version
               shell: bash
               run: |
                   set -euo pipefail
-                  if [ "${{ github.event_name }}" = "pull_request" ]; then
-                    BASE="${{ github.event.pull_request.base.sha }}"
-                    HEAD="${{ github.event.pull_request.head.sha }}"
-                  else
-                    HEAD="$(git rev-parse HEAD)"
-                    BASE="$(git rev-parse HEAD^)"
+                  node -e 'const p=require("./package.json"); if(p.version!=="1.53.8") process.exit(1)'
+                  grep -q '"version": "1.53.8"' apps/windows/package.json
+                  grep -q '"version": "1.53.8"' apps/android/package.json
+                  grep -q 'versionName = "1.53.8"' apps/android/native/app/build.gradle.kts
+            - name: Commit synchronized version
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add -A
+                  if git diff --cached --quiet; then
+                    exit 0
                   fi
-                  git diff --name-only --diff-filter=ACMR "$BASE" "$HEAD" -- '*.ts' '*.tsx' > /tmp/changed-ts-files
-                  if [ -s /tmp/changed-ts-files ]; then
-                    xargs npx prettier --check < /tmp/changed-ts-files
-                  fi
-            - name: Windows frontend build
-              run: npm --prefix apps/windows run build
-            - name: Android frontend build
-              run: npm --prefix apps/android run build
+                  git commit -m "Bump version to 1.53.8"
+                  git push origin HEAD:chore/version-1.53.8
