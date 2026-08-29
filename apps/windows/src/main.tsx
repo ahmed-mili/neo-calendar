@@ -11,7 +11,9 @@ import "./themes/tokyo-night.css";
 import "./themes/codex-themes.css";
 import "../../../src/ui/calendar/Calendar.css";
 import "./desktopDescriptionShortcuts.css";
+import "./desktopDescriptionEditor.css";
 import "./desktopDescriptionShortcuts";
+import "./desktopDescriptionEditor";
 import "./App.css";
 
 const root = document.getElementById("root");
