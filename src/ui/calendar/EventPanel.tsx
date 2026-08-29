@@ -23,7 +23,6 @@ import { attachmentExtension, pastedFileName } from "./pastedAttachment";
 import { usePopupDrag } from "./usePopupDrag";
 import { useEventFormState } from "./useEventFormState";
 import {
-    DateOptionsRow,
     EntryKind,
     PanelHeader,
     RecurringScopeDialog,
@@ -35,6 +34,7 @@ import {
     TypeRow,
     StatusRow,
 } from "./EventPanelRows";
+import { DateOptionsRow } from "./EventDateControls";
 import { DescriptionSection } from "./DescriptionSection";
 import { FileTextIcon } from "./EventPanelIcons";
 import { Toast, ToastMessage } from "./Toast";
@@ -1245,13 +1245,7 @@ export default function EventPanel({
             form.endTime
         );
         return end ? formatPanelDate(end) : "";
-    }, [
-        form.date,
-        form.endDate,
-        form.allDay,
-        form.startTime,
-        form.endTime,
-    ]);
+    }, [form.date, form.endDate, form.allDay, form.startTime, form.endTime]);
 
     const computedLeft = dragOffset ? dragOffset.x : position.left;
     const computedTop = dragOffset ? dragOffset.y : position.top;

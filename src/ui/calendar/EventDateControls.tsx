@@ -108,16 +108,13 @@ export function DateOptionsRow({
         };
     }, [open]);
 
-    const repeatLabel =
-        isRecurring && summary.trim() ? summary : t("Repeat");
+    const repeatLabel = isRecurring && summary.trim() ? summary : t("Repeat");
 
     return (
         <div className="nc-panel-date-options" ref={rowRef}>
             <button
                 type="button"
-                className={`nc-panel-date-option${
-                    allDay ? " nc-active" : ""
-                }`}
+                className={`nc-panel-date-option${allDay ? " nc-active" : ""}`}
                 data-date-option="all-day"
                 aria-pressed={allDay}
                 disabled={!editable}
@@ -135,9 +132,7 @@ export function DateOptionsRow({
                 aria-expanded={open}
                 disabled={!editable}
                 title={isRecurring && summary ? summary : undefined}
-                onClick={() =>
-                    editable && (open ? setOpen(false) : openMenu())
-                }
+                onClick={() => editable && (open ? setOpen(false) : openMenu())}
             >
                 {repeatLabel}
             </button>

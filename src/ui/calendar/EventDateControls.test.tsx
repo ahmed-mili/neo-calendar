@@ -106,7 +106,9 @@ describe("compact event date controls", () => {
         expect(options[0].getAttribute("aria-checked")).toBe("true");
 
         act(() => {
-            options[2].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+            options[2].dispatchEvent(
+                new MouseEvent("click", { bubbles: true })
+            );
         });
         expect(onChooseRepeat).toHaveBeenCalledWith("weekly");
         expect(

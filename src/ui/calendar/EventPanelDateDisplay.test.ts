@@ -53,20 +53,14 @@ describe("event panel date display", () => {
 
     it("uses the stored endDate for a real multi-day timed event", () => {
         expect(
-            panelEndDate(
-                "2026-08-28",
-                "2026-08-31",
-                false,
-                "14:15",
-                "15:15"
-            )
+            panelEndDate("2026-08-28", "2026-08-31", false, "14:15", "15:15")
         ).toBe("2026-08-31");
     });
 
     it("uses the stored endDate for a multi-day all-day event", () => {
-        expect(
-            panelEndDate("2026-08-28", "2026-08-31", true, "", "")
-        ).toBe("2026-08-31");
+        expect(panelEndDate("2026-08-28", "2026-08-31", true, "", "")).toBe(
+            "2026-08-31"
+        );
     });
 
     it("still derives tomorrow for a legacy overnight event without endDate", () => {
