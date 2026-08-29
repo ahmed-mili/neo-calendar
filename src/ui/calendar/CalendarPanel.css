@@ -1634,50 +1634,6 @@ body.nc-platform-android .nc-description-toolbar .nc-description-tool {
 .nc-panel-textarea::placeholder {
     color: var(--nc-text-faint);
 }
-
-/* Chips */
-
-.nc-panel-chips {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-top: 4px;
-}
-
-/* Plain text actions, Notion-style — no boxes at rest. */
-/* Higher specificity (.nc-panel-chips .nc-chip) and box-shadow:none to beat
-   Obsidian's default `button:not(.clickable-icon)` surface + inset shadow. */
-.nc-panel-chips .nc-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 4px;
-    margin: -2px -4px;
-    font-size: 13px;
-    color: var(--nc-text-faint);
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background var(--nc-transition-fast),
-        color var(--nc-transition-fast);
-}
-
-.nc-panel-chips .nc-chip:hover {
-    color: var(--nc-text-primary);
-    background: var(--nc-bg-hover);
-}
-
-/* Active chip: accent colour + bold only. It must NOT declare a background:
-   doing so (even `transparent`) tied the active rule with `.nc-chip:hover` on
-   specificity and, being declared later, overrode the hover fill — so an active
-   chip stopped reacting to hover. With no background here, the hover rule always
-   wins over the rest state, and the active accent colour is kept on top. */
-.nc-panel-chips .nc-chip.nc-active {
-    color: var(--nc-accent);
-    font-weight: 600;
-}
-
 /* Day picker (recurring) */
 
 .nc-day-picker {
@@ -1729,48 +1685,6 @@ body.nc-platform-android .nc-description-toolbar .nc-description-tool {
     color: var(--nc-text-primary);
     margin-bottom: 8px;
 }
-
-.nc-recur-presets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 10px;
-}
-
-/* Pills, not words. As plain text these were four labels in a row with nothing
-   to say they could be pressed, and on a phone nothing to press either — a
-   13px word is a third of the target a finger needs. */
-.nc-recur-presets .nc-chip {
-    display: inline-flex;
-    align-items: center;
-    min-height: 26px;
-    padding: 3px 10px;
-    margin: 0;
-    font-size: 12.5px;
-    color: var(--nc-text-secondary);
-    background: var(--nc-bg-hover);
-    border: 1px solid transparent;
-    box-shadow: none;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background var(--nc-transition-fast),
-        color var(--nc-transition-fast), border-color var(--nc-transition-fast);
-}
-
-.nc-recur-presets .nc-chip:hover {
-    color: var(--nc-text-primary);
-    border-color: var(--nc-border);
-}
-
-/* The chosen one is filled, not just coloured: at a glance the block should
-   answer "which of these is it?" before it is read. */
-.nc-recur-presets .nc-chip.nc-active {
-    color: var(--nc-accent);
-    font-weight: 600;
-    background: color-mix(in srgb, var(--nc-accent) 16%, transparent);
-    border-color: color-mix(in srgb, var(--nc-accent) 38%, transparent);
-}
-
 .nc-recur-custom {
     display: flex;
     flex-direction: column;
@@ -3046,3 +2960,305 @@ body.nc-platform-android .nc-description-toolbar .nc-description-tool {
 .nc-tz-overlay-sheet .nc-tz-picker-input {
     flex: 0 0 auto;
 }
+
+
+/* NEO_NOTION_PANEL_REFRESH_V1_START
+ * One visual surface at rest. Group boundaries, not every row, carry
+ * the hierarchy. All colors stay on Neo Calendar variables. */
+.nc-panel-body .nc-panel-row + .nc-panel-row {
+    border-top: 0;
+}
+
+.nc-panel-section {
+    min-width: 0;
+}
+
+.nc-panel-title-row + .nc-panel-section,
+.nc-panel-section + .nc-panel-section {
+    border-top: 1px solid var(--nc-border);
+}
+
+.nc-panel-row {
+    gap: 6px;
+    padding: 6px 16px;
+}
+
+.nc-panel-row-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.nc-panel-row-icon > svg {
+    width: 16px;
+    height: 16px;
+}
+
+.nc-panel-header-actions {
+    margin-left: auto;
+}
+
+.nc-panel-kind-trigger {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    min-height: 28px;
+    padding: 3px 6px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-primary);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 18px;
+    cursor: pointer;
+}
+
+.nc-panel-kind-trigger:hover:not(:disabled),
+.nc-panel-kind-trigger[aria-expanded="true"] {
+    background: var(--nc-bg-hover) !important;
+}
+
+.nc-panel-kind-trigger:disabled {
+    cursor: default;
+    opacity: 0.72;
+}
+
+.nc-panel-kind-menu {
+    position: fixed;
+    z-index: 10040;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px;
+    border: 1px solid var(--nc-border);
+    border-radius: 7px;
+    background: var(--nc-bg-primary);
+    box-shadow: 0 8px 24px var(--background-modifier-box-shadow);
+}
+
+.nc-panel-kind-option {
+    appearance: none;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 30px;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-primary);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.nc-panel-kind-option:hover,
+.nc-panel-kind-option.nc-active {
+    background: var(--nc-bg-hover) !important;
+}
+
+.nc-panel-title-row {
+    gap: 0;
+    margin: 0 9px 8px;
+    padding: 4px 7px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+}
+
+.nc-panel-title-row:hover {
+    border-color: var(--nc-border);
+    background: transparent;
+}
+
+.nc-panel-title-row:focus-within {
+    border-color: transparent;
+    background: var(--nc-bg-hover);
+}
+
+.nc-panel-title-input {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 20px;
+}
+
+.nc-panel-reminders {
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    background: transparent !important;
+}
+
+.nc-panel-reminders:hover:not(.nc-panel-reminders-readonly) {
+    border-color: var(--nc-border);
+    background: transparent !important;
+}
+
+.nc-panel-reminders:focus-visible {
+    border-color: transparent;
+    background: var(--nc-bg-hover) !important;
+}
+
+.nc-panel-reminder-chip {
+    background: transparent !important;
+}
+
+.nc-panel-body .nc-panel-row.nc-panel-row-desc,
+.nc-panel-body .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar) {
+    background: transparent;
+    border-color: transparent;
+}
+
+.nc-panel-body .nc-panel-row.nc-panel-row-desc:hover,
+.nc-panel-body .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar):hover {
+    background: transparent;
+    border-color: var(--nc-border);
+}
+
+.nc-panel-body .nc-panel-row.nc-panel-row-desc:focus-within,
+.nc-panel-body .nc-panel-row.nc-panel-row-desc:has(.nc-description-toolbar):focus-within {
+    background: var(--nc-bg-hover);
+    border-color: transparent;
+    border-bottom-color: var(--nc-accent);
+}
+
+.nc-description-section .nc-links-attachments:has(.nc-linked-files) {
+    border-bottom: 1px solid var(--nc-border);
+}
+
+.nc-scope-overlay {
+    box-sizing: border-box;
+    padding: 12px;
+    overflow: auto;
+}
+
+.nc-scope-dialog {
+    box-sizing: border-box;
+    width: min(360px, calc(100vw - 24px));
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 16px;
+    border-radius: 10px;
+}
+
+.nc-scope-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.nc-scope-subtitle {
+    margin-top: 4px;
+    color: var(--nc-text-secondary);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.nc-scope-changes {
+    min-width: 0;
+    margin-top: 14px;
+    padding: 10px;
+    border: 1px solid var(--nc-border);
+    border-radius: 7px;
+    background: transparent;
+}
+
+.nc-scope-changes-title {
+    margin-bottom: 7px;
+    color: var(--nc-text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.nc-scope-change-list {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+}
+
+.nc-scope-change {
+    display: grid;
+    grid-template-columns: minmax(70px, 0.7fr) minmax(0, 1.6fr);
+    gap: 8px;
+    align-items: start;
+    min-width: 0;
+    font-size: 12px;
+}
+
+.nc-scope-change-label {
+    color: var(--nc-text-secondary);
+}
+
+.nc-scope-change-values {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+.nc-scope-change-before,
+.nc-scope-change-after {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-scope-change-before {
+    color: var(--nc-text-secondary);
+}
+
+.nc-scope-choice-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.nc-scope-choice-btn,
+.nc-scope-cancel-btn {
+    appearance: none;
+    min-width: 0;
+    min-height: 36px;
+    border: 1px solid var(--nc-border);
+    border-radius: 7px;
+    box-shadow: none !important;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.nc-scope-choice-btn {
+    background: var(--nc-bg-hover) !important;
+    color: var(--nc-text-primary);
+}
+
+.nc-scope-choice-btn:hover {
+    border-color: var(--nc-accent);
+}
+
+.nc-scope-cancel-btn {
+    width: 100%;
+    margin-top: 8px;
+    background: transparent !important;
+    color: var(--nc-text-secondary);
+}
+
+.nc-scope-cancel-btn:hover {
+    background: var(--nc-bg-hover) !important;
+    color: var(--nc-text-primary);
+}
+/* NEO_NOTION_PANEL_REFRESH_V1_END */

@@ -509,17 +509,6 @@ body.nc-platform-android .nc-choice-option input[type="radio"] {
 body.nc-platform-android .nc-recur-summary {
     font-size: 14px;
 }
-
-body.nc-platform-android .nc-recur-presets {
-    gap: 8px;
-}
-
-body.nc-platform-android .nc-recur-presets .nc-chip {
-    min-height: 34px;
-    padding: 6px 14px;
-    font-size: 13.5px;
-}
-
 body.nc-platform-android .nc-recur-custom {
     gap: 14px;
     padding: 12px;
@@ -4890,3 +4879,63 @@ body.nc-platform-android .nc-event-popup,
 body.nc-platform-android #nc-android-overlay-root .nc-event-popup {
     animation: none !important;
 }
+
+
+/* NEO_NOTION_PANEL_REFRESH_ANDROID_V1_START */
+body.nc-platform-android .nc-panel-title-row {
+    box-sizing: border-box;
+    min-height: 44px;
+    margin: 0 10px 8px;
+    padding: 6px 8px;
+    gap: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body.nc-platform-android .nc-panel-title-row:hover {
+    border-color: var(--nc-border);
+    background: transparent !important;
+}
+
+body.nc-platform-android .nc-panel-title-row:focus-within {
+    border-color: transparent;
+    background: var(--nc-bg-hover) !important;
+}
+
+body.nc-platform-android .nc-panel-title-input,
+body.nc-platform-android .nc-event-popup.nc-event-popup-draft .nc-panel-title-input {
+    width: 100%;
+    min-height: 30px !important;
+    padding: 0;
+    font-size: 16px !important;
+    font-weight: 400 !important;
+    line-height: 1.25;
+}
+
+body.nc-platform-android .nc-panel-title-input::placeholder {
+    font-weight: 400;
+}
+
+body.nc-platform-android .nc-panel-kind-trigger {
+    min-height: 40px;
+    padding: 7px 8px;
+    font-size: 13px;
+}
+
+body.nc-platform-android .nc-panel-kind-option {
+    min-height: 44px;
+    padding: 9px 10px;
+}
+
+body.nc-platform-android .nc-scope-dialog {
+    width: min(380px, calc(100vw - 20px));
+    padding: 14px;
+}
+
+body.nc-platform-android .nc-scope-choice-btn,
+body.nc-platform-android .nc-scope-cancel-btn {
+    min-height: 46px;
+}
+/* NEO_NOTION_PANEL_REFRESH_ANDROID_V1_END */
