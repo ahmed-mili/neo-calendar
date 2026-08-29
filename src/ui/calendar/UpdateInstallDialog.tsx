@@ -71,10 +71,7 @@ export function UpdateInstallDialog({
     if (typeof document === "undefined") return null;
 
     return ReactDOM.createPortal(
-        <div
-            className="nc-update-install-backdrop"
-            data-nc-popup-portal="true"
-        >
+        <div className="nc-update-install-backdrop" data-nc-popup-portal="true">
             <section
                 className={`nc-update-install-dialog nc-update-install-dialog--${phase}`}
                 role="dialog"
@@ -97,9 +94,7 @@ export function UpdateInstallDialog({
 
                 <div className="nc-update-install-heading">
                     <h2 id="nc-update-install-title">{copy.title}</h2>
-                    <span className="nc-update-install-version">
-                        v{version}
-                    </span>
+                    <span className="nc-update-install-version">v{version}</span>
                 </div>
 
                 {phase === "installing" ? (
