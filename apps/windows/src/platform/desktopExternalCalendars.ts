@@ -86,9 +86,7 @@ function normalizeIcalUrl(value: string): string {
 export function externalCalendarId(
     source: DesktopExternalCalendarSource
 ): string {
-    return source.type === "auto"
-        ? `auto::${source.id}`
-        : `ical::${normalizeIcalUrl(source.url)}`;
+    return source.type === "auto" ? `auto::${source.id}` : `ical::${source.id}`;
 }
 
 export function externalCalendarPreferenceKey(

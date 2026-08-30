@@ -104,11 +104,13 @@ describe("note-backed iCalendar subscriptions", () => {
         expect(planIcalNoteSync(source, [old.event], [old])).toEqual([]);
     });
 
-    it("namespaces identical UIDs from two feeds", () => {
+    it("keeps an event identity stable when a feed URL changes", () => {
+        // Break caught: URL-based event identities duplicate every imported
+        // event after a feed endpoint changes.
         const same = event("2026-08-28", "ics::same::2026-08-28::single");
         const other = { ...source, url: "https://other.test/calendar.ics" };
 
-        expect(scopedIcalEvent(source, same, 0).id).not.toBe(
+        expect(scopedIcalEvent(source, same, 0).id).toBe(
             scopedIcalEvent(other, same, 0).id
         );
     });

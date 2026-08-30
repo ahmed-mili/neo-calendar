@@ -101,4 +101,69 @@ describe("reconcileWorkspacePreferences", () => {
 
         expect(result.hiddenCalendarPaths).toEqual([]);
     });
+
+    it("keeps a feed the stored file has not learned yet", () => {
+        // Break caught: a Sync write from another device erases a subscription
+        // created locally before the file arrives.
+        const result = reconcileWorkspacePreferences({
+            previous: {
+                ...defaultDesktopWorkspacePreferences(),
+                icsFeeds: [
+                    {
+                        id: "school",
+                        calendarPath: "Études",
+                        name: "Cours",
+                        url: "https://x.test/a.ics",
+                        active: true,
+                    },
+                ],
+            },
+            loaded: defaultDesktopWorkspacePreferences(),
+            fileExisted: true,
+        });
+
+        expect(result.icsFeeds.map((feed) => feed.id)).toEqual(["school"]);
+    });
+
+    it("uses the stored feed when the same stable ID was updated", () => {
+        // Break caught: renaming or changing a subscription URL on one device
+        // is overwritten by stale local metadata keyed by URL.
+        const result = reconcileWorkspacePreferences({
+            previous: {
+                ...defaultDesktopWorkspacePreferences(),
+                icsFeeds: [
+                    {
+                        id: "school",
+                        calendarPath: "Études",
+                        name: "Cours",
+                        url: "https://x.test/old.ics",
+                        active: true,
+                    },
+                ],
+            },
+            loaded: {
+                ...defaultDesktopWorkspacePreferences(),
+                icsFeeds: [
+                    {
+                        id: "school",
+                        calendarPath: "Études",
+                        name: "Cours mis à jour",
+                        url: "https://x.test/new.ics",
+                        active: false,
+                    },
+                ],
+            },
+            fileExisted: true,
+        });
+
+        expect(result.icsFeeds).toEqual([
+            {
+                id: "school",
+                calendarPath: "Études",
+                name: "Cours mis à jour",
+                url: "https://x.test/new.ics",
+                active: false,
+            },
+        ]);
+    });
 });

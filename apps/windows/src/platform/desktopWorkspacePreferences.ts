@@ -3,12 +3,19 @@ import {
     parseExternalCalendarSources,
     type DesktopExternalCalendarSource,
 } from "./desktopExternalCalendars";
+import {
+    ICS_REFRESH_MINUTES,
+    migrateLegacyIcalSources,
+    parseIcsFeeds,
+    type IcsFeedSubscription,
+    type IcsRefreshMinutes,
+} from "./icsFeedPreferences";
 
 export type DesktopInitialView = "day" | "week" | "month" | "list";
 export type MobileInitialView = "day" | "3days" | "list";
 
 export interface DesktopWorkspacePreferences {
-    version: 4;
+    version: 5;
     colors: Record<string, string>;
     order: string[];
     defaultCalendarPath?: string;
@@ -31,6 +38,8 @@ export interface DesktopWorkspacePreferences {
     defaultEventsAsTasks: boolean;
     /** Minutes before an event to be reminded. 0 means no reminder at all. */
     reminderMinutes: number;
+    icsDefaultRefreshMinutes: IcsRefreshMinutes;
+    icsFeeds: IcsFeedSubscription[];
     externalCalendars: DesktopExternalCalendarSource[];
 }
 
@@ -56,7 +65,7 @@ export const REMINDER_CHOICES: readonly number[] = [0, 5, 10, 15, 30, 60];
 
 export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreferences {
     return {
-        version: 4,
+        version: 5,
         colors: {},
         order: [],
         hiddenCalendarPaths: [],
@@ -82,6 +91,8 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         // Kept in step with the plugin's default in src/ui/settings.ts.
         defaultEventsAsTasks: false,
         reminderMinutes: 10,
+        icsDefaultRefreshMinutes: 60,
+        icsFeeds: [],
         externalCalendars: [],
     };
 }
@@ -212,6 +223,15 @@ export function reconcileWorkspacePreferences({
         ...loaded,
         colors: { ...previous.colors, ...loaded.colors },
         order,
+        icsFeeds: [
+            ...loaded.icsFeeds,
+            ...previous.icsFeeds.filter(
+                (previousFeed) =>
+                    !loaded.icsFeeds.some(
+                        (loadedFeed) => loadedFeed.id === previousFeed.id
+                    )
+            ),
+        ],
     };
 }
 
@@ -269,8 +289,13 @@ export function parseDesktopWorkspacePreferences(
             ? source.firstDay
             : defaults.firstDay;
 
+    const legacySources = parseExternalCalendarSources(
+        source.externalCalendars ?? source.calendarSources
+    );
+    const legacyIcalMigration = migrateLegacyIcalSources(legacySources);
+
     return {
-        version: 4,
+        version: 5,
         colors,
         order: strings(source.order),
         defaultCalendarPath:
@@ -309,8 +334,18 @@ export function parseDesktopWorkspacePreferences(
         )
             ? Number(source.reminderMinutes)
             : defaults.reminderMinutes,
-        externalCalendars: parseExternalCalendarSources(
-            source.externalCalendars ?? source.calendarSources
-        ),
+        icsDefaultRefreshMinutes: (
+            ICS_REFRESH_MINUTES as readonly number[]
+        ).includes(source.icsDefaultRefreshMinutes as number)
+            ? (source.icsDefaultRefreshMinutes as IcsRefreshMinutes)
+            : defaults.icsDefaultRefreshMinutes,
+        icsFeeds: parseIcsFeeds([
+            ...(Array.isArray(source.icsFeeds) ? source.icsFeeds : []),
+            ...legacyIcalMigration.feeds,
+        ]),
+        externalCalendars: [
+            ...legacySources.filter((calendar) => calendar.type === "auto"),
+            ...legacyIcalMigration.unresolved,
+        ],
     };
 }
