@@ -126,7 +126,8 @@ describe("Android description editor", () => {
                 value: originalExecCommand,
             });
         } else {
-            delete (document as Document & { execCommand?: unknown }).execCommand;
+            delete (document as Document & { execCommand?: unknown })
+                .execCommand;
         }
         if (originalQueryCommandEnabled) {
             Object.defineProperty(document, "queryCommandEnabled", {
@@ -134,9 +135,8 @@ describe("Android description editor", () => {
                 value: originalQueryCommandEnabled,
             });
         } else {
-            delete (
-                document as Document & { queryCommandEnabled?: unknown }
-            ).queryCommandEnabled;
+            delete (document as Document & { queryCommandEnabled?: unknown })
+                .queryCommandEnabled;
         }
     });
     const flushAnimationFrames = () => {
