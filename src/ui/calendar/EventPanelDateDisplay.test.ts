@@ -49,7 +49,10 @@ describe("event panel date display", () => {
         expect(html).toContain("15:15");
         expect(html).toContain("1h");
         expect(html).not.toContain("2026");
-        expect(html.match(/nc-panel-date-line/g)).toHaveLength(1);
+        // Une seule grille, et une date par colonne : chacune sous l'heure
+        // dont elle est la date.
+        expect(html.match(/nc-panel-datetime-start-date/g)).toHaveLength(1);
+        expect(html.match(/nc-panel-datetime-end-date/g)).toHaveLength(1);
     });
 
     it("uses the stored endDate for a real multi-day timed event", () => {

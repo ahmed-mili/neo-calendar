@@ -16,6 +16,18 @@ import { isSeries, parseOccurrenceId } from "../tasks";
 
 const dayIndexOf = (code: DayCode): number => DAY_ORDER.indexOf(code);
 
+/**
+ * La regle d'une serie, ancree comme l'expansion la lit.
+ *
+ * Exportee parce que la navigation d'une occurrence a l'autre
+ * (seriesNavigation.ts) doit compter sur EXACTEMENT le meme ancrage : deux
+ * lectures de la meme regle qui ne s'accordent pas sur le fuseau se decalent
+ * d'un jour, et la fleche « suivant » sauterait une date.
+ */
+export function seriesRrule(event: NeoEvent & { type: "rrule" }) {
+    return rruleOf(event);
+}
+
 function rruleOf(event: NeoEvent & { type: "rrule" }) {
     try {
         // UTC anchor, exactly as the expansion reads occurrences back, so a

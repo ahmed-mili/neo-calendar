@@ -36,6 +36,20 @@ function accessoryRoot(): HTMLDivElement {
     root.className = "nc-description-android-accessory";
     root.setAttribute("role", "toolbar");
     root.setAttribute("aria-label", "Description tools");
+    /*
+     * Cette barre appartient a la feuille, meme si elle n'est pas dedans.
+     *
+     * Elle doit vivre au niveau du body : elle se tient au-dessus du clavier
+     * avec `position: fixed` et l'inset du visual viewport, ce qu'elle ne peut
+     * pas faire depuis l'interieur d'une feuille qui defile. Mais `usePopupDismiss`
+     * ferme l'evenement des qu'un `pointerdown` tombe hors du panneau : sans ce
+     * marqueur, le trombone et le « A » etaient lus comme « je quitte l'editeur »,
+     * et la feuille se refermait avant meme que le bouton ait pu agir.
+     *
+     * `data-nc-popup-portal` est le marqueur que le panneau reconnait deja pour
+     * ses bulles de lien et son bandeau de confirmation (KEEP_OPEN_SELECTORS).
+     */
+    root.setAttribute("data-nc-popup-portal", "true");
     root.hidden = true;
     root.innerHTML = `
         <div class="nc-description-android-compact" data-nc-description-accessory-view="compact">

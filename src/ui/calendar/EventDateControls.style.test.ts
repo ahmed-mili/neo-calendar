@@ -12,9 +12,9 @@ const controls = fs.readFileSync(
 );
 
 describe("event panel schedule refresh styles", () => {
-    it("keeps All-day and Repeat as one flat two-column row with no divider between them", () => {
+    it("keeps All-day and Repeat flat, one per line, with no divider between them", () => {
         expect(css).toMatch(
-            /\.nc-panel-date-options\s*\{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\);/s
+            /\.nc-panel-date-options\s*\{[^}]*display: grid;[^}]*grid-template-columns: minmax\(0, 1fr\);/s
         );
         expect(css).toMatch(
             /\.nc-panel-date-option\s*\{[^}]*background: transparent !important;/s
@@ -44,6 +44,15 @@ describe("event panel schedule refresh styles", () => {
         expect(css).toContain(
             '.nc-panel-date-option[data-date-option="repeat"].nc-active'
         );
+    });
+
+    it("gives the repeat rule the whole line and keeps the series arrows beside it", () => {
+        expect(css).toContain(".nc-panel-date-option-line");
+        expect(css).toMatch(
+            /\.nc-panel-date-option-line > \.nc-panel-date-option\s*\{[^}]*flex: 1;/s
+        );
+        expect(css).toMatch(/\.nc-series-step-btn:disabled\s*\{[^}]*opacity/s);
+        expect(css).not.toMatch(/\.nc-panel-date-option-label[^}]*nowrap/s);
     });
 
     it("removes the obsolete View note footer from the panel", () => {

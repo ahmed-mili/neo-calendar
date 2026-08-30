@@ -216,11 +216,12 @@
     --nc-error: var(--text-error);
 
     position: fixed;
-    /* Notion's panel = ~90% opaque + blur: a theme-aware "glass" (dark or light
-       depending on the theme), letting the wallpaper/translucency show faintly. */
-    background: color-mix(in srgb, var(--background-primary) 90%, transparent);
-    backdrop-filter: blur(12px) brightness(1.2);
-    -webkit-backdrop-filter: blur(12px) brightness(1.2);
+    /* Un verre depoli, pas une vitre : le fond d'ecran passe un peu plus qu'a
+       90 %, et le flou est assez large pour que ce qui est derriere devienne
+       une matiere et non un texte qu'on lit a travers le panneau. */
+    background: color-mix(in srgb, var(--background-primary) 88%, transparent);
+    backdrop-filter: blur(28px) brightness(1.16);
+    -webkit-backdrop-filter: blur(28px) brightness(1.16);
     border: 1px solid var(--nc-border);
     border-radius: 12px;
     box-shadow: 0 24px 48px -8px rgba(0, 0, 0, 0.48),

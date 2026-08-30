@@ -1568,6 +1568,16 @@ function CalendarAppInner(props: CalendarAppProps) {
                     }}
                     onDraftCommit={handleDraftCommit}
                     onOpenFile={(id) => props.onOpenFile(id)}
+                    /* La vue suit la fiche : ouvrir la date voisine d'une serie
+                       sans deplacer le calendrier laisserait le panneau parler
+                       d'un jour qui n'est pas a l'ecran. */
+                    onGoToOccurrence={(displayId, date) => {
+                        const target = new Date(`${date}T00:00:00`);
+                        if (!Number.isNaN(target.getTime())) {
+                            setCurrentDate(target);
+                        }
+                        setPanelEventId(displayId);
+                    }}
                     onDuplicate={(id) => void duplicateEvent(id)}
                     onDelete={async (id) => {
                         await props.onDeleteEvent(id);

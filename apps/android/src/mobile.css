@@ -424,8 +424,8 @@ body.nc-platform-android .nc-panel-row-icon {
     margin-top: 1px;
 }
 
-body.nc-platform-android .nc-panel-time-row {
-    gap: 6px;
+body.nc-platform-android .nc-panel-datetime {
+    column-gap: 6px;
 }
 
 body.nc-platform-android .nc-panel-time-input {
@@ -443,7 +443,7 @@ body.nc-platform-android .nc-panel-row-content {
     gap: 2px;
 }
 
-body.nc-platform-android .nc-panel-date-line {
+body.nc-platform-android .nc-panel-datetime-end-time {
     gap: 4px;
 }
 
@@ -4939,3 +4939,32 @@ body.nc-platform-android .nc-scope-cancel-btn {
     min-height: 46px;
 }
 /* NEO_NOTION_PANEL_REFRESH_ANDROID_V1_END */
+
+/* NEO_PANEL_ICON_COLUMN_ANDROID_V1_START
+ * La colonne d'icones du panneau tient a 16 px du bord de la ligne. Sur le
+ * telephone, `.nc-panel-row` prend en plus 10 px de marge de chaque cote — et
+ * ces deux blocs-la n'en sont pas : la rangee Toute la journee / Repeter, qui
+ * est une grille a elle, et la description, qui garde sa marge de bureau.
+ * Sans ces deux lignes, la feuille rendrait sur le telephone exactement le
+ * defaut qu'on vient de corriger sur le bureau.
+ */
+body.nc-platform-android .nc-panel-date-options {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+/* La case du glyphe mesure 22 px sur le telephone et non 20 : les quatre qui
+   composent la colonne doivent grandir ensemble, sinon la pastille du
+   calendrier, la cloche et le soleil retombent un pixel a cote de l'horloge. */
+body.nc-platform-android .nc-panel-date-option-icon,
+body.nc-platform-android .nc-panel-reminders-icon,
+body.nc-platform-android .nc-cal-select-swatch {
+    width: 22px;
+    flex-basis: 22px;
+}
+
+body.nc-platform-android .nc-panel-body .nc-panel-row.nc-panel-row-desc {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+/* NEO_PANEL_ICON_COLUMN_ANDROID_V1_END */

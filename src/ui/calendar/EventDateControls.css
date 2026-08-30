@@ -1,11 +1,19 @@
-/* All-day and Repeat are the two compact actions of the Date property. Keep
-   them flat and side-by-side instead of turning them into two raised pills. */
+/* Toute la journee et Repeter sont les deux actions compactes de la propriete
+   Date : plates, empilees, jamais deux pastilles en relief.
+
+   Une par ligne et non deux colonnes : une regle de repetition s'ecrit en toutes
+   lettres (« Toutes les semaines »), et une demi-largeur de panneau la coupait
+   au milieu. Pleine largeur, elle se lit entiere, et il reste la place a droite
+   pour les deux fleches qui menent aux autres dates de la serie. */
 .nc-panel-date-options {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
     min-width: 0;
-    padding: 0 16px 8px;
+    /* 8 px de retrait : chaque bouton porte ensuite 1 px de bordure et 7 px de
+       remplissage, ce qui pose son icone a 16 px du bord du panneau — la meme
+       colonne que l'horloge, la pastille du calendrier, la cloche et le reste. */
+    padding: 0 8px 8px;
     margin-top: -2px;
 }
 
@@ -15,12 +23,12 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
     min-height: 34px;
-    padding: 6px 12px;
-    border: none;
-    border-radius: 0;
+    padding: 6px 7px;
+    border: 1px solid transparent;
+    border-radius: 6px;
     box-shadow: none !important;
     background: transparent !important;
     color: var(--nc-text-secondary);
@@ -31,36 +39,113 @@
     text-align: left;
     cursor: pointer;
     transition: background var(--nc-transition-fast),
+        border-color var(--nc-transition-fast),
         color var(--nc-transition-fast);
 }
 
+/* La meme case de 20 px que `.nc-panel-row-icon` : c'est elle, et non le
+   glyphe, qui decide de la colonne. */
 .nc-panel-date-option-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
-    flex: 0 0 16px;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
     color: var(--nc-text-faint);
     transition: color var(--nc-transition-fast),
         transform var(--nc-transition-fast);
 }
 
-.nc-panel-date-option-label {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.nc-panel-date-option-icon > svg {
+    width: 16px;
+    height: 16px;
 }
 
-.nc-panel-date-option:hover:not(:disabled),
-.nc-panel-date-option[aria-expanded="true"] {
+/* Le libelle passe a la ligne au lieu d'etre coupe.
+   « Toutes les semaines » ne tient pas dans une demi-largeur de panneau : il
+   sortait en « Toutes les... », c'est-a-dire en disant qu'il y a une regle sans
+   jamais dire laquelle — la seule chose que cette ligne ait a dire. */
+.nc-panel-date-option-label {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: break-word;
+    line-height: 1.25;
+}
+
+/* La ligne de la repetition : le bouton prend ce qui reste, les deux fleches
+   gardent leur place a droite. */
+.nc-panel-date-option-line {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.nc-panel-date-option-line > .nc-panel-date-option {
+    flex: 1;
+    min-width: 0;
+}
+
+.nc-series-step {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+}
+
+.nc-series-step-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-faint);
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        border-color var(--nc-transition-fast),
+        color var(--nc-transition-fast);
+}
+
+.nc-series-step-btn:hover:not(:disabled) {
+    border-color: var(--nc-border);
+    color: var(--nc-text-primary);
+}
+
+/* Grisees, pas disparues : au premier et au dernier jour d'une serie, une paire
+   de fleches qui s'efface deplacerait tout ce qui est a cote. */
+.nc-series-step-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* Le survol dessine le contour, la surface pleine dit que c'est ouvert : la
+   meme grammaire que le titre, le calendrier, les rappels et la description.
+   Ces deux boutons etaient les seuls du panneau a s'allumer d'un bloc. */
+.nc-panel-date-option:hover:not(:disabled) {
+    border-color: var(--nc-border);
+    background: transparent !important;
+    color: var(--nc-text-primary);
+}
+
+/* `:not(:disabled)` n'est pas decoratif : sans lui la regle pese moins
+   que celle du survol juste au-dessus, et le bouton ouvert restait dessine
+   comme un bouton survole tant que la souris ne l'avait pas quitte. */
+.nc-panel-date-option[aria-expanded="true"]:not(:disabled) {
+    border-color: transparent;
     background: var(--nc-bg-hover) !important;
     color: var(--nc-text-primary);
 }
 
 .nc-panel-date-option:hover:not(:disabled) .nc-panel-date-option-icon,
-.nc-panel-date-option[aria-expanded="true"] .nc-panel-date-option-icon {
+.nc-panel-date-option[aria-expanded="true"]:not(:disabled) .nc-panel-date-option-icon {
     color: var(--nc-text-secondary);
 }
 
@@ -109,9 +194,32 @@
     display: none !important;
 }
 
-/* Touch keeps the same two-column composition, only enlarging the hit targets. */
+/* Le chevron de ce qui ouvre un menu — repris tel quel du selecteur de
+   calendrier (voir CalendarPanel.css), pour que Repeter le montre comme lui. */
+.nc-panel-date-option-chevron {
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
+    padding-left: 6px;
+    color: var(--nc-text-faint);
+    opacity: 0;
+    transition: opacity var(--nc-transition-fast);
+}
+
+.nc-panel-date-option:hover:not(:disabled) .nc-panel-date-option-chevron,
+.nc-panel-date-option[aria-expanded="true"]:not(:disabled) .nc-panel-date-option-chevron {
+    opacity: 1;
+}
+
+/* Le tactile garde la meme composition, en agrandissant seulement les cibles. */
 .nc-platform-android .nc-panel-date-option,
 body.nc-platform-android .nc-panel-date-option {
     min-height: 40px;
     padding-block: 8px;
+}
+
+body.nc-platform-android .nc-series-step-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
 }

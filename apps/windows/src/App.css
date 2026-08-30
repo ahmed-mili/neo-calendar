@@ -687,10 +687,14 @@ button.nc-settings__theme-card:focus-visible {
 .nc-shortcuts-panel,
 .nc-color-picker,
 .nc-tz-picker-popup {
-    background-color: color-mix(in srgb, var(--background-primary) 96%, transparent) !important;
+    /* Plus de fond d'ecran qu'avant sous ces surfaces (96 % laissait a peine
+       deviner), mais un voile assez epais pour que ce qui passe au travers ne
+       soit plus lisible : a 14 px, les titres d'evenements derriere le panneau
+       se lisaient encore mot pour mot. */
+    background-color: color-mix(in srgb, var(--background-primary) 88%, transparent) !important;
     border-color: var(--background-modifier-border) !important;
-    backdrop-filter: blur(14px) saturate(115%);
-    -webkit-backdrop-filter: blur(14px) saturate(115%);
+    backdrop-filter: blur(28px) saturate(118%);
+    -webkit-backdrop-filter: blur(28px) saturate(118%);
 }
 
 /* The shortcuts panel is portaled to body. Give it the same text and control

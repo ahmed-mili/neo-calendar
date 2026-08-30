@@ -308,6 +308,8 @@ if (invokedScript === import.meta.url) {
         console.log(
             `  git tag v${version} && git push origin main v${version}`
         );
+        console.log(`\nOu, la prochaine fois, tout d'un geste :`);
+        console.log(`  git ship "Ce que ça change"   (voir scripts/ship.mjs)`);
     } catch (error) {
         console.error(error.message);
         process.exitCode = 1;

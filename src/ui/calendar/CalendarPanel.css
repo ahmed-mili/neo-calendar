@@ -592,21 +592,65 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Two-column date/time grid (Notion): start time + start date in column 1,
-   end time + end date in column 3, with the arrow between and the duration
-   right after the end time. */
-/* Time range on one line: start → end + duration, kept close together with a
-   small gap (the arrow sits right after the start time, not stretched away). */
-.nc-panel-time-row {
-    display: flex;
+/* La grille date/heure, telle que Notion Calendar la pose : les heures sur la
+   premiere ligne, chaque date SOUS l'heure dont elle est la date sur la
+   seconde, et la fleche entre les deux colonnes.
+
+   Une seule grille pour les deux lignes, et non deux rangees empilees : c'est
+   la seule facon que la colonne d'arrivee tombe au meme endroit sur les deux
+   lignes. Sur une journee unique, la date passe sous les trois colonnes et
+   n'elargit donc pas celle de l'heure de depart — la fleche reste collee aux
+   heures, comme avant. */
+.nc-panel-datetime {
+    display: grid;
+    grid-template-columns: max-content max-content minmax(0, 1fr);
     align-items: center;
-    gap: 8px;
+    column-gap: 8px;
+    row-gap: 4px;
+    min-width: 0;
 }
 
-.nc-panel-date-line {
-    display: flex;
+.nc-panel-datetime-start-time {
+    grid-column: 1;
+    grid-row: 1;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+}
+
+.nc-panel-datetime-arrow {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.nc-panel-datetime-end-time {
+    grid-column: 3;
+    grid-row: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.nc-panel-datetime-start-date {
+    grid-column: 1;
+    grid-row: 2;
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.nc-panel-datetime-end-date {
+    grid-column: 3;
+    grid-row: 2;
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+}
+
+/* Sans date de fin il n'y a rien a aligner : la date reprend toute la largeur
+   plutot que d'imposer la sienne a la colonne de l'heure de depart. */
+.nc-panel-datetime:not(.nc-panel-datetime-range) .nc-panel-datetime-start-date {
+    grid-column: 1 / -1;
 }
 
 /* Date shown as a clickable label (Notion-style); the native picker is a
@@ -1383,15 +1427,100 @@ body.nc-platform-android .nc-description-toolbar .nc-description-tool {
    Il couvre ce qui l'a ouvert plutôt que de s'y déplier : on y fait une chose,
    et le panneau de l'événement attend derrière. Même surface que lui, pour que
    ce soit visiblement le même endroit. */
+/* Le cadre : il tient la carte, et sur un bureau il assombrit ce qu'il y a
+   derriere. Sur telephone il ne fait rien d'autre que remplir l'ecran. */
 .nc-recur-screen {
     position: fixed;
     inset: 0;
     z-index: 120;
     display: flex;
+}
+
+.nc-recur-screen-card {
+    display: flex;
+    flex: 1;
+    min-height: 0;
     flex-direction: column;
     background: var(--nc-bg-primary, var(--background-primary));
     color: var(--nc-text-primary, var(--text-normal));
     animation: nc-recur-screen-in 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Sur un ordinateur, une question de six lignes n'a pas a couvrir toute
+   l'application : la meme carte, au milieu de la fenetre, sur le meme voile
+   sombre que les autres boites du panneau (voir .nc-choice-overlay). */
+body:not(.nc-platform-android) .nc-recur-screen {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.34);
+}
+
+body:not(.nc-platform-android) .nc-recur-screen-card {
+    flex: 0 1 auto;
+    width: min(400px, 100%);
+    max-height: min(560px, calc(100vh - 48px));
+    border: 1px solid var(--nc-border);
+    border-radius: 16px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+
+/* Les mesures de la carte sont celles d'un pouce ; a la souris elles font une
+   page d'ecolier. Meme composition, simplement resserree. */
+body:not(.nc-platform-android) .nc-recur-screen-header {
+    padding: 8px 10px;
+}
+
+body:not(.nc-platform-android) .nc-recur-screen-header h2 {
+    font-size: 14px;
+}
+
+body:not(.nc-platform-android) .nc-recur-screen-back {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+}
+
+body:not(.nc-platform-android) .nc-recur-screen-done {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+body:not(.nc-platform-android) .nc-recur-screen-body {
+    padding-bottom: 8px;
+}
+
+body:not(.nc-platform-android) .nc-recur-section {
+    padding: 12px 14px;
+}
+
+body:not(.nc-platform-android) .nc-recur-section h3 {
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+body:not(.nc-platform-android) .nc-recur-screen .nc-recur-num {
+    width: 52px;
+    height: 30px;
+    font-size: 13px;
+}
+
+body:not(.nc-platform-android) .nc-recur-screen .nc-day-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 12.5px;
+}
+
+body:not(.nc-platform-android) .nc-recur-end-line {
+    min-height: 32px;
+    font-size: 13px;
+}
+
+body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
+    width: 15px;
+    height: 15px;
 }
 
 @keyframes nc-recur-screen-in {
@@ -3262,3 +3391,102 @@ body.nc-platform-android .nc-description-toolbar .nc-description-tool {
     color: var(--nc-text-primary);
 }
 /* NEO_NOTION_PANEL_REFRESH_V1_END */
+
+/* NEO_PANEL_ICON_COLUMN_V1_START
+ * Une seule colonne d'icones, et une seule grammaire de survol.
+ *
+ * Chaque ligne du panneau posait son glyphe ou sa surface le voulait :
+ * l'horloge et la case a cocher a 16 px du bord (la case de 20 px de
+ * `.nc-panel-row-icon`), le soleil de « Toute la journee » a 28, la pastille
+ * du calendrier a 16 mais large de 10 seulement — donc centree cinq pixels
+ * trop a gauche — et la cloche des rappels a 31. Cinq colonnes pour six
+ * lignes.
+ *
+ * La regle est desormais la meme partout : le bord gauche du glyphe est une
+ * CASE de 20 px qui commence a 16 px du bord du panneau, quel que soit ce
+ * qu'elle contient. Les surfaces qui debordent vers la gauche pour que leur
+ * survol respire (calendrier, rappels, description) le font de 8 px et
+ * reprennent 1 px de bordure + 7 px de remplissage : 16 - 8 + 1 + 7 = 16.
+ * Le libelle suit a 6 px de la case, comme sur `.nc-panel-row`.
+ */
+
+.nc-panel-reminders,
+.nc-cal-select {
+    gap: 6px;
+}
+
+.nc-panel-row-inline > .nc-panel-row-icon {
+    /* Les lignes en une seule ligne sont centrees ; les 2 px que porte la case
+       pour suivre la premiere ligne d'un contenu multi-lignes y font descendre
+       le glyphe sous son libelle. */
+    margin-top: 0;
+}
+
+.nc-cal-select {
+    padding: 5px 7px;
+    margin: -3px -8px;
+}
+
+.nc-cal-select-swatch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+}
+
+.nc-panel-reminders {
+    padding: 6px 7px;
+    /* Le champ deborde de 8 px de chaque cote de la ligne, comme le selecteur
+       de calendrier : sans la largeur reprise ici, il ne deborderait qu'a
+       gauche et finirait 8 px avant le bord droit. */
+    margin: 0 -8px;
+    width: calc(100% + 16px);
+    border-radius: 6px;
+}
+
+.nc-panel-reminders-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+}
+
+.nc-panel-body .nc-panel-row.nc-panel-row-desc {
+    padding: 8px 7px;
+}
+
+/* Ce qui ouvre un menu le dit du meme chevron, au meme endroit, au survol
+   comme a l'ouverture : le calendrier le faisait seul, les rappels et la
+   repetition ne montraient rien. */
+.nc-cal-select-chevron,
+.nc-panel-reminders-chevron {
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
+    padding-left: 6px;
+    color: var(--nc-text-faint);
+    opacity: 0;
+    transition: opacity var(--nc-transition-fast);
+}
+
+.nc-panel-reminders:hover:not(.nc-panel-reminders-readonly)
+    .nc-panel-reminders-chevron,
+.nc-panel-reminders:focus-visible .nc-panel-reminders-chevron,
+.nc-panel-reminders[aria-expanded="true"]:not(.nc-panel-reminders-readonly)
+    .nc-panel-reminders-chevron {
+    opacity: 1;
+}
+
+/* Ouvert, le champ des rappels s'allume comme le calendrier ouvert : le
+   contour est pour le survol, la surface pleine pour l'etat ouvert. Le
+   `:not(...)` porte le poids qu'il faut pour passer devant la regle de survol,
+   sans quoi un champ ouvert sous la souris resterait dessine comme survole. */
+.nc-panel-reminders[aria-expanded="true"]:not(.nc-panel-reminders-readonly) {
+    border-color: transparent;
+    background: var(--nc-bg-hover) !important;
+}
+/* NEO_PANEL_ICON_COLUMN_V1_END */

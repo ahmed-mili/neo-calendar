@@ -1,6 +1,11 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import { CheckIcon as CheckMarkIcon } from "./Icons";
+import {
+    CheckIcon as CheckMarkIcon,
+    ChevronDownIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+} from "./Icons";
 import { RepeatIcon } from "./EventPanelIcons";
 import { placeFlyout } from "./flyoutPlacement";
 import { PresetKey } from "./recurrence";
@@ -35,6 +40,11 @@ interface DateOptionsRowProps {
     currentPreset: PresetKey;
     summary: string;
     onChooseRepeat: (key: PresetKey | "once") => void;
+    /** D'une date de la serie a la suivante ou a la precedente, quand il y en
+        a une. Absent : le panneau ne regarde pas une occurrence datee. */
+    onStepOccurrence?: (direction: 1 | -1) => void;
+    canStepBack?: boolean;
+    canStepForward?: boolean;
 }
 
 function AllDayIcon({ active }: { active: boolean }) {
@@ -81,6 +91,9 @@ export function DateOptionsRow({
     currentPreset,
     summary,
     onChooseRepeat,
+    onStepOccurrence,
+    canStepBack,
+    canStepForward,
 }: DateOptionsRowProps) {
     const [open, setOpen] = React.useState(false);
     const [menuPos, setMenuPos] = React.useState<{
@@ -146,7 +159,15 @@ export function DateOptionsRow({
 
     const repeatLabel = isRecurring && summary.trim() ? summary : t("Repeat");
 
+    const showSteps = Boolean(onStepOccurrence);
+
     return (
+        /* Une ligne par reglage, et non deux colonnes.
+           « Toutes les semaines » ne tient pas dans une demi-largeur de
+           panneau : il sortait coupe en « Toutes les... », c'est-a-dire en
+           annoncant une regle sans jamais dire laquelle. Sur sa propre ligne
+           la regle se lit entiere, et il reste la place, a droite, pour aller
+           d'une date de la serie a l'autre. */
         <div className="nc-panel-date-options" ref={rowRef}>
             <button
                 type="button"
@@ -163,25 +184,62 @@ export function DateOptionsRow({
                     {t("All-day")}
                 </span>
             </button>
-            <button
-                type="button"
-                ref={repeatRef}
-                className={`nc-panel-date-option${
-                    isRecurring ? " nc-active" : ""
-                }`}
-                data-date-option="repeat"
-                aria-expanded={open}
-                disabled={!editable}
-                title={isRecurring && summary ? summary : undefined}
-                onClick={() => editable && (open ? setOpen(false) : openMenu())}
-            >
-                <span className="nc-panel-date-option-icon">
-                    <RepeatIcon />
-                </span>
-                <span className="nc-panel-date-option-label">
-                    {repeatLabel}
-                </span>
-            </button>
+            <div className="nc-panel-date-option-line">
+                <button
+                    type="button"
+                    ref={repeatRef}
+                    className={`nc-panel-date-option${
+                        isRecurring ? " nc-active" : ""
+                    }`}
+                    data-date-option="repeat"
+                    aria-expanded={open}
+                    disabled={!editable}
+                    onClick={() =>
+                        editable && (open ? setOpen(false) : openMenu())
+                    }
+                >
+                    <span className="nc-panel-date-option-icon">
+                        <RepeatIcon />
+                    </span>
+                    <span className="nc-panel-date-option-label">
+                        {repeatLabel}
+                    </span>
+                    {editable && (
+                        <span className="nc-panel-date-option-chevron">
+                            <ChevronDownIcon size={14} />
+                        </span>
+                    )}
+                </button>
+                {/* Les deux dates voisines de la serie. Presentes et grisees
+                    plutot qu'absentes aux extremites : une paire de fleches qui
+                    apparait et disparait deplace tout ce qui est a cote. */}
+                {showSteps && (
+                    <div className="nc-series-step" data-series-step="true">
+                        <button
+                            type="button"
+                            className="nc-series-step-btn"
+                            disabled={!canStepBack}
+                            title={t("Go to previous event in this series")}
+                            aria-label={t(
+                                "Go to previous event in this series"
+                            )}
+                            onClick={() => onStepOccurrence?.(-1)}
+                        >
+                            <ChevronLeftIcon size={14} />
+                        </button>
+                        <button
+                            type="button"
+                            className="nc-series-step-btn"
+                            disabled={!canStepForward}
+                            title={t("Go to next event in this series")}
+                            aria-label={t("Go to next event in this series")}
+                            onClick={() => onStepOccurrence?.(1)}
+                        >
+                            <ChevronRightIcon size={14} />
+                        </button>
+                    </div>
+                )}
+            </div>
 
             {open &&
                 menuPos &&

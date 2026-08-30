@@ -253,6 +253,10 @@ const FR: Record<string, string> = {
     "Remove link": "Supprimer le lien",
     "Copy link": "Copier le lien",
     "Copy path": "Copier le chemin",
+    "Go to previous event in this series":
+        "Aller à l'évènement précédent de cette série",
+    "Go to next event in this series":
+        "Aller à l'évènement suivant de cette série",
     "Rename link": "Renommer le lien",
     "Link copied": "Lien copié",
     "Path copied": "Chemin copié",

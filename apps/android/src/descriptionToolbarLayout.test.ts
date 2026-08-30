@@ -87,6 +87,18 @@ describe("the Android description keyboard accessory", () => {
         );
     });
 
+    /*
+     * La barre est posee sur le body, et `usePopupDismiss` ferme l'evenement des
+     * qu'un `pointerdown` tombe hors du panneau. Sans ce marqueur, toucher le
+     * trombone ou le « A » refermait la feuille entiere avant que le bouton
+     * n'agisse : la description devenait inutilisable au telephone.
+     */
+    it("declares the accessory as belonging to the event sheet", () => {
+        expect(editor).toContain(
+            'root.setAttribute("data-nc-popup-portal", "true");'
+        );
+    });
+
     it("loads the Android correction after mobile.css and installs its interaction helper", () => {
         const mobileImport = main.indexOf('import "./mobile.css";');
         const toolbarImport = main.indexOf(

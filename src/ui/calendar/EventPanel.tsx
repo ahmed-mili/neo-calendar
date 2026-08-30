@@ -12,6 +12,7 @@ import {
     formatPanelDate,
     panelEndDate,
     computeDuration,
+    daysBetween,
     computePopupPosition,
     hasDraftCreationIntent,
     shouldAutoCommitDraft,
@@ -55,6 +56,7 @@ import {
     seriesWithoutOccurrence,
 } from "./recurringEdit";
 import { recurringEditChanges } from "./recurringEditChanges";
+import { adjacentOccurrenceId } from "./seriesNavigation";
 import {
     applyEntryKindSelection,
     BirthdayReturnState,
@@ -122,6 +124,9 @@ interface EventPanelProps {
         calendarId?: string
     ) => void;
     onOpenFile: (id: string) => void;
+    /** Ouvre une autre date de la meme serie : la vue se pose dessus et le
+        panneau montre cette occurrence-la. */
+    onGoToOccurrence?: (displayId: string, date: string) => void;
     onCopyFilePath?: (id: string) => Promise<void>;
     onDuplicate?: (id: string) => void;
     onDelete: (id: string) => void;
@@ -249,6 +254,7 @@ export default function EventPanel({
     onClose,
     onDraftCommit,
     onOpenFile,
+    onGoToOccurrence,
     onCopyFilePath,
     onDuplicate,
     onDelete,
@@ -716,6 +722,26 @@ export default function EventPanel({
         isDraft,
     });
     const occurrenceDate = useMemo(() => occurrenceDateOf(eventId), [eventId]);
+
+    /* Les deux dates voisines de la serie, calculees des que le panneau ouvre
+       une occurrence. Elles ne sont pas cherchees dans ce qui est affiche : la
+       voisine d'une regle annuelle est a onze mois de la fenetre visible. */
+    const previousOccurrence = useMemo(
+        () => adjacentOccurrenceId(stableEvent, eventId, -1),
+        [stableEvent, eventId]
+    );
+    const nextOccurrence = useMemo(
+        () => adjacentOccurrenceId(stableEvent, eventId, 1),
+        [stableEvent, eventId]
+    );
+    const stepOccurrence = useCallback(
+        (direction: 1 | -1) => {
+            const target = direction > 0 ? nextOccurrence : previousOccurrence;
+            if (!target) return;
+            onGoToOccurrence?.(target.id, target.date);
+        },
+        [nextOccurrence, previousOccurrence, onGoToOccurrence]
+    );
     const heldEditRef = useRef(false);
     const scopeNeededRef = useRef(scopeChoiceNeeded);
     scopeNeededRef.current = scopeChoiceNeeded;
@@ -1244,10 +1270,6 @@ export default function EventPanel({
 
     // ── Computed ──────────────────────────────────────────────
 
-    const duration = useMemo(
-        () => computeDuration(form.startTime, form.endTime),
-        [form.startTime, form.endTime]
-    );
     const dateLabel = useMemo(() => formatPanelDate(form.date), [form.date]);
 
     // Multi-day events already own an explicit endDate. The previous UI ignored
@@ -1267,6 +1289,18 @@ export default function EventPanel({
     const endDateLabel = useMemo(
         () => (endDateValue ? formatPanelDate(endDateValue) : ""),
         [endDateValue]
+    );
+
+    // The days the event spans, so the duration counts them. Read from the two
+    // dates rather than from the times: 13:00 to 13:00 is nothing at all inside
+    // one day and a full day across two.
+    const dayGap = useMemo(
+        () => daysBetween(form.date, endDateValue),
+        [form.date, endDateValue]
+    );
+    const duration = useMemo(
+        () => computeDuration(form.startTime, form.endTime, dayGap),
+        [form.startTime, form.endTime, dayGap]
     );
 
     const computedLeft = dragOffset ? dragOffset.x : position.left;
@@ -1477,6 +1511,14 @@ export default function EventPanel({
                         currentPreset={currentPreset}
                         summary={repeatSummary}
                         onChooseRepeat={chooseRepeat}
+                        onStepOccurrence={
+                            onGoToOccurrence &&
+                            (previousOccurrence || nextOccurrence)
+                                ? stepOccurrence
+                                : undefined
+                        }
+                        canStepBack={Boolean(previousOccurrence)}
+                        canStepForward={Boolean(nextOccurrence)}
                     />
 
                     {form.isRecurring &&

@@ -101,14 +101,46 @@ export function formatDateLong(dateStr: string): string {
     return formatDateParts(d);
 }
 
-export function computeDuration(start: string, end: string): string {
+/**
+ * Whole days from one YYYY-MM-DD to another, 0 when either is missing or the
+ * end is not after the start.
+ *
+ * Built at noon rather than at midnight: a day built at midnight and shifted
+ * across a daylight-saving boundary lands at 23:00 the day before, and the
+ * division would round a two-day span down to one.
+ */
+export function daysBetween(start: string, end: string | undefined): number {
+    if (!start || !end) return 0;
+    const from = new Date(start + "T12:00:00");
+    const to = new Date(end + "T12:00:00");
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return 0;
+    const gap = Math.round((to.getTime() - from.getTime()) / 86400000);
+    return gap > 0 ? gap : 0;
+}
+
+/**
+ * How long it lasts, said in one word beside the end time.
+ *
+ * `dayGap` is the number of days between the start date and the end date. An
+ * event that runs from 13:00 one day to 13:00 the next is not a zero-minute
+ * event — it lasts a day — and without the gap the two identical times cancelled
+ * out and the panel said nothing at all about a two-day booking.
+ */
+export function computeDuration(
+    start: string,
+    end: string,
+    dayGap = 0
+): string {
     if (!start || !end) return "";
     const [sh, sm] = start.split(":").map(Number);
     const [eh, em] = end.split(":").map(Number);
     if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return "";
-    let totalMin = eh * 60 + em - (sh * 60 + sm);
-    // End before start means the event crosses midnight (ends next day).
-    if (totalMin < 0) totalMin += 24 * 60;
+    const days = Number.isFinite(dayGap) && dayGap > 0 ? Math.floor(dayGap) : 0;
+    let totalMin = days * 24 * 60 + eh * 60 + em - (sh * 60 + sm);
+    // No end date to go on, and the end reads before the start: the event
+    // crosses midnight. With a day gap the span is already known, so the guess
+    // would count the same night twice.
+    if (!days && totalMin < 0) totalMin += 24 * 60;
     if (totalMin <= 0) return "";
     const h = Math.floor(totalMin / 60);
     const m = totalMin % 60;
