@@ -223,7 +223,7 @@ export function reconcileWorkspacePreferences({
         ...loaded,
         colors: { ...previous.colors, ...loaded.colors },
         order,
-        icsFeeds: [
+        icsFeeds: parseIcsFeeds([
             ...loaded.icsFeeds,
             ...previous.icsFeeds.filter(
                 (previousFeed) =>
@@ -231,7 +231,7 @@ export function reconcileWorkspacePreferences({
                         (loadedFeed) => loadedFeed.id === previousFeed.id
                     )
             ),
-        ],
+        ]),
     };
 }
 

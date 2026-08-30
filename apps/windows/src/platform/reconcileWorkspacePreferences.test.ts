@@ -166,4 +166,53 @@ describe("reconcileWorkspacePreferences", () => {
             },
         ]);
     });
+
+    it("revalidates merged feeds across devices against URL and calendar limits", () => {
+        // Break caught: concurrent additions can bypass the parser and leave
+        // more than five feeds or two normalized copies of one URL attached to
+        // the same calendar.
+        const loadedFeeds = new Array(5).fill(null).map((_, index) => ({
+            id: `loaded-${index}`,
+            calendarPath: "Études",
+            name: `Chargé ${index}`,
+            url: `https://x.test/${index}.ics`,
+            active: true,
+        }));
+        const previousFeeds = [
+            {
+                id: "duplicate-url",
+                calendarPath: "Études",
+                name: "Doublon",
+                url: "webcal://x.test/0.ics",
+                active: true,
+            },
+            ...new Array(5).fill(null).map((_, index) => ({
+                id: `previous-${index}`,
+                calendarPath: "Études",
+                name: `Local ${index}`,
+                url: `https://x.test/${index + 5}.ics`,
+                active: true,
+            })),
+        ];
+
+        const result = reconcileWorkspacePreferences({
+            previous: {
+                ...defaultDesktopWorkspacePreferences(),
+                icsFeeds: previousFeeds,
+            },
+            loaded: {
+                ...defaultDesktopWorkspacePreferences(),
+                icsFeeds: loadedFeeds,
+            },
+            fileExisted: true,
+        });
+
+        expect(result.icsFeeds.map((feed) => feed.id)).toEqual([
+            "loaded-0",
+            "loaded-1",
+            "loaded-2",
+            "loaded-3",
+            "loaded-4",
+        ]);
+    });
 });
