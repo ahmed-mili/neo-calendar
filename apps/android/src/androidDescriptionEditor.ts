@@ -198,7 +198,8 @@ function syncCommandAvailability(root: HTMLElement): void {
         const command = button.dataset.ncDescriptionHistory as
             | HistoryCommand
             | undefined;
-        button.disabled = !activeSection || !command || !historyEnabled(command);
+        button.disabled =
+            !activeSection || !command || !historyEnabled(command);
     });
 }
 
