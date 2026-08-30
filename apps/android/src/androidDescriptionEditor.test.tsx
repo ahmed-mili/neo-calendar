@@ -25,20 +25,90 @@ function Harness({
     );
 }
 
+function writeNativeValue(field: HTMLTextAreaElement, value: string): void {
+    const setter = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype,
+        "value"
+    )?.set;
+    expect(setter).toBeTruthy();
+    setter?.call(field, value);
+}
+
 describe("Android description editor", () => {
     let container: HTMLDivElement;
     let animationFrames: FrameRequestCallback[];
+    let undoValues: string[];
+    let redoValues: string[];
+    let captureBeforeInput: (event: Event) => void;
     const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalExecCommand = document.execCommand;
+    const originalQueryCommandEnabled = document.queryCommandEnabled;
+
     beforeEach(() => {
         document.documentElement.classList.add("nc-platform-android");
         document.body.classList.add("nc-platform-android");
         container = document.createElement("div");
         document.body.appendChild(container);
         animationFrames = [];
+        undoValues = [];
+        redoValues = [];
         window.requestAnimationFrame = (callback: FrameRequestCallback) => {
             animationFrames.push(callback);
             return animationFrames.length;
         };
+
+        // jsdom has no browser editing history. Model Chromium/WebView's native
+        // textarea history here so the regression still travels through the
+        // real beforeinput/input + controlled React path rather than calling a
+        // React setter directly.
+        captureBeforeInput = (event: Event) => {
+            if (!(event.target instanceof HTMLTextAreaElement)) return;
+            const input = event as InputEvent;
+            if (
+                input.inputType === "historyUndo" ||
+                input.inputType === "historyRedo"
+            ) {
+                return;
+            }
+            undoValues.push(event.target.value);
+            redoValues = [];
+        };
+        document.addEventListener("beforeinput", captureBeforeInput, true);
+
+        Object.defineProperty(document, "queryCommandEnabled", {
+            configurable: true,
+            value: (command: string) =>
+                command === "undo"
+                    ? undoValues.length > 0
+                    : command === "redo"
+                    ? redoValues.length > 0
+                    : false,
+        });
+        Object.defineProperty(document, "execCommand", {
+            configurable: true,
+            value: (command: string) => {
+                const field = document.activeElement;
+                if (!(field instanceof HTMLTextAreaElement)) return false;
+                if (command !== "undo" && command !== "redo") return false;
+                const source = command === "undo" ? undoValues : redoValues;
+                const destination =
+                    command === "undo" ? redoValues : undoValues;
+                const next = source.pop();
+                if (next === undefined) return false;
+                destination.push(field.value);
+                writeNativeValue(field, next);
+                field.setSelectionRange(next.length, next.length);
+                field.dispatchEvent(
+                    new InputEvent("input", {
+                        bubbles: true,
+                        inputType:
+                            command === "undo" ? "historyUndo" : "historyRedo",
+                        data: null,
+                    })
+                );
+                return true;
+            },
+        });
     });
     afterEach(() => {
         act(() => {
@@ -48,7 +118,26 @@ describe("Android description editor", () => {
         document.getElementById("nc-description-android-accessory")?.remove();
         document.documentElement.classList.remove("nc-platform-android");
         document.body.classList.remove("nc-platform-android");
+        document.removeEventListener("beforeinput", captureBeforeInput, true);
         window.requestAnimationFrame = originalRequestAnimationFrame;
+        if (originalExecCommand) {
+            Object.defineProperty(document, "execCommand", {
+                configurable: true,
+                value: originalExecCommand,
+            });
+        } else {
+            delete (document as Document & { execCommand?: unknown })
+                .execCommand;
+        }
+        if (originalQueryCommandEnabled) {
+            Object.defineProperty(document, "queryCommandEnabled", {
+                configurable: true,
+                value: originalQueryCommandEnabled,
+            });
+        } else {
+            delete (document as Document & { queryCommandEnabled?: unknown })
+                .queryCommandEnabled;
+        }
     });
     const flushAnimationFrames = () => {
         const callbacks = animationFrames.splice(0);
@@ -86,11 +175,6 @@ describe("Android description editor", () => {
         inputType: string,
         data: string | null
     ) => {
-        const setter = Object.getOwnPropertyDescriptor(
-            HTMLTextAreaElement.prototype,
-            "value"
-        )?.set;
-        expect(setter).toBeTruthy();
         act(() => {
             field.dispatchEvent(
                 new KeyboardEvent("keydown", {
@@ -99,7 +183,15 @@ describe("Android description editor", () => {
                     cancelable: true,
                 })
             );
-            setter?.call(field, value);
+            field.dispatchEvent(
+                new InputEvent("beforeinput", {
+                    bubbles: true,
+                    cancelable: true,
+                    inputType,
+                    data,
+                })
+            );
+            writeNativeValue(field, value);
             field.dispatchEvent(
                 new InputEvent("input", {
                     bubbles: true,
@@ -112,7 +204,7 @@ describe("Android description editor", () => {
             );
         });
     };
-    it("keeps the accessory visible when A swaps compact icons for the horizontal formatting strip", () => {
+    it("keeps the accessory visible when the professional format control opens the horizontal strip", () => {
         act(() => {
             ReactDOM.render(<Harness />, container);
         });
@@ -151,7 +243,8 @@ describe("Android description editor", () => {
         const formatToggle = accessory.querySelector(
             '.nc-description-android-compact [data-nc-description-accessory="format"]'
         ) as HTMLButtonElement;
-        expect(formatToggle.textContent).toBe("A");
+        expect(formatToggle.textContent?.trim()).toBe("");
+        expect(formatToggle.querySelector("svg")).toBeTruthy();
 
         // Exact regression: before the fix the section itself received the
         // .nc-description-android-expanded class. CSS gives that class
@@ -173,6 +266,17 @@ describe("Android description editor", () => {
         expect(strip).toBeTruthy();
         expect(icon.hasAttribute("data-nc-description-action")).toBe(false);
         expect(document.activeElement).toBe(field);
+        expect(
+            Array.from(
+                strip.querySelectorAll<HTMLButtonElement>(
+                    ".nc-description-android-format-button"
+                )
+            ).every((button) => Boolean(button.querySelector("svg")))
+        ).toBe(true);
+        expect(strip.textContent).not.toContain("Tx");
+        expect(strip.textContent).not.toContain("☑");
+        expect(strip.textContent).not.toContain("•≡");
+        expect(strip.textContent).not.toContain("1≡");
 
         const bold = accessory.querySelector(
             '[data-nc-description-command="bold"]'
@@ -199,10 +303,71 @@ describe("Android description editor", () => {
         const expandedToggle = accessory.querySelector(
             '.nc-description-android-expanded [data-nc-description-accessory="format"]'
         ) as HTMLButtonElement;
+        expect(expandedToggle.textContent?.trim()).toBe("");
+        expect(expandedToggle.querySelector("svg")).toBeTruthy();
         press(expandedToggle);
         expect(accessory.hidden).toBe(false);
         expect(accessory.dataset.mode).toBe("compact");
         expect(document.activeElement).toBe(field);
+    });
+    it("keeps undo and redo fixed at the far right and follows the native textarea history", () => {
+        act(() => {
+            ReactDOM.render(<Harness />, container);
+        });
+        const row = container.querySelector(
+            ".nc-description-composer"
+        ) as HTMLDivElement;
+        const field = row.querySelector(
+            "textarea[data-description-input='true']"
+        ) as HTMLTextAreaElement;
+        act(() => {
+            row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        const accessory = document.getElementById(
+            "nc-description-android-accessory"
+        ) as HTMLDivElement;
+        const formatToggle = accessory.querySelector(
+            '.nc-description-android-compact [data-nc-description-accessory="format"]'
+        ) as HTMLButtonElement;
+        press(formatToggle);
+
+        const strip = accessory.querySelector(
+            ".nc-description-android-format-scroll"
+        ) as HTMLDivElement;
+        const history = accessory.querySelector(
+            ".nc-description-android-history"
+        ) as HTMLDivElement;
+        const undo = history.querySelector(
+            '[data-nc-description-history="undo"]'
+        ) as HTMLButtonElement;
+        const redo = history.querySelector(
+            '[data-nc-description-history="redo"]'
+        ) as HTMLButtonElement;
+        expect(strip.nextElementSibling).toBe(history);
+        expect(undo.querySelector("svg")).toBeTruthy();
+        expect(redo.querySelector("svg")).toBeTruthy();
+        expect(undo.disabled).toBe(true);
+        expect(redo.disabled).toBe(true);
+
+        nativeKeyboardEdit(field, "a", "a", "insertText", "a");
+        expect(field.value).toBe("a");
+        expect(undo.disabled).toBe(false);
+        expect(redo.disabled).toBe(true);
+
+        press(undo);
+        expect(field.value).toBe("");
+        expect(document.activeElement).toBe(field);
+        expect(redo.disabled).toBe(false);
+
+        press(redo);
+        expect(field.value).toBe("a");
+        expect(document.activeElement).toBe(field);
+        expect(undo.disabled).toBe(false);
+
+        field.setSelectionRange(1, 1);
+        nativeKeyboardEdit(field, "ab", "b", "insertText", "b");
+        expect(field.value).toBe("ab");
+        expect(redo.disabled).toBe(true);
     });
     it("keeps a new draft on the Android keyboard path with no + and accepts native input", () => {
         act(() => {
