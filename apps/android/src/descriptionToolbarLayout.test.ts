@@ -65,7 +65,21 @@ describe("the Android description keyboard accessory", () => {
         );
     });
 
-    it("replaces the compact icons inside the same bar with a horizontally scrollable touch strip", () => {
+    it("uses SVG editing icons instead of improvised text glyphs", () => {
+        const icon = declarationsFor(css, ".nc-description-android-icon");
+
+        expect(icon.width).toBe("21px");
+        expect(icon.height).toBe("21px");
+        expect(editor).toContain('class="nc-description-android-icon"');
+        expect(editor).not.toContain(">•≡</button>");
+        expect(editor).not.toContain(">1≡</button>");
+        expect(editor).not.toContain(">☑</button>");
+        expect(editor).not.toContain(">Tx</button>");
+        expect(androidCss).not.toContain(".nc-description-android-format-text");
+        expect(androidCss).not.toContain(".nc-description-android-underlined");
+    });
+
+    it("keeps formatting scrollable but pins undo and redo at the far right", () => {
         const strip = declarationsFor(
             css,
             ".nc-description-android-format-scroll"
@@ -73,6 +87,14 @@ describe("the Android description keyboard accessory", () => {
         const tool = declarationsFor(
             css,
             ".nc-description-android-format-button"
+        );
+        const history = declarationsFor(
+            css,
+            ".nc-description-android-history"
+        );
+        const historyButton = declarationsFor(
+            css,
+            ".nc-description-android-history-button"
         );
 
         expect(strip.display).toBe("flex");
@@ -85,13 +107,20 @@ describe("the Android description keyboard accessory", () => {
         expect(androidCss).toMatch(
             /\.nc-description-android-format-scroll \.nc-description-android-format-button\s*\{[^}]*touch-action: pan-x;/s
         );
+        expect(history.display).toBe("flex");
+        expect(history["flex"]).toBe("0 0 auto");
+        expect(history["border-left"]).toContain("1px solid");
+        expect(historyButton["flex"]).toBe("0 0 40px");
+        expect(editor.indexOf('data-nc-description-history="undo"')).toBeLessThan(
+            editor.indexOf('data-nc-description-history="redo"')
+        );
     });
 
     /*
      * La barre est posee sur le body, et `usePopupDismiss` ferme l'evenement des
-     * qu'un `pointerdown` tombe hors du panneau. Sans ce marqueur, toucher le
-     * trombone ou le « A » refermait la feuille entiere avant que le bouton
-     * n'agisse : la description devenait inutilisable au telephone.
+     * qu'un `pointerdown` tombe hors du panneau. Sans ce marqueur, toucher une
+     * commande refermait la feuille entiere avant que le bouton n'agisse : la
+     * description devenait inutilisable au telephone.
      */
     it("declares the accessory as belonging to the event sheet", () => {
         expect(editor).toContain(
