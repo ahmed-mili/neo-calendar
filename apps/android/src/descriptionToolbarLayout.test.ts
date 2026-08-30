@@ -88,10 +88,7 @@ describe("the Android description keyboard accessory", () => {
             css,
             ".nc-description-android-format-button"
         );
-        const history = declarationsFor(
-            css,
-            ".nc-description-android-history"
-        );
+        const history = declarationsFor(css, ".nc-description-android-history");
         const historyButton = declarationsFor(
             css,
             ".nc-description-android-history-button"
@@ -111,9 +108,9 @@ describe("the Android description keyboard accessory", () => {
         expect(history["flex"]).toBe("0 0 auto");
         expect(history["border-left"]).toContain("1px solid");
         expect(historyButton["flex"]).toBe("0 0 40px");
-        expect(editor.indexOf('data-nc-description-history="undo"')).toBeLessThan(
-            editor.indexOf('data-nc-description-history="redo"')
-        );
+        expect(
+            editor.indexOf('data-nc-description-history="undo"')
+        ).toBeLessThan(editor.indexOf('data-nc-description-history="redo"'));
     });
 
     /*
