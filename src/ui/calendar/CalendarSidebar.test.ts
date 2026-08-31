@@ -1,5 +1,11 @@
+/** @jest-environment jsdom */
+import * as React from "react";
+import * as ReactDOM from "react-dom";
+import { act } from "react-dom/test-utils";
 import * as fs from "fs";
 import * as path from "path";
+import CalendarSidebar from "./CalendarSidebar";
+import { applyLanguage, t } from "../i18n";
 
 const css = fs.readFileSync(
     path.join(__dirname, "CalendarSidebar.css"),
@@ -132,5 +138,77 @@ describe("calendar removal wording", () => {
         expect(component).toContain("icon: <ListXIcon />");
         expect(component).not.toContain('label: t("Delete")');
         expect(component).not.toContain('label: "Delete"');
+    });
+});
+
+describe("tasks platform branches", () => {
+    const props: React.ComponentProps<typeof CalendarSidebar> = {
+        sidebarVisible: true,
+        currentDate: new Date(2026, 8, 3),
+        viewType: "week",
+        onViewTypeChange: () => {},
+        dayCount: 7,
+        onSetDayCount: () => {},
+        calendarSources: [],
+        firstDay: 1,
+        onDateSelect: () => {},
+        hiddenCalendars: new Set(),
+        onToggleCalendar: () => {},
+        defaultCalendarId: "",
+        soloCalendarId: null,
+        onSetDefaultCalendar: () => {},
+        onShowOnly: () => {},
+        tasks: [],
+        today: "2026-09-03",
+        onEventClick: () => {},
+        onAddTask: () => {},
+        onToggleTask: async () => true,
+        onAddCalendar: () => {},
+        onRenameCalendar: async () => {},
+        onEditCalendarLink: () => {},
+        onDeleteCalendar: () => {},
+        onColorChange: () => {},
+        onReorderCalendars: () => {},
+        onOpenCalendarFolder: () => {},
+        onOpenRootFolder: () => {},
+        onCalendarClick: () => {},
+        selectedCalendarId: null,
+        onToggleSidebar: () => {},
+        onOpenSearch: () => {},
+        onOpenSettings: () => {},
+    };
+
+    let host: HTMLDivElement;
+
+    beforeEach(() => {
+        applyLanguage("fr");
+        document.body.classList.remove("nc-platform-android");
+        host = document.createElement("div");
+        document.body.appendChild(host);
+    });
+
+    afterEach(() => {
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
+        host.remove();
+        document.body.classList.remove("nc-platform-android");
+        applyLanguage("fr");
+    });
+
+    it("uses desktop status modals while Android keeps the inline add-task panel", () => {
+        act(() => {
+            ReactDOM.render(React.createElement(CalendarSidebar, props), host);
+        });
+        expect(host.querySelector(".nc-desktop-tasks-summary")).toBeTruthy();
+        expect(host.textContent).not.toContain(t("Add task"));
+
+        document.body.classList.add("nc-platform-android");
+        act(() => {
+            ReactDOM.render(React.createElement(CalendarSidebar, props), host);
+        });
+        expect(host.querySelector(".nc-desktop-tasks-summary")).toBeNull();
+        expect(host.querySelector(".nc-tasks-panel")).toBeTruthy();
+        expect(host.textContent).toContain(t("Add task"));
     });
 });

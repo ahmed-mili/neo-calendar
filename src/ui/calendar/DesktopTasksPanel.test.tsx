@@ -48,6 +48,7 @@ const tasks: TaskItem[] = [
 describe("DesktopTasksPanel", () => {
     let host: HTMLDivElement;
     let onTaskClick: jest.Mock<void, [string]>;
+    let onToggleTask: jest.Mock<Promise<boolean>, [string, boolean]>;
 
     const button = (label: string): HTMLButtonElement => {
         const found = Array.from(document.querySelectorAll("button")).find(
@@ -62,13 +63,14 @@ describe("DesktopTasksPanel", () => {
         host = document.createElement("div");
         document.body.appendChild(host);
         onTaskClick = jest.fn();
+        onToggleTask = jest.fn(async () => true);
         act(() => {
             ReactDOM.render(
                 <DesktopTasksPanel
                     tasks={tasks}
                     today="2026-09-03"
                     onTaskClick={onTaskClick}
-                    onToggleTask={async () => true}
+                    onToggleTask={onToggleTask}
                 />,
                 host
             );
@@ -132,5 +134,50 @@ describe("DesktopTasksPanel", () => {
 
         expect(onTaskClick).toHaveBeenCalledWith("dated");
         expect(document.body.querySelector('[role="dialog"]')).toBeNull();
+    });
+
+    it("toggles a dated task from its checkbox keyboard control without opening it", () => {
+        act(() => Simulate.click(button(t("To do"))));
+        const checkbox = document.body.querySelector(
+            '[data-task-id="dated"] .nc-tasks-checkbox'
+        ) as HTMLButtonElement;
+
+        checkbox.focus();
+        act(() => Simulate.keyDown(checkbox, { key: " " }));
+
+        expect(onToggleTask).toHaveBeenCalledWith("dated", true);
+        expect(onTaskClick).not.toHaveBeenCalled();
+        expect(document.body.querySelector('[role="dialog"]')).toBeTruthy();
+    });
+
+    it("focuses and traps the dialog before restoring focus to its trigger", () => {
+        const trigger = button(t("To do"));
+        act(() => Simulate.click(trigger));
+
+        const dialog = document.body.querySelector(
+            '[role="dialog"]'
+        ) as HTMLElement;
+        const close = dialog.querySelector(
+            ".nc-task-modal-close"
+        ) as HTMLButtonElement;
+        const focusable = Array.from(
+            dialog.querySelectorAll<HTMLElement>(
+                'button:not(:disabled), [tabindex]:not([tabindex="-1"])'
+            )
+        );
+        const last = focusable[focusable.length - 1];
+
+        expect(document.activeElement).toBe(close);
+
+        last.focus();
+        act(() => Simulate.keyDown(last, { key: "Tab" }));
+        expect(document.activeElement).toBe(close);
+
+        close.focus();
+        act(() => Simulate.keyDown(close, { key: "Tab", shiftKey: true }));
+        expect(document.activeElement).toBe(last);
+
+        act(() => Simulate.click(close));
+        expect(document.activeElement).toBe(trigger);
     });
 });

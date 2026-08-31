@@ -51,6 +51,7 @@ function TaskRow({
             data-task-id={task.id}
             onClick={() => onTaskClick(task)}
             onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) return;
                 if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     onTaskClick(task);
@@ -72,6 +73,12 @@ function TaskRow({
                 }
                 title={canToggle ? undefined : unavailableToggleLabel}
                 onClick={(event) => {
+                    event.stopPropagation();
+                    if (canToggle) void onToggleTask(task.id, !done);
+                }}
+                onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
                     event.stopPropagation();
                     if (canToggle) void onToggleTask(task.id, !done);
                 }}
@@ -120,10 +127,20 @@ export default function DesktopTasksPanel({
         null
     );
     const groups = React.useMemo(() => buildDesktopTaskGroups(tasks), [tasks]);
-    const close = React.useCallback(() => setOpenGroup(null), []);
+    const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+    const dialogRef = React.useRef<HTMLElement | null>(null);
+    const close = React.useCallback(() => {
+        setOpenGroup(null);
+        triggerRef.current?.focus();
+    }, []);
 
     React.useEffect(() => {
         if (openGroup === null) return;
+        const dialog = dialogRef.current;
+        const firstControl = dialog?.querySelector<HTMLElement>(
+            'button:not(:disabled), [tabindex]:not([tabindex="-1"])'
+        );
+        firstControl?.focus();
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") close();
         };
@@ -134,6 +151,32 @@ export default function DesktopTasksPanel({
     const openTask = (task: TaskItem) => {
         close();
         onTaskClick(task.id);
+    };
+
+    const trapTab = (event: React.KeyboardEvent<HTMLElement>) => {
+        if (event.key !== "Tab") return;
+        const dialog = dialogRef.current;
+        if (!dialog) return;
+        const controls = Array.from(
+            dialog.querySelectorAll<HTMLElement>(
+                'button:not(:disabled), [tabindex]:not([tabindex="-1"])'
+            )
+        );
+        if (controls.length === 0) {
+            event.preventDefault();
+            dialog.focus();
+            return;
+        }
+
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
     };
 
     const modal =
@@ -151,6 +194,9 @@ export default function DesktopTasksPanel({
                           role="dialog"
                           aria-modal="true"
                           aria-labelledby="nc-task-modal-title"
+                          ref={dialogRef}
+                          tabIndex={-1}
+                          onKeyDown={trapTab}
                       >
                           <header className="nc-task-modal-header">
                               <h2 id="nc-task-modal-title">
@@ -193,7 +239,10 @@ export default function DesktopTasksPanel({
                 <button
                     type="button"
                     className="nc-status-pill nc-status-todo"
-                    onClick={() => setOpenGroup("todo")}
+                    onClick={(event) => {
+                        triggerRef.current = event.currentTarget;
+                        setOpenGroup("todo");
+                    }}
                 >
                     <span className="nc-status-dot nc-dot-todo" />
                     {t("To do")}
@@ -204,7 +253,10 @@ export default function DesktopTasksPanel({
                 <button
                     type="button"
                     className="nc-status-pill nc-status-complete"
-                    onClick={() => setOpenGroup("complete")}
+                    onClick={(event) => {
+                        triggerRef.current = event.currentTarget;
+                        setOpenGroup("complete");
+                    }}
                 >
                     <span className="nc-status-dot nc-dot-complete" />
                     {t("Complete")}
