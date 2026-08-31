@@ -1,5 +1,8 @@
+import type { IcsOccurrence, IcsSnapshot } from "../../../../src/calendars/parsing/ics";
+import type { NeoEvent } from "../../../../src/types";
 import { parseEvent } from "../../../../src/types/schema";
 import {
+    calendarIdFromPath,
     parseFrontmatter,
     type DesktopStoredEvent,
 } from "./desktopEventFormat";
@@ -8,12 +11,17 @@ import {
     parseExternalCalendarSources,
     type DesktopIcalCalendarSource,
 } from "./desktopExternalCalendars";
+import type { IcsFeedSubscription } from "./icsFeedPreferences";
 import {
     availableIcalDirectoryName,
     planIcalDirectoryAssignments,
     planIcalNoteSync,
+    planIcsNoteSync,
     scopedIcalEvent,
+    startOfLocalWeekIso,
+    type IcsSyncState,
 } from "./icalNoteSync";
+import { serializeManagedEventMarkdown } from "./managedEventNote";
 
 const source: DesktopIcalCalendarSource & { directory: string } = {
     type: "ical",
@@ -173,4 +181,349 @@ describe("note-backed iCalendar subscriptions", () => {
         expect(parsed[0].directory).toBe("School");
         expect(parsed[1].directory).toBeUndefined();
     });
+});
+
+describe("startOfLocalWeekIso", () => {
+    it("returns the Monday of the local week", () => {
+        // 2026-08-31 is a Monday; a Wednesday of the same week maps back to it.
+        expect(startOfLocalWeekIso(new Date(2026, 7, 31, 12))).toBe(
+            "2026-08-31"
+        );
+        expect(startOfLocalWeekIso(new Date(2026, 8, 2, 9))).toBe("2026-08-31");
+        expect(startOfLocalWeekIso(new Date(2026, 8, 6, 23))).toBe(
+            "2026-08-31"
+        );
+    });
+});
+
+describe("planIcsNoteSync — conservation and prudent deletion", () => {
+    const feed: IcsFeedSubscription = {
+        id: "feed-1",
+        calendarPath: "School",
+        name: "School",
+        url: "https://example.test/school.ics",
+        active: true,
+    };
+    // A Wednesday: the current-week Monday boundary is 2026-08-31.
+    const now = new Date(2026, 8, 2, 9, 0, 0);
+
+    const singleEvent = (date: string, title: string): NeoEvent =>
+        parseEvent({
+            title,
+            type: "single",
+            date,
+            endDate: null,
+            allDay: true,
+        }) as NeoEvent;
+
+    const occurrence = (
+        uid: string,
+        date: string,
+        title = "Cours",
+        recurrenceId: string | null = null
+    ): IcsOccurrence => ({
+        key: recurrenceId === null ? uid : `${uid}::${recurrenceId}`,
+        uid,
+        recurrenceId,
+        event: singleEvent(date, title) as IcsOccurrence["event"],
+    });
+
+    const snapshot = (over: Partial<IcsSnapshot> = {}): IcsSnapshot => {
+        const events = over.events ?? [];
+        return {
+            events,
+            cancelledKeys: over.cancelledKeys ?? new Set<string>(),
+            latestOccurrenceDate:
+                over.latestOccurrenceDate ??
+                (events.length
+                    ? events
+                          .map((occ) => occ.event.date)
+                          .reduce((a, b) => (b > a ? b : a))
+                    : null),
+        };
+    };
+
+    const state = (over: Partial<IcsSyncState> = {}): IcsSyncState => ({
+        knownEventCount: 1,
+        missingCounts: {},
+        ...over,
+    });
+
+    const managedRecord = (
+        uid: string,
+        date: string,
+        title = "Cours",
+        feedId = feed.id,
+        recurrenceId: string | null = null
+    ): DesktopStoredEvent => {
+        const key = recurrenceId === null ? uid : `${uid}::${recurrenceId}`;
+        const event = {
+            ...singleEvent(date, title),
+            id: `neo-calendar:ics::${feedId}::${key}`,
+        } as NeoEvent;
+        const contents = serializeManagedEventMarkdown(event, {
+            neoManagedBy: "neo-calendar:ics",
+            neoManagedVersion: 1,
+            neoIcsFeedId: feedId,
+            neoIcsUid: uid,
+            neoIcsRecurrenceId: recurrenceId,
+            neoIcsStatus: "confirmed",
+        });
+        return {
+            id: `note::${feedId}::${key}`,
+            calendarId: calendarIdFromPath("School"),
+            calendarPath: "School",
+            relativePath: `School/${date} ${title}.md`,
+            fileName: `${date} ${title}.md`,
+            contents,
+            event,
+            readOnly: true,
+        };
+    };
+
+    it("never deletes a note that starts before the current Monday, even cancelled", () => {
+        const archived = managedRecord("past", "2026-08-24");
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({
+                events: [occurrence("live", "2026-09-09")],
+                cancelledKeys: new Set(["past"]),
+            }),
+            existingRecords: [archived],
+            previousState: state({ knownEventCount: 2 }),
+            now,
+        });
+
+        expect(plan.deletes).toEqual([]);
+        expect(plan.nextState.missingCounts.past).toBeUndefined();
+    });
+
+    it("keeps a current-week occurrence after a single miss and counts it", () => {
+        const record = managedRecord("mon", "2026-09-02");
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({ events: [occurrence("other", "2026-09-09")] }),
+            existingRecords: [record],
+            previousState: state(),
+            now,
+        });
+
+        expect(plan.deletes).toEqual([]);
+        expect(plan.nextState.missingCounts.mon).toBe(1);
+    });
+
+    it("deletes on the second consecutive miss inside proven coverage", () => {
+        const record = managedRecord("mon", "2026-09-02");
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({
+                events: [occurrence("other", "2026-09-09")],
+                latestOccurrenceDate: "2026-09-09",
+            }),
+            existingRecords: [record],
+            previousState: state({ missingCounts: { mon: 1 } }),
+            now,
+        });
+
+        expect(plan.deletes).toEqual([record]);
+        expect(plan.nextState.missingCounts.mon).toBeUndefined();
+    });
+
+    it("keeps a second miss when the feed does not prove coverage past it", () => {
+        const record = managedRecord("far", "2026-12-25");
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({
+                events: [occurrence("other", "2026-09-09")],
+                latestOccurrenceDate: "2026-09-09",
+            }),
+            existingRecords: [record],
+            previousState: state({ missingCounts: { far: 1 } }),
+            now,
+        });
+
+        expect(plan.deletes).toEqual([]);
+        expect(plan.nextState.missingCounts.far).toBe(2);
+    });
+
+    it("deletes an explicitly cancelled current-week occurrence at once", () => {
+        const record = managedRecord("mon", "2026-09-02");
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({
+                events: [occurrence("other", "2026-09-09")],
+                cancelledKeys: new Set(["mon"]),
+            }),
+            existingRecords: [record],
+            previousState: state({ knownEventCount: 2 }),
+            now,
+        });
+
+        expect(plan.deletes).toEqual([record]);
+    });
+
+    it("resets the miss counter when an occurrence reappears", () => {
+        const record = managedRecord("mon", "2026-09-02");
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({ events: [occurrence("mon", "2026-09-02")] }),
+            existingRecords: [record],
+            previousState: state({ missingCounts: { mon: 1 } }),
+            now,
+        });
+
+        expect(plan.deletes).toEqual([]);
+        expect(plan.writes).toEqual([]);
+        expect(plan.nextState.missingCounts.mon).toBeUndefined();
+    });
+
+    it("is a pure function: an HTTP failure simply means it is never called", () => {
+        // The sync cycle stops before the planner on a failed download, so the
+        // planner itself must not mutate the inputs a retry will reuse.
+        const record = managedRecord("mon", "2026-09-02");
+        const previousState = Object.freeze(
+            state({ missingCounts: Object.freeze({ mon: 1 }) as Record<string, number> })
+        );
+        const existingRecords = Object.freeze([record]);
+
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({ events: [occurrence("other", "2026-09-09")] }),
+            existingRecords,
+            previousState,
+            now,
+        });
+
+        expect(previousState.missingCounts).toEqual({ mon: 1 });
+        expect(plan.nextState).not.toBe(previousState);
+    });
+
+    it("throws on an unexpectedly empty snapshot from a populated feed", () => {
+        expect(() =>
+            planIcsNoteSync({
+                feed,
+                snapshot: snapshot(),
+                existingRecords: [managedRecord("mon", "2026-09-02")],
+                previousState: state({ knownEventCount: 3 }),
+                now,
+            })
+        ).toThrow();
+    });
+
+    it("accepts an empty snapshot the first time a feed is seen", () => {
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot(),
+            existingRecords: [],
+            previousState: state({ knownEventCount: 0 }),
+            now,
+        });
+        expect(plan).toEqual({
+            writes: [],
+            deletes: [],
+            nextState: expect.objectContaining({
+                knownEventCount: 0,
+                missingCounts: {},
+            }),
+        });
+    });
+
+    it("never touches a personal note", () => {
+        const personal: DesktopStoredEvent = {
+            id: "personal",
+            calendarId: calendarIdFromPath("School"),
+            calendarPath: "School",
+            relativePath: "School/2026-09-02 Dentist.md",
+            fileName: "2026-09-02 Dentist.md",
+            contents: [
+                "---",
+                'title: "Dentist"',
+                'type: "single"',
+                'date: "2026-09-02"',
+                "endDate: null",
+                "allDay: true",
+                "---",
+                "personal",
+            ].join("\n"),
+            event: singleEvent("2026-09-02", "Dentist"),
+        };
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({
+                cancelledKeys: new Set(["personal"]),
+            }),
+            existingRecords: [personal],
+            previousState: state({ knownEventCount: 2 }),
+            now,
+        });
+
+        expect(plan.deletes).toEqual([]);
+        expect(plan.writes).toEqual([]);
+    });
+
+    it("never touches a note owned by another feed", () => {
+        const foreign = managedRecord("mon", "2026-09-02", "Cours", "feed-2");
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({
+                cancelledKeys: new Set(["mon"]),
+            }),
+            existingRecords: [foreign],
+            previousState: state({ knownEventCount: 2 }),
+            now,
+        });
+
+        expect(plan.deletes).toEqual([]);
+        expect(plan.writes).toEqual([]);
+    });
+
+    it("updates a changed occurrence in place, keeping its file", () => {
+        const record = managedRecord("mon", "2026-09-02", "Cours");
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({
+                events: [occurrence("mon", "2026-09-02", "Cours (salle B)")],
+            }),
+            existingRecords: [record],
+            previousState: state(),
+            now,
+        });
+
+        expect(plan.deletes).toEqual([]);
+        expect(plan.writes).toHaveLength(1);
+        expect(plan.writes[0].previousRelativePath).toBe(record.relativePath);
+        expect(plan.writes[0].fileName).toBe(record.fileName);
+        expect(parseFrontmatter(plan.writes[0].contents)?.title).toBe(
+            "Cours (salle B)"
+        );
+    });
+
+    it("creates a note for a brand-new occurrence", () => {
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({ events: [occurrence("mon", "2026-09-02")] }),
+            existingRecords: [],
+            previousState: state({ knownEventCount: 0 }),
+            now,
+        });
+
+        expect(plan.writes).toHaveLength(1);
+        expect(plan.writes[0].previousRelativePath).toBeUndefined();
+        expect(plan.writes[0].calendarPath).toBe("School");
+        expect(plan.writes[0].fileName).toBe("2026-09-02 Cours.md");
+        expect(plan.deletes).toEqual([]);
+    });
+
+    it("does not rewrite an unchanged managed note on a second sync", () => {
+        const record = managedRecord("mon", "2026-09-02");
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({ events: [occurrence("mon", "2026-09-02")] }),
+            existingRecords: [record],
+            previousState: state(),
+            now,
+        });
+        expect(plan.writes).toEqual([]);
+    });
+
 });

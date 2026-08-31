@@ -1,5 +1,8 @@
+import { DateTime } from "luxon";
+import type { IcsSnapshot } from "../../../../src/calendars/parsing/ics";
 import type { NeoEvent } from "../../../../src/types";
 import {
+    calendarIdFromPath,
     filenameForEvent,
     serializeEventMarkdown,
     type DesktopStoredEvent,
@@ -9,6 +12,12 @@ import {
     type DesktopExternalCalendarSource,
     type DesktopIcalCalendarSource,
 } from "./desktopExternalCalendars";
+import type { IcsFeedSubscription } from "./icsFeedPreferences";
+import {
+    managedMetadataFromMarkdown,
+    serializeManagedEventMarkdown,
+    type ManagedEventMetadata,
+} from "./managedEventNote";
 
 export interface IcalNoteWrite {
     event: NeoEvent;
@@ -180,4 +189,157 @@ export function planIcalNoteSync(
             },
         ];
     });
+}
+
+/* ------------------------------------------------------------------------- *
+ * Pure ICS reconciliation planner
+ *
+ * The new "ICS link on a Full Note calendar" feature keeps a note per imported
+ * occurrence, but a public ICS URL is a potentially bounded snapshot: an
+ * absence is only proof of a deletion inside a zone the feed still covers.
+ * `planIcsNoteSync` turns one validated snapshot into the exact set of writes
+ * and the narrow set of deletions the conservation rule allows, plus the next
+ * per-feed sync state. It performs no IO and never mutates its inputs.
+ * ------------------------------------------------------------------------- */
+
+export interface IcsSyncState {
+    lastAttemptAt?: string;
+    lastSuccessAt?: string;
+    lastError?: string;
+    knownEventCount: number;
+    /** Consecutive valid syncs an occurrence key has been missing from. */
+    missingCounts: Record<string, number>;
+}
+
+export interface IcsSyncPlan {
+    writes: IcalNoteWrite[];
+    deletes: DesktopStoredEvent[];
+    nextState: IcsSyncState;
+}
+
+/**
+ * Monday 00:00 of the device-local week, as an ISO date. Monday is the first
+ * day of the week; a note whose occurrence date is before this boundary is the
+ * archive and can never be deleted by a feed.
+ */
+export function startOfLocalWeekIso(now: Date): string {
+    return DateTime.fromJSDate(now).startOf("week").toISODate() ?? "";
+}
+
+const occurrenceKeyOf = (
+    uid: string,
+    recurrenceId: string | null
+): string => (recurrenceId === null ? uid : `${uid}::${recurrenceId}`);
+
+export function planIcsNoteSync(args: {
+    feed: IcsFeedSubscription;
+    snapshot: IcsSnapshot;
+    existingRecords: readonly DesktopStoredEvent[];
+    previousState: IcsSyncState;
+    now: Date;
+}): IcsSyncPlan {
+    const { feed, snapshot, existingRecords, previousState, now } = args;
+
+    const snapshotIsEmpty =
+        snapshot.events.length === 0 && snapshot.cancelledKeys.size === 0;
+    if (snapshotIsEmpty && previousState.knownEventCount > 0) {
+        throw new Error(
+            "The ICS snapshot is unexpectedly empty: a previously populated " +
+                "feed returned no occurrence and no cancellation."
+        );
+    }
+
+    const nowIso = now.toISOString();
+    const monday = startOfLocalWeekIso(now);
+    const calendarId = calendarIdFromPath(feed.calendarPath);
+    const present = new Map(
+        snapshot.events.map((occurrence) => [occurrence.key, occurrence])
+    );
+
+    // Existing notes this feed owns, keyed by their logical occurrence key.
+    const owned = new Map<string, DesktopStoredEvent>();
+    for (const record of existingRecords) {
+        const metadata = managedMetadataFromMarkdown(record.contents);
+        if (
+            !metadata ||
+            metadata.neoManagedBy !== "neo-calendar:ics" ||
+            metadata.neoIcsFeedId !== feed.id
+        ) {
+            continue;
+        }
+        owned.set(
+            occurrenceKeyOf(
+                metadata.neoIcsUid,
+                metadata.neoIcsRecurrenceId
+            ),
+            record
+        );
+    }
+
+    const writes: IcalNoteWrite[] = [];
+    for (const occurrence of snapshot.events) {
+        const metadata: ManagedEventMetadata = {
+            neoManagedBy: "neo-calendar:ics",
+            neoManagedVersion: 1,
+            neoIcsFeedId: feed.id,
+            neoIcsUid: occurrence.uid,
+            neoIcsRecurrenceId: occurrence.recurrenceId,
+            neoIcsStatus: "confirmed",
+        };
+        const previous = owned.get(occurrence.key);
+        const event = {
+            ...occurrence.event,
+            id: `neo-calendar:ics::${feed.id}::${occurrence.key}`,
+        } as NeoEvent;
+        const contents = serializeManagedEventMarkdown(
+            event,
+            metadata,
+            previous?.contents ?? ""
+        );
+        if (previous && contents === previous.contents) continue;
+        writes.push({
+            event,
+            calendarId,
+            calendarPath: feed.calendarPath,
+            previousRelativePath: previous?.relativePath,
+            fileName: previous?.fileName ?? filenameForEvent(event),
+            contents,
+        });
+    }
+
+    const deletes: DesktopStoredEvent[] = [];
+    const missingCounts: Record<string, number> = {};
+    for (const [key, record] of owned) {
+        if (present.has(key)) continue; // reappeared: counter resets to zero.
+
+        const occurrenceDate =
+            record.event.type === "single" ? record.event.date : "";
+        // The archive is untouchable: never delete it, never keep counting it.
+        if (occurrenceDate < monday) continue;
+
+        const cancelled = snapshot.cancelledKeys.has(key);
+        const misses = cancelled
+            ? 0
+            : (previousState.missingCounts[key] ?? 0) + 1;
+        if (misses > 0) missingCounts[key] = misses;
+
+        const coverageProven =
+            snapshot.latestOccurrenceDate !== null &&
+            snapshot.latestOccurrenceDate > occurrenceDate;
+        if (cancelled || (misses >= 2 && coverageProven)) {
+            deletes.push(record);
+            delete missingCounts[key];
+        }
+    }
+
+    return {
+        writes,
+        deletes,
+        nextState: {
+            lastAttemptAt: nowIso,
+            lastSuccessAt: nowIso,
+            knownEventCount: snapshot.events.length,
+            missingCounts,
+        },
+    };
 }
