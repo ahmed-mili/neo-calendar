@@ -6,6 +6,7 @@ import {
 } from "../../../../src/types";
 import { labelFor } from "../../../../src/ui/calendar/linkInput";
 import type { DesktopEventFileDto } from "./desktopCalendarStore";
+import { managedMetadataFromMarkdown } from "./managedEventNote";
 
 export interface DesktopStoredEvent {
     id: string;
@@ -189,6 +190,11 @@ export function parseStoredEvent(
         title: parsed.title || markdownTitle(file.fileName),
     } as NeoEvent;
 
+    // A note carrying a valid managed marker set is owned by a generator (an
+    // ICS feed today): it stays on its folder's calendar but cannot be edited
+    // or deleted by hand in this version.
+    const managed = managedMetadataFromMarkdown(file.contents);
+
     return {
         // The plugin itself mints an in-memory id when frontmatter has no id.
         // A path-based id gives the desktop build the same stable behavior
@@ -203,6 +209,7 @@ export function parseStoredEvent(
         fileName: file.fileName,
         contents: file.contents,
         event,
+        ...(managed ? { readOnly: true } : {}),
     };
 }
 

@@ -1,9 +1,11 @@
 import {
     extractEventBodyLinks,
     parseFrontmatter,
+    parseStoredEvent,
     renameMarkdownTargetInEventBody,
     serializeEventMarkdown,
 } from "./desktopEventFormat";
+import { serializeManagedEventMarkdown } from "./managedEventNote";
 import { NeoEvent } from "../../../../src/types";
 
 const task = (subtasks?: string[]): NeoEvent =>
@@ -209,6 +211,43 @@ describe("le nom d'un lien sans titre", () => {
         );
 
         expect(links[0].label).toBe("La danse du chat");
+    });
+});
+
+describe("parseStoredEvent and managed notes", () => {
+    it("keeps a note with valid managed markers read-only", () => {
+        const contents = serializeManagedEventMarkdown(
+            {
+                title: "Cours",
+                allDay: false,
+                startTime: "10:00",
+                endTime: "11:00",
+                type: "single",
+                date: "2026-09-01",
+                endDate: null,
+            } as unknown as NeoEvent,
+            {
+                neoManagedBy: "neo-calendar:ics",
+                neoManagedVersion: 1,
+                neoIcsFeedId: "school",
+                neoIcsUid: "uid-1",
+                neoIcsRecurrenceId: null,
+                neoIcsStatus: "confirmed",
+            }
+        );
+
+        const stored = parseStoredEvent(
+            {
+                relativePath: "Etudes/2026-09-01 Cours.md",
+                calendarPath: "Etudes",
+                fileName: "2026-09-01 Cours.md",
+                contents,
+            },
+            new Set(["local::Etudes"])
+        );
+
+        expect(stored?.readOnly).toBe(true);
+        expect(stored?.calendarId).toBe("local::Etudes");
     });
 });
 

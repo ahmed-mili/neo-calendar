@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { getEventsFromICS } from "./ics";
+import { getEventsFromICS, parseIcsSnapshot } from "./ics";
 
 /**
  * VEVENT → NeoEvent, per docs/event-format-spec.md §5.
@@ -262,6 +262,161 @@ describe("recurring events", () => {
                 skipDates: ["2024-04-22"],
             },
         ]);
+    });
+});
+
+describe("parseIcsSnapshot", () => {
+    // A weekly Tuesday course starting 2026-09-01, with one occurrence removed
+    // by EXDATE (2026-09-08) and one detached by RECURRENCE-ID (2026-09-15,
+    // moved two hours later and retitled). Plus a cancelled one-off and a plain
+    // single event carrying DESCRIPTION, LOCATION and ATTENDEE.
+    const FEED = calendar(
+        "BEGIN:VEVENT",
+        "UID:uid-1",
+        "DTSTART:20260901T080000Z",
+        "DTEND:20260901T090000Z",
+        "RRULE:FREQ=WEEKLY;BYDAY=TU",
+        "EXDATE:20260908T080000Z",
+        "SUMMARY:Cours de maths",
+        "DESCRIPTION:Chapitre 2",
+        "LOCATION:Salle B12",
+        "END:VEVENT",
+        "BEGIN:VEVENT",
+        "UID:uid-1",
+        "RECURRENCE-ID:20260915T080000Z",
+        "DTSTART:20260915T100000Z",
+        "DTEND:20260915T110000Z",
+        "SUMMARY:Cours de maths (rattrapage)",
+        "DESCRIPTION:Chapitre 3",
+        "LOCATION:Salle A01",
+        "END:VEVENT",
+        "BEGIN:VEVENT",
+        "UID:uid-2",
+        "DTSTART:20260902T140000Z",
+        "DTEND:20260902T150000Z",
+        "STATUS:CANCELLED",
+        "SUMMARY:Reunion annulee",
+        "END:VEVENT",
+        "BEGIN:VEVENT",
+        "UID:uid-3",
+        "DTSTART:20260903T090000Z",
+        "DTEND:20260903T093000Z",
+        "SUMMARY:Rendez-vous",
+        "DESCRIPTION:Point rapide",
+        "LOCATION:Bureau 4",
+        "ATTENDEE:mailto:prof@example.com",
+        "END:VEVENT"
+    );
+
+    const WINDOW = { from: "2026-08-31", to: "2028-08-31" };
+
+    it("expands a recurrence into single dated occurrences keyed by UID + RECURRENCE-ID", () => {
+        const snapshot = parseIcsSnapshot(FEED, WINDOW);
+
+        expect(snapshot.events.map((e) => e.key)).toContain(
+            "uid-1::2026-09-01T08:00:00Z"
+        );
+        const first = snapshot.events.find(
+            (e) => e.key === "uid-1::2026-09-01T08:00:00Z"
+        );
+        expect(first?.event.type).toBe("single");
+        expect(first?.uid).toBe("uid-1");
+        expect(first?.recurrenceId).toBe("2026-09-01T08:00:00Z");
+        expect(first?.event.description).toBe("Chapitre 2");
+        expect(first?.event.location).toBe("Salle B12");
+    });
+
+    it("returns occurrences in chronological order", () => {
+        const snapshot = parseIcsSnapshot(FEED, WINDOW);
+        const dates = snapshot.events.map((e) => e.event.date ?? "");
+        expect(dates).toEqual([...dates].sort());
+        expect(snapshot.events[0].event.description).toBe("Chapitre 2");
+        expect(snapshot.events[0].event.location).toBe("Salle B12");
+    });
+
+    it("treats EXDATE as an explicit cancellation, not a silent gap", () => {
+        const snapshot = parseIcsSnapshot(FEED, WINDOW);
+
+        expect(snapshot.cancelledKeys).toContain("uid-1::2026-09-08T08:00:00Z");
+        expect(snapshot.events.map((e) => e.key)).not.toContain(
+            "uid-1::2026-09-08T08:00:00Z"
+        );
+    });
+
+    it("applies a detached instance under its original key, ignoring its retitled SUMMARY", () => {
+        const snapshot = parseIcsSnapshot(FEED, WINDOW);
+        const moved = snapshot.events.find(
+            (e) => e.key === "uid-1::2026-09-15T08:00:00Z"
+        );
+
+        expect(moved).toBeDefined();
+        expect(moved?.recurrenceId).toBe("2026-09-15T08:00:00Z");
+        expect(moved?.event.description).toBe("Chapitre 3");
+        expect(moved?.event.location).toBe("Salle A01");
+        expect(moved?.event.date).toBe(localDate("2026-09-15T10:00:00Z"));
+        expect(moved?.event.startTime).toBe(localTime("2026-09-15T10:00:00Z"));
+    });
+
+    it("reports STATUS:CANCELLED one-off events as cancelled and omits them", () => {
+        const snapshot = parseIcsSnapshot(FEED, WINDOW);
+
+        expect(snapshot.cancelledKeys).toContain("uid-2");
+        expect(snapshot.events.map((e) => e.uid)).not.toContain("uid-2");
+    });
+
+    it("maps SUMMARY, DESCRIPTION, LOCATION and ATTENDEE for a plain event", () => {
+        const snapshot = parseIcsSnapshot(FEED, WINDOW);
+        const single = snapshot.events.find((e) => e.uid === "uid-3");
+
+        expect(single?.key).toBe("uid-3");
+        expect(single?.recurrenceId).toBeNull();
+        expect(single?.event.title).toBe("Rendez-vous");
+        expect(single?.event.description).toBe("Point rapide");
+        expect(single?.event.location).toBe("Bureau 4");
+        expect(single?.event.attendees).toEqual(["prof@example.com"]);
+    });
+
+    it("reports the latest materialized occurrence date", () => {
+        const snapshot = parseIcsSnapshot(FEED, WINDOW);
+        const last = snapshot.events[snapshot.events.length - 1];
+
+        expect(snapshot.latestOccurrenceDate).toBe(last.event.date);
+        expect(snapshot.latestOccurrenceDate?.startsWith("2028")).toBe(true);
+    });
+
+    it("keeps a finite non-recurring event that falls outside the expansion window", () => {
+        const feed = calendar(
+            "BEGIN:VEVENT",
+            "UID:old-one",
+            "DTSTART:20200110T080000Z",
+            "DTEND:20200110T090000Z",
+            "SUMMARY:Vieux rendez-vous",
+            "END:VEVENT"
+        );
+
+        const snapshot = parseIcsSnapshot(feed, WINDOW);
+        expect(snapshot.events.map((e) => e.uid)).toContain("old-one");
+    });
+
+    it("does not expand recurring occurrences beyond the requested window", () => {
+        const snapshot = parseIcsSnapshot(FEED, {
+            from: "2026-08-31",
+            to: "2026-09-30",
+        });
+
+        expect(
+            snapshot.events.every((e) => (e.event.date ?? "") <= "2026-09-30")
+        ).toBe(true);
+        expect(snapshot.events.map((e) => e.key)).toContain(
+            "uid-1::2026-09-01T08:00:00Z"
+        );
+    });
+
+    it("returns an empty snapshot for a feed with no events", () => {
+        const snapshot = parseIcsSnapshot(calendar(), WINDOW);
+        expect(snapshot.events).toEqual([]);
+        expect(snapshot.cancelledKeys.size).toBe(0);
+        expect(snapshot.latestOccurrenceDate).toBeNull();
     });
 });
 

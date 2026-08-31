@@ -163,6 +163,278 @@ function eventFromVEvent(vevent: ICAL.Component): NeoEvent | null {
     });
 }
 
+/* ------------------------------------------------------------------------- *
+ * Bounded occurrence snapshot
+ *
+ * The sync engine needs more than a list of VEVENTs: it needs every recurring
+ * series flattened into dated occurrences inside an explicit window, each with
+ * a stable identity (UID plus RECURRENCE-ID, never the translated title), and
+ * it needs the cancellations stated as such — STATUS:CANCELLED and EXDATE —
+ * kept apart from occurrences that are merely absent.
+ * ------------------------------------------------------------------------- */
+
+/** A single dated occurrence, identified independently of its wording. */
+export interface IcsOccurrence {
+    key: string;
+    uid: string;
+    recurrenceId: string | null;
+    event: NeoEvent & { type: "single" };
+}
+
+export interface IcsSnapshot {
+    events: IcsOccurrence[];
+    /** Keys the feed cancels outright (STATUS:CANCELLED or EXDATE). */
+    cancelledKeys: Set<string>;
+    /** The latest occurrence date materialized, or null for an empty feed. */
+    latestOccurrenceDate: string | null;
+}
+
+/** A UTC instant with second precision, e.g. `2026-09-01T08:00:00Z`. */
+function utcInstant(time: ICAL.Time): string {
+    return (
+        DateTime.fromJSDate(time.toJSDate())
+            .toUTC()
+            .toISO({ suppressMilliseconds: true }) ?? ""
+    );
+}
+
+const occurrenceKey = (uid: string, recurrenceId: string | null): string =>
+    recurrenceId === null ? uid : `${uid}::${recurrenceId}`;
+
+function attendeesOf(vevent: ICAL.Component): string[] | undefined {
+    const values = vevent
+        .getAllProperties("attendee")
+        .map((property) => property.getFirstValue())
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.replace(/^mailto:/i, "").trim())
+        .filter(Boolean);
+    return values.length ? values : undefined;
+}
+
+function textOf(vevent: ICAL.Component, name: string): string | undefined {
+    const value = vevent.getFirstPropertyValue(name);
+    return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+const CANCELLED = (vevent: ICAL.Component): boolean => {
+    const status = vevent.getFirstPropertyValue<string>("status");
+    return typeof status === "string" && status.toUpperCase() === "CANCELLED";
+};
+
+/**
+ * One dated occurrence as a single event. `start`/`end` are the occurrence's
+ * own times (already shifted for a detached instance); every other field comes
+ * from the VEVENT that carries this occurrence.
+ */
+function singleOccurrenceEvent(
+    vevent: ICAL.Component,
+    start: ICAL.Time,
+    end: ICAL.Time | null
+): (NeoEvent & { type: "single" }) | null {
+    const summary = vevent.getFirstPropertyValue<string>("summary") ?? "";
+
+    let time: Record<string, unknown>;
+    let startDate: string;
+    let endDate: string | null;
+
+    if (start.isDate) {
+        time = { allDay: true };
+        startDate = dateOnly(start);
+        endDate =
+            end && !end.compare(start) ? null : end ? dateOnly(end) : null;
+    } else {
+        const from = localDateTime(start, tzidOf(vevent, "dtstart"));
+        const to = localDateTime(
+            end ?? start,
+            tzidOf(vevent, "dtend") ?? tzidOf(vevent, "dtstart")
+        );
+        time = {
+            allDay: false,
+            startTime: from.toFormat(TIME_FORMAT),
+            endTime: to.toFormat(TIME_FORMAT),
+        };
+        startDate = from.toFormat(DATE_FORMAT);
+        const endDay = to.toFormat(DATE_FORMAT);
+        endDate = endDay === startDate ? null : endDay;
+    }
+
+    const event = validateEvent({
+        title: summary,
+        description: textOf(vevent, "description"),
+        location: textOf(vevent, "location"),
+        attendees: attendeesOf(vevent),
+        ...time,
+        type: "single",
+        date: startDate,
+        endDate,
+    });
+    return event ? (event as NeoEvent & { type: "single" }) : null;
+}
+
+const sortKey = (event: NeoEvent & { type: "single" }): string =>
+    `${event.date} ${event.allDay ? "00:00" : event.startTime}`;
+
+/**
+ * Flatten a feed into dated occurrences inside `[from, to]`.
+ *
+ * Recurring series are expanded from the Monday of the week containing `from`
+ * through the end of `to`; detached instances (`RECURRENCE-ID`) and `EXDATE`
+ * are applied during expansion, and every explicit cancellation is recorded in
+ * `cancelledKeys` rather than silently dropped. Finite non-recurring events are
+ * always kept, even when they fall outside that window — an old dated event is
+ * still part of what the feed returned.
+ */
+export function parseIcsSnapshot(
+    text: string,
+    window: { from: string; to: string }
+): IcsSnapshot {
+    const calendar = new ICAL.Component(ICAL.parse(text));
+    registerTimezones(calendar);
+
+    const startMs = DateTime.fromISO(window.from)
+        .startOf("week")
+        .startOf("day")
+        .toJSDate()
+        .getTime();
+    const endMs = DateTime.fromISO(window.to).endOf("day").toJSDate().getTime();
+
+    const vevents = calendar.getAllSubcomponents("vevent");
+    const masters = new Map<string, ICAL.Component>();
+    const detached: ICAL.Component[] = [];
+    for (const vevent of vevents) {
+        if (vevent.getFirstPropertyValue("recurrence-id")) {
+            detached.push(vevent);
+        } else {
+            const uid = vevent.getFirstPropertyValue<string>("uid");
+            if (uid) masters.set(uid, vevent);
+        }
+    }
+
+    const occurrences: IcsOccurrence[] = [];
+    const cancelledKeys = new Set<string>();
+    const usedDetached = new Set<ICAL.Component>();
+
+    const detachedFor = (uid: string, recurrenceId: string) =>
+        detached.find(
+            (vevent) =>
+                vevent.getFirstPropertyValue<string>("uid") === uid &&
+                utcInstant(
+                    vevent.getFirstPropertyValue<ICAL.Time>("recurrence-id")!
+                ) === recurrenceId
+        );
+
+    for (const [uid, vevent] of masters) {
+        const event = new ICAL.Event(vevent);
+        for (const exception of detached) {
+            if (exception.getFirstPropertyValue<string>("uid") === uid) {
+                event.relateException(new ICAL.Event(exception));
+            }
+        }
+
+        if (!event.isRecurring()) {
+            const key = occurrenceKey(uid, null);
+            if (CANCELLED(vevent)) {
+                cancelledKeys.add(key);
+                continue;
+            }
+            const single = singleOccurrenceEvent(
+                vevent,
+                event.startDate,
+                event.endDate
+            );
+            if (single) {
+                occurrences.push({
+                    key,
+                    uid,
+                    recurrenceId: null,
+                    event: single,
+                });
+            }
+            continue;
+        }
+
+        // EXDATE is a stated cancellation. The iterator already skips those
+        // dates, so record them from the property before expanding.
+        for (const property of vevent.getAllProperties("exdate")) {
+            for (const value of property.getValues<ICAL.Time>()) {
+                cancelledKeys.add(`${uid}::${utcInstant(value)}`);
+            }
+        }
+
+        const iterator = event.iterator();
+        let next = iterator.next();
+        for (let guard = 0; next && guard < 5000; guard += 1) {
+            const ms = next.toJSDate().getTime();
+            if (ms > endMs) break;
+            if (ms >= startMs) {
+                const details = event.getOccurrenceDetails(next);
+                const recurrenceId = utcInstant(details.recurrenceId);
+                const key = `${uid}::${recurrenceId}`;
+                const source = details.item.component;
+                const exception = detachedFor(uid, recurrenceId);
+                if (exception) usedDetached.add(exception);
+
+                if (CANCELLED(source)) {
+                    cancelledKeys.add(key);
+                } else {
+                    const single = singleOccurrenceEvent(
+                        source,
+                        details.startDate,
+                        details.endDate
+                    );
+                    if (single) {
+                        occurrences.push({
+                            key,
+                            uid,
+                            recurrenceId,
+                            event: single,
+                        });
+                    }
+                }
+            }
+            next = iterator.next();
+        }
+    }
+
+    // A detached instance whose master never appeared in the feed still stands
+    // on its own.
+    for (const vevent of detached) {
+        if (usedDetached.has(vevent)) continue;
+        const uid = vevent.getFirstPropertyValue<string>("uid");
+        const recurrenceTime =
+            vevent.getFirstPropertyValue<ICAL.Time>("recurrence-id");
+        if (!uid || !recurrenceTime) continue;
+        const recurrenceId = utcInstant(recurrenceTime);
+        const key = `${uid}::${recurrenceId}`;
+        if (CANCELLED(vevent)) {
+            cancelledKeys.add(key);
+            continue;
+        }
+        const event = new ICAL.Event(vevent);
+        const single = singleOccurrenceEvent(
+            vevent,
+            event.startDate,
+            event.endDate
+        );
+        if (single) {
+            occurrences.push({ key, uid, recurrenceId, event: single });
+        }
+    }
+
+    occurrences.sort((a, b) =>
+        sortKey(a.event).localeCompare(sortKey(b.event))
+    );
+
+    const latestOccurrenceDate =
+        occurrences.length === 0
+            ? null
+            : occurrences
+                  .map((occurrence) => occurrence.event.date)
+                  .reduce((latest, date) => (date > latest ? date : latest));
+
+    return { events: occurrences, cancelledKeys, latestOccurrenceDate };
+}
+
 /** Every VEVENT in an iCalendar document, as normalized events. */
 export function getEventsFromICS(text: string): NeoEvent[] {
     const calendar = new ICAL.Component(ICAL.parse(text));
