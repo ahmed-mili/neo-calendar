@@ -612,6 +612,7 @@
 
 .nc-mini-calendar {
     padding: var(--nc-spacing-sm);
+    flex-shrink: 0;
 }
 
 .nc-mini-cal-header {
@@ -648,16 +649,18 @@
 /* Optional week-numbers column (View settings › Week numbers): a narrow leading
    column before the 7 day columns. */
 .nc-mini-cal-grid.nc-with-week-numbers {
-    grid-template-columns: auto repeat(7, 1fr);
+    grid-template-columns: 18px repeat(7, minmax(0, 1fr));
 }
 
 .nc-mini-cal-week {
     font-size: 10px;
-    color: var(--nc-text-faint, var(--text-faint));
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
-    padding-right: 4px;
+    width: 18px;
+    padding-right: 2px;
     /* Match the day cells' height so the number sits on its row. */
     height: 26px;
 }
@@ -676,7 +679,7 @@
     /* Dimmer than weekdays, theme-agnostic: some themes (e.g. Catppuccin here)
        make --text-faint BRIGHTER than --text-muted, which would invert the
        weekday/weekend cue. Opacity on the muted base guarantees the right order. */
-    opacity: 0.55;
+    opacity: 0.75;
 }
 
 .nc-mini-cal-day {
@@ -693,8 +696,10 @@
     color: var(--nc-text-primary, var(--text-normal));
     cursor: pointer;
     border-radius: 7px;
-    width: 26px;
+    width: 100%;
+    max-width: 26px;
     height: 26px;
+    justify-self: center;
     display: inline-flex;
     align-items: center;
     justify-content: flex-start;
@@ -708,7 +713,7 @@
 
 .nc-mini-cal-day.nc-other-month {
     /* Faint token alone carries the dim; stacking opacity over-faded it. */
-    color: var(--nc-text-faint, var(--text-faint));
+    color: var(--nc-text-secondary, var(--text-muted));
 }
 
 .nc-mini-cal-day.nc-today {
