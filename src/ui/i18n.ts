@@ -188,6 +188,8 @@ const FR: Record<string, string> = {
     "Remove step": "Supprimer l'étape",
     "No tasks yet": "Aucune tâche",
     "Add task": "+ Ajouter une tâche",
+    "Add a date or deadline before completing this task":
+        "Ajoutez une date ou une échéance avant de terminer cette tâche",
     // One-off repair for entries the `completed: false` bug filed as tasks.
     "Convert timed tasks back to events":
         "Reconvertir les tâches horaires en événements",

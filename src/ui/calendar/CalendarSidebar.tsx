@@ -1,6 +1,7 @@
 import * as React from "react";
 import { CalendarSource, DisplayEvent, ViewType } from "../types";
 import MiniCalendar from "./MiniCalendar";
+import DesktopTasksPanel from "./DesktopTasksPanel";
 import TasksPanel from "./TasksPanel";
 import { TaskItem } from "../tasks/taskList";
 import {
@@ -802,49 +803,65 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                         you have to be, this answers what you have to get done —
                         including the tasks whose date has already slipped by,
                         which the grid buries in a month nobody scrolls to. */}
-                        <div className="nc-sidebar-section">
-                            <div
-                                className="nc-sidebar-title-row"
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => setTasksCollapsed((v) => !v)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        setTasksCollapsed((v) => !v);
+                        {isAndroid ? (
+                            <div className="nc-sidebar-section">
+                                <div
+                                    className="nc-sidebar-title-row"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => setTasksCollapsed((v) => !v)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setTasksCollapsed((v) => !v);
+                                        }
+                                    }}
+                                    title={
+                                        tasksCollapsed
+                                            ? "Expand tasks"
+                                            : "Collapse tasks"
                                     }
-                                }}
-                                title={
-                                    tasksCollapsed
-                                        ? "Expand tasks"
-                                        : "Collapse tasks"
-                                }
-                            >
-                                <span className="nc-sidebar-title-label">
+                                >
+                                    <span className="nc-sidebar-title-label">
+                                        <span className="nc-sidebar-title">
+                                            {t("Tasks")}
+                                        </span>
+                                        <span
+                                            className={`nc-sidebar-title-chevron${
+                                                tasksCollapsed
+                                                    ? " nc-collapsed"
+                                                    : ""
+                                            }`}
+                                        >
+                                            <ChevronDownIcon size={14} />
+                                        </span>
+                                    </span>
+                                </div>
+                                {!tasksCollapsed && (
+                                    <TasksPanel
+                                        tasks={tasks}
+                                        today={today}
+                                        onTaskClick={onEventClick}
+                                        onAddTask={onAddTask}
+                                        onToggleTask={onToggleTask}
+                                    />
+                                )}
+                            </div>
+                        ) : (
+                            <div className="nc-sidebar-section">
+                                <div className="nc-sidebar-title-row nc-sidebar-title-row-static">
                                     <span className="nc-sidebar-title">
                                         {t("Tasks")}
                                     </span>
-                                    <span
-                                        className={`nc-sidebar-title-chevron${
-                                            tasksCollapsed
-                                                ? " nc-collapsed"
-                                                : ""
-                                        }`}
-                                    >
-                                        <ChevronDownIcon size={14} />
-                                    </span>
-                                </span>
-                            </div>
-                            {!tasksCollapsed && (
-                                <TasksPanel
+                                </div>
+                                <DesktopTasksPanel
                                     tasks={tasks}
                                     today={today}
                                     onTaskClick={onEventClick}
-                                    onAddTask={onAddTask}
                                     onToggleTask={onToggleTask}
                                 />
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </>
                 )}
 

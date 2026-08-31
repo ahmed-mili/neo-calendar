@@ -179,6 +179,139 @@
     background: var(--nc-bg-hover);
 }
 
+/* ── Desktop task summary and modal ─────────────────────────── */
+
+.nc-sidebar-title-row-static {
+    cursor: default;
+}
+
+.nc-sidebar-title-row-static:hover {
+    background: transparent;
+}
+
+.nc-desktop-tasks-summary {
+    display: flex;
+    gap: 8px;
+    padding: 2px 8px 8px;
+    min-width: 0;
+}
+
+.nc-desktop-tasks-summary .nc-status-pill {
+    min-width: 0;
+}
+
+.nc-desktop-tasks-count {
+    font-variant-numeric: tabular-nums;
+}
+
+.nc-desktop-tasks-summary .nc-status-pill:focus-visible,
+.nc-task-modal-close:focus-visible,
+.nc-task-modal .nc-tasks-item:focus-visible,
+.nc-task-modal .nc-tasks-checkbox:focus-visible {
+    outline: 2px solid var(--nc-accent, var(--interactive-accent));
+    outline-offset: 2px;
+}
+
+.nc-task-modal-backdrop {
+    --nc-bg-primary: var(--background-primary);
+    --nc-bg-secondary: var(--background-secondary);
+    --nc-bg-hover: var(--background-modifier-hover);
+    --nc-text-primary: var(--text-normal);
+    --nc-text-secondary: var(--text-muted);
+    --nc-text-faint: var(--text-faint);
+    --nc-border: var(--background-modifier-border);
+    --nc-accent: var(--interactive-accent);
+
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.nc-task-modal {
+    width: min(560px, calc(100vw - 48px));
+    max-width: calc(100vw - 48px);
+    max-height: min(640px, calc(100vh - 48px));
+    min-width: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: color-mix(
+        in srgb,
+        var(--nc-bg-primary) 88%,
+        transparent
+    );
+    color: var(--nc-text-primary);
+    border: 1px solid var(--nc-border);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px -8px rgba(0, 0, 0, 0.48),
+        0 4px 12px -1px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(28px) brightness(1.16);
+    -webkit-backdrop-filter: blur(28px) brightness(1.16);
+}
+
+.nc-task-modal-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--nc-border);
+}
+
+.nc-task-modal-header h2 {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-size: 15px;
+    line-height: 1.3;
+}
+
+.nc-task-modal-close {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 5px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-secondary);
+    cursor: pointer;
+}
+
+.nc-task-modal-close:hover {
+    background: var(--nc-bg-hover) !important;
+    color: var(--nc-text-primary);
+}
+
+.nc-task-modal-list {
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+}
+
+.nc-task-modal .nc-tasks-item,
+.nc-task-modal .nc-tasks-title {
+    min-width: 0;
+}
+
+.nc-task-modal .nc-tasks-title {
+    overflow-wrap: anywhere;
+}
+
 /* ── Selection Rectangle ─────────────────────────────────────── */
 
 .nc-selection-mirror {
