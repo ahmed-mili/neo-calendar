@@ -105,3 +105,7 @@ apps/android/native/local.properties
 
 # Paquets construits : ils vivent sur la page Releases, pas dans l'historique.
 *.apk
+
+# La liste de la prochaine version est un pense-bête local : elle ne
+# décrit pas le code, elle dit ce qui reste à y faire.
+docs/PROCHAINE_VERSION.md

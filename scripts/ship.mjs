@@ -29,6 +29,7 @@
  */
 import { execFileSync } from "node:child_process";
 import path from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
@@ -68,7 +69,10 @@ export function readArguments(args) {
     }
 
     let request = "patch";
-    if (words.length > 0 && (LEVELS.includes(words[0]) || isVersion(words[0]))) {
+    if (
+        words.length > 0 &&
+        (LEVELS.includes(words[0]) || isVersion(words[0]))
+    ) {
         request = words.shift();
     }
 
@@ -107,6 +111,53 @@ export function worksToCommit(message, dirty) {
 }
 
 /** La page des exécutions du dépôt, pour aller voir la release se construire. */
+/*
+ * Quand la version sera installable.
+ *
+ * Le chiffre n'est pas inventé : mesuré sur les huit dernières exécutions du
+ * workflow Release, elles tiennent toutes entre 8 et 10 minutes. La fourchette
+ * est annoncée telle quelle plutôt qu'un instant unique, qui serait faux dans
+ * les deux sens.
+ */
+export const NEXT_VERSION_FILE = "docs/PROCHAINE_VERSION.md";
+
+/*
+ * La liste de la prochaine version repart vide a chaque livraison.
+ *
+ * Le fichier n'est pas versionne (.gitignore) : c'est un pense-bete local, et
+ * rien de ce vidage ne part sur le distant. Il a lieu juste avant le commit de
+ * version pour une raison de moment, pas de contenu : c'est la seconde ou la
+ * livraison est acquise.
+ *
+ * Le fichier absent n'est pas une erreur : on ne recree pas un document que
+ * quelqu'un a delibere de supprimer.
+ */
+export function resetNextVersion(root = process.cwd()) {
+    const file = path.join(root, NEXT_VERSION_FILE);
+    if (!existsSync(file)) return null;
+
+    // Tout ce qui precede la premiere ligne de separation est le mode d'emploi
+    // du fichier : il reste, seule la liste qui le suit s'en va.
+    const SEPARATOR = ["", "---", ""].join("\n");
+    const text = readFileSync(file, "utf8");
+    const cut = text.indexOf(SEPARATOR);
+    const kept = (cut >= 0 ? text.slice(0, cut) : text).trimEnd();
+    writeFileSync(file, [kept, "---", "", "_Rien en attente._", ""].join("\n"));
+    return NEXT_VERSION_FILE;
+}
+
+const BUILD_MINUTES = [8, 10];
+
+export function readyAt(now = new Date()) {
+    const clock = (minutes) =>
+        new Date(now.getTime() + minutes * 60000).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    const [fastest, slowest] = BUILD_MINUTES;
+    return `Version prête entre ${clock(fastest)} et ${clock(slowest)}.`;
+}
+
 export function actionsUrl(remote) {
     const found = remote.match(/github\.com[:/](.+?)(?:\.git)?$/);
     return found ? `https://github.com/${found[1]}/actions` : undefined;
@@ -181,6 +232,9 @@ async function ship(args) {
         console.log(`  ${relativePath}`);
     }
 
+    const cleared = resetNextVersion();
+    if (cleared) console.log(`  ${cleared} (remis a vide)`);
+
     console.log("");
     run("git", ["commit", "-am", `Version ${version}`]);
     run("git", ["tag", `v${version}`]);
@@ -188,6 +242,7 @@ async function ship(args) {
 
     const actions = actionsUrl(git(["remote", "get-url", "origin"]).trim());
     console.log(`\nVersion ${version} livrée.`);
+    console.log(`  ${readyAt()}`);
     if (actions) console.log(`  ${actions}`);
 
     if (watch) {
