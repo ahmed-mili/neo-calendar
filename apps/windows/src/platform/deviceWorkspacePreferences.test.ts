@@ -95,4 +95,38 @@ describe("splitting device-only preferences out of the shared file", () => {
         expect(parsed.viewType).toBeUndefined();
         expect(parsed.dayCount).toBe(3);
     });
+
+    // ICS feeds are shared across devices (they define what gets synced into
+    // the vault), never device-local runtime state — that runtime state
+    // (last attempt/success/error) lives in icsSyncScheduler's own store key,
+    // not here. This guards against the two ever getting merged.
+    it("keeps ics feed subscriptions and their default refresh minutes in the shared half", () => {
+        const preferences = {
+            ...defaultDesktopWorkspacePreferences(),
+            icsDefaultRefreshMinutes: 30 as const,
+            icsFeeds: [
+                {
+                    id: "feed-1",
+                    calendarPath: "Calendrier",
+                    name: "Feed",
+                    url: "https://example.com/feed.ics",
+                    active: true,
+                },
+            ],
+        };
+
+        const shared = sharedWorkspacePreferences(preferences) as Record<
+            string,
+            unknown
+        >;
+        const device = deviceWorkspacePreferences(preferences) as Record<
+            string,
+            unknown
+        >;
+
+        expect(shared.icsFeeds).toEqual(preferences.icsFeeds);
+        expect(shared.icsDefaultRefreshMinutes).toBe(30);
+        expect(device.icsFeeds).toBeUndefined();
+        expect(device.icsDefaultRefreshMinutes).toBeUndefined();
+    });
 });
