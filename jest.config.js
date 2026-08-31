@@ -26,6 +26,7 @@ module.exports = {
     testPathIgnorePatterns: [
         "/node_modules/",
         "/\\.claude/",
+        "/\\.worktrees/",
         ...SNAPSHOT_COPIES,
         "\\.bak\\.",
     ],
