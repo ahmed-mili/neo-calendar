@@ -412,6 +412,42 @@ describe("parseIcsSnapshot", () => {
         );
     });
 
+    it("expands a long-lived dense rule that starts years before the window", () => {
+        // DTSTART is ~3 years before the window and the rule is daily: the
+        // expansion must not burn its iteration budget skipping pre-window
+        // dates and then emit nothing.
+        const dtstart = "2013-01-01T08:00:00Z";
+        const feed = calendar(
+            "BEGIN:VEVENT",
+            "UID:daily-old",
+            "DTSTART:20130101T080000Z",
+            "DTEND:20130101T083000Z",
+            "RRULE:FREQ=DAILY",
+            "SUMMARY:Point quotidien",
+            "END:VEVENT"
+        );
+        const from = "2026-09-07";
+        const to = "2026-10-06";
+        const snapshot = parseIcsSnapshot(feed, { from, to });
+
+        const winStart = DateTime.fromISO(from).startOf("week").startOf("day");
+        const winEnd = DateTime.fromISO(to).endOf("day");
+        let expected = 0;
+        for (
+            let t = DateTime.fromISO(dtstart);
+            t <= winEnd;
+            t = t.plus({ days: 1 })
+        ) {
+            if (t >= winStart) expected += 1;
+        }
+
+        expect(expected).toBeGreaterThan(25);
+        expect(snapshot.events.length).toBe(expected);
+        expect(
+            snapshot.events.every((e) => e.key.startsWith("daily-old::"))
+        ).toBe(true);
+    });
+
     it("returns an empty snapshot for a feed with no events", () => {
         const snapshot = parseIcsSnapshot(calendar(), WINDOW);
         expect(snapshot.events).toEqual([]);

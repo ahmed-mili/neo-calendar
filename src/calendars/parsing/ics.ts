@@ -363,10 +363,19 @@ export function parseIcsSnapshot(
 
         const iterator = event.iterator();
         let next = iterator.next();
-        for (let guard = 0; next && guard < 5000; guard += 1) {
+        // The cap counts only in-window steps: a series whose DTSTART is years
+        // before the window with a dense rule must not spend its whole budget
+        // skipping pre-window dates and then emit nothing. The `ms > endMs`
+        // break still bounds the pre-window walk — the iterator is monotonic —
+        // and a generous absolute ceiling stays as a belt against a rule that
+        // never advances past a date.
+        let steps = 0;
+        for (let materialized = 0; next && materialized < 5000; ) {
+            if ((steps += 1) > 200000) break;
             const ms = next.toJSDate().getTime();
             if (ms > endMs) break;
             if (ms >= startMs) {
+                materialized += 1;
                 const details = event.getOccurrenceDetails(next);
                 const recurrenceId = utcInstant(details.recurrenceId);
                 const key = `${uid}::${recurrenceId}`;
