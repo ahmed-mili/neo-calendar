@@ -151,10 +151,10 @@ export default function EventBlock({
         24 * 60 - (event.start.getHours() * 60 + event.start.getMinutes());
     const onDayMinutes = Math.min(durationMin, minutesToMidnight);
     const isShort = !compact && !event.allDay && onDayMinutes <= 40;
-    // A multi-day timed event renders as a thin bar in the all-day band
-    // (compact + timed). There its title and time range share one line, like a
-    // short grid event.
-    const inlineLayout = isShort || (compact && !event.allDay);
+    // Every event in the all-day band is a compact, single-line bar. Keeping
+    // true all-day events out of this layout let their pre-wrapped title paint
+    // the top of a second line below the bar.
+    const inlineLayout = isShort || compact;
 
     return (
         <div

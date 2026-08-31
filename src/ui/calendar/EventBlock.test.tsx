@@ -23,17 +23,35 @@ const occurrence: DisplayEvent = {
     isSomeday: false,
 };
 
-const render = (event: DisplayEvent) =>
+const render = (event: DisplayEvent, compact = false) =>
     renderToStaticMarkup(
         <DndContext>
             <EventBlock
                 event={event}
+                compact={compact}
                 onEventClick={() => {}}
                 onContextMenu={() => {}}
                 onToggleTask={async () => true}
             />
         </DndContext>
     );
+
+describe("an event in the all-day band", () => {
+    it("keeps an all-day title on exactly one line", () => {
+        const html = render(
+            { ...occurrence, allDay: true, title: "Neo Calendar App" },
+            true
+        );
+
+        expect(html).toContain('class="nc-event-text nc-event-text-inline"');
+    });
+
+    it("does not flatten a full-height timed event outside the band", () => {
+        const html = render(occurrence);
+
+        expect(html).not.toContain("nc-event-text-inline");
+    });
+});
 
 describe("the first occurrence of a series", () => {
     afterEach(() => applyLanguage("fr"));
