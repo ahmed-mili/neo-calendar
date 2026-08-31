@@ -223,7 +223,17 @@ export interface IcsSyncPlan {
  * archive and can never be deleted by a feed.
  */
 export function startOfLocalWeekIso(now: Date): string {
-    return DateTime.fromJSDate(now).startOf("week").toISODate() ?? "";
+    const iso = DateTime.fromJSDate(now).startOf("week").toISODate();
+    if (!iso) {
+        // Fail closed: an unusable boundary must never silently disable the
+        // archive protection. An empty string would compare as smaller than
+        // every real date, so `occurrenceDate < monday` would never be true —
+        // nothing would look archived, and every note would become deletable.
+        throw new Error(
+            "Cannot compute the current week's Monday from an invalid Date."
+        );
+    }
+    return iso;
 }
 
 const occurrenceKeyOf = (

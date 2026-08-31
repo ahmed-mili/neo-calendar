@@ -194,6 +194,13 @@ describe("startOfLocalWeekIso", () => {
             "2026-08-31"
         );
     });
+
+    it("fails closed on an invalid Date instead of returning a permissive boundary", () => {
+        // An empty-string boundary would compare as smaller than every real
+        // date, silently disabling the archive protection instead of
+        // refusing to plan.
+        expect(() => startOfLocalWeekIso(new Date(NaN))).toThrow();
+    });
 });
 
 describe("planIcsNoteSync — conservation and prudent deletion", () => {
@@ -396,6 +403,21 @@ describe("planIcsNoteSync — conservation and prudent deletion", () => {
 
         expect(previousState.missingCounts).toEqual({ mon: 1 });
         expect(plan.nextState).not.toBe(previousState);
+    });
+
+    it("refuses to plan (never deletes) when now is an invalid Date", () => {
+        const record = managedRecord("mon", "2026-09-02");
+        expect(() =>
+            planIcsNoteSync({
+                feed,
+                snapshot: snapshot({
+                    events: [occurrence("other", "2026-09-09")],
+                }),
+                existingRecords: [record],
+                previousState: state({ missingCounts: { mon: 2 } }),
+                now: new Date(NaN),
+            })
+        ).toThrow();
     });
 
     it("throws on an unexpectedly empty snapshot from a populated feed", () => {
