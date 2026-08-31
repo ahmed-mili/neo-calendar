@@ -1960,13 +1960,22 @@ interface StatusRowProps {
     taskStatus: TaskStatus | null;
     editable: boolean;
     setStatus: (s: TaskStatus) => void;
+    completeDisabledReason?: string;
 }
 
-export function StatusRow({ taskStatus, editable, setStatus }: StatusRowProps) {
+export function StatusRow({
+    taskStatus,
+    editable,
+    setStatus,
+    completeDisabledReason,
+}: StatusRowProps) {
     // Single pill showing the current status, aligned right (Notion-style).
     // Clicking it toggles between the two states.
     const status = taskStatus === "complete" ? "complete" : "todo";
     const next = status === "todo" ? "complete" : "todo";
+    const completionBlocked =
+        next === "complete" && Boolean(completeDisabledReason);
+    const disabled = !editable || completionBlocked;
     return (
         <div className="nc-panel-row nc-panel-row-inline">
             <span className="nc-panel-row-icon">
@@ -1976,8 +1985,8 @@ export function StatusRow({ taskStatus, editable, setStatus }: StatusRowProps) {
             <button
                 type="button"
                 className={`nc-status-pill nc-status-${status} nc-active`}
-                onClick={() => editable && setStatus(next)}
-                disabled={!editable}
+                onClick={() => !disabled && setStatus(next)}
+                disabled={disabled}
             >
                 <span className={`nc-status-dot nc-dot-${status}`} />
                 {/* Both labels are rendered stacked in one grid cell; the

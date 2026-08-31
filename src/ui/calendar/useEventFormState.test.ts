@@ -3,6 +3,7 @@ import {
     dueFor,
     formStatusOf,
     isDraftHandover,
+    persistedTaskStatus,
     remindersFor,
 } from "./useEventFormState";
 import { isTask } from "../tasks";
@@ -55,6 +56,24 @@ describe("dueFor", () => {
         // Un evenement n'a pas d'echeance : il EST sa date. Basculer en
         // evenement ne doit pas laisser une cle orpheline dans la note.
         expect(dueFor(null, "2026-08-30")).toBeUndefined();
+    });
+});
+
+describe("persistedTaskStatus", () => {
+    it("does not save an undated completion when the desktop rule is active", () => {
+        expect(persistedTaskStatus("complete", "", null, true)).toBe("todo");
+    });
+
+    it("keeps completion when a completion date exists", () => {
+        expect(persistedTaskStatus("complete", "", "2026-09-02", true)).toBe(
+            "complete"
+        );
+    });
+
+    it("preserves Android and plugin completion behavior", () => {
+        expect(persistedTaskStatus("complete", "", null, false)).toBe(
+            "complete"
+        );
     });
 });
 

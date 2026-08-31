@@ -23,6 +23,7 @@ import { PANEL_EXIT_CLASS, panelHasLeft } from "./panelExit";
 import { attachmentExtension, pastedFileName } from "./pastedAttachment";
 import { usePopupDrag } from "./usePopupDrag";
 import { useEventFormState } from "./useEventFormState";
+import { hasTaskCompletionDate } from "../tasks/desktopTaskGroups";
 import {
     EntryKind,
     PanelHeader,
@@ -164,6 +165,7 @@ interface EventPanelProps {
         eventId: string,
         target: string
     ) => Promise<string | null>;
+    requireTaskDateForCompletion?: boolean;
 }
 
 interface CalendarDisplayInfo {
@@ -270,6 +272,7 @@ export default function EventPanel({
     onPickEventAttachment,
     onPasteEventAttachment,
     onReadEventAttachment,
+    requireTaskDateForCompletion = false,
 }: EventPanelProps) {
     const isDraft = eventId === null && draft !== null;
     const event = eventId ? cache.getEventById(eventId) : null;
@@ -332,6 +335,7 @@ export default function EventPanel({
         editableCalendars,
         currentCalendarId: stableCalInfo.currentId,
         committingDraft,
+        requireTaskDateForCompletion,
     });
 
     // NEO_ANDROID_DRAFT_LIVE_TIME_V7_2_START
@@ -1572,6 +1576,14 @@ export default function EventPanel({
                                 form.setTaskStatus(s);
                                 scheduleAutoSave();
                             }}
+                            completeDisabledReason={
+                                requireTaskDateForCompletion &&
+                                !hasTaskCompletionDate(form.date, form.due)
+                                    ? t(
+                                          "Add a date or deadline before completing this task"
+                                      )
+                                    : undefined
+                            }
                         />
                     )}
                 </div>

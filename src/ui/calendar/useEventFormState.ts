@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { DateTime } from "luxon";
 import { NeoEvent } from "../../types";
 import { getTaskStatus, isSeries, isTask, TaskStatus } from "../tasks";
+import { hasTaskCompletionDate } from "../tasks/desktopTaskGroups";
 import { readSubtasks } from "../tasks/subtasks";
 import { withStepsAppended } from "./descriptionChecklist";
 import type { DraftInfo } from "./EventPanel";
@@ -27,6 +28,7 @@ interface Args {
     /** The draft is being written to the vault right now — see the hand-over
         in the reset effect below. */
     committingDraft?: boolean;
+    requireTaskDateForCompletion?: boolean;
 }
 
 /** The key a draft is remembered under, until it has an id of its own. */
@@ -103,6 +105,19 @@ export function dueFor(
     return due;
 }
 
+export function persistedTaskStatus(
+    status: TaskStatus | null,
+    date: string | null | undefined,
+    due: string | null | undefined,
+    requireDate: boolean
+): TaskStatus | null {
+    return requireDate &&
+        status === "complete" &&
+        !hasTaskCompletionDate(date, due)
+        ? "todo"
+        : status;
+}
+
 /**
  * The `completed` field for a SERIES.
  *
@@ -153,6 +168,7 @@ export function useEventFormState({
     editableCalendars,
     currentCalendarId,
     committingDraft = false,
+    requireTaskDateForCompletion = false,
 }: Args) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -228,6 +244,14 @@ export function useEventFormState({
             );
             setAllDay(!!event.allDay);
             setReminders(event.reminders);
+            setTaskStatus(
+                persistedTaskStatus(
+                    formStatusOf(event),
+                    event.type === "single" ? event.date : null,
+                    (event as { due?: string | null }).due,
+                    requireTaskDateForCompletion
+                )
+            );
 
             if (event.type === "single" || event.type === undefined) {
                 setDate(event.date || "");
@@ -237,7 +261,6 @@ export function useEventFormState({
                 const r = eventToRecurrenceState(event, event.date || "");
                 setIsRecurring(r.isRecurring);
                 setRecurrence(r.recurrence);
-                setTaskStatus(getTaskStatus(event));
                 setDue(event.due ?? null);
                 setCompletedDates(undefined);
                 setSkipDates(undefined);
@@ -248,7 +271,6 @@ export function useEventFormState({
                 const r = eventToRecurrenceState(event, event.startRecur || "");
                 setIsRecurring(r.isRecurring);
                 setRecurrence(r.recurrence);
-                setTaskStatus(isTask(event) ? "todo" : null);
                 setDue(null);
                 setCompletedDates(event.completedDates);
                 setSkipDates(event.skipDates);
@@ -259,7 +281,6 @@ export function useEventFormState({
                 const r = eventToRecurrenceState(event, event.startDate || "");
                 setIsRecurring(r.isRecurring);
                 setRecurrence(r.recurrence);
-                setTaskStatus(isTask(event) ? "todo" : null);
                 setDue(null);
                 setCompletedDates(event.completedDates);
                 setSkipDates(event.skipDates);
@@ -272,7 +293,6 @@ export function useEventFormState({
                 setRecurrence(
                     defaultRecurrence(new Date().toISOString().slice(0, 10))
                 );
-                setTaskStatus(getTaskStatus(event));
                 setDue((event as { due?: string | null }).due ?? null);
                 setCompletedDates(undefined);
                 setSkipDates(undefined);
@@ -327,8 +347,15 @@ export function useEventFormState({
         }
 
         lastKeyRef.current = key;
-        prevPersistedStatusRef.current = event ? formStatusOf(event) : null;
-    }, [eventId, event, draft, committingDraft]);
+        prevPersistedStatusRef.current = event
+            ? persistedTaskStatus(
+                  formStatusOf(event),
+                  event.type === "single" ? event.date : null,
+                  (event as { due?: string | null }).due,
+                  requireTaskDateForCompletion
+              )
+            : null;
+    }, [eventId, event, draft, committingDraft, requireTaskDateForCompletion]);
 
     // Keep the status pill in sync with the event's PERSISTED status while the
     // panel stays open (same eventId) — e.g. toggling the checkbox on the
@@ -340,12 +367,17 @@ export function useEventFormState({
     // value transitions to what we already set, making this a no-op.
     useEffect(() => {
         if (!event) return;
-        const persisted = formStatusOf(event);
+        const persisted = persistedTaskStatus(
+            formStatusOf(event),
+            event.type === "single" ? event.date : null,
+            (event as { due?: string | null }).due,
+            requireTaskDateForCompletion
+        );
         if (persisted !== prevPersistedStatusRef.current) {
             prevPersistedStatusRef.current = persisted;
             setTaskStatus(persisted);
         }
-    }, [event]);
+    }, [event, requireTaskDateForCompletion]);
 
     const buildPayload = useCallback((): NeoEvent => {
         /* Plus de liste d'etapes ecrite : elles sont des lignes de la
@@ -353,6 +385,12 @@ export function useEventFormState({
            de la note (KEYS_DROPPED_WHEN_ABSENT), donc la premiere sauvegarde
            d'un evenement migre emporte l'ancienne liste avec elle. */
         const announcements = remindersFor(reminders);
+        const savedTaskStatus = persistedTaskStatus(
+            taskStatus,
+            date,
+            due,
+            requireTaskDateForCompletion
+        );
         return {
             title,
             ...(announcements ? { reminders: announcements } : {}),
@@ -375,13 +413,13 @@ export function useEventFormState({
                       type: "single",
                       date,
                       endDate: endDate || null,
-                      completed: completedFor(taskStatus),
-                      due: dueFor(taskStatus, due),
+                      completed: completedFor(savedTaskStatus),
+                      due: dueFor(savedTaskStatus, due),
                   }
                 : {
                       type: "someday",
-                      completed: completedFor(taskStatus),
-                      due: dueFor(taskStatus, due),
+                      completed: completedFor(savedTaskStatus),
+                      due: dueFor(savedTaskStatus, due),
                   }),
             ...(description ? { description } : {}),
         } as NeoEvent;
@@ -400,6 +438,7 @@ export function useEventFormState({
         completedDates,
         skipDates,
         description,
+        requireTaskDateForCompletion,
     ]);
 
     return {

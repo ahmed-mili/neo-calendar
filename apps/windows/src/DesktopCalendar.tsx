@@ -33,6 +33,7 @@ import {
     todayISO,
     TaskSource,
 } from "../../../src/ui/tasks/taskList";
+import { hasTaskCompletionDate } from "../../../src/ui/tasks/desktopTaskGroups";
 import {
     findMisfiledEvents,
     asPlainEvent,
@@ -417,6 +418,24 @@ function isAndroidRuntime(): boolean {
         document.body?.classList.contains("nc-platform-android") === true ||
         document.documentElement.dataset.neoCalendarPlatform === "android"
     );
+}
+
+export function canPersistDesktopTaskCompletion(
+    event: NeoEvent,
+    done: boolean,
+    isAndroid = isAndroidRuntime()
+): boolean {
+    if (
+        done &&
+        !isAndroid &&
+        !hasTaskCompletionDate(
+            event.type === "single" ? event.date : null,
+            (event as { due?: string | null }).due
+        )
+    ) {
+        return false;
+    }
+    return true;
 }
 
 function readAndroidView(): ViewType {
@@ -2276,6 +2295,10 @@ export default function DesktopCalendar({
                 );
             }
 
+            if (!canPersistDesktopTaskCompletion(record.event, done)) {
+                return false;
+            }
+
             return updateEvent(eventId, {
                 ...record.event,
                 completed: done ? new Date().toISOString() : false,
@@ -3404,6 +3427,7 @@ export default function DesktopCalendar({
                     type: calendar.type,
                 }))}
                 defaultCalendarId={draftSlot?.calendarId ?? defaultCalendarId}
+                requireTaskDateForCompletion={!isAndroidRuntime()}
                 onClose={() => {
                     setPanelEventId(null);
                     setPanelAnchor(null);
