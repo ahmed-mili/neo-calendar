@@ -1,16 +1,25 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { folderDisplayName, isReadablePath } from "./platform/folderLabel";
 import { createPortal } from "react-dom";
-import { FileText, Flag, Folder, Plus, X } from "lucide-react";
+import { FileText, Flag, Folder, Link2, Plus, X } from "lucide-react";
 import {
     cloneFranceHolidaySource,
     parseExternalCalendarSources,
     type DesktopAutoCalendarSource,
 } from "./platform/desktopExternalCalendars";
+import { normalizeIcsUrl } from "./platform/icsFeedPreferences";
 import { t } from "../../../src/ui/i18n";
 
 export type AddCalendarRequest =
-    | { type: "local"; name: string }
+    /** `icsUrl` : le premier lien ICS du calendrier, pose dans la foulee.
+     *  Un lien ICS n'est pas un type de calendrier — il vit DANS un calendrier
+     *  de notes (c'est ce que la 1.57.0 a tranche en retirant la carte
+     *  « Abonnement en ligne ») — mais il fallait jusqu'ici creer le
+     *  calendrier, le trouver dans la barre laterale, ouvrir son menu a trois
+     *  points et y demander « Liens ICS » pour arriver a l'ajouter. Le
+     *  proposer ici ne change pas le modele, seulement le nombre d'endroits
+     *  ou il faut passer. */
+    | { type: "local"; name: string; icsUrl?: string }
     | DesktopAutoCalendarSource;
 
 export interface AddCalendarDialogProps {
@@ -50,6 +59,7 @@ export default function AddCalendarDialog({
 }: AddCalendarDialogProps) {
     const [kind, setKind] = useState<CalendarKind>("local");
     const [name, setName] = useState("");
+    const [icsUrl, setIcsUrl] = useState("");
     const [color, setColor] = useState("#3264ff");
     const [autoPreset, setAutoPreset] = useState<AutoPreset>("FR");
     const [customJson, setCustomJson] = useState("");
@@ -61,6 +71,7 @@ export default function AddCalendarDialog({
         if (!open) return;
         setKind("local");
         setName("");
+        setIcsUrl("");
         setColor("#3264ff");
         setAutoPreset("FR");
         setCustomJson("");
@@ -104,7 +115,21 @@ export default function AddCalendarDialog({
                 setError(t("A calendar already has this name."));
                 return;
             }
-            request = { type: "local", name: trimmed };
+            // Le champ est facultatif : vide, il ne pose aucun lien. Rempli, il
+            // doit etre une adresse que la synchro saura suivre — la refuser
+            // ici vaut mieux que creer le calendrier et laisser le lien
+            // echouer en silence a chaque cycle.
+            const typedUrl = icsUrl.trim();
+            if (typedUrl) {
+                const normalized = normalizeIcsUrl(typedUrl);
+                if (!normalized) {
+                    setError(t("Enter a valid HTTPS or webcal address."));
+                    return;
+                }
+                request = { type: "local", name: trimmed, icsUrl: normalized };
+            } else {
+                request = { type: "local", name: trimmed };
+            }
         } else if (autoPreset === "FR") {
             const source = cloneFranceHolidaySource();
             const trimmedName = name.trim();
@@ -247,6 +272,43 @@ export default function AddCalendarDialog({
                         </label>
                     ) : null}
 
+                    {/* Le premier lien ICS, la ou l'on cree le calendrier qui
+                        va le recevoir. Facultatif, et dit comme tel : la
+                        plupart des calendriers n'en ont aucun. La note qui
+                        suit dit ou retrouver les liens ensuite, seul endroit
+                        d'ou on peut en ajouter d'autres, en changer la
+                        frequence ou les retirer. */}
+                    {kind === "local" && (
+                        <div className="nc-add-calendar-dialog__ics">
+                            <label className="nc-add-calendar-dialog__input-row">
+                                <Link2 size={18} />
+                                <input
+                                    name="calendar-ics-url"
+                                    value={icsUrl}
+                                    onChange={(event) => {
+                                        setIcsUrl(event.target.value);
+                                        setError(null);
+                                    }}
+                                    /* Court : sur un telephone, la place d'un
+                                       libelle de champ s'arrete a une trentaine
+                                       de caracteres, et « webcal:// » se
+                                       retrouvait coupe en deux. Le format est
+                                       dit juste en dessous. */
+                                    placeholder={t("ICS link (optional)")}
+                                    autoComplete="off"
+                                    inputMode="url"
+                                    spellCheck={false}
+                                    disabled={submitting}
+                                />
+                            </label>
+                            <p className="nc-add-calendar-dialog__hint">
+                                {t(
+                                    "An https:// or webcal:// address. Its events are synchronised into this calendar and stay read-only. To add, change or remove links later: three-dot menu of the calendar, “ICS links”."
+                                )}
+                            </p>
+                        </div>
+                    )}
+
                     {kind === "auto" && (
                         <>
                             <label className="nc-add-calendar-dialog__field">
@@ -313,7 +375,10 @@ export default function AddCalendarDialog({
                             onClick={onClose}
                             disabled={submitting}
                         >
-                            Cancel
+                            {/* Le seul mot anglais du dialogue, a cote de
+                                « Ajouter le calendrier » : la traduction
+                                existait deja. */}
+                            {t("Cancel")}
                         </button>
                         <button
                             type="submit"

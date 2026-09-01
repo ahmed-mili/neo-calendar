@@ -2,8 +2,10 @@ import {
     extractEventBodyLinks,
     parseFrontmatter,
     parseStoredEvent,
+    recordOwnership,
     renameMarkdownTargetInEventBody,
     serializeEventMarkdown,
+    type DesktopStoredEvent,
 } from "./desktopEventFormat";
 import { serializeManagedEventMarkdown } from "./managedEventNote";
 import { NeoEvent } from "../../../../src/types";
@@ -285,5 +287,47 @@ describe("the reminders of an event, in a note", () => {
 
     it("says nothing about an event that never asked", () => {
         expect(serializeEventMarkdown(dated())).not.toContain("reminders");
+    });
+});
+
+describe("who owns a note, and whether a hand may touch it", () => {
+    const record = (overrides: Partial<DesktopStoredEvent> = {}) =>
+        ({
+            id: "path:Etudes/cours.md",
+            calendarId: "local::Etudes",
+            calendarPath: "Etudes",
+            relativePath: "Etudes/cours.md",
+            fileName: "cours.md",
+            contents: "",
+            event: {} as unknown as NeoEvent,
+            ...overrides,
+        } as DesktopStoredEvent);
+
+    /*
+     * La régression : depuis la 1.57.0 un lien ICS écrit ses notes DANS un
+     * calendrier local, donc sans dossier miroir. L'appelant écrasait alors le
+     * `readOnly` posé par `parseStoredEvent` avec le seul verdict du dossier, et
+     * la note d'un cours redevenait modifiable à la main — pour être écrasée à
+     * la synchro suivante.
+     */
+    it("keeps a generated note read-only inside an editable calendar", () => {
+        expect(recordOwnership(record({ readOnly: true }), null)).toMatchObject({
+            calendarId: "local::Etudes",
+            readOnly: true,
+        });
+    });
+
+    it("still hands a mirrored folder's notes to that calendar, read-only", () => {
+        expect(recordOwnership(record(), "ical::planning")).toMatchObject({
+            calendarId: "ical::planning",
+            readOnly: true,
+        });
+    });
+
+    it("leaves a hand-written note in an ordinary calendar editable", () => {
+        expect(recordOwnership(record(), null)).toMatchObject({
+            calendarId: "local::Etudes",
+            readOnly: false,
+        });
     });
 });

@@ -1061,6 +1061,12 @@
     text-overflow: ellipsis;
     flex-shrink: 1;
     min-width: 0;
+    /* Sur une seule ligne, le titre prend toute la largeur libre et repousse
+       l'heure contre le bord droit du bloc — la disposition d'origine, que
+       `.nc-event-title` ne porte plus depuis qu'un titre qui grandit plaquait
+       l'heure en bas des blocs hauts. Ici la colonne est une rangee : grandir
+       pousse a droite, pas vers le bas. */
+    flex-grow: 1;
 }
 
 .nc-event-text-inline .nc-event-time {
@@ -1080,8 +1086,15 @@
     /* Shrinks first, and only the title: `.nc-event-time` below keeps
        `flex-shrink: 0` so a title too long for the block's height loses its
        own lower lines to `overflow: hidden` rather than displacing the time
-       past the block's edge. */
-    flex: 1 1 auto;
+       past the block's edge.
+
+       Il ne GRANDIT pas, en revanche. Depuis que `.nc-event-text` recoit la
+       hauteur du bloc (`align-self: stretch` plus haut), un `flex-grow: 1` ici
+       etirait le titre sur toute cette hauteur et plaquait l'heure tout en bas
+       : un evenement de six heures montrait son nom en haut, son horaire a
+       l'autre bout, et un grand vide entre les deux. Le titre et l'heure se
+       suivent, et c'est le bloc qui est plus grand qu'eux. */
+    flex: 0 1 auto;
     min-height: 0;
 }
 
@@ -1147,6 +1160,23 @@
    solid line below is confined to the today column, where it belongs. */
 
 /* Ligne épaisse avec contour noir sur la colonne "today" uniquement. */
+/* Le filet, sur toute la largeur des jours : l'heure qu'il est vaut pour
+   chaque colonne, et c'est lui qui situe le segment vif d'aujourd'hui au lieu
+   de le laisser flotter au milieu de la grille.
+
+   30 % de la meme rouge — mesure sur la capture de reference : le filet y sort
+   a rgb(89, 43, 41) sur un fond rgb(25, 25, 25), pour une rouge de
+   rgb(241, 85, 80), ce qui donne le meme 0,30 sur les trois canaux. */
+.nc-now-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: color-mix(in srgb, var(--nc-today) 30%, transparent);
+    pointer-events: none;
+    z-index: 5;
+}
+
 .nc-now-today-line {
     position: absolute;
     left: 0;
@@ -1159,14 +1189,18 @@
     z-index: 6;
 }
 
-/* Round dot at the left edge of the today column (Notion style), not a bar. */
+/* Un tiret vertical au bord gauche de la colonne du jour, pas une pastille :
+   le point rond de 8 px pesait plus lourd que la ligne qu'il annonce, et sur
+   un fond d'ecran il se lisait comme une tache. Mesure sur la capture de
+   reference : deux pixels de large (x=243..244), quatre de haut, a cheval sur
+   la ligne. */
 .nc-now-tick {
     position: absolute;
-    left: -3px;
-    width: 8px;
-    height: 8px;
+    left: 0;
+    width: 2px;
+    height: 6px;
     background: var(--nc-today);
-    border-radius: 50%;
+    border-radius: 1px;
     transform: translateY(-50%);
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
     pointer-events: none;

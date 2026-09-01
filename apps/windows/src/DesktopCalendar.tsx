@@ -130,6 +130,7 @@ import {
     markdownLinkForAttachment,
     markdownLinkForVaultNote,
     parseStoredEvent,
+    recordOwnership,
     removeMarkdownTargetFromEventBody,
     renameMarkdownTargetInEventBody,
     serializeEventMarkdown,
@@ -350,7 +351,7 @@ function eventRecordForDisplay(
         end: now,
         allDay: true,
         color: calendar.color,
-        editable: calendar.editable,
+        editable: calendar.editable && !record.readOnly,
         calendarId: calendar.id,
         calendarName: calendar.name,
         icsFeedId: record.icsFeedId,
@@ -1036,16 +1037,15 @@ export default function DesktopCalendar({
                     const source = icalSourceByDirectory.get(
                         record.calendarPath.toLocaleLowerCase()
                     );
-                    return {
-                        ...record,
-                        id:
-                            previousByPath.get(record.relativePath) ??
-                            record.id,
-                        calendarId: source
-                            ? externalCalendarId(source)
-                            : record.calendarId,
-                        readOnly: Boolean(source),
-                    };
+                    return recordOwnership(
+                        {
+                            ...record,
+                            id:
+                                previousByPath.get(record.relativePath) ??
+                                record.id,
+                        },
+                        source ? externalCalendarId(source) : null
+                    );
                 });
 
             const automaticEvents = nextPreferences.externalCalendars
@@ -1851,11 +1851,17 @@ export default function DesktopCalendar({
                 calendar.id,
                 calendar.name,
                 calendar.color,
-                calendar.editable,
+                // Le calendrier peut etre modifiable sans que CETTE note le
+                // soit : celles qu'un lien ICS ecrit vivent dans un calendrier
+                // local ordinaire. Le stockage refusait deja de les ecrire, mais
+                // le bloc offrait quand meme ses poignees de glissement et de
+                // redimensionnement, et le geste mourait sans rien dire.
+                calendar.editable && !record.readOnly,
                 rangeStart,
                 rangeEnd
             ).map((event) => ({
                 ...event,
+                icsFeedId: record.icsFeedId,
                 selected:
                     selectedIds.has(record.id) ||
                     selectedIds.has(event.id) ||
@@ -1976,7 +1982,9 @@ export default function DesktopCalendar({
                           calendar.id,
                           calendar.name,
                           calendar.color,
-                          calendar.editable,
+                          // Comme dans la grille : la note d'un lien ICS n'est
+                          // pas modifiable, meme dans un calendrier qui l'est.
+                          calendar.editable && !record.readOnly,
                           rangeStart,
                           rangeEnd
                       ).map((display) => ({
@@ -2533,7 +2541,28 @@ export default function DesktopCalendar({
             setStorageError(null);
             try {
                 if (request.type === "local") {
-                    await createDesktopCalendarFolder(dataFolder, request.name);
+                    const relativePath = await createDesktopCalendarFolder(
+                        dataFolder,
+                        request.name
+                    );
+                    // Le premier lien du calendrier, quand le dialogue en a
+                    // recu un. Meme forme que celui que pose le panneau des
+                    // liens ICS : c'est le meme abonnement, seul l'endroit d'ou
+                    // on le demande change. La synchro le prendra a son
+                    // prochain cycle et lui provisionnera son dossier.
+                    if (request.icsUrl) {
+                        const feed: IcsFeedSubscription = {
+                            id: internalEventId(),
+                            calendarPath: relativePath,
+                            name: request.name,
+                            url: request.icsUrl,
+                            active: true,
+                        };
+                        await persistPreferences((stored) => ({
+                            ...stored,
+                            icsFeeds: [...stored.icsFeeds, feed],
+                        }));
+                    }
                 } else {
                     const calendarId = externalCalendarId(request);
                     if (
@@ -3374,7 +3403,10 @@ export default function DesktopCalendar({
                 // touch panel: free scroll is the only mode that reads right
                 // under a mouse wheel or a trackpad, so the desktop build
                 // never pages regardless of what a synced device wrote here.
-                freeScroll={true}
+                // Le telephone, lui, garde le choix — c'est son geste qui a
+                // deux lectures possibles, et le reglage existe pour lui
+                // (voir DesktopSettings, ou la ligne n'apparait que la).
+                freeScroll={isAndroid ? preferences.freeScroll : true}
                 sidebarVisible={sidebarVisible}
                 onToggleSidebar={toggleSidebar}
                 onEventClick={selectEvent}

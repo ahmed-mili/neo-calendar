@@ -236,7 +236,16 @@ export default function IcsFeedsPanel({
                                             }
                                         }}
                                     />
-                                    <span className="nc-ics-feed-row__url">
+                                    {/* Coupee a la largeur de la ligne (voir
+                                        .nc-ics-feed-row__url) : l'adresse
+                                        entiere doit rester joignable, et un
+                                        `title` est le seul endroit ou la
+                                        mettre sans rendre la ligne haute de
+                                        deux lignes. */}
+                                    <span
+                                        className="nc-ics-feed-row__url"
+                                        title={feed.url}
+                                    >
                                         {feed.url}
                                     </span>
                                     <FeedStatus
@@ -339,7 +348,6 @@ export default function IcsFeedsPanel({
                         )}
                     </p>
                 )}
-
             </section>
         </div>
     );

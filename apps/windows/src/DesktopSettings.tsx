@@ -58,6 +58,7 @@ import {
     Check,
     Code2,
     Copy,
+    Columns2,
     Columns3,
     ExternalLink,
     FileText,
@@ -729,6 +730,21 @@ export default function DesktopSettings({
                         })
                     }
                 />
+                {/* Le doigt seul a le choix. Sur ordinateur, la molette et le
+                    pave tactile ne rendent bien qu'en defilement libre : la
+                    grille y defile toujours librement et il n'y a donc rien a
+                    regler. La ligne n'apparait que sur telephone, ou une
+                    balayee doit pouvoir se poser sur un jour entier. */}
+                {isAndroid && (
+                    <SettingsToggleRow
+                        label={t("Free scrolling between days")}
+                        icon={<Columns2 size={18} />}
+                        checked={preferences.freeScroll}
+                        onChange={(checked) =>
+                            patchPreferences({ freeScroll: checked })
+                        }
+                    />
+                )}
                 <SettingsChoiceRow
                     label={t("Reminder")}
                     icon={<Bell size={18} />}

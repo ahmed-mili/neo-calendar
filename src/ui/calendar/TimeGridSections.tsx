@@ -831,6 +831,18 @@ export function TimeGridDays({
                     }}
                 />
             )}
+            {/* L'heure qu'il est traverse la semaine entiere, en filet.
+                Elle avait ete retiree en 1.5.5 au motif qu'elle « dit quelque
+                chose de faux au-dessus de demain » — mais 13 h 40 est la meme
+                hauteur dans toutes les colonnes, et sans elle le segment vif
+                d'aujourd'hui flotte seul au milieu de la grille, ce qui est
+                precisement ce qui a ete signale comme bizarre. Le filet situe,
+                le segment vif designe. Il reste sous le segment (z-index 5
+                contre 6) et dans le conteneur des colonnes, donc il ne mord
+                pas sur la gouttiere des heures a gauche. */}
+            {todayInRange && (
+                <div className="nc-now-line" style={{ top: nowTop }} />
+            )}
         </div>
     );
 }

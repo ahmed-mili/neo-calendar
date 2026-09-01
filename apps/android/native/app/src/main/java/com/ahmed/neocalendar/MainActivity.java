@@ -588,6 +588,13 @@ public class MainActivity extends Activity {
       case "write_desktop_event_file": return writeEvent(tree(a),a);
       case "delete_desktop_event_file": {Uri u=findPath(tree(a),a.getString("relativePath"));if(u!=null)DocumentsContract.deleteDocument(getContentResolver(),u);return null;}
       case "create_desktop_calendar_folder": return createFolder(tree(a),a.getString("name"));
+      /* Chaque lien ICS ecrit ses notes dans un dossier a lui, demande une fois
+         par cycle de synchro tant qu'il n'en a pas. Le bureau connait cette
+         commande depuis la 1.57.3 ; ici elle tombait dans le `default` et levait
+         « Commande Android non prise en charge », ce qui faisait echouer la
+         synchro AVANT le telechargement du flux : plus un seul evenement ICS
+         sur telephone. */
+      case "ensure_desktop_ics_folder": return ensureIcsFolder(tree(a),a.optString("calendarPath",""),a.getString("name"));
       case "rename_desktop_calendar_folder": return renameFolder(tree(a),a.getString("relativePath"),a.getString("newName"));
       case "delete_desktop_calendar_folder": return deleteFolder(tree(a),a.getString("relativePath"));
       case "open_desktop_path": return null;
@@ -617,7 +624,30 @@ public class MainActivity extends Activity {
       default: throw new Exception("Commande Android non prise en charge: "+c);
     }
   }
-  private JSONObject loadWorkspace(Uri tree)throws Exception{JSONArray calendars=new JSONArray(),events=new JSONArray();List<Doc> children=list(tree);for(Doc d:children)if(d.dir&&!d.name.startsWith(".")){JSONObject cal=new JSONObject().put("relativePath",d.name).put("name",d.name);calendars.put(cal);for(Doc f:list(d.uri))if(!f.dir&&f.name.toLowerCase(Locale.ROOT).endsWith(".md"))events.put(new JSONObject().put("relativePath",d.name+"/"+f.name).put("calendarPath",d.name).put("fileName",f.name).put("contents",readText(f.uri)));}if(calendars.length()==0){calendars.put(new JSONObject().put("relativePath","").put("name","Default"));for(Doc f:children)if(!f.dir&&f.name.toLowerCase(Locale.ROOT).endsWith(".md"))events.put(new JSONObject().put("relativePath",f.name).put("calendarPath","").put("fileName",f.name).put("contents",readText(f.uri)));}return new JSONObject().put("calendars",calendars).put("eventFiles",events).put("preferences",readPreferences(tree));}
+  private JSONObject loadWorkspace(Uri tree)throws Exception{JSONArray calendars=new JSONArray(),events=new JSONArray();List<Doc> children=list(tree);for(Doc d:children)if(d.dir&&!d.name.startsWith(".")){JSONObject cal=new JSONObject().put("relativePath",d.name).put("name",d.name);calendars.put(cal);collectEvents(d.uri,d.name,d.name,events);}if(calendars.length()==0){calendars.put(new JSONObject().put("relativePath","").put("name","Default"));for(Doc f:children)if(!f.dir&&f.name.toLowerCase(Locale.ROOT).endsWith(".md"))events.put(new JSONObject().put("relativePath",f.name).put("calendarPath","").put("fileName",f.name).put("contents",readText(f.uri)));}return new JSONObject().put("calendars",calendars).put("eventFiles",events).put("preferences",readPreferences(tree));}
+  /** Toutes les notes d'un calendrier, sous-dossiers compris.
+   *
+   *  Un calendrier n'est pas plat : depuis la 1.57.3 chaque lien ICS range ses
+   *  notes dans un dossier a lui, et le bureau, qui descend l'arborescence
+   *  depuis toujours, les lisait pendant que le telephone — qui ne regardait
+   *  que les enfants directs — n'en voyait plus une seule. Le calendrier
+   *  d'appartenance reste celui du dossier de tete : un sous-dossier organise,
+   *  il ne fait pas un calendrier de plus. */
+  private void collectEvents(Uri directory,String calendarPath,String relativePrefix,JSONArray out)throws Exception{
+    for(Doc f:list(directory)){
+      if(f.dir){
+        if(f.name.startsWith("."))continue;
+        collectEvents(f.uri,calendarPath,relativePrefix+"/"+f.name,out);
+        continue;
+      }
+      if(!f.name.toLowerCase(Locale.ROOT).endsWith(".md"))continue;
+      out.put(new JSONObject()
+        .put("relativePath",relativePrefix+"/"+f.name)
+        .put("calendarPath",calendarPath)
+        .put("fileName",f.name)
+        .put("contents",readText(f.uri)));
+    }
+  }
   /** Missing file means first run; an unreadable or corrupt one must fail so the
    *  app never saves its defaults over a healthy configuration. */
   private JSONObject readPreferences(Uri tree)throws Exception{Uri p=findChild(tree,PREFERENCES_FILE_NAME);if(p==null)p=findChild(tree,LEGACY_PREFERENCES_FILE_NAME);if(p==null)return new JSONObject();String raw=readText(p);if(raw.trim().isEmpty())return new JSONObject();try{return new JSONObject(raw);}catch(JSONException e){throw new Exception("Le fichier de preferences est illisible: "+e.getMessage());}}
@@ -659,6 +689,25 @@ public class MainActivity extends Activity {
     return cal.isEmpty()?name:cal+"/"+name;
   }
   private String createFolder(Uri tree,String name)throws Exception{name=validName(name,false);if(findChild(tree,name)!=null)throw new Exception("Un dossier portant ce nom existe deja.");DocumentsContract.createDocument(getContentResolver(),tree,DocumentsContract.Document.MIME_TYPE_DIR,name);return name;}
+  /** Le dossier d'un lien ICS, cree au besoin.
+   *
+   *  Appelable a chaque cycle de synchro : un dossier deja la est rendu tel
+   *  quel. Renvoie le chemin relatif a la racine, forme que le planificateur
+   *  ecrit ensuite dans `calendarPath` — la meme que rend la commande du
+   *  bureau, sans quoi les notes du telephone et celles de l'ordinateur
+   *  n'atterriraient pas au meme endroit. */
+  private String ensureIcsFolder(Uri tree,String calendarPath,String name)throws Exception{
+    name=validName(name,false);
+    Uri parent=calendarPath.isEmpty()?tree:findPath(tree,calendarPath);
+    if(parent==null)throw new Exception("Calendrier introuvable: "+calendarPath);
+    for(Doc d:list(parent))if(d.name.equals(name)){
+      if(!d.dir)throw new Exception("« "+name+" » existe deja et n'est pas un dossier.");
+      return calendarPath.isEmpty()?name:calendarPath+"/"+name;
+    }
+    if(DocumentsContract.createDocument(getContentResolver(),parent,DocumentsContract.Document.MIME_TYPE_DIR,name)==null)
+      throw new IOException("Creation du dossier impossible: "+name);
+    return calendarPath.isEmpty()?name:calendarPath+"/"+name;
+  }
   private String renameFolder(Uri tree,String rel,String name)throws Exception{name=validName(name,false);Uri u=findPath(tree,rel);if(u==null)throw new Exception("Calendrier introuvable.");if(findChild(tree,name)!=null)throw new Exception("Un dossier portant ce nom existe deja.");DocumentsContract.renameDocument(getContentResolver(),u,name);return name;}
   private Object deleteFolder(Uri tree,String rel)throws Exception{Uri u=findPath(tree,rel);if(u==null)return null;if(!list(u).isEmpty())throw new Exception("Ce calendrier nest pas vide.");DocumentsContract.deleteDocument(getContentResolver(),u);return null;}
   private JSONObject copyAttachment(Uri tree,JSONObject a)throws Exception{Uri src=Uri.parse(a.getString("sourcePath"));String event=a.getString("eventRelativePath");String base=event.contains("/")?event.substring(0,event.lastIndexOf('/')):"";Uri dir=base.isEmpty()?tree:findPath(tree,base);/* Le point compte : loadWorkspace prend tout dossier qui n'en porte pas

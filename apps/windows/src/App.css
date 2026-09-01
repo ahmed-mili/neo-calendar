@@ -692,6 +692,43 @@ button.nc-settings__theme-card:focus-visible {
     font-family: inherit;
 }
 
+/* ── Ce qui flotte au-dessus du calendrier ────────────────────────────
+ *
+ * Mesure faite sur la 1.57.4 empaquetee (WebView2, capture d'ecran a l'appui) :
+ * `backdrop-filter` n'y produit AUCUN flou. Le profil de luminance a travers un
+ * panneau montre des glyphes nets, oscillant de 32 a 53 sur 255 — c'est-a-dire
+ * exactement les 12 % que laisse passer un fond a 88 %, sans le moindre
+ * etalement. Le meme CSS, dans un Chromium ordinaire, aplatit ce profil a une
+ * valeur constante : le flou marche partout SAUF la ou l'application tourne.
+ *
+ * La lisibilite ne peut donc pas reposer sur le flou. Elle repose sur l'alpha,
+ * qui ne depend d'aucune composition : a 97 %, les 3 % restants ramenent un
+ * titre d'evenement a 4 unites de luminance sur 255, soit rien. Les
+ * declarations de flou restent — elles ne coutent rien et les moteurs qui les
+ * honorent (Obsidian, WebView Android) y gagnent la matiere du verre — mais
+ * plus personne ne compte sur elles pour ne pas lire a travers un panneau.
+ */
+:root {
+    /* Mesure A/B, meme fond d'ecran, sans `backdrop-filter` : a 88 % le titre
+       d'un evenement passe a travers le panneau avec 7,5 % du contraste — soit
+       exactement ce qu'on voit sur la capture de la 1.57.4 —, a 97 % il en
+       reste 2 %, une trace encore perceptible, et a 100 % plus rien. C'est
+       l'illisibilite qui etait demandee, donc c'est 100 %. Le fond d'ecran
+       continue de vivre la ou il n'a jamais gene : le cadre de l'application
+       (barre du haut, panneau lateral, grille), qui garde sa transparence. */
+    --nc-float-surface: var(--background-primary);
+    /* Un tiroir garde le ton du panneau lateral auquel il appartient. */
+    --nc-float-surface-secondary: var(--background-secondary);
+    /* Le voile d'un vrai modal : ce qui l'entoure doit s'effacer, pas seulement
+       s'assombrir. A 58 % et sans flou, les titres de la grille se lisaient
+       encore autour du dialogue « Ajouter un calendrier ». */
+    --nc-float-veil: rgba(8, 9, 18, 0.72);
+    /* La fiche d'evenement n'est pas un modal — on continue de travailler dans
+       la grille pendant qu'elle est ouverte — donc son voile separe sans
+       eteindre l'application. */
+    --nc-float-veil-soft: rgba(8, 9, 18, 0.3);
+}
+
 /* Floating surfaces must match the plugin: readable, opaque enough to separate
    from the wallpaper, while keeping the same restrained blur. These elements
    are partly portaled to body and partly nested in the calendar. */
@@ -704,15 +741,44 @@ button.nc-settings__theme-card:focus-visible {
 .nc-command-palette,
 .nc-shortcuts-panel,
 .nc-color-picker,
-.nc-tz-picker-popup {
-    /* Plus de fond d'ecran qu'avant sous ces surfaces (96 % laissait a peine
-       deviner), mais un voile assez epais pour que ce qui passe au travers ne
-       soit plus lisible : a 14 px, les titres d'evenements derriere le panneau
-       se lisaient encore mot pour mot. */
-    background-color: color-mix(in srgb, var(--background-primary) 88%, transparent) !important;
+.nc-tz-picker-popup,
+/* Les autres surfaces flottantes de l'application (ajout de calendrier, liens
+   ICS, confirmation, dialogue de recurrence, ajout rapide, dialogue de lien)
+   sont deja opaques : elles n'ont rien a faire dans cette liste, ou elles y
+   perdraient 3 %. */
+.nc-task-modal,
+.nc-cep-popover {
+    background-color: var(--nc-float-surface) !important;
     border-color: var(--background-modifier-border) !important;
     backdrop-filter: blur(28px) saturate(118%);
     -webkit-backdrop-filter: blur(28px) saturate(118%);
+}
+
+/* Le tiroir Someday, lui, n'etait pas seulement translucide : il n'avait aucun
+   flou du tout, et sa surface venait de `--nc-bg-secondary`, remappe a 58 %
+   pour laisser voir le fond d'ecran a travers les panneaux structurels. Un
+   evenement de la grille se lisait donc mot pour mot au travers. La variable
+   est reprise ici pour le tiroir seul (et pour les menus qui pendent de son
+   en-tete, qui la lisent aussi), le reste de l'application gardant son verre. */
+.nc-desktop--calendar .nc-cep {
+    --cep-bg: var(--nc-float-surface-secondary);
+    backdrop-filter: blur(28px) saturate(118%);
+    -webkit-backdrop-filter: blur(28px) saturate(118%);
+}
+
+/* Les voiles : un seul reglage pour tout ce qui pose un dialogue par-dessus
+   l'application. Le flou reste declare la ou il l'etait deja. */
+.nc-settings-backdrop,
+.nc-add-calendar-backdrop,
+.nc-confirm-backdrop,
+.nc-choice-backdrop,
+.nc-ics-backdrop,
+.nc-task-modal-backdrop {
+    background: var(--nc-float-veil) !important;
+}
+
+.nc-event-popup-backdrop {
+    background: var(--nc-float-veil-soft) !important;
 }
 
 /* The shortcuts panel is portaled to body. Give it the same text and control
@@ -2394,6 +2460,31 @@ button.nc-settings__theme-card:focus-visible {
     font-size: 12px;
 }
 
+/* Le champ du lien et sa note ne font qu'une ligne du dialogue : c'est le
+   groupe qui porte le filet, et le champ a l'interieur n'en porte aucun. Sans
+   ca la note tombait sous un trait qui la rattachait a la section suivante, et
+   la remonter dessus la faisait chevaucher le trait. */
+.nc-add-calendar-dialog__ics {
+    margin-inline: 18px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.nc-add-calendar-dialog__ics .nc-add-calendar-dialog__input-row {
+    margin-inline: 0;
+    padding-bottom: 4px;
+    border-bottom: 0;
+}
+
+/* Aligne sur le texte du champ au-dessus (14 px de remplissage + 18 px
+   d'icone + 12 px d'ecart), pas sur le bord du dialogue : la phrase commente
+   le champ, elle ne recommence pas une colonne. */
+.nc-add-calendar-dialog__hint {
+    margin: 0 14px 12px 44px;
+    color: var(--text-muted);
+    font-size: 11.5px;
+    line-height: 1.45;
+}
+
 .nc-add-calendar-dialog__footer {
     display: flex;
     justify-content: flex-end;
@@ -2562,13 +2653,28 @@ button.nc-settings__theme-card:focus-visible {
     -webkit-backdrop-filter: blur(7px);
 }
 
+/*
+ * `--nc-border` vaut `transparent` dans le theme par defaut (catppuccin-mocha
+ * le declare ainsi pour que les panneaux du calendrier n'aient aucun filet sur
+ * le fond d'ecran), et la forme `var(--nc-border, var(--background-modifier-
+ * border))` ne rattrape rien : le repli d'un `var()` ne joue que si la variable
+ * n'est pas declaree du tout, pas si elle est declaree transparente. Ce
+ * dialogue tirait donc TOUS ses traits — la carte de chaque lien, le champ du
+ * nom, le filet du formulaire, le contour des champs de saisie — en
+ * transparent, d'ou des lignes flottant sans structure et des champs qu'on ne
+ * distinguait pas du fond. Il est pose sur son propre fond opaque et non sur le
+ * fond d'ecran : il lui faut donc le trait natif du theme, que chacun d'eux
+ * declare.
+ */
 .nc-ics-panel {
-    width: min(560px, calc(100vw - 36px));
+    --ics-line: var(--background-modifier-border);
+
+    width: min(600px, calc(100vw - 36px));
     max-height: calc(100vh - 48px);
     display: flex;
     flex-direction: column;
-    padding: 16px;
-    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    padding: 18px;
+    border: 1px solid var(--ics-line);
     border-radius: 14px;
     color: var(--text-normal);
     background: var(--background-primary);
@@ -2613,7 +2719,7 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 .nc-ics-panel__close:hover {
-    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border: 1px solid var(--ics-line);
 }
 
 .nc-ics-panel__summary {
@@ -2638,15 +2744,21 @@ button.nc-settings__theme-card:focus-visible {
     font-size: 13px;
 }
 
+/* Une ligne par lien, en colonnes fixes plutot qu'en `flex-wrap` : le lien, ce
+   qu'on peut en changer, ce qu'on peut lui faire. Enveloppees, ces cases
+   partaient a la ligne des qu'une URL etait longue et la frequence se
+   retrouvait sous le nom, decalee d'une ligne a l'autre selon la longueur de
+   chaque adresse. */
 .nc-ics-feed-row {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto auto auto;
     align-items: center;
-    gap: 8px 10px;
+    gap: 0 8px;
     min-width: 0;
-    padding: 8px;
-    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    padding: 10px 10px 10px 8px;
+    border: 1px solid var(--ics-line);
     border-radius: 10px;
+    background: color-mix(in srgb, var(--text-normal) 3%, transparent);
 }
 
 .nc-ics-feed-row__icon {
@@ -2654,7 +2766,6 @@ button.nc-settings__theme-card:focus-visible {
     place-items: center;
     width: 20px;
     height: 20px;
-    flex: 0 0 auto;
     color: var(--text-muted);
 }
 
@@ -2662,7 +2773,6 @@ button.nc-settings__theme-card:focus-visible {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    flex: 1 1 200px;
     min-width: 0;
 }
 
@@ -2678,19 +2788,25 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 .nc-ics-feed-row__name:hover {
-    border-color: var(--nc-border, var(--background-modifier-border));
+    border-color: var(--ics-line);
 }
 
 .nc-ics-feed-row__name:focus-visible {
     outline: none;
-    border-color: var(--nc-border, var(--background-modifier-border));
+    border-color: var(--interactive-accent);
     background: var(--nc-bg-hover, var(--background-modifier-hover));
 }
 
+/* L'adresse tient sur une ligne, coupee au bout. Un jeton d'API de soixante
+   caracteres cassait sur deux lignes et faisait de la ligne du lien le double
+   des autres, pour une suite de caracteres que personne ne lit : le nom dit de
+   quel calendrier il s'agit, et l'adresse entiere reste au survol. */
 .nc-ics-feed-row__url {
     min-width: 0;
-    overflow-wrap: anywhere;
     padding: 0 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: var(--text-muted);
     font-size: 12px;
 }
@@ -2702,8 +2818,8 @@ button.nc-settings__theme-card:focus-visible {
     display: flex;
     align-items: center;
     gap: 5px;
-    color: var(--text-muted);
-    font-size: 12px;
+    color: var(--text-faint);
+    font-size: 11.5px;
     font-style: italic;
 }
 
@@ -2728,23 +2844,21 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 .nc-ics-feed-row__frequency {
-    flex: 0 0 auto;
     height: 30px;
     padding: 0 6px;
-    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border: 1px solid var(--ics-line);
     border-radius: 7px;
-    background: var(--background-primary);
+    background: var(--background-secondary);
     color: var(--text-normal);
     font-size: 12px;
 }
 
 .nc-ics-feed-row__frequency:focus-visible {
     outline: none;
-    border-color: var(--interactive-accent, var(--nc-border));
+    border-color: var(--interactive-accent);
 }
 
 .nc-ics-feed-row__action {
-    flex: 0 0 auto;
     width: 30px;
     height: 30px;
     display: grid;
@@ -2759,7 +2873,8 @@ button.nc-settings__theme-card:focus-visible {
 
 @media (hover: hover) and (pointer: fine) {
     .nc-ics-feed-row__action:hover {
-        border-color: var(--nc-border, var(--background-modifier-border));
+        border-color: var(--ics-line);
+        color: var(--text-normal);
     }
 }
 
@@ -2771,7 +2886,7 @@ button.nc-settings__theme-card:focus-visible {
 
 .nc-ics-feed-row__action:focus-visible {
     outline: none;
-    border-color: var(--nc-border, var(--background-modifier-border));
+    border-color: var(--interactive-accent);
 }
 
 .nc-ics-feed-row__action--danger:hover {
@@ -2784,30 +2899,44 @@ button.nc-settings__theme-card:focus-visible {
     cursor: default;
 }
 
+/* Le nom est court, l'adresse est longue : deux champs de meme largeur
+   laissaient le nom a moitie vide pendant que l'URL defilait dans le sien. Le
+   bouton passe sous les champs plutot qu'a leur droite quand la place manque —
+   `flex-wrap` le faisait deja, mais depuis la meme ligne, ou il rognait les
+   deux champs a la fois. */
 .nc-ics-panel__add-form {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 8fr) auto;
     gap: 8px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--nc-border, var(--background-modifier-border));
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--ics-line);
+}
+
+@media (max-width: 520px) {
+    .nc-ics-panel__add-form {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .nc-ics-panel__add-form input {
-    flex: 1 1 160px;
     min-width: 0;
-    height: 32px;
-    padding: 0 9px;
-    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--ics-line);
     border-radius: 7px;
-    background: var(--background-primary);
+    background: var(--background-secondary);
     color: var(--text-normal);
     font-size: 13px;
 }
 
+.nc-ics-panel__add-form input::placeholder {
+    color: var(--text-faint);
+}
+
 .nc-ics-panel__add-form input:focus-visible {
     outline: none;
-    border-color: var(--interactive-accent, var(--nc-border));
+    border-color: var(--interactive-accent);
 }
 
 .nc-ics-panel__add-form input:disabled {
@@ -2815,12 +2944,12 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 .nc-ics-panel__add-form button {
-    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    height: 32px;
-    padding: 0 12px;
+    height: 34px;
+    padding: 0 14px;
     border: 0;
     border-radius: 7px;
     color: #fff;
@@ -4638,7 +4767,10 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     height: min(780px, calc(100vh - 64px));
     max-height: calc(100vh - 64px);
     border-radius: 16px;
-    background: color-mix(in srgb, var(--background-primary) 92%, transparent) !important;
+    /* Meme raison que les autres surfaces flottantes : le flou ne rend rien
+       dans l'application empaquetee, donc les 8 % que 92 % laissait passer
+       etaient huit pour cent de calendrier lisible en travers des reglages. */
+    background: var(--nc-float-surface) !important;
     box-shadow:
         0 34px 96px rgba(0, 0, 0, 0.54),
         0 1px 0 color-mix(in srgb, var(--text-normal) 5%, transparent) inset;

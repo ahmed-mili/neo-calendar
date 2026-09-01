@@ -220,6 +220,32 @@ export function parseStoredEvent(
     };
 }
 
+/**
+ * À quel calendrier une note appartient, et si une main peut la modifier.
+ *
+ * Deux choses rendent une note intouchable, et il faut les deux : le dossier
+ * entier peut être le miroir d'un fichier iCalendar — passer `mirroredBy`, son
+ * identifiant de calendrier — et la note elle-même peut être écrite par un
+ * générateur, ce que `parseStoredEvent` a déjà tranché en posant `readOnly`.
+ *
+ * La deuxième était perdue : l'appelant écrasait `readOnly` avec le seul verdict
+ * du dossier. Tant que les liens ICS avaient leur propre dossier miroir cela
+ * revenait au même, mais depuis qu'ils écrivent DANS un calendrier local
+ * (1.57.0) leurs notes n'ont plus de dossier miroir, et elles repassaient donc
+ * modifiables — une retouche à la main était alors silencieusement rendue à la
+ * synchro suivante. Les deux verdicts se cumulent, ils ne se remplacent pas.
+ */
+export function recordOwnership(
+    record: DesktopStoredEvent,
+    mirroredBy: string | null
+): DesktopStoredEvent {
+    return {
+        ...record,
+        calendarId: mirroredBy ?? record.calendarId,
+        readOnly: mirroredBy !== null || record.readOnly === true,
+    };
+}
+
 type PrintableAtom = Array<number | string> | number | string | boolean | null;
 
 function stringifyYamlAtom(value: PrintableAtom): string {

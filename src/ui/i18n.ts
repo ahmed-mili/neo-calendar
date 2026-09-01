@@ -589,6 +589,9 @@ const FR: Record<string, string> = {
         "Ce calendrier a déjà le maximum de cinq liens ICS.",
     "Enter a valid HTTPS or webcal address.":
         "Cette adresse n'est pas valide. Entrez une adresse HTTPS ou webcal.",
+    "ICS link (optional)": "Lien ICS (facultatif)",
+    "An https:// or webcal:// address. Its events are synchronised into this calendar and stay read-only. To add, change or remove links later: three-dot menu of the calendar, “ICS links”.":
+        "Une adresse https:// ou webcal://. Ses évènements sont synchronisés dans ce calendrier et restent en lecture seule. Pour ajouter, modifier ou retirer des liens ensuite : menu à trois points du calendrier, « Liens ICS ».",
     "This link is already used by another feed on this calendar.":
         "Ce lien est déjà utilisé par un autre flux de ce calendrier.",
     Frequency: "Fréquence",
