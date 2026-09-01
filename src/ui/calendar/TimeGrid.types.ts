@@ -33,6 +33,8 @@ export interface PrayerLine {
     date: Date;
     /** L'heure, en heures décimales, pour suivre le zoom comme le reste. */
     hours: number;
+    /** Minutes depuis minuit : ce que la gouttière imprime à gauche du trait. */
+    minutes: number;
     /** Celui de la prochaine prière : plein, quand les autres sont estompés. */
     next: boolean;
 }

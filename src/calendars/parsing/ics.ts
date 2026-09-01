@@ -201,6 +201,25 @@ function utcInstant(time: ICAL.Time): string {
 const occurrenceKey = (uid: string, recurrenceId: string | null): string =>
     recurrenceId === null ? uid : `${uid}::${recurrenceId}`;
 
+/**
+ * What identifies one occurrence to a reader: its title, its day and its time
+ * slot.
+ *
+ * A UID is a hint about identity, not identity itself. Feeds are free to hand
+ * out a fresh one on every generation, and the Efrei planning feed publishes
+ * some lessons as two VEVENTs carrying two different random UIDs for the very
+ * same slot. Anything that has to recognize an occurrence it has already seen
+ * — inside one snapshot or across two syncs — compares this, so there is one
+ * definition of sameness rather than one per call site.
+ */
+export function occurrenceSignature(event: NeoEvent): string | null {
+    if (event.type !== "single") return null;
+    const when = event.allDay
+        ? "allday"
+        : `${event.startTime ?? ""}-${event.endTime ?? ""}`;
+    return `${event.title}::${event.date}::${when}`;
+}
+
 function attendeesOf(vevent: ICAL.Component): string[] | undefined {
     const values = vevent
         .getAllProperties("attendee")
@@ -430,18 +449,31 @@ export function parseIcsSnapshot(
         }
     }
 
-    occurrences.sort((a, b) =>
-        sortKey(a.event).localeCompare(sortKey(b.event))
-    );
+    // Two VEVENTs describing the same occurrence are one occurrence. A feed
+    // that publishes a lesson twice under two generated UIDs would otherwise
+    // produce two notes for it on the first sync, and the copies would then
+    // trade that single note between them on every sync after — which is
+    // exactly what "every sync creates events that are already there" looks
+    // like. Document order decides which UID stands for the occurrence.
+    const seenSignatures = new Set<string>();
+    const distinct = occurrences.filter((occurrence) => {
+        const signature = occurrenceSignature(occurrence.event);
+        if (signature === null) return true;
+        if (seenSignatures.has(signature)) return false;
+        seenSignatures.add(signature);
+        return true;
+    });
+
+    distinct.sort((a, b) => sortKey(a.event).localeCompare(sortKey(b.event)));
 
     const latestOccurrenceDate =
-        occurrences.length === 0
+        distinct.length === 0
             ? null
-            : occurrences
+            : distinct
                   .map((occurrence) => occurrence.event.date)
                   .reduce((latest, date) => (date > latest ? date : latest));
 
-    return { events: occurrences, cancelledKeys, latestOccurrenceDate };
+    return { events: distinct, cancelledKeys, latestOccurrenceDate };
 }
 
 /** Every VEVENT in an iCalendar document, as normalized events. */

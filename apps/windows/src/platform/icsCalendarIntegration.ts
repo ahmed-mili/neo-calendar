@@ -161,6 +161,15 @@ export async function syncIcsFeeds(
                 await runWriteQueue(plan.writes, async (write) => {
                     const relativePath = await io.writeEventFile(write);
                     const id = write.event.id as string;
+                    // One file, one record. An event id is derived from the
+                    // feed's UID, and a feed may hand out a fresh one for an
+                    // occurrence already on disk: the note is then rewritten
+                    // in place under a new id, and keeping the record it was
+                    // addressed by until now would show the same file twice —
+                    // once more on every sync.
+                    if (write.previousEventId && write.previousEventId !== id) {
+                        recordsById.delete(write.previousEventId);
+                    }
                     recordsById.set(id, {
                         id,
                         calendarId: write.calendarId,

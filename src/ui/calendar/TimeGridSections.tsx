@@ -63,7 +63,25 @@ interface LeftRailProps {
     nowTop: string;
     nowLabel: string;
     now: Date;
+    /** Les horaires de prière à annoncer dans la gouttière. Elle est commune
+     *  aux colonnes : une pastille par jour en aurait empilé autant que de
+     *  jours visibles à la même hauteur, donc c'est ici qu'elles se posent. */
+    prayerLines?: PrayerLine[];
+    prayerColor?: string;
     scrollableRef: React.RefObject<HTMLDivElement>;
+}
+
+/**
+ * L'heure d'une prière, telle que la mosquée l'imprime.
+ *
+ * Elle n'est pas convertie dans une seconde zone : la table est un calendrier
+ * papier en heure locale, et c'est cette minute-là qu'on cherche à lire.
+ */
+function prayerClock(minutes: number, timeFormat24h: boolean): string {
+    const hour = Math.floor(minutes / 60);
+    const minute = String(minutes % 60).padStart(2, "0");
+    if (timeFormat24h) return `${String(hour).padStart(2, "0")}:${minute}`;
+    return `${hour % 12 || 12}:${minute} ${hour < 12 ? "AM" : "PM"}`;
 }
 
 export function LeftRail({
@@ -72,6 +90,8 @@ export function LeftRail({
     allDayRef,
     showAllDay,
     hours,
+    prayerLines,
+    prayerColor,
     timeFormat24h,
     secondaryTimezones,
     onAddTimezone,
@@ -194,6 +214,24 @@ export function LeftRail({
                                 {homeNowLabel}
                             </div>
                         )}
+                        {/* L'heure de chaque prière, dans la gouttière, comme
+                            l'heure qu'il est. Le trait dit à quelle hauteur
+                            elle tombe, pas à quelle minute : sans ce chiffre
+                            elle se devinait entre deux graduations. */}
+                        {prayerLines?.map((line) => (
+                            <div
+                                key={`prayer-${line.minutes}`}
+                                className="nc-prayer-label"
+                                style={
+                                    {
+                                        top: scaledPx(line.hours),
+                                        "--nc-prayer-color": prayerColor,
+                                    } as React.CSSProperties
+                                }
+                            >
+                                {prayerClock(line.minutes, timeFormat24h)}
+                            </div>
+                        ))}
                     </div>
                     {secondaryTimezones &&
                         referenceDate &&

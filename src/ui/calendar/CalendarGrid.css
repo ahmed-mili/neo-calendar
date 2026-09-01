@@ -1271,6 +1271,25 @@
     z-index: 1000;
 }
 
+/* L'heure de la priere, dans la gouttiere, exactement la pastille rouge : meme
+   boite, meme graisse, meme position. Seule la couleur change — c'est celle du
+   calendrier auquel l'horaire appartient, donc elle s'eteint avec lui. */
+.nc-prayer-label {
+    position: absolute;
+    right: 4px;
+    padding: 4px 6px 2px;
+    transform: translateY(-50%);
+    background: var(--nc-prayer-color);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 999;
+}
+
 /* ── Day / Week / 3-Day View Containers ─────────────────────── */
 
 .nc-day-view,

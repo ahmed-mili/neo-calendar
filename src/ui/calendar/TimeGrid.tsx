@@ -716,6 +716,8 @@ export default function TimeGrid(props: TimeGridProps) {
                     nowTop={nowTop}
                     nowLabel={nowLabel}
                     now={now}
+                    prayerLines={prayerLines}
+                    prayerColor={prayerColor}
                     scrollableRef={leftScrollableRef}
                 />
                 <div className="nc-main-scroller" ref={scrollRootRef}>

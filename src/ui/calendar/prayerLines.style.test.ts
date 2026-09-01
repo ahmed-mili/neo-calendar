@@ -117,3 +117,41 @@ describe("the description of an event nothing can change", () => {
         ).toBe("transparent");
     });
 });
+
+/*
+ * L'heure de la prière se lit dans la gouttière, comme l'heure qu'il est.
+ *
+ * Un trait dit à quelle hauteur tombe la prière, pas à quelle minute : sans
+ * pastille à gauche, il fallait la deviner entre deux graduations. Elle est
+ * donc dessinée comme la pastille rouge — même boîte, même graisse, même
+ * position — dans la couleur du calendrier, la couleur restant la seule
+ * différence entre les deux.
+ */
+describe("the prayer hour in the gutter", () => {
+    it("is the now badge in the colour of its calendar", () => {
+        const label = declarationsFor(grid, ".nc-prayer-label");
+        const now = declarationsFor(grid, ".nc-now-label");
+
+        expect(label.right).toBe(now.right);
+        expect(label.padding).toBe(now.padding);
+        expect(label.transform).toBe(now.transform);
+        expect(label["font-size"]).toBe(now["font-size"]);
+        expect(label["font-weight"]).toBe(now["font-weight"]);
+        expect(label["line-height"]).toBe(now["line-height"]);
+        expect(label["border-radius"]).toBe(now["border-radius"]);
+        expect(label.color).toBe(now.color);
+        expect(label.background).toBe("var(--nc-prayer-color)");
+    });
+
+    it("is drawn by the hour column, not by a day", () => {
+        // La gouttière est commune aux colonnes : une pastille par jour en
+        // aurait empilé autant que de jours visibles à la même hauteur.
+        expect(sections).toContain('className="nc-prayer-label"');
+    });
+
+    it("never takes a pointer either", () => {
+        expect(
+            declarationsFor(grid, ".nc-prayer-label")["pointer-events"]
+        ).toBe("none");
+    });
+});

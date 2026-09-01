@@ -145,6 +145,9 @@ export function prayerHours(prayer: PrayerMoment): number {
 export interface PrayerLineSpec {
     date: Date;
     hours: number;
+    /** Minutes depuis minuit : le trait dit à quelle hauteur tombe la prière,
+     *  ce chiffre dit à quelle minute, et c'est lui que la gouttière imprime. */
+    minutes: number;
     next: boolean;
 }
 
@@ -170,23 +173,29 @@ export function prayerLinesFor({
     if (!timetable) return [];
 
     const next = nextPrayer(timetable, now);
-    const lines: PrayerLineSpec[] = next
-        ? [{ date: next.date, hours: prayerHours(next), next: true }]
-        : [];
+    const lineFor = (
+        prayer: PrayerMoment,
+        isNext: boolean
+    ): PrayerLineSpec => ({
+        date: prayer.date,
+        hours: prayerHours(prayer),
+        minutes: prayer.minutes,
+        next: isNext,
+    });
 
-    if (!showAll) return lines;
+    if (!showAll) return next ? [lineFor(next, true)] : [];
 
-    for (const prayer of prayersOn(timetable, now)) {
-        const isNext =
+    // Tenue, la touche montre la journée qu'on regarde et rien d'autre. Passé
+    // Isha la prochaine prière est le Fajr du lendemain : la garder ici posait
+    // un trait dans la colonne d'à côté, à quelques minutes de ceux
+    // d'aujourd'hui, et les deux se lisaient comme une seule barre brisée.
+    const today = startOfDay(now).getTime();
+    return prayersOn(timetable, now).map((prayer) =>
+        lineFor(
+            prayer,
             next !== null &&
-            next.minutes === prayer.minutes &&
-            next.date.getTime() === prayer.date.getTime();
-        if (isNext) continue;
-        lines.push({
-            date: prayer.date,
-            hours: prayerHours(prayer),
-            next: false,
-        });
-    }
-    return lines;
+                next.minutes === prayer.minutes &&
+                next.date.getTime() === today
+        )
+    );
 }

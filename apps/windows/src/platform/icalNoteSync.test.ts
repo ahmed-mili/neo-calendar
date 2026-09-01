@@ -588,3 +588,262 @@ describe("planIcsNoteSync — conservation and prudent deletion", () => {
     });
 
 });
+
+describe("planIcsNoteSync — one note, one identity", () => {
+    const identityFeed: IcsFeedSubscription = {
+        id: "feed-1",
+        calendarPath: "Études",
+        directory: "Études/EFREI",
+        name: "Planning Efrei",
+        url: "https://example.test/planning.ics",
+        active: true,
+    };
+    const identityNow = new Date(2026, 8, 2, 9, 0, 0);
+
+    const timedEvent = (
+        date: string,
+        title: string,
+        startTime: string,
+        endTime: string
+    ): NeoEvent =>
+        parseEvent({
+            title,
+            type: "single",
+            date,
+            endDate: null,
+            allDay: false,
+            startTime,
+            endTime,
+        }) as NeoEvent;
+
+    const timedOccurrence = (
+        uid: string,
+        date: string,
+        title: string,
+        startTime: string,
+        endTime: string
+    ): IcsOccurrence => ({
+        key: uid,
+        uid,
+        recurrenceId: null,
+        event: timedEvent(
+            date,
+            title,
+            startTime,
+            endTime
+        ) as IcsOccurrence["event"],
+    });
+
+    const snapshotOf = (events: IcsOccurrence[]): IcsSnapshot => ({
+        events,
+        cancelledKeys: new Set<string>(),
+        latestOccurrenceDate: events.length
+            ? events
+                  .map((occurrence) => occurrence.event.date)
+                  .reduce((a, b) => (b > a ? b : a))
+            : null,
+    });
+
+    const noteFor = (
+        uid: string,
+        date: string,
+        title: string,
+        startTime: string,
+        endTime: string,
+        fileName = `${date} ${title}.md`
+    ): DesktopStoredEvent => {
+        const id = `neo-calendar:ics::${identityFeed.id}::${uid}`;
+        const managed = {
+            ...timedEvent(date, title, startTime, endTime),
+            id,
+        } as NeoEvent;
+        return {
+            id,
+            calendarId: calendarIdFromPath(identityFeed.calendarPath),
+            calendarPath: "Études/EFREI",
+            relativePath: `Études/EFREI/${fileName}`,
+            fileName,
+            contents: serializeManagedEventMarkdown(managed, {
+                neoManagedBy: "neo-calendar:ics",
+                neoManagedVersion: 1,
+                neoIcsFeedId: identityFeed.id,
+                neoIcsUid: uid,
+                neoIcsRecurrenceId: null,
+                neoIcsStatus: "confirmed",
+            }),
+            event: managed,
+            readOnly: true,
+        };
+    };
+
+    it("names the note it takes over, so the caller can retire the old record", () => {
+        // The feed reissued a UID for a lesson already on disk. The note is
+        // matched by signature and rewritten under a new event id; unless the
+        // write says which record it replaces, the caller keeps the previous
+        // one alongside it and the calendar shows the lesson twice.
+        const existing = noteFor(
+            "uid-old",
+            "2026-12-03",
+            "Efrei For Good Xperience",
+            "10:00",
+            "17:00"
+        );
+        const plan = planIcsNoteSync({
+            feed: identityFeed,
+            snapshot: snapshotOf([
+                timedOccurrence(
+                    "uid-new",
+                    "2026-12-03",
+                    "Efrei For Good Xperience",
+                    "10:00",
+                    "17:00"
+                ),
+            ]),
+            existingRecords: [existing],
+            previousState: { knownEventCount: 1, missingCounts: {} },
+            now: identityNow,
+        });
+
+        expect(plan.writes).toHaveLength(1);
+        expect(plan.writes[0].previousEventId).toBe(existing.id);
+        expect(plan.writes[0].event.id).not.toBe(existing.id);
+    });
+
+    it("leaves previousEventId unset when the note keeps its identity", () => {
+        const existing = noteFor(
+            "uid-1",
+            "2026-12-03",
+            "Efrei For Good Xperience",
+            "10:00",
+            "17:00"
+        );
+        const plan = planIcsNoteSync({
+            feed: identityFeed,
+            snapshot: snapshotOf([
+                timedOccurrence(
+                    "uid-1",
+                    "2026-12-03",
+                    "Efrei For Good Xperience",
+                    "11:00",
+                    "17:00"
+                ),
+            ]),
+            existingRecords: [existing],
+            previousState: { knownEventCount: 1, missingCounts: {} },
+            now: identityNow,
+        });
+
+        expect(plan.writes).toHaveLength(1);
+        expect(plan.writes[0].previousEventId).toBeUndefined();
+    });
+
+    it("never binds two occurrences of one cycle to the same note", () => {
+        // Defence in depth behind the parser's own deduplication: handed a
+        // snapshot that still carries one occurrence twice, the planner must
+        // not point both copies at the same file.
+        const existing = noteFor(
+            "uid-a",
+            "2026-12-03",
+            "Efrei For Good Xperience",
+            "10:00",
+            "17:00"
+        );
+        const plan = planIcsNoteSync({
+            feed: identityFeed,
+            snapshot: snapshotOf([
+                timedOccurrence(
+                    "uid-b",
+                    "2026-12-03",
+                    "Efrei For Good Xperience",
+                    "10:00",
+                    "17:00"
+                ),
+                timedOccurrence(
+                    "uid-c",
+                    "2026-12-03",
+                    "Efrei For Good Xperience",
+                    "10:00",
+                    "17:00"
+                ),
+            ]),
+            existingRecords: [existing],
+            previousState: { knownEventCount: 1, missingCounts: {} },
+            now: identityNow,
+        });
+
+        const targets = plan.writes.map(
+            (write) => `${write.calendarPath}/${write.fileName}`
+        );
+        expect(new Set(targets).size).toBe(targets.length);
+    });
+
+    it("gives two same-day lessons distinct file names up front", () => {
+        // Both slots of a seminar day serialize to "<date> <title>.md". Left
+        // to the filesystem to disambiguate, the two writes race and one slot
+        // is lost until a later sync re-creates it as a numbered copy.
+        const plan = planIcsNoteSync({
+            feed: identityFeed,
+            snapshot: snapshotOf([
+                timedOccurrence(
+                    "uid-morning",
+                    "2026-11-16",
+                    "Semaine LXP B2 PEx",
+                    "09:30",
+                    "12:30"
+                ),
+                timedOccurrence(
+                    "uid-afternoon",
+                    "2026-11-16",
+                    "Semaine LXP B2 PEx",
+                    "13:30",
+                    "17:30"
+                ),
+            ]),
+            existingRecords: [],
+            previousState: { knownEventCount: 0, missingCounts: {} },
+            now: identityNow,
+        });
+
+        expect(plan.writes).toHaveLength(2);
+        const names = plan.writes.map((write) => write.fileName);
+        expect(new Set(names).size).toBe(2);
+    });
+
+    it("does not steal a file name an existing note of the feed already holds", () => {
+        const existing = noteFor(
+            "uid-afternoon",
+            "2026-11-16",
+            "Semaine LXP B2 PEx",
+            "13:30",
+            "17:30"
+        );
+        const plan = planIcsNoteSync({
+            feed: identityFeed,
+            snapshot: snapshotOf([
+                timedOccurrence(
+                    "uid-morning",
+                    "2026-11-16",
+                    "Semaine LXP B2 PEx",
+                    "09:30",
+                    "12:30"
+                ),
+                timedOccurrence(
+                    "uid-afternoon",
+                    "2026-11-16",
+                    "Semaine LXP B2 PEx",
+                    "13:30",
+                    "17:30"
+                ),
+            ]),
+            existingRecords: [existing],
+            previousState: { knownEventCount: 1, missingCounts: {} },
+            now: identityNow,
+        });
+
+        const morning = plan.writes.find(
+            (write) => write.event.startTime === "09:30"
+        );
+        expect(morning).toBeDefined();
+        expect(morning?.fileName).not.toBe(existing.fileName);
+    });
+});

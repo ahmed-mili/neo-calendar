@@ -166,6 +166,7 @@ describe("the lines the grid is asked to draw", () => {
             {
                 date: new Date(2026, 8, 1),
                 hours: 13.5,
+                minutes: 13 * 60 + 30,
                 next: true,
             },
         ]);
@@ -219,5 +220,57 @@ describe("the lines the grid is asked to draw", () => {
                 showAll: true,
             })
         ).toEqual([]);
+    });
+});
+
+/*
+ * Tenir P montre la journée qu'on regarde, et rien d'autre.
+ *
+ * Passé Isha, la prochaine prière est le Fajr du lendemain. Au repos c'est
+ * exactement ce qu'il faut désigner, fût-ce dans la colonne d'à côté ; mais
+ * pendant que la touche est tenue, ce trait-là tombait à quelques minutes de
+ * ceux d'aujourd'hui, une colonne plus loin, et les deux se lisaient comme une
+ * seule barre brisée en deux.
+ */
+describe("the hours P puts on the grid", () => {
+    const eveningOfTheFourth = at("2026-09-04T22:00:00");
+
+    it("keeps only the day being read while the key is held", () => {
+        const lines = prayerLinesFor({
+            timetable: table,
+            now: eveningOfTheFourth,
+            showAll: true,
+        });
+
+        expect(lines).not.toHaveLength(0);
+        const theFourth = new Date(2026, 8, 4).getTime();
+        expect(lines.every((line) => line.date.getTime() === theFourth)).toBe(
+            true
+        );
+    });
+
+    it("still points at tomorrow's Fajr when nothing is held", () => {
+        const lines = prayerLinesFor({
+            timetable: table,
+            now: eveningOfTheFourth,
+            showAll: false,
+        });
+
+        expect(lines).toHaveLength(1);
+        expect(lines[0].date.getTime()).toBe(new Date(2026, 8, 5).getTime());
+    });
+
+    // Le trait dit à quelle hauteur, pas à quelle minute : sans le chiffre
+    // dans la gouttière, l'heure exacte d'une prière ne se lit nulle part.
+    it("carries the minute of each hour, so the gutter can print it", () => {
+        const lines = prayerLinesFor({
+            timetable: table,
+            now: at("2026-09-01T10:00:00"),
+            showAll: true,
+        });
+
+        expect(lines.map((line) => line.minutes).sort((a, b) => a - b)).toEqual(
+            [6 * 60, 13 * 60 + 30, 17 * 60, 20 * 60, 21 * 60 + 30]
+        );
     });
 });

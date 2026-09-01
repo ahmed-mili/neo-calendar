@@ -375,3 +375,89 @@ describe("syncIcsFeeds", () => {
         ]);
     });
 });
+
+describe("syncIcsFeeds — one file, one record", () => {
+    /** Two VEVENTs, same summary and same day, each with its own UID: the
+     *  shape the Efrei planning feed publishes some lessons in. */
+    function duplicatedIcs(uidA: string, uidB: string): string {
+        return [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Neo Calendar//Test//EN",
+            "BEGIN:VEVENT",
+            `UID:${uidA}`,
+            `DTSTART;VALUE=DATE:${TOMORROW}`,
+            "SUMMARY:Efrei For Good Xperience",
+            "END:VEVENT",
+            "BEGIN:VEVENT",
+            `UID:${uidB}`,
+            `DTSTART;VALUE=DATE:${TOMORROW}`,
+            "SUMMARY:Efrei For Good Xperience",
+            "END:VEVENT",
+            "END:VCALENDAR",
+        ].join("\r\n");
+    }
+
+    it("materialises a lesson the feed publishes twice as a single note", async () => {
+        const result = await syncIcsFeeds({
+            feeds: [feed()],
+            states: {},
+            records: [],
+            now: NOW,
+            defaultMinutes: 60,
+            io: io({ fetchIcs: async () => duplicatedIcs("uid-a", "uid-b") }),
+        });
+
+        expect(result.records).toHaveLength(1);
+    });
+
+    it("keeps one record when a feed reissues the UID of an existing note", async () => {
+        // First cycle materialises the lesson, second cycle meets it again
+        // under a fresh UID. The note is the same file either way, so the
+        // calendar must still show exactly one event, not one per sync.
+        const first = await syncIcsFeeds({
+            feeds: [feed()],
+            states: {},
+            records: [],
+            now: NOW,
+            defaultMinutes: 60,
+            io: io({ fetchIcs: async () => duplicatedIcs("uid-a", "uid-b") }),
+        });
+
+        const second = await syncIcsFeeds({
+            feeds: [feed()],
+            states: first.states,
+            records: first.records,
+            now: new Date(NOW.getTime() + 3_600_000),
+            defaultMinutes: 60,
+            io: io({ fetchIcs: async () => duplicatedIcs("uid-c", "uid-d") }),
+        });
+
+        expect(second.records).toHaveLength(1);
+    });
+
+    it("does not grow the record list over repeated syncs", async () => {
+        let cycle = 0;
+        let records: DesktopStoredEvent[] = [];
+        let states: IcsRuntimeStateByFeed = {};
+        for (let run = 0; run < 4; run += 1) {
+            const outcome = await syncIcsFeeds({
+                feeds: [feed()],
+                states,
+                records,
+                now: new Date(NOW.getTime() + run * 3_600_000),
+                defaultMinutes: 60,
+                io: io({
+                    fetchIcs: async () => {
+                        cycle += 1;
+                        return duplicatedIcs(`uid-${cycle}-a`, `uid-${cycle}-b`);
+                    },
+                }),
+            });
+            records = outcome.records;
+            states = outcome.states;
+        }
+
+        expect(records).toHaveLength(1);
+    });
+});

@@ -481,3 +481,65 @@ describe("whole feeds", () => {
         expect(getEventsFromICS(calendar())).toEqual([]);
     });
 });
+
+describe("parseIcsSnapshot — duplicate VEVENTs for one occurrence", () => {
+    const WINDOW = { from: "2026-08-31", to: "2028-08-31" };
+
+    // The Efrei planning feed publishes some lessons twice: two VEVENTs with
+    // the same summary and the same instants, each carrying its own freshly
+    // generated UID. Keyed by UID alone every copy becomes its own occurrence,
+    // so the calendar gains a duplicate of the same lesson on the first sync
+    // and the copies then trade the note between them on every sync after.
+    const twice = (uidA: string, uidB: string) =>
+        calendar(
+            "BEGIN:VEVENT",
+            `UID:${uidA}`,
+            "DTSTART:20261203T090000Z",
+            "DTEND:20261203T160000Z",
+            "SUMMARY:Efrei For Good Xperience",
+            "LOCATION:Salles multiples",
+            "END:VEVENT",
+            "BEGIN:VEVENT",
+            `UID:${uidB}`,
+            "DTSTART:20261203T090000Z",
+            "DTEND:20261203T160000Z",
+            "SUMMARY:Efrei For Good Xperience",
+            "LOCATION:Salles multiples",
+            "END:VEVENT"
+        );
+
+    it("keeps one occurrence when two VEVENTs describe the same one", () => {
+        const snapshot = parseIcsSnapshot(twice("uid-a", "uid-b"), WINDOW);
+
+        expect(snapshot.events).toHaveLength(1);
+        expect(snapshot.events[0].uid).toBe("uid-a");
+    });
+
+    it("keeps the first UID whatever order the copies arrive in", () => {
+        const snapshot = parseIcsSnapshot(twice("uid-b", "uid-a"), WINDOW);
+
+        expect(snapshot.events).toHaveLength(1);
+        expect(snapshot.events[0].uid).toBe("uid-b");
+    });
+
+    it("keeps two occurrences that only share a title and a day", () => {
+        // Morning and afternoon sessions of the same seminar are two real
+        // occurrences: same title, same date, different slots.
+        const feed = calendar(
+            "BEGIN:VEVENT",
+            "UID:morning",
+            "DTSTART:20261116T083000Z",
+            "DTEND:20261116T113000Z",
+            "SUMMARY:Semaine LXP B2 PEx",
+            "END:VEVENT",
+            "BEGIN:VEVENT",
+            "UID:afternoon",
+            "DTSTART:20261116T123000Z",
+            "DTEND:20261116T163000Z",
+            "SUMMARY:Semaine LXP B2 PEx",
+            "END:VEVENT"
+        );
+
+        expect(parseIcsSnapshot(feed, WINDOW).events).toHaveLength(2);
+    });
+});

@@ -1,5 +1,8 @@
 import { DateTime } from "luxon";
-import type { IcsSnapshot } from "../../../../src/calendars/parsing/ics";
+import {
+    occurrenceSignature,
+    type IcsSnapshot,
+} from "../../../../src/calendars/parsing/ics";
 import type { NeoEvent } from "../../../../src/types";
 import {
     calendarIdFromPath,
@@ -24,6 +27,11 @@ export interface IcalNoteWrite {
     calendarId: string;
     calendarPath: string;
     previousRelativePath?: string;
+    /** The id of the record this write replaces, when the note it lands on
+     *  was addressed under a different one. A feed is free to reissue a UID,
+     *  and the event id is derived from it, so without this the caller keeps
+     *  the previous record beside the new one and shows the event twice. */
+    previousEventId?: string;
     fileName: string;
     contents: string;
 }
@@ -242,21 +250,25 @@ const occurrenceKeyOf = (
 ): string => (recurrenceId === null ? uid : `${uid}::${recurrenceId}`);
 
 /**
- * A single-occurrence event's identity independent of its UID: title, date,
- * and time slot. Matching by UID alone assumes a feed hands out a stable one
- * per occurrence — true for most, but at least one Efrei event reissues a
- * fresh random UID on every fetch, so pure-UID matching saw a "new"
- * occurrence every sync and never stopped creating notes for it. This is the
- * fallback that catches that: two occurrences with the same title on the
- * same day at the same time are the same occurrence, whatever their UID says
- * this time.
+ * The next free "<name>.md" in a folder, mirroring the numbering the desktop
+ * shell falls back on. Names are decided while planning rather than when
+ * writing: a cycle's writes run concurrently, so two of them asking the
+ * filesystem for the same free name would both be told it is free.
  */
-function occurrenceSignature(event: NeoEvent): string | null {
-    if (event.type !== "single") return null;
-    const when = event.allDay
-        ? "allday"
-        : `${event.startTime ?? ""}-${event.endTime ?? ""}`;
-    return `${event.title}::${event.date}::${when}`;
+function reserveFileName(preferred: string, taken: Set<string>): string {
+    const claim = (name: string) => {
+        taken.add(name.toLocaleLowerCase());
+        return name;
+    };
+    if (!taken.has(preferred.toLocaleLowerCase())) return claim(preferred);
+
+    const dot = preferred.lastIndexOf(".");
+    const stem = dot > 0 ? preferred.slice(0, dot) : preferred;
+    const extension = dot > 0 ? preferred.slice(dot) : "";
+    for (let suffix = 1; ; suffix += 1) {
+        const candidate = `${stem} (${suffix})${extension}`;
+        if (!taken.has(candidate.toLocaleLowerCase())) return claim(candidate);
+    }
 }
 
 export function planIcsNoteSync(args: {
@@ -313,6 +325,37 @@ export function planIcsNoteSync(args: {
         if (signature) ownedBySignature.set(signature, record);
     }
 
+    // File names are reserved here, not left to the filesystem. Two distinct
+    // occurrences of the same day and title serialize to the same
+    // "<date> <title>.md", and a cycle's writes run concurrently: each would
+    // find the name free, and one slot would be overwritten by the other and
+    // only reappear as a numbered copy on a later sync.
+    const takenFileNames = new Set<string>();
+    for (const record of existingRecords) {
+        if (record.calendarPath !== writeDirectory) continue;
+        takenFileNames.add(record.fileName.toLocaleLowerCase());
+    }
+
+    // One note is claimed by at most one occurrence per cycle. Without this,
+    // a snapshot still carrying the same occurrence twice would point both
+    // copies at the same file.
+    const claimedRecordIds = new Set<string>();
+    const claim = (
+        occurrence: (typeof snapshot.events)[number]
+    ): DesktopStoredEvent | undefined => {
+        const signature = occurrenceSignature(occurrence.event);
+        const candidates = [
+            owned.get(occurrence.key),
+            signature === null ? undefined : ownedBySignature.get(signature),
+        ];
+        for (const candidate of candidates) {
+            if (!candidate || claimedRecordIds.has(candidate.id)) continue;
+            claimedRecordIds.add(candidate.id);
+            return candidate;
+        }
+        return undefined;
+    };
+
     const writes: IcalNoteWrite[] = [];
     for (const occurrence of snapshot.events) {
         const metadata: ManagedEventMetadata = {
@@ -323,9 +366,7 @@ export function planIcsNoteSync(args: {
             neoIcsRecurrenceId: occurrence.recurrenceId,
             neoIcsStatus: "confirmed",
         };
-        const previous =
-            owned.get(occurrence.key) ??
-            ownedBySignature.get(occurrenceSignature(occurrence.event) ?? "");
+        const previous = claim(occurrence);
         const event = {
             ...occurrence.event,
             id: `neo-calendar:ics::${feed.id}::${occurrence.key}`,
@@ -350,7 +391,11 @@ export function planIcsNoteSync(args: {
             calendarId,
             calendarPath: writeDirectory,
             previousRelativePath: previous?.relativePath,
-            fileName: previous?.fileName ?? filenameForEvent(event),
+            previousEventId:
+                previous && previous.id !== event.id ? previous.id : undefined,
+            fileName:
+                previous?.fileName ??
+                reserveFileName(filenameForEvent(event), takenFileNames),
             contents,
         });
     }
@@ -359,6 +404,10 @@ export function planIcsNoteSync(args: {
     const missingCounts: Record<string, number> = {};
     for (const [key, record] of owned) {
         if (present.has(key)) continue; // reappeared: counter resets to zero.
+        // Still alive under another UID: an occurrence of this very cycle
+        // took the note over. Counting it as missing would march a live note
+        // towards deletion on nothing but a reissued identifier.
+        if (claimedRecordIds.has(record.id)) continue;
 
         const occurrenceDate =
             record.event.type === "single" ? record.event.date : "";
