@@ -244,7 +244,9 @@ export default function DesktopTasksPanel({
                         setOpenGroup("todo");
                     }}
                 >
-                    <span className="nc-status-dot nc-dot-todo" />
+                    <span className="nc-status-icon nc-status-icon-todo">
+                        <TaskCheckbox completed={false} size={12} />
+                    </span>
                     {t("To do")}
                     <span className="nc-desktop-tasks-count">
                         {groups.todo.length}
@@ -258,7 +260,9 @@ export default function DesktopTasksPanel({
                         setOpenGroup("complete");
                     }}
                 >
-                    <span className="nc-status-dot nc-dot-complete" />
+                    <span className="nc-status-icon nc-status-icon-complete">
+                        <TaskCheckbox completed={true} size={12} />
+                    </span>
                     {t("Complete")}
                     <span className="nc-desktop-tasks-count">
                         {groups.complete.length}

@@ -2684,6 +2684,22 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     background: var(--color-green, #2f9e44);
 }
 
+/* Desktop Tasks summary pills: the app's real task-checkbox glyph (dashed
+   ring / checked disc), tinted to the same semantic colour the plain dot
+   used to carry, instead of an unrelated coloured circle. */
+.nc-status-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.nc-status-icon-todo {
+    color: var(--color-orange, #e9973f);
+}
+
+.nc-status-icon-complete {
+    color: var(--color-green, #2f9e44);
+}
+
 .nc-status-pill.nc-status-todo {
     background: color-mix(
         in srgb,
