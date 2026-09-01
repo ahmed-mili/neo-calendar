@@ -110,6 +110,8 @@ import { shouldReloadOnWake } from "./platform/workspaceRefresh";
 import {
     loadDeviceWorkspacePreferences,
     saveDeviceWorkspacePreferences,
+    loadIcsRuntimeState,
+    saveIcsRuntimeState,
 } from "./platform/tauriSettingsStore";
 import type { DesktopDetectedVaultDto } from "./platform/desktopCalendarStore";
 import {
@@ -136,14 +138,17 @@ import {
     buildAutoCalendarEvents,
     externalCalendarId,
     externalCalendarPreferenceKey,
-    parseIcalCalendarEvents,
     type DesktopExternalCalendarSource,
 } from "./platform/desktopExternalCalendars";
 import {
     hasIcalDirectory,
     planIcalDirectoryAssignments,
-    planIcalNoteSync,
 } from "./platform/icalNoteSync";
+import { syncIcsFeeds } from "./platform/icsCalendarIntegration";
+import {
+    dueIcsFeeds,
+    type IcsRuntimeStateByFeed,
+} from "./platform/icsSyncScheduler";
 import {
     defaultDesktopWorkspacePreferences,
     parseDesktopWorkspacePreferences,
@@ -574,6 +579,11 @@ export default function DesktopCalendar({
     const [icsFeedsPanelCalendarId, setIcsFeedsPanelCalendarId] = useState<
         string | null
     >(null);
+    const [icsRuntimeStates, setIcsRuntimeStates] =
+        useState<IcsRuntimeStateByFeed>({});
+    const [syncingIcsFeedIds, setSyncingIcsFeedIds] = useState<Set<string>>(
+        new Set()
+    );
 
     const calendarRootRef = useRef<HTMLElement>(null);
     const calendarsRef = useRef(calendars);
@@ -645,6 +655,27 @@ export default function DesktopCalendar({
         };
     }, []);
 
+    // Per-feed sync bookkeeping is local to this device (see
+    // tauriSettingsStore's ICS_RUNTIME_STATE_KEY). Kept in a ref alongside the
+    // state so a sync cycle always reads the latest values without needing to
+    // be re-created on every render.
+    const icsRuntimeStatesRef = useRef<IcsRuntimeStateByFeed>({});
+    useEffect(() => {
+        let cancelled = false;
+        loadIcsRuntimeState()
+            .then((stored) => {
+                if (cancelled) return;
+                icsRuntimeStatesRef.current = stored;
+                setIcsRuntimeStates(stored);
+            })
+            .catch(() => {
+                // No local sync history yet — every feed starts as due.
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     const preferenceWriter = useMemo(
         () =>
             createWorkspacePreferenceWriter(
@@ -687,93 +718,73 @@ export default function DesktopCalendar({
     );
 
     /**
-     * Refresh subscriptions into durable Markdown notes.
-     *
-     * A feed is only the latest window the provider chooses to expose; it is
-     * not our history database. New and changed VEVENTs are therefore written
-     * into the subscription's folder, while notes missing from a later fetch
-     * are deliberately left alone. This also makes the same history available
-     * on Windows and Android through the synced data folder.
+     * Run one ICS sync cycle over whichever links are due (or exactly the
+     * forced ones), through the pure `syncIcsFeeds` orchestration: fetch,
+     * parse, plan, write, guarded-delete, then fold the result back into the
+     * records and the local per-feed sync state. Never awaited by its
+     * startup caller — disk-backed notes must render before network
+     * completes — but every other caller (focus, the wake timer, a manual
+     * "refresh now") awaits it so its own follow-up work sees the outcome.
      */
-    const refreshRemoteCalendars = useCallback(
-        async (sources: DesktopExternalCalendarSource[]) => {
-            const remote = sources.filter(
-                (
-                    source
-                ): source is Extract<
-                    DesktopExternalCalendarSource,
-                    { type: "ical" }
-                > => source.type === "ical"
-            );
-            if (remote.length === 0) return;
+    const refreshIcsFeeds = useCallback(
+        async ({ forcedIds }: { forcedIds?: ReadonlySet<string> } = {}) => {
+            const feeds = preferences.icsFeeds;
+            if (feeds.length === 0) return;
 
-            const errors: string[] = [];
-            const groups = await Promise.all(
-                remote.map(async (source) => {
-                    try {
-                        if (!hasIcalDirectory(source)) {
-                            throw new Error(
-                                "The subscription has no note folder yet."
-                            );
-                        }
-                        const feed = await fetchDesktopIcs(source.url);
-                        const writes = planIcalNoteSync(
-                            source,
-                            parseIcalCalendarEvents(feed),
-                            recordsRef.current
-                        );
-                        const records: DesktopStoredEvent[] = [];
-                        for (const write of writes) {
-                            const relativePath = await writeDesktopEventFile({
+            const now = new Date();
+            const due = dueIcsFeeds(
+                feeds,
+                icsRuntimeStatesRef.current,
+                now,
+                preferences.icsDefaultRefreshMinutes,
+                forcedIds
+            );
+            if (due.length === 0) return;
+
+            setSyncingIcsFeedIds((current) => {
+                const next = new Set(current);
+                for (const item of due) next.add(item.id);
+                return next;
+            });
+
+            try {
+                const result = await syncIcsFeeds({
+                    feeds,
+                    states: icsRuntimeStatesRef.current,
+                    records: recordsRef.current,
+                    now,
+                    defaultMinutes: preferences.icsDefaultRefreshMinutes,
+                    forcedIds,
+                    io: {
+                        fetchIcs: fetchDesktopIcs,
+                        writeEventFile: (write) =>
+                            writeDesktopEventFile({
                                 dataFolder,
                                 calendarPath: write.calendarPath,
                                 previousRelativePath:
                                     write.previousRelativePath,
                                 fileName: write.fileName,
                                 contents: write.contents,
-                            });
-                            records.push({
-                                id: write.event.id as string,
-                                calendarId: write.calendarId,
-                                calendarPath: write.calendarPath,
-                                relativePath,
-                                fileName:
-                                    fileNameFromRelativePath(relativePath),
-                                contents: write.contents,
-                                event: write.event,
-                                readOnly: true,
-                            });
-                        }
-                        return records;
-                    } catch (reason) {
-                        errors.push(`${source.name}: ${errorMessage(reason)}`);
-                        return [];
-                    }
-                })
-            );
+                            }),
+                        deleteEventFile: (relativePath) =>
+                            deleteDesktopEventFile(dataFolder, relativePath),
+                    },
+                });
 
-            const arrived = groups.flat();
-            if (arrived.length > 0) {
-                setStoredEvents((current) => {
-                    const byId = new Map(
-                        current.map((record) => [record.id, record])
-                    );
-                    for (const record of arrived) byId.set(record.id, record);
-                    const next = [...byId.values()];
-                    recordsRef.current = next;
+                recordsRef.current = result.records;
+                setStoredEvents(result.records);
+                icsRuntimeStatesRef.current = result.states;
+                setIcsRuntimeStates(result.states);
+                void saveIcsRuntimeState(result.states);
+            } finally {
+                setSyncingIcsFeedIds((current) => {
+                    const next = new Set(current);
+                    for (const item of due) next.delete(item.id);
                     return next;
                 });
             }
-
-            if (errors.length) {
-                setStorageError(
-                    `Some remote calendars could not be refreshed: ${errors.join(
-                        " | "
-                    )}`
-                );
-            }
         },
-        [dataFolder]
+        [dataFolder, preferences.icsFeeds, preferences.icsDefaultRefreshMinutes]
     );
 
     const reloadWorkspace = useCallback(async () => {
@@ -1033,7 +1044,7 @@ export default function DesktopCalendar({
                     ? current
                     : null
             );
-            void refreshRemoteCalendars(nextPreferences.externalCalendars);
+            void refreshIcsFeeds();
         } catch (reason) {
             setStorageError(errorMessage(reason));
         } finally {
@@ -1045,7 +1056,7 @@ export default function DesktopCalendar({
         dataFolder,
         onReady,
         preferenceWriter,
-        refreshRemoteCalendars,
+        refreshIcsFeeds,
         revealDesktopEventRoute,
         setDaysCount,
         setViewType,
@@ -1140,20 +1151,17 @@ export default function DesktopCalendar({
         };
     }, [reloadWorkspace]);
 
+    // A minute-level wake rather than a fixed interval synchronizing every
+    // link: `refreshIcsFeeds` already filters to what `dueIcsFeeds` reports
+    // due, so a link on a long frequency is simply a no-op most minutes
+    // rather than being resynced regardless of its own schedule.
     useEffect(() => {
-        if (
-            !preferences.externalCalendars.some(
-                (source) => source.type === "ical"
-            )
-        ) {
-            return;
-        }
-        // Match the plugin's five-minute remote-calendar revalidation window.
+        if (preferences.icsFeeds.length === 0) return;
         const timer = window.setInterval(() => {
-            void reloadWorkspace();
-        }, 5 * 60 * 1000);
+            void refreshIcsFeeds();
+        }, 60 * 1000);
         return () => window.clearInterval(timer);
-    }, [preferences.externalCalendars, reloadWorkspace]);
+    }, [preferences.icsFeeds, refreshIcsFeeds]);
 
     const calendarPath = useCallback((calendarId: string): string | null => {
         const calendar = calendarsRef.current.find(
@@ -3622,7 +3630,8 @@ export default function DesktopCalendar({
                                   ?.relativePath
                             : undefined)
                 )}
-                runtimeStates={{}}
+                runtimeStates={icsRuntimeStates}
+                syncingFeedIds={syncingIcsFeedIds}
                 defaultRefreshMinutes={preferences.icsDefaultRefreshMinutes}
                 onClose={() => setIcsFeedsPanelCalendarId(null)}
                 onAdd={(name, url, refreshMinutes) => {
@@ -3657,10 +3666,8 @@ export default function DesktopCalendar({
                         ),
                     });
                 }}
-                onRefreshNow={() => {
-                    // Actually running a sync on demand is wired once the ICS
-                    // scheduler is connected to the desktop shell; this panel
-                    // only manages the subscriptions themselves.
+                onRefreshNow={(feedId) => {
+                    void refreshIcsFeeds({ forcedIds: new Set([feedId]) });
                 }}
                 onApplyFrequencyToAll={(minutes) => {
                     // Writes the value into every source (across every

@@ -1,18 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { folderDisplayName, isReadablePath } from "./platform/folderLabel";
 import { createPortal } from "react-dom";
-import { FileText, Flag, Folder, Plus, Wifi, X } from "lucide-react";
+import { FileText, Flag, Folder, Plus, X } from "lucide-react";
 import {
     cloneFranceHolidaySource,
     parseExternalCalendarSources,
     type DesktopAutoCalendarSource,
-    type DesktopIcalCalendarSource,
 } from "./platform/desktopExternalCalendars";
 import { t } from "../../../src/ui/i18n";
 
 export type AddCalendarRequest =
     | { type: "local"; name: string }
-    | DesktopIcalCalendarSource
     | DesktopAutoCalendarSource;
 
 export interface AddCalendarDialogProps {
@@ -23,7 +21,7 @@ export interface AddCalendarDialogProps {
     onCreate: (request: AddCalendarRequest) => Promise<void>;
 }
 
-type CalendarKind = "local" | "ical" | "auto";
+type CalendarKind = "local" | "auto";
 type AutoPreset = "FR" | "custom";
 
 const TYPE_OPTIONS: Array<{
@@ -37,23 +35,11 @@ const TYPE_OPTIONS: Array<{
         description: t("One Markdown file per event, in a folder you pick."),
     },
     {
-        value: "ical",
-        label: t("Online subscription"),
-        description: t("Read-only, from a webcal or HTTPS address."),
-    },
-    {
         value: "auto",
         label: t("Public holidays"),
         description: t("Read-only, worked out on the device."),
     },
 ];
-
-function sourceId(): string {
-    return (
-        globalThis.crypto?.randomUUID?.() ??
-        `source-${Date.now()}-${Math.random().toString(16).slice(2)}`
-    );
-}
 
 export default function AddCalendarDialog({
     open,
@@ -64,7 +50,6 @@ export default function AddCalendarDialog({
 }: AddCalendarDialogProps) {
     const [kind, setKind] = useState<CalendarKind>("local");
     const [name, setName] = useState("");
-    const [url, setUrl] = useState("");
     const [color, setColor] = useState("#3264ff");
     const [autoPreset, setAutoPreset] = useState<AutoPreset>("FR");
     const [customJson, setCustomJson] = useState("");
@@ -76,7 +61,6 @@ export default function AddCalendarDialog({
         if (!open) return;
         setKind("local");
         setName("");
-        setUrl("");
         setColor("#3264ff");
         setAutoPreset("FR");
         setCustomJson("");
@@ -121,30 +105,6 @@ export default function AddCalendarDialog({
                 return;
             }
             request = { type: "local", name: trimmed };
-        } else if (kind === "ical") {
-            const trimmedName = name.trim();
-            const trimmedUrl = url.trim();
-            if (!trimmedName) {
-                setError(t("Enter a calendar name."));
-                return;
-            }
-            if (duplicateName(trimmedName)) {
-                setError(t("A calendar already has this name."));
-                return;
-            }
-            if (!/^(webcal|https?):\/\//i.test(trimmedUrl)) {
-                setError(
-                    "Enter a webcal://, https:// or http:// calendar URL."
-                );
-                return;
-            }
-            request = {
-                type: "ical",
-                id: sourceId(),
-                name: trimmedName,
-                url: trimmedUrl,
-                color,
-            };
         } else if (autoPreset === "FR") {
             const source = cloneFranceHolidaySource();
             const trimmedName = name.trim();
@@ -286,23 +246,6 @@ export default function AddCalendarDialog({
                             />
                         </label>
                     ) : null}
-
-                    {kind === "ical" && (
-                        <label className="nc-add-calendar-dialog__field">
-                            <span>{t("Calendar URL")}</span>
-                            <input
-                                ref={inputRef}
-                                value={url}
-                                onChange={(event) => {
-                                    setUrl(event.target.value);
-                                    setError(null);
-                                }}
-                                placeholder="webcal://… or https://…"
-                                autoComplete="off"
-                                disabled={submitting}
-                            />
-                        </label>
-                    )}
 
                     {kind === "auto" && (
                         <>
