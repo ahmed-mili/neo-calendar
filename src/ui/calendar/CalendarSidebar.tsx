@@ -58,7 +58,10 @@ interface CalendarSidebarProps {
     onAddCalendar: () => void;
     onRenameCalendar: (calendarId: string, newName: string) => Promise<void>;
     onEditCalendarLink: (calendarId: string) => void;
-    onManageIcsFeeds: (calendarId: string) => void;
+    /** Omitted on surfaces without an ICS preferences store (the Obsidian
+     *  plugin path) — the sidebar simply leaves the menu item out rather than
+     *  showing something that would do nothing when pressed. */
+    onManageIcsFeeds?: (calendarId: string) => void;
     onDeleteCalendar: (calendarId: string) => void;
     onColorChange: (calendarId: string, color: string) => void;
     onReorderCalendars: (orderedIds: string[]) => void;
@@ -237,13 +240,17 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
             });
             // Full Note calendars manage their ICS subscriptions here — the
             // legacy `ical` type keeps its own "Edit link" item above until
-            // it is retired.
-            items.push({
-                key: "ics-feeds",
-                label: t("ICS links"),
-                icon: <LinkIcon />,
-                onClick: () => onManageIcsFeeds(source.id),
-            });
+            // it is retired. Left out entirely where there is nothing to
+            // open (no ICS preferences store on this surface) rather than
+            // shown as a click that silently does nothing.
+            if (onManageIcsFeeds) {
+                items.push({
+                    key: "ics-feeds",
+                    label: t("ICS links"),
+                    icon: <LinkIcon />,
+                    onClick: () => onManageIcsFeeds(source.id),
+                });
+            }
         }
         items.push({
             key: "solo",

@@ -1415,10 +1415,10 @@ function CalendarAppInner(props: CalendarAppProps) {
                     onAddCalendar={handleAddCalendar}
                     onRenameCalendar={handleRenameCalendar}
                     onEditCalendarLink={handleEditCalendarLink}
-                    // The Obsidian plugin doesn't carry the desktop/Android
-                    // app's ICS feed preferences store, so the menu entry
-                    // exists for parity but has nothing to open here yet.
-                    onManageIcsFeeds={() => {}}
+                    // No `onManageIcsFeeds`: the Obsidian plugin doesn't carry
+                    // the desktop/Android app's ICS feed preferences store, so
+                    // CalendarSidebar leaves the "Liens ICS" menu item out
+                    // entirely here rather than showing an inert click.
                     onDeleteCalendar={handleDeleteCalendar}
                     onColorChange={handleColorChange}
                     onReorderCalendars={handleReorderCalendars}

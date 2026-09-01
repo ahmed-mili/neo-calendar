@@ -237,6 +237,95 @@ describe("ICS links menu entry", () => {
             applyLanguage("fr");
         }
     });
+
+    /*
+     * A surface with no ICS preferences store (the Obsidian plugin) omits
+     * `onManageIcsFeeds` entirely. The menu must leave the item out rather
+     * than show a click that silently does nothing — worse than no item at
+     * all, since it looks broken instead of simply absent.
+     */
+    it("leaves the ICS links item out of the menu when the surface has no callback for it", () => {
+        const props: React.ComponentProps<typeof CalendarSidebar> = {
+            sidebarVisible: true,
+            currentDate: new Date(2026, 8, 3),
+            viewType: "week",
+            onViewTypeChange: () => {},
+            dayCount: 7,
+            onSetDayCount: () => {},
+            calendarSources: [
+                {
+                    id: "cal-1",
+                    name: "Cours",
+                    color: "#4477aa",
+                    editable: true,
+                    type: "local",
+                },
+            ],
+            firstDay: 1,
+            onDateSelect: () => {},
+            hiddenCalendars: new Set(),
+            onToggleCalendar: () => {},
+            defaultCalendarId: "",
+            soloCalendarId: null,
+            onSetDefaultCalendar: () => {},
+            onShowOnly: () => {},
+            tasks: [],
+            today: "2026-09-03",
+            onEventClick: () => {},
+            onAddTask: () => {},
+            onToggleTask: async () => true,
+            onAddCalendar: () => {},
+            onRenameCalendar: async () => {},
+            onEditCalendarLink: () => {},
+            // onManageIcsFeeds intentionally omitted.
+            onDeleteCalendar: () => {},
+            onColorChange: () => {},
+            onReorderCalendars: () => {},
+            onOpenCalendarFolder: () => {},
+            onOpenRootFolder: () => {},
+            onCalendarClick: () => {},
+            selectedCalendarId: null,
+            onToggleSidebar: () => {},
+            onOpenSearch: () => {},
+            onOpenSettings: () => {},
+        };
+
+        applyLanguage("fr");
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        try {
+            act(() => {
+                ReactDOM.render(
+                    React.createElement(CalendarSidebar, props),
+                    host
+                );
+            });
+
+            const trigger = Array.from(
+                host.querySelectorAll<HTMLButtonElement>(
+                    ".nc-calendar-action-btn"
+                )
+            ).find((button) => button.title === t("More options"));
+            expect(trigger).toBeTruthy();
+            act(() => trigger?.click());
+
+            const menuItem = Array.from(
+                document.querySelectorAll<HTMLButtonElement>(
+                    '.nc-cal-menu [role="menuitem"]'
+                )
+            ).find((button) => button.textContent?.includes(t("ICS links")));
+            expect(menuItem).toBeUndefined();
+        } finally {
+            act(() => {
+                ReactDOM.unmountComponentAtNode(host);
+            });
+            host.remove();
+            document
+                .querySelectorAll(".nc-cal-menu, .nc-cal-menu-overlay")
+                .forEach((node) => node.remove());
+            applyLanguage("fr");
+        }
+    });
 });
 
 describe("tasks platform branches", () => {

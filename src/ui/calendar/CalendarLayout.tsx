@@ -70,7 +70,7 @@ interface CalendarLayoutProps {
     onAddCalendar: () => void;
     onRenameCalendar: (calendarId: string, newName: string) => Promise<void>;
     onEditCalendarLink: (calendarId: string) => void;
-    onManageIcsFeeds: (calendarId: string) => void;
+    onManageIcsFeeds?: (calendarId: string) => void;
     onDeleteCalendar: (calendarId: string) => void;
     onColorChange: (calendarId: string, color: string) => void;
     onReorderCalendars: (orderedIds: string[]) => void;
