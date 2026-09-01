@@ -1204,21 +1204,32 @@
     position: absolute;
     left: 0;
     right: 0;
-    height: 1px;
-    /* Estompé : ce sont les heures du jour, pas celle qui arrive. */
-    background: color-mix(in srgb, var(--nc-prayer-color) 55%, transparent);
-    pointer-events: none;
-    z-index: 4;
-}
-
-/* Celle qui vient. Pleine et deux fois plus épaisse, comme la ligne de l'heure
-   qu'il est : c'est la seule des cinq qu'on regarde en passant. */
-.nc-prayer-line--next {
+    /* Le trait de l'heure qu'il est, trait pour trait : deux pixels pleins,
+       les bouts arrondis et la meme ombre portee, dans la couleur du
+       calendrier. Estompees a un pixel, les heures du jour se perdaient sur un
+       fond d'ecran ; aucune des cinq n'est un brouillon des autres. */
     height: 2px;
     background: var(--nc-prayer-color);
     border-radius: 999px;
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
-    z-index: 5;
+    pointer-events: none;
+    z-index: 4;
+}
+
+/* Le meme tiret vertical qu'au bord de la colonne du jour, porte par la ligne
+   plutot que par un noeud de plus : il pose le trait contre le bord de la
+   colonne au lieu de le laisser flotter. */
+.nc-prayer-line::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 2px;
+    height: 6px;
+    background: var(--nc-prayer-color);
+    border-radius: 1px;
+    transform: translateY(-50%);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
 }
 
 /* Un tiret vertical au bord gauche de la colonne du jour, pas une pastille :

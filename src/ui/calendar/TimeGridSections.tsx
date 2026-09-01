@@ -733,9 +733,7 @@ function DayColumn({
             {prayerLines?.map((line) => (
                 <div
                     key={`${line.hours}-${line.next}`}
-                    className={`nc-prayer-line${
-                        line.next ? " nc-prayer-line--next" : ""
-                    }`}
+                    className="nc-prayer-line"
                     style={
                         {
                             top: scaledPx(line.hours),

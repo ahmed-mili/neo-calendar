@@ -52,8 +52,9 @@ function declarationsFor(
 /*
  * Un horaire de prière est une heure de la journée, pas un rendez-vous : il
  * s'affiche par un trait, il n'occupe pas la place d'un évènement et il n'écrit
- * rien sur le disque. Le trait de la prochaine prière est plein, ceux des
- * autres heures du jour sont estompés.
+ * rien sur le disque. Chaque trait se dessine comme celui de l'heure qu'il est
+ * — même épaisseur, même tiret au bord de la colonne, même ombre — dans la
+ * couleur de son calendrier.
  */
 describe("the prayer lines on the grid", () => {
     it("takes the colour of the calendar they belong to", () => {
@@ -64,16 +65,27 @@ describe("the prayer lines on the grid", () => {
         expect(sections).toContain('"--nc-prayer-color": prayerColor');
     });
 
-    it("weighs the next prayer more than the rest of the day", () => {
+    // Estompé à un pixel, un horaire se perdait sur un fond d'écran : les cinq
+    // heures se lisent maintenant comme la ligne rouge, aucune n'est un
+    // brouillon des autres.
+    it("draws every hour of the day like the now line", () => {
         const line = declarationsFor(grid, ".nc-prayer-line");
-        const next = declarationsFor(grid, ".nc-prayer-line--next");
-        expect(line.height).toBe("1px");
-        expect(next.height).toBe("2px");
-        expect(line.background).toContain("55%");
-        expect(next.background).toBe("var(--nc-prayer-color)");
-        expect(Number(next["z-index"])).toBeGreaterThan(
-            Number(line["z-index"])
-        );
+        const now = declarationsFor(grid, ".nc-now-today-line");
+        expect(line.height).toBe(now.height);
+        expect(line["border-radius"]).toBe(now["border-radius"]);
+        expect(line["box-shadow"]).toBe(now["box-shadow"]);
+        expect(line.background).toBe("var(--nc-prayer-color)");
+        expect(grid).not.toContain(".nc-prayer-line--next");
+        expect(sections).not.toContain("nc-prayer-line--next");
+    });
+
+    it("marks the column edge with the same tick as the now line", () => {
+        const tick = declarationsFor(grid, ".nc-prayer-line::before");
+        const nowTick = declarationsFor(grid, ".nc-now-tick");
+        expect(tick.width).toBe(nowTick.width);
+        expect(tick.height).toBe(nowTick.height);
+        expect(tick["border-radius"]).toBe(nowTick["border-radius"]);
+        expect(tick.background).toBe("var(--nc-prayer-color)");
     });
 
     it("never takes a pointer: there is nothing to click on an hour", () => {
