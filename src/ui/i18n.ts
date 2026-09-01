@@ -595,6 +595,7 @@ const FR: Record<string, string> = {
     "Refresh now": "Actualiser maintenant",
     "Never synced": "Jamais synchronisé",
     "Syncing…": "Synchronisation…",
+    "Loading remote calendars…": "Chargement des calendriers distants…",
     "Last sync on": "Dernière synchro. le",
     at: "à",
     "Default ICS refresh frequency": "Fréquence d'actualisation ICS par défaut",

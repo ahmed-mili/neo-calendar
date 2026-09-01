@@ -660,6 +660,17 @@ export default function DesktopCalendar({
     // state so a sync cycle always reads the latest values without needing to
     // be re-created on every render.
     const icsRuntimeStatesRef = useRef<IcsRuntimeStateByFeed>({});
+    // `dueIcsFeeds` only learns a sync happened once `icsRuntimeStatesRef` is
+    // written back, which is after the network round-trip. An overlapping
+    // call started meanwhile — another wake, the minute timer, a manual
+    // "refresh now" — would still read the pre-sync state, see the feed as
+    // due, and run its own independent fetch-and-write cycle against the same
+    // pre-sync `recordsRef` snapshot: neither cycle can see the other's
+    // notes, so both create one, and the file writer resolves the name
+    // collision with " (n)" instead of catching a duplicate. This set is the
+    // guard `dueIcsFeeds` itself can't provide: a feed already mid-cycle is
+    // withheld from every subsequent call until that cycle settles.
+    const icsSyncInFlightRef = useRef<Set<string>>(new Set());
     useEffect(() => {
         let cancelled = false;
         loadIcsRuntimeState()
@@ -738,23 +749,29 @@ export default function DesktopCalendar({
                 now,
                 preferences.icsDefaultRefreshMinutes,
                 forcedIds
-            );
+            ).filter((feed) => !icsSyncInFlightRef.current.has(feed.id));
             if (due.length === 0) return;
 
+            for (const item of due) icsSyncInFlightRef.current.add(item.id);
             setSyncingIcsFeedIds((current) => {
                 const next = new Set(current);
                 for (const item of due) next.add(item.id);
                 return next;
             });
 
+            // `due` is already the exact set to run — forcing it rather than
+            // handing `syncIcsFeeds` the unfiltered `feeds`/`forcedIds` stops
+            // its own internal `dueIcsFeeds` call from re-admitting a feed
+            // this call just excluded as already in flight.
+            const dueIds = new Set(due.map((feed) => feed.id));
             try {
                 const result = await syncIcsFeeds({
-                    feeds,
+                    feeds: due,
                     states: icsRuntimeStatesRef.current,
                     records: recordsRef.current,
                     now,
                     defaultMinutes: preferences.icsDefaultRefreshMinutes,
-                    forcedIds,
+                    forcedIds: dueIds,
                     io: {
                         fetchIcs: fetchDesktopIcs,
                         writeEventFile: (write) =>
@@ -777,6 +794,7 @@ export default function DesktopCalendar({
                 setIcsRuntimeStates(result.states);
                 void saveIcsRuntimeState(result.states);
             } finally {
+                for (const item of due) icsSyncInFlightRef.current.delete(item.id);
                 setSyncingIcsFeedIds((current) => {
                     const next = new Set(current);
                     for (const item of due) next.delete(item.id);
@@ -3534,10 +3552,12 @@ export default function DesktopCalendar({
                 }}
             />
 
-            {/* Errors only. The loading notice was removed: the calendar is
-                already usable while the folder is read, so the toast only
-                announced work the user does not act on. */}
-            {storageError && (
+            {/* The local-folder loading notice stays removed: the calendar is
+                already usable while the folder is read. An ICS sync is
+                different — it is network-bound and can run long enough on a
+                first sync that its absence read as a hang, so it gets its
+                own (dismiss-free, no error styling) notice. */}
+            {storageError ? (
                 <div
                     className="nc-desktop-storage-status nc-desktop-storage-status--error"
                     role="alert"
@@ -3551,6 +3571,12 @@ export default function DesktopCalendar({
                         ×
                     </button>
                 </div>
+            ) : (
+                syncingIcsFeedIds.size > 0 && (
+                    <div className="nc-desktop-storage-status" role="status">
+                        {t("Loading remote calendars…")}
+                    </div>
+                )
             )}
 
             {marquee && (
@@ -3668,18 +3694,6 @@ export default function DesktopCalendar({
                 }}
                 onRefreshNow={(feedId) => {
                     void refreshIcsFeeds({ forcedIds: new Set([feedId]) });
-                }}
-                onApplyFrequencyToAll={(minutes) => {
-                    // Writes the value into every source (across every
-                    // calendar) and removes their per-link overrides, so
-                    // they all follow the new default from here on.
-                    void updateWorkspacePreferences({
-                        icsDefaultRefreshMinutes: minutes,
-                        icsFeeds: preferences.icsFeeds.map(
-                            ({ refreshMinutes: _refreshMinutes, ...feed }) =>
-                                feed
-                        ),
-                    });
                 }}
             />
 

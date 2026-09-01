@@ -45,7 +45,6 @@ describe("IcsFeedsPanel", () => {
         onEdit: jest.fn(),
         onRemove: jest.fn(),
         onRefreshNow: jest.fn(),
-        onApplyFrequencyToAll: jest.fn(),
     });
 
     beforeEach(() => {
@@ -292,36 +291,4 @@ describe("IcsFeedsPanel", () => {
         ).toBeTruthy();
     });
 
-    it("applies a frequency to every link only after confirmation", async () => {
-        const props = baseProps();
-        props.feeds = [
-            feed({ id: "feed-1", refreshMinutes: 15 }),
-            feed({ id: "feed-2", refreshMinutes: 30 }),
-        ];
-        render(props);
-
-        const applyButton = Array.from(
-            document.body.querySelectorAll("button")
-        ).find((button) =>
-            button.textContent?.includes("Appliquer à tous les liens")
-        ) as HTMLButtonElement;
-        act(() => applyButton.click());
-
-        // Not applied yet: a confirmation dialog stands between the click and
-        // the action.
-        expect(props.onApplyFrequencyToAll).not.toHaveBeenCalled();
-
-        const confirmButton = Array.from(
-            document.body.querySelectorAll(".nc-confirm-dialog footer button")
-        ).find(
-            (button) => !button.className.includes("cancel")
-        ) as HTMLButtonElement;
-        expect(confirmButton).toBeTruthy();
-        await act(async () => {
-            confirmButton.click();
-            await Promise.resolve();
-        });
-
-        expect(props.onApplyFrequencyToAll).toHaveBeenCalledWith(60);
-    });
 });

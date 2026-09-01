@@ -933,6 +933,13 @@
     display: flex;
     align-items: flex-start;
     gap: 4px;
+    /* Fills the block so `.nc-event-text` below has a real height to divide
+       between title and time — without it, both stayed at their natural
+       content height and a wrapped two-line title on a short block pushed
+       the time span past `.nc-event-block`'s own `overflow: hidden`,
+       clipping it away entirely instead of just cropping the title. */
+    height: 100%;
+    min-height: 0;
 }
 
 /* Le chevron qui marque la premiere occurrence d'une serie : assez visible
@@ -1009,6 +1016,7 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
 }
 
 /* Short events (≤30 min): title + start time on a single row (Notion-style). */
@@ -1040,6 +1048,12 @@
     overflow: hidden;
     white-space: pre-wrap;
     color: var(--nc-event-ink, var(--nc-text-primary, var(--text-normal)));
+    /* Shrinks first, and only the title: `.nc-event-time` below keeps
+       `flex-shrink: 0` so a title too long for the block's height loses its
+       own lower lines to `overflow: hidden` rather than displacing the time
+       past the block's edge. */
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .nc-event-time {
@@ -1048,6 +1062,7 @@
     color: var(--nc-event-ink-muted, var(--nc-text-secondary));
     line-height: 1.3;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* Event resize handle */

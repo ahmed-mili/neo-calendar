@@ -53,6 +53,25 @@ function fileNameFromRelativePath(path: string): string {
     return segments[segments.length - 1] ?? path;
 }
 
+/** Runs `worker` over `items` with at most 6 in flight — each targets its own
+    file, so nothing about correctness depends on running them one at a time;
+    only wall-clock time did. */
+async function runWriteQueue<T>(
+    items: readonly T[],
+    worker: (item: T) => Promise<void>
+): Promise<void> {
+    let nextIndex = 0;
+    async function runNext(): Promise<void> {
+        const index = nextIndex;
+        nextIndex += 1;
+        if (index >= items.length) return;
+        await worker(items[index]);
+        await runNext();
+    }
+    const workerCount = Math.min(6, items.length);
+    await Promise.all(Array.from({ length: workerCount }, () => runNext()));
+}
+
 /** Monday one year before `now` through two years after — generous enough to
     cover a feed's whole useful history and horizon without unbounded growth. */
 export function icsSyncWindow(now: Date): { from: string; to: string } {
@@ -113,7 +132,11 @@ export async function syncIcsFeeds(
                     now: attemptTime,
                 });
 
-                for (const write of plan.writes) {
+                // Each write targets its own occurrence's file, so nothing
+                // here depends on write order — a first sync's whole
+                // semester of notes going through one at a time was exactly
+                // the wall-clock cost users felt as the app hanging.
+                await runWriteQueue(plan.writes, async (write) => {
                     const relativePath = await io.writeEventFile(write);
                     const id = write.event.id as string;
                     recordsById.set(id, {
@@ -126,7 +149,7 @@ export async function syncIcsFeeds(
                         event: write.event,
                         readOnly: true,
                     });
-                }
+                });
                 for (const deleted of plan.deletes) {
                     await io.deleteEventFile(deleted.relativePath);
                     recordsById.delete(deleted.id);

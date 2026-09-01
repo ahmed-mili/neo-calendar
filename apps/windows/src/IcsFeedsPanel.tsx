@@ -1,7 +1,6 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { t } from "../../../src/ui/i18n";
-import ConfirmDialog from "./ConfirmDialog";
 import {
     ICS_REFRESH_MINUTES,
     MAX_ICS_FEEDS_PER_CALENDAR,
@@ -66,7 +65,6 @@ export interface IcsFeedsPanelProps {
     ) => void;
     onRemove: (feedId: string) => void;
     onRefreshNow: (feedId: string) => void;
-    onApplyFrequencyToAll: (minutes: IcsRefreshMinutes) => void;
 }
 
 function FeedStatus({
@@ -134,19 +132,16 @@ export default function IcsFeedsPanel({
     onEdit,
     onRemove,
     onRefreshNow,
-    onApplyFrequencyToAll,
 }: IcsFeedsPanelProps) {
     const [newName, setNewName] = React.useState("");
     const [newUrl, setNewUrl] = React.useState("");
     const [addError, setAddError] = React.useState<string | null>(null);
-    const [applyConfirmOpen, setApplyConfirmOpen] = React.useState(false);
 
     React.useEffect(() => {
         if (!open) return;
         setNewName("");
         setNewUrl("");
         setAddError(null);
-        setApplyConfirmOpen(false);
     }, [open]);
 
     if (!open) return null;
@@ -345,33 +340,7 @@ export default function IcsFeedsPanel({
                     </p>
                 )}
 
-                {feeds.length > 0 && (
-                    <footer className="nc-ics-panel__footer">
-                        <button
-                            type="button"
-                            className="nc-ics-panel__apply-all"
-                            onClick={() => setApplyConfirmOpen(true)}
-                        >
-                            {t("Apply to all links")}
-                        </button>
-                    </footer>
-                )}
             </section>
-
-            <ConfirmDialog
-                open={applyConfirmOpen}
-                title={t("Apply to all links")}
-                message={`${t(
-                    "Apply this frequency to every ICS link on every calendar?"
-                )} ${t(
-                    "This sets every link's frequency to this value and removes any per-link override."
-                )}`}
-                confirmLabel={t("Apply to all links")}
-                onClose={() => setApplyConfirmOpen(false)}
-                onConfirm={() => {
-                    onApplyFrequencyToAll(defaultRefreshMinutes);
-                }}
-            />
         </div>
     );
 
