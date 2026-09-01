@@ -364,6 +364,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                     onAddEvent={onAddPanelEvent}
                     onSetDefault={onSetDefaultCalendar}
                     onShowOnly={onShowOnly}
+                    onManageIcsFeeds={onManageIcsFeeds}
                     onRemove={onDeleteCalendar}
                     onColorChange={onColorChange}
                     open={panelOpen}

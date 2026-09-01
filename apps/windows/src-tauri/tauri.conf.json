@@ -26,7 +26,10 @@
     },
     "bundle": {
         "active": true,
-        "targets": ["nsis", "msi"],
+        "targets": [
+            "nsis",
+            "msi"
+        ],
         "publisher": "Ahmed",
         "shortDescription": "Votre calendrier, en local",
         "longDescription": "Neo Calendar — un calendrier qui garde ses événements dans vos propres fichiers.",
@@ -45,15 +48,30 @@
                 "sidebarImage": "installer/sidebar.bmp",
                 "headerImage": "installer/header.bmp",
                 "uninstallerHeaderImage": "installer/header.bmp",
-                "languages": ["French", "English"],
+                "languages": [
+                    "French",
+                    "English"
+                ],
                 "startMenuFolder": "Neo Calendar"
             }
-        }
+        },
+        "createUpdaterArtifacts": true
     },
     "plugins": {
         "deep-link": {
             "desktop": {
-                "schemes": ["neo-calendar"]
+                "schemes": [
+                    "neo-calendar"
+                ]
+            }
+        },
+        "updater": {
+            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU1NDRCMUVENDY0MEYyQTcKUldTbjhrQkc3YkZFVlFHYXZ2Mm5ad1cxS1ZQL3ZYbzBEMzlscyt6NnY3K3FHYUZZOStmcmY5WksK",
+            "endpoints": [
+                "https://github.com/ahmed-mili/neo-calendar/releases/latest/download/latest.json"
+            ],
+            "windows": {
+                "installMode": "quiet"
             }
         }
     }

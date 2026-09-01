@@ -35,6 +35,7 @@ import {
     SearchIcon,
     XIcon,
     ChartColumnIcon,
+    LinkIcon,
 } from "./Icons";
 import { t } from "../i18n";
 
@@ -59,6 +60,10 @@ interface CalendarEventsPanelProps {
     onAddEvent: (calendarId: string) => void;
     onSetDefault: (calendarId: string) => void;
     onShowOnly: (calendarId: string) => void;
+    /** Omitted on surfaces without an ICS preferences store (the Obsidian
+     *  plugin path) — the menu simply leaves the item out rather than
+     *  showing something that would do nothing when pressed. */
+    onManageIcsFeeds?: (calendarId: string) => void;
     onRemove: (calendarId: string) => void;
     onColorChange: (calendarId: string, color: string) => void;
     open: boolean;
@@ -158,6 +163,7 @@ export default function CalendarEventsPanel({
     onAddEvent,
     onSetDefault,
     onShowOnly,
+    onManageIcsFeeds,
     onRemove,
     onColorChange,
     open,
@@ -514,6 +520,21 @@ export default function CalendarEventsPanel({
                                 {showTotals && <CheckIcon size={14} />}
                             </span>
                         </button>
+                        {calendar.type === "local" && onManageIcsFeeds && (
+                            <button
+                                type="button"
+                                className="nc-cep-menu-row"
+                                onClick={() => {
+                                    setOpenMenu(null);
+                                    onManageIcsFeeds(calendar.id);
+                                }}
+                            >
+                                <LinkIcon size={15} />
+                                <span className="nc-cep-menu-label">
+                                    {t("ICS links")}
+                                </span>
+                            </button>
+                        )}
                         <div className="nc-cep-menu-separator" />
                         <button
                             type="button"
