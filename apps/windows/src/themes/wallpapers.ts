@@ -49,6 +49,31 @@ export type WallpaperId = (typeof WALLPAPER_IDS)[number];
 export type WallpaperTarget = "android" | "pc" | "universal";
 export type WallpaperAspect = "portrait" | "landscape" | "adaptive";
 
+/** What the catalogue's photos have grown too many of to browse flat. Only
+ *  the photographed entries carry one — the theme's own default and the
+ *  solid "none" option are not photos, and sort under neither category. */
+export const WALLPAPER_CATEGORIES = [
+    "mountains",
+    "forest",
+    "ocean",
+    "desert",
+    "night",
+    "city",
+    "autumn",
+] as const;
+
+export type WallpaperCategory = (typeof WALLPAPER_CATEGORIES)[number];
+
+export const WALLPAPER_CATEGORY_LABELS: Record<WallpaperCategory, string> = {
+    mountains: "Montagnes",
+    forest: "Forêt",
+    ocean: "Océan",
+    desert: "Désert",
+    night: "Nuit",
+    city: "Ville",
+    autumn: "Automne",
+};
+
 export interface WallpaperDefinition {
     id: WallpaperId;
     label: string;
@@ -67,6 +92,8 @@ export interface WallpaperDefinition {
      * n'entre plus dans ce catalogue.
      */
     credit?: WallpaperCredit;
+    /** Absent only for the two non-photos above. */
+    category?: WallpaperCategory;
 }
 
 /**
@@ -95,6 +122,7 @@ interface CataloguePhoto {
     readonly author: string;
     /** Sa page chez Unsplash — l'original, en pleine résolution. */
     readonly page: string;
+    readonly category: WallpaperCategory;
 }
 
 const PHOTOS: readonly CataloguePhoto[] = [
@@ -105,6 +133,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Le soleil traverse les arbres jusqu'à un tapis violet.",
         author: "Uran Wang",
         page: "https://unsplash.com/photos/la-lumiere-du-soleil-traverse-les-arbres-jusqua-un-champ-de-fleurs-violettes-TVORvlpH2ZY",
+        category: "forest",
     },
     {
         id: "cloudlaced-ranges",
@@ -113,6 +142,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Des sommets enneigés au-dessus d'une mer de nuages.",
         author: "Nicolas Prieto",
         page: "https://unsplash.com/photos/chaines-de-montagnes-couvertes-de-nuages-sMJaf08ugD0",
+        category: "mountains",
     },
     {
         id: "panorama-valley",
@@ -121,6 +151,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Une vallée ouverte, les montagnes en arrière-plan.",
         author: "Daniel Seßler",
         page: "https://unsplash.com/photos/une-vue-panoramique-dune-vallee-avec-des-montagnes-en-arriere-plan-yVkwJVCAnXs",
+        category: "mountains",
     },
     {
         id: "milky-way-trail",
@@ -129,6 +160,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "La Voie lactée s'arque au-dessus d'un chemin de pierres.",
         author: "Sebastian Knoll",
         page: "https://unsplash.com/photos/voie-lactee-sarquant-au-dessus-dun-sentier-rocheux-IPCh5x1whiQ",
+        category: "night",
     },
     {
         id: "sunlit-canyon",
@@ -137,6 +169,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Roches et végétation clairsemée en plein soleil.",
         author: "NIR HIMI",
         page: "https://unsplash.com/photos/canyon-desertique-baigne-de-soleil-avec-des-formations-rocheuses-et-une-vegetation-clairsemee-Rv2yB04plX8",
+        category: "desert",
     },
     {
         id: "whale-tail-cliffs",
@@ -145,6 +178,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Une baleine sort de l'eau sombre au pied des rochers.",
         author: "Marek Piwnicki",
         page: "https://unsplash.com/photos/queue-de-baleine-emergeant-de-leau-sombre-pres-des-falaises-rocheuses-tv8swoH1aOY",
+        category: "ocean",
     },
     {
         id: "white-forest-flowers",
@@ -153,6 +187,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Des fleurs blanches en sous-bois, au milieu du jour.",
         author: "Kasia Gajek",
         page: "https://unsplash.com/photos/fleurs-blanches-dans-la-foret-pendant-la-journee-Dpf1iwtX2Yo",
+        category: "forest",
     },
     {
         id: "golden-gate-night",
@@ -161,6 +196,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Le pont illuminé sous un ciel de traîne.",
         author: "Justin Wolff",
         page: "https://unsplash.com/photos/le-golden-gate-bridge-est-illumine-la-nuit-Macs-aqy6Ek",
+        category: "city",
     },
     {
         id: "island-sunset",
@@ -169,6 +205,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Un coucher de soleil sur une île au milieu de l'océan.",
         author: "Daniel Seßler",
         page: "https://unsplash.com/photos/un-magnifique-coucher-de-soleil-sur-une-petite-ile-au-milieu-de-locean-xHxfXRbTG1Y",
+        category: "ocean",
     },
     {
         id: "tropical-palm-coast",
@@ -177,6 +214,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Des palmiers au bord d'une eau turquoise et claire.",
         author: "Marcreation",
         page: "https://unsplash.com/photos/cote-tropicale-diles-avec-des-palmiers-et-une-eau-turquoise-claire-fV_qtB_sTV8",
+        category: "ocean",
     },
     {
         id: "starlit-snow-peak",
@@ -185,6 +223,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Une montagne enneigée sous un ciel constellé.",
         author: "Benjamin Voros",
         page: "https://unsplash.com/photos/montagne-enneigee-sous-les-etoiles-phIFdC6lA4E",
+        category: "night",
     },
     {
         id: "steep-blue-ridges",
@@ -193,6 +232,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Des versants abrupts sous un ciel bleu franc.",
         author: "Marek Piwnicki",
         page: "https://unsplash.com/photos/montagnes-escarpees-sous-un-ciel-bleu-avec-des-nuages-blancs-I3HjjiGRnko",
+        category: "mountains",
     },
     {
         id: "golden-snow-range",
@@ -201,6 +241,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Des sommets enneigés pris dans un soleil doré.",
         author: "Marek Piwnicki",
         page: "https://unsplash.com/photos/majestueuses-montagnes-enneigees-baignees-dun-soleil-dore-VksMwErxR9c",
+        category: "mountains",
     },
     {
         id: "gapstow-autumn",
@@ -209,6 +250,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Le pont entouré d'arbres d'automne, à New York.",
         author: "Juan Di Nella",
         page: "https://unsplash.com/photos/pont-de-gapstow-a-lautomne-a-new-york-ne1X1c9M0Hg",
+        category: "autumn",
     },
     {
         id: "coastal-hills-dusk",
@@ -218,6 +260,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
             "Collines et océan dans une lumière chaude de fin de jour.",
         author: "Antonin Fontaine",
         page: "https://unsplash.com/photos/collines-et-ocean-au-coucher-du-soleil-avec-une-lumiere-chaude-YiRaXIR5Etk",
+        category: "ocean",
     },
     {
         id: "autumn-forest-path",
@@ -226,6 +269,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Un chemin de terre dans une forêt aux feuilles jaunes.",
         author: "Daniel Seßler",
         page: "https://unsplash.com/photos/chemin-de-terre-a-travers-la-foret-dautomne-_3DI_vx2ygg",
+        category: "autumn",
     },
     {
         id: "turquoise-shallows",
@@ -234,6 +278,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Vue aérienne d'un sable clair sous une eau peu profonde.",
         author: "Rod Long",
         page: "https://unsplash.com/photos/vue-aerienne-dune-cote-sablonneuse-avec-une-eau-turquoise-peu-profonde-iqBc91jdqoQ",
+        category: "ocean",
     },
     {
         id: "monument-valley-stars",
@@ -242,6 +287,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Un ciel constellé au-dessus des buttes du désert.",
         author: "Joseph Corl",
         page: "https://unsplash.com/photos/voie-lactee-au-dessus-des-buttes-de-la-vallee-du-monument-BMhglVdk3lA",
+        category: "night",
     },
     {
         id: "cloudveil-fjord",
@@ -250,6 +296,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Un fjord encerclé de montagnes prises dans les nuages.",
         author: "Marek Piwnicki",
         page: "https://unsplash.com/photos/fjord-entoure-de-montagnes-spectaculaires-couvertes-de-nuages-jMPwiaqRXzI",
+        category: "mountains",
     },
     {
         id: "golden-summit",
@@ -258,6 +305,7 @@ const PHOTOS: readonly CataloguePhoto[] = [
         description: "Une cime enneigée prise dans un soleil rasant.",
         author: "Marek Piwnicki",
         page: "https://unsplash.com/photos/un-sommet-enneige-baigne-dun-soleil-dore-E909Oe4N3pM",
+        category: "mountains",
     },
 ];
 
@@ -283,6 +331,7 @@ function bothFormats(photo: CataloguePhoto): WallpaperDefinition[] {
             target: "pc",
             aspect: "landscape",
             credit,
+            category: photo.category,
         },
         {
             id: photo.portraitId,
@@ -293,6 +342,7 @@ function bothFormats(photo: CataloguePhoto): WallpaperDefinition[] {
             target: "android",
             aspect: "portrait",
             credit,
+            category: photo.category,
         },
     ];
 }

@@ -17,8 +17,11 @@ import {
     currentWallpaperRuntime,
     getWallpaper,
     getWallpapersForRuntime,
+    WallpaperCategory,
     WallpaperDefinition,
     WallpaperId,
+    WALLPAPER_CATEGORIES,
+    WALLPAPER_CATEGORY_LABELS,
 } from "./themes/wallpapers";
 import { creditByline, creditLine, isUnsplash } from "./themes/wallpaperCredit";
 import {
@@ -157,6 +160,24 @@ export default function ThemeWallpaperPicker({
     // phone is a strip of its middle; a portrait one on a desktop is two bars.
     const runtime = currentWallpaperRuntime();
     const wallpapers = getWallpapersForRuntime(runtime);
+
+    // The catalogue outgrew a flat list — a category strip narrows it back
+    // down. Only categories actually represented for this runtime are
+    // offered, and non-photo entries (the theme's own default, "None") have
+    // no category to match, so they stay in the list under any filter: they
+    // are always a valid choice, not one more landscape to sort.
+    const [categoryFilter, setCategoryFilter] = useState<
+        WallpaperCategory | "all"
+    >("all");
+    const availableCategories = WALLPAPER_CATEGORIES.filter((category) =>
+        wallpapers.some((wallpaper) => wallpaper.category === category)
+    );
+    const visibleWallpapers = wallpapers.filter(
+        (wallpaper) =>
+            categoryFilter === "all" ||
+            !wallpaper.category ||
+            wallpaper.category === categoryFilter
+    );
 
     // La feuille modale plein écran est un geste de téléphone : sur PC le choix
     // se fait dans un menu ancré sous le champ, comme le sélecteur de thème et
@@ -340,7 +361,38 @@ export default function ThemeWallpaperPicker({
         </button>
     ) : null;
 
-    const options = wallpapers.map((wallpaper) => {
+    const categoryFilterRow =
+        availableCategories.length > 1 ? (
+            <div className="nc-wallpaper-categories" role="tablist">
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={categoryFilter === "all"}
+                    className={`nc-wallpaper-category${
+                        categoryFilter === "all" ? " nc-active" : ""
+                    }`}
+                    onClick={() => setCategoryFilter("all")}
+                >
+                    {t("All")}
+                </button>
+                {availableCategories.map((category) => (
+                    <button
+                        key={category}
+                        type="button"
+                        role="tab"
+                        aria-selected={categoryFilter === category}
+                        className={`nc-wallpaper-category${
+                            categoryFilter === category ? " nc-active" : ""
+                        }`}
+                        onClick={() => setCategoryFilter(category)}
+                    >
+                        {WALLPAPER_CATEGORY_LABELS[category]}
+                    </button>
+                ))}
+            </div>
+        ) : null;
+
+    const options = visibleWallpapers.map((wallpaper) => {
         const downloading = busy === wallpaper.id;
         const retry = failed === wallpaper.id;
         const selected = wallpaper.id === value;
@@ -493,6 +545,7 @@ export default function ThemeWallpaperPicker({
                         role="listbox"
                         aria-label={t("Wallpapers")}
                     >
+                        {categoryFilterRow}
                         {fetchAllRow}
                         {options}
                     </div>,
@@ -516,6 +569,7 @@ export default function ThemeWallpaperPicker({
                         role="listbox"
                         aria-label={t("Wallpapers")}
                     >
+                        {categoryFilterRow}
                         {fetchAllRow}
                         {options}
                     </div>

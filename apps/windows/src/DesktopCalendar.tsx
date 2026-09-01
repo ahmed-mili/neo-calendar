@@ -528,6 +528,7 @@ export default function DesktopCalendar({
         goNext,
         shiftDays,
         shiftMonths,
+        goToDateInView,
     } = useCalendarNavigation(
         isAndroid ? androidInitialView : preferences.initialView.desktop,
         preferences.firstDay,
@@ -601,6 +602,36 @@ export default function DesktopCalendar({
     useEffect(() => {
         recordsRef.current = storedEvents;
     }, [storedEvents]);
+
+    // The grid's own pointerdown handlers call `preventDefault()` (needed to
+    // stop text selection while dragging) — which, as a side effect, also
+    // suppresses the browser's default "clicking elsewhere blurs the
+    // previously focused control" behaviour. A button clicked earlier (the
+    // Tasks summary pills, say) stayed the document's active element even
+    // after a click on plain grid background — invisible, since a
+    // mouse-originated focus doesn't show its ring — until any keypress
+    // (Shift included) flipped `:focus-visible` back on for it, popping a
+    // stray blue outline onto a button nobody meant to still be focused.
+    // Blurring explicitly on every non-form pointerdown makes "click
+    // elsewhere" actually mean elsewhere, regardless of what any other
+    // handler further down does with the event.
+    useEffect(() => {
+        const onPointerDown = (event: PointerEvent) => {
+            const active = document.activeElement;
+            if (!(active instanceof HTMLElement) || active === document.body) {
+                return;
+            }
+            if (active.matches('input, textarea, select, [contenteditable="true"]')) {
+                return;
+            }
+            const target = event.target as Node | null;
+            if (target && active.contains(target)) return;
+            active.blur();
+        };
+        document.addEventListener("pointerdown", onPointerDown, true);
+        return () =>
+            document.removeEventListener("pointerdown", onPointerDown, true);
+    }, []);
 
     const revealDesktopEventRoute = useCallback(
         (
@@ -2073,13 +2104,28 @@ export default function DesktopCalendar({
         [openDraft]
     );
 
-    const openExistingEvent = useCallback((eventId: string) => {
-        const record = findStoredEvent(recordsRef.current, eventId);
-        if (!record) return;
-        setDraftSlot(null);
-        setPanelEventId(eventId);
-        setPanelAnchor(anchorForEvent(eventId));
-    }, []);
+    const openExistingEvent = useCallback(
+        (eventId: string) => {
+            const record = findStoredEvent(recordsRef.current, eventId);
+            if (!record) return;
+            // A click from the Someday panel names an event that can be
+            // weeks or months from whatever the grid currently shows — same
+            // as opening one from a deep link. Without this the panel
+            // opened, unanchored, over a grid still sitting on today, which
+            // read as nothing having happened: the whole point of clicking
+            // an entry there is to land on it, not just describe it.
+            if (record.event.type === "single") {
+                const preferredDate = record.event.date;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(preferredDate)) {
+                    setCurrentDate(parseLocalDate(preferredDate));
+                }
+            }
+            setDraftSlot(null);
+            setPanelEventId(eventId);
+            setPanelAnchor(anchorForEvent(eventId));
+        },
+        [setCurrentDate]
+    );
 
     const selectEvent = useCallback(
         (eventId: string, additive = false) => {
@@ -3655,7 +3701,7 @@ export default function DesktopCalendar({
                 </div>
             ) : (
                 syncingIcsFeedIds.size > 0 && (
-                    <div className="nc-desktop-storage-status" role="status">
+                    <div className="nc-desktop-notice" role="status">
                         {t("Loading remote calendars…")}
                     </div>
                 )

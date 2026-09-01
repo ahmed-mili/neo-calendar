@@ -662,8 +662,16 @@ export default function CalendarEventsPanel({
                                                                 feedItem.id
                                                             )
                                                     ).length;
-                                                return visible ===
-                                                    icsFeeds.length
+                                                // "All" only when nothing is
+                                                // filtered at all — isolating
+                                                // a calendar's single link
+                                                // still hides its personal
+                                                // notes, so "N/N" here reads
+                                                // as "yes, something is
+                                                // filtered" even though every
+                                                // link itself is visible.
+                                                return hiddenFeedIds.size ===
+                                                    0
                                                     ? t("All")
                                                     : `${visible}/${icsFeeds.length}`;
                                             })()}

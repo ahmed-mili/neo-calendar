@@ -422,6 +422,19 @@
 
 /* ── Event Popup (Notion-style floating card) ────────────────── */
 
+/* Blurs the grid behind the popup itself, not just the sliver of it directly
+   under the popup's own translucent body (which `.nc-event-popup`'s own
+   `backdrop-filter` already handled) — everything else about the popup is
+   untouched: no background tint, no click handler, purely visual. */
+.nc-event-popup-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    pointer-events: none;
+}
+
 .nc-event-popup {
     /* The --nc-* design tokens are declared on :root, where Obsidian's native
        theme vars (--background-*, --text-*) are out of scope, so they bake to

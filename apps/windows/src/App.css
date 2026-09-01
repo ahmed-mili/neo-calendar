@@ -3643,6 +3643,38 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
  * fixed : le panneau de reglages defile (overflow-y: auto), un menu en
  * position: absolute y serait coupe des que le champ approche du bas.
  */
+/* Filter strip above the catalogue — the list outgrew scrolling through it
+   flat once photo count climbed into the twenties. */
+.nc-wallpaper-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 2px 2px 8px;
+}
+
+.nc-wallpaper-category {
+    padding: 4px 10px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast),
+        color var(--nc-transition-fast), border-color var(--nc-transition-fast);
+}
+
+.nc-wallpaper-category:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.nc-wallpaper-category.nc-active {
+    border-color: var(--interactive-accent);
+    background: var(--interactive-accent);
+    color: var(--text-on-accent, #fff);
+}
+
 .nc-wallpaper-menu {
     position: fixed;
     z-index: 80000;

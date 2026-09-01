@@ -1337,9 +1337,15 @@ export default function EventPanel({
             : [];
 
     return ReactDOM.createPortal(
-        <div
-            ref={popupRef}
-            className={`nc-event-popup nc-placement-${position.placement}${
+        <>
+            {/* Blurs whatever is behind the popup, and only that — no click
+                handler, so every existing way of dismissing or interacting
+                with the popup (the outside-pointerdown listener, drag,
+                whatever else) still sees exactly the events it always saw. */}
+            <div className="nc-event-popup-backdrop" aria-hidden="true" />
+            <div
+                ref={popupRef}
+                className={`nc-event-popup nc-placement-${position.placement}${
                 isDraft ? " nc-event-popup--draft" : ""
             }${androidDraft ? " nc-event-popup--android-draft" : ""}${
                 leaving ? ` ${PANEL_EXIT_CLASS}` : ""
@@ -1622,7 +1628,8 @@ export default function EventPanel({
                     </button>
                 </div>
             )}
-        </div>,
+        </div>
+        </>,
         portalTarget
     );
 }

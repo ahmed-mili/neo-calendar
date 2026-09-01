@@ -1035,6 +1035,17 @@
     flex-direction: column;
     min-width: 0;
     min-height: 0;
+    /* `.nc-event-content` keeps `align-items: flex-start` so the task
+       checkbox and series chevron beside this stay pinned to the top rather
+       than stretching — but that same rule meant THIS flex item was never
+       given the block's actual height either, so its `height: 100%` up the
+       chain never reached the title/time split it was meant to feed: this
+       column sized to its own content (title however many lines it wrapped
+       to, plus time) regardless of how short the block actually was, and a
+       long enough title clipped the time anyway. `align-self: stretch`
+       opts this one item back into the full height without touching the
+       icons beside it. */
+    align-self: stretch;
 }
 
 /* Short events (≤30 min): title + start time on a single row (Notion-style). */

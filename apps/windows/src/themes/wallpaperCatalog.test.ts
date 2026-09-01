@@ -129,4 +129,17 @@ describe("the wallpaper catalogue offered to a device", () => {
             ]);
         }
     });
+
+    // The category filter strip only earns its place once every photo
+    // sorts into one — an uncategorised entry would silently vanish from
+    // every filter except "All".
+    it("gives every actual photo a category, and leaves the two non-photos without one", () => {
+        for (const wallpaper of WALLPAPERS) {
+            const isPhoto = wallpaper.previewStyle === "image";
+            expect([wallpaper.id, !!wallpaper.category]).toEqual([
+                wallpaper.id,
+                isPhoto,
+            ]);
+        }
+    });
 });
