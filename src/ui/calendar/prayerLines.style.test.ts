@@ -155,3 +155,52 @@ describe("the prayer hour in the gutter", () => {
         ).toBe("none");
     });
 });
+
+/*
+ * Le filet, en travers de la grille entière.
+ *
+ * La ligne de l'heure qu'il est n'est pas un seul trait : c'est un filet à 30 %
+ * qui traverse toutes les colonnes, et par-dessus lui un segment vif sur la
+ * colonne du jour. Le filet situe, le segment désigne. Un horaire de prière
+ * n'avait que le segment : il flottait au milieu de la grille, exactement ce
+ * que le filet a été remis pour corriger côté heure courante.
+ */
+describe("the prayer filet across the grid", () => {
+    it("is the now filet in the colour of its calendar", () => {
+        const filet = declarationsFor(grid, ".nc-prayer-line-full");
+        const now = declarationsFor(grid, ".nc-now-line");
+
+        expect(filet.position).toBe(now.position);
+        expect(filet.left).toBe(now.left);
+        expect(filet.right).toBe(now.right);
+        expect(filet.height).toBe(now.height);
+        expect(filet["pointer-events"]).toBe(now["pointer-events"]);
+        expect(filet.background).toBe(
+            now.background.replace("var(--nc-today)", "var(--nc-prayer-color)")
+        );
+    });
+
+    it("passes under its own segment, as the now filet does", () => {
+        const filet = Number(
+            declarationsFor(grid, ".nc-prayer-line-full")["z-index"]
+        );
+        const segment = Number(
+            declarationsFor(grid, ".nc-prayer-line")["z-index"]
+        );
+        const nowFilet = Number(
+            declarationsFor(grid, ".nc-now-line")["z-index"]
+        );
+        const nowSegment = Number(
+            declarationsFor(grid, ".nc-now-today-line")["z-index"]
+        );
+
+        expect(filet).toBeLessThan(segment);
+        // L'heure qu'il est prime sur une heure de prière : elle passe dessus.
+        expect(segment).toBeLessThan(nowFilet);
+        expect(nowFilet).toBeLessThan(nowSegment);
+    });
+
+    it("is drawn once for the grid, not once per column", () => {
+        expect(sections).toContain('className="nc-prayer-line-full"');
+    });
+});

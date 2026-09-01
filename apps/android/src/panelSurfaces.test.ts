@@ -96,3 +96,52 @@ describe("the surface the settings are written on", () => {
         ).toBeDefined();
     });
 });
+
+/*
+ * Le voile de flou passe DERRIÈRE la feuille, jamais devant.
+ *
+ * Il ne floute que ce qu'il y a derrière le panneau : il n'a rien à recevoir et
+ * il le dit lui-même, `pointer-events: none` et `aria-hidden`. Sur Android
+ * pourtant, l'hôte d'overlay renumérote toute la famille — feuille à 10, menus
+ * à 30 — sans toucher au voile, resté à 49 : il repassait donc au-dessus de la
+ * feuille entière. Et la règle qui rend les appuis à chaque enfant de l'hôte
+ * lui rendait les siens par-dessus le marché. Résultat mesuré sur l'émulateur :
+ * `elementsFromPoint` au centre de n'importe quelle ligne du panneau renvoyait
+ * le voile en premier, le premier appui était lu comme « je quitte la fiche »,
+ * et la fiche se refermait avant d'avoir rien pu ouvrir.
+ */
+describe("the blur behind the event sheet", () => {
+    const HOST = "body.nc-platform-android #nc-android-overlay-root";
+    const SHEET = `${HOST} .nc-event-popup`;
+    const BACKDROP = `${HOST} .nc-event-popup-backdrop`;
+
+    const layer = (selector: string) =>
+        Number(
+            declarationsFor(css, selector)["z-index"].replace(
+                /\s*!important\s*$/,
+                ""
+            )
+        );
+
+    it("sits under the sheet it blurs, not over it", () => {
+        expect(layer(BACKDROP)).toBeLessThan(layer(SHEET));
+    });
+
+    it("keeps refusing pointers, whatever the host hands back to its children", () => {
+        expect(declarationsFor(css, BACKDROP)["pointer-events"]).toBe("none");
+        // `declarationsFor` normalise le `!important` : il faut le lire dans la
+        // regle elle-meme, car c'est lui, et rien d'autre, qui tient tete au
+        // `pointer-events: auto !important` que l'hote pose sur ses enfants.
+        const rule = css.slice(css.indexOf(BACKDROP));
+        expect(rule.slice(0, rule.indexOf("}"))).toContain(
+            "pointer-events: none !important"
+        );
+    });
+
+    it("does not hand pointers back to a child that hides itself", () => {
+        // L'hôte est transparent aux appuis et les rend a ses enfants. Un
+        // enfant `aria-hidden` n'est pas de l'interface : lui rendre les
+        // appuis, c'est poser un attrape-clic devant ce qu'il décore.
+        expect(css).toContain(`${HOST} > *:not([aria-hidden="true"])`);
+    });
+});

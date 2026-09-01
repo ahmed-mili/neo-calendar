@@ -1200,6 +1200,20 @@
  * style inline par la colonne. Sans elle le trait ne se dessine pas : c'est
  * voulu, un trait sans calendrier n'a pas de raison d'être là.
  */
+/* Le filet de l'horaire, en travers de toutes les colonnes, sous son propre
+   segment : c'est la ligne de l'heure qu'il est, trait pour trait. Sans lui le
+   segment vif flottait au milieu de la grille — le meme defaut, et le meme
+   remede, que pour l'heure courante. Meme 30 % de la couleur du calendrier. */
+.nc-prayer-line-full {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: color-mix(in srgb, var(--nc-prayer-color) 30%, transparent);
+    pointer-events: none;
+    z-index: 3;
+}
+
 .nc-prayer-line {
     position: absolute;
     left: 0;

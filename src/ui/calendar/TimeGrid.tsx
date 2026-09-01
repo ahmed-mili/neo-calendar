@@ -390,6 +390,19 @@ export default function TimeGrid(props: TimeGridProps) {
         [extendedDates]
     );
 
+    // Un horaire ne se dessine que si son jour est a l'ecran, exactement comme
+    // la ligne de l'heure qu'il est ne traverse la grille que si aujourd'hui y
+    // est. Passe Isha la prochaine priere est le Fajr de demain : en feuilletant
+    // une semaine passee, son filet et sa pastille auraient annonce une heure
+    // pour un jour que personne ne regarde.
+    const visiblePrayerLines = useMemo(() => {
+        if (!prayerLines?.length) return prayerLines;
+        const shown = new Set(extendedDates.map((date) => date.toDateString()));
+        return prayerLines.filter((line) =>
+            shown.has(line.date.toDateString())
+        );
+    }, [prayerLines, extendedDates]);
+
     const showAllDay = true;
     // NEO_ANDROID_INITIAL_SCROLL_V7_4_START
     // On Android, keep several hours of context above the current time.
@@ -716,7 +729,7 @@ export default function TimeGrid(props: TimeGridProps) {
                     nowTop={nowTop}
                     nowLabel={nowLabel}
                     now={now}
-                    prayerLines={prayerLines}
+                    prayerLines={visiblePrayerLines}
                     prayerColor={prayerColor}
                     scrollableRef={leftScrollableRef}
                 />
@@ -777,7 +790,7 @@ export default function TimeGrid(props: TimeGridProps) {
                             handleDoubleClick={handleDoubleClick}
                             handleEmptyContext={handleEmptyContext}
                             contextLine={contextLine}
-                            prayerLines={prayerLines}
+                            prayerLines={visiblePrayerLines}
                             prayerColor={prayerColor}
                         />
                     </div>

@@ -921,6 +921,22 @@ export function TimeGridDays({
             {todayInRange && (
                 <div className="nc-now-line" style={{ top: nowTop }} />
             )}
+            {/* Le meme filet pour chaque horaire de priere : il vaut lui aussi
+                pour toutes les colonnes, et c'est lui qui situe le segment de
+                la colonne du jour au lieu de le laisser flotter. Pose ici, une
+                fois pour la grille, et non dans chaque colonne. */}
+            {prayerLines?.map((line) => (
+                <div
+                    key={`prayer-filet-${line.minutes}`}
+                    className="nc-prayer-line-full"
+                    style={
+                        {
+                            top: scaledPx(line.hours),
+                            "--nc-prayer-color": prayerColor,
+                        } as React.CSSProperties
+                    }
+                />
+            ))}
         </div>
     );
 }

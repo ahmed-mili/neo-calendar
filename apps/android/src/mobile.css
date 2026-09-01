@@ -3432,12 +3432,27 @@ body.nc-platform-android #nc-android-overlay-root {
     pointer-events: none !important;
 }
 
-body.nc-platform-android #nc-android-overlay-root > * {
+/* L'hote est transparent aux appuis et les rend a ses enfants — sauf a ceux
+   qui declarent ne pas etre de l'interface. Un enfant `aria-hidden` est un
+   decor : lui rendre les appuis, c'est poser un attrape-clic devant ce qu'il
+   decore, et c'est exactement ce qui est arrive au voile de flou. */
+body.nc-platform-android #nc-android-overlay-root > *:not([aria-hidden="true"]) {
     pointer-events: auto !important;
 }
 
 body.nc-platform-android #nc-android-overlay-root .nc-event-popup {
     z-index: 10 !important;
+}
+
+/* Le voile ne floute que ce qu'il y a DERRIERE la feuille : sa place est sous
+   elle. Le bureau le dit deja — voile a 49, panneau a 50 — mais l'hote Android
+   renumerote la famille (feuille 10, menus 30) sans toucher au voile, qui
+   repassait donc par-dessus le panneau entier. Mesure sur l'emulateur :
+   `elementsFromPoint` au centre de n'importe quelle ligne renvoyait le voile,
+   et le premier appui sur la fiche la refermait. */
+body.nc-platform-android #nc-android-overlay-root .nc-event-popup-backdrop {
+    z-index: 1 !important;
+    pointer-events: none !important;
 }
 
 body.nc-platform-android #nc-android-overlay-root
