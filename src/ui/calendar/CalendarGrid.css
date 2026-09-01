@@ -989,6 +989,24 @@
     box-shadow: none !important;
 }
 
+/* The only feedback this control can give without a Status row next to it
+   any more: bigger and brighter on hover reads as "clickable here", and
+   shrinking on press confirms the click landed. */
+.nc-task-checkbox svg {
+    opacity: 0.85;
+    transition: transform 0.1s ease, opacity 0.1s ease;
+    transform-origin: center;
+}
+
+.nc-task-checkbox:hover svg {
+    transform: scale(1.2);
+    opacity: 1;
+}
+
+.nc-task-checkbox:active svg {
+    transform: scale(0.85);
+}
+
 .nc-task-checkbox svg,
 .nc-month-task-btn svg,
 .nc-list-task-btn svg,

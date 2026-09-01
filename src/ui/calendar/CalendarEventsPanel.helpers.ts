@@ -136,15 +136,25 @@ function eventOverlapsPeriod(
     return event.start < endExclusive && event.end > start;
 }
 
+/** Stands in for "not tied to any ICS link" in a hidden-sources set — lets
+ *  "show only this link" isolate to it by hiding personal notes the same way
+ *  it hides every other link, instead of leaving them exempt from a filter
+ *  whose whole point is showing only the one source. No real feed id can
+ *  ever collide with this (feed ids are generated UUIDs). */
+export const PANEL_NO_ICS_FEED = "__panel-no-ics-feed__";
+
 export function filterPanelEvents(
     events: DisplayEvent[],
     status: PanelStatusFilter,
     date: PanelDateFilter,
     query = "",
-    period: PanelPeriod | null = null
+    period: PanelPeriod | null = null,
+    hiddenIcsFeedIds: ReadonlySet<string> = new Set()
 ): DisplayEvent[] {
     const normalizedQuery = normalizeSearch(query.trim());
     return events.filter((event) => {
+        const sourceKey = event.icsFeedId ?? PANEL_NO_ICS_FEED;
+        if (hiddenIcsFeedIds.has(sourceKey)) return false;
         if (date === "scheduled" && event.isSomeday) return false;
         if (date === "unscheduled" && !event.isSomeday) return false;
         if (date === "period" && !eventOverlapsPeriod(event, period)) {

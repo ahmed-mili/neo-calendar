@@ -3,6 +3,7 @@ import { parseIcsSnapshot } from "../../../../src/calendars/parsing/ics";
 import type { DesktopStoredEvent } from "./desktopEventFormat";
 import {
     planIcsNoteSync,
+    preferredIcalDirectoryName,
     type IcalNoteWrite,
     type IcsSyncState,
 } from "./icalNoteSync";
@@ -27,6 +28,9 @@ export interface IcsSyncIo {
     /** Returns the relative path the note was written at. */
     writeEventFile: (write: IcalNoteWrite) => Promise<string>;
     deleteEventFile: (relativePath: string) => Promise<void>;
+    /** Idempotent: creates the link's own folder under its calendar's if it
+     *  doesn't exist yet, and returns its path either way. */
+    ensureDirectory: (calendarPath: string, name: string) => Promise<string>;
 }
 
 export interface IcsCalendarSyncArgs {
@@ -46,6 +50,10 @@ export interface IcsCalendarSyncResult {
     states: IcsRuntimeStateByFeed;
     /** The feed ids this cycle actually attempted, in no particular order. */
     syncedFeedIds: string[];
+    /** Only the feeds whose `directory` this cycle provisioned for the first
+     *  time — the caller persists these into its own feed list; a feed
+     *  already carrying one, or not attempted this cycle, is absent. */
+    provisionedDirectories: Record<string, string>;
 }
 
 function fileNameFromRelativePath(path: string): string {
@@ -108,6 +116,7 @@ export async function syncIcsFeeds(
     const recordsById = new Map(records.map((record) => [record.id, record]));
     const nextStates: IcsRuntimeStateByFeed = { ...states };
     const syncedFeedIds: string[] = [];
+    const provisionedDirectories: Record<string, string> = {};
 
     await runIcsQueue(
         due,
@@ -119,6 +128,19 @@ export async function syncIcsFeeds(
                 missingCounts: {},
             };
             try {
+                // A folder of its own, provisioned once and reused from then
+                // on — every cycle without an assigned `directory` yet asks
+                // for the same name, so this only actually creates anything
+                // the first time.
+                if (!feed.directory) {
+                    const directory = await io.ensureDirectory(
+                        feed.calendarPath,
+                        preferredIcalDirectoryName(feed.name)
+                    );
+                    provisionedDirectories[feed.id] = directory;
+                    feed = { ...feed, directory };
+                }
+
                 const text = await io.fetchIcs(feed.url);
                 const snapshot = parseIcsSnapshot(
                     text,
@@ -174,5 +196,6 @@ export async function syncIcsFeeds(
         records: [...recordsById.values()],
         states: nextStates,
         syncedFeedIds,
+        provisionedDirectories,
     };
 }

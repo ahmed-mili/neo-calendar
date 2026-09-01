@@ -93,6 +93,7 @@ import {
     createDesktopCalendarFolder,
     deleteDesktopCalendarFolder,
     deleteDesktopEventFile,
+    ensureDesktopIcsFolder,
     fetchDesktopIcs,
     fetchDesktopPage,
     resolveDesktopUrl,
@@ -352,6 +353,7 @@ function eventRecordForDisplay(
         editable: calendar.editable,
         calendarId: calendar.id,
         calendarName: calendar.name,
+        icsFeedId: record.icsFeedId,
         isTask:
             record.event.type === "someday" &&
             record.event.completed !== undefined &&
@@ -671,6 +673,38 @@ export default function DesktopCalendar({
     // guard `dueIcsFeeds` itself can't provide: a feed already mid-cycle is
     // withheld from every subsequent call until that cycle settles.
     const icsSyncInFlightRef = useRef<Set<string>>(new Set());
+
+    // `reloadWorkspace` ends by writing freshly parsed preferences, and
+    // `parseIcsFeeds` hands back a new array every time — so any callback that
+    // took `preferences.icsFeeds` as a dependency was rebuilt by the very
+    // reload it took part in. `reloadWorkspace` depended on one such callback
+    // and was itself run from an effect keyed on its identity: each reload
+    // scheduled the next, forever. The links are read through a ref instead,
+    // so a sync cycle always sees the current ones without tying any identity
+    // to them.
+    const icsFeedsRef = useRef(preferences.icsFeeds);
+    const icsRefreshMinutesRef = useRef(preferences.icsDefaultRefreshMinutes);
+    icsFeedsRef.current = preferences.icsFeeds;
+    icsRefreshMinutesRef.current = preferences.icsDefaultRefreshMinutes;
+
+    // A sync cycle that just provisioned a link's folder persists it through
+    // this ref for the same reason as the two above: `updateWorkspacePreferences`
+    // is declared much further down (it closes over `preferences`), so taking
+    // it as a dependency here would tie `refreshIcsFeeds` right back into the
+    // reload cycle it was just pulled out of.
+    const updatePreferencesRef = useRef<
+        (patch: Partial<DesktopWorkspacePreferences>) => Promise<void>
+    >(async () => {});
+
+    // Same reason, for the two callbacks `reloadWorkspace` and the deep-link
+    // listener call back into: `revealDesktopEventRoute` follows the current
+    // view, so keying an effect on it re-registered the Tauri URL listener on
+    // every view switch.
+    const revealRouteRef = useRef(revealDesktopEventRoute);
+    revealRouteRef.current = revealDesktopEventRoute;
+
+    const hasIcsFeeds = preferences.icsFeeds.length > 0;
+
     useEffect(() => {
         let cancelled = false;
         loadIcsRuntimeState()
@@ -739,7 +773,7 @@ export default function DesktopCalendar({
      */
     const refreshIcsFeeds = useCallback(
         async ({ forcedIds }: { forcedIds?: ReadonlySet<string> } = {}) => {
-            const feeds = preferences.icsFeeds;
+            const feeds = icsFeedsRef.current;
             if (feeds.length === 0) return;
 
             const now = new Date();
@@ -747,7 +781,7 @@ export default function DesktopCalendar({
                 feeds,
                 icsRuntimeStatesRef.current,
                 now,
-                preferences.icsDefaultRefreshMinutes,
+                icsRefreshMinutesRef.current,
                 forcedIds
             ).filter((feed) => !icsSyncInFlightRef.current.has(feed.id));
             if (due.length === 0) return;
@@ -770,7 +804,7 @@ export default function DesktopCalendar({
                     states: icsRuntimeStatesRef.current,
                     records: recordsRef.current,
                     now,
-                    defaultMinutes: preferences.icsDefaultRefreshMinutes,
+                    defaultMinutes: icsRefreshMinutesRef.current,
                     forcedIds: dueIds,
                     io: {
                         fetchIcs: fetchDesktopIcs,
@@ -785,6 +819,12 @@ export default function DesktopCalendar({
                             }),
                         deleteEventFile: (relativePath) =>
                             deleteDesktopEventFile(dataFolder, relativePath),
+                        ensureDirectory: (calendarPath, name) =>
+                            ensureDesktopIcsFolder(
+                                dataFolder,
+                                calendarPath,
+                                name
+                            ),
                     },
                 });
 
@@ -793,6 +833,22 @@ export default function DesktopCalendar({
                 icsRuntimeStatesRef.current = result.states;
                 setIcsRuntimeStates(result.states);
                 void saveIcsRuntimeState(result.states);
+
+                const provisioned = Object.entries(
+                    result.provisionedDirectories
+                );
+                if (provisioned.length > 0) {
+                    const byId = new Map(provisioned);
+                    const nextFeeds = icsFeedsRef.current.map((item) =>
+                        byId.has(item.id)
+                            ? { ...item, directory: byId.get(item.id) }
+                            : item
+                    );
+                    icsFeedsRef.current = nextFeeds;
+                    void updatePreferencesRef.current({
+                        icsFeeds: nextFeeds,
+                    });
+                }
             } finally {
                 for (const item of due) icsSyncInFlightRef.current.delete(item.id);
                 setSyncingIcsFeedIds((current) => {
@@ -802,7 +858,7 @@ export default function DesktopCalendar({
                 });
             }
         },
-        [dataFolder, preferences.icsFeeds, preferences.icsDefaultRefreshMinutes]
+        [dataFolder]
     );
 
     const reloadWorkspace = useCallback(async () => {
@@ -1019,7 +1075,7 @@ export default function DesktopCalendar({
 
             const pendingRoute = pendingEventRouteRef.current;
             if (pendingRoute) {
-                revealDesktopEventRoute(pendingRoute, nextEvents);
+                revealRouteRef.current(pendingRoute, nextEvents);
             }
 
             setCalendars(nextCalendars);
@@ -1062,6 +1118,11 @@ export default function DesktopCalendar({
                     ? current
                     : null
             );
+            // The refs still hold what the previous render saw: this reload is
+            // what discovered the links, so hand them over before syncing.
+            icsFeedsRef.current = nextPreferences.icsFeeds;
+            icsRefreshMinutesRef.current =
+                nextPreferences.icsDefaultRefreshMinutes;
             void refreshIcsFeeds();
         } catch (reason) {
             setStorageError(errorMessage(reason));
@@ -1075,7 +1136,6 @@ export default function DesktopCalendar({
         onReady,
         preferenceWriter,
         refreshIcsFeeds,
-        revealDesktopEventRoute,
         setDaysCount,
         setViewType,
     ]);
@@ -1101,7 +1161,7 @@ export default function DesktopCalendar({
 
             pendingEventRouteRef.current = route;
 
-            if (!revealDesktopEventRoute(route)) {
+            if (!revealRouteRef.current(route)) {
                 void reloadWorkspace();
             }
         };
@@ -1134,7 +1194,7 @@ export default function DesktopCalendar({
             active = false;
             dispose?.();
         };
-    }, [reloadWorkspace, revealDesktopEventRoute]);
+    }, [reloadWorkspace]);
 
     // Files in the data folder are changed by a sync tool while the app is in
     // the background, so coming back into view is when a change has to appear.
@@ -1174,12 +1234,15 @@ export default function DesktopCalendar({
     // due, so a link on a long frequency is simply a no-op most minutes
     // rather than being resynced regardless of its own schedule.
     useEffect(() => {
-        if (preferences.icsFeeds.length === 0) return;
+        // Keyed on whether there is anything to sync, not on the links
+        // themselves: that array is rebuilt by every reload, and rebuilding
+        // the timer with it reset the minute before it ever elapsed.
+        if (!hasIcsFeeds) return;
         const timer = window.setInterval(() => {
             void refreshIcsFeeds();
         }, 60 * 1000);
         return () => window.clearInterval(timer);
-    }, [preferences.icsFeeds, refreshIcsFeeds]);
+    }, [hasIcsFeeds, refreshIcsFeeds]);
 
     const calendarPath = useCallback((calendarId: string): string | null => {
         const calendar = calendarsRef.current.find(
@@ -1885,7 +1948,10 @@ export default function DesktopCalendar({
                           calendar.editable,
                           rangeStart,
                           rangeEnd
-                      )
+                      ).map((display) => ({
+                          ...display,
+                          icsFeedId: record.icsFeedId,
+                      }))
             );
         events.sort((left, right) => {
             if (left.isSomeday !== right.isSomeday) {
@@ -1895,6 +1961,16 @@ export default function DesktopCalendar({
         });
         return events;
     }, [calendarById, selectedCalendarId, storedEvents]);
+
+    const panelIcsFeeds = useMemo(() => {
+        const path = selectedCalendarId
+            ? calendarById.get(selectedCalendarId)?.relativePath
+            : undefined;
+        if (!path) return undefined;
+        return preferences.icsFeeds
+            .filter((feed) => feed.calendarPath === path)
+            .map((feed) => ({ id: feed.id, name: feed.name }));
+    }, [calendarById, selectedCalendarId, preferences.icsFeeds]);
 
     const panelLinkedItems = useMemo<EventLinkedItem[]>(() => {
         if (!panelEventId) return [];
@@ -2927,6 +3003,7 @@ export default function DesktopCalendar({
         },
         [persistPreferences, preferences.firstDay, setViewType, viewType]
     );
+    updatePreferencesRef.current = updateWorkspacePreferences;
 
     /*
      * Hand the reminders to the phone.
@@ -3247,7 +3324,11 @@ export default function DesktopCalendar({
                 visibleDates={visibleDates}
                 firstDay={preferences.firstDay}
                 timeFormat24h={preferences.timeFormat24h}
-                freeScroll={preferences.freeScroll}
+                // Paged scrolling was tuned for a swipe's momentum on a
+                // touch panel: free scroll is the only mode that reads right
+                // under a mouse wheel or a trackpad, so the desktop build
+                // never pages regardless of what a synced device wrote here.
+                freeScroll={true}
                 sidebarVisible={sidebarVisible}
                 onToggleSidebar={toggleSidebar}
                 onEventClick={selectEvent}
@@ -3321,6 +3402,7 @@ export default function DesktopCalendar({
                 onManageIcsFeeds={(calendarId: string) =>
                     setIcsFeedsPanelCalendarId(calendarId)
                 }
+                panelIcsFeeds={panelIcsFeeds}
                 onDeleteCalendar={(calendarId: string) =>
                     void removeCalendar(calendarId)
                 }

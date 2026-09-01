@@ -241,6 +241,24 @@ const occurrenceKeyOf = (
     recurrenceId: string | null
 ): string => (recurrenceId === null ? uid : `${uid}::${recurrenceId}`);
 
+/**
+ * A single-occurrence event's identity independent of its UID: title, date,
+ * and time slot. Matching by UID alone assumes a feed hands out a stable one
+ * per occurrence — true for most, but at least one Efrei event reissues a
+ * fresh random UID on every fetch, so pure-UID matching saw a "new"
+ * occurrence every sync and never stopped creating notes for it. This is the
+ * fallback that catches that: two occurrences with the same title on the
+ * same day at the same time are the same occurrence, whatever their UID says
+ * this time.
+ */
+function occurrenceSignature(event: NeoEvent): string | null {
+    if (event.type !== "single") return null;
+    const when = event.allDay
+        ? "allday"
+        : `${event.startTime ?? ""}-${event.endTime ?? ""}`;
+    return `${event.title}::${event.date}::${when}`;
+}
+
 export function planIcsNoteSync(args: {
     feed: IcsFeedSubscription;
     snapshot: IcsSnapshot;
@@ -261,13 +279,20 @@ export function planIcsNoteSync(args: {
 
     const nowIso = now.toISOString();
     const monday = startOfLocalWeekIso(now);
+    // Notes still live under the calendar's own identity (a link's folder is
+    // organisation, not a separate calendar) — only WHERE the file physically
+    // sits moves to the link's own folder once one has been provisioned.
     const calendarId = calendarIdFromPath(feed.calendarPath);
+    const writeDirectory = feed.directory ?? feed.calendarPath;
     const present = new Map(
         snapshot.events.map((occurrence) => [occurrence.key, occurrence])
     );
 
-    // Existing notes this feed owns, keyed by their logical occurrence key.
+    // Existing notes this feed owns, keyed by their logical occurrence key —
+    // and, as a fallback for a feed that doesn't keep a UID stable, by their
+    // content signature too.
     const owned = new Map<string, DesktopStoredEvent>();
+    const ownedBySignature = new Map<string, DesktopStoredEvent>();
     for (const record of existingRecords) {
         const metadata = managedMetadataFromMarkdown(record.contents);
         if (
@@ -284,6 +309,8 @@ export function planIcsNoteSync(args: {
             ),
             record
         );
+        const signature = occurrenceSignature(record.event);
+        if (signature) ownedBySignature.set(signature, record);
     }
 
     const writes: IcalNoteWrite[] = [];
@@ -296,7 +323,9 @@ export function planIcsNoteSync(args: {
             neoIcsRecurrenceId: occurrence.recurrenceId,
             neoIcsStatus: "confirmed",
         };
-        const previous = owned.get(occurrence.key);
+        const previous =
+            owned.get(occurrence.key) ??
+            ownedBySignature.get(occurrenceSignature(occurrence.event) ?? "");
         const event = {
             ...occurrence.event,
             id: `neo-calendar:ics::${feed.id}::${occurrence.key}`,
@@ -306,11 +335,20 @@ export function planIcsNoteSync(args: {
             metadata,
             previous?.contents ?? ""
         );
-        if (previous && contents === previous.contents) continue;
+        // A note the link already owns still needs a write when nothing but
+        // its folder is out of date — moving it into a newly provisioned
+        // `directory` is exactly that case, and content-only equality would
+        // otherwise leave it stranded in the calendar's root forever.
+        const misplaced =
+            !!previous &&
+            !previous.relativePath.startsWith(`${writeDirectory}/`);
+        if (previous && !misplaced && contents === previous.contents) {
+            continue;
+        }
         writes.push({
             event,
             calendarId,
-            calendarPath: feed.calendarPath,
+            calendarPath: writeDirectory,
             previousRelativePath: previous?.relativePath,
             fileName: previous?.fileName ?? filenameForEvent(event),
             contents,

@@ -28,6 +28,12 @@ function feed(overrides: Partial<IcsFeedSubscription> = {}): IcsFeedSubscription
     return {
         id: "feed-1",
         calendarPath: "Cours",
+        // Already provisioned by default, matching the calendar's own root —
+        // this is what every test before folder-per-link existed was
+        // exercising, and keeping it as the default keeps them exercising
+        // exactly that. The provisioning path itself gets its own tests,
+        // built with `directory` explicitly left out.
+        directory: "Cours",
         name: "Emploi du temps",
         url: "https://example.test/calendar.ics",
         active: true,
@@ -39,14 +45,17 @@ function io(overrides: Partial<IcsSyncIo> = {}): IcsSyncIo & {
     fetchedUrls: string[];
     writtenFor: string[];
     deletedPaths: string[];
+    ensuredDirectories: string[];
 } {
     const fetchedUrls: string[] = [];
     const writtenFor: string[] = [];
     const deletedPaths: string[] = [];
+    const ensuredDirectories: string[] = [];
     return {
         fetchedUrls,
         writtenFor,
         deletedPaths,
+        ensuredDirectories,
         fetchIcs: async (url) => {
             fetchedUrls.push(url);
             return ics("event-1");
@@ -57,6 +66,11 @@ function io(overrides: Partial<IcsSyncIo> = {}): IcsSyncIo & {
         },
         deleteEventFile: async (path) => {
             deletedPaths.push(path);
+        },
+        ensureDirectory: async (calendarPath, name) => {
+            const directory = `${calendarPath}/${name}`;
+            ensuredDirectories.push(directory);
+            return directory;
         },
         ...overrides,
     };
@@ -267,5 +281,97 @@ describe("syncIcsFeeds", () => {
         expect(harness.writtenFor).toEqual([]);
         expect(harness.deletedPaths).toEqual([]);
         expect(result.records).toEqual([]);
+    });
+
+    it("provisions a folder for a link that doesn't have one yet, and reports it back", async () => {
+        const f = feed({ directory: undefined });
+        const harness = io();
+
+        const result = await syncIcsFeeds({
+            feeds: [f],
+            states: {},
+            records: [],
+            now: NOW,
+            defaultMinutes: 60,
+            io: harness,
+        });
+
+        expect(harness.ensuredDirectories).toEqual(["Cours/Emploi du temps"]);
+        expect(result.provisionedDirectories).toEqual({
+            "feed-1": "Cours/Emploi du temps",
+        });
+        // Written into the freshly provisioned folder, not the calendar root.
+        expect(harness.writtenFor).toEqual([
+            "neo-calendar:ics::feed-1::event-1",
+        ]);
+    });
+
+    it("does not re-provision a link that already has a folder", async () => {
+        const f = feed({ directory: "Cours/Deja-la" });
+        const harness = io();
+
+        const result = await syncIcsFeeds({
+            feeds: [f],
+            states: {},
+            records: [],
+            now: NOW,
+            defaultMinutes: 60,
+            io: harness,
+        });
+
+        expect(harness.ensuredDirectories).toEqual([]);
+        expect(result.provisionedDirectories).toEqual({});
+    });
+
+    it("moves a note it already owns into a link's freshly provisioned folder", async () => {
+        const f = feed({ directory: undefined });
+        const ownedContents = [
+            "---",
+            'neoManagedBy: "neo-calendar:ics"',
+            "neoManagedVersion: 1",
+            `neoIcsFeedId: "${f.id}"`,
+            'neoIcsUid: "event-1"',
+            "neoIcsRecurrenceId: null",
+            'neoIcsStatus: "confirmed"',
+            'title: "Course"',
+            'type: "single"',
+            `date: "${TODAY.slice(0, 4)}-${TODAY.slice(4, 6)}-${TODAY.slice(6)}"`,
+            "endDate: null",
+            "allDay: true",
+            "---",
+        ].join("\n");
+        const ownedRecord: DesktopStoredEvent = {
+            id: "neo-calendar:ics::feed-1::event-1",
+            calendarId: "local::Cours",
+            calendarPath: "Cours",
+            relativePath: "Cours/course.md",
+            fileName: "course.md",
+            contents: ownedContents,
+            event: {
+                id: "neo-calendar:ics::feed-1::event-1",
+                title: "Course",
+                type: "single",
+                date: `${TODAY.slice(0, 4)}-${TODAY.slice(4, 6)}-${TODAY.slice(6)}`,
+                endDate: null,
+                allDay: true,
+            } as DesktopStoredEvent["event"],
+            readOnly: true,
+        };
+        const harness = io();
+
+        await syncIcsFeeds({
+            feeds: [f],
+            states: {},
+            records: [ownedRecord],
+            now: NOW,
+            defaultMinutes: 60,
+            io: harness,
+        });
+
+        // Same event, unchanged content — still written, because only its
+        // folder was out of date.
+        expect(harness.writtenFor).toEqual([
+            "neo-calendar:ics::feed-1::event-1",
+        ]);
     });
 });

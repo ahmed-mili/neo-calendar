@@ -23,7 +23,6 @@ import { PANEL_EXIT_CLASS, panelHasLeft } from "./panelExit";
 import { attachmentExtension, pastedFileName } from "./pastedAttachment";
 import { usePopupDrag } from "./usePopupDrag";
 import { useEventFormState } from "./useEventFormState";
-import { hasTaskCompletionDate } from "../tasks/desktopTaskGroups";
 import {
     EntryKind,
     PanelHeader,
@@ -33,7 +32,6 @@ import {
     CustomRecurrencePanel,
     RemindersRow,
     CalendarRow,
-    StatusRow,
 } from "./EventPanelRows";
 import { DateOptionsRow } from "./EventDateControls";
 import { DescriptionSection } from "./DescriptionSection";
@@ -1565,25 +1563,6 @@ export default function EventPanel({
                             editable={stableCalInfo.editable}
                             setReminders={form.setReminders}
                             onAutoSave={scheduleAutoSave}
-                        />
-                    )}
-
-                    {isTask && !form.isRecurring && (
-                        <StatusRow
-                            taskStatus={form.taskStatus}
-                            editable={stableCalInfo.editable}
-                            setStatus={(s) => {
-                                form.setTaskStatus(s);
-                                scheduleAutoSave();
-                            }}
-                            completeDisabledReason={
-                                requireTaskDateForCompletion &&
-                                !hasTaskCompletionDate(form.date, form.due)
-                                    ? t(
-                                          "Add a date or deadline before completing this task"
-                                      )
-                                    : undefined
-                            }
                         />
                     )}
                 </div>

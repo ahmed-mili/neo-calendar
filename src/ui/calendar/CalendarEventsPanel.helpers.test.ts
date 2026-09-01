@@ -128,6 +128,23 @@ describe("calendar events panel helpers", () => {
         );
     });
 
+    it("hides only the events from a hidden ICS link, leaving others untouched", () => {
+        const linked = event({ id: "event-1", icsFeedId: "feed-1" });
+        const otherLinked = event({ id: "event-2", icsFeedId: "feed-2" });
+        const personal = event({ id: "event-3" });
+
+        const result = filterPanelEvents(
+            [linked, otherLinked, personal],
+            "all",
+            "all",
+            "",
+            null,
+            new Set(["feed-1"])
+        );
+
+        expect(result).toEqual([otherLinked, personal]);
+    });
+
     it("names Notion palette colors", () => {
         expect(getCalendarColorName("#fd7941")).toBe("Orange");
         expect(getCalendarColorName("#5ECC89")).toBe("Green");

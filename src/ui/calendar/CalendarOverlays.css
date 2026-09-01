@@ -79,14 +79,40 @@
     align-items: center;
     gap: 6px;
     padding: 4px 8px;
+    /* A visible gap between rows, not just a radius on each: consecutive
+       tasks from the same calendar share the same tint, and flush against
+       each other with square corners meeting they read as one solid slab
+       rather than a list — the radius alone did nothing when there was no
+       background showing through between rows to reveal it. */
+    margin-bottom: 2px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 13px;
+    /* Which calendar a task belongs to now reads from the row's own tint
+       rather than a separate dot — set via `--nc-tasks-item-tint` where a
+       row wants one; a row that doesn't set it (the mix falls back to
+       transparent) keeps its plain background exactly as before. Kept
+       subtle (8%): this is a whole row, not a small swatch, and the same
+       percentage that reads as a light tint on a dot paints a whole row as a
+       near-solid block. */
+    background: color-mix(
+        in srgb,
+        var(--nc-tasks-item-tint, transparent) 8%,
+        transparent
+    );
     transition: background var(--nc-transition-fast);
 }
 
+.nc-tasks-item:last-child {
+    margin-bottom: 0;
+}
+
 .nc-tasks-item:hover {
-    background: var(--nc-bg-hover);
+    background: color-mix(
+        in srgb,
+        var(--nc-tasks-item-tint, transparent) 8%,
+        var(--nc-bg-hover)
+    );
 }
 
 .nc-tasks-item.nc-task-completed {
@@ -111,6 +137,25 @@
 .nc-tasks-checkbox:disabled {
     cursor: default;
     opacity: 0.5;
+}
+
+/* Same grow-and-brighten-on-hover, shrink-on-press feedback as the grid's
+   own task checkbox (see .nc-task-checkbox in CalendarGrid.css) — this is
+   the same control's other home, in the full task list rather than a block,
+   and it reads oddly if only one of the two answers a hover. */
+.nc-tasks-checkbox svg {
+    opacity: 0.85;
+    transition: transform 0.1s ease, opacity 0.1s ease;
+    transform-origin: center;
+}
+
+.nc-tasks-checkbox:not(:disabled):hover svg {
+    transform: scale(1.2);
+    opacity: 1;
+}
+
+.nc-tasks-checkbox:not(:disabled):active svg {
+    transform: scale(0.85);
 }
 
 /* The calendar's colour, so a task still says which calendar it came from
@@ -191,20 +236,58 @@
 
 .nc-desktop-tasks-summary {
     display: flex;
-    gap: 8px;
+    flex-direction: column;
     padding: 2px 8px 8px;
     min-width: 0;
 }
 
-.nc-desktop-tasks-summary .nc-status-pill {
+/* Same shape as a calendar row in the list above it — a plain field, not a
+   tag. The status colour is always on the icon; the row itself only picks it
+   up on hover, so the sidebar isn't showing two solid colour blocks at rest. */
+.nc-desktop-tasks-row {
+    display: flex;
+    align-items: center;
+    gap: var(--nc-spacing-sm);
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    box-shadow: none !important;
+    color: var(--nc-text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background var(--nc-transition-fast);
+}
+
+.nc-desktop-tasks-row-label {
+    flex: 1;
+    text-align: left;
     min-width: 0;
+}
+
+.nc-desktop-tasks-row-todo:hover {
+    background: color-mix(
+        in srgb,
+        var(--color-orange, #e9973f) 18%,
+        transparent
+    );
+}
+
+.nc-desktop-tasks-row-complete:hover {
+    background: color-mix(
+        in srgb,
+        var(--color-green, #2f9e44) 18%,
+        transparent
+    );
 }
 
 .nc-desktop-tasks-count {
     font-variant-numeric: tabular-nums;
+    color: var(--nc-text-secondary);
 }
 
-.nc-desktop-tasks-summary .nc-status-pill:focus-visible,
+.nc-desktop-tasks-summary .nc-desktop-tasks-row:focus-visible,
 .nc-task-modal-close:focus-visible,
 .nc-task-modal .nc-tasks-item:focus-visible,
 .nc-task-modal .nc-tasks-checkbox:focus-visible {
@@ -301,6 +384,19 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding: 8px;
+}
+
+/* Marks off a task just ticked here, held at the bottom of the To do list
+   until it's closed rather than vanishing straight to the Complete list. */
+.nc-task-modal-subheading {
+    margin: 10px 8px 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--nc-border, var(--background-modifier-border));
+    color: var(--nc-text-faint, var(--text-faint));
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .nc-task-modal .nc-tasks-item,

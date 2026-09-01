@@ -1960,8 +1960,6 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     display: flex;
     flex-direction: column;
     gap: 1px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--nc-border) transparent;
 }
 
 .nc-select-option {
@@ -2906,9 +2904,10 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     display: flex;
     flex-direction: column;
     gap: 1px;
-    /* Visible, slim scrollbar (Notion-style) when the calendar list overflows. */
-    scrollbar-width: thin;
-    scrollbar-color: var(--nc-border) transparent;
+    /* Visible, slim scrollbar (Notion-style) when the calendar list overflows:
+       drawn entirely by the `::-webkit-scrollbar` rules below. The standard
+       `scrollbar-width`/`scrollbar-color` properties must NOT be set here —
+       Chromium then ignores those rules and draws its own arrow buttons. */
 }
 
 .nc-cal-select-menu::-webkit-scrollbar {

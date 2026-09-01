@@ -69,6 +69,19 @@ export async function deleteDesktopEventFile(
     });
 }
 
+/** Idempotent: safe to call every sync cycle, not just the first. */
+export async function ensureDesktopIcsFolder(
+    dataFolder: string,
+    calendarPath: string,
+    name: string
+): Promise<string> {
+    return invoke<string>("ensure_desktop_ics_folder", {
+        dataFolder,
+        calendarPath,
+        name,
+    });
+}
+
 export async function createDesktopCalendarFolder(
     dataFolder: string,
     name: string

@@ -17,6 +17,10 @@ export interface DesktopStoredEvent {
     contents: string;
     event: NeoEvent;
     readOnly?: boolean;
+    /** The ICS link this note is managed by, when it is one — lets the
+     *  calendar filter a single link's events out without touching the rest
+     *  of the calendar it lives in. */
+    icsFeedId?: string;
 }
 
 /** Keys the model takes away rather than leaves behind — the type-exclusive
@@ -210,6 +214,9 @@ export function parseStoredEvent(
         contents: file.contents,
         event,
         ...(managed ? { readOnly: true } : {}),
+        ...(managed?.neoManagedBy === "neo-calendar:ics"
+            ? { icsFeedId: managed.neoIcsFeedId }
+            : {}),
     };
 }
 

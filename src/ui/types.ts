@@ -17,6 +17,9 @@ export interface DisplayEvent {
     editable: boolean;
     calendarId: string;
     calendarName: string;
+    /** The ICS link this event was materialised by, when it was one — lets a
+     *  view filter a single link's events out of the calendar they share. */
+    icsFeedId?: string;
     // Tasks
     isTask: boolean;
     taskCompleted: boolean | string; // false | ISO date string

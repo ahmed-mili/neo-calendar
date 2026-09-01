@@ -32,16 +32,31 @@ select {
 
 /* Theme every scrollable surface, including portals rendered directly under
    body (event editor, settings, shortcut list, context menus and vault search).
-   WebView2 otherwise falls back to the bright native Windows scrollbar. */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: var(--nc-scrollbar-thumb, var(--text-faint))
-        var(--nc-scrollbar-track, transparent);
+   WebView2 otherwise falls back to the bright native Windows scrollbar.
+
+   The theming MUST go through the `::-webkit-scrollbar` pseudo-elements alone.
+   Chromium honours either the standard `scrollbar-width`/`scrollbar-color`
+   properties or the pseudo-elements, never both: as soon as an element carries
+   one of the standard properties, every `::-webkit-scrollbar` rule for it is
+   dropped and the element falls back to Chromium's own scrollbar — which on
+   Windows draws an up and a down arrow button at the ends of the track. A `*`
+   rule setting `scrollbar-width: thin` therefore forced those arrows onto every
+   scrollable surface in the app, and no amount of
+   `::-webkit-scrollbar-button { display: none }` could take them away, because
+   that rule was never being applied in the first place. Do not reintroduce the
+   standard properties here, nor on any individual scroller (`scrollbar-width:
+   none`, which suppresses the bar outright, is the one safe exception). */
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
-*::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+/* Chromium's custom (pseudo-element) scrollbar draws end buttons only when
+   `::-webkit-scrollbar-button` is given a size, so this keeps them at zero. */
+*::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 *::-webkit-scrollbar-track {
@@ -52,6 +67,9 @@ select {
     background: var(--nc-scrollbar-track, transparent);
 }
 
+/* The border trick shrinks the visible bar without shrinking its hit target
+   (still the full 8px `width` above) — a slim pill floating clear of the
+   track's edges rather than a bar flush against them. */
 *::-webkit-scrollbar-thumb {
     min-height: 38px;
     border: 2px solid transparent;
@@ -1099,7 +1117,6 @@ button.nc-settings__theme-card:focus-visible {
     backdrop-filter: blur(14px) saturate(115%);
     -webkit-backdrop-filter: blur(14px) saturate(115%);
     font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-    scrollbar-color: var(--nc-scrollbar-thumb) var(--nc-scrollbar-track);
 }
 
 .nc-link-results-popover::-webkit-scrollbar,
@@ -4662,7 +4679,6 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     margin-top: 24px;
     overflow-x: hidden;
     overflow-y: auto;
-    scrollbar-width: thin;
 }
 
 .nc-settings__nav-group {
@@ -4810,7 +4826,6 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
-    scrollbar-width: thin;
     animation: nc-settings-desktop-page-in 150ms ease-out;
 }
 

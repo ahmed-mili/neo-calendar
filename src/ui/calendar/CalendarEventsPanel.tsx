@@ -10,6 +10,7 @@ import {
     PanelDateFilter,
     PanelPeriod,
     PanelStatusFilter,
+    PANEL_NO_ICS_FEED,
     filterPanelEvents,
     formatCardDate,
     formatPanelPeriod,
@@ -64,6 +65,10 @@ interface CalendarEventsPanelProps {
      *  plugin path) — the menu simply leaves the item out rather than
      *  showing something that would do nothing when pressed. */
     onManageIcsFeeds?: (calendarId: string) => void;
+    /** The calendar's own ICS links, for the Filters page that lets one be
+     *  shown or hidden — omitted the same way and for the same reason as
+     *  `onManageIcsFeeds`. */
+    icsFeeds?: { id: string; name: string }[];
     onRemove: (calendarId: string) => void;
     onColorChange: (calendarId: string, color: string) => void;
     open: boolean;
@@ -136,7 +141,7 @@ function currentMonthPeriod(): PanelPeriod {
 }
 
 type OpenMenu = "more" | "settings" | null;
-type SettingsPage = "root" | "status" | "date" | "period";
+type SettingsPage = "root" | "status" | "date" | "period" | "icsLinks";
 
 const STATUS_OPTIONS: { value: PanelStatusFilter; label: string }[] = [
     { value: "all", label: t("All") },
@@ -164,6 +169,7 @@ export default function CalendarEventsPanel({
     onSetDefault,
     onShowOnly,
     onManageIcsFeeds,
+    icsFeeds,
     onRemove,
     onColorChange,
     open,
@@ -195,6 +201,14 @@ export default function CalendarEventsPanel({
     const [statusFilter, setStatusFilter] =
         React.useState<PanelStatusFilter>("all");
     const [dateFilter, setDateFilter] = React.useState<PanelDateFilter>("all");
+    // Ephemeral like the two filters above it — resets whenever this panel
+    // is reopened rather than persisting, same as Status and Date.
+    const [hiddenFeedIds, setHiddenFeedIds] = React.useState<Set<string>>(
+        new Set()
+    );
+    const [openFeedMenuId, setOpenFeedMenuId] = React.useState<string | null>(
+        null
+    );
     const [period, setPeriod] = React.useState<PanelPeriod | null>(null);
     const [draftPeriod, setDraftPeriod] =
         React.useState<PanelPeriod>(currentMonthPeriod);
@@ -230,6 +244,8 @@ export default function CalendarEventsPanel({
         setSettingsPage("root");
         setStatusFilter("all");
         setDateFilter("all");
+        setHiddenFeedIds(new Set());
+        setOpenFeedMenuId(null);
         setPeriod(null);
         setDraftPeriod(currentMonthPeriod());
         setSearchQuery("");
@@ -242,9 +258,10 @@ export default function CalendarEventsPanel({
                 statusFilter,
                 dateFilter,
                 searchQuery,
-                period
+                period,
+                hiddenFeedIds
             ),
-        [events, statusFilter, dateFilter, searchQuery, period]
+        [events, statusFilter, dateFilter, searchQuery, period, hiddenFeedIds]
     );
     const summary = React.useMemo(
         () => summarizePanelEvents(filteredEvents),
@@ -287,6 +304,8 @@ export default function CalendarEventsPanel({
             ? t("Status")
             : settingsPage === "date"
             ? t("Date")
+            : settingsPage === "icsLinks"
+            ? t("ICS links")
             : t("Custom period");
 
     return (
@@ -613,6 +632,45 @@ export default function CalendarEventsPanel({
                                     </span>
                                     <ChevronRightIcon size={14} />
                                 </button>
+                                {icsFeeds && icsFeeds.length > 0 && (
+                                    <button
+                                        type="button"
+                                        className="nc-cep-menu-row"
+                                        onClick={() =>
+                                            setSettingsPage("icsLinks")
+                                        }
+                                    >
+                                        <LinkIcon size={15} />
+                                        <span className="nc-cep-menu-label">
+                                            {t("ICS links")}
+                                        </span>
+                                        <span className="nc-cep-menu-value">
+                                            {(() => {
+                                                // Count real feeds only —
+                                                // `hiddenFeedIds` also holds
+                                                // PANEL_NO_ICS_FEED while
+                                                // isolating, which isn't one
+                                                // of `icsFeeds.length` and
+                                                // was throwing this off by
+                                                // one (showing "0/1" for a
+                                                // single link isolated, i.e.
+                                                // fully visible).
+                                                const visible =
+                                                    icsFeeds.filter(
+                                                        (feedItem) =>
+                                                            !hiddenFeedIds.has(
+                                                                feedItem.id
+                                                            )
+                                                    ).length;
+                                                return visible ===
+                                                    icsFeeds.length
+                                                    ? t("All")
+                                                    : `${visible}/${icsFeeds.length}`;
+                                            })()}
+                                        </span>
+                                        <ChevronRightIcon size={14} />
+                                    </button>
+                                )}
                             </>
                         )}
 
@@ -672,6 +730,162 @@ export default function CalendarEventsPanel({
                                 </button>
                             </>
                         )}
+
+                        {settingsPage === "icsLinks" &&
+                            icsFeeds?.map((feedItem) => {
+                                const hidden = hiddenFeedIds.has(feedItem.id);
+                                const menuOpen =
+                                    openFeedMenuId === feedItem.id;
+                                const isOnlyVisible =
+                                    !hidden &&
+                                    hiddenFeedIds.has(PANEL_NO_ICS_FEED) &&
+                                    icsFeeds.every(
+                                        (candidate) =>
+                                            candidate.id === feedItem.id ||
+                                            hiddenFeedIds.has(candidate.id)
+                                    );
+                                return (
+                                    <div key={feedItem.id}>
+                                        <div className="nc-cep-menu-row nc-cep-ics-link-row">
+                                            <button
+                                                type="button"
+                                                className="nc-cep-ics-link-toggle"
+                                                onClick={() => {
+                                                    setHiddenFeedIds(
+                                                        (current) => {
+                                                            const next =
+                                                                new Set(
+                                                                    current
+                                                                );
+                                                            if (hidden) {
+                                                                next.delete(
+                                                                    feedItem.id
+                                                                );
+                                                            } else {
+                                                                next.add(
+                                                                    feedItem.id
+                                                                );
+                                                            }
+                                                            return next;
+                                                        }
+                                                    );
+                                                }}
+                                            >
+                                                <span
+                                                    className={`nc-cep-menu-check${
+                                                        isOnlyVisible
+                                                            ? " nc-active"
+                                                            : ""
+                                                    }`}
+                                                >
+                                                    {!hidden && (
+                                                        <CheckIcon
+                                                            size={14}
+                                                        />
+                                                    )}
+                                                </span>
+                                                <span className="nc-cep-menu-label">
+                                                    {feedItem.name}
+                                                </span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="nc-cep-ics-link-more"
+                                                aria-label={t(
+                                                    "More options"
+                                                )}
+                                                onClick={() =>
+                                                    setOpenFeedMenuId(
+                                                        menuOpen
+                                                            ? null
+                                                            : feedItem.id
+                                                    )
+                                                }
+                                            >
+                                                <MoreHorizontalIcon
+                                                    size={15}
+                                                />
+                                            </button>
+                                        </div>
+                                        {menuOpen && (
+                                            <button
+                                                type="button"
+                                                className={`nc-cep-menu-row nc-cep-ics-link-submenu${
+                                                    isOnlyVisible
+                                                        ? " nc-active"
+                                                        : ""
+                                                }`}
+                                                aria-pressed={isOnlyVisible}
+                                                onClick={() => {
+                                                    // A second click undoes
+                                                    // the isolation instead
+                                                    // of re-applying the same
+                                                    // state — otherwise a
+                                                    // click that lands while
+                                                    // already isolated does
+                                                    // nothing visible at all.
+                                                    setHiddenFeedIds(
+                                                        isOnlyVisible
+                                                            ? new Set()
+                                                            : new Set([
+                                                                  // Isolating
+                                                                  // means
+                                                                  // ONLY this
+                                                                  // link's
+                                                                  // events:
+                                                                  // every
+                                                                  // other
+                                                                  // link, but
+                                                                  // also this
+                                                                  // calendar's
+                                                                  // personal
+                                                                  // notes,
+                                                                  // which
+                                                                  // carry no
+                                                                  // feed id
+                                                                  // at all.
+                                                                  PANEL_NO_ICS_FEED,
+                                                                  ...icsFeeds
+                                                                      .filter(
+                                                                          (
+                                                                              candidate
+                                                                          ) =>
+                                                                              candidate.id !==
+                                                                              feedItem.id
+                                                                      )
+                                                                      .map(
+                                                                          (
+                                                                              candidate
+                                                                          ) =>
+                                                                              candidate.id
+                                                                      ),
+                                                              ])
+                                                    );
+                                                    // Left open, not closed:
+                                                    // the icon turning blue
+                                                    // IS the confirmation
+                                                    // that the click landed,
+                                                    // and closing the menu
+                                                    // immediately would hide
+                                                    // it before it's seen.
+                                                }}
+                                            >
+                                                <EyeIcon size={15} />
+                                                <span className="nc-cep-menu-label">
+                                                    {isOnlyVisible
+                                                        ? t("Stop isolating")
+                                                        : t(
+                                                              "Show only this link"
+                                                          )}
+                                                </span>
+                                                {isOnlyVisible && (
+                                                    <CheckIcon size={14} />
+                                                )}
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
 
                         {settingsPage === "period" && (
                             <div className="nc-cep-period-editor">

@@ -13,6 +13,12 @@ export interface IcsFeedSubscription {
     url: string;
     refreshMinutes?: IcsRefreshMinutes;
     active: boolean;
+    /** The subfolder (relative to the data folder, e.g. "Études/EFREI") this
+     *  link's own notes are written into — nested under its calendar's
+     *  folder rather than mixed into it, so the calendar can still tell its
+     *  own notes apart from an ICS feed's. Absent on a link created before
+     *  this existed or not yet synced once; the sync path fills it in. */
+    directory?: string;
 }
 
 export const MAX_ICS_FEEDS_PER_CALENDAR = 5;
@@ -30,6 +36,18 @@ function calendarPath(value: unknown): string | null {
         return null;
     }
     return path;
+}
+
+/** Two path segments — an ICS link's own folder nested under its calendar's:
+ *  the same rules as `calendarPath`, applied to each segment, joined with a
+ *  forward slash (the wire format `safe_join` on the Rust side expects). */
+function icsDirectory(value: unknown): string | null {
+    const path = stringValue(value);
+    if (!path) return null;
+    const segments = path.split("/");
+    if (segments.length !== 2) return null;
+    const [calendar, link] = segments.map(calendarPath);
+    return calendar && link ? `${calendar}/${link}` : null;
 }
 
 function isRefreshMinutes(value: unknown): value is IcsRefreshMinutes {
@@ -88,6 +106,7 @@ export function parseIcsFeeds(value: unknown): IcsFeedSubscription[] {
         urlsByCalendar.set(path, urls);
         countsByCalendar.set(path, count + 1);
         ids.add(id);
+        const directory = icsDirectory(source.directory);
         feeds.push({
             id,
             calendarPath: path,
@@ -97,6 +116,7 @@ export function parseIcsFeeds(value: unknown): IcsFeedSubscription[] {
                 ? { refreshMinutes: source.refreshMinutes }
                 : {}),
             active: typeof source.active === "boolean" ? source.active : true,
+            ...(directory ? { directory } : {}),
         });
     }
     return feeds;

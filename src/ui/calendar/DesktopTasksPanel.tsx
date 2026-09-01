@@ -49,6 +49,8 @@ function TaskRow({
         <div
             className={`nc-tasks-item${done ? " nc-task-completed" : ""}`}
             data-task-id={task.id}
+            style={{ "--nc-tasks-item-tint": task.color } as React.CSSProperties}
+            title={task.calendarName}
             onClick={() => onTaskClick(task)}
             onKeyDown={(event) => {
                 if (event.target !== event.currentTarget) return;
@@ -85,11 +87,6 @@ function TaskRow({
             >
                 <TaskCheckbox completed={done} />
             </button>
-            <span
-                className="nc-tasks-dot"
-                style={{ backgroundColor: task.color }}
-                title={task.calendarName}
-            />
             <span className="nc-tasks-title">
                 {task.title || t("Untitled")}
             </span>
@@ -133,6 +130,34 @@ export default function DesktopTasksPanel({
         setOpenGroup(null);
         triggerRef.current?.focus();
     }, []);
+
+    // A task ticked off while this list is open stays put instead of jumping
+    // straight to the Complete list out from under the cursor — it moves
+    // there for real, just not until the list is closed and reopened.
+    const [recentlyCompletedIds, setRecentlyCompletedIds] = React.useState<
+        string[]
+    >([]);
+    React.useEffect(() => {
+        setRecentlyCompletedIds([]);
+    }, [openGroup]);
+    const tasksById = React.useMemo(
+        () => new Map(tasks.map((task) => [task.id, task])),
+        [tasks]
+    );
+    const recentlyCompleted = recentlyCompletedIds
+        .map((id) => tasksById.get(id))
+        .filter((task): task is TaskItem => !!task && task.status === "complete");
+    const handleToggleTask = React.useCallback(
+        (id: string, done: boolean) => {
+            if (openGroup === "todo" && done) {
+                setRecentlyCompletedIds((current) =>
+                    current.includes(id) ? current : [...current, id]
+                );
+            }
+            return onToggleTask(id, done);
+        },
+        [openGroup, onToggleTask]
+    );
 
     React.useEffect(() => {
         if (openGroup === null) return;
@@ -223,9 +248,28 @@ export default function DesktopTasksPanel({
                                       task={task}
                                       today={today}
                                       onTaskClick={openTask}
-                                      onToggleTask={onToggleTask}
+                                      onToggleTask={handleToggleTask}
                                   />
                               ))}
+                              {openGroup === "todo" &&
+                                  recentlyCompleted.length > 0 && (
+                                      <>
+                                          <div className="nc-task-modal-subheading">
+                                              {t("Recently completed")}
+                                          </div>
+                                          {recentlyCompleted.map((task) => (
+                                              <TaskRow
+                                                  key={task.id}
+                                                  task={task}
+                                                  today={today}
+                                                  onTaskClick={openTask}
+                                                  onToggleTask={
+                                                      handleToggleTask
+                                                  }
+                                              />
+                                          ))}
+                                      </>
+                                  )}
                           </div>
                       </section>
                   </div>,
@@ -238,7 +282,7 @@ export default function DesktopTasksPanel({
             <div className="nc-desktop-tasks-summary">
                 <button
                     type="button"
-                    className="nc-status-pill nc-status-todo"
+                    className="nc-desktop-tasks-row nc-desktop-tasks-row-todo"
                     onClick={(event) => {
                         triggerRef.current = event.currentTarget;
                         setOpenGroup("todo");
@@ -247,14 +291,16 @@ export default function DesktopTasksPanel({
                     <span className="nc-status-icon nc-status-icon-todo">
                         <TaskCheckbox completed={false} size={12} />
                     </span>
-                    {t("To do")}
+                    <span className="nc-desktop-tasks-row-label">
+                        {t("To do")}
+                    </span>
                     <span className="nc-desktop-tasks-count">
                         {groups.todo.length}
                     </span>
                 </button>
                 <button
                     type="button"
-                    className="nc-status-pill nc-status-complete"
+                    className="nc-desktop-tasks-row nc-desktop-tasks-row-complete"
                     onClick={(event) => {
                         triggerRef.current = event.currentTarget;
                         setOpenGroup("complete");
@@ -263,7 +309,9 @@ export default function DesktopTasksPanel({
                     <span className="nc-status-icon nc-status-icon-complete">
                         <TaskCheckbox completed={true} size={12} />
                     </span>
-                    {t("Complete")}
+                    <span className="nc-desktop-tasks-row-label">
+                        {t("Complete")}
+                    </span>
                     <span className="nc-desktop-tasks-count">
                         {groups.complete.length}
                     </span>

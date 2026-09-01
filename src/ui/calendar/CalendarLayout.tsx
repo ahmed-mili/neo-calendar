@@ -71,6 +71,8 @@ interface CalendarLayoutProps {
     onRenameCalendar: (calendarId: string, newName: string) => Promise<void>;
     onEditCalendarLink: (calendarId: string) => void;
     onManageIcsFeeds?: (calendarId: string) => void;
+    /** The panel's own calendar's ICS links, for its Filters page. */
+    panelIcsFeeds?: { id: string; name: string }[];
     onDeleteCalendar: (calendarId: string) => void;
     onColorChange: (calendarId: string, color: string) => void;
     onReorderCalendars: (orderedIds: string[]) => void;
@@ -163,6 +165,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         onRenameCalendar,
         onEditCalendarLink,
         onManageIcsFeeds,
+        panelIcsFeeds,
         onDeleteCalendar,
         onColorChange,
         onReorderCalendars,
@@ -365,6 +368,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                     onSetDefault={onSetDefaultCalendar}
                     onShowOnly={onShowOnly}
                     onManageIcsFeeds={onManageIcsFeeds}
+                    icsFeeds={panelIcsFeeds}
                     onRemove={onDeleteCalendar}
                     onColorChange={onColorChange}
                     open={panelOpen}

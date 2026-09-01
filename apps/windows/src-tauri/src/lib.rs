@@ -278,47 +278,58 @@ fn discover_calendar_directories(root: &Path) -> Result<Vec<(String, String, Pat
     Ok(directories)
 }
 
+/// Recurses into subfolders (an ICS link's own directory, say) so their notes
+/// still count toward the calendar whose top-level folder this call started
+/// from — every file found gets the SAME `calendar_path`, regardless of how
+/// deep it actually sits, which is what keeps a nested ICS folder part of its
+/// parent calendar rather than becoming a calendar of its own.
 fn read_event_files(
     root: &Path,
     calendar_path: &str,
     absolute_calendar_path: &Path,
 ) -> Result<Vec<DesktopEventFileDto>, String> {
     let mut files = Vec::new();
+    let mut directories = vec![absolute_calendar_path.to_path_buf()];
 
-    for entry in fs::read_dir(absolute_calendar_path).map_err(|error| {
-        format!(
-            "Unable to read calendar folder '{}': {error}",
-            absolute_calendar_path.display()
-        )
-    })? {
-        let entry = entry.map_err(|error| format!("Unable to read a calendar entry: {error}"))?;
-        let path = entry.path();
-        let file_type = entry
-            .file_type()
-            .map_err(|error| format!("Unable to inspect '{}': {error}", path.display()))?;
-        if !file_type.is_file() || !is_markdown_file(&path) {
-            continue;
+    while let Some(directory) = directories.pop() {
+        for entry in fs::read_dir(&directory).map_err(|error| {
+            format!("Unable to read calendar folder '{}': {error}", directory.display())
+        })? {
+            let entry =
+                entry.map_err(|error| format!("Unable to read a calendar entry: {error}"))?;
+            let path = entry.path();
+            let file_type = entry
+                .file_type()
+                .map_err(|error| format!("Unable to inspect '{}': {error}", path.display()))?;
+
+            if file_type.is_dir() {
+                directories.push(path);
+                continue;
+            }
+            if !file_type.is_file() || !is_markdown_file(&path) {
+                continue;
+            }
+
+            let bytes = fs::read(&path)
+                .map_err(|error| format!("Unable to read '{}': {error}", path.display()))?;
+            let contents = String::from_utf8_lossy(&bytes).into_owned();
+            let relative_path = path
+                .strip_prefix(root)
+                .map(normalized_relative)
+                .map_err(|_| format!("'{}' is outside the data folder.", path.display()))?;
+            let file_name = path
+                .file_name()
+                .and_then(OsStr::to_str)
+                .unwrap_or("event.md")
+                .to_string();
+
+            files.push(DesktopEventFileDto {
+                relative_path,
+                calendar_path: calendar_path.to_string(),
+                file_name,
+                contents,
+            });
         }
-
-        let bytes = fs::read(&path)
-            .map_err(|error| format!("Unable to read '{}': {error}", path.display()))?;
-        let contents = String::from_utf8_lossy(&bytes).into_owned();
-        let relative_path = path
-            .strip_prefix(root)
-            .map(normalized_relative)
-            .map_err(|_| format!("'{}' is outside the data folder.", path.display()))?;
-        let file_name = path
-            .file_name()
-            .and_then(OsStr::to_str)
-            .unwrap_or("event.md")
-            .to_string();
-
-        files.push(DesktopEventFileDto {
-            relative_path,
-            calendar_path: calendar_path.to_string(),
-            file_name,
-            contents,
-        });
     }
 
     files.sort_by(|left, right| left.file_name.to_lowercase().cmp(&right.file_name.to_lowercase()));
@@ -445,6 +456,44 @@ fn delete_desktop_event_file(data_folder: String, relative_path: String) -> Resu
     }
     fs::remove_file(&path)
         .map_err(|error| format!("Unable to delete '{}': {error}", path.display()))
+}
+
+/// Gives an ICS link its own folder directly under its Full Note calendar's
+/// folder. Idempotent for that same name — calling it again for a link whose
+/// folder already exists is a no-op rather than an error, since a sync cycle
+/// needs to be able to ensure the folder is there without first checking
+/// whether some earlier cycle already made it — but a name already taken by
+/// something that ISN'T a folder still fails loudly rather than writing into
+/// whatever that is.
+#[tauri::command(rename_all = "camelCase")]
+fn ensure_desktop_ics_folder(
+    data_folder: String,
+    calendar_path: String,
+    name: String,
+) -> Result<String, String> {
+    let root = root_path(&data_folder)?;
+    let calendar_directory = safe_join(&root, &calendar_path)?;
+    if !calendar_directory.is_dir() {
+        return Err(format!(
+            "Calendar folder '{}' does not exist.",
+            calendar_directory.display()
+        ));
+    }
+
+    let validated_name = validate_single_name(&name, "ICS link")?;
+    let directory = calendar_directory.join(&validated_name);
+    if !directory.exists() {
+        fs::create_dir(&directory)
+            .map_err(|error| format!("Unable to create '{}': {error}", directory.display()))?;
+    } else if !directory.is_dir() {
+        return Err(format!("'{}' already exists and is not a folder.", directory.display()));
+    }
+
+    let relative = directory
+        .strip_prefix(&root)
+        .map(normalized_relative)
+        .map_err(|_| format!("'{}' is outside the data folder.", directory.display()))?;
+    Ok(relative)
 }
 
 #[tauri::command(rename_all = "camelCase")]
@@ -1735,6 +1784,7 @@ pub fn run() {
             write_desktop_event_file,
             delete_desktop_event_file,
             create_desktop_calendar_folder,
+            ensure_desktop_ics_folder,
             rename_desktop_calendar_folder,
             delete_desktop_calendar_folder,
             open_desktop_path,

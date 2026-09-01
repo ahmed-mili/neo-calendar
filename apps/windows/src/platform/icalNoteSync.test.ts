@@ -548,4 +548,43 @@ describe("planIcsNoteSync — conservation and prudent deletion", () => {
         expect(plan.writes).toEqual([]);
     });
 
+    it("updates the same note in place when a feed reissues a fresh UID for an unchanged occurrence", () => {
+        // Observed live on an Efrei feed: same title, same day, same time,
+        // a brand-new random UID on every single fetch. Pure-UID matching
+        // saw a "new" occurrence every sync and never stopped creating
+        // notes for it — this is the content-signature fallback that
+        // recognises it's the same occurrence regardless.
+        const record = managedRecord("uid-fetch-1", "2027-04-22", "Xperience");
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({
+                events: [occurrence("uid-fetch-2", "2027-04-22", "Xperience")],
+            }),
+            existingRecords: [record],
+            previousState: state(),
+            now,
+        });
+
+        expect(plan.writes).toHaveLength(1);
+        expect(plan.writes[0].previousRelativePath).toBe(record.relativePath);
+        expect(plan.writes[0].fileName).toBe(record.fileName);
+        expect(plan.writes[0].contents).toContain('neoIcsUid: "uid-fetch-2"');
+    });
+
+    it("still creates a new note when title, date, and time all genuinely differ", () => {
+        const record = managedRecord("uid-fetch-1", "2027-04-22", "Xperience");
+        const plan = planIcsNoteSync({
+            feed,
+            snapshot: snapshot({
+                events: [occurrence("uid-fetch-2", "2027-04-23", "Xperience")],
+            }),
+            existingRecords: [record],
+            previousState: state(),
+            now,
+        });
+
+        expect(plan.writes).toHaveLength(1);
+        expect(plan.writes[0].previousRelativePath).toBeUndefined();
+    });
+
 });
