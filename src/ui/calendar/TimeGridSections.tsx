@@ -24,7 +24,7 @@ import TimezoneColumn, {
 import { TimezonePicker } from "./TimezonePicker";
 import { AllDayCollapseChevrons, XIcon } from "./Icons";
 import { AllDayLanesResult } from "./useAllDayLanes";
-import { SelectionState, DragPreview } from "./TimeGrid.types";
+import { SelectionState, DragPreview, PrayerLine } from "./TimeGrid.types";
 import { t } from "../i18n";
 
 type OverlapGroups = ReturnType<typeof computeOverlapGroups>;
@@ -525,6 +525,9 @@ interface DayColumnProps {
     ) => void;
     handleDoubleClick: (e: React.MouseEvent, date: Date) => void;
     handleEmptyContext: (e: React.MouseEvent, date: Date) => void;
+    /** Les traits de prière de CE jour, déjà triés par le parent. */
+    prayerLines?: PrayerLine[];
+    prayerColor?: string;
 }
 
 function DayColumn({
@@ -548,6 +551,8 @@ function DayColumn({
     handleMouseDown,
     handleDoubleClick,
     handleEmptyContext,
+    prayerLines,
+    prayerColor,
 }: DayColumnProps) {
     const dayKey = date.toDateString();
     const dayStart = startOfDay(date);
@@ -720,6 +725,25 @@ function DayColumn({
                     <div className="nc-now-tick" style={{ top: nowTop }} />
                 </>
             )}
+
+            {/* Les horaires de prière. Un trait, rien d'autre : l'heure se lit
+                à sa hauteur, et le nom de la prière se déduit de l'heure. Ils
+                portent la couleur de leur calendrier, donc ils s'éteignent
+                avec lui sans que rien ici ait à le savoir. */}
+            {prayerLines?.map((line) => (
+                <div
+                    key={`${line.hours}-${line.next}`}
+                    className={`nc-prayer-line${
+                        line.next ? " nc-prayer-line--next" : ""
+                    }`}
+                    style={
+                        {
+                            top: scaledPx(line.hours),
+                            "--nc-prayer-color": prayerColor,
+                        } as React.CSSProperties
+                    }
+                />
+            ))}
         </div>
     );
 }
@@ -760,6 +784,8 @@ interface DaysAreaProps {
     handleDoubleClick: (e: React.MouseEvent, date: Date) => void;
     handleEmptyContext: (e: React.MouseEvent, date: Date) => void;
     contextLine?: { date: Date; top: number } | null;
+    prayerLines?: PrayerLine[];
+    prayerColor?: string;
 }
 
 export function TimeGridDays({
@@ -785,12 +811,26 @@ export function TimeGridDays({
     handleDoubleClick,
     handleEmptyContext,
     contextLine,
+    prayerLines,
+    prayerColor,
 }: DaysAreaProps) {
     const contextLineIdx = contextLine
         ? extendedDates.findIndex(
               (d) => d.toDateString() === contextLine.date.toDateString()
           )
         : -1;
+
+    /* Un trait de prière appartient à un jour, et la grille rend aussi des
+       colonnes tampon hors écran : les grouper par jour une fois vaut mieux que
+       filtrer la liste dans chacune des colonnes. */
+    const prayersByDay = React.useMemo(() => {
+        const byDay = new Map<string, PrayerLine[]>();
+        for (const line of prayerLines ?? []) {
+            const key = line.date.toDateString();
+            byDay.set(key, [...(byDay.get(key) ?? []), line]);
+        }
+        return byDay;
+    }, [prayerLines]);
 
     return (
         <div className="nc-days-row" style={{ width: scrollerWidthStyle }}>
@@ -817,6 +857,8 @@ export function TimeGridDays({
                     handleMouseDown={handleMouseDown}
                     handleDoubleClick={handleDoubleClick}
                     handleEmptyContext={handleEmptyContext}
+                    prayerLines={prayersByDay.get(date.toDateString())}
+                    prayerColor={prayerColor}
                 />
             ))}
             {contextLine && contextLineIdx >= 0 && (

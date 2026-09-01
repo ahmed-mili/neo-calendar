@@ -1039,6 +1039,14 @@
     border-color: var(--nc-border);
 }
 
+/* Verrouillée et vide : rien à écrire, donc rien à annoncer. Le contour du
+   survol dit « ce champ vous attend », et il ne l'attend pas. Porte les mêmes
+   trois classes que la règle du dessus plus la sienne, donc elle la bat sans
+   `!important`. */
+.nc-panel-body .nc-panel-row.nc-panel-row-desc.nc-panel-row-desc--silent:hover {
+    border-color: transparent;
+}
+
 .nc-panel-body .nc-panel-row.nc-panel-row-desc:focus-within {
     border-color: var(--nc-border);
     background: var(--nc-bg-hover);

@@ -41,6 +41,16 @@ export interface DesktopWorkspacePreferences {
     icsDefaultRefreshMinutes: IcsRefreshMinutes;
     icsFeeds: IcsFeedSubscription[];
     externalCalendars: DesktopExternalCalendarSource[];
+    /**
+     * Par chemin de calendrier, la mosquée dont il affiche les horaires.
+     *
+     * Une table par chemin plutôt qu'un réglage unique : les horaires
+     * appartiennent à un calendrier — ils prennent sa couleur et s'éteignent
+     * avec lui —, et rien n'interdit d'en suivre deux. Une entrée dont
+     * l'identifiant n'est plus connu est ignorée sans bruit, ce qui laisse
+     * retirer une mosquée du code sans casser un dossier de données.
+     */
+    prayerMosques: Record<string, string>;
 }
 
 const VIEW_TYPES: ViewType[] = [
@@ -94,6 +104,7 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         icsDefaultRefreshMinutes: 60,
         icsFeeds: [],
         externalCalendars: [],
+        prayerMosques: {},
     };
 }
 
@@ -232,6 +243,11 @@ export function reconcileWorkspacePreferences({
                     )
             ),
         ]),
+        // Comme les couleurs : le choix d'une mosquée est attaché à un
+        // calendrier, et le téléphone ne doit pas effacer celui que
+        // l'ordinateur vient de faire pour un autre. Le fichier gagne sur les
+        // calendriers que les deux connaissent.
+        prayerMosques: { ...previous.prayerMosques, ...loaded.prayerMosques },
     };
 }
 
@@ -347,5 +363,20 @@ export function parseDesktopWorkspacePreferences(
             ...legacySources.filter((calendar) => calendar.type === "auto"),
             ...legacyIcalMigration.unresolved,
         ],
+        prayerMosques: prayerMosquesOf(source.prayerMosques),
     };
+}
+
+/** Des paires « chemin de calendrier → identifiant de mosquée », et rien
+ *  d'autre : un fichier de préférences édité à la main ne doit pas pouvoir
+ *  faire entrer un objet là où on lit une chaîne. */
+function prayerMosquesOf(source: unknown): Record<string, string> {
+    if (!source || typeof source !== "object" || Array.isArray(source)) {
+        return {};
+    }
+    const pairs = Object.entries(source as Record<string, unknown>).filter(
+        (pair): pair is [string, string] =>
+            typeof pair[1] === "string" && pair[1].trim() !== ""
+    );
+    return Object.fromEntries(pairs);
 }

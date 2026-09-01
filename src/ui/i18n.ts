@@ -589,6 +589,17 @@ const FR: Record<string, string> = {
         "Ce calendrier a déjà le maximum de cinq liens ICS.",
     "Enter a valid HTTPS or webcal address.":
         "Cette adresse n'est pas valide. Entrez une adresse HTTPS ou webcal.",
+    // ── Horaires de priere ───────────────────────────────────
+    "Prayer times": "Horaires de prière",
+    "No prayer times": "Aucun horaire de prière",
+    "This calendar shows nothing of the prayers.":
+        "Ce calendrier n'affiche rien des prières.",
+    Timetable: "Calendrier",
+    "Jumu'a": "Jumu'a",
+    "A line marks the next prayer, in this calendar's colour.":
+        "Un trait marque la prochaine prière, à la couleur de ce calendrier.",
+    "A line marks the next prayer, in this calendar's colour. Hold P to see the whole day's.":
+        "Un trait marque la prochaine prière, à la couleur de ce calendrier. Maintenez P pour voir celles de la journée.",
     "ICS link (optional)": "Lien ICS (facultatif)",
     "An https:// or webcal:// address. Its events are synchronised into this calendar and stay read-only. To add, change or remove links later: three-dot menu of the calendar, “ICS links”.":
         "Une adresse https:// ou webcal://. Ses évènements sont synchronisés dans ce calendrier et restent en lecture seule. Pour ajouter, modifier ou retirer des liens ensuite : menu à trois points du calendrier, « Liens ICS ».",

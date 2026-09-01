@@ -65,7 +65,12 @@ import {
     eventToPaste,
     cutMayDeleteSource,
 } from "../../../src/ui/calendar/useClipboardActions";
-import type { DragPreview } from "../../../src/ui/calendar/TimeGrid.types";
+import type {
+    DragPreview,
+    PrayerLine,
+} from "../../../src/ui/calendar/TimeGrid.types";
+import { prayerLinesFor } from "../../../src/ui/calendar/prayerTimes";
+import { prayerTimetableById } from "../../../src/ui/calendar/prayerTimetables";
 import type { PanelDropTarget } from "../../../src/ui/calendar/usePanelDrag";
 import {
     CopyIcon,
@@ -83,6 +88,7 @@ import AddCalendarDialog, {
 } from "./AddCalendarDialog";
 import ConfirmDialog from "./ConfirmDialog";
 import IcsFeedsPanel from "./IcsFeedsPanel";
+import PrayerMosqueDialog from "./PrayerMosqueDialog";
 import type { IcsFeedSubscription } from "./platform/icsFeedPreferences";
 import RecurringDeleteDialog from "./RecurringDeleteDialog";
 import {
@@ -580,6 +586,9 @@ export default function DesktopCalendar({
     const [panelPreview, setPanelPreview] = useState<DragPreview | null>(null);
     const [, setIsSaving] = useState(false);
     const [storageError, setStorageError] = useState<string | null>(null);
+    const [prayerDialogCalendarId, setPrayerDialogCalendarId] = useState<
+        string | null
+    >(null);
     const [icsFeedsPanelCalendarId, setIcsFeedsPanelCalendarId] = useState<
         string | null
     >(null);
@@ -1274,6 +1283,103 @@ export default function DesktopCalendar({
         }, 60 * 1000);
         return () => window.clearInterval(timer);
     }, [hasIcsFeeds, refreshIcsFeeds]);
+
+    /* ── Les horaires de prière ────────────────────────────────────────
+     *
+     * Un calendrier peut suivre une mosquée. Ses horaires ne deviennent pas des
+     * évènements — rien n'est écrit sur le disque, rien ne s'ouvre, rien ne se
+     * déplace : ce sont des heures de la journée, et la grille les montre par un
+     * trait, comme elle montre l'heure qu'il est.
+     *
+     * Le trait de la prochaine prière est là en permanence. Les cinq du jour ne
+     * s'affichent que tant qu'on tient la touche P — sur ordinateur seulement :
+     * un téléphone n'a pas de touche à tenir, et Mawaqit y fait déjà ce
+     * travail.
+     */
+    const prayerCalendar = useMemo(
+        () =>
+            calendars.find(
+                (calendar) =>
+                    !hiddenCalendars.has(calendar.id) &&
+                    prayerTimetableById(
+                        preferences.prayerMosques[calendar.relativePath]
+                    ) !== null
+            ) ?? null,
+        [calendars, hiddenCalendars, preferences.prayerMosques]
+    );
+
+    const prayerTimetable = prayerTimetableById(
+        prayerCalendar
+            ? preferences.prayerMosques[prayerCalendar.relativePath]
+            : null
+    );
+
+    // La minute, pas la seconde : le trait de la prochaine prière ne bouge
+    // qu'aux changements de prière, et une horloge à la minute suffit pour
+    // qu'il passe à la suivante sans qu'on ait à recharger.
+    const [prayerMinute, setPrayerMinute] = useState(() => new Date());
+    useEffect(() => {
+        if (!prayerTimetable) return;
+        const timer = window.setInterval(
+            () => setPrayerMinute(new Date()),
+            60 * 1000
+        );
+        return () => window.clearInterval(timer);
+    }, [prayerTimetable]);
+
+    const [prayerAllHeld, setPrayerAllHeld] = useState(false);
+    useEffect(() => {
+        if (isAndroid || !prayerTimetable) return;
+
+        const isTyping = () => {
+            const active = document.activeElement;
+            return (
+                active instanceof HTMLElement &&
+                (active.isContentEditable ||
+                    ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName))
+            );
+        };
+        // Une touche nue, donc jamais pendant qu'on écrit, et jamais en
+        // combinaison : Ctrl+P imprime, et ce raccourci n'a pas à s'en mêler.
+        const holds = (event: KeyboardEvent) =>
+            event.key.toLowerCase() === "p" &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.altKey &&
+            !isTyping();
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (!holds(event)) return;
+            event.preventDefault();
+            setPrayerAllHeld(true);
+        };
+        const onKeyUp = (event: KeyboardEvent) => {
+            if (event.key.toLowerCase() !== "p") return;
+            setPrayerAllHeld(false);
+        };
+        // La fenêtre qui perd le focus ne rendra jamais son keyup : sans ça les
+        // cinq traits restaient affichés après un alt-tab.
+        const onBlur = () => setPrayerAllHeld(false);
+
+        window.addEventListener("keydown", onKeyDown);
+        window.addEventListener("keyup", onKeyUp);
+        window.addEventListener("blur", onBlur);
+        return () => {
+            window.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener("keyup", onKeyUp);
+            window.removeEventListener("blur", onBlur);
+        };
+    }, [isAndroid, prayerTimetable]);
+
+    const prayerLines = useMemo(
+        (): PrayerLine[] =>
+            prayerLinesFor({
+                timetable: prayerTimetable,
+                now: prayerMinute,
+                showAll: prayerAllHeld,
+            }),
+        [prayerAllHeld, prayerMinute, prayerTimetable]
+    );
 
     const calendarPath = useCallback((calendarId: string): string | null => {
         const calendar = calendarsRef.current.find(
@@ -3407,6 +3513,8 @@ export default function DesktopCalendar({
                 // deux lectures possibles, et le reglage existe pour lui
                 // (voir DesktopSettings, ou la ligne n'apparait que la).
                 freeScroll={isAndroid ? preferences.freeScroll : true}
+                prayerLines={prayerLines}
+                prayerColor={prayerCalendar?.color}
                 sidebarVisible={sidebarVisible}
                 onToggleSidebar={toggleSidebar}
                 onEventClick={selectEvent}
@@ -3479,6 +3587,9 @@ export default function DesktopCalendar({
                 }}
                 onManageIcsFeeds={(calendarId: string) =>
                     setIcsFeedsPanelCalendarId(calendarId)
+                }
+                onManagePrayerTimes={(calendarId: string) =>
+                    setPrayerDialogCalendarId(calendarId)
                 }
                 panelIcsFeeds={panelIcsFeeds}
                 onDeleteCalendar={(calendarId: string) =>
@@ -3798,6 +3909,41 @@ export default function DesktopCalendar({
                 existingNames={calendars.map((calendar) => calendar.name)}
                 onClose={() => setAddCalendarOpen(false)}
                 onCreate={createCalendar}
+            />
+
+            <PrayerMosqueDialog
+                open={prayerDialogCalendarId !== null}
+                calendarName={
+                    (prayerDialogCalendarId
+                        ? calendarById.get(prayerDialogCalendarId)?.name
+                        : undefined) ?? ""
+                }
+                mosqueId={
+                    (prayerDialogCalendarId
+                        ? preferences.prayerMosques[
+                              calendarById.get(prayerDialogCalendarId)
+                                  ?.relativePath ?? ""
+                          ]
+                        : undefined) ?? null
+                }
+                onClose={() => setPrayerDialogCalendarId(null)}
+                onChoose={(mosqueId) => {
+                    const path = prayerDialogCalendarId
+                        ? calendarById.get(prayerDialogCalendarId)?.relativePath
+                        : undefined;
+                    if (!path) return;
+                    // Retirer l'entree plutot que d'y ecrire une chaine vide :
+                    // le fichier de preferences ne garde ainsi que les
+                    // calendriers qui suivent vraiment une mosquee.
+                    void updateWorkspacePreferences({
+                        prayerMosques: Object.fromEntries(
+                            Object.entries({
+                                ...preferences.prayerMosques,
+                                [path]: mosqueId ?? "",
+                            }).filter(([, value]) => value !== "")
+                        ),
+                    });
+                }}
             />
 
             <IcsFeedsPanel

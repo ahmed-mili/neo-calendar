@@ -954,7 +954,18 @@ export function DescriptionSection({
                 </>
             ) : (
                 <div
-                    className="nc-panel-row nc-panel-row-desc nc-description-composer"
+                    /* Verrouillée et vide, la ligne n'a rien à proposer : ni
+                       texte d'invite (le placeholder est retiré plus bas), ni
+                       contour au survol. Un évènement venu d'un lien ICS
+                       porte presque toujours une description — celle du
+                       module, des enseignants —, mais quand il n'en a pas, la
+                       ligne ne doit pas se présenter comme un champ à
+                       remplir. */
+                    className={`nc-panel-row nc-panel-row-desc nc-description-composer${
+                        !editable && !description
+                            ? " nc-panel-row-desc--silent"
+                            : ""
+                    }`}
                     onClick={(event) => {
                         if (!editable) return;
                         const target = event.target;
@@ -1013,7 +1024,18 @@ export function DescriptionSection({
                             className="nc-panel-textarea"
                             data-description-input="true"
                             value={description}
-                            placeholder={t("Add a description")}
+                            /* Rien à ajouter sur un évènement qu'on ne peut pas
+                               modifier : « Ajouter une description » y invitait
+                               à une chose impossible, sur les évènements venus
+                               d'un lien ICS notamment. Le champ vide et
+                               verrouillé ne dit donc plus rien, et son survol
+                               ne répond pas non plus (voir
+                               .nc-panel-textarea[readonly] dans
+                               CalendarPanel.css) — comme les autres champs
+                               verrouillés de la fiche. */
+                            placeholder={
+                                editable ? t("Add a description") : undefined
+                            }
                             onChange={(event) => {
                                 const value = event.target.value;
                                 // Keep the imperative snapshot in lockstep with

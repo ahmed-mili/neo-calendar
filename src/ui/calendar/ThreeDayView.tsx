@@ -1,6 +1,6 @@
 import * as React from "react";
 import { DisplayEvent } from "../types";
-import { DraftRange } from "./TimeGrid.types";
+import { DraftRange, PrayerLine } from "./TimeGrid.types";
 import TimeGrid from "./TimeGrid";
 import { isMultiDayTimed } from "./CalendarUtils";
 
@@ -11,6 +11,8 @@ interface ThreeDayViewProps {
     timeFormat24h: boolean;
     /** Let the day grid come to rest between two days instead of on whole ones. */
     freeScroll?: boolean;
+    prayerLines?: PrayerLine[];
+    prayerColor?: string;
     secondaryTimezones?: string[];
     onAddTimezone: (tz: string) => void;
     onRemoveTimezone: (tz: string) => void;
@@ -55,6 +57,8 @@ export default function ThreeDayView(props: ThreeDayViewProps) {
                 events={timedEvents}
                 timeFormat24h={props.timeFormat24h}
                 freeScroll={props.freeScroll}
+                prayerLines={props.prayerLines}
+                prayerColor={props.prayerColor}
                 secondaryTimezones={props.secondaryTimezones}
                 onAddTimezone={props.onAddTimezone}
                 onRemoveTimezone={props.onRemoveTimezone}

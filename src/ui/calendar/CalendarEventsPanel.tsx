@@ -4,6 +4,7 @@ import { DisplayEvent } from "../types";
 import { CalendarInfo } from "../../types";
 import { formatTime, addDays, isAndroidRuntime } from "./CalendarUtils";
 import ColorPicker from "./ColorPicker";
+import { ClockIcon } from "./EventPanelIcons";
 import { usePanelDrag, PanelDropTarget } from "./usePanelDrag";
 import { useCalendarEventsPanelSwipe } from "./useCalendarEventsPanelSwipe";
 import {
@@ -65,6 +66,9 @@ interface CalendarEventsPanelProps {
      *  plugin path) — the menu simply leaves the item out rather than
      *  showing something that would do nothing when pressed. */
     onManageIcsFeeds?: (calendarId: string) => void;
+    /** Le choix de la mosquee dont ce calendrier suit les horaires, omis pour
+     *  la meme raison que `onManageIcsFeeds`. */
+    onManagePrayerTimes?: (calendarId: string) => void;
     /** The calendar's own ICS links, for the Filters page that lets one be
      *  shown or hidden — omitted the same way and for the same reason as
      *  `onManageIcsFeeds`. */
@@ -169,6 +173,7 @@ export default function CalendarEventsPanel({
     onSetDefault,
     onShowOnly,
     onManageIcsFeeds,
+    onManagePrayerTimes,
     icsFeeds,
     onRemove,
     onColorChange,
@@ -551,6 +556,21 @@ export default function CalendarEventsPanel({
                                 <LinkIcon size={15} />
                                 <span className="nc-cep-menu-label">
                                     {t("ICS links")}
+                                </span>
+                            </button>
+                        )}
+                        {calendar.type === "local" && onManagePrayerTimes && (
+                            <button
+                                type="button"
+                                className="nc-cep-menu-row"
+                                onClick={() => {
+                                    setOpenMenu(null);
+                                    onManagePrayerTimes(calendar.id);
+                                }}
+                            >
+                                <ClockIcon />
+                                <span className="nc-cep-menu-label">
+                                    {t("Prayer times")}
                                 </span>
                             </button>
                         )}

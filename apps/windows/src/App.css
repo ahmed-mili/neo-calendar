@@ -773,7 +773,8 @@ button.nc-settings__theme-card:focus-visible {
 .nc-confirm-backdrop,
 .nc-choice-backdrop,
 .nc-ics-backdrop,
-.nc-task-modal-backdrop {
+.nc-task-modal-backdrop,
+.nc-prayer-backdrop {
     background: var(--nc-float-veil) !important;
 }
 
@@ -2543,6 +2544,148 @@ button.nc-settings__theme-card:focus-visible {
     .nc-settings__calendar-add-control {
         width: 100%;
     }
+}
+
+/* ── Le choix d'une mosquée ───────────────────────────────────────────
+ *
+ * Trois lignes et un « aucune » : une liste, pas un menu déroulant. Reprend la
+ * matière des autres dialogues — surface opaque, voile derrière — et son propre
+ * filet visible, parce que `--nc-border` vaut `transparent` dans le thème par
+ * défaut (voir la note du panneau des liens ICS).
+ */
+.nc-prayer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50010;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: var(--nc-float-veil);
+}
+
+.nc-prayer-dialog {
+    --prayer-line: var(--background-modifier-border);
+
+    width: min(520px, calc(100vw - 36px));
+    max-height: calc(100vh - 48px);
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+    border: 1px solid var(--prayer-line);
+    border-radius: 14px;
+    color: var(--text-normal);
+    background: var(--nc-float-surface);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
+    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    overflow: hidden;
+}
+
+.nc-prayer-dialog__header {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.nc-prayer-dialog__icon {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    color: var(--text-muted);
+}
+
+.nc-prayer-dialog__header h2 {
+    margin: 0;
+    min-width: 0;
+    font-size: 16px;
+    overflow-wrap: anywhere;
+}
+
+.nc-prayer-dialog__close {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    color: var(--text-muted);
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.nc-prayer-dialog__close:hover {
+    border: 1px solid var(--prayer-line);
+}
+
+.nc-prayer-dialog__list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 14px;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.nc-prayer-dialog__option {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--prayer-line);
+    border-radius: 10px;
+    color: var(--text-normal);
+    background: color-mix(in srgb, var(--text-normal) 3%, transparent) !important;
+    box-shadow: none !important;
+    text-align: left;
+}
+
+.nc-prayer-dialog__option:hover {
+    border-color: var(--interactive-accent);
+}
+
+/* L'état choisi pèse plus lourd que le survol, sinon une ligne choisie sous la
+   souris ne se distingue plus des autres. */
+.nc-prayer-dialog__option.is-selected {
+    border-color: var(--interactive-accent);
+    background: color-mix(
+        in srgb,
+        var(--interactive-accent) 14%,
+        transparent
+    ) !important;
+}
+
+.nc-prayer-dialog__option-text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.nc-prayer-dialog__option-text strong {
+    font-size: 13.5px;
+    overflow-wrap: anywhere;
+}
+
+.nc-prayer-dialog__option-text span {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.nc-prayer-dialog__mark {
+    display: grid;
+    place-items: center;
+    color: var(--interactive-accent);
+}
+
+.nc-prayer-dialog__hint {
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--prayer-line);
+    color: var(--text-muted);
+    font-size: 11.5px;
+    line-height: 1.45;
 }
 
 /* ── Themed confirmation dialog (never exposes localhost WebView prompts) ── */

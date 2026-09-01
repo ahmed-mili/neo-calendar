@@ -1,6 +1,9 @@
 import * as React from "react";
 import { CalendarSource, DisplayEvent, ViewType } from "../types";
 import MiniCalendar from "./MiniCalendar";
+// L'horloge du panneau d'evenement plutot qu'une nouvelle : c'est la meme
+// chose qu'elle dit, une heure de la journee.
+import { ClockIcon } from "./EventPanelIcons";
 import DesktopTasksPanel from "./DesktopTasksPanel";
 import TasksPanel from "./TasksPanel";
 import { TaskItem } from "../tasks/taskList";
@@ -62,6 +65,8 @@ interface CalendarSidebarProps {
      *  plugin path) — the sidebar simply leaves the menu item out rather than
      *  showing something that would do nothing when pressed. */
     onManageIcsFeeds?: (calendarId: string) => void;
+    /** Ouvre le choix de la mosquee dont ce calendrier suit les horaires. */
+    onManagePrayerTimes?: (calendarId: string) => void;
     onDeleteCalendar: (calendarId: string) => void;
     onColorChange: (calendarId: string, color: string) => void;
     onReorderCalendars: (orderedIds: string[]) => void;
@@ -101,6 +106,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         onRenameCalendar,
         onEditCalendarLink,
         onManageIcsFeeds,
+        onManagePrayerTimes,
         onDeleteCalendar,
         onColorChange,
         onReorderCalendars,
@@ -249,6 +255,17 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                     label: t("ICS links"),
                     icon: <LinkIcon />,
                     onClick: () => onManageIcsFeeds(source.id),
+                });
+            }
+            // Les horaires de priere d'une mosquee, montres par un trait dans
+            // la grille plutot que par des evenements. Absent la ou rien ne
+            // peut les enregistrer, comme l'entree au-dessus.
+            if (onManagePrayerTimes) {
+                items.push({
+                    key: "prayer-times",
+                    label: t("Prayer times"),
+                    icon: <ClockIcon />,
+                    onClick: () => onManagePrayerTimes(source.id),
                 });
             }
         }

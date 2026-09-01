@@ -20,10 +20,32 @@ export interface DraftRange {
     end: Date;
 }
 
+/**
+ * Un trait d'horaire de prière, posé dans la grille comme la ligne de l'heure
+ * qu'il est.
+ *
+ * Aucun évènement, aucun fichier : un horaire de prière n'est pas quelque chose
+ * qu'on déplace ou qu'on annote, c'est une heure de la journée. Le trait la
+ * montre et n'occupe pas la place d'un rendez-vous.
+ */
+export interface PrayerLine {
+    /** Le jour où il se pose — la prochaine prière peut être le Fajr de demain. */
+    date: Date;
+    /** L'heure, en heures décimales, pour suivre le zoom comme le reste. */
+    hours: number;
+    /** Celui de la prochaine prière : plein, quand les autres sont estompés. */
+    next: boolean;
+}
+
 export interface TimeGridProps {
     dates: Date[];
     events: DisplayEvent[];
     timeFormat24h: boolean;
+    /** Les traits d'horaires de prière à poser, s'il y en a. */
+    prayerLines?: PrayerLine[];
+    /** La couleur du calendrier auquel ils appartiennent : ce sont ses traits,
+     *  ils suivent sa couleur et disparaissent avec lui. */
+    prayerColor?: string;
     /** Let the day grid come to rest between two days instead of on whole ones. */
     freeScroll?: boolean;
     secondaryTimezones?: string[];

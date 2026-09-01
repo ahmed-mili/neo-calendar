@@ -1189,6 +1189,38 @@
     z-index: 6;
 }
 
+/* ── Les horaires de prière ──────────────────────────────────
+ *
+ * Le même geste que la ligne de l'heure qu'il est, à une autre heure : un trait
+ * en travers de la colonne du jour. Ce n'est pas un évènement — rien à ouvrir,
+ * rien à déplacer, rien sur le disque —, donc rien ne l'entoure et il ne prend
+ * la place de rien.
+ *
+ * La couleur vient du calendrier auquel les horaires appartiennent, posée en
+ * style inline par la colonne. Sans elle le trait ne se dessine pas : c'est
+ * voulu, un trait sans calendrier n'a pas de raison d'être là.
+ */
+.nc-prayer-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    /* Estompé : ce sont les heures du jour, pas celle qui arrive. */
+    background: color-mix(in srgb, var(--nc-prayer-color) 55%, transparent);
+    pointer-events: none;
+    z-index: 4;
+}
+
+/* Celle qui vient. Pleine et deux fois plus épaisse, comme la ligne de l'heure
+   qu'il est : c'est la seule des cinq qu'on regarde en passant. */
+.nc-prayer-line--next {
+    height: 2px;
+    background: var(--nc-prayer-color);
+    border-radius: 999px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
+    z-index: 5;
+}
+
 /* Un tiret vertical au bord gauche de la colonne du jour, pas une pastille :
    le point rond de 8 px pesait plus lourd que la ligne qu'il annonce, et sur
    un fond d'ecran il se lisait comme une tache. Mesure sur la capture de

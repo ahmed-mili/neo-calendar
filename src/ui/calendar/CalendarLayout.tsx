@@ -37,6 +37,9 @@ interface CalendarLayoutProps {
     timeFormat24h: boolean;
     /** Let the day grid come to rest between two days instead of on whole ones. */
     freeScroll?: boolean;
+    /** Les traits d'horaires de priere, et la couleur de leur calendrier. */
+    prayerLines?: import("./TimeGrid.types").PrayerLine[];
+    prayerColor?: string;
     sidebarVisible: boolean;
     onToggleSidebar: () => void;
     onEventClick: (eventId: string) => void;
@@ -71,6 +74,7 @@ interface CalendarLayoutProps {
     onRenameCalendar: (calendarId: string, newName: string) => Promise<void>;
     onEditCalendarLink: (calendarId: string) => void;
     onManageIcsFeeds?: (calendarId: string) => void;
+    onManagePrayerTimes?: (calendarId: string) => void;
     /** The panel's own calendar's ICS links, for its Filters page. */
     panelIcsFeeds?: { id: string; name: string }[];
     onDeleteCalendar: (calendarId: string) => void;
@@ -139,6 +143,8 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         firstDay,
         timeFormat24h,
         freeScroll,
+        prayerLines,
+        prayerColor,
         sidebarVisible,
         onToggleSidebar,
         onEventClick,
@@ -165,6 +171,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         onRenameCalendar,
         onEditCalendarLink,
         onManageIcsFeeds,
+        onManagePrayerTimes,
         panelIcsFeeds,
         onDeleteCalendar,
         onColorChange,
@@ -229,6 +236,8 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         firstDay,
         timeFormat24h,
         freeScroll,
+        prayerLines,
+        prayerColor,
         secondaryTimezones,
         onAddTimezone,
         onRemoveTimezone,
@@ -332,6 +341,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                 onRenameCalendar={onRenameCalendar}
                 onEditCalendarLink={onEditCalendarLink}
                 onManageIcsFeeds={onManageIcsFeeds}
+                onManagePrayerTimes={onManagePrayerTimes}
                 onDeleteCalendar={onDeleteCalendar}
                 onColorChange={onColorChange}
                 onReorderCalendars={onReorderCalendars}
@@ -368,6 +378,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                     onSetDefault={onSetDefaultCalendar}
                     onShowOnly={onShowOnly}
                     onManageIcsFeeds={onManageIcsFeeds}
+                    onManagePrayerTimes={onManagePrayerTimes}
                     icsFeeds={panelIcsFeeds}
                     onRemove={onDeleteCalendar}
                     onColorChange={onColorChange}

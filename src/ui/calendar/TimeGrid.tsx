@@ -147,6 +147,8 @@ export default function TimeGrid(props: TimeGridProps) {
         externalPreview,
         onEventUnschedule,
         freeScroll = false,
+        prayerLines,
+        prayerColor,
     } = props;
 
     const gridRef = useRef<HTMLDivElement>(null);
@@ -773,6 +775,8 @@ export default function TimeGrid(props: TimeGridProps) {
                             handleDoubleClick={handleDoubleClick}
                             handleEmptyContext={handleEmptyContext}
                             contextLine={contextLine}
+                            prayerLines={prayerLines}
+                            prayerColor={prayerColor}
                         />
                     </div>
                 </div>
