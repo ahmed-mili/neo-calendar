@@ -1,11 +1,10 @@
 import * as React from "react";
 import { TaskCheckbox } from "./TaskCheckbox";
+import { TaskItem, isOverdue, effectiveDue } from "../tasks/taskList";
 import {
-    TaskItem,
-    buildTaskSections,
-    isOverdue,
-    effectiveDue,
-} from "../tasks/taskList";
+    buildDesktopTaskGroups,
+    hasTaskCompletionDate,
+} from "../tasks/desktopTaskGroups";
 import { formatDatedDayWithYear } from "./calendarFormatters";
 import { ChevronDownIcon } from "./Icons";
 import { t } from "../i18n";
@@ -49,6 +48,14 @@ function TaskRow({
     // that is actually late, which is the confusion this panel exists to end.
     const day = effectiveDue(task);
     const hasDeadline = task.due !== null;
+    // A dateless task has nothing to be "on time" or "late" for, so it can
+    // never be marked complete — it stays in the outstanding pile until it
+    // gets a date or a deadline.
+    const canToggle =
+        task.editable && hasTaskCompletionDate(task.date, task.due);
+    const unavailableToggleLabel = t(
+        "Add a date or deadline before completing this task"
+    );
     return (
         <div
             className={`nc-tasks-item${done ? " nc-task-completed" : ""}`}
@@ -65,11 +72,12 @@ function TaskRow({
             <button
                 type="button"
                 className="nc-tasks-checkbox"
-                disabled={!task.editable}
+                disabled={!canToggle}
                 aria-label={done ? t("Complete") : t("To do")}
+                title={canToggle ? undefined : unavailableToggleLabel}
                 onClick={(e) => {
                     e.stopPropagation();
-                    if (task.editable) onToggleTask(task.id, !done);
+                    if (canToggle) onToggleTask(task.id, !done);
                 }}
             >
                 <TaskCheckbox completed={done} />
@@ -127,9 +135,12 @@ export default function TasksPanel({
     // through", which is worth asking and never urgent.
     const [doneOpen, setDoneOpen] = React.useState(false);
 
-    const sections = React.useMemo(
-        () => buildTaskSections(tasks, today),
-        [tasks, today]
+    // Same grouping as the desktop panel: outstanding and dateless tasks share
+    // one pile instead of splitting into "To do" / "No date" — a task without
+    // a date is still something to do, not a separate kind of thing.
+    const groups = React.useMemo(
+        () => buildDesktopTaskGroups(tasks),
+        [tasks]
     );
 
     const rowsOf = (items: TaskItem[]) =>
@@ -143,40 +154,25 @@ export default function TasksPanel({
             />
         ));
 
-    const empty =
-        sections.todo.length === 0 &&
-        sections.undated.length === 0 &&
-        sections.done.length === 0;
+    const empty = groups.todo.length === 0 && groups.complete.length === 0;
 
     return (
         <div className="nc-tasks-panel">
             {empty && <div className="nc-tasks-empty">{t("No tasks yet")}</div>}
 
-            {sections.todo.length > 0 && (
+            {groups.todo.length > 0 && (
                 <div className="nc-tasks-section">
                     <div className="nc-tasks-section-title">
                         {t("To do")}
                         <span className="nc-tasks-count">
-                            {sections.todo.length}
+                            {groups.todo.length}
                         </span>
                     </div>
-                    {rowsOf(sections.todo)}
+                    {rowsOf(groups.todo)}
                 </div>
             )}
 
-            {sections.undated.length > 0 && (
-                <div className="nc-tasks-section">
-                    <div className="nc-tasks-section-title">
-                        {t("No date")}
-                        <span className="nc-tasks-count">
-                            {sections.undated.length}
-                        </span>
-                    </div>
-                    {rowsOf(sections.undated)}
-                </div>
-            )}
-
-            {sections.done.length > 0 && (
+            {groups.complete.length > 0 && (
                 <div className="nc-tasks-section">
                     <div
                         className="nc-tasks-section-title nc-tasks-collapsible"
@@ -200,10 +196,10 @@ export default function TasksPanel({
                         </span>
                         {t("Completed")}
                         <span className="nc-tasks-count">
-                            {sections.done.length}
+                            {groups.complete.length}
                         </span>
                     </div>
-                    {doneOpen && rowsOf(sections.done)}
+                    {doneOpen && rowsOf(groups.complete)}
                 </div>
             )}
 
