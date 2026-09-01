@@ -579,6 +579,30 @@ const FR: Record<string, string> = {
         "Choisissez le dossier de données de Neo Calendar.",
     "Calendar files stay outside every Obsidian vault.":
         "Les fichiers de calendrier restent hors de tout coffre Obsidian.",
+
+    // ── ICS links (Full Note calendars) ──────────────────────
+    "ICS links": "Liens ICS",
+    "Add an ICS link": "Ajouter un lien ICS",
+    "No ICS links yet.": "Aucun lien ICS pour l'instant.",
+    Name: "Nom",
+    "This calendar already has the maximum of five ICS links.":
+        "Ce calendrier a déjà le maximum de cinq liens ICS.",
+    "Enter a valid HTTPS or webcal address.":
+        "Cette adresse n'est pas valide. Entrez une adresse HTTPS ou webcal.",
+    "This link is already used by another feed on this calendar.":
+        "Ce lien est déjà utilisé par un autre flux de ce calendrier.",
+    Frequency: "Fréquence",
+    "Refresh now": "Actualiser maintenant",
+    "Never synced": "Jamais synchronisé",
+    "Syncing…": "Synchronisation…",
+    "Last sync on": "Dernière synchro. le",
+    at: "à",
+    "Default ICS refresh frequency": "Fréquence d'actualisation ICS par défaut",
+    "Apply to all links": "Appliquer à tous les liens",
+    "Apply this frequency to every ICS link on every calendar?":
+        "Appliquer cette fréquence à tous les liens ICS de tous les calendriers ?",
+    "This sets every link's frequency to this value and removes any per-link override.":
+        "Cette action règle la fréquence de tous les liens sur cette valeur et retire leurs remplacements individuels.",
 };
 
 const DICTIONARIES: Record<Language, Record<string, string>> = {

@@ -141,6 +141,104 @@ describe("calendar removal wording", () => {
     });
 });
 
+describe("ICS links menu entry", () => {
+    it("offers Liens ICS on a local calendar and hands its id up, without touching the legacy ical menu", () => {
+        expect(component).toContain('key: "ics-feeds"');
+        expect(component).toContain('label: t("ICS links")');
+        expect(component).toContain("onManageIcsFeeds(source.id)");
+        // The legacy `ical` branch stays exactly as it was — this task does
+        // not touch it (Task 6 removes it).
+        expect(component).toContain('label: t("Edit link")');
+    });
+
+    it("opens the ICS links panel for a Full Note calendar from its menu", () => {
+        const onManageIcsFeeds = jest.fn();
+        const props: React.ComponentProps<typeof CalendarSidebar> = {
+            sidebarVisible: true,
+            currentDate: new Date(2026, 8, 3),
+            viewType: "week",
+            onViewTypeChange: () => {},
+            dayCount: 7,
+            onSetDayCount: () => {},
+            calendarSources: [
+                {
+                    id: "cal-1",
+                    name: "Cours",
+                    color: "#4477aa",
+                    editable: true,
+                    type: "local",
+                },
+            ],
+            firstDay: 1,
+            onDateSelect: () => {},
+            hiddenCalendars: new Set(),
+            onToggleCalendar: () => {},
+            defaultCalendarId: "",
+            soloCalendarId: null,
+            onSetDefaultCalendar: () => {},
+            onShowOnly: () => {},
+            tasks: [],
+            today: "2026-09-03",
+            onEventClick: () => {},
+            onAddTask: () => {},
+            onToggleTask: async () => true,
+            onAddCalendar: () => {},
+            onRenameCalendar: async () => {},
+            onEditCalendarLink: () => {},
+            onManageIcsFeeds,
+            onDeleteCalendar: () => {},
+            onColorChange: () => {},
+            onReorderCalendars: () => {},
+            onOpenCalendarFolder: () => {},
+            onOpenRootFolder: () => {},
+            onCalendarClick: () => {},
+            selectedCalendarId: null,
+            onToggleSidebar: () => {},
+            onOpenSearch: () => {},
+            onOpenSettings: () => {},
+        };
+
+        applyLanguage("fr");
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        try {
+            act(() => {
+                ReactDOM.render(
+                    React.createElement(CalendarSidebar, props),
+                    host
+                );
+            });
+
+            const trigger = Array.from(
+                host.querySelectorAll<HTMLButtonElement>(
+                    ".nc-calendar-action-btn"
+                )
+            ).find((button) => button.title === t("More options"));
+            expect(trigger).toBeTruthy();
+            act(() => trigger?.click());
+
+            const menuItem = Array.from(
+                document.querySelectorAll<HTMLButtonElement>(
+                    '.nc-cal-menu [role="menuitem"]'
+                )
+            ).find((button) => button.textContent?.includes(t("ICS links")));
+            expect(menuItem).toBeTruthy();
+            act(() => menuItem?.click());
+
+            expect(onManageIcsFeeds).toHaveBeenCalledWith("cal-1");
+        } finally {
+            act(() => {
+                ReactDOM.unmountComponentAtNode(host);
+            });
+            host.remove();
+            document
+                .querySelectorAll(".nc-cal-menu, .nc-cal-menu-overlay")
+                .forEach((node) => node.remove());
+            applyLanguage("fr");
+        }
+    });
+});
+
 describe("tasks platform branches", () => {
     const props: React.ComponentProps<typeof CalendarSidebar> = {
         sidebarVisible: true,
@@ -166,6 +264,7 @@ describe("tasks platform branches", () => {
         onAddCalendar: () => {},
         onRenameCalendar: async () => {},
         onEditCalendarLink: () => {},
+        onManageIcsFeeds: () => {},
         onDeleteCalendar: () => {},
         onColorChange: () => {},
         onReorderCalendars: () => {},

@@ -1415,6 +1415,10 @@ function CalendarAppInner(props: CalendarAppProps) {
                     onAddCalendar={handleAddCalendar}
                     onRenameCalendar={handleRenameCalendar}
                     onEditCalendarLink={handleEditCalendarLink}
+                    // The Obsidian plugin doesn't carry the desktop/Android
+                    // app's ICS feed preferences store, so the menu entry
+                    // exists for parity but has nothing to open here yet.
+                    onManageIcsFeeds={() => {}}
                     onDeleteCalendar={handleDeleteCalendar}
                     onColorChange={handleColorChange}
                     onReorderCalendars={handleReorderCalendars}

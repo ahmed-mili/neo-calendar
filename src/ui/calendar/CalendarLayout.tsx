@@ -70,6 +70,7 @@ interface CalendarLayoutProps {
     onAddCalendar: () => void;
     onRenameCalendar: (calendarId: string, newName: string) => Promise<void>;
     onEditCalendarLink: (calendarId: string) => void;
+    onManageIcsFeeds: (calendarId: string) => void;
     onDeleteCalendar: (calendarId: string) => void;
     onColorChange: (calendarId: string, color: string) => void;
     onReorderCalendars: (orderedIds: string[]) => void;
@@ -161,6 +162,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         onAddCalendar,
         onRenameCalendar,
         onEditCalendarLink,
+        onManageIcsFeeds,
         onDeleteCalendar,
         onColorChange,
         onReorderCalendars,
@@ -326,6 +328,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                 onAddCalendar={onAddCalendar}
                 onRenameCalendar={onRenameCalendar}
                 onEditCalendarLink={onEditCalendarLink}
+                onManageIcsFeeds={onManageIcsFeeds}
                 onDeleteCalendar={onDeleteCalendar}
                 onColorChange={onColorChange}
                 onReorderCalendars={onReorderCalendars}

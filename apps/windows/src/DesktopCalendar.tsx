@@ -82,6 +82,8 @@ import AddCalendarDialog, {
     type AddCalendarRequest,
 } from "./AddCalendarDialog";
 import ConfirmDialog from "./ConfirmDialog";
+import IcsFeedsPanel from "./IcsFeedsPanel";
+import type { IcsFeedSubscription } from "./platform/icsFeedPreferences";
 import RecurringDeleteDialog from "./RecurringDeleteDialog";
 import {
     copyDesktopAttachment,
@@ -569,6 +571,9 @@ export default function DesktopCalendar({
     const [panelPreview, setPanelPreview] = useState<DragPreview | null>(null);
     const [, setIsSaving] = useState(false);
     const [storageError, setStorageError] = useState<string | null>(null);
+    const [icsFeedsPanelCalendarId, setIcsFeedsPanelCalendarId] = useState<
+        string | null
+    >(null);
 
     const calendarRootRef = useRef<HTMLElement>(null);
     const calendarsRef = useRef(calendars);
@@ -3287,6 +3292,9 @@ export default function DesktopCalendar({
                         );
                     }
                 }}
+                onManageIcsFeeds={(calendarId: string) =>
+                    setIcsFeedsPanelCalendarId(calendarId)
+                }
                 onDeleteCalendar={(calendarId: string) =>
                     void removeCalendar(calendarId)
                 }
@@ -3596,6 +3604,76 @@ export default function DesktopCalendar({
                 existingNames={calendars.map((calendar) => calendar.name)}
                 onClose={() => setAddCalendarOpen(false)}
                 onCreate={createCalendar}
+            />
+
+            <IcsFeedsPanel
+                open={icsFeedsPanelCalendarId !== null}
+                calendarId={icsFeedsPanelCalendarId ?? ""}
+                calendarName={
+                    (icsFeedsPanelCalendarId &&
+                        calendarById.get(icsFeedsPanelCalendarId)?.name) ??
+                    ""
+                }
+                feeds={preferences.icsFeeds.filter(
+                    (feed) =>
+                        feed.calendarPath ===
+                        (icsFeedsPanelCalendarId
+                            ? calendarById.get(icsFeedsPanelCalendarId)
+                                  ?.relativePath
+                            : undefined)
+                )}
+                runtimeStates={{}}
+                defaultRefreshMinutes={preferences.icsDefaultRefreshMinutes}
+                onClose={() => setIcsFeedsPanelCalendarId(null)}
+                onAdd={(name, url, refreshMinutes) => {
+                    const calendarPath = icsFeedsPanelCalendarId
+                        ? calendarById.get(icsFeedsPanelCalendarId)
+                              ?.relativePath
+                        : undefined;
+                    if (!calendarPath) return;
+                    const feed: IcsFeedSubscription = {
+                        id: internalEventId(),
+                        calendarPath,
+                        name,
+                        url,
+                        active: true,
+                        ...(refreshMinutes ? { refreshMinutes } : {}),
+                    };
+                    void updateWorkspacePreferences({
+                        icsFeeds: [...preferences.icsFeeds, feed],
+                    });
+                }}
+                onEdit={(feedId, patch) => {
+                    void updateWorkspacePreferences({
+                        icsFeeds: preferences.icsFeeds.map((feed) =>
+                            feed.id === feedId ? { ...feed, ...patch } : feed
+                        ),
+                    });
+                }}
+                onRemove={(feedId) => {
+                    void updateWorkspacePreferences({
+                        icsFeeds: preferences.icsFeeds.filter(
+                            (feed) => feed.id !== feedId
+                        ),
+                    });
+                }}
+                onRefreshNow={() => {
+                    // Actually running a sync on demand is wired once the ICS
+                    // scheduler is connected to the desktop shell; this panel
+                    // only manages the subscriptions themselves.
+                }}
+                onApplyFrequencyToAll={(minutes) => {
+                    // Writes the value into every source (across every
+                    // calendar) and removes their per-link overrides, so
+                    // they all follow the new default from here on.
+                    void updateWorkspacePreferences({
+                        icsDefaultRefreshMinutes: minutes,
+                        icsFeeds: preferences.icsFeeds.map(
+                            ({ refreshMinutes: _refreshMinutes, ...feed }) =>
+                                feed
+                        ),
+                    });
+                }}
             />
 
             <RecurringDeleteDialog

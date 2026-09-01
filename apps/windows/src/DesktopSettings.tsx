@@ -46,6 +46,10 @@ import type {
     MobileInitialView,
 } from "./platform/desktopWorkspacePreferences";
 import {
+    ICS_REFRESH_MINUTES,
+    type IcsRefreshMinutes,
+} from "./platform/icsFeedPreferences";
+import {
     ArrowLeft,
     Bell,
     CalendarClock,
@@ -243,6 +247,10 @@ function isValidHex(value: string): boolean {
     return /^#[0-9a-fA-F]{6}$/.test(value.trim());
 }
 
+function icsFrequencyLabel(minutes: IcsRefreshMinutes): string {
+    return minutes < 60 ? `${minutes} min` : `${minutes / 60} h`;
+}
+
 export default function DesktopSettings({
     open,
     initialTab = "general",
@@ -289,6 +297,7 @@ export default function DesktopSettings({
     // then how many entries actually came back as events.
     const [convertOpen, setConvertOpen] = useState(false);
     const [convertedCount, setConvertedCount] = useState<number | null>(null);
+    const [applyIcsFrequencyOpen, setApplyIcsFrequencyOpen] = useState(false);
     const importThemeInputRef = useRef<HTMLInputElement>(null);
     const [appearance, setAppearance] = useState<AppearancePreferences>(() =>
         loadAppearancePreferences()
@@ -1232,6 +1241,38 @@ export default function DesktopSettings({
                     ))}
                 </SettingsGroup>
             )}
+
+            <SettingsGroup
+                title={t("ICS links")}
+                note={t(
+                    "This sets every link's frequency to this value and removes any per-link override."
+                )}
+            >
+                <SettingsChoiceRow
+                    label={t("Default ICS refresh frequency")}
+                    icon={<RefreshCw size={18} />}
+                    value={String(preferences.icsDefaultRefreshMinutes)}
+                    options={ICS_REFRESH_MINUTES.map((minutes) => ({
+                        value: String(minutes),
+                        label: icsFrequencyLabel(minutes),
+                    }))}
+                    onOpen={openChoice}
+                    onChange={(value) =>
+                        patchPreferences({
+                            icsDefaultRefreshMinutes: Number(
+                                value
+                            ) as IcsRefreshMinutes,
+                        })
+                    }
+                />
+                {preferences.icsFeeds.length > 0 && (
+                    <SettingsRow
+                        label={t("Apply to all links")}
+                        icon={<RefreshCw size={18} />}
+                        onClick={() => setApplyIcsFrequencyOpen(true)}
+                    />
+                )}
+            </SettingsGroup>
         </div>
     );
 
@@ -1750,6 +1791,26 @@ export default function DesktopSettings({
                     onClose={() => setChoice(null)}
                 />
             )}
+
+            <ConfirmDialog
+                open={applyIcsFrequencyOpen}
+                title={t("Apply to all links")}
+                message={`${t(
+                    "Apply this frequency to every ICS link on every calendar?"
+                )} ${t(
+                    "This sets every link's frequency to this value and removes any per-link override."
+                )}`}
+                confirmLabel={t("Apply to all links")}
+                onClose={() => setApplyIcsFrequencyOpen(false)}
+                onConfirm={async () => {
+                    await onPreferencesChange({
+                        icsFeeds: preferences.icsFeeds.map(
+                            ({ refreshMinutes: _refreshMinutes, ...feed }) =>
+                                feed
+                        ),
+                    });
+                }}
+            />
 
             <ConfirmDialog
                 open={convertOpen}

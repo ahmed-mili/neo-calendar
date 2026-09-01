@@ -25,6 +25,17 @@ describe("t", () => {
     });
 });
 
+describe("ICS links wording", () => {
+    it("names the sidebar menu entry and the panel's add action in French", () => {
+        applyLanguage("fr");
+        expect(t("ICS links")).toBe("Liens ICS");
+        expect(t("Add an ICS link")).toBe("Ajouter un lien ICS");
+        expect(t("Never synced")).toBe("Jamais synchronisé");
+        expect(t("Syncing…")).toBe("Synchronisation…");
+        expect(t("Apply to all links")).toBe("Appliquer à tous les liens");
+    });
+});
+
 describe("tList", () => {
     it("reads the months in French", () => {
         applyLanguage("fr");

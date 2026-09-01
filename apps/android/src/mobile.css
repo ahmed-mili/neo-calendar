@@ -4968,3 +4968,40 @@ body.nc-platform-android .nc-panel-body .nc-panel-row.nc-panel-row-desc {
     margin-right: 10px;
 }
 /* NEO_PANEL_ICON_COLUMN_ANDROID_V1_END */
+
+/* ── ICS links panel on Android ───────────────────────────────────────
+   Same 22px icon column as the rest of the phone's chrome, a full-width
+   sheet rather than a centered dialog, and the add form stacked into one
+   column — three fields side by side on a phone-width row is how the URL
+   field used to end up a handful of characters wide. */
+body.nc-platform-android .nc-ics-panel {
+    width: min(480px, 100%);
+    max-height: 92vh;
+    padding: 14px;
+    border-radius: 20px;
+}
+
+body.nc-platform-android .nc-ics-panel__icon,
+body.nc-platform-android .nc-ics-feed-row__icon {
+    width: 22px;
+    flex-basis: 22px;
+}
+
+body.nc-platform-android .nc-ics-panel__add-form {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+body.nc-platform-android .nc-ics-panel__add-form input,
+body.nc-platform-android .nc-ics-panel__add-form button {
+    flex-basis: auto;
+    width: 100%;
+}
+
+body.nc-platform-android .nc-ics-feed-row {
+    padding: 10px;
+}
+
+body.nc-platform-android .nc-ics-feed-row__frequency {
+    flex: 1 1 100%;
+}

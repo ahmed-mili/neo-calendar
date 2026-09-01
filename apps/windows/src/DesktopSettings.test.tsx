@@ -142,4 +142,45 @@ describe("Windows settings", () => {
 
         expect(html).toContain("Calendar data");
     });
+
+    /*
+     * `renderCalendars()` backs the Calendars page on both platforms — the
+     * `isAndroid` split only changes the surrounding chrome (a full page vs.
+     * a dialog taken over the screen), never this group's own content — so
+     * one render of it proves the wording for both.
+     */
+    it("exposes the default ICS refresh frequency, without an apply-all action when no link exists yet", () => {
+        const html = renderToStaticMarkup(
+            <DesktopSettings open initialTab="calendars" {...commonProps} />
+        );
+
+        expect(html).toContain("Fréquence d&#x27;actualisation ICS par défaut");
+        expect(html).toContain("1 h");
+        expect(html).not.toContain("Appliquer à tous les liens");
+    });
+
+    it("offers the confirmed apply-all action once an ICS link exists", () => {
+        const html = renderToStaticMarkup(
+            <DesktopSettings
+                open
+                initialTab="calendars"
+                {...commonProps}
+                preferences={{
+                    ...commonProps.preferences,
+                    icsFeeds: [
+                        {
+                            id: "feed-1",
+                            calendarPath: "Cours",
+                            name: "Emploi du temps",
+                            url: "https://example.test/calendar.ics",
+                            refreshMinutes: 15,
+                            active: true,
+                        },
+                    ],
+                }}
+            />
+        );
+
+        expect(html).toContain("Appliquer à tous les liens");
+    });
 });
