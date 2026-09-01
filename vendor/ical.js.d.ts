@@ -69,6 +69,13 @@ declare module "ical.js" {
         public isRecurring(): boolean;
         public isRecurrenceException(): boolean;
         public iterator(startTime?: Time): RecurExpansion;
+        public relateException(exception: Event): void;
+        public getOccurrenceDetails(occurrence: Time): {
+            recurrenceId: Time;
+            item: Event;
+            startDate: Time;
+            endDate: Time;
+        };
     }
 
     export class Property {
