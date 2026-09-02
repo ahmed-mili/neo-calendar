@@ -168,7 +168,7 @@ export default function ColorPicker({
     }, [onClose]);
 
     // ── Drag handling for the SV box and hue slider ─────────────
-    const dragSV = (e: React.MouseEvent) => {
+    const dragSV = (e: React.PointerEvent) => {
         const box = svRef.current;
         if (!box) return;
         const move = (clientX: number, clientY: number) => {
@@ -183,16 +183,21 @@ export default function ColorPicker({
             emit(h, ns, nv);
         };
         move(e.clientX, e.clientY);
-        const onMove = (ev: MouseEvent) => move(ev.clientX, ev.clientY);
+        // Pointeur et non souris : une tape produit encore un evenement souris
+        // de compatibilite, mais un glissement du doigt n'en produit aucun. Un
+        // seul chemin couvre alors la souris, le doigt et le stylet.
+        const onMove = (ev: PointerEvent) => move(ev.clientX, ev.clientY);
         const onUp = () => {
-            window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseup", onUp);
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+            window.removeEventListener("pointercancel", onUp);
         };
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp);
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+        window.addEventListener("pointercancel", onUp);
     };
 
-    const dragHue = (e: React.MouseEvent) => {
+    const dragHue = (e: React.PointerEvent) => {
         const bar = hueRef.current;
         if (!bar) return;
         const move = (clientX: number) => {
@@ -205,13 +210,15 @@ export default function ColorPicker({
             emit(nh, s, v);
         };
         move(e.clientX);
-        const onMove = (ev: MouseEvent) => move(ev.clientX);
+        const onMove = (ev: PointerEvent) => move(ev.clientX);
         const onUp = () => {
-            window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseup", onUp);
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+            window.removeEventListener("pointercancel", onUp);
         };
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp);
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+        window.addEventListener("pointercancel", onUp);
     };
 
     const applyHex = (hex: string) => {
@@ -237,13 +244,13 @@ export default function ColorPicker({
             ref={rootRef}
             className="nc-color-picker"
             style={{ top: pos.top, left: pos.left, width: PICKER_W }}
-            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
         >
             {/* Saturation / value box */}
             <div
                 ref={svRef}
                 className="nc-cp-sv"
-                onMouseDown={dragSV}
+                onPointerDown={dragSV}
                 style={{
                     background: `linear-gradient(to bottom, rgba(0,0,0,0), #000), linear-gradient(to right, #fff, rgba(255,255,255,0)), ${hueColor}`,
                 }}
@@ -255,7 +262,7 @@ export default function ColorPicker({
             </div>
 
             {/* Hue slider */}
-            <div ref={hueRef} className="nc-cp-hue" onMouseDown={dragHue}>
+            <div ref={hueRef} className="nc-cp-hue" onPointerDown={dragHue}>
                 <span
                     className="nc-cp-hue-thumb"
                     style={{ left: `${(h / 360) * 100}%` }}

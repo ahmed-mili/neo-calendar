@@ -8,8 +8,12 @@
     --cp-field: var(--background-modifier-form-field);
 
     position: fixed;
-    /* Above the calendar-item menu (10001) it can be opened from. */
-    z-index: 10002;
+    /* Au-dessus de tout ce qui peut l'ouvrir, et non au-dessus du seul appelant
+       qui existait quand ce nombre a ete choisi : le menu d'un calendrier
+       (10001), mais aussi le dialogue des horaires de priere (50010) et le
+       popover de couleur des reglages (80000). Sous la bulle d'erreur (90000),
+       qui doit rester lisible par-dessus lui. */
+    z-index: 80010;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -33,6 +37,7 @@
     border-radius: 8px;
     cursor: crosshair;
     overflow: hidden;
+    touch-action: none;
 }
 .nc-cp-sv-thumb {
     position: absolute;
@@ -62,6 +67,7 @@
         #f0f 83%,
         #f00 100%
     );
+    touch-action: none;
 }
 .nc-cp-hue-thumb {
     position: absolute;

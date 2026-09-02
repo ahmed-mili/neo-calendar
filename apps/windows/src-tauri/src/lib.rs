@@ -336,7 +336,7 @@ fn read_event_files(
     Ok(files)
 }
 
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn load_desktop_workspace(data_folder: String) -> Result<DesktopWorkspaceSnapshotDto, String> {
     let root = root_path(&data_folder)?;
     let discovered = discover_calendar_directories(&root)?;
@@ -361,7 +361,7 @@ fn load_desktop_workspace(data_folder: String) -> Result<DesktopWorkspaceSnapsho
     })
 }
 
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn save_desktop_preferences(data_folder: String, preferences: Value) -> Result<(), String> {
     let root = root_path(&data_folder)?;
     write_preferences(&root, &preferences)
@@ -496,7 +496,7 @@ fn ensure_desktop_ics_folder(
     Ok(relative)
 }
 
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn create_desktop_calendar_folder(data_folder: String, name: String) -> Result<String, String> {
     let root = root_path(&data_folder)?;
     let validated_name = validate_single_name(&name, "calendar")?;
@@ -509,7 +509,7 @@ fn create_desktop_calendar_folder(data_folder: String, name: String) -> Result<S
     Ok(validated_name)
 }
 
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn rename_desktop_calendar_folder(
     data_folder: String,
     relative_path: String,
@@ -547,7 +547,7 @@ fn rename_desktop_calendar_folder(
     Ok(validated_name)
 }
 
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn delete_desktop_calendar_folder(data_folder: String, relative_path: String) -> Result<(), String> {
     if relative_path.trim().is_empty() {
         return Err("The data folder itself cannot be removed as a calendar.".to_string());
@@ -1001,7 +1001,7 @@ fn add_detected_vault(
     });
 }
 
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn discover_desktop_obsidian_vaults(
     root_paths: Vec<String>,
 ) -> Result<Vec<DesktopDetectedVaultDto>, String> {
@@ -1154,7 +1154,7 @@ fn collect_vault_notes(
     Ok(())
 }
 
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn search_desktop_vault_notes(
     vault_paths: Vec<String>,
     query: String,
@@ -1226,7 +1226,7 @@ fn unique_attachment_path(directory: &Path, file_name: &str) -> PathBuf {
     unreachable!()
 }
 
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn copy_desktop_attachment(
     data_folder: String,
     event_relative_path: String,
@@ -1352,7 +1352,7 @@ fn attachment_dto(
 /// sur le disque, elle n'a que des octets. Le reste — dossier `.attachments`,
 /// nom validé, nom rendu unique — est celui de `copy_desktop_attachment`, parce
 /// qu'une pièce jointe collée est une pièce jointe comme une autre.
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn write_desktop_attachment(
     data_folder: String,
     event_relative_path: String,
@@ -1381,7 +1381,7 @@ fn write_desktop_attachment(
 /// isolement. Plutôt qu'ouvrir un protocole d'accès aux fichiers pour toute
 /// l'application, ce qu'elle demande arrive ici, un fichier à la fois, et
 /// seulement s'il se trouve bien sous le dossier de données.
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn read_desktop_attachment(data_folder: String, relative_path: String) -> Result<String, String> {
     let root = root_path(&data_folder)?;
     let path = safe_join(&root, &relative_path)?;
@@ -1823,10 +1823,28 @@ mod tests {
     fn blocking_commands_are_kept_off_the_window_thread() {
         let source = include_str!("lib.rs");
         for name in [
+            // Le reseau, d'abord : c'est la plus longue des attentes.
             "fn fetch_desktop_ics",
+            // Les notes d'un lien, ecrites par paquets.
             "fn write_desktop_event_file",
             "fn delete_desktop_event_file",
             "fn ensure_desktop_ics_folder",
+            // Le dossier de donnees entier, lu au demarrage et a chaque
+            // retour sur la fenetre : la plus lourde lecture de toutes.
+            "fn load_desktop_workspace",
+            "fn save_desktop_preferences",
+            // Les dossiers de calendrier.
+            "fn create_desktop_calendar_folder",
+            "fn rename_desktop_calendar_folder",
+            "fn delete_desktop_calendar_folder",
+            // Les coffres Obsidian : une recherche qui parcourt des milliers
+            // de notes pendant que l'on tape.
+            "fn discover_desktop_obsidian_vaults",
+            "fn search_desktop_vault_notes",
+            // Les pieces jointes, qui se comptent en megaoctets.
+            "fn copy_desktop_attachment",
+            "fn write_desktop_attachment",
+            "fn read_desktop_attachment",
         ] {
             let at = source
                 .find(name)
@@ -1838,6 +1856,40 @@ mod tests {
             assert!(
                 attribute.contains("async"),
                 "{name} bloquerait le thread de la fenetre : {attribute}"
+            );
+        }
+    }
+
+    /// L'inverse, et il compte autant.
+    ///
+    /// Le presse-papier Windows appartient a la fenetre qui l'ouvre, et
+    /// `ShellExecute` a besoin du COM initialise par le thread principal.
+    /// Porter ces commandes sur le pool ne les rendrait pas plus rapides — il
+    /// n'y a rien a y attendre — mais casserait « copier le chemin » et
+    /// « ouvrir dans l'explorateur », sans rien dire a l'ecran.
+    ///
+    /// Ce test existe pour la personne qui, voyant la liste ci-dessus,
+    /// voudrait finir le travail.
+    #[test]
+    fn window_bound_commands_stay_on_the_window_thread() {
+        let source = include_str!("lib.rs");
+        for name in [
+            "fn write_desktop_clipboard_text",
+            "fn copy_desktop_path",
+            "fn open_desktop_path",
+            "fn open_desktop_external_target",
+            "fn open_desktop_linked_path",
+        ] {
+            let at = source
+                .find(name)
+                .unwrap_or_else(|| panic!("{name} est introuvable"));
+            let attribute_start = source[..at]
+                .rfind("#[tauri::command")
+                .unwrap_or_else(|| panic!("{name} n'est pas une commande Tauri"));
+            let attribute = &source[attribute_start..at];
+            assert!(
+                !attribute.contains("async"),
+                "{name} a besoin du thread de la fenetre : {attribute}"
             );
         }
     }

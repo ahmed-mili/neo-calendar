@@ -1,6 +1,6 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { Check, Clock, RotateCcw, X } from "lucide-react";
+import { Check, ChevronDown, Clock, RotateCcw, X } from "lucide-react";
 import ColorPicker from "../../../src/ui/calendar/ColorPicker";
 import { PRAYER_TIMETABLES } from "../../../src/ui/calendar/prayerTimetables";
 import { isAndroidRuntime } from "../../../src/ui/calendar/CalendarUtils";
@@ -149,14 +149,16 @@ export default function PrayerMosqueDialog({
                     pastille de barre laterale se perd en trait de deux pixels
                     par-dessus un fond d'ecran. */}
                 <div className="nc-prayer-dialog__colour">
-                    <span className="nc-prayer-dialog__colour-label">
-                        {t("Line colour")}
-                    </span>
+                    {/* La rangee entiere ouvre le choix : sur un telephone, un
+                        pave de la largeur du dialogue se vise, la pastille
+                        seule non. Et un chevron, comme partout ce qui ouvre
+                        quelque chose. */}
                     <button
                         type="button"
                         ref={swatchRef}
                         className="nc-prayer-dialog__swatch"
-                        aria-label={t("Line colour")}
+                        aria-haspopup="dialog"
+                        aria-expanded={pickerAnchor !== null}
                         onClick={() =>
                             setPickerAnchor(
                                 swatchRef.current?.getBoundingClientRect() ??
@@ -164,14 +166,22 @@ export default function PrayerMosqueDialog({
                             )
                         }
                     >
-                        {/* Le trait lui-meme, a l'echelle, plutot qu'un carre
-                            de couleur : la pastille montre ce que la grille
-                            dessinera, bouts arrondis compris. */}
-                        <span
-                            className="nc-prayer-dialog__swatch-line"
-                            style={{ background: shown }}
-                        />
-                        <span aria-hidden="true">{shown}</span>
+                        <span className="nc-prayer-dialog__colour-label">
+                            {t("Line colour")}
+                        </span>
+                        <span className="nc-prayer-dialog__swatch-value">
+                            {/* Le trait lui-meme, a l'echelle, plutot qu'un
+                                carre de couleur : ce que la grille dessinera,
+                                bouts arrondis et ombre compris. */}
+                            <span
+                                className="nc-prayer-dialog__swatch-line"
+                                style={{ background: shown }}
+                            />
+                            <span className="nc-prayer-dialog__swatch-hex">
+                                {shown}
+                            </span>
+                            <ChevronDown size={14} aria-hidden="true" />
+                        </span>
                     </button>
                     {color !== null && (
                         <button

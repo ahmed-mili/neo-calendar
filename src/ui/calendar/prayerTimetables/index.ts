@@ -6,6 +6,7 @@
  * est celui des réglages, donc il compte un peu : le plus proche d'abord.
  */
 import type { PrayerTimetable } from "../prayerTimes";
+import alkitabWaSunnah from "./alkitab-wa-sunnah";
 import foiEtUnicite from "./foi-et-unicite";
 import kremlinBicetre from "./kremlin-bicetre";
 import villejuif from "./villejuif";
@@ -14,6 +15,7 @@ export const PRAYER_TIMETABLES: PrayerTimetable[] = [
     villejuif,
     kremlinBicetre,
     foiEtUnicite,
+    alkitabWaSunnah,
 ];
 
 export function prayerTimetableById(

@@ -35,6 +35,34 @@
     flex: 1;
 }
 
+/* Chercher dans les taches de la barre laterale. Le champ est au-dessus des
+   deux piles parce qu'il repond pour les deux : « A faire » et « Termine » se
+   filtrent ensemble, et chercher deplie la seconde le temps de la recherche. */
+.nc-tasks-search {
+    margin-bottom: 8px;
+}
+
+.nc-tasks-search input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 10px;
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 8px;
+    background: transparent;
+    color: var(--nc-text-primary, var(--text-normal));
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.nc-tasks-search input::placeholder {
+    color: var(--nc-text-faint, var(--text-faint));
+}
+
+.nc-tasks-search input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+}
+
 .nc-tasks-section + .nc-tasks-section {
     margin-top: 10px;
 }

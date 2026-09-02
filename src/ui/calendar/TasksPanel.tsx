@@ -8,6 +8,7 @@ import {
 import { formatDatedDayWithYear } from "./calendarFormatters";
 import { ChevronDownIcon } from "./Icons";
 import { t } from "../i18n";
+import { matchesTaskQuery } from "../tasks/taskSearch";
 
 interface TasksPanelProps {
     tasks: TaskItem[];
@@ -143,6 +144,23 @@ export default function TasksPanel({
         [tasks]
     );
 
+    const [query, setQuery] = React.useState("");
+    const searching = query.trim() !== "";
+    const shown = React.useMemo(
+        () => ({
+            todo: groups.todo.filter((task) => matchesTaskQuery(task, query)),
+            complete: groups.complete.filter((task) =>
+                matchesTaskQuery(task, query)
+            ),
+        }),
+        [groups, query]
+    );
+
+    // Replie, « Termine » cacherait le seul resultat et la recherche dirait
+    // « rien » alors qu'elle a trouve. Chercher deplie donc la pile, et la
+    // laisse retomber comme on l'avait laissee des que le champ est vide.
+    const showComplete = searching || doneOpen;
+
     const rowsOf = (items: TaskItem[]) =>
         items.map((task) => (
             <TaskRow
@@ -155,30 +173,51 @@ export default function TasksPanel({
         ));
 
     const empty = groups.todo.length === 0 && groups.complete.length === 0;
+    const nothingMatches =
+        !empty && shown.todo.length === 0 && shown.complete.length === 0;
 
     return (
         <div className="nc-tasks-panel">
             {empty && <div className="nc-tasks-empty">{t("No tasks yet")}</div>}
 
-            {groups.todo.length > 0 && (
+            {/* Pas de champ au-dessus de « Aucune tache » : il ne promettrait
+                rien qu'on puisse tenir. */}
+            {!empty && (
+                <div className="nc-tasks-search">
+                    <input
+                        type="search"
+                        value={query}
+                        placeholder={t("Search tasks")}
+                        aria-label={t("Search tasks")}
+                        autoComplete="off"
+                        onChange={(event) => setQuery(event.target.value)}
+                    />
+                </div>
+            )}
+
+            {nothingMatches && (
+                <div className="nc-tasks-empty">{t("Nothing matches")}</div>
+            )}
+
+            {shown.todo.length > 0 && (
                 <div className="nc-tasks-section">
                     <div className="nc-tasks-section-title">
                         {t("To do")}
                         <span className="nc-tasks-count">
-                            {groups.todo.length}
+                            {shown.todo.length}
                         </span>
                     </div>
-                    {rowsOf(groups.todo)}
+                    {rowsOf(shown.todo)}
                 </div>
             )}
 
-            {groups.complete.length > 0 && (
+            {shown.complete.length > 0 && (
                 <div className="nc-tasks-section">
                     <div
                         className="nc-tasks-section-title nc-tasks-collapsible"
                         role="button"
                         tabIndex={0}
-                        aria-expanded={doneOpen}
+                        aria-expanded={showComplete}
                         onClick={() => setDoneOpen((v) => !v)}
                         onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
@@ -189,17 +228,17 @@ export default function TasksPanel({
                     >
                         <span
                             className={`nc-tasks-chevron${
-                                doneOpen ? " nc-open" : ""
+                                showComplete ? " nc-open" : ""
                             }`}
                         >
                             <ChevronDownIcon />
                         </span>
                         {t("Completed")}
                         <span className="nc-tasks-count">
-                            {groups.complete.length}
+                            {shown.complete.length}
                         </span>
                     </div>
-                    {doneOpen && rowsOf(groups.complete)}
+                    {showComplete && rowsOf(shown.complete)}
                 </div>
             )}
 
