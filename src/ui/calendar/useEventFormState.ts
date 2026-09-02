@@ -172,6 +172,7 @@ export function useEventFormState({
 }: Args) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
+    const [location, setLocation] = useState("");
     const [date, setDate] = useState("");
     const [endDate, setEndDate] = useState<string | undefined>(undefined);
     const [startTime, setStartTime] = useState("");
@@ -232,6 +233,7 @@ export function useEventFormState({
 
         if (event) {
             setTitle(event.title);
+            setLocation(event.location ?? "");
             /* Les etapes rejoignent la description, une fois pour toutes.
                Elles vivaient dans une liste a part : deux endroits pour dire ce
                qu'il reste a faire, et un seul des deux etait la note. Verse ici
@@ -306,6 +308,7 @@ export function useEventFormState({
             const startDate = DateTime.fromJSDate(draft.start).toISODate()!;
             setTitle("");
             setDescription("");
+            setLocation("");
             setDate(startDate);
             setAllDay(draft.allDay);
             setStartTime(draft.allDay ? "" : toISOTime(draft.start));
@@ -331,6 +334,7 @@ export function useEventFormState({
         } else {
             setTitle("");
             setDescription("");
+            setLocation("");
             setDate("");
             setStartTime("");
             setEndTime("");
@@ -422,6 +426,7 @@ export function useEventFormState({
                       due: dueFor(savedTaskStatus, due),
                   }),
             ...(description ? { description } : {}),
+            ...(location ? { location } : {}),
         } as NeoEvent;
     }, [
         title,
@@ -438,6 +443,7 @@ export function useEventFormState({
         completedDates,
         skipDates,
         description,
+        location,
         requireTaskDateForCompletion,
     ]);
 
@@ -446,6 +452,8 @@ export function useEventFormState({
         setTitle,
         description,
         setDescription,
+        location,
+        setLocation,
         date,
         setDate,
         endDate,

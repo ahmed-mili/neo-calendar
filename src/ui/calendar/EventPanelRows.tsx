@@ -28,6 +28,7 @@ import {
     DuplicateIcon,
     TrashIcon,
     FileTextIcon as NoteIcon,
+    MapPinIcon,
 } from "./Icons";
 import {
     addDays,
@@ -3988,6 +3989,57 @@ export function DescriptionRow({
                         );
                     })}
                 </div>
+            </div>
+        </div>
+    );
+}
+
+interface LocationRowProps {
+    location: string;
+    editable: boolean;
+    setLocation: (value: string) => void;
+    onAutoSave: () => void;
+}
+
+/**
+ * Où l'évènement se tient.
+ *
+ * Le lieu était lu du flux et écrit dans la note depuis toujours — la salle
+ * d'un cours y figure — mais rien ne le montrait : il fallait ouvrir le
+ * fichier pour savoir où aller. Il prend donc sa rangée juste au-dessus de la
+ * description, à la place que Notion Calendar lui donne.
+ *
+ * Rien sur un évènement verrouillé et sans lieu : la même règle que la
+ * description, qui ne se présente pas comme un champ à remplir quand on ne
+ * peut pas le remplir.
+ */
+export function LocationRow({
+    location,
+    editable,
+    setLocation,
+    onAutoSave,
+}: LocationRowProps) {
+    if (!editable && !location) return null;
+
+    return (
+        <div className="nc-panel-row nc-panel-row-location">
+            <span className="nc-panel-row-icon">
+                <MapPinIcon />
+            </span>
+            <div className="nc-panel-row-content">
+                {editable ? (
+                    <input
+                        type="text"
+                        className="nc-panel-text-input nc-panel-location-input"
+                        value={location}
+                        placeholder={t("Location")}
+                        aria-label={t("Location")}
+                        onChange={(event) => setLocation(event.target.value)}
+                        onBlur={onAutoSave}
+                    />
+                ) : (
+                    <span className="nc-panel-location-text">{location}</span>
+                )}
             </div>
         </div>
     );

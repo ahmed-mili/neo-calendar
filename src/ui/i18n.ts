@@ -592,6 +592,7 @@ const FR: Record<string, string> = {
     // ── Horaires de priere ───────────────────────────────────
     "Prayer times": "Horaires de prière",
     "No prayer times": "Aucun horaire de prière",
+    Location: "Lieu",
     "Search tasks": "Rechercher une tâche",
     "Nothing matches": "Rien ne correspond",
     "Nothing here": "Rien ici",

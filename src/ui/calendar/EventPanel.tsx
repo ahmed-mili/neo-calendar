@@ -31,6 +31,7 @@ import {
     DateRow,
     CustomRecurrencePanel,
     RemindersRow,
+    LocationRow,
     CalendarRow,
 } from "./EventPanelRows";
 import { DateOptionsRow } from "./EventDateControls";
@@ -1104,6 +1105,7 @@ export default function EventPanel({
         form.calendarIndex,
         form.taskStatus,
         form.description,
+        form.location,
         isDraft,
         stableEvent,
         eventId,
@@ -1571,6 +1573,16 @@ export default function EventPanel({
                             onAutoSave={scheduleAutoSave}
                         />
                     )}
+
+                    {/* Ou l'evenement se tient, juste au-dessus de ce qu'il
+                        raconte : la place que Notion Calendar lui donne, et
+                        celle ou on la cherche. */}
+                    <LocationRow
+                        location={form.location}
+                        editable={stableCalInfo.editable}
+                        setLocation={form.setLocation}
+                        onAutoSave={scheduleAutoSave}
+                    />
                 </div>
 
                 <DescriptionSection

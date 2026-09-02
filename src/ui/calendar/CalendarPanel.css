@@ -1767,6 +1767,24 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     color: var(--nc-text-faint);
 }
 
+/* ── Le lieu ──────────────────────────────────────────────────────────
+ *
+ * Une rangee comme les autres : la punaise dans la colonne d'icones, le texte
+ * a cote. Le champ emprunte la grammaire de champ du panneau ; seule la valeur
+ * en lecture seule a besoin d'etre calee sur elle, pour qu'un evenement qu'on
+ * peut modifier et un evenement verrouille n'affichent pas leur lieu a deux
+ * hauteurs differentes.
+ */
+.nc-panel-location-text {
+    display: block;
+    padding: 4px 6px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--nc-text-primary);
+    overflow-wrap: anywhere;
+}
+
 .nc-panel-text-input::placeholder,
 .nc-panel-textarea::placeholder {
     color: var(--nc-text-faint);
