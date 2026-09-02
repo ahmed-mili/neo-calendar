@@ -98,3 +98,94 @@ describe("LocationRow", () => {
         expect(host.querySelector(".nc-panel-row")).not.toBeNull();
     });
 });
+
+/*
+ * Suivre le lieu jusqu'à la carte.
+ *
+ * Quatre états, quatre contrats : verrouillé et vide (rien du tout, déjà
+ * couvert plus haut), verrouillé avec un lieu (le texte est le lien),
+ * modifiable et vide (un champ, rien à ouvrir), modifiable avec un lieu (le
+ * champ reste pour écrire, et un bouton mène à la carte).
+ */
+describe("LocationRow — jusqu'à la carte", () => {
+    let host: HTMLDivElement;
+    let onOpen: jest.Mock;
+
+    beforeEach(() => {
+        applyLanguage("fr");
+        host = document.createElement("div");
+        document.body.appendChild(host);
+        onOpen = jest.fn();
+    });
+
+    afterEach(() => {
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
+        document.body.innerHTML = "";
+    });
+
+    const render = (location: string, editable: boolean) => {
+        act(() => {
+            ReactDOM.render(
+                <LocationRow
+                    location={location}
+                    editable={editable}
+                    setLocation={jest.fn()}
+                    onAutoSave={jest.fn()}
+                    onOpenLocation={onOpen}
+                />,
+                host
+            );
+        });
+    };
+
+    const opener = () =>
+        host.querySelector<HTMLElement>("[data-nc-location-open]");
+
+    it("makes a locked place the link itself", () => {
+        render("Efrei Bat. C C001", false);
+        const link = opener();
+        expect(link).not.toBeNull();
+        act(() => {
+            link?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        expect(onOpen).toHaveBeenCalledWith(
+            "https://www.google.com/maps/search/?api=1&query=Efrei%20Bat.%20C%20C001"
+        );
+    });
+
+    it("keeps the field to write in, and adds a way to the map", () => {
+        render("Efrei Bat. H H305", true);
+        expect(host.querySelector("input")).not.toBeNull();
+        expect(opener()).not.toBeNull();
+    });
+
+    it("offers no way to a map that has nothing to show", () => {
+        render("", true);
+        expect(opener()).toBeNull();
+    });
+
+    it("says where it goes, for whoever cannot see it", () => {
+        render("Efrei Bat. C C001", false);
+        expect(opener()?.getAttribute("aria-label")).toBe(t("Open in Maps"));
+    });
+
+    it("goes nowhere when nobody is listening", () => {
+        // Le plugin Obsidian ne passe pas de gestionnaire : la rangée doit
+        // alors se lire sans se presenter comme un lien.
+        act(() => {
+            ReactDOM.render(
+                <LocationRow
+                    location="Efrei Bat. C C001"
+                    editable={false}
+                    setLocation={jest.fn()}
+                    onAutoSave={jest.fn()}
+                />,
+                host
+            );
+        });
+        expect(opener()).toBeNull();
+        expect(host.textContent).toContain("Efrei Bat. C C001");
+    });
+});

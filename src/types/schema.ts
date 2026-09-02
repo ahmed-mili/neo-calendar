@@ -107,6 +107,10 @@ export const CommonSchema = z.object({
     title: z.string(),
     id: z.string().optional(),
     location: z.string().optional(),
+    /** Le point de l'évènement, « latitude,longitude », tel qu'un flux le
+     *  publie. Il ne se saisit pas à la main : il accompagne le lieu et sert à
+     *  ouvrir une carte dessus. */
+    geo: z.string().optional(),
     description: z.string().optional(),
     attendees: z.array(z.string()).optional(),
     subtasks: SubtasksSchema,

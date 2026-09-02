@@ -30,6 +30,7 @@ import {
     FileTextIcon as NoteIcon,
     MapPinIcon,
 } from "./Icons";
+import { locationLinkFor } from "./locationLink";
 import {
     addDays,
     getWeekStart,
@@ -3996,9 +3997,15 @@ export function DescriptionRow({
 
 interface LocationRowProps {
     location: string;
+    /** Le point que le flux publie, quand il en publie un : c'est lui qui
+     *  ouvre la carte, le texte du lieu n'y servant qu'à défaut. */
+    geo?: string;
     editable: boolean;
     setLocation: (value: string) => void;
     onAutoSave: () => void;
+    /** Ouvre la carte. Absent là où l'application ne sait pas ouvrir un lien
+     *  extérieur — le lieu s'y lit alors sans se présenter comme un lien. */
+    onOpenLocation?: (url: string) => void;
 }
 
 /**
@@ -4015,11 +4022,18 @@ interface LocationRowProps {
  */
 export function LocationRow({
     location,
+    geo,
     editable,
     setLocation,
     onAutoSave,
+    onOpenLocation,
 }: LocationRowProps) {
     if (!editable && !location) return null;
+
+    const link = onOpenLocation ? locationLinkFor(location, geo) : null;
+    const open = () => {
+        if (link) onOpenLocation?.(link);
+    };
 
     return (
         <div className="nc-panel-row nc-panel-row-location">
@@ -4037,10 +4051,37 @@ export function LocationRow({
                         onChange={(event) => setLocation(event.target.value)}
                         onBlur={onAutoSave}
                     />
+                ) : link ? (
+                    /* Verrouillé, le texte EST le lien : rien d'autre à faire
+                       de cette rangée que de la suivre, comme dans Notion. */
+                    <button
+                        type="button"
+                        data-nc-location-open="true"
+                        className="nc-panel-location-text nc-panel-location-link"
+                        aria-label={t("Open in Maps")}
+                        title={t("Open in Maps")}
+                        onClick={open}
+                    >
+                        {location}
+                    </button>
                 ) : (
                     <span className="nc-panel-location-text">{location}</span>
                 )}
             </div>
+            {/* Modifiable, le champ garde le clic pour écrire : la carte prend
+                donc son propre bouton, au bout de la rangée. */}
+            {editable && link && (
+                <button
+                    type="button"
+                    data-nc-location-open="true"
+                    className="nc-panel-location-open"
+                    aria-label={t("Open in Maps")}
+                    title={t("Open in Maps")}
+                    onClick={open}
+                >
+                    <MapPinIcon size={14} />
+                </button>
+            )}
         </div>
     );
 }

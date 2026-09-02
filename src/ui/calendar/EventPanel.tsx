@@ -151,6 +151,8 @@ interface EventPanelProps {
         nextTarget?: string
     ) => Promise<void>;
     onOpenEventLink?: (item: EventLinkedItem) => Promise<void> | void;
+    /** Ouvre le lieu d'un évènement dans la carte du système. */
+    onOpenLocation?: (url: string) => void;
     onCopyEventLink?: (target: string) => Promise<void>;
     onPickEventAttachment?: (eventId: string) => Promise<void>;
     /** Ce que Ctrl+V dépose : un nom et des octets, pas un fichier du disque. */
@@ -267,6 +269,7 @@ export default function EventPanel({
     onRemoveEventLink,
     onRenameEventLink,
     onOpenEventLink,
+    onOpenLocation,
     onCopyEventLink,
     onPickEventAttachment,
     onPasteEventAttachment,
@@ -1579,9 +1582,11 @@ export default function EventPanel({
                         celle ou on la cherche. */}
                     <LocationRow
                         location={form.location}
+                        geo={stableEvent?.geo}
                         editable={stableCalInfo.editable}
                         setLocation={form.setLocation}
                         onAutoSave={scheduleAutoSave}
+                        onOpenLocation={onOpenLocation}
                     />
                 </div>
 

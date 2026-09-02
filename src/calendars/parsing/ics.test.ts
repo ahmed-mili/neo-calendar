@@ -543,3 +543,47 @@ describe("parseIcsSnapshot — duplicate VEVENTs for one occurrence", () => {
         expect(parseIcsSnapshot(feed, WINDOW).events).toHaveLength(2);
     });
 });
+
+/*
+ * Où l'évènement se tient, en coordonnées.
+ *
+ * Le flux publie un point par évènement, à côté du nom de la salle. Le nom dit
+ * quel bâtiment, le point dit où c'est : envoyé à une carte, il dépose devant
+ * la porte, là où le nom seul ouvre une page de résultats.
+ */
+describe("parseIcsSnapshot — le point d'un évènement", () => {
+    const WINDOW = { from: "2026-08-31", to: "2028-08-31" };
+
+    const withGeo = (...extra: string[]) =>
+        calendar(
+            "BEGIN:VEVENT",
+            "UID:uid-geo",
+            "DTSTART:20260902T060000Z",
+            "DTEND:20260902T070000Z",
+            "SUMMARY:Présentation outils informatiques",
+            "LOCATION:Efrei Bat. C C001",
+            ...extra,
+            "END:VEVENT"
+        );
+
+    it("keeps the coordinates the feed publishes", () => {
+        const snapshot = parseIcsSnapshot(
+            withGeo("GEO:48.7887337;2.3637327"),
+            WINDOW
+        );
+        expect(snapshot.events[0].event.geo).toBe("48.7887337,2.3637327");
+    });
+
+    it("leaves it out when the feed says nothing", () => {
+        const snapshot = parseIcsSnapshot(withGeo(), WINDOW);
+        expect(snapshot.events[0].event.geo).toBeUndefined();
+    });
+
+    it("keeps the room's name beside it", () => {
+        const snapshot = parseIcsSnapshot(
+            withGeo("GEO:48.7887337;2.3637327"),
+            WINDOW
+        );
+        expect(snapshot.events[0].event.location).toBe("Efrei Bat. C C001");
+    });
+});

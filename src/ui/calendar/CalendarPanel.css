@@ -1785,6 +1785,48 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     overflow-wrap: anywhere;
 }
 
+/* Verrouille, le lieu EST le lien : souligne, comme Notion le souligne, et
+   cette fois le soulignement promet quelque chose qui existe. Un bouton
+   remis a plat, pour qu'il se lise comme du texte et non comme un controle. */
+.nc-panel-location-link {
+    width: 100%;
+    border: 1px solid transparent;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: var(--nc-text-faint);
+    cursor: pointer;
+}
+
+.nc-panel-location-link:hover {
+    background: var(--nc-bg-hover);
+    border-radius: 4px;
+    text-decoration-color: var(--nc-text-primary);
+}
+
+/* Modifiable, le champ garde le clic pour ecrire : la carte prend son propre
+   bouton au bout de la rangee, dans la meme boite de 20 px que le reste. */
+.nc-panel-location-open {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--nc-text-faint);
+    cursor: pointer;
+}
+
+.nc-panel-location-open:hover {
+    border-color: var(--nc-border);
+    color: var(--nc-text-primary);
+}
+
 .nc-panel-text-input::placeholder,
 .nc-panel-textarea::placeholder {
     color: var(--nc-text-faint);

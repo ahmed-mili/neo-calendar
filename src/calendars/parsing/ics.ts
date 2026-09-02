@@ -230,6 +230,23 @@ function attendeesOf(vevent: ICAL.Component): string[] | undefined {
     return values.length ? values : undefined;
 }
 
+/**
+ * Le point de l'évènement, « latitude,longitude ».
+ *
+ * `GEO` s'écrit avec un point-virgule dans un iCalendar ; une carte attend une
+ * virgule. La conversion se fait ici, une fois, plutôt que chez chaque lecteur.
+ */
+function geoOf(vevent: ICAL.Component): string | undefined {
+    const value = vevent.getFirstPropertyValue("geo");
+    if (Array.isArray(value) && value.length === 2) {
+        return `${value[0]},${value[1]}`;
+    }
+    if (typeof value === "string" && value.includes(";")) {
+        return value.replace(";", ",");
+    }
+    return undefined;
+}
+
 function textOf(vevent: ICAL.Component, name: string): string | undefined {
     const value = vevent.getFirstPropertyValue(name);
     return typeof value === "string" && value.trim() ? value : undefined;
@@ -281,6 +298,7 @@ function singleOccurrenceEvent(
         title: summary,
         description: textOf(vevent, "description"),
         location: textOf(vevent, "location"),
+        geo: geoOf(vevent),
         attendees: attendeesOf(vevent),
         ...time,
         type: "single",

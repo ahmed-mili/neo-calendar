@@ -3786,6 +3786,11 @@ export default function DesktopCalendar({
                 onAddEventLink={appendEventBody}
                 onRemoveEventLink={removeEventBodyLink}
                 onRenameEventLink={renameEventBodyLink}
+                onOpenLocation={(url) => {
+                    void openDesktopExternalTarget(url).catch((reason) =>
+                        setStorageError(errorMessage(reason))
+                    );
+                }}
                 onOpenEventLink={async (item: EventLinkedItem) => {
                     try {
                         if (item.kind === "attachment") {
