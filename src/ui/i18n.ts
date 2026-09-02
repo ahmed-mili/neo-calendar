@@ -594,6 +594,7 @@ const FR: Record<string, string> = {
     "No prayer times": "Aucun horaire de prière",
     Location: "Lieu",
     "Open in Maps": "Ouvrir dans Maps",
+    "Address this link leads to": "Adresse où mène ce lien",
     "Search tasks": "Rechercher une tâche",
     "Nothing matches": "Rien ne correspond",
     "Nothing here": "Rien ici",

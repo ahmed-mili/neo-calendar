@@ -139,3 +139,47 @@ describe("ICS feed preferences", () => {
         ]);
     });
 });
+
+/*
+ * L'adresse du campus, réglée une fois sur le lien.
+ *
+ * Le flux Efrei publie un point unique pour toutes les salles, et il tombe à
+ * quelques rues de l'école : rien dans le flux ne permet de mener au bon
+ * campus. C'est donc une adresse écrite à la main sur le lien qui fait foi, et
+ * tous ses évènements y mènent.
+ */
+describe("l'adresse d'un lien ICS", () => {
+    const feed = (over: Record<string, unknown> = {}) => [
+        {
+            id: "feed-1",
+            calendarPath: "Études",
+            name: "Planning Efrei",
+            url: "https://example.test/planning.ics",
+            active: true,
+            ...over,
+        },
+    ];
+
+    it("is absent until someone writes one", () => {
+        expect(parseIcsFeeds(feed())[0].address).toBeUndefined();
+    });
+
+    it("keeps the address written on the link", () => {
+        const parsed = parseIcsFeeds(
+            feed({ address: "Efrei, 30-32 avenue de la République, Villejuif" })
+        );
+        expect(parsed[0].address).toBe(
+            "Efrei, 30-32 avenue de la République, Villejuif"
+        );
+    });
+
+    it("trims it, and treats an empty one as none", () => {
+        expect(parseIcsFeeds(feed({ address: "  Efrei  " }))[0].address).toBe(
+            "Efrei"
+        );
+        expect(
+            parseIcsFeeds(feed({ address: "   " }))[0].address
+        ).toBeUndefined();
+        expect(parseIcsFeeds(feed({ address: 42 }))[0].address).toBeUndefined();
+    });
+});

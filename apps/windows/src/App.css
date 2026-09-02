@@ -2983,6 +2983,52 @@ button.nc-settings__theme-card:focus-visible {
    partaient a la ligne des qu'une URL etait longue et la frequence se
    retrouvait sous le nom, decalee d'une ligne a l'autre selon la longueur de
    chaque adresse. */
+/* ── Un lien et son adresse ───────────────────────────────────────────
+ *
+ * Le lien garde sa ligne ; l'adresse ou il mene vient dessous, dans la meme
+ * carte. Elle est rarement touchee — une fois, a la creation du lien — donc
+ * elle se tient discrete : pas de bordure a elle, juste la punaise et le
+ * champ, cales sous le nom du lien.
+ */
+.nc-ics-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.nc-ics-feed-address {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px 0 36px;
+    color: var(--text-faint);
+}
+
+.nc-ics-feed-address__input {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-normal);
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.nc-ics-feed-address__input::placeholder {
+    color: var(--text-faint);
+}
+
+.nc-ics-feed-address__input:hover {
+    border-color: var(--ics-line);
+}
+
+.nc-ics-feed-address__input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+}
+
 .nc-ics-feed-row {
     display: grid;
     grid-template-columns: 20px minmax(0, 1fr) auto auto auto;

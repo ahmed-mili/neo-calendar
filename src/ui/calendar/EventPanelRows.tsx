@@ -4000,6 +4000,9 @@ interface LocationRowProps {
     /** Le point que le flux publie, quand il en publie un : c'est lui qui
      *  ouvre la carte, le texte du lieu n'y servant qu'à défaut. */
     geo?: string;
+    /** L'adresse réglée sur le lien ICS d'où vient l'évènement. Elle prime :
+     *  elle a été écrite parce que le flux ne mène pas au bon endroit. */
+    linkAddress?: string;
     editable: boolean;
     setLocation: (value: string) => void;
     onAutoSave: () => void;
@@ -4023,6 +4026,7 @@ interface LocationRowProps {
 export function LocationRow({
     location,
     geo,
+    linkAddress,
     editable,
     setLocation,
     onAutoSave,
@@ -4030,7 +4034,9 @@ export function LocationRow({
 }: LocationRowProps) {
     if (!editable && !location) return null;
 
-    const link = onOpenLocation ? locationLinkFor(location, geo) : null;
+    const link = onOpenLocation
+        ? locationLinkFor(location, geo, linkAddress)
+        : null;
     const open = () => {
         if (link) onOpenLocation?.(link);
     };

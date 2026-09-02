@@ -19,6 +19,13 @@ export interface IcsFeedSubscription {
      *  own notes apart from an ICS feed's. Absent on a link created before
      *  this existed or not yet synced once; the sync path fills it in. */
     directory?: string;
+    /** L'adresse où mène le lieu des évènements de ce lien.
+     *
+     *  Un flux d'emploi du temps nomme des salles — « Efrei Bat. C C001 » —
+     *  et publie au mieux un point unique pour toutes, qui peut tomber à
+     *  côté. Rien dans le flux ne sait dire le campus : cette adresse-là est
+     *  écrite une fois à la main, et vaut pour tous ses évènements. */
+    address?: string;
 }
 
 export const MAX_ICS_FEEDS_PER_CALENDAR = 5;
@@ -107,6 +114,7 @@ export function parseIcsFeeds(value: unknown): IcsFeedSubscription[] {
         countsByCalendar.set(path, count + 1);
         ids.add(id);
         const directory = icsDirectory(source.directory);
+        const address = stringValue(source.address);
         feeds.push({
             id,
             calendarPath: path,
@@ -117,6 +125,7 @@ export function parseIcsFeeds(value: unknown): IcsFeedSubscription[] {
                 : {}),
             active: typeof source.active === "boolean" ? source.active : true,
             ...(directory ? { directory } : {}),
+            ...(address ? { address } : {}),
         });
     }
     return feeds;

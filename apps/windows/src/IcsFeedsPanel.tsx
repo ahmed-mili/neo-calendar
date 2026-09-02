@@ -12,6 +12,7 @@ import type { IcsRuntimeStateByFeed } from "./platform/icsSyncScheduler";
 import {
     AlertCircleIcon,
     LinkIcon,
+    MapPinIcon,
     Loader2Icon,
     PlusIcon,
     RefreshCwIcon,
@@ -61,6 +62,7 @@ export interface IcsFeedsPanelProps {
             name?: string;
             url?: string;
             refreshMinutes?: IcsRefreshMinutes;
+            address?: string;
         }
     ) => void;
     onRemove: (feedId: string) => void;
@@ -215,96 +217,134 @@ export default function IcsFeedsPanel({
                         </p>
                     ) : (
                         feeds.map((feed) => (
-                            <div className="nc-ics-feed-row" key={feed.id}>
-                                <span className="nc-ics-feed-row__icon">
-                                    <LinkIcon size={15} />
-                                </span>
-                                <div className="nc-ics-feed-row__body">
-                                    <input
-                                        className="nc-ics-feed-row__name"
-                                        aria-label={`${t("Name")} — ${
-                                            feed.name
-                                        }`}
-                                        defaultValue={feed.name}
-                                        onBlur={(event) => {
-                                            const value =
-                                                event.target.value.trim();
-                                            if (value && value !== feed.name) {
-                                                onEdit(feed.id, {
-                                                    name: value,
-                                                });
-                                            }
-                                        }}
-                                    />
-                                    {/* Coupee a la largeur de la ligne (voir
+                            <div className="nc-ics-feed" key={feed.id}>
+                                <div className="nc-ics-feed-row">
+                                    <span className="nc-ics-feed-row__icon">
+                                        <LinkIcon size={15} />
+                                    </span>
+                                    <div className="nc-ics-feed-row__body">
+                                        <input
+                                            className="nc-ics-feed-row__name"
+                                            aria-label={`${t("Name")} — ${
+                                                feed.name
+                                            }`}
+                                            defaultValue={feed.name}
+                                            onBlur={(event) => {
+                                                const value =
+                                                    event.target.value.trim();
+                                                if (
+                                                    value &&
+                                                    value !== feed.name
+                                                ) {
+                                                    onEdit(feed.id, {
+                                                        name: value,
+                                                    });
+                                                }
+                                            }}
+                                        />
+                                        {/* Coupee a la largeur de la ligne (voir
                                         .nc-ics-feed-row__url) : l'adresse
                                         entiere doit rester joignable, et un
                                         `title` est le seul endroit ou la
                                         mettre sans rendre la ligne haute de
                                         deux lignes. */}
-                                    <span
-                                        className="nc-ics-feed-row__url"
-                                        title={feed.url}
-                                    >
-                                        {feed.url}
-                                    </span>
-                                    <FeedStatus
-                                        feed={feed}
-                                        runtimeStates={runtimeStates}
-                                        syncing={
-                                            syncingFeedIds?.has(feed.id) ??
-                                            false
+                                        <span
+                                            className="nc-ics-feed-row__url"
+                                            title={feed.url}
+                                        >
+                                            {feed.url}
+                                        </span>
+                                        <FeedStatus
+                                            feed={feed}
+                                            runtimeStates={runtimeStates}
+                                            syncing={
+                                                syncingFeedIds?.has(feed.id) ??
+                                                false
+                                            }
+                                        />
+                                    </div>
+                                    <select
+                                        className="nc-ics-feed-row__frequency"
+                                        name="ics-feed-frequency"
+                                        aria-label={`${t("Frequency")} — ${
+                                            feed.name
+                                        }`}
+                                        value={String(
+                                            feed.refreshMinutes ??
+                                                defaultRefreshMinutes
+                                        )}
+                                        onChange={(event) =>
+                                            onEdit(feed.id, {
+                                                refreshMinutes: Number(
+                                                    event.target.value
+                                                ) as IcsRefreshMinutes,
+                                            })
                                         }
-                                    />
+                                    >
+                                        {ICS_REFRESH_MINUTES.map((minutes) => (
+                                            <option
+                                                key={minutes}
+                                                value={minutes}
+                                            >
+                                                {frequencyLabel(minutes)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        className="nc-ics-feed-row__action"
+                                        data-testid="ics-refresh-now"
+                                        title={t("Refresh now")}
+                                        aria-label={`${t("Refresh now")} — ${
+                                            feed.name
+                                        }`}
+                                        onClick={() => onRefreshNow(feed.id)}
+                                    >
+                                        <RefreshCwIcon size={15} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="nc-ics-feed-row__action nc-ics-feed-row__action--danger"
+                                        data-testid="ics-remove-feed"
+                                        title={t("Remove link")}
+                                        aria-label={`${t("Remove link")} — ${
+                                            feed.name
+                                        }`}
+                                        onClick={() => onRemove(feed.id)}
+                                    >
+                                        <Trash2Icon size={15} />
+                                    </button>
                                 </div>
-                                <select
-                                    className="nc-ics-feed-row__frequency"
-                                    name="ics-feed-frequency"
-                                    aria-label={`${t("Frequency")} — ${
-                                        feed.name
-                                    }`}
-                                    value={String(
-                                        feed.refreshMinutes ??
-                                            defaultRefreshMinutes
-                                    )}
-                                    onChange={(event) =>
-                                        onEdit(feed.id, {
-                                            refreshMinutes: Number(
-                                                event.target.value
-                                            ) as IcsRefreshMinutes,
-                                        })
-                                    }
-                                >
-                                    {ICS_REFRESH_MINUTES.map((minutes) => (
-                                        <option key={minutes} value={minutes}>
-                                            {frequencyLabel(minutes)}
-                                        </option>
-                                    ))}
-                                </select>
-                                <button
-                                    type="button"
-                                    className="nc-ics-feed-row__action"
-                                    data-testid="ics-refresh-now"
-                                    title={t("Refresh now")}
-                                    aria-label={`${t("Refresh now")} — ${
-                                        feed.name
-                                    }`}
-                                    onClick={() => onRefreshNow(feed.id)}
-                                >
-                                    <RefreshCwIcon size={15} />
-                                </button>
-                                <button
-                                    type="button"
-                                    className="nc-ics-feed-row__action nc-ics-feed-row__action--danger"
-                                    data-testid="ics-remove-feed"
-                                    title={t("Remove link")}
-                                    aria-label={`${t("Remove link")} — ${
-                                        feed.name
-                                    }`}
-                                    onClick={() => onRemove(feed.id)}
-                                >
-                                    <Trash2Icon size={15} />
-                                </button>
+                                {/* Ou mene le lieu des evenements de ce lien.
+                                Un emploi du temps nomme des salles, et publie
+                                au mieux un point unique pour toutes, qui peut
+                                tomber a cote : rien dans le flux ne sait dire
+                                le campus, donc il s'ecrit ici, une fois. */}
+                                <label className="nc-ics-feed-address">
+                                    <MapPinIcon size={14} />
+                                    <input
+                                        type="text"
+                                        className="nc-ics-feed-address__input"
+                                        placeholder={t(
+                                            "Address this link leads to"
+                                        )}
+                                        aria-label={`${t(
+                                            "Address this link leads to"
+                                        )} — ${feed.name}`}
+                                        defaultValue={feed.address ?? ""}
+                                        onBlur={(event) => {
+                                            const value =
+                                                event.target.value.trim();
+                                            if (
+                                                value !== (feed.address ?? "")
+                                            ) {
+                                                onEdit(feed.id, {
+                                                    address: value,
+                                                });
+                                            }
+                                        }}
+                                    />
+                                </label>
                             </div>
                         ))
                     )}

@@ -13,26 +13,36 @@ const mapsSearch = (query: string) =>
  * aller : le lieu s'ouvre donc dans une carte, qui sait ce que l'application
  * ne sait pas.
  *
- * Les coordonnées d'abord, le texte à défaut. Mesuré sur l'émulateur : envoyer
- * « Efrei Bat. C C001 » en recherche ouvre Maps sur une page de résultats dont
- * les premiers sont des annonces — deux écoles sans rapport. Une paire de
- * coordonnées pose un point, et rien d'autre. Le flux en publie une par
- * évènement ; elle vaut pour le site et non pour le bâtiment, mais elle dépose
- * devant la porte, ce que la recherche ne fait pas.
+ * L'ordre compte, et chaque rang a été mesuré plutôt que supposé :
  *
- * Un lieu écrit à la main n'a pas de coordonnées : son texte part alors en
- * recherche, ce qui est exactement ce qu'il faut pour une adresse.
+ * 1. Un lien mis dans le champ « lieu » — une visioconférence, le plus
+ *    souvent. Il passe avant tout : la réunion n'a pas lieu sur le campus.
+ * 2. L'adresse réglée sur le lien ICS. Elle a été écrite à la main précisément
+ *    parce que ce que le flux publie ne mène pas au bon endroit : le flux
+ *    Efrei donne un point unique pour toutes les salles, et il tombe à
+ *    quelques rues du campus.
+ * 3. Les coordonnées du flux, à défaut d'adresse : elles posent un point, ce
+ *    qui vaut toujours mieux qu'une recherche.
+ * 4. Le texte du lieu, en dernier. C'est exactement ce qu'il faut pour une
+ *    adresse écrite à la main, et exactement ce qu'il ne faut pas pour un nom
+ *    de salle : mesuré sur l'émulateur, chercher « Efrei Bat. C C001 » ouvre
+ *    une page de résultats dont les premiers sont des annonces pour deux
+ *    écoles sans rapport.
  *
  * `null` quand il n'y a rien à ouvrir : le lieu ne se présente alors pas comme
  * un lien.
  */
-export function locationLinkFor(location: string, geo?: string): string | null {
+export function locationLinkFor(
+    location: string,
+    geo?: string,
+    linkAddress?: string
+): string | null {
     const place = location.trim();
 
-    // Un lien mis dans le champ « lieu » — une visioconférence, le plus
-    // souvent — s'ouvre tel quel : le chercher sur une carte ne mènerait nulle
-    // part, alors qu'il mène déjà exactement où il faut.
     if (/^https?:\/\/\S+$/i.test(place)) return place;
+
+    const address = (linkAddress ?? "").trim();
+    if (address) return mapsSearch(address);
 
     const point = (geo ?? "").trim();
     if (COORDINATES.test(point)) return mapsSearch(point.replace(/\s+/g, ""));

@@ -571,6 +571,18 @@ export default function DesktopCalendar({
         null
     );
     const [panelEventId, setPanelEventId] = useState<string | null>(null);
+
+    /* Ou mene le lieu des evenements du lien ouvert, quand une adresse y a ete
+       reglee. Un emploi du temps nomme des salles et publie au mieux un point
+       unique pour toutes : c'est cette adresse-la qui sait le campus. */
+    const panelLinkAddress = useMemo(() => {
+        if (!panelEventId) return undefined;
+        const record = findStoredEvent(storedEvents, panelEventId);
+        if (!record?.icsFeedId) return undefined;
+        return preferences.icsFeeds.find(
+            (feed) => feed.id === record.icsFeedId
+        )?.address;
+    }, [panelEventId, preferences.icsFeeds, storedEvents]);
     const [panelAnchor, setPanelAnchor] = useState<DOMRect | null>(null);
     const [draftSlot, setDraftSlot] = useState<DraftSlot | null>(null);
     const [committingDraft, setCommittingDraft] = useState(false);
@@ -3786,6 +3798,7 @@ export default function DesktopCalendar({
                 onAddEventLink={appendEventBody}
                 onRemoveEventLink={removeEventBodyLink}
                 onRenameEventLink={renameEventBodyLink}
+                linkAddress={panelLinkAddress}
                 onOpenLocation={(url) => {
                     void openDesktopExternalTarget(url).catch((reason) =>
                         setStorageError(errorMessage(reason))
@@ -4027,9 +4040,16 @@ export default function DesktopCalendar({
                 }}
                 onEdit={(feedId, patch) => {
                     void updateWorkspacePreferences({
-                        icsFeeds: preferences.icsFeeds.map((feed) =>
-                            feed.id === feedId ? { ...feed, ...patch } : feed
-                        ),
+                        icsFeeds: preferences.icsFeeds.map((feed) => {
+                            if (feed.id !== feedId) return feed;
+                            const next = { ...feed, ...patch };
+                            // Une adresse effacee se retire, plutot que de
+                            // laisser une chaine vide dans le fichier.
+                            if (next.address !== undefined && !next.address) {
+                                delete next.address;
+                            }
+                            return next;
+                        }),
                     });
                 }}
                 onRemove={(feedId) => {

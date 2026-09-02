@@ -152,6 +152,10 @@ interface EventPanelProps {
     ) => Promise<void>;
     onOpenEventLink?: (item: EventLinkedItem) => Promise<void> | void;
     /** Ouvre le lieu d'un évènement dans la carte du système. */
+    /** L'adresse réglée sur le lien ICS dont vient l'évènement, quand il en
+     *  vient d'un : c'est elle qui mène au campus, faute de quoi le flux ne le
+     *  dit nulle part. */
+    linkAddress?: string;
     onOpenLocation?: (url: string) => void;
     onCopyEventLink?: (target: string) => Promise<void>;
     onPickEventAttachment?: (eventId: string) => Promise<void>;
@@ -269,6 +273,7 @@ export default function EventPanel({
     onRemoveEventLink,
     onRenameEventLink,
     onOpenEventLink,
+    linkAddress,
     onOpenLocation,
     onCopyEventLink,
     onPickEventAttachment,
@@ -1583,6 +1588,7 @@ export default function EventPanel({
                     <LocationRow
                         location={form.location}
                         geo={stableEvent?.geo}
+                        linkAddress={linkAddress}
                         editable={stableCalInfo.editable}
                         setLocation={form.setLocation}
                         onAutoSave={scheduleAutoSave}

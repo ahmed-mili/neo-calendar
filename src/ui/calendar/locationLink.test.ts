@@ -110,3 +110,54 @@ describe("locationLinkFor, coordonnées en main", () => {
         );
     });
 });
+
+/*
+ * L'adresse réglée sur le lien passe avant tout le reste.
+ *
+ * Le flux Efrei donne un point unique pour toutes les salles, et il tombe à
+ * quelques rues du campus. Aucune donnée du flux ne permet de faire mieux :
+ * c'est donc l'adresse que l'on règle une fois sur le lien qui fait foi, et
+ * les évènements de ce lien y mènent tous.
+ */
+describe("locationLinkFor — l'adresse du lien", () => {
+    const CAMPUS = "Efrei, 30-32 avenue de la République, 94800 Villejuif";
+
+    it("goes to the address set on the link rather than the feed's point", () => {
+        expect(
+            locationLinkFor("Efrei Bat. C C001", "48.7887337,2.3637327", CAMPUS)
+        ).toBe(
+            `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                CAMPUS
+            )}`
+        );
+    });
+
+    it("goes there even when the event names no room at all", () => {
+        expect(locationLinkFor("", undefined, CAMPUS)).toContain(
+            encodeURIComponent("30-32 avenue")
+        );
+    });
+
+    it("ignores an address made of spaces", () => {
+        expect(
+            locationLinkFor("Efrei Bat. C C001", "48.7887337,2.3637327", "   ")
+        ).toContain("query=48.7887337");
+    });
+
+    it("still opens a meeting link first: it is where the event happens", () => {
+        expect(
+            locationLinkFor(
+                "https://teams.microsoft.com/l/42",
+                undefined,
+                CAMPUS
+            )
+        ).toBe("https://teams.microsoft.com/l/42");
+    });
+
+    it("falls back to the feed's point, then to the words, without an address", () => {
+        expect(locationLinkFor("Salle", "48.78,2.36")).toContain(
+            "query=48.78%2C2.36"
+        );
+        expect(locationLinkFor("Salle")).toContain("query=Salle");
+    });
+});
