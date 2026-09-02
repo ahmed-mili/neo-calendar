@@ -30,7 +30,7 @@ import {
     FileTextIcon as NoteIcon,
     MapPinIcon,
 } from "./Icons";
-import { locationLinkFor } from "./locationLink";
+import { locationLinkFor, type MapsTravelMode } from "./locationLink";
 import {
     addDays,
     getWeekStart,
@@ -4003,6 +4003,9 @@ interface LocationRowProps {
     /** L'adresse réglée sur le lien ICS d'où vient l'évènement. Elle prime :
      *  elle a été écrite parce que le flux ne mène pas au bon endroit. */
     linkAddress?: string;
+    /** Comment on compte s'y rendre, quand la carte ouvre un itinéraire.
+     *  Absent, la carte choisit — c'est le repos du réglage. */
+    travelMode?: MapsTravelMode;
     editable: boolean;
     setLocation: (value: string) => void;
     onAutoSave: () => void;
@@ -4027,6 +4030,7 @@ export function LocationRow({
     location,
     geo,
     linkAddress,
+    travelMode,
     editable,
     setLocation,
     onAutoSave,
@@ -4035,7 +4039,7 @@ export function LocationRow({
     if (!editable && !location) return null;
 
     const link = onOpenLocation
-        ? locationLinkFor(location, geo, linkAddress)
+        ? locationLinkFor(location, geo, linkAddress, travelMode)
         : null;
     const open = () => {
         if (link) onOpenLocation?.(link);

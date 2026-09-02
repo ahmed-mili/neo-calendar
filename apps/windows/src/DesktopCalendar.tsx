@@ -3858,6 +3858,7 @@ export default function DesktopCalendar({
                 onRemoveEventLink={removeEventBodyLink}
                 onRenameEventLink={renameEventBodyLink}
                 linkAddress={panelLinkAddress}
+                travelMode={preferences.mapsTravelMode}
                 onOpenLocation={(url) => {
                     void openDesktopExternalTarget(url).catch((reason) =>
                         setStorageError(errorMessage(reason))

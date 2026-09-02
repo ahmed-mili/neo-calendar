@@ -184,3 +184,40 @@ describe("Windows settings", () => {
         expect(html).toContain("Appliquer à tous les liens");
     });
 });
+
+/*
+ * Le mode de trajet des liens de lieu.
+ *
+ * Suivre le lieu d'un cours ouvre un itinéraire depuis la position du
+ * téléphone ; comment on compte s'y rendre ne se devine pas, et se règle donc
+ * une fois pour toutes. La rangée dit la valeur en clair plutôt que de la
+ * cacher derrière son libellé : c'est ce qui distingue un réglage qu'on a
+ * choisi d'un réglage qu'on subit.
+ */
+describe("le mode de trajet des liens de lieu", () => {
+    afterEach(() => applyLanguage("fr"));
+
+    it("leaves the choice to Maps at rest", () => {
+        const html = renderToStaticMarkup(
+            <DesktopSettings open {...commonProps} />
+        );
+
+        expect(html).toContain("Mode de trajet");
+        expect(html).toContain("Automatique");
+    });
+
+    it("shows the mode that was chosen", () => {
+        const html = renderToStaticMarkup(
+            <DesktopSettings
+                open
+                {...commonProps}
+                preferences={{
+                    ...commonProps.preferences,
+                    mapsTravelMode: "transit",
+                }}
+            />
+        );
+
+        expect(html).toContain("Transports en commun");
+    });
+});

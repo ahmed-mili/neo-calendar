@@ -34,6 +34,7 @@ import {
     LocationRow,
     CalendarRow,
 } from "./EventPanelRows";
+import type { MapsTravelMode } from "./locationLink";
 import { DateOptionsRow } from "./EventDateControls";
 import { DescriptionSection } from "./DescriptionSection";
 import { FileTextIcon } from "./EventPanelIcons";
@@ -156,6 +157,9 @@ interface EventPanelProps {
      *  vient d'un : c'est elle qui mène au campus, faute de quoi le flux ne le
      *  dit nulle part. */
     linkAddress?: string;
+    /** Comment on compte s'y rendre, quand la carte ouvre un itinéraire :
+     *  le réglage des préférences, tel quel. */
+    travelMode?: MapsTravelMode;
     onOpenLocation?: (url: string) => void;
     onCopyEventLink?: (target: string) => Promise<void>;
     onPickEventAttachment?: (eventId: string) => Promise<void>;
@@ -274,6 +278,7 @@ export default function EventPanel({
     onRenameEventLink,
     onOpenEventLink,
     linkAddress,
+    travelMode,
     onOpenLocation,
     onCopyEventLink,
     onPickEventAttachment,
@@ -1589,6 +1594,7 @@ export default function EventPanel({
                         location={form.location}
                         geo={stableEvent?.geo}
                         linkAddress={linkAddress}
+                        travelMode={travelMode}
                         editable={stableCalInfo.editable}
                         setLocation={form.setLocation}
                         onAutoSave={scheduleAutoSave}

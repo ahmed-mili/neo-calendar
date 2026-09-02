@@ -1,5 +1,9 @@
 import type { ViewType } from "../../../../src/ui/types";
 import {
+    MAPS_TRAVEL_MODES,
+    type MapsTravelMode,
+} from "../../../../src/ui/calendar/locationLink";
+import {
     parseExternalCalendarSources,
     type DesktopExternalCalendarSource,
 } from "./desktopExternalCalendars";
@@ -38,6 +42,14 @@ export interface DesktopWorkspacePreferences {
     defaultEventsAsTasks: boolean;
     /** Minutes before an event to be reminded. 0 means no reminder at all. */
     reminderMinutes: number;
+    /**
+     * Comment on compte se rendre au lieu d'un évènement.
+     *
+     * Le lien du lieu ouvre un itinéraire depuis la position de l'appareil ;
+     * ce réglage dit seulement en quoi. « auto » ne met rien dans l'URL et
+     * laisse la carte trancher, ce qu'elle fait mieux qu'un réglage oublié.
+     */
+    mapsTravelMode: MapsTravelMode;
     icsDefaultRefreshMinutes: IcsRefreshMinutes;
     icsFeeds: IcsFeedSubscription[];
     externalCalendars: DesktopExternalCalendarSource[];
@@ -112,6 +124,9 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         // Kept in step with the plugin's default in src/ui/settings.ts.
         defaultEventsAsTasks: false,
         reminderMinutes: 10,
+        // La carte connaît les habitudes de celui qui la lit, l'application
+        // non : elle ne se prononce donc pas tant qu'on ne le lui demande pas.
+        mapsTravelMode: "auto",
         icsDefaultRefreshMinutes: 60,
         icsFeeds: [],
         externalCalendars: [],
@@ -363,6 +378,11 @@ export function parseDesktopWorkspacePreferences(
         )
             ? Number(source.reminderMinutes)
             : defaults.reminderMinutes,
+        mapsTravelMode: (MAPS_TRAVEL_MODES as readonly string[]).includes(
+            source.mapsTravelMode as string
+        )
+            ? (source.mapsTravelMode as MapsTravelMode)
+            : defaults.mapsTravelMode,
         icsDefaultRefreshMinutes: (
             ICS_REFRESH_MINUTES as readonly number[]
         ).includes(source.icsDefaultRefreshMinutes as number)

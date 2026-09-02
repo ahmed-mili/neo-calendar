@@ -189,3 +189,73 @@ describe("LocationRow — jusqu'à la carte", () => {
         expect(host.textContent).toContain("Efrei Bat. C C001");
     });
 });
+
+/*
+ * La rangée ne décide de rien : elle transmet.
+ *
+ * L'adresse du lien et le mode de trajet viennent tous deux d'ailleurs — le
+ * panneau des liens ICS pour l'une, les réglages pour l'autre — et se
+ * rejoignent ici, au seul endroit où l'on sait de quel évènement il s'agit.
+ * Ce qui se vérifie est donc l'URL ouverte, pas la façon dont elle est bâtie.
+ */
+describe("LocationRow — l'itinéraire ouvert", () => {
+    const CAMPUS = "Efrei, 30-32 avenue de la République, 94800 Villejuif";
+    let host: HTMLDivElement;
+    let onOpen: jest.Mock;
+
+    beforeEach(() => {
+        applyLanguage("fr");
+        host = document.createElement("div");
+        document.body.appendChild(host);
+        onOpen = jest.fn();
+    });
+
+    afterEach(() => {
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
+        document.body.innerHTML = "";
+    });
+
+    const follow = (
+        props: Partial<React.ComponentProps<typeof LocationRow>>
+    ) => {
+        act(() => {
+            ReactDOM.render(
+                <LocationRow
+                    location="Efrei Bat. C C001"
+                    editable={false}
+                    setLocation={jest.fn()}
+                    onAutoSave={jest.fn()}
+                    onOpenLocation={onOpen}
+                    {...props}
+                />,
+                host
+            );
+        });
+        act(() => {
+            host.querySelector<HTMLElement>(
+                "[data-nc-location-open]"
+            )?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        return onOpen.mock.calls[0]?.[0] as string | undefined;
+    };
+
+    it("opens the way to the address set on the link", () => {
+        expect(follow({ linkAddress: CAMPUS })).toBe(
+            `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                CAMPUS
+            )}`
+        );
+    });
+
+    it("carries the travel mode that was set", () => {
+        expect(
+            follow({ linkAddress: CAMPUS, travelMode: "transit" })
+        ).toContain("&travelmode=transit");
+    });
+
+    it("says nothing of a mode nobody chose", () => {
+        expect(follow({ linkAddress: CAMPUS })).not.toContain("travelmode");
+    });
+});

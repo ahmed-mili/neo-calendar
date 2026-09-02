@@ -45,6 +45,7 @@ import type {
     DesktopWorkspacePreferences,
     MobileInitialView,
 } from "./platform/desktopWorkspacePreferences";
+import type { MapsTravelMode } from "../../../src/ui/calendar/locationLink";
 import {
     ICS_REFRESH_MINUTES,
     type IcsRefreshMinutes,
@@ -73,6 +74,7 @@ import {
     Palette,
     PanelLeft,
     RefreshCw,
+    Route,
     Smartphone,
     Plus,
     Square,
@@ -760,6 +762,28 @@ export default function DesktopSettings({
                     onOpen={openChoice}
                     onChange={(value) =>
                         patchPreferences({ reminderMinutes: Number(value) })
+                    }
+                />
+                {/* Suivre le lieu d'un evenement ouvre un itineraire depuis
+                    la position de l'appareil ; comment on compte s'y rendre ne
+                    se devine pas. Au repos la carte tranche, ce qu'elle fait
+                    mieux qu'un reglage pose une fois puis oublie. */}
+                <SettingsChoiceRow
+                    label={t("Travel mode")}
+                    icon={<Route size={18} />}
+                    value={preferences.mapsTravelMode}
+                    options={[
+                        { value: "auto", label: t("Chosen by Maps") },
+                        { value: "transit", label: t("Public transport") },
+                        { value: "driving", label: t("Driving") },
+                        { value: "walking", label: t("Walking") },
+                        { value: "bicycling", label: t("Cycling") },
+                    ]}
+                    onOpen={openChoice}
+                    onChange={(value) =>
+                        patchPreferences({
+                            mapsTravelMode: value as MapsTravelMode,
+                        })
                     }
                 />
                 <SettingsToggleRow

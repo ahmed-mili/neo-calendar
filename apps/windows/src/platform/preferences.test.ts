@@ -164,3 +164,42 @@ describe("the colour of a calendar's prayer lines", () => {
         });
     });
 });
+
+/*
+ * Le mode de trajet des liens de lieu.
+ *
+ * Le lieu d'un évènement ouvre un itinéraire depuis la position de l'appareil ;
+ * reste à dire comment on compte s'y rendre. La carte sait déjà proposer le
+ * mode le plus vraisemblable, alors le repos est de la laisser faire : le
+ * réglage n'existe que pour celui qui prend toujours le métro et ne veut pas
+ * le redire à chaque cours.
+ */
+describe("the travel mode of a location link", () => {
+    it("leaves the choice to Maps until someone makes one", () => {
+        expect(defaultDesktopWorkspacePreferences().mapsTravelMode).toBe(
+            "auto"
+        );
+        expect(parseDesktopWorkspacePreferences({}).mapsTravelMode).toBe(
+            "auto"
+        );
+    });
+
+    it("keeps a mode that was chosen", () => {
+        expect(
+            parseDesktopWorkspacePreferences({ mapsTravelMode: "transit" })
+                .mapsTravelMode
+        ).toBe("transit");
+    });
+
+    it("refuses a mode Google Maps would silently ignore", () => {
+        // Un fichier de préférences s'édite à la main, et cette valeur part
+        // telle quelle dans l'URL : « métro » ou « TRANSIT » n'y ouvriraient
+        // rien de ce qu'on croit avoir demandé.
+        for (const written of ["métro", "TRANSIT", "flying", 3, null]) {
+            expect(
+                parseDesktopWorkspacePreferences({ mapsTravelMode: written })
+                    .mapsTravelMode
+            ).toBe("auto");
+        }
+    });
+});

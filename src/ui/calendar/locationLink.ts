@@ -1,10 +1,43 @@
 /** Une paire « latitude,longitude » telle qu'un flux la publie. */
 const COORDINATES = /^-?\d{1,3}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/;
 
+/**
+ * Comment on compte s'y rendre.
+ *
+ * Les valeurs sont celles que la documentation Maps URLs accepte, à la lettre
+ * près : un `travelmode` inconnu est ignoré sans que rien ne le signale, et
+ * l'itinéraire s'ouvrirait alors dans un mode qu'on n'a pas demandé.
+ *
+ * « auto » n'en est pas une : c'est l'absence du paramètre, et donc le choix
+ * laissé à la carte, qui connaît les habitudes de celui qui la lit.
+ */
+export const MAPS_TRAVEL_MODES = [
+    "auto",
+    "transit",
+    "driving",
+    "walking",
+    "bicycling",
+] as const;
+
+export type MapsTravelMode = (typeof MAPS_TRAVEL_MODES)[number];
+
 const mapsSearch = (query: string) =>
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
         query
     )}`;
+
+/**
+ * L'itinéraire vers un point, depuis là où l'on est.
+ *
+ * `origin` est omis à dessein : la documentation Maps URLs en fait un
+ * paramètre facultatif, et son absence vaut « la position de l'appareil ».
+ * Aucune valeur écrite ici ne ferait mieux — une origine figée dans l'URL
+ * serait fausse dès le lendemain.
+ */
+const mapsDirections = (destination: string, travelMode: MapsTravelMode) =>
+    `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+        destination
+    )}${travelMode === "auto" ? "" : `&travelmode=${travelMode}`}`;
 
 /**
  * Où mène le lieu d'un évènement, quand on le suit.
@@ -29,23 +62,31 @@ const mapsSearch = (query: string) =>
  *    une page de résultats dont les premiers sont des annonces pour deux
  *    écoles sans rapport.
  *
+ * Les rangs 2 et 3 ouvrent un itinéraire, les deux autres non, et la ligne de
+ * partage est la même que celle qui classe les rangs : une adresse et un point
+ * sont des destinations, un nom de salle n'en est pas une. Demander un
+ * itinéraire vers « Efrei Bat. C C001 » ne donnerait pas un mauvais trajet
+ * mais un formulaire vide, ce qui est pire qu'une recherche approximative.
+ *
  * `null` quand il n'y a rien à ouvrir : le lieu ne se présente alors pas comme
  * un lien.
  */
 export function locationLinkFor(
     location: string,
     geo?: string,
-    linkAddress?: string
+    linkAddress?: string,
+    travelMode: MapsTravelMode = "auto"
 ): string | null {
     const place = location.trim();
 
     if (/^https?:\/\/\S+$/i.test(place)) return place;
 
     const address = (linkAddress ?? "").trim();
-    if (address) return mapsSearch(address);
+    if (address) return mapsDirections(address, travelMode);
 
     const point = (geo ?? "").trim();
-    if (COORDINATES.test(point)) return mapsSearch(point.replace(/\s+/g, ""));
+    if (COORDINATES.test(point))
+        return mapsDirections(point.replace(/\s+/g, ""), travelMode);
 
     return place ? mapsSearch(place) : null;
 }

@@ -595,6 +595,13 @@ const FR: Record<string, string> = {
     Location: "Lieu",
     "Open in Maps": "Ouvrir dans Maps",
     "Address this link leads to": "Adresse où mène ce lien",
+    // ── Mode de trajet ───────────────────────────────────────
+    "Travel mode": "Mode de trajet",
+    "Chosen by Maps": "Automatique",
+    "Public transport": "Transports en commun",
+    Driving: "Voiture",
+    Walking: "À pied",
+    Cycling: "Vélo",
     "Search tasks": "Rechercher une tâche",
     "Nothing matches": "Rien ne correspond",
     "Nothing here": "Rien ici",

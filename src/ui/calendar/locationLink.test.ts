@@ -53,30 +53,29 @@ describe("locationLinkFor", () => {
             "google.com/maps"
         );
     });
-
-    it("hands coordinates to the map as they are", () => {
-        // Une paire de coordonnées est déjà ce que la carte comprend le mieux.
-        expect(locationLinkFor("48.7887337,2.3637327")).toBe(
-            "https://www.google.com/maps/search/?api=1&query=48.7887337%2C2.3637327"
-        );
-    });
 });
 
 /*
- * Les coordonnées passent avant le texte.
+ * Un point qu'on sait atteindre ouvre un itinéraire, pas une épingle.
  *
- * Mesuré sur l'émulateur : « Efrei Bat. C C001 » envoyé en recherche ouvre
- * Maps sur une page de résultats dont les premiers sont des annonces — deux
- * écoles qui n'ont rien à voir. Les coordonnées, elles, posent un point et
- * rien d'autre. Le flux en publie pour chaque évènement ; c'est donc elles
- * qu'on suit quand il y en a, et le texte seulement à défaut.
+ * Une épingle laisse encore tout à faire : lire l'adresse, ouvrir l'itinéraire,
+ * dire d'où l'on part. Or un évènement de l'emploi du temps se lit toujours
+ * pour la même raison — y aller. `origin` est donc laissé vide à dessein :
+ * omis, Google Maps part de la position de l'appareil, ce qu'aucune valeur
+ * écrite dans l'URL ne saurait faire aussi bien.
  */
-describe("locationLinkFor, coordonnées en main", () => {
-    it("points at the coordinates the feed gives, rather than searching", () => {
+describe("locationLinkFor — l'itinéraire", () => {
+    it("routes to the coordinates the feed gives, from wherever the device is", () => {
         expect(
             locationLinkFor("Efrei Bat. C C001", "48.7887337,2.3637327")
         ).toBe(
-            "https://www.google.com/maps/search/?api=1&query=48.7887337%2C2.3637327"
+            "https://www.google.com/maps/dir/?api=1&destination=48.7887337%2C2.3637327"
+        );
+    });
+
+    it("names no origin, so that Maps starts from the device", () => {
+        expect(locationLinkFor("", "48.7887337,2.3637327")).not.toContain(
+            "origin"
         );
     });
 
@@ -103,12 +102,6 @@ describe("locationLinkFor, coordonnées en main", () => {
             locationLinkFor("https://teams.microsoft.com/l/42", "48.78,2.36")
         ).toBe("https://teams.microsoft.com/l/42");
     });
-
-    it("opens the coordinates even when the place has no name", () => {
-        expect(locationLinkFor("", "48.7887337,2.3637327")).toBe(
-            "https://www.google.com/maps/search/?api=1&query=48.7887337%2C2.3637327"
-        );
-    });
 });
 
 /*
@@ -122,11 +115,11 @@ describe("locationLinkFor, coordonnées en main", () => {
 describe("locationLinkFor — l'adresse du lien", () => {
     const CAMPUS = "Efrei, 30-32 avenue de la République, 94800 Villejuif";
 
-    it("goes to the address set on the link rather than the feed's point", () => {
+    it("routes to the address set on the link rather than the feed's point", () => {
         expect(
             locationLinkFor("Efrei Bat. C C001", "48.7887337,2.3637327", CAMPUS)
         ).toBe(
-            `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+            `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
                 CAMPUS
             )}`
         );
@@ -141,7 +134,7 @@ describe("locationLinkFor — l'adresse du lien", () => {
     it("ignores an address made of spaces", () => {
         expect(
             locationLinkFor("Efrei Bat. C C001", "48.7887337,2.3637327", "   ")
-        ).toContain("query=48.7887337");
+        ).toContain("destination=48.7887337");
     });
 
     it("still opens a meeting link first: it is where the event happens", () => {
@@ -156,8 +149,68 @@ describe("locationLinkFor — l'adresse du lien", () => {
 
     it("falls back to the feed's point, then to the words, without an address", () => {
         expect(locationLinkFor("Salle", "48.78,2.36")).toContain(
-            "query=48.78%2C2.36"
+            "destination=48.78%2C2.36"
         );
         expect(locationLinkFor("Salle")).toContain("query=Salle");
+    });
+});
+
+/*
+ * Le mode de trajet est un réglage, parce qu'il ne se devine pas.
+ *
+ * Le même campus se rejoint en métro depuis chez soi et en voiture depuis
+ * ailleurs, et Google Maps sait déjà proposer le plus vraisemblable quand on
+ * ne lui dit rien. « auto » est donc le repos : aucun `travelmode` dans l'URL,
+ * la carte tranche. Les autres valeurs sont celles que la documentation Maps
+ * URLs accepte, à la lettre près — une valeur inventée y serait ignorée sans
+ * que rien ne le signale.
+ */
+describe("locationLinkFor — le mode de trajet", () => {
+    const CAMPUS = "Efrei, 30-32 avenue de la République, 94800 Villejuif";
+
+    it("asks for the mode that was set", () => {
+        expect(
+            locationLinkFor("Efrei", undefined, CAMPUS, "transit")
+        ).toContain("&travelmode=transit");
+        expect(
+            locationLinkFor("Efrei", "48.78,2.36", undefined, "driving")
+        ).toBe(
+            "https://www.google.com/maps/dir/?api=1&destination=48.78%2C2.36&travelmode=driving"
+        );
+    });
+
+    it("leaves the choice to Maps at rest", () => {
+        expect(locationLinkFor("Efrei", undefined, CAMPUS)).not.toContain(
+            "travelmode"
+        );
+        expect(
+            locationLinkFor("Efrei", undefined, CAMPUS, "auto")
+        ).not.toContain("travelmode");
+    });
+
+    /* Une recherche n'est pas un trajet : le mode n'y aurait aucun sens, et
+       Maps ignorerait le paramètre. Autant ne pas l'écrire. */
+    it("says nothing of the mode when there is only a place to search for", () => {
+        expect(
+            locationLinkFor(
+                "Efrei Bat. C C001",
+                undefined,
+                undefined,
+                "transit"
+            )
+        ).toBe(
+            "https://www.google.com/maps/search/?api=1&query=Efrei%20Bat.%20C%20C001"
+        );
+    });
+
+    it("leaves a meeting link untouched", () => {
+        expect(
+            locationLinkFor(
+                "https://teams.microsoft.com/l/42",
+                undefined,
+                CAMPUS,
+                "transit"
+            )
+        ).toBe("https://teams.microsoft.com/l/42");
     });
 });
