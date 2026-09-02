@@ -12,11 +12,48 @@ export const SLOT_HEIGHT = 30; // px per 30-min slot
 
    The bounds are where the grid stops being a calendar: the whole day barely
    fits at the bottom, one hour fills the screen at the top. */
+/**
+ * La hauteur d'heure au repos sur telephone.
+ *
+ * Une colonne de telephone est etroite : un titre d'evenement y tient souvent
+ * sur trois lignes. Mesure dans l'application, a 60 px par heure, un evenement
+ * d'une heure offre 46 px a son contenu alors qu'il en faut 57 — trois lignes
+ * de titre a 14,3 px, plus la ligne d'horaire. La troisieme ligne etait donc
+ * coupee en deux dans la hauteur, ce qui se lit comme un defaut d'affichage et
+ * non comme un texte trop long.
+ *
+ * 72 px laissent 58 px de contenu : la mesure passe, avec un pixel de reste.
+ * C'est une valeur de repos et non un plancher — le pincement descend toujours
+ * jusqu'a MIN_HOUR_HEIGHT.
+ */
+export const ANDROID_HOUR_HEIGHT = 72;
+
 export const MIN_HOUR_HEIGHT = 32;
 export const MAX_HOUR_HEIGHT = 320;
 
 export function clampHourHeight(px: number): number {
     return Math.min(Math.max(px, MIN_HOUR_HEIGHT), MAX_HOUR_HEIGHT);
+}
+
+/**
+ * La hauteur d'heure au repos, telle que la feuille de style la declare.
+ *
+ * Le nombre vit dans le CSS — 60 px partout, 72 px sur telephone — et le
+ * JavaScript le lit plutot que d'en garder une copie. C'est la seule facon de
+ * tenir la promesse du commentaire ci-dessus : les deux ont deja diverge, 60
+ * d'un cote et 84 de l'autre, et le jour visible etait alors plus long que le
+ * jour logique, avec des heures fantomes apres minuit.
+ *
+ * Retombe sur HOUR_HEIGHT hors navigateur, ou tant que rien n'est declare.
+ */
+export function restingHourHeight(): number {
+    if (typeof document === "undefined" || !document.body) return HOUR_HEIGHT;
+    const declared = parseFloat(
+        getComputedStyle(document.body).getPropertyValue("--nc-hour-height")
+    );
+    return Number.isFinite(declared) && declared > 0
+        ? clampHourHeight(declared)
+        : HOUR_HEIGHT;
 }
 
 let hourHeight: number = HOUR_HEIGHT;

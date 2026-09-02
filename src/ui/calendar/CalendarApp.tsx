@@ -1,5 +1,11 @@
 import * as React from "react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+    useState,
+    useEffect,
+    useLayoutEffect,
+    useCallback,
+    useMemo,
+} from "react";
 import { Notice } from "obsidian";
 import {
     CalendarAppProps,
@@ -7,6 +13,7 @@ import {
     CalendarSource,
     ViewType,
 } from "../types";
+import { restingHourHeight, setHourHeight } from "./calendarConstants";
 import { NeoEvent } from "../../types";
 import { EditableCalendar } from "../../calendars/EditableCalendar";
 import { getTaskStatus, isTask } from "../tasks";
@@ -1618,6 +1625,14 @@ function CalendarAppInner(props: CalendarAppProps) {
 }
 
 export default function CalendarApp(props: CalendarAppProps) {
+    /* La hauteur d'heure au repos vit dans la feuille de style — 60 px, 72 px
+       sur telephone — et c'est elle qui dessine la grille. Le JavaScript qui
+       place les evenements doit dire le meme nombre : il le lit ici, avant la
+       premiere peinture, plutot que d'en garder une copie qui divergerait. */
+    useLayoutEffect(() => {
+        setHourHeight(restingHourHeight());
+    }, []);
+
     return (
         <ClipboardProvider>
             <CalendarAppInner {...props} />

@@ -437,6 +437,35 @@ function isAndroidRuntime(): boolean {
     );
 }
 
+/**
+ * Le meme tableau, avec un enregistrement remplace par sa nouvelle version.
+ */
+export function replaceRecord(
+    records: DesktopStoredEvent[],
+    id: string,
+    next: DesktopStoredEvent
+): DesktopStoredEvent[] {
+    return records.map((record) => (record.id === id ? next : record));
+}
+
+/**
+ * Remettre l'ancien enregistrement apres une ecriture ratee — mais seulement
+ * si c'est bien celui qu'on avait montre qui est encore la.
+ *
+ * Deux appuis coup sur coup ecrivent l'un apres l'autre : l'echec du premier
+ * ne doit pas effacer ce que le second a deja pose, ni ressusciter une note
+ * supprimee entre-temps.
+ */
+export function revertRecord(
+    records: DesktopStoredEvent[],
+    shown: DesktopStoredEvent,
+    previous: DesktopStoredEvent
+): DesktopStoredEvent[] {
+    return records.some((record) => record === shown)
+        ? records.map((record) => (record === shown ? previous : record))
+        : records;
+}
+
 export function canPersistDesktopTaskCompletion(
     event: NeoEvent,
     done: boolean,
@@ -1425,11 +1454,32 @@ export default function DesktopCalendar({
 
             setIsSaving(true);
             setStorageError(null);
-            try {
-                const contents = serializeEventMarkdown(
-                    normalized,
-                    previous?.contents
+            const contents = serializeEventMarkdown(
+                normalized,
+                previous?.contents
+            );
+
+            /* Montrer la decision avant de l'ecrire.
+               L'ecriture passe par le pont natif et, sur telephone, par le
+               stockage partage : attendre qu'elle revienne laissait la case
+               d'une tache vide une bonne seconde apres l'appui, comme si rien
+               ne s'etait passe. L'enregistrement porte donc tout de suite ce
+               que l'on vient de decider, et l'ancien revient si l'ecriture
+               echoue. */
+            const shown: DesktopStoredEvent | null = previous
+                ? { ...previous, contents, event: normalized }
+                : null;
+            if (previous && shown) {
+                const next = replaceRecord(
+                    recordsRef.current,
+                    previous.id,
+                    shown
                 );
+                recordsRef.current = next;
+                setStoredEvents(next);
+            }
+
+            try {
                 const relativePath = await writeDesktopEventFile({
                     dataFolder,
                     calendarPath: targetPath,
@@ -1456,6 +1506,15 @@ export default function DesktopCalendar({
                 setStoredEvents(next);
                 return id;
             } catch (reason) {
+                if (previous && shown) {
+                    const next = revertRecord(
+                        recordsRef.current,
+                        shown,
+                        previous
+                    );
+                    recordsRef.current = next;
+                    setStoredEvents(next);
+                }
                 setStorageError(errorMessage(reason));
                 throw reason;
             } finally {

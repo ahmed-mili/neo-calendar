@@ -1169,7 +1169,7 @@ body.nc-platform-android .nc-confirm-dialog footer button {
 /* === NEO ANDROID NATIVE SHELL V5 START === */
 
 body.nc-platform-android {
-    --nc-hour-height: 60px;
+    --nc-hour-height: 72px;
     --nc-day-min-width: 0px;
 }
 
@@ -2989,7 +2989,7 @@ body.nc-platform-android {
      * This is the resting value, not a floor: pinching the grid writes the
      * variable on the grid itself, which is why nothing here is !important.
      */
-    --nc-hour-height: 60px;
+    --nc-hour-height: 72px;
 
     width: 100% !important;
     height: 100% !important;
