@@ -392,7 +392,7 @@ fn unique_markdown_path(directory: &Path, requested_name: &str, current: Option<
     unreachable!()
 }
 
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn write_desktop_event_file(
     data_folder: String,
     calendar_path: String,
@@ -444,7 +444,7 @@ fn write_desktop_event_file(
         .map_err(|_| format!("'{}' is outside the data folder.", target.display()))
 }
 
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn delete_desktop_event_file(data_folder: String, relative_path: String) -> Result<(), String> {
     let root = root_path(&data_folder)?;
     let path = safe_join(&root, &relative_path)?;
@@ -465,7 +465,7 @@ fn delete_desktop_event_file(data_folder: String, relative_path: String) -> Resu
 /// whether some earlier cycle already made it — but a name already taken by
 /// something that ISN'T a folder still fails loudly rather than writing into
 /// whatever that is.
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn ensure_desktop_ics_folder(
     data_folder: String,
     calendar_path: String,
@@ -1429,7 +1429,7 @@ fn base64_encode(bytes: &[u8]) -> String {
     out
 }
 
-#[tauri::command(rename_all = "camelCase")]
+#[tauri::command(rename_all = "camelCase", async)]
 fn fetch_desktop_ics(url: String) -> Result<String, String> {
     let trimmed = url.trim();
     if trimmed.is_empty() {
@@ -1808,6 +1808,39 @@ pub fn run() {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    /// Une commande Tauri synchrone s'execute sur le thread principal, celui
+    /// qui fait tourner la fenetre : tout ce qu'elle attend, la fenetre
+    /// l'attend avec elle. `fetch_desktop_ics` attend `curl.exe` jusqu'a
+    /// quarante-cinq secondes, et chaque note ecrite sonde le disque pour
+    /// trouver un nom libre. Mesure a l'appui : pendant le chargement d'un
+    /// calendrier distant, l'application ne repondait plus du tout.
+    ///
+    /// `async` sur l'attribut ne rend pas la fonction asynchrone : il dit a
+    /// Tauri de la porter sur le pool de threads de son runtime au lieu de la
+    /// fenetre. C'est la seule chose qui separe une attente d'un gel.
+    #[test]
+    fn blocking_commands_are_kept_off_the_window_thread() {
+        let source = include_str!("lib.rs");
+        for name in [
+            "fn fetch_desktop_ics",
+            "fn write_desktop_event_file",
+            "fn delete_desktop_event_file",
+            "fn ensure_desktop_ics_folder",
+        ] {
+            let at = source
+                .find(name)
+                .unwrap_or_else(|| panic!("{name} est introuvable"));
+            let attribute_start = source[..at]
+                .rfind("#[tauri::command")
+                .unwrap_or_else(|| panic!("{name} n'est pas une commande Tauri"));
+            let attribute = &source[attribute_start..at];
+            assert!(
+                attribute.contains("async"),
+                "{name} bloquerait le thread de la fenetre : {attribute}"
+            );
+        }
+    }
 
     #[cfg(target_os = "windows")]
     #[test]

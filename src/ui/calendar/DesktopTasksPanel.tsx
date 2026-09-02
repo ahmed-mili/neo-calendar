@@ -8,6 +8,7 @@ import {
 import { formatDatedDayWithYear } from "./calendarFormatters";
 import { TaskCheckbox } from "./TaskCheckbox";
 import { XIcon } from "./Icons";
+import { matchesTaskQuery } from "../tasks/taskSearch";
 import { t } from "../i18n";
 
 type DesktopTaskGroup = "todo" | "complete";
@@ -204,6 +205,20 @@ export default function DesktopTasksPanel({
         }
     };
 
+    // Le champ repart vide a chaque ouverture : une recherche laissee en place
+    // ferait rouvrir la fiche sur une liste amputee sans qu'on sache pourquoi.
+    const [query, setQuery] = React.useState("");
+    React.useEffect(() => {
+        setQuery("");
+    }, [openGroup]);
+
+    const shown = openGroup
+        ? groups[openGroup].filter((task) => matchesTaskQuery(task, query))
+        : [];
+    const shownRecent = recentlyCompleted.filter((task) =>
+        matchesTaskQuery(task, query)
+    );
+
     const modal =
         openGroup !== null && typeof document !== "undefined"
             ? ReactDOM.createPortal(
@@ -241,8 +256,20 @@ export default function DesktopTasksPanel({
                                   <XIcon size={14} />
                               </button>
                           </header>
+                          <div className="nc-task-modal-search">
+                              <input
+                                  type="search"
+                                  value={query}
+                                  placeholder={t("Search tasks")}
+                                  aria-label={t("Search tasks")}
+                                  autoComplete="off"
+                                  onChange={(event) =>
+                                      setQuery(event.target.value)
+                                  }
+                              />
+                          </div>
                           <div className="nc-task-modal-list">
-                              {groups[openGroup].map((task) => (
+                              {shown.map((task) => (
                                   <TaskRow
                                       key={task.id}
                                       task={task}
@@ -252,12 +279,12 @@ export default function DesktopTasksPanel({
                                   />
                               ))}
                               {openGroup === "todo" &&
-                                  recentlyCompleted.length > 0 && (
+                                  shownRecent.length > 0 && (
                                       <>
                                           <div className="nc-task-modal-subheading">
                                               {t("Recently completed")}
                                           </div>
-                                          {recentlyCompleted.map((task) => (
+                                          {shownRecent.map((task) => (
                                               <TaskRow
                                                   key={task.id}
                                                   task={task}
@@ -269,6 +296,17 @@ export default function DesktopTasksPanel({
                                               />
                                           ))}
                                       </>
+                                  )}
+                              {/* Une liste vide sans un mot se lit comme une
+                                  panne : elle doit dire que c'est la recherche
+                                  qui ne donne rien, et non le calendrier. */}
+                              {shown.length === 0 &&
+                                  shownRecent.length === 0 && (
+                                      <p className="nc-task-modal-empty">
+                                          {query.trim()
+                                              ? t("Nothing matches")
+                                              : t("Nothing here")}
+                                      </p>
                                   )}
                           </div>
                       </section>

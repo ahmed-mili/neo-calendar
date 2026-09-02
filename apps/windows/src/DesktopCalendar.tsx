@@ -153,6 +153,7 @@ import {
     planIcalDirectoryAssignments,
 } from "./platform/icalNoteSync";
 import { syncIcsFeeds } from "./platform/icsCalendarIntegration";
+import { SyncingFeedsContext } from "../../../src/ui/calendar/SyncingFeeds";
 import {
     dueIcsFeeds,
     type IcsRuntimeStateByFeed,
@@ -1313,6 +1314,13 @@ export default function DesktopCalendar({
             ? preferences.prayerMosques[prayerCalendar.relativePath]
             : null
     );
+
+    // Le reglage prime, la couleur du calendrier repond a defaut : une entree
+    // absente veut dire « celle du calendrier », et non « pas de couleur ».
+    const prayerLineColor = prayerCalendar
+        ? (preferences.prayerColors[prayerCalendar.relativePath] ??
+          prayerCalendar.color)
+        : undefined;
 
     // La minute, pas la seconde : le trait de la prochaine prière ne bouge
     // qu'aux changements de prière, et une horloge à la minute suffit pour
@@ -3478,6 +3486,7 @@ export default function DesktopCalendar({
             className="nc-desktop-calendar"
             data-view={viewType}
         >
+            <SyncingFeedsContext.Provider value={syncingIcsFeedIds}>
             <CalendarLayout
                 currentDate={currentDate}
                 viewType={viewType}
@@ -3514,7 +3523,7 @@ export default function DesktopCalendar({
                 // (voir DesktopSettings, ou la ligne n'apparait que la).
                 freeScroll={isAndroid ? preferences.freeScroll : true}
                 prayerLines={prayerLines}
-                prayerColor={prayerCalendar?.color}
+                prayerColor={prayerLineColor}
                 sidebarVisible={sidebarVisible}
                 onToggleSidebar={toggleSidebar}
                 onEventClick={selectEvent}
@@ -3691,6 +3700,7 @@ export default function DesktopCalendar({
                 }}
                 onEventUnschedule={handleEventUnschedule}
             />
+            </SyncingFeedsContext.Provider>
 
             <CommandPalette
                 visible={commandPaletteVisible}
@@ -3926,6 +3936,32 @@ export default function DesktopCalendar({
                           ]
                         : undefined) ?? null
                 }
+                color={
+                    (prayerDialogCalendarId
+                        ? preferences.prayerColors[
+                              calendarById.get(prayerDialogCalendarId)
+                                  ?.relativePath ?? ""
+                          ]
+                        : undefined) ?? null
+                }
+                calendarColor={
+                    (prayerDialogCalendarId
+                        ? calendarById.get(prayerDialogCalendarId)?.color
+                        : undefined) ?? "#4ca8df"
+                }
+                onColorChange={(hex) => {
+                    const path = prayerDialogCalendarId
+                        ? calendarById.get(prayerDialogCalendarId)?.relativePath
+                        : undefined;
+                    if (!path) return;
+                    // Retirer l'entree plutot que d'y ecrire la couleur du
+                    // calendrier : figer une copie ferait cesser les traits de
+                    // le suivre le jour ou il change de couleur.
+                    const next = { ...preferences.prayerColors };
+                    if (hex === null) delete next[path];
+                    else next[path] = hex;
+                    void updateWorkspacePreferences({ prayerColors: next });
+                }}
                 onClose={() => setPrayerDialogCalendarId(null)}
                 onChoose={(mosqueId) => {
                     const path = prayerDialogCalendarId

@@ -180,4 +180,79 @@ describe("DesktopTasksPanel", () => {
         act(() => Simulate.click(close));
         expect(document.activeElement).toBe(trigger);
     });
+
+    /*
+     * Chercher dans la liste ouverte.
+     *
+     * Cinquante tâches terminées ne se parcourent pas à l'œil, et la même fiche
+     * sert les deux listes : un seul champ y répond donc pour « À faire »
+     * comme pour « Terminé ».
+     */
+    const search = (): HTMLInputElement => {
+        const found = document.querySelector<HTMLInputElement>(
+            ".nc-task-modal-search input"
+        );
+        if (!found) throw new Error("Le champ de recherche est absent");
+        return found;
+    };
+
+    const type = (value: string) => {
+        const field = search();
+        act(() => {
+            field.value = value;
+            Simulate.change(field);
+        });
+    };
+
+    it("offers a search field in both lists", () => {
+        act(() => Simulate.click(button(t("To do"))));
+        expect(search()).toBeTruthy();
+
+        act(() => {
+            document.dispatchEvent(
+                new KeyboardEvent("keydown", { key: "Escape" })
+            );
+        });
+        act(() => Simulate.click(button(t("Complete"))));
+        expect(search()).toBeTruthy();
+    });
+
+    it("keeps only what is typed, accents aside", () => {
+        act(() => Simulate.click(button(t("To do"))));
+        type("tache datee");
+
+        expect(document.body.textContent).toContain("Tâche datée");
+        expect(document.body.textContent).not.toContain("Tâche sans date");
+    });
+
+    it("searches the completed list too", () => {
+        act(() => Simulate.click(button(t("Complete"))));
+        type("maison");
+        expect(document.body.textContent).toContain("Tâche terminée");
+
+        type("travail");
+        expect(document.body.textContent).not.toContain("Tâche terminée");
+    });
+
+    it("says so rather than showing an empty list", () => {
+        // Une liste vide sans un mot se lit comme une panne : elle doit dire
+        // que c'est la recherche qui ne donne rien, et non le calendrier.
+        act(() => Simulate.click(button(t("To do"))));
+        type("zzz introuvable");
+        expect(document.body.textContent).toContain(t("Nothing matches"));
+    });
+
+    it("starts empty again each time the list is opened", () => {
+        act(() => Simulate.click(button(t("To do"))));
+        type("datee");
+        act(() => {
+            document.dispatchEvent(
+                new KeyboardEvent("keydown", { key: "Escape" })
+            );
+        });
+
+        act(() => Simulate.click(button(t("To do"))));
+        expect(search().value).toBe("");
+        expect(document.body.textContent).toContain("Tâche sans date");
+    });
 });

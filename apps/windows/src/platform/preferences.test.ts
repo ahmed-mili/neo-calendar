@@ -2,6 +2,7 @@ import { normalizeDesktopPreferences } from "./preferences";
 import {
     defaultDesktopWorkspacePreferences,
     parseDesktopWorkspacePreferences,
+    reconcileWorkspacePreferences,
 } from "./desktopWorkspacePreferences";
 
 describe("normalizeDesktopPreferences", () => {
@@ -96,5 +97,70 @@ describe("desktop workspace ICS migration", () => {
         expect(
             defaultDesktopWorkspacePreferences().icsDefaultRefreshMinutes
         ).toBe(60);
+    });
+});
+
+/*
+ * La couleur des traits de prière, par calendrier.
+ *
+ * Elle suivait la couleur du calendrier sans qu'on puisse en décider : un vert
+ * foncé lisible dans une pastille se perd en trait de deux pixels sur un fond
+ * d'écran. C'est donc un réglage à part, rangé là où se choisit la mosquée, et
+ * absent tant que personne n'y a touché — auquel cas la couleur du calendrier
+ * reste la réponse.
+ */
+describe("the colour of a calendar's prayer lines", () => {
+    it("is absent until someone sets one", () => {
+        expect(defaultDesktopWorkspacePreferences().prayerColors).toEqual({});
+        expect(parseDesktopWorkspacePreferences({}).prayerColors).toEqual({});
+    });
+
+    it("keeps a colour written for a calendar", () => {
+        expect(
+            parseDesktopWorkspacePreferences({
+                prayerColors: { الْإِسْلَامُ: "#45d97a" },
+            }).prayerColors
+        ).toEqual({ الْإِسْلَامُ: "#45d97a" });
+    });
+
+    it("refuses anything that is not a written-out hex colour", () => {
+        // Un fichier de préférences s'édite à la main, et cette valeur part
+        // droit dans une propriété CSS : « red », « var(--x) » ou un objet n'y
+        // ont rien à faire, et une forme courte ne se compare pas au reste.
+        expect(
+            parseDesktopWorkspacePreferences({
+                prayerColors: {
+                    a: "red",
+                    b: "#fff",
+                    c: "var(--nc-today)",
+                    d: 12,
+                    e: "#12345g",
+                    f: "#0a0A0a",
+                },
+            }).prayerColors
+        ).toEqual({ f: "#0a0A0a" });
+    });
+
+    it("lets the file win over what was already in hand, calendar by calendar", () => {
+        // Même règle que les couleurs de calendrier et le choix de la mosquée :
+        // le téléphone ne doit pas effacer ce que l'ordinateur vient de régler
+        // pour un autre calendrier.
+        const merged = reconcileWorkspacePreferences({
+            previous: {
+                ...defaultDesktopWorkspacePreferences(),
+                prayerColors: { ancien: "#111111", commun: "#222222" },
+            },
+            loaded: {
+                ...defaultDesktopWorkspacePreferences(),
+                prayerColors: { commun: "#333333", nouveau: "#444444" },
+            },
+            fileExisted: true,
+        });
+
+        expect(merged.prayerColors).toEqual({
+            ancien: "#111111",
+            commun: "#333333",
+            nouveau: "#444444",
+        });
     });
 });

@@ -7,6 +7,7 @@ import { readableTextColor, withAlpha } from "../../utils/color";
 import { TaskCheckbox } from "./TaskCheckbox";
 import { ChevronRightIcon } from "./Icons";
 import { t } from "../i18n";
+import { useIsSyncing } from "./SyncingFeeds";
 
 interface EventBlockProps {
     event: DisplayEvent;
@@ -156,6 +157,12 @@ export default function EventBlock({
     // the top of a second line below the bar.
     const inlineLayout = isShort || compact;
 
+    // Ce que le lien a deja ecrit reste lisible pendant qu'il se rafraichit ;
+    // le battement dit seulement que la reponse n'est pas encore arrivee. Rien
+    // n'est retire de la grille en attendant : une case vide se lit comme une
+    // journee libre, ce qu'elle n'est pas.
+    const isSyncing = useIsSyncing(event.icsFeedId);
+
     return (
         <div
             ref={setNodeRef}
@@ -165,7 +172,7 @@ export default function EventBlock({
                 isPast ? "nc-past-event" : ""
             } ${isResizing ? "nc-resizing" : ""} ${
                 isSelected ? "nc-selected" : ""
-            }`}
+            } ${isSyncing ? "nc-event-syncing" : ""}`}
             style={
                 {
                     background: eventColorBg,

@@ -4,6 +4,7 @@ import { DndContext } from "@dnd-kit/core";
 import EventBlock from "./EventBlock";
 import { applyLanguage } from "../i18n";
 import type { DisplayEvent } from "../types";
+import { SyncingFeedsContext } from "./SyncingFeeds";
 
 const occurrence: DisplayEvent = {
     id: "42_2026-07-22",
@@ -101,5 +102,54 @@ describe("an event filled with its own colour", () => {
 
     it("hands nothing down while it is not filled", () => {
         expect(render(occurrence)).not.toContain("--nc-event-ink");
+    });
+});
+
+/*
+ * Ce qu'un lien a déjà écrit reste à sa place pendant qu'il se rafraîchit.
+ *
+ * Retirer ses évènements le temps d'une synchronisation ferait lire une
+ * journée pleine comme une journée libre. Ils restent donc affichés, et un
+ * battement dit que la réponse du lien n'est pas encore arrivée.
+ */
+describe("an event of a link being refreshed", () => {
+    const renderWith = (event: DisplayEvent, syncing: ReadonlySet<string>) =>
+        renderToStaticMarkup(
+            <SyncingFeedsContext.Provider value={syncing}>
+                <DndContext>
+                    <EventBlock
+                        event={event}
+                        compact={false}
+                        onEventClick={() => {}}
+                        onContextMenu={() => {}}
+                        onToggleTask={async () => true}
+                    />
+                </DndContext>
+            </SyncingFeedsContext.Provider>
+        );
+
+    const fromFeed: DisplayEvent = { ...occurrence, icsFeedId: "feed-1" };
+
+    it("beats while its own link is loading", () => {
+        expect(renderWith(fromFeed, new Set(["feed-1"]))).toContain(
+            "nc-event-syncing"
+        );
+    });
+
+    it("stays still while another link is loading", () => {
+        expect(renderWith(fromFeed, new Set(["feed-2"]))).not.toContain(
+            "nc-event-syncing"
+        );
+    });
+
+    it("never beats for an event that belongs to no link", () => {
+        expect(renderWith(occurrence, new Set(["feed-1"]))).not.toContain(
+            "nc-event-syncing"
+        );
+    });
+
+    it("is still on the grid while its link loads, not taken away", () => {
+        const html = renderWith(fromFeed, new Set(["feed-1"]));
+        expect(html).toContain("Standup");
     });
 });

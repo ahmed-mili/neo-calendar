@@ -379,6 +379,47 @@
     color: var(--nc-text-primary);
 }
 
+/* ── Chercher dans la liste ouverte ───────────────────────────────────
+ *
+ * Une seule fiche sert « A faire » et « Termine », donc un seul champ y
+ * repond. Il est pose sous l'en-tete et hors du defilement : une liste de
+ * cinquante taches ne doit pas emporter le champ avec elle en defilant.
+ */
+.nc-task-modal-search {
+    flex: 0 0 auto;
+    padding: 0 12px 8px;
+}
+
+.nc-task-modal-search input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 10px;
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 8px;
+    background: transparent;
+    color: var(--nc-text-primary, var(--text-normal));
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.nc-task-modal-search input::placeholder {
+    color: var(--nc-text-faint, var(--text-faint));
+}
+
+.nc-task-modal-search input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+}
+
+/* Une liste vide sans un mot se lit comme une panne. */
+.nc-task-modal-empty {
+    margin: 0;
+    padding: 18px 8px;
+    color: var(--nc-text-faint, var(--text-faint));
+    font-size: 12.5px;
+    text-align: center;
+}
+
 .nc-task-modal-list {
     min-height: 0;
     overflow-y: auto;

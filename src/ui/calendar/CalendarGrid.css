@@ -1189,6 +1189,39 @@
     z-index: 6;
 }
 
+/* ── Un evenement qu'un lien est en train de reprendre ────────
+ *
+ * Ce qui est deja ecrit reste a sa place et reste lisible : retirer les
+ * evenements le temps d'une synchronisation ferait lire une journee pleine
+ * comme une journee libre. Le battement dit seulement que la reponse du lien
+ * n'est pas encore arrivee, et il s'arrete de lui-meme quand elle arrive.
+ *
+ * L'opacite seule, sans rien deplacer ni redimensionner : un bloc qui bouge
+ * pendant qu'on essaie de le lire coute plus qu'il n'informe.
+ */
+@keyframes nc-event-syncing-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.45;
+    }
+}
+
+.nc-event-block.nc-event-syncing {
+    animation: nc-event-syncing-pulse 1.4s ease-in-out infinite;
+}
+
+/* Le mouvement est une information, pas une decoration : quand il est refuse,
+   l'etat se dit par une opacite fixe plutot que de disparaitre. */
+@media (prefers-reduced-motion: reduce) {
+    .nc-event-block.nc-event-syncing {
+        animation: none;
+        opacity: 0.7;
+    }
+}
+
 /* ── Les horaires de prière ──────────────────────────────────
  *
  * Le même geste que la ligne de l'heure qu'il est, à une autre heure : un trait

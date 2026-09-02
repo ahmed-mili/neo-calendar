@@ -2679,6 +2679,72 @@ button.nc-settings__theme-card:focus-visible {
     color: var(--interactive-accent);
 }
 
+/* ── La couleur des traits, reglee avec la mosquee ────────────────────
+ *
+ * Meme rangee que le reste du dialogue : un libelle, la pastille qui montre la
+ * couleur qu'ont vraiment les traits, et le retour vers celle du calendrier —
+ * qui n'apparait que lorsqu'il y a quelque chose a defaire.
+ */
+.nc-prayer-dialog__colour {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--prayer-line);
+}
+
+.nc-prayer-dialog__colour-label {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.nc-prayer-dialog__swatch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    padding: 5px 9px 5px 7px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.nc-prayer-dialog__swatch:hover {
+    background: var(--background-modifier-hover);
+}
+
+/* Le trait a l'echelle, dessine comme la grille le dessine : deux pixels
+   pleins, bouts arrondis, meme ombre portee. */
+.nc-prayer-dialog__swatch-line {
+    width: 22px;
+    height: 2px;
+    border-radius: 999px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.35);
+}
+
+.nc-prayer-dialog__reset {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.nc-prayer-dialog__reset:hover {
+    border-color: var(--background-modifier-border);
+    color: var(--text-normal);
+}
+
 .nc-prayer-dialog__hint {
     margin: 14px 0 0;
     padding-top: 12px;

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { Check, Clock, X } from "lucide-react";
+import { Check, Clock, RotateCcw, X } from "lucide-react";
+import ColorPicker from "../../../src/ui/calendar/ColorPicker";
 import { PRAYER_TIMETABLES } from "../../../src/ui/calendar/prayerTimetables";
 import { isAndroidRuntime } from "../../../src/ui/calendar/CalendarUtils";
 import { t } from "../../../src/ui/i18n";
@@ -11,8 +12,16 @@ export interface PrayerMosqueDialogProps {
     calendarName: string;
     /** La mosquée choisie, ou `null` quand ce calendrier n'en suit aucune. */
     mosqueId: string | null;
+    /** La couleur réglée pour les traits, ou `null` tant que personne n'y a
+     *  touché — auquel cas c'est celle du calendrier qui s'affiche. */
+    color: string | null;
+    /** Celle du calendrier, qui sert de réponse par défaut et de retour. */
+    calendarColor: string;
     onClose: () => void;
     onChoose: (mosqueId: string | null) => void;
+    /** `null` retire le réglage : les traits se remettent à suivre le
+     *  calendrier au lieu de figer une copie de sa couleur du moment. */
+    onColorChange: (color: string | null) => void;
 }
 
 /**
@@ -31,9 +40,19 @@ export default function PrayerMosqueDialog({
     open,
     calendarName,
     mosqueId,
+    color,
+    calendarColor,
     onClose,
     onChoose,
+    onColorChange,
 }: PrayerMosqueDialogProps) {
+    const swatchRef = React.useRef<HTMLButtonElement>(null);
+    const [pickerAnchor, setPickerAnchor] = React.useState<DOMRect | null>(
+        null
+    );
+    // Le calendrier repond tant que rien n'a ete regle : la pastille montre
+    // toujours la couleur que les traits ont vraiment, pas un reglage vide.
+    const shown = color ?? calendarColor;
     React.useEffect(() => {
         if (!open) return;
         const onKeyDown = (event: KeyboardEvent) => {
@@ -124,6 +143,60 @@ export default function PrayerMosqueDialog({
                         );
                     })}
                 </div>
+
+                {/* La couleur des traits se regle ici, avec la mosquee :
+                    c'est le meme sujet, et un vert fonce qui se lit dans une
+                    pastille de barre laterale se perd en trait de deux pixels
+                    par-dessus un fond d'ecran. */}
+                <div className="nc-prayer-dialog__colour">
+                    <span className="nc-prayer-dialog__colour-label">
+                        {t("Line colour")}
+                    </span>
+                    <button
+                        type="button"
+                        ref={swatchRef}
+                        className="nc-prayer-dialog__swatch"
+                        aria-label={t("Line colour")}
+                        onClick={() =>
+                            setPickerAnchor(
+                                swatchRef.current?.getBoundingClientRect() ??
+                                    null
+                            )
+                        }
+                    >
+                        {/* Le trait lui-meme, a l'echelle, plutot qu'un carre
+                            de couleur : la pastille montre ce que la grille
+                            dessinera, bouts arrondis compris. */}
+                        <span
+                            className="nc-prayer-dialog__swatch-line"
+                            style={{ background: shown }}
+                        />
+                        <span aria-hidden="true">{shown}</span>
+                    </button>
+                    {color !== null && (
+                        <button
+                            type="button"
+                            className="nc-prayer-dialog__reset"
+                            title={t("Follow the calendar's colour")}
+                            aria-label={t("Follow the calendar's colour")}
+                            onClick={() => {
+                                setPickerAnchor(null);
+                                onColorChange(null);
+                            }}
+                        >
+                            <RotateCcw size={14} />
+                        </button>
+                    )}
+                </div>
+
+                {pickerAnchor && (
+                    <ColorPicker
+                        color={shown}
+                        anchorRect={pickerAnchor}
+                        onChange={onColorChange}
+                        onClose={() => setPickerAnchor(null)}
+                    />
+                )}
 
                 {/* La seconde phrase parle d'une touche a tenir : elle
                     n'a rien a faire sur un telephone, qui n'en a pas et ou

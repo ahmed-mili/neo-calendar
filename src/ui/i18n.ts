@@ -592,6 +592,11 @@ const FR: Record<string, string> = {
     // ── Horaires de priere ───────────────────────────────────
     "Prayer times": "Horaires de prière",
     "No prayer times": "Aucun horaire de prière",
+    "Search tasks": "Rechercher une tâche",
+    "Nothing matches": "Rien ne correspond",
+    "Nothing here": "Rien ici",
+    "Line colour": "Couleur des traits",
+    "Follow the calendar's colour": "Reprendre la couleur du calendrier",
     "This calendar shows nothing of the prayers.":
         "Ce calendrier n'affiche rien des prières.",
     Timetable: "Calendrier",

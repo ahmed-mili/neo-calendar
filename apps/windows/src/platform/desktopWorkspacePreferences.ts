@@ -51,6 +51,17 @@ export interface DesktopWorkspacePreferences {
      * retirer une mosquée du code sans casser un dossier de données.
      */
     prayerMosques: Record<string, string>;
+
+    /**
+     * Par chemin de calendrier, la couleur de ses traits de prière.
+     *
+     * Un réglage à part de la couleur du calendrier, et non un reflet : un vert
+     * foncé qui se lit dans une pastille de barre latérale se perd en trait de
+     * deux pixels par-dessus un fond d'écran. Une entrée absente veut dire
+     * « celle du calendrier », si bien qu'aucun calendrier ne se voit imposer
+     * un choix qu'on n'a pas fait pour lui.
+     */
+    prayerColors: Record<string, string>;
 }
 
 const VIEW_TYPES: ViewType[] = [
@@ -105,6 +116,7 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         icsFeeds: [],
         externalCalendars: [],
         prayerMosques: {},
+        prayerColors: {},
     };
 }
 
@@ -248,6 +260,7 @@ export function reconcileWorkspacePreferences({
         // l'ordinateur vient de faire pour un autre. Le fichier gagne sur les
         // calendriers que les deux connaissent.
         prayerMosques: { ...previous.prayerMosques, ...loaded.prayerMosques },
+        prayerColors: { ...previous.prayerColors, ...loaded.prayerColors },
     };
 }
 
@@ -364,12 +377,30 @@ export function parseDesktopWorkspacePreferences(
             ...legacyIcalMigration.unresolved,
         ],
         prayerMosques: prayerMosquesOf(source.prayerMosques),
+        prayerColors: prayerColorsOf(source.prayerColors),
     };
 }
 
 /** Des paires « chemin de calendrier → identifiant de mosquée », et rien
  *  d'autre : un fichier de préférences édité à la main ne doit pas pouvoir
  *  faire entrer un objet là où on lit une chaîne. */
+/** Des paires « chemin de calendrier → couleur écrite en toutes lettres ».
+ *
+ *  Seule la forme longue `#rrggbb` est retenue : cette valeur part telle quelle
+ *  dans une propriété CSS, donc un `red`, un `var(--x)` ou un objet glissé à la
+ *  main dans le fichier n'y ont rien à faire ; et une forme courte `#fff` ne se
+ *  compare pas à ce que le reste de l'application écrit. */
+function prayerColorsOf(source: unknown): Record<string, string> {
+    if (!source || typeof source !== "object" || Array.isArray(source)) {
+        return {};
+    }
+    const pairs = Object.entries(source as Record<string, unknown>).filter(
+        (pair): pair is [string, string] =>
+            typeof pair[1] === "string" && /^#[0-9a-fA-F]{6}$/.test(pair[1])
+    );
+    return Object.fromEntries(pairs);
+}
+
 function prayerMosquesOf(source: unknown): Record<string, string> {
     if (!source || typeof source !== "object" || Array.isArray(source)) {
         return {};
