@@ -56,9 +56,33 @@ describe("an event that has already happened", () => {
         ).toBeUndefined();
     });
 
-    it("dims the ink the title and the time both read", () => {
+    /*
+     * Dimming used to be a `filter: saturate()` on the block, which washes out
+     * the surface, the accent strip and the text in one go: a course already
+     * given read as switched off rather than as behind one. Notion Calendar
+     * dims two things and nothing else — the strip down the left edge, and the
+     * name. The surface is the same as a course still to come.
+     */
+    it("keeps the surface of an event still to come", () => {
+        expect(
+            declarationsFor(".nc-event-block.nc-past-event").filter
+        ).toBeUndefined();
+    });
+
+    it("dims the accent strip rather than the whole block", () => {
+        const strip = declarationsFor(".nc-event-block.nc-past-event::before");
+        expect(Number(strip.opacity)).toBeGreaterThan(0);
+        expect(Number(strip.opacity)).toBeLessThan(1);
+    });
+
+    /*
+     * The time keeps the ink of any other event. It is the one thing a glance
+     * at a past block still comes to read — when it ended — and dimming it was
+     * what the `color-mix` was there to soften. Both go.
+     */
+    it("dims the title and leaves the time alone", () => {
         const past = declarationsFor(".nc-event-block.nc-past-event");
         expect(past["--nc-event-ink"]).toBeDefined();
-        expect(past["--nc-event-ink-muted"]).toBeDefined();
+        expect(past["--nc-event-ink-muted"]).toBeUndefined();
     });
 });

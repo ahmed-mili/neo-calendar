@@ -35,6 +35,10 @@ export interface DisplayEvent {
     // Multi-day
     isMultiDay: boolean;
     description?: string;
+    /** Où l'évènement se tient, tel qu'il est écrit dans son fichier. Une vue
+     *  ne l'affiche pas — c'est le panneau qui le montre — mais un rappel le
+     *  dit, et c'est la seule lecture qu'on fasse sans ouvrir l'application. */
+    location?: string;
     // Plan C: someday events
     isSomeday: boolean;
     // True while this event is the one open in the side panel (selected).

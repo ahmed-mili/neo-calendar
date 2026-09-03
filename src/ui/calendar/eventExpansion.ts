@@ -104,6 +104,7 @@ interface MakeArgs {
     idSuffix?: string;
     title: string;
     description: string | undefined;
+    location: string | undefined;
     start: Date;
     end: Date;
     allDay: boolean;
@@ -121,6 +122,7 @@ function makeDisplayEvent({
     idSuffix,
     title,
     description,
+    location,
     start,
     end,
     allDay,
@@ -150,6 +152,7 @@ function makeDisplayEvent({
         isMultiDay,
         isSomeday: false,
         description,
+        location,
     };
 }
 
@@ -175,6 +178,7 @@ function expandSingle(
             reminders: event.reminders,
             title: getDisplayTitle(event.title),
             description: event.description,
+            location: event.location,
             start: times.start,
             end: times.end,
             allDay: !!event.allDay,
@@ -257,6 +261,7 @@ function expandRecurring(
                         idSuffix: dateStr,
                         title: getDisplayTitle(event.title),
                         description: event.description,
+                        location: event.location,
                         start: times.start,
                         end: times.end,
                         allDay: !!event.allDay,
@@ -330,6 +335,7 @@ function expandRrule(
                 idSuffix: dateStr,
                 title: getDisplayTitle(event.title),
                 description: event.description,
+                location: event.location,
                 start: times.start,
                 end: times.end,
                 allDay: !!event.allDay,

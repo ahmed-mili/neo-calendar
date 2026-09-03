@@ -145,3 +145,84 @@ describe("the blur behind the event sheet", () => {
         expect(css).toContain(`${HOST} > *:not([aria-hidden="true"])`);
     });
 });
+
+/*
+ * Le panneau du mois, ouvert par le titre de la barre du haut.
+ *
+ * Mesure sur le telephone d'Ahmed (2026-09-02, capture) : la grille de la
+ * semaine et le fond d'ecran se lisaient au travers, nets, alors que la regle
+ * annoncait 94 % d'opacite et un flou de 22 px. Ni l'un ni l'autre n'arrivait
+ * a l'ecran. Plutot que de monter le pourcentage — un reglage de plus sur un
+ * mecanisme dont on ne sait pas s'il s'applique —, la surface ne depend plus
+ * de la transparence du tout : un fond plein ne peut rien laisser passer,
+ * quelle que soit la WebView. C'est aussi ce que montre Notion Calendar, dont
+ * le panneau est opaque.
+ */
+describe("le panneau du mois sur le telephone", () => {
+    const SHEET = "body.nc-platform-android .nc-android-month-sheet";
+
+    it("is painted with a solid surface, so nothing can read through it", () => {
+        const background = declarationsFor(css, SHEET).background;
+        expect(background).not.toContain("transparent");
+        expect(background).not.toContain("color-mix");
+    });
+
+    it("asks for no blur it cannot be shown to perform", () => {
+        const sheet = declarationsFor(css, SHEET);
+        expect(sheet["backdrop-filter"]).toBeUndefined();
+        expect(sheet["-webkit-backdrop-filter"]).toBeUndefined();
+    });
+
+    /* Notion centre les jours sous leurs initiales. La regle de bureau les
+       colle a gauche, ce qui sur les cases larges du telephone laisse le
+       nombre flotter loin de sa colonne. */
+    it("centres the day numbers under their initials, as Notion does", () => {
+        expect(
+            declarationsFor(css, `${SHEET} .nc-mini-cal-day`)[
+                "justify-content"
+            ]
+        ).toBe("center");
+        expect(
+            declarationsFor(css, `${SHEET} .nc-mini-cal-day-header`)[
+                "text-align"
+            ]
+        ).toBe("center");
+    });
+});
+
+/*
+ * La bande de la semaine courante, derriere les sept jours a l'ecran.
+ *
+ * Notion en dessine UN galet continu ; le notre sortait en sept pastilles
+ * detachees. La cause n'est pas la bande mais la case : la regle de bureau
+ * plafonne `.nc-mini-cal-day` a 26 px de large, taille juste pour la barre
+ * laterale d'un ordinateur. Sur les colonnes larges du telephone, la case
+ * flotte au milieu de sa colonne et le pseudo-element de la bande, qui ne
+ * deborde que de 2 px pour franchir la gouttiere de la grille, ne peut pas
+ * rejoindre la case voisine. La case reprend donc toute sa colonne, et le
+ * rouge d'aujourd'hui redevient une pastille par un pseudo-element centre —
+ * sans quoi il s'etalerait sur toute la colonne, ce que Notion ne fait pas.
+ */
+describe("la bande de la semaine courante sur le telephone", () => {
+    const DAY =
+        "body.nc-platform-android .nc-android-month-sheet .nc-mini-cal-day";
+
+    it("lets a day cell fill its column, so the band can be continuous", () => {
+        expect(declarationsFor(css, DAY)["max-width"]).toBe("none");
+    });
+
+    it("keeps today a compact badge rather than a full-width bar", () => {
+        const badge = declarationsFor(css, `${DAY}.nc-today::after`);
+        expect(badge.width).toBeDefined();
+        expect(badge.width).not.toBe("100%");
+        expect(badge.background).toContain("--nc-today");
+    });
+
+    /* Une bande ecrite en `color-mix` disparait entierement si la WebView ne
+       connait pas la fonction — et c'est justement ce dont on soupconne celle
+       du telephone. Une valeur litterale ne peut pas etre ecartee. */
+    it("states its tint literally, so it cannot be dropped", () => {
+        const band = declarationsFor(css, `${DAY}.nc-current-week::before`);
+        expect(band.background).not.toContain("color-mix");
+    });
+});

@@ -230,10 +230,14 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
 
                 {monthPanelOpen && (
                     <div className="nc-android-month-sheet">
+                        {/* Sans colonne de numéros de semaine, quel que soit
+                            le réglage : sept colonnes de jours et rien
+                            d'autre, comme Notion Calendar. Le réglage vaut
+                            partout ailleurs — un téléphone n'a pas la largeur
+                            à donner à une huitième colonne. */}
                         <MiniCalendar
                             currentDate={currentDate}
                             firstDay={firstDay}
-                            showWeekNumbers={showWeekNumbers}
                             onDateSelect={(date) => {
                                 onDateSelect(date);
                                 setMonthPanelOpen(false);

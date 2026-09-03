@@ -288,3 +288,78 @@ describe("reminders an event carries itself", () => {
         ).toHaveLength(1);
     });
 });
+
+/*
+ * La notification disait quand, jamais ou. Le lieu etait pourtant lu du flux et
+ * ecrit dans l'evenement depuis toujours : il ne manquait qu'a la seule lecture
+ * qu'on fait sans ouvrir l'application.
+ */
+describe("what a reminder says", () => {
+    it("names the place on the short line", () => {
+        const [reminder] = build([
+            event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00", {
+                location: "Amphi B",
+            }),
+        ]);
+
+        expect(reminder.body).toBe("Dans 10 min · 14:00 · Amphi B");
+    });
+
+    /* La ligne courte est celle qu'Android tronque le premier : elle garde ce
+       qu'elle avait quand l'evenement ne dit pas ou il se tient. */
+    it("keeps the short line as it was without a place", () => {
+        const [reminder] = build([
+            event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00"),
+        ]);
+
+        expect(reminder.body).toBe("Dans 10 min · 14:00");
+    });
+
+    it("spells the event out for the unfolded panel", () => {
+        const [reminder] = build([
+            event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00", {
+                location: "Amphi B",
+                description: "Apporter la carte etudiante",
+            }),
+        ]);
+
+        expect(reminder.details).toBe(
+            "14:00 – 15:00\nAmphi B\nCalendar\nApporter la carte etudiante"
+        );
+    });
+
+    it("leaves out the lines the event has nothing to put on", () => {
+        const [reminder] = build([
+            event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00"),
+        ]);
+
+        expect(reminder.details).toBe("14:00 – 15:00\nCalendar");
+    });
+
+    it("says all-day rather than an hour that means nothing", () => {
+        const [reminder] = build([
+            event("whole", "2026-08-09T00:00:00", "2026-08-10T00:00:00", {
+                allDay: true,
+                reminders: [60],
+                location: "Campus",
+            }),
+        ]);
+
+        expect(reminder.details).toBe("Toute la journée\nCampus\nCalendar");
+    });
+
+    /* Trente jours de rappels tiennent dans une preference partagee : une note
+       entiere par evenement n'y a pas sa place, et le volet deplie la couperait
+       de toute facon. */
+    it("cuts a description too long to be carried whole", () => {
+        const [reminder] = build([
+            event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00", {
+                description: "x".repeat(400),
+            }),
+        ]);
+
+        const written = reminder.details.split("\n").at(-1) ?? "";
+        expect(written).toHaveLength(200);
+        expect(written.endsWith("…")).toBe(true);
+    });
+});

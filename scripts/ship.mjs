@@ -121,13 +121,31 @@ export function worksToCommit(message, dirty) {
  */
 export const NEXT_VERSION_FILE = "docs/PROCHAINE_VERSION.md";
 
+/** Le debut d'un point de la liste, coche ou non. */
+const ITEM = /^\s*[-*]\s*\[[ xX]\]/;
+
+/** Le debut d'un point fait. Seule une croix dit qu'il n'est plus a faire. */
+const DONE = /^\s*[-*]\s*\[[xX]\]/;
+
 /*
- * La liste de la prochaine version repart vide a chaque livraison.
+ * La livraison raye du pense-bete les points coches, et eux seuls.
  *
- * Le fichier n'est pas versionne (.gitignore) : c'est un pense-bete local, et
- * rien de ce vidage ne part sur le distant. Il a lieu juste avant le commit de
- * version pour une raison de moment, pas de contenu : c'est la seconde ou la
- * livraison est acquise.
+ * Elle effacait la liste entiere, au motif que ce qui est livre n'est plus a
+ * faire. Mesure le 2026-09-02 : la 1.68.0 a emporte onze points qui
+ * attendaient depuis des versions et qu'elle n'avait pas livres. La perte est
+ * seche — le fichier n'etant pas versionne, aucun `git checkout` ne le
+ * ramene — et silencieuse, puisque rien ne distingue une liste videe d'une
+ * liste faite. Seule une croix dit « c'est fait » ; le reste attend, et une
+ * livraison n'a pas a en decider.
+ *
+ * Un point tient sur plusieurs lignes, les suivantes indentees : elles partent
+ * avec la leur, sans quoi la liste garderait des paragraphes sans sujet. Un
+ * titre de section et une ligne vide commencent a la marge, ils ferment donc
+ * le point en cours et survivent.
+ *
+ * Le fichier n'est reecrit que s'il change vraiment : une livraison qui ne
+ * coche rien — de loin la plus frequente — ne le touche pas et n'annonce pas
+ * un menage qu'elle n'a pas fait.
  *
  * Le fichier absent n'est pas une erreur : on ne recree pas un document que
  * quelqu'un a delibere de supprimer.
@@ -137,12 +155,31 @@ export function resetNextVersion(root = process.cwd()) {
     if (!existsSync(file)) return null;
 
     // Tout ce qui precede la premiere ligne de separation est le mode d'emploi
-    // du fichier : il reste, seule la liste qui le suit s'en va.
+    // du fichier : il reste intact, seule la liste qui le suit est relue.
     const SEPARATOR = ["", "---", ""].join("\n");
     const text = readFileSync(file, "utf8");
     const cut = text.indexOf(SEPARATOR);
-    const kept = (cut >= 0 ? text.slice(0, cut) : text).trimEnd();
-    writeFileSync(file, [kept, "---", "", "_Rien en attente._", ""].join("\n"));
+    if (cut < 0) return null;
+
+    const head = text.slice(0, cut + SEPARATOR.length);
+    const kept = [];
+    let dropping = false;
+
+    for (const line of text.slice(cut + SEPARATOR.length).split("\n")) {
+        if (ITEM.test(line)) dropping = DONE.test(line);
+        else if (!/^\s+\S/.test(line)) dropping = false;
+        if (!dropping) kept.push(line);
+    }
+
+    // Seule la fin est rognee : ce qui separe le mode d'emploi du premier
+    // titre appartient au fichier tel qu'il est ecrit, pas a cette fonction.
+    const list = kept.join("\n").replace(/\s+$/, "");
+    const next = list.trim()
+        ? `${head}${list}\n`
+        : `${head}\n_Rien en attente._\n`;
+    if (next === text) return null;
+
+    writeFileSync(file, next);
     return NEXT_VERSION_FILE;
 }
 
@@ -233,7 +270,7 @@ async function ship(args) {
     }
 
     const cleared = resetNextVersion();
-    if (cleared) console.log(`  ${cleared} (remis a vide)`);
+    if (cleared) console.log(`  ${cleared} (points coches rayes)`);
 
     console.log("");
     run("git", ["commit", "-am", `Version ${version}`]);

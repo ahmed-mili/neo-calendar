@@ -28,7 +28,16 @@ export interface Reminder {
     title: string;
     /** The line under the title: when the event is, in words. */
     body: string;
+    /** Ce que le volet déplié montre, une information par ligne. Android n'en
+     *  affiche rien tant que la notification est repliée : c'est de la place
+     *  qui ne coûte rien à la lecture rapide, et qui évite d'ouvrir l'app pour
+     *  savoir dans quel amphi on est attendu. */
+    details: string;
 }
+
+/** Au-delà, la note est coupée. Trente jours de rappels tiennent dans une
+    préférence partagée, et le volet déplié couperait de toute façon. */
+const DESCRIPTION_LIMIT = 200;
 
 /**
  * The reminders this event asks for. The setting is the default rather than the
@@ -52,6 +61,41 @@ function bodyFor(
             ? `${offsetMinutes / 60} h`
             : `${offsetMinutes} min`;
     return `${t("In")} ${away} · ${time}`;
+}
+
+/** Le lieu, ajouté à une ligne quand l'évènement en connaît un. */
+function withPlace(line: string, location?: string): string {
+    const place = (location ?? "").trim();
+    return place ? `${line} · ${place}` : line;
+}
+
+/**
+ * Ce que le volet déplié montre : l'horaire en entier, le lieu, le calendrier
+ * d'où vient l'évènement, puis sa note.
+ *
+ * Une ligne qui n'a rien à dire n'est pas écrite vide : mieux vaut un volet
+ * court qu'un volet troué. La note vient en dernier parce que c'est la seule
+ * qu'Android coupera si la place manque.
+ */
+function detailsFor(event: DisplayEvent, timeFormat24h: boolean): string {
+    const when = event.allDay
+        ? t("All-day")
+        : `${formatTime(event.start, timeFormat24h)} – ${formatTime(
+              event.end,
+              timeFormat24h
+          )}`;
+    const note = (event.description ?? "").trim();
+
+    return [
+        when,
+        (event.location ?? "").trim(),
+        event.calendarName.trim(),
+        note.length > DESCRIPTION_LIMIT
+            ? `${note.slice(0, DESCRIPTION_LIMIT - 1)}…`
+            : note,
+    ]
+        .filter(Boolean)
+        .join("\n");
 }
 
 function eveningBefore(start: Date): number {
@@ -95,6 +139,7 @@ export function buildReminders({
             .filter((event) => event.start < horizon)
             .flatMap((event) => {
                 const title = event.title || t("Untitled");
+                const details = detailsFor(event, timeFormat24h);
 
                 if (event.allDay) {
                     // An explicit list is the new all-day contract: every value
@@ -108,7 +153,8 @@ export function buildReminders({
                             key: `${event.id}#day:${offset}`,
                             atMs: allDayReminderAt(event.start, offset),
                             title,
-                            body: t("All-day"),
+                            body: withPlace(t("All-day"), event.location),
+                            details,
                         }));
                     }
                     if (minutesBefore <= 0) return [];
@@ -118,7 +164,11 @@ export function buildReminders({
                             key: `${event.id}#day`,
                             atMs: eveningBefore(event.start),
                             title,
-                            body: t("Tomorrow, all day"),
+                            body: withPlace(
+                                t("Tomorrow, all day"),
+                                event.location
+                            ),
+                            details,
                         },
                     ];
                 }
@@ -130,7 +180,11 @@ export function buildReminders({
                     key: `${event.id}#${offset}`,
                     atMs: +event.start - offset * 60_000,
                     title,
-                    body: bodyFor(offset, event.start, timeFormat24h),
+                    body: withPlace(
+                        bodyFor(offset, event.start, timeFormat24h),
+                        event.location
+                    ),
+                    details,
                 }));
             })
             /*

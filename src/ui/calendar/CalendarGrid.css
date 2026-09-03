@@ -900,19 +900,26 @@
     --nc-event-ink-muted: var(--nc-text-faint, var(--text-faint));
 }
 
+/* Deux choses distinguent un cours deja donne d'un cours a venir : sa bande de
+   couleur, et son nom. Rien d'autre — c'est la mesure que Notion Calendar
+   prend, et le fond garde exactement la surface d'un evenement a venir.
+
+   Ce qu'il y avait avant, `filter: saturate(0.55)`, ne pouvait pas s'y tenir :
+   pose sur le bloc, il delavait la surface, la bande et le texte d'un seul
+   coup, et le cours se lisait comme eteint plutot que comme derriere soi.
+
+   L'heure garde donc l'encre de n'importe quel autre evenement : c'est la
+   chose qu'un coup d'oeil vient encore lire sur un bloc passe. */
 .nc-event-block.nc-past-event {
     --nc-event-ink: var(--nc-text-secondary, var(--text-muted));
-    /* Melangee au fond du bloc plutot que prise dans le texte le plus pale du
-       theme : celui-la tombe a 3:1 sur cette surface, et c'est l'heure — la
-       chose qu'on venait justement lire. */
-    --nc-event-ink-muted: color-mix(
-        in srgb,
-        var(--nc-text-secondary, var(--text-muted)) 80%,
-        var(--background-primary)
-    );
-    /* Ce qui est passe se distingue encore du reste, mais par sa couleur plutot
-       que par son absence : la teinte du calendrier s'y fait discrete. */
-    filter: saturate(0.55);
+}
+
+/* L'opacite est posee sur le pseudo-element, jamais sur le bloc : la bande est
+   peinte DANS le bloc, donc son alpha tombe sur la couleur du bloc et non sur
+   le fond d'ecran du telephone — la porte par laquelle le titre illisible sur
+   ciel clair etait entre la premiere fois reste fermee. */
+.nc-event-block.nc-past-event::before {
+    opacity: 0.4;
 }
 
 /* Orange flash animation for date navigation */

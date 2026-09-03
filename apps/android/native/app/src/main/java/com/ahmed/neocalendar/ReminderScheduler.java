@@ -139,7 +139,7 @@ final class ReminderScheduler {
         open.putExtra(MainActivity.EXTRA_EVENT_ID, eventId);
         open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-        Notification notification = new Notification.Builder(context, CHANNEL_ID)
+        Notification.Builder builder = new Notification.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(reminder.optString("title", ""))
                 .setContentText(reminder.optString("body", ""))
@@ -148,8 +148,20 @@ final class ReminderScheduler {
                 .setContentIntent(PendingIntent.getActivity(
                         context, index + 100, open,
                         PendingIntent.FLAG_UPDATE_CURRENT
-                                | PendingIntent.FLAG_IMMUTABLE))
-                .build();
+                                | PendingIntent.FLAG_IMMUTABLE));
+
+        // Ce que le chevron ouvre : l'horaire en entier, le lieu, le calendrier
+        // et la note, une par ligne. Repliee, la notification ne montre que la
+        // ligne courte — le volet est de la place qui ne coute rien tant qu'on
+        // ne la demande pas, et qui evite d'ouvrir l'app pour savoir dans quel
+        // amphi on est attendu. Les phrases sont ecrites par l'app (voir
+        // androidReminders.ts) ; ici on ne fait que les poser.
+        String details = reminder.optString("details", "");
+        if (!details.isEmpty()) {
+            builder.setStyle(new Notification.BigTextStyle().bigText(details));
+        }
+
+        Notification notification = builder.build();
 
         NotificationManager manager =
                 context.getSystemService(NotificationManager.class);
