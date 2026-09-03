@@ -585,7 +585,7 @@ fn open_desktop_path(data_folder: String, relative_path: String) -> Result<(), S
 
     #[cfg(target_os = "windows")]
     {
-        Command::new("explorer")
+        hidden_command("explorer")
             .arg(&path)
             .spawn()
             .map_err(|error| format!("Unable to open '{}': {error}", path.display()))?;
@@ -665,6 +665,28 @@ fn expand_windows_environment(value: &str) -> String {
     output
 }
 
+/// Une commande qui ne montre pas de console.
+///
+/// Une application graphique qui lance un programme console s'en voit allouer
+/// une, et Windows la montre : une fenetre noire s'ouvre et se referme
+/// aussitot. `curl.exe` part des le demarrage avec la premiere synchro des
+/// liens ICS, ce qui la faisait clignoter a chaque lancement.
+///
+/// `CREATE_NO_WINDOW` (0x0800_0000) est le drapeau qui separe un programme
+/// lance d'un programme lance visiblement. Il est pose ici pour toutes les
+/// commandes, y compris celles qui ouvrent une fenetre a elles : ce drapeau ne
+/// concerne que la console, et une regle sans exception est une regle qu'un
+/// test peut garder.
+fn hidden_command(program: impl AsRef<OsStr>) -> Command {
+    let mut command = Command::new(program);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000);
+    }
+    command
+}
+
 #[cfg(target_os = "windows")]
 fn registry_protocol_command(scheme: &str) -> Option<String> {
     let keys = [
@@ -673,7 +695,7 @@ fn registry_protocol_command(scheme: &str) -> Option<String> {
     ];
 
     for key in keys {
-        let output = Command::new("reg.exe")
+        let output = hidden_command("reg.exe")
             .args(["query", key.as_str(), "/ve"])
             .output()
             .ok()?;
@@ -713,7 +735,7 @@ fn launch_registered_protocol(target: &str, scheme: &str) -> Result<bool, String
         return Ok(false);
     }
 
-    let mut command = Command::new(&executable);
+    let mut command = hidden_command(&executable);
     let mut inserted_target = false;
     for argument in arguments {
         let replaced = argument
@@ -898,7 +920,7 @@ fn open_desktop_external_target(target: String) -> Result<(), String> {
             // Launching Obsidian.exe with the URI is equivalent to its registered
             // protocol command and is handled by Obsidian's single-instance logic.
             if let Some(executable) = find_obsidian_executable() {
-                Command::new(&executable)
+                hidden_command(&executable)
                     .arg(trimmed)
                     .spawn()
                     .map_err(|error| {
@@ -955,7 +977,7 @@ fn open_desktop_linked_path(
 
     #[cfg(target_os = "windows")]
     {
-        Command::new("explorer.exe")
+        hidden_command("explorer.exe")
             .arg(&canonical_candidate)
             .spawn()
             .map_err(|error| {
@@ -1446,7 +1468,7 @@ fn fetch_desktop_ics(url: String) -> Result<String, String> {
         return Err("Remote calendars must use webcal://, https:// or http://.".to_string());
     }
 
-    let output = Command::new("curl.exe")
+    let output = hidden_command("curl.exe")
         .args([
             "--location",
             "--fail",
@@ -1819,6 +1841,31 @@ mod tests {
     /// `async` sur l'attribut ne rend pas la fonction asynchrone : il dit a
     /// Tauri de la porter sur le pool de threads de son runtime au lieu de la
     /// fenetre. C'est la seule chose qui separe une attente d'un gel.
+    /// Une application graphique qui lance un programme console lui alloue une
+    /// console, et Windows la montre : une fenetre noire s'ouvre et se referme
+    /// aussitot. `curl.exe` part des le demarrage, avec la premiere synchro des
+    /// liens ICS, et `reg.exe` des qu'un lieu ouvre un protocole — signale a
+    /// l'ecran le 2026-09-03, sur l'application installee.
+    ///
+    /// `CREATE_NO_WINDOW` est ce qui separe un programme lance d'un programme
+    /// lance visiblement. Il est pose une fois pour toutes dans
+    /// `hidden_command`, et ce test garde la porte : un `Command::new` ecrit
+    /// directement echapperait au drapeau sans que rien ne le dise.
+    #[test]
+    fn console_programs_are_started_without_a_console() {
+        let source = include_str!("lib.rs");
+        // Le motif est assemble plutot qu'ecrit : ecrit, ce test se compterait
+        // lui-meme et resterait rouge apres le dernier appel corrige.
+        let needle = format!("{}::new(", "Command");
+        let allowed = format!("let mut command = {needle}program);");
+
+        assert_eq!(
+            source.matches(&needle).count() - source.matches(&allowed).count(),
+            0,
+            "toute commande passe par hidden_command, qui pose CREATE_NO_WINDOW"
+        );
+    }
+
     #[test]
     fn blocking_commands_are_kept_off_the_window_thread() {
         let source = include_str!("lib.rs");

@@ -35,6 +35,7 @@ import {
     CalendarRow,
 } from "./EventPanelRows";
 import type {
+    GeoApp,
     MapsApp,
     MapsAppChoice,
     MapsTravelMode,
@@ -173,7 +174,9 @@ interface EventPanelProps {
     nativeMapsApps?: boolean;
     /** L'icône de chaque carte, telle que le téléphone la dessine. */
     mapsAppIcons?: Partial<Record<MapsApp, string>>;
-    onOpenLocation?: (url: string) => void;
+    /** Les autres cartes du téléphone, que le système signale. */
+    geoApps?: readonly GeoApp[];
+    onOpenLocation?: (url: string, targetPackage?: string) => void;
     onCopyEventLink?: (target: string) => Promise<void>;
     onPickEventAttachment?: (eventId: string) => Promise<void>;
     /** Ce que Ctrl+V dépose : un nom et des octets, pas un fichier du disque. */
@@ -296,6 +299,7 @@ export default function EventPanel({
     mapsApps,
     nativeMapsApps,
     mapsAppIcons,
+    geoApps,
     onOpenLocation,
     onCopyEventLink,
     onPickEventAttachment,
@@ -1616,6 +1620,7 @@ export default function EventPanel({
                         mapsApps={mapsApps}
                         nativeMapsApps={nativeMapsApps}
                         mapsAppIcons={mapsAppIcons}
+                        geoApps={geoApps}
                         editable={stableCalInfo.editable}
                         setLocation={form.setLocation}
                         onAutoSave={scheduleAutoSave}

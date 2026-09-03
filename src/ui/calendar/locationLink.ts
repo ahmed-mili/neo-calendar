@@ -256,3 +256,40 @@ export function mapsUrlFor(
 
     return `https://waze.com/ul?ll=${point}&navigate=yes`;
 }
+
+/**
+ * Une application que le systeme signale comme sachant ouvrir un point.
+ *
+ * Elle n'est pas de celles qu'on sait viser : on ignore son adresse
+ * d'itineraire, et souvent jusqu'a son existence. Android, lui, sait qu'elle
+ * repond a `geo:`, et rend son nom et son icone avec.
+ */
+export interface GeoApp {
+    /** Le paquet, pour ouvrir celle-la et pas une autre. */
+    package: string;
+    label: string;
+    /** L'icône que le téléphone dessine, en `data:` URI. */
+    icon?: string;
+}
+
+/**
+ * Le lien que toutes les cartes comprennent : un point, et son nom.
+ *
+ * `geo:` pose une épingle sans dire comment y aller. C'est moins qu'un
+ * itinéraire, et c'est tout ce qu'on peut promettre à une application dont on
+ * ne connaît rien d'autre que sa capacité à répondre.
+ *
+ * Le point est répété dans `q=` à dessein : sans lui, la plupart des cartes
+ * ouvrent la région autour des coordonnées sans rien y marquer.
+ *
+ * `null` faute de point : `geo:` veut des nombres, et une adresse écrite à la
+ * main n'en est pas.
+ */
+export function geoUrlFor(destination: LocationDestination): string | null {
+    if (destination.kind !== "point") return null;
+    const point = destination.value;
+    const label = destination.label
+        ? `(${encodeURIComponent(destination.label)})`
+        : "";
+    return `geo:${point}?q=${point}${label}`;
+}

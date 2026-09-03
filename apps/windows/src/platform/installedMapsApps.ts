@@ -1,5 +1,6 @@
 import {
     MAPS_APPS,
+    type GeoApp,
     type MapsApp,
 } from "../../../../src/ui/calendar/locationLink";
 
@@ -11,7 +12,13 @@ import {
  * dans le même APK — mais parce qu'un appareil dont la mise à jour a échoué à
  * mi-chemin n'a pas à perdre son menu pour une icône.
  */
-type Reported = string | { id?: unknown; icon?: unknown };
+type Reported =
+    | string
+    | { id?: unknown; icon?: unknown; package?: unknown; label?: unknown };
+
+/** Une icône ne s'affiche que si la WebView peut la lire telle quelle. */
+const usableIcon = (icon: unknown): string | undefined =>
+    typeof icon === "string" && icon.startsWith("data:") ? icon : undefined;
 
 const nameOf = (entry: Reported): unknown =>
     typeof entry === "string" ? entry : entry?.id;
@@ -53,10 +60,45 @@ export function parseInstalledMapsIcons(
     const icons: Partial<Record<MapsApp, string>> = {};
     for (const entry of payload as Reported[]) {
         const name = nameOf(entry);
-        const icon = typeof entry === "string" ? undefined : entry?.icon;
-        if (typeof icon !== "string" || !icon.startsWith("data:")) continue;
+        const icon = usableIcon(
+            typeof entry === "string" ? undefined : entry?.icon
+        );
+        if (!icon) continue;
         const app = MAPS_APPS.find((known) => known === name);
         if (app) icons[app] = icon;
     }
     return icons;
+}
+
+/**
+ * Les autres cartes du téléphone : celles qu'on ne sait pas viser.
+ *
+ * Android répond quelles applications déclarent savoir ouvrir un point, et
+ * c'est tout ce qu'on sait d'elles. Elles arrivent donc avec leur nom et leur
+ * icône, tels que le système les donne, et recevront une épingle plutôt qu'un
+ * itinéraire — c'est la seule chose qu'on puisse promettre à une application
+ * dont on ignore l'adresse de destination.
+ *
+ * Celles que l'on connaît déjà par leur nom court sont retirées : elles ont
+ * leur itinéraire, et les revoir ici les ferait figurer deux fois.
+ */
+export function parseGeoApps(payload: unknown): GeoApp[] {
+    if (!Array.isArray(payload)) return [];
+
+    const apps: GeoApp[] = [];
+    for (const entry of payload as Reported[]) {
+        if (typeof entry === "string") continue;
+        if (MAPS_APPS.some((known) => known === entry?.id)) continue;
+
+        const target = entry?.package;
+        const label = entry?.label;
+        if (typeof target !== "string" || !target) continue;
+        if (typeof label !== "string" || !label) continue;
+
+        const icon = usableIcon(entry?.icon);
+        apps.push(
+            icon ? { package: target, label, icon } : { package: target, label }
+        );
+    }
+    return apps;
 }

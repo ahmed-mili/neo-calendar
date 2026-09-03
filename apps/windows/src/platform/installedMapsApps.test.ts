@@ -1,4 +1,5 @@
 import {
+    parseGeoApps,
     parseInstalledMapsApps,
     parseInstalledMapsIcons,
 } from "./installedMapsApps";
@@ -93,5 +94,67 @@ describe("parseInstalledMapsApps — les deux formes du pont", () => {
                 { id: "google" },
             ])
         ).toEqual(["google", "waze"]);
+    });
+});
+
+/*
+ * Les autres cartes du téléphone.
+ *
+ * Bonjour RATP, et celles qu'on ne connaît pas encore : on ignore leur adresse
+ * d'itinéraire, mais Android sait qu'elles répondent à `geo:`. Elles arrivent
+ * donc avec leur nom et leur icône, et rien d'autre à leur donner qu'un point.
+ */
+describe("parseGeoApps", () => {
+    const icon = "data:image/png;base64,AAAA";
+
+    it("keeps the apps the system named, with what it named them", () => {
+        expect(
+            parseGeoApps([
+                { package: "com.fabernovel.ratp", label: "Bonjour RATP", icon },
+            ])
+        ).toEqual([
+            { package: "com.fabernovel.ratp", label: "Bonjour RATP", icon },
+        ]);
+    });
+
+    /* Les quatre que l'on sait viser ont leur itinéraire : les revoir ici les
+       ferait figurer deux fois, une fois avec l'itinéraire et une fois avec une
+       simple épingle. */
+    it("leaves out the apps already known by name", () => {
+        expect(
+            parseGeoApps([
+                { id: "google", package: "com.google.android.apps.maps" },
+                { package: "com.fabernovel.ratp", label: "Bonjour RATP" },
+            ])
+        ).toEqual([{ package: "com.fabernovel.ratp", label: "Bonjour RATP" }]);
+    });
+
+    /* Sans paquet on ne saurait pas quoi ouvrir, sans nom rien à écrire au
+       menu : l'entrée ne vaut que complète. */
+    it("drops an entry it could neither name nor open", () => {
+        expect(
+            parseGeoApps([
+                { package: "com.test.sansnom" },
+                { label: "Sans paquet" },
+                { package: 7, label: "Paquet illisible" },
+            ])
+        ).toEqual([]);
+    });
+
+    it("leaves out an icon that is not a data URI, keeping the app", () => {
+        expect(
+            parseGeoApps([
+                {
+                    package: "com.test.carte",
+                    label: "Carte",
+                    icon: "/data/app/icon.png",
+                },
+            ])
+        ).toEqual([{ package: "com.test.carte", label: "Carte" }]);
+    });
+
+    it("reads anything that is not a list as no app at all", () => {
+        expect(parseGeoApps(undefined)).toEqual([]);
+        expect(parseGeoApps("com.fabernovel.ratp")).toEqual([]);
     });
 });

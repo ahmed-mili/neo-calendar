@@ -51,3 +51,43 @@ le temps de le faire correctement.
 
 - **Le compteur « N événements »** sur la colonne « toute la journée » repliée,
   pour savoir ce qu'on cache avant de la déplier.
+
+## Windows
+
+- **L'icône de la zone de notification, avec le chiffre du jour.** Demandé le
+  2026-09-03 sur le modèle de Notion Calendar, puis remis à plus tard : ce
+  n'est pas un réglage à poser mais un sous-système entier, et il n'y a rien de
+  tel dans l'application aujourd'hui. Version PC uniquement.
+
+  Le dessin est tranché : **trente et une images générées une fois** par un
+  script et commitées, comme le sont déjà les vignettes de fonds d'écran, et
+  l'application change d'icône selon le jour. Un rendu en Rust depuis une
+  police embarquée suivrait le thème de Windows et n'importe quelle taille,
+  mais le carré de Notion est opaque et se lit sur fond clair comme sombre :
+  ce que ce rendu coûterait, il ne le rapporte pas.
+
+  Le reste du design, tel qu'il a été validé :
+
+  - **Clic gauche et clic droit ouvrent tous deux le menu**, comme chez Notion
+    sous Windows.
+  - **Le menu liste les prochains évènements**, groupés par jour, la date en
+    gris puis l'heure et le titre. Sept jours devant, huit entrées au plus.
+    Puis un séparateur, « Neo Calendar » qui ramène la fenêtre, « Paramètres… »
+    et « Quitter complètement ».
+  - **Les phrases sont composées côté JavaScript** et remises au Rust par une
+    commande, comme le sont déjà les rappels Android : l'application connaît la
+    langue, le format d'heure et ce qui mérite d'être montré ; le natif ne fait
+    que poser. Le menu se reconstruit à chaque changement du calendrier.
+  - **L'infobulle** dit le prochain évènement, ou qu'il n'y en a pas.
+  - **Fermer la fenêtre la cache** au lieu de quitter, sinon l'icône
+    disparaîtrait avec elle et la fonctionnalité n'aurait plus d'objet. C'est
+    ce que dit l'entrée « Quitter complètement ».
+
+  Laissés dehors au premier jet : le sous-menu qu'ouvre le chevron d'un
+  évènement chez Notion — cliquer l'évènement ouvrira sa fiche — et le
+  raccourci global `Ctrl+1`, qui se rajoute seul plus tard.
+
+  Vérifié en doc le 2026-09-03, sur Tauri 2.11.5 : `TrayIconBuilder` a bien
+  `icon`, `menu`, `tooltip`, `show_menu_on_left_click` et
+  `on_tray_icon_event`. La feature `tray-icon` reste à activer dans
+  `Cargo.toml`, où elle n'est pas.

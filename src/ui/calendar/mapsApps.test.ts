@@ -1,4 +1,5 @@
 import {
+    geoUrlFor,
     locationDestinationFor,
     mapsAppsFor,
     mapsUrlFor,
@@ -182,5 +183,40 @@ describe("mapsUrlFor", () => {
     it("refuses to send an address to an app that only reads points", () => {
         expect(mapsUrlFor(address, "citymapper", {})).toBeNull();
         expect(mapsUrlFor(search, "waze", {})).toBeNull();
+    });
+});
+
+/*
+ * Le lien que toutes les cartes comprennent.
+ *
+ * Les quatre que l'on sait viser ont chacune leur adresse d'itinéraire ; les
+ * autres — Bonjour RATP, celles qu'on ne connaît pas encore — n'en publient
+ * aucune. Android, lui, sait lesquelles répondent à `geo:`, qui pose un point
+ * sans dire comment y aller. C'est moins qu'un itinéraire, et c'est tout ce
+ * qu'on peut promettre à une application dont on ignore tout.
+ */
+describe("geoUrlFor", () => {
+    const CAMPUS = "48.7887337,2.3637327";
+
+    it("points at the place, and names it", () => {
+        expect(geoUrlFor(locationDestinationFor("Amphi B", CAMPUS)!)).toBe(
+            "geo:48.7887337,2.3637327?q=48.7887337,2.3637327(Amphi%20B)"
+        );
+    });
+
+    it("drops the name when the event does not give one", () => {
+        expect(geoUrlFor(locationDestinationFor("", CAMPUS, CAMPUS)!)).toBe(
+            "geo:48.7887337,2.3637327?q=48.7887337,2.3637327"
+        );
+    });
+
+    /* Une adresse ou une salle écrite à la main ne se transmet pas ainsi :
+       `geo:` veut des nombres, et une application inconnue n'a rien pour
+       deviner le reste. */
+    it("has nothing to offer without a point", () => {
+        expect(
+            geoUrlFor(locationDestinationFor("Efrei", "", "30 av. République")!)
+        ).toBeNull();
+        expect(geoUrlFor(locationDestinationFor("Efrei Bat. C")!)).toBeNull();
     });
 });

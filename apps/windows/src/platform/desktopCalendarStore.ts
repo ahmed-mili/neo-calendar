@@ -124,8 +124,19 @@ export async function openDesktopPath(
     });
 }
 
-export async function openDesktopExternalTarget(target: string): Promise<void> {
-    await invoke("open_desktop_external_target", { target });
+/**
+ * Ouvre un lien hors de l'application.
+ *
+ * `targetPackage` vise une application Android précise. Sans lui, un lien
+ * `geo:` ferait remonter le sélecteur du système par-dessus la feuille qu'on
+ * vient de fermer, et le choix serait à refaire. Il est ignoré sur le bureau,
+ * où l'on n'ouvre que des sites.
+ */
+export async function openDesktopExternalTarget(
+    target: string,
+    targetPackage?: string
+): Promise<void> {
+    await invoke("open_desktop_external_target", { target, targetPackage });
 }
 
 export async function writeDesktopClipboardText(value: string): Promise<void> {

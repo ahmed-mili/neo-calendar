@@ -10,11 +10,13 @@ import CommandPalette from "../../../src/ui/calendar/CommandPalette";
 import { invoke } from "@tauri-apps/api/core";
 import { buildWidgetPayload, readWidgetTheme } from "./platform/androidWidget";
 import {
+    parseGeoApps,
     parseInstalledMapsApps,
     parseInstalledMapsIcons,
 } from "./platform/installedMapsApps";
 import {
     MAPS_APPS,
+    type GeoApp,
     type MapsApp,
 } from "../../../src/ui/calendar/locationLink";
 import {
@@ -577,6 +579,9 @@ export default function DesktopCalendar({
     const [mapsAppIcons, setMapsAppIcons] = useState<
         Partial<Record<MapsApp, string>>
     >({});
+    /* Les autres cartes du telephone : celles qu'Android signale comme sachant
+       ouvrir un point, sans qu'on connaisse leur itineraire. */
+    const [geoApps, setGeoApps] = useState<readonly GeoApp[]>([]);
 
     useEffect(() => {
         if (!isAndroid) return;
@@ -586,6 +591,7 @@ export default function DesktopCalendar({
                 if (dropped) return;
                 setMapsApps(parseInstalledMapsApps(payload));
                 setMapsAppIcons(parseInstalledMapsIcons(payload));
+                setGeoApps(parseGeoApps(payload));
             })
             .catch(() => {
                 if (!dropped) setMapsApps(["google"]);
@@ -3905,9 +3911,10 @@ export default function DesktopCalendar({
                 mapsApps={mapsApps}
                 nativeMapsApps={isAndroid}
                 mapsAppIcons={mapsAppIcons}
-                onOpenLocation={(url) => {
-                    void openDesktopExternalTarget(url).catch((reason) =>
-                        setStorageError(errorMessage(reason))
+                geoApps={geoApps}
+                onOpenLocation={(url, targetPackage) => {
+                    void openDesktopExternalTarget(url, targetPackage).catch(
+                        (reason) => setStorageError(errorMessage(reason))
                     );
                 }}
                 onOpenEventLink={async (item: EventLinkedItem) => {

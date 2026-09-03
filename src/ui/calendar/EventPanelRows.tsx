@@ -31,10 +31,12 @@ import {
     MapPinIcon,
 } from "./Icons";
 import {
+    geoUrlFor,
     locationDestinationFor,
     locationLinkFor,
     mapsAppsFor,
     mapsUrlFor,
+    type GeoApp,
     type MapsApp,
     type MapsAppChoice,
     type MapsTravelMode,
@@ -4035,12 +4037,17 @@ interface LocationRowProps {
     /** L'icône de chaque carte, en `data:` URI, telle que le téléphone la
      *  dessine. Absente, l'entrée s'affiche sans image. */
     mapsAppIcons?: Partial<Record<MapsApp, string>>;
+    /** Les autres cartes du téléphone : celles que le système signale comme
+     *  sachant ouvrir un point, sans qu'on connaisse leur itinéraire. */
+    geoApps?: readonly GeoApp[];
     editable: boolean;
     setLocation: (value: string) => void;
     onAutoSave: () => void;
     /** Ouvre la carte. Absent là où l'application ne sait pas ouvrir un lien
-     *  extérieur — le lieu s'y lit alors sans se présenter comme un lien. */
-    onOpenLocation?: (url: string) => void;
+     *  extérieur — le lieu s'y lit alors sans se présenter comme un lien.
+     *  Le second argument vise une application précise : sans lui, Android
+     *  rouvrirait son propre sélecteur par-dessus la feuille qu'on ferme. */
+    onOpenLocation?: (url: string, targetPackage?: string) => void;
 }
 
 /**
@@ -4064,6 +4071,7 @@ export function LocationRow({
     mapsApps = ["google"],
     nativeMapsApps = false,
     mapsAppIcons,
+    geoApps,
     editable,
     setLocation,
     onAutoSave,
@@ -4096,12 +4104,17 @@ export function LocationRow({
               })
             : null;
 
+    /* Elles ne savent recevoir qu'une épingle : sur une salle écrite à la main
+       elles n'ont rien à ouvrir, et le menu retombe sur Maps seule. */
+    const geoOffered =
+        destination?.kind === "point" && nativeMapsApps ? geoApps ?? [] : [];
+
     /* Google en dernier recours : un réglage garde une carte choisie un jour
        où elle convenait, et elle seule sait lire une salle écrite à la main. */
     const settled =
         mapsApp !== "ask" && offered.includes(mapsApp)
             ? mapsApp
-            : offered.length === 1
+            : offered.length === 1 && geoOffered.length === 0
             ? offered[0]
             : mapsApp !== "ask" && offered.includes("google")
             ? "google"
@@ -4269,6 +4282,32 @@ export function LocationRow({
                                     />
                                 )}
                                 <span>{MAPS_APP_NAMES[app]}</span>
+                            </button>
+                        ))}
+                        {geoOffered.map((app) => (
+                            <button
+                                key={app.package}
+                                type="button"
+                                role="menuitem"
+                                className="nc-panel-maps-option"
+                                data-nc-maps-package={app.package}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setMenuOpen(false);
+                                    const url = destination
+                                        ? geoUrlFor(destination)
+                                        : null;
+                                    if (url) onOpenLocation?.(url, app.package);
+                                }}
+                            >
+                                {app.icon && (
+                                    <img
+                                        className="nc-panel-maps-icon"
+                                        src={app.icon}
+                                        alt=""
+                                    />
+                                )}
+                                <span>{app.label}</span>
                             </button>
                         ))}
                     </div>,

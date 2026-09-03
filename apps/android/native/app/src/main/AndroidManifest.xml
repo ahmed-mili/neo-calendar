@@ -20,6 +20,13 @@
         <package android:name="com.citymapper.app.release" />
         <package android:name="com.tranzmate" />
         <package android:name="com.waze" />
+        <!-- Et toutes celles qui savent ouvrir un point, sans avoir a les
+             nommer : c'est ainsi que Bonjour RATP entre au menu sans qu'on
+             connaisse son adresse d'itineraire. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
     </queries>
 
     <application

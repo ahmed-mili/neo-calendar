@@ -4,6 +4,7 @@ import android.app.*;
 import android.os.*;
 import android.content.*;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.util.Log;
@@ -618,7 +619,19 @@ public class MainActivity extends Activity {
       case "rename_desktop_calendar_folder": return renameFolder(tree(a),a.getString("relativePath"),a.getString("newName"));
       case "delete_desktop_calendar_folder": return deleteFolder(tree(a),a.getString("relativePath"));
       case "open_desktop_path": return null;
-      case "open_desktop_external_target": {String target=a.getString("target");runOnUiThread(()->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(target)));}catch(Exception ignored){}});return null;}
+      /* `targetPackage` vise une application precise. Sans lui, un lien `geo:`
+         ferait remonter le selecteur du systeme par-dessus la feuille qu'on
+         vient de fermer, et le choix serait a refaire. */
+      case "open_desktop_external_target": {
+        String target=a.getString("target");
+        String pkg=a.optString("targetPackage","");
+        runOnUiThread(()->{try{
+          Intent view=new Intent(Intent.ACTION_VIEW,Uri.parse(target));
+          if(!pkg.isEmpty()) view.setPackage(pkg);
+          startActivity(view);
+        }catch(Exception ignored){}});
+        return null;
+      }
       /* Quelles cartes sont installees, pour que le menu du lieu ne propose que
          ce qui s'ouvrira. Android ne le dit pas de lui-meme : il faut demander
          paquet par paquet, et depuis Android 11 la question doit etre declaree
@@ -633,11 +646,32 @@ public class MainActivity extends Activity {
         };
         JSONArray installed=new JSONArray();
         PackageManager packages=getPackageManager();
+        Set<String> seen=new HashSet<>();
         for(String[] app:known){
           if(packages.getLaunchIntentForPackage(app[1])==null) continue;
+          seen.add(app[1]);
           JSONObject entry=new JSONObject();
           entry.put("id",app[0]);
+          entry.put("package",app[1]);
           String icon=appIcon(packages,app[1]);
+          if(icon!=null) entry.put("icon",icon);
+          installed.put(entry);
+        }
+        /* Et les autres : celles dont on ignore l'adresse d'itineraire mais
+           qu'Android sait capables d'ouvrir un point. On ne tient donc pas de
+           liste — Bonjour RATP et les suivantes se signalent elles-memes — et
+           on ne leur promet qu'une epingle, seule chose qu'une application
+           inconnue sache surement recevoir. */
+        Intent probe=new Intent(Intent.ACTION_VIEW,Uri.parse("geo:0,0?q=0,0"));
+        for(ResolveInfo found:packages.queryIntentActivities(probe,0)){
+          String pkg=found.activityInfo!=null?found.activityInfo.packageName:null;
+          if(pkg==null||pkg.equals(getPackageName())||!seen.add(pkg)) continue;
+          CharSequence label=found.loadLabel(packages);
+          if(label==null||label.length()==0) continue;
+          JSONObject entry=new JSONObject();
+          entry.put("package",pkg);
+          entry.put("label",label.toString());
+          String icon=appIcon(packages,pkg);
           if(icon!=null) entry.put("icon",icon);
           installed.put(entry);
         }

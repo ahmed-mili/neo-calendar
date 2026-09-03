@@ -495,3 +495,107 @@ describe("LocationRow — la feuille du téléphone", () => {
         expect(document.querySelector(".nc-panel-maps-veil")).toBeNull();
     });
 });
+
+/*
+ * Les autres cartes du téléphone.
+ *
+ * Bonjour RATP et les suivantes : on ne connaît pas leur adresse d'itinéraire,
+ * mais Android sait qu'elles ouvrent un point. Elles prennent donc leur place
+ * au menu, après celles qu'on sait viser, et reçoivent une épingle.
+ */
+describe("LocationRow — les cartes que le système signale", () => {
+    const CAMPUS = "48.7887337,2.3637327";
+    const RATP = {
+        package: "com.fabernovel.ratp",
+        label: "Bonjour RATP",
+        icon: "data:image/png;base64,AAAA",
+    };
+    let host: HTMLDivElement;
+    let onOpen: jest.Mock;
+
+    beforeEach(() => {
+        applyLanguage("fr");
+        host = document.createElement("div");
+        document.body.appendChild(host);
+        onOpen = jest.fn();
+    });
+
+    afterEach(() => {
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
+        document.body.innerHTML = "";
+    });
+
+    const show = (props: Partial<React.ComponentProps<typeof LocationRow>>) => {
+        act(() => {
+            ReactDOM.render(
+                <LocationRow
+                    location="Amphi B"
+                    geo={CAMPUS}
+                    editable={false}
+                    setLocation={jest.fn()}
+                    onAutoSave={jest.fn()}
+                    onOpenLocation={onOpen}
+                    mapsApps={["google"]}
+                    geoApps={[RATP]}
+                    nativeMapsApps
+                    {...props}
+                />,
+                host
+            );
+        });
+        act(() => {
+            document
+                .querySelector<HTMLElement>("[data-nc-location-open]")
+                ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+    };
+
+    it("names them as the system named them", () => {
+        show({});
+
+        expect(
+            document.querySelector(`[data-nc-maps-package="${RATP.package}"]`)
+                ?.textContent
+        ).toContain("Bonjour RATP");
+    });
+
+    /* Le paquet part avec le lien : sans lui, Android rouvrirait son propre
+       sélecteur par-dessus la feuille qu'on vient de fermer. */
+    it("opens the one that was picked, and no other", () => {
+        show({});
+        act(() => {
+            document
+                .querySelector<HTMLElement>(
+                    `[data-nc-maps-package="${RATP.package}"]`
+                )
+                ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+        expect(onOpen).toHaveBeenCalledWith(
+            "geo:48.7887337,2.3637327?q=48.7887337,2.3637327(Amphi%20B)",
+            RATP.package
+        );
+    });
+
+    /* Une épingle veut des nombres : sur une salle écrite à la main, elles
+       n'ont rien à recevoir et le menu retombe sur Maps seule. */
+    it("keeps them out when the place is not a point", () => {
+        show({ location: "Efrei Bat. C C001", geo: "" });
+
+        expect(document.querySelector(".nc-panel-maps-menu")).toBeNull();
+        expect(onOpen).toHaveBeenCalledWith(
+            expect.stringContaining("google.com/maps/search/")
+        );
+    });
+
+    /* Une carte connue et une carte signalée font deux : le menu s'ouvre, là
+       où une seule entrée s'ouvrirait directement. */
+    it("counts them when deciding whether a menu is worth showing", () => {
+        show({});
+
+        expect(document.querySelector(".nc-panel-maps-menu")).not.toBeNull();
+        expect(onOpen).not.toHaveBeenCalled();
+    });
+});
