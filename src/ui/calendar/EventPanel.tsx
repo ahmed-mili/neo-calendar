@@ -34,7 +34,11 @@ import {
     LocationRow,
     CalendarRow,
 } from "./EventPanelRows";
-import type { MapsTravelMode } from "./locationLink";
+import type {
+    MapsApp,
+    MapsAppChoice,
+    MapsTravelMode,
+} from "./locationLink";
 import { DateOptionsRow } from "./EventDateControls";
 import { DescriptionSection } from "./DescriptionSection";
 import { FileTextIcon } from "./EventPanelIcons";
@@ -160,6 +164,13 @@ interface EventPanelProps {
     /** Comment on compte s'y rendre, quand la carte ouvre un itinéraire :
      *  le réglage des préférences, tel quel. */
     travelMode?: MapsTravelMode;
+    /** L'application par laquelle le lieu s'ouvre : le réglage tel quel, ou
+     *  « ask » pour le menu. */
+    mapsApp?: MapsAppChoice;
+    /** Les cartes que cette machine peut ouvrir. */
+    mapsApps?: readonly MapsApp[];
+    /** Vrai sur le téléphone, où les applications répondent à leur schéma. */
+    nativeMapsApps?: boolean;
     onOpenLocation?: (url: string) => void;
     onCopyEventLink?: (target: string) => Promise<void>;
     onPickEventAttachment?: (eventId: string) => Promise<void>;
@@ -279,6 +290,9 @@ export default function EventPanel({
     onOpenEventLink,
     linkAddress,
     travelMode,
+    mapsApp,
+    mapsApps,
+    nativeMapsApps,
     onOpenLocation,
     onCopyEventLink,
     onPickEventAttachment,
@@ -1595,6 +1609,9 @@ export default function EventPanel({
                         geo={stableEvent?.geo}
                         linkAddress={linkAddress}
                         travelMode={travelMode}
+                        mapsApp={mapsApp}
+                        mapsApps={mapsApps}
+                        nativeMapsApps={nativeMapsApps}
                         editable={stableCalInfo.editable}
                         setLocation={form.setLocation}
                         onAutoSave={scheduleAutoSave}

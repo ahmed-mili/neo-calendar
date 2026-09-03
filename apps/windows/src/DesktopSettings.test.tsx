@@ -221,3 +221,38 @@ describe("le mode de trajet des liens de lieu", () => {
         expect(html).toContain("Transports en commun");
     });
 });
+
+/*
+ * Par quelle application le lieu s'ouvre.
+ *
+ * Le menu est le repos : entre un cours en métro et un rendez-vous en voiture,
+ * l'application qui convient change. Le réglage est là pour celui qui a
+ * tranché une fois pour toutes et ne veut plus voir le menu.
+ */
+describe("l'application de cartes", () => {
+    afterEach(() => applyLanguage("fr"));
+
+    it("asks each time at rest", () => {
+        const html = renderToStaticMarkup(
+            <DesktopSettings open {...commonProps} />
+        );
+
+        expect(html).toContain("Application de cartes");
+        expect(html).toContain("Demander à chaque fois");
+    });
+
+    it("shows the app that was chosen", () => {
+        const html = renderToStaticMarkup(
+            <DesktopSettings
+                open
+                {...commonProps}
+                preferences={{
+                    ...commonProps.preferences,
+                    mapsApp: "citymapper",
+                }}
+            />
+        );
+
+        expect(html).toContain("Citymapper");
+    });
+});

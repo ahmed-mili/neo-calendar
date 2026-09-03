@@ -3276,6 +3276,55 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     background: var(--nc-bg-hover) !important;
 }
 
+/* ── Par quelle carte le lieu s'ouvre ─────────────────────────
+   Le menu du lieu, porte sur le body comme celui du type d'entree, et ecrit
+   comme lui : meme surface, meme rayon, meme survol. Deux menus du meme panneau
+   qui ne se ressemblent pas se lisent comme deux mecanismes differents. */
+.nc-panel-maps-menu {
+    position: fixed;
+    z-index: 10040;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px;
+    border: 1px solid var(--nc-border);
+    border-radius: 7px;
+    background: var(--nc-bg-primary);
+    box-shadow: 0 8px 24px var(--background-modifier-box-shadow);
+}
+
+/* Le menu dit de quoi il s'agit : ouvert depuis une rangee qui porte deja le
+   lieu, une liste de noms d'applications sans titre se lit mal. */
+.nc-panel-maps-heading {
+    padding: 5px 8px 3px;
+    color: var(--nc-text-faint, var(--text-faint));
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.nc-panel-maps-option {
+    appearance: none;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 30px;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--nc-text-primary);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.nc-panel-maps-option:hover {
+    background: var(--nc-bg-hover) !important;
+}
+
 .nc-panel-title-row {
     gap: 0;
     margin: 0 9px 8px;

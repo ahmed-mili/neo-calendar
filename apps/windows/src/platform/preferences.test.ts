@@ -203,3 +203,31 @@ describe("the travel mode of a location link", () => {
         }
     });
 });
+
+/*
+ * Par quelle application le lieu s'ouvre.
+ *
+ * Le repos est le menu : entre le métro et la voiture, l'application qui
+ * convient change d'un cours à l'autre, et rien ne dit qu'un choix fait une
+ * fois vaut pour tous les suivants. Le réglage est là pour qui a tranché.
+ */
+describe("the app a location opens in", () => {
+    it("asks each time until someone settles it", () => {
+        expect(defaultDesktopWorkspacePreferences().mapsApp).toBe("ask");
+        expect(parseDesktopWorkspacePreferences({}).mapsApp).toBe("ask");
+    });
+
+    it("keeps the app that was chosen", () => {
+        expect(
+            parseDesktopWorkspacePreferences({ mapsApp: "citymapper" }).mapsApp
+        ).toBe("citymapper");
+    });
+
+    it("falls back to the menu for an app it does not know", () => {
+        for (const written of ["ratp", "Citymapper", "plans", 2, null]) {
+            expect(
+                parseDesktopWorkspacePreferences({ mapsApp: written }).mapsApp
+            ).toBe("ask");
+        }
+    });
+});

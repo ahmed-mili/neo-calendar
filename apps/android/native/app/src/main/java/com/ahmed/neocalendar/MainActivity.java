@@ -3,6 +3,7 @@ package com.ahmed.neocalendar;
 import android.app.*;
 import android.os.*;
 import android.content.*;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.util.Log;
@@ -599,6 +600,25 @@ public class MainActivity extends Activity {
       case "delete_desktop_calendar_folder": return deleteFolder(tree(a),a.getString("relativePath"));
       case "open_desktop_path": return null;
       case "open_desktop_external_target": {String target=a.getString("target");runOnUiThread(()->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(target)));}catch(Exception ignored){}});return null;}
+      /* Quelles cartes sont installees, pour que le menu du lieu ne propose que
+         ce qui s'ouvrira. Android ne le dit pas de lui-meme : il faut demander
+         paquet par paquet, et depuis Android 11 la question doit etre declaree
+         au manifeste (<queries>), sans quoi le systeme repond « absente » pour
+         tout. Les noms courts sont ceux du menu (voir locationLink.ts). */
+      case "installed_maps_apps": {
+        String[][] known={
+          {"google","com.google.android.apps.maps"},
+          {"citymapper","com.citymapper.app.release"},
+          {"moovit","com.tranzmate"},
+          {"waze","com.waze"},
+        };
+        JSONArray installed=new JSONArray();
+        PackageManager packages=getPackageManager();
+        for(String[] app:known){
+          if(packages.getLaunchIntentForPackage(app[1])!=null) installed.put(app[0]);
+        }
+        return installed;
+      }
       case "open_desktop_linked_path": return null;
       case "discover_desktop_obsidian_vaults": return new JSONArray();
       case "search_desktop_vault_notes": return new JSONArray();

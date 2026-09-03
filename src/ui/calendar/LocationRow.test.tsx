@@ -259,3 +259,131 @@ describe("LocationRow — l'itinéraire ouvert", () => {
         expect(follow({ linkAddress: CAMPUS })).not.toContain("travelmode");
     });
 });
+
+/*
+ * Par quelle carte le lieu s'ouvre.
+ *
+ * Le lieu partait droit dans Google Maps, ce qui va bien à une adresse et mal
+ * à un trajet en métro : le RER se lit dans Citymapper, pas dans Maps. Le clic
+ * ouvre donc un menu, sauf si un réglage a tranché — et sauf s'il n'y a qu'une
+ * carte à proposer, un menu d'une seule entrée n'étant qu'un clic de plus.
+ */
+describe("LocationRow — le choix de la carte", () => {
+    const CAMPUS = "48.7887337,2.3637327";
+    let host: HTMLDivElement;
+    let onOpen: jest.Mock;
+
+    beforeEach(() => {
+        applyLanguage("fr");
+        host = document.createElement("div");
+        document.body.appendChild(host);
+        onOpen = jest.fn();
+    });
+
+    afterEach(() => {
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
+        document.body.innerHTML = "";
+    });
+
+    const show = (props: Partial<React.ComponentProps<typeof LocationRow>>) => {
+        act(() => {
+            ReactDOM.render(
+                <LocationRow
+                    location="Amphi B"
+                    geo={CAMPUS}
+                    editable={false}
+                    setLocation={jest.fn()}
+                    onAutoSave={jest.fn()}
+                    onOpenLocation={onOpen}
+                    mapsApps={["google", "citymapper", "waze"]}
+                    {...props}
+                />,
+                host
+            );
+        });
+    };
+
+    const press = (selector: string) =>
+        act(() => {
+            document
+                .querySelector<HTMLElement>(selector)
+                ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+
+    const menu = () => document.querySelector(".nc-panel-maps-menu");
+
+    it("opens a menu rather than a map when nothing is set", () => {
+        show({});
+        press("[data-nc-location-open]");
+
+        expect(menu()).not.toBeNull();
+        expect(onOpen).not.toHaveBeenCalled();
+        expect(menu()?.textContent).toContain("Citymapper");
+    });
+
+    it("follows the app that was picked in the menu", () => {
+        show({});
+        press("[data-nc-location-open]");
+        press('[data-nc-maps-app="citymapper"]');
+
+        expect(onOpen).toHaveBeenCalledWith(
+            expect.stringContaining("citymapper.com/directions?endcoord=")
+        );
+        expect(menu()).toBeNull();
+    });
+
+    /* Le menu est porté sur le body : sans cette marque, le premier appui
+       dessus refermerait la fiche sous lui (voir usePopupDismiss). */
+    it("marks its menu as belonging to the panel", () => {
+        show({});
+        press("[data-nc-location-open]");
+
+        expect(menu()?.getAttribute("data-nc-popup-portal")).toBe("true");
+    });
+
+    it("goes straight there when an app has been set", () => {
+        show({ mapsApp: "waze" });
+        press("[data-nc-location-open]");
+
+        expect(menu()).toBeNull();
+        expect(onOpen).toHaveBeenCalledWith(
+            expect.stringContaining("waze.com/ul?ll=")
+        );
+    });
+
+    /* Un menu d'une seule entrée ne demande rien : il fait attendre. */
+    it("skips the menu when only one app can be offered", () => {
+        show({ mapsApps: ["google"] });
+        press("[data-nc-location-open]");
+
+        expect(menu()).toBeNull();
+        expect(onOpen).toHaveBeenCalledWith(
+            expect.stringContaining("google.com/maps/dir/")
+        );
+    });
+
+    /*
+     * Le réglage garde une application choisie un jour où elle convenait.
+     * Sur un évènement sans point — une salle écrite à la main — Citymapper
+     * n'ouvrirait qu'un formulaire vide, alors que Maps sait encore chercher.
+     */
+    it("falls back to Maps when the set app cannot read the place", () => {
+        show({ location: "Efrei Bat. C C001", geo: "", mapsApp: "citymapper" });
+        press("[data-nc-location-open]");
+
+        expect(onOpen).toHaveBeenCalledWith(
+            expect.stringContaining("google.com/maps/search/")
+        );
+    });
+
+    /* Une visioconférence n'a rien à faire sur une carte : le lien s'ouvre. */
+    it("opens a meeting link without asking anything", () => {
+        show({ location: "https://teams.test/42", geo: "" });
+        press("[data-nc-location-open]");
+
+        expect(menu()).toBeNull();
+        expect(onOpen).toHaveBeenCalledWith("https://teams.test/42");
+    });
+});

@@ -1,6 +1,8 @@
 import type { ViewType } from "../../../../src/ui/types";
 import {
+    MAPS_APPS,
     MAPS_TRAVEL_MODES,
+    type MapsAppChoice,
     type MapsTravelMode,
 } from "../../../../src/ui/calendar/locationLink";
 import {
@@ -50,6 +52,15 @@ export interface DesktopWorkspacePreferences {
      * laisse la carte trancher, ce qu'elle fait mieux qu'un réglage oublié.
      */
     mapsTravelMode: MapsTravelMode;
+    /**
+     * Par quelle application le lieu s'ouvre.
+     *
+     * « ask » n'est pas une application : c'est le menu, et c'est le repos. Le
+     * réglage sert à celui qui prend toujours le même chemin ; les autres
+     * choisissent au moment d'y aller, un cours en métro et un rendez-vous en
+     * voiture n'appelant pas la même carte.
+     */
+    mapsApp: MapsAppChoice;
     icsDefaultRefreshMinutes: IcsRefreshMinutes;
     icsFeeds: IcsFeedSubscription[];
     externalCalendars: DesktopExternalCalendarSource[];
@@ -127,6 +138,8 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         // La carte connaît les habitudes de celui qui la lit, l'application
         // non : elle ne se prononce donc pas tant qu'on ne le lui demande pas.
         mapsTravelMode: "auto",
+        // Rien n'est réglé tant que rien n'est choisi : le menu s'ouvre.
+        mapsApp: "ask",
         icsDefaultRefreshMinutes: 60,
         icsFeeds: [],
         externalCalendars: [],
@@ -383,6 +396,11 @@ export function parseDesktopWorkspacePreferences(
         )
             ? (source.mapsTravelMode as MapsTravelMode)
             : defaults.mapsTravelMode,
+        mapsApp: (MAPS_APPS as readonly string[]).includes(
+            source.mapsApp as string
+        )
+            ? (source.mapsApp as MapsAppChoice)
+            : defaults.mapsApp,
         icsDefaultRefreshMinutes: (
             ICS_REFRESH_MINUTES as readonly number[]
         ).includes(source.icsDefaultRefreshMinutes as number)

@@ -45,7 +45,10 @@ import type {
     DesktopWorkspacePreferences,
     MobileInitialView,
 } from "./platform/desktopWorkspacePreferences";
-import type { MapsTravelMode } from "../../../src/ui/calendar/locationLink";
+import type {
+    MapsAppChoice,
+    MapsTravelMode,
+} from "../../../src/ui/calendar/locationLink";
 import {
     ICS_REFRESH_MINUTES,
     type IcsRefreshMinutes,
@@ -74,6 +77,7 @@ import {
     Palette,
     PanelLeft,
     RefreshCw,
+    Map,
     Route,
     Smartphone,
     Plus,
@@ -784,6 +788,29 @@ export default function DesktopSettings({
                         patchPreferences({
                             mapsTravelMode: value as MapsTravelMode,
                         })
+                    }
+                />
+                {/* Le menu au repos : d'un cours en metro a un rendez-vous
+                    en voiture, l'application qui convient change. Regle, il
+                    n'y a plus de menu et le lieu s'ouvre du premier coup.
+
+                    Citymapper, Moovit et Waze ne visent qu'un point : sur un
+                    evenement qui n'en a pas, le lieu retombe sur Maps, seule a
+                    savoir lire une adresse ecrite a la main. */}
+                <SettingsChoiceRow
+                    label={t("Maps app")}
+                    icon={<Map size={18} />}
+                    value={preferences.mapsApp}
+                    options={[
+                        { value: "ask", label: t("Ask each time") },
+                        { value: "google", label: "Google Maps" },
+                        { value: "citymapper", label: "Citymapper" },
+                        { value: "moovit", label: "Moovit" },
+                        { value: "waze", label: "Waze" },
+                    ]}
+                    onOpen={openChoice}
+                    onChange={(value) =>
+                        patchPreferences({ mapsApp: value as MapsAppChoice })
                     }
                 />
                 <SettingsToggleRow

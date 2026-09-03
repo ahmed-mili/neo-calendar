@@ -9,6 +9,11 @@ import CalendarLayout from "../../../src/ui/calendar/CalendarLayout";
 import CommandPalette from "../../../src/ui/calendar/CommandPalette";
 import { invoke } from "@tauri-apps/api/core";
 import { buildWidgetPayload, readWidgetTheme } from "./platform/androidWidget";
+import { parseInstalledMapsApps } from "./platform/installedMapsApps";
+import {
+    MAPS_APPS,
+    type MapsApp,
+} from "../../../src/ui/calendar/locationLink";
 import {
     buildReminders,
     REMINDER_HORIZON_DAYS,
@@ -552,6 +557,33 @@ export default function DesktopCalendar({
     const [preferences, setPreferences] = useState<DesktopWorkspacePreferences>(
         defaultDesktopWorkspacePreferences
     );
+
+    /*
+     * Les cartes que cette machine peut ouvrir.
+     *
+     * Sur l'ordinateur, toutes celles qui ont un site : rien a demander, et
+     * `mapsAppsFor` ecarte de lui-meme celle qui n'en a pas. Sur le telephone,
+     * on demande au systeme ce qui est installe, une fois : une application de
+     * cartes ne s'installe pas pendant qu'on regarde son agenda. La demande
+     * ratee retombe sur Maps seule, c'est-a-dire sur ce que faisait
+     * l'application avant qu'un menu existe.
+     */
+    const [mapsApps, setMapsApps] = useState<readonly MapsApp[]>(MAPS_APPS);
+
+    useEffect(() => {
+        if (!isAndroid) return;
+        let dropped = false;
+        void invoke("installed_maps_apps")
+            .then((payload) => {
+                if (!dropped) setMapsApps(parseInstalledMapsApps(payload));
+            })
+            .catch(() => {
+                if (!dropped) setMapsApps(["google"]);
+            });
+        return () => {
+            dropped = true;
+        };
+    }, [isAndroid]);
     const {
         currentDate,
         setCurrentDate,
@@ -3859,6 +3891,9 @@ export default function DesktopCalendar({
                 onRenameEventLink={renameEventBodyLink}
                 linkAddress={panelLinkAddress}
                 travelMode={preferences.mapsTravelMode}
+                mapsApp={preferences.mapsApp}
+                mapsApps={mapsApps}
+                nativeMapsApps={isAndroid}
                 onOpenLocation={(url) => {
                     void openDesktopExternalTarget(url).catch((reason) =>
                         setStorageError(errorMessage(reason))

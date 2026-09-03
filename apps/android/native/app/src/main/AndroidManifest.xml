@@ -10,6 +10,18 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Depuis Android 11, une application ne voit du telephone que ce qu'elle
+         a declare chercher. Sans ces quatre lignes, le menu du lieu croirait
+         qu'aucune carte n'est installee et n'offrirait jamais que Maps. On
+         nomme les paquets un par un plutot que de demander la liste entiere :
+         c'est ce dont on a besoin, et rien de plus. -->
+    <queries>
+        <package android:name="com.google.android.apps.maps" />
+        <package android:name="com.citymapper.app.release" />
+        <package android:name="com.tranzmate" />
+        <package android:name="com.waze" />
+    </queries>
+
     <application
         android:allowBackup="false"
         android:hardwareAccelerated="true"

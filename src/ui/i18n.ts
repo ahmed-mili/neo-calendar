@@ -602,6 +602,10 @@ const FR: Record<string, string> = {
     Driving: "Voiture",
     Walking: "À pied",
     Cycling: "Vélo",
+    // ── Application de cartes ────────────────────────────────
+    "Maps app": "Application de cartes",
+    "Ask each time": "Demander à chaque fois",
+    "Open the location in": "Ouvrir le lieu dans",
     "Search tasks": "Rechercher une tâche",
     "Nothing matches": "Rien ne correspond",
     "Nothing here": "Rien ici",

@@ -30,7 +30,15 @@ import {
     FileTextIcon as NoteIcon,
     MapPinIcon,
 } from "./Icons";
-import { locationLinkFor, type MapsTravelMode } from "./locationLink";
+import {
+    locationDestinationFor,
+    locationLinkFor,
+    mapsAppsFor,
+    mapsUrlFor,
+    type MapsApp,
+    type MapsAppChoice,
+    type MapsTravelMode,
+} from "./locationLink";
 import {
     addDays,
     getWeekStart,
@@ -3995,6 +4003,14 @@ export function DescriptionRow({
     );
 }
 
+/** Le nom de chaque carte, tel qu'il s'écrit dans son propre magasin. */
+const MAPS_APP_NAMES: Record<MapsApp, string> = {
+    google: "Google Maps",
+    citymapper: "Citymapper",
+    moovit: "Moovit",
+    waze: "Waze",
+};
+
 interface LocationRowProps {
     location: string;
     /** Le point que le flux publie, quand il en publie un : c'est lui qui
@@ -4006,6 +4022,16 @@ interface LocationRowProps {
     /** Comment on compte s'y rendre, quand la carte ouvre un itinéraire.
      *  Absent, la carte choisit — c'est le repos du réglage. */
     travelMode?: MapsTravelMode;
+    /** L'application réglée, ou « ask » pour le menu — c'est le repos. */
+    mapsApp?: MapsAppChoice;
+    /** Les cartes que cette machine peut ouvrir : sur téléphone, celles qui y
+     *  sont installées ; sur ordinateur, celles qui ont un site d'itinéraire.
+     *  Le parent la calcule, la rangée ne fait qu'en retirer ce qui ne sait
+     *  pas lire ce lieu-ci. */
+    mapsApps?: readonly MapsApp[];
+    /** Vrai là où les applications répondent à leur propre schéma, c'est-à-dire
+     *  sur le téléphone : un lien https n'y arrive pas à coup sûr. */
+    nativeMapsApps?: boolean;
     editable: boolean;
     setLocation: (value: string) => void;
     onAutoSave: () => void;
@@ -4031,67 +4057,193 @@ export function LocationRow({
     geo,
     linkAddress,
     travelMode,
+    mapsApp = "ask",
+    mapsApps = ["google"],
+    nativeMapsApps = false,
     editable,
     setLocation,
     onAutoSave,
     onOpenLocation,
 }: LocationRowProps) {
-    if (!editable && !location) return null;
+    const triggerRef = React.useRef<HTMLElement | null>(null);
+    const menuRef = React.useRef<HTMLDivElement>(null);
+    const [menuOpen, setMenuOpen] = React.useState(false);
+    const [menuStyle, setMenuStyle] = React.useState<React.CSSProperties>({});
+
+    const destination = locationDestinationFor(location, geo, linkAddress);
+    /* Ce que cette machine peut ouvrir, moins ce qui ne sait pas lire ce
+       lieu-ci : trois des quatre cartes ne visent qu'un point. */
+    const offered = destination
+        ? mapsAppsFor(destination, {
+              native: nativeMapsApps,
+              installed: mapsApps,
+          })
+        : [];
+
+    const urlFor = (app: MapsApp) =>
+        destination
+            ? mapsUrlFor(destination, app, {
+                  travelMode,
+                  native: nativeMapsApps,
+              })
+            : null;
+
+    /* Google en dernier recours : un réglage garde une carte choisie un jour
+       où elle convenait, et elle seule sait lire une salle écrite à la main. */
+    const settled =
+        mapsApp !== "ask" && offered.includes(mapsApp)
+            ? mapsApp
+            : offered.length === 1
+            ? offered[0]
+            : mapsApp !== "ask" && offered.includes("google")
+            ? "google"
+            : null;
 
     const link = onOpenLocation
-        ? locationLinkFor(location, geo, linkAddress, travelMode)
+        ? destination && settled
+            ? urlFor(settled)
+            : locationLinkFor(location, geo, linkAddress, travelMode)
         : null;
-    const open = () => {
-        if (link) onOpenLocation?.(link);
+
+    React.useEffect(() => {
+        if (!menuOpen) return;
+        const close = (event: PointerEvent) => {
+            const target = event.target as Node;
+            if (triggerRef.current?.contains(target)) return;
+            if (menuRef.current?.contains(target)) return;
+            setMenuOpen(false);
+        };
+        const closeForLayout = () => setMenuOpen(false);
+        document.addEventListener("pointerdown", close, true);
+        window.addEventListener("resize", closeForLayout);
+        window.addEventListener("scroll", closeForLayout, true);
+        return () => {
+            document.removeEventListener("pointerdown", close, true);
+            window.removeEventListener("resize", closeForLayout);
+            window.removeEventListener("scroll", closeForLayout, true);
+        };
+    }, [menuOpen]);
+
+    if (!editable && !location) return null;
+
+    /*
+     * Un menu n'a de raison d'être que devant un choix : une seule carte, une
+     * carte réglée ou un lien de visioconférence s'ouvrent du premier coup.
+     */
+    const open = (event: React.MouseEvent<HTMLElement>) => {
+        if (!onOpenLocation) return;
+        if (settled || !destination || offered.length === 0) {
+            if (link) onOpenLocation(link);
+            return;
+        }
+        triggerRef.current = event.currentTarget;
+        const rect = event.currentTarget.getBoundingClientRect();
+        const placement = placeFlyout(rect, window.innerHeight, {
+            gap: 4,
+            margin: 8,
+            minHeight: 132,
+        });
+        const width = 200;
+        setMenuStyle({
+            left: Math.max(
+                8,
+                Math.min(rect.left, window.innerWidth - width - 8)
+            ),
+            width,
+            top: placement.top ?? undefined,
+            bottom: placement.bottom ?? undefined,
+            maxHeight: placement.maxHeight,
+        });
+        setMenuOpen(true);
     };
 
     return (
-        <div className="nc-panel-row nc-panel-row-location">
-            <span className="nc-panel-row-icon">
-                <MapPinIcon />
-            </span>
-            <div className="nc-panel-row-content">
-                {editable ? (
-                    <input
-                        type="text"
-                        className="nc-panel-text-input nc-panel-location-input"
-                        value={location}
-                        placeholder={t("Location")}
-                        aria-label={t("Location")}
-                        onChange={(event) => setLocation(event.target.value)}
-                        onBlur={onAutoSave}
-                    />
-                ) : link ? (
-                    /* Verrouillé, le texte EST le lien : rien d'autre à faire
+        <>
+            <div className="nc-panel-row nc-panel-row-location">
+                <span className="nc-panel-row-icon">
+                    <MapPinIcon />
+                </span>
+                <div className="nc-panel-row-content">
+                    {editable ? (
+                        <input
+                            type="text"
+                            className="nc-panel-text-input nc-panel-location-input"
+                            value={location}
+                            placeholder={t("Location")}
+                            aria-label={t("Location")}
+                            onChange={(event) =>
+                                setLocation(event.target.value)
+                            }
+                            onBlur={onAutoSave}
+                        />
+                    ) : link ? (
+                        /* Verrouillé, le texte EST le lien : rien d'autre à faire
                        de cette rangée que de la suivre, comme dans Notion. */
+                        <button
+                            type="button"
+                            data-nc-location-open="true"
+                            className="nc-panel-location-text nc-panel-location-link"
+                            aria-label={t("Open in Maps")}
+                            title={t("Open in Maps")}
+                            onClick={open}
+                        >
+                            {location}
+                        </button>
+                    ) : (
+                        <span className="nc-panel-location-text">
+                            {location}
+                        </span>
+                    )}
+                </div>
+                {/* Modifiable, le champ garde le clic pour écrire : la carte prend
+                donc son propre bouton, au bout de la rangée. */}
+                {editable && link && (
                     <button
                         type="button"
                         data-nc-location-open="true"
-                        className="nc-panel-location-text nc-panel-location-link"
+                        className="nc-panel-location-open"
                         aria-label={t("Open in Maps")}
                         title={t("Open in Maps")}
                         onClick={open}
                     >
-                        {location}
+                        <MapPinIcon size={14} />
                     </button>
-                ) : (
-                    <span className="nc-panel-location-text">{location}</span>
                 )}
             </div>
-            {/* Modifiable, le champ garde le clic pour écrire : la carte prend
-                donc son propre bouton, au bout de la rangée. */}
-            {editable && link && (
-                <button
-                    type="button"
-                    data-nc-location-open="true"
-                    className="nc-panel-location-open"
-                    aria-label={t("Open in Maps")}
-                    title={t("Open in Maps")}
-                    onClick={open}
-                >
-                    <MapPinIcon size={14} />
-                </button>
-            )}
-        </div>
+            {menuOpen &&
+                ReactDOM.createPortal(
+                    <div
+                        ref={menuRef}
+                        className="nc-panel-maps-menu"
+                        role="menu"
+                        style={menuStyle}
+                        data-nc-popup-portal="true"
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onMouseDown={(event) => event.stopPropagation()}
+                    >
+                        <div className="nc-panel-maps-heading">
+                            {t("Open the location in")}
+                        </div>
+                        {offered.map((app) => (
+                            <button
+                                key={app}
+                                type="button"
+                                role="menuitem"
+                                className="nc-panel-maps-option"
+                                data-nc-maps-app={app}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setMenuOpen(false);
+                                    const url = urlFor(app);
+                                    if (url) onOpenLocation?.(url);
+                                }}
+                            >
+                                {MAPS_APP_NAMES[app]}
+                            </button>
+                        ))}
+                    </div>,
+                    document.body
+                )}
+        </>
     );
 }
