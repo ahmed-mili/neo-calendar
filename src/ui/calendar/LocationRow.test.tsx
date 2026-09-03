@@ -387,3 +387,111 @@ describe("LocationRow — le choix de la carte", () => {
         expect(onOpen).toHaveBeenCalledWith("https://teams.test/42");
     });
 });
+
+/*
+ * Sur le téléphone, le menu prend la forme qu'Android donne aux siens.
+ *
+ * Un menu ancré sur sa rangée est une forme d'ordinateur : sur un écran tenu à
+ * la main, ce qui propose un choix monte du bas, sous le pouce, et se ferme en
+ * touchant à côté. Les icônes viennent du téléphone lui-même — on reconnaît
+ * Citymapper à son rond bleu avant d'avoir lu son nom.
+ */
+describe("LocationRow — la feuille du téléphone", () => {
+    const CAMPUS = "48.7887337,2.3637327";
+    const ICON = "data:image/png;base64,AAAA";
+    let host: HTMLDivElement;
+
+    beforeEach(() => {
+        applyLanguage("fr");
+        document.body.classList.add("nc-platform-android");
+        host = document.createElement("div");
+        document.body.appendChild(host);
+    });
+
+    afterEach(() => {
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
+        document.body.classList.remove("nc-platform-android");
+        document.body.innerHTML = "";
+    });
+
+    const openMenu = (
+        props: Partial<React.ComponentProps<typeof LocationRow>> = {}
+    ) => {
+        act(() => {
+            ReactDOM.render(
+                <LocationRow
+                    location="Amphi B"
+                    geo={CAMPUS}
+                    editable={false}
+                    setLocation={jest.fn()}
+                    onAutoSave={jest.fn()}
+                    onOpenLocation={jest.fn()}
+                    mapsApps={["google", "citymapper", "waze"]}
+                    nativeMapsApps
+                    {...props}
+                />,
+                host
+            );
+        });
+        act(() => {
+            document
+                .querySelector<HTMLElement>("[data-nc-location-open]")
+                ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        return document.querySelector(".nc-panel-maps-menu");
+    };
+
+    it("rises from the bottom instead of hanging off the row", () => {
+        expect(openMenu()?.classList.contains("nc-panel-maps-sheet")).toBe(
+            true
+        );
+    });
+
+    /* Le voile est porté sur le body comme la feuille : sans la marque, le
+       toucher qui ferme le menu fermerait la fiche avec. */
+    it("lays a veil that closes it, and belongs to the panel", () => {
+        openMenu();
+        const veil = document.querySelector(".nc-panel-maps-veil");
+
+        expect(veil?.getAttribute("data-nc-popup-portal")).toBe("true");
+
+        act(() => {
+            veil?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        expect(document.querySelector(".nc-panel-maps-menu")).toBeNull();
+    });
+
+    it("shows each app as the phone draws it", () => {
+        openMenu({ mapsAppIcons: { citymapper: ICON } });
+        const image = document.querySelector<HTMLImageElement>(
+            '[data-nc-maps-app="citymapper"] img'
+        );
+
+        expect(image?.getAttribute("src")).toBe(ICON);
+        expect(image?.getAttribute("alt")).toBe("");
+    });
+
+    /* Une carte sans icône garde son entrée : la feuille sait se passer
+       d'image, pas d'entrée. */
+    it("keeps an app whose icon never came", () => {
+        openMenu({ mapsAppIcons: { citymapper: ICON } });
+
+        expect(
+            document.querySelector('[data-nc-maps-app="waze"]')
+        ).not.toBeNull();
+        expect(
+            document.querySelector('[data-nc-maps-app="waze"] img')
+        ).toBeNull();
+    });
+
+    /* Sur un ordinateur, rien ne change : le menu reste ancré sur la rangée. */
+    it("stays anchored to the row on a computer", () => {
+        document.body.classList.remove("nc-platform-android");
+        const menu = openMenu({ nativeMapsApps: false });
+
+        expect(menu?.classList.contains("nc-panel-maps-sheet")).toBe(false);
+        expect(document.querySelector(".nc-panel-maps-veil")).toBeNull();
+    });
+});

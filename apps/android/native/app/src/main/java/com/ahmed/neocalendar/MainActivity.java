@@ -581,6 +581,25 @@ public class MainActivity extends Activity {
   }
 
   private Uri tree(JSONObject args)throws Exception{String raw=args.optString("dataFolder","");if(raw.isEmpty())raw=getSharedPreferences(PREF_FILE,MODE_PRIVATE).getString(PREF_TREE,"");if(raw.isEmpty())throw new Exception("Selectionnez dabord un dossier Android.");Uri u=Uri.parse(raw);boolean granted=false;for(UriPermission p:getContentResolver().getPersistedUriPermissions())if(p.getUri().equals(u)&&p.isReadPermission()){granted=true;break;}if(!granted)throw new Exception("Lautorisation du dossier a ete revoquee. Selectionnez-le a nouveau.");String id=DocumentsContract.getTreeDocumentId(u);return DocumentsContract.buildDocumentUriUsingTree(u,id);}
+  /* L'icone d'une application, dessinee puis encodee : une WebView n'a pas acces
+     aux fichiers d'une autre application, il n'y a donc rien a pointer et tout a
+     porter. 96 px suffisent a la feuille, qui les affiche a 40. Une icone qui ne
+     se dessine pas ne coute que son image : l'entree reste au menu. */
+  private String appIcon(PackageManager packages,String pkg){
+    try{
+      android.graphics.drawable.Drawable icon=packages.getApplicationIcon(pkg);
+      int size=96;
+      android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(
+        size,size,android.graphics.Bitmap.Config.ARGB_8888);
+      android.graphics.Canvas canvas=new android.graphics.Canvas(bitmap);
+      icon.setBounds(0,0,size,size);
+      icon.draw(canvas);
+      ByteArrayOutputStream out=new ByteArrayOutputStream();
+      bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);
+      return "data:image/png;base64,"+Base64.encodeToString(out.toByteArray(),Base64.NO_WRAP);
+    }catch(Exception ignored){return null;}
+  }
+
   private Object handle(String c,JSONObject a)throws Exception{
     switch(c){
       case "has_obsidian_config": return false;
@@ -615,7 +634,12 @@ public class MainActivity extends Activity {
         JSONArray installed=new JSONArray();
         PackageManager packages=getPackageManager();
         for(String[] app:known){
-          if(packages.getLaunchIntentForPackage(app[1])!=null) installed.put(app[0]);
+          if(packages.getLaunchIntentForPackage(app[1])==null) continue;
+          JSONObject entry=new JSONObject();
+          entry.put("id",app[0]);
+          String icon=appIcon(packages,app[1]);
+          if(icon!=null) entry.put("icon",icon);
+          installed.put(entry);
         }
         return installed;
       }

@@ -9,7 +9,10 @@ import CalendarLayout from "../../../src/ui/calendar/CalendarLayout";
 import CommandPalette from "../../../src/ui/calendar/CommandPalette";
 import { invoke } from "@tauri-apps/api/core";
 import { buildWidgetPayload, readWidgetTheme } from "./platform/androidWidget";
-import { parseInstalledMapsApps } from "./platform/installedMapsApps";
+import {
+    parseInstalledMapsApps,
+    parseInstalledMapsIcons,
+} from "./platform/installedMapsApps";
 import {
     MAPS_APPS,
     type MapsApp,
@@ -569,13 +572,20 @@ export default function DesktopCalendar({
      * l'application avant qu'un menu existe.
      */
     const [mapsApps, setMapsApps] = useState<readonly MapsApp[]>(MAPS_APPS);
+    /* Les icones que la feuille montre, dessinees par le telephone lui-meme.
+       Vides sur l'ordinateur, ou le menu s'en tient aux noms. */
+    const [mapsAppIcons, setMapsAppIcons] = useState<
+        Partial<Record<MapsApp, string>>
+    >({});
 
     useEffect(() => {
         if (!isAndroid) return;
         let dropped = false;
         void invoke("installed_maps_apps")
             .then((payload) => {
-                if (!dropped) setMapsApps(parseInstalledMapsApps(payload));
+                if (dropped) return;
+                setMapsApps(parseInstalledMapsApps(payload));
+                setMapsAppIcons(parseInstalledMapsIcons(payload));
             })
             .catch(() => {
                 if (!dropped) setMapsApps(["google"]);
@@ -3894,6 +3904,7 @@ export default function DesktopCalendar({
                 mapsApp={preferences.mapsApp}
                 mapsApps={mapsApps}
                 nativeMapsApps={isAndroid}
+                mapsAppIcons={mapsAppIcons}
                 onOpenLocation={(url) => {
                     void openDesktopExternalTarget(url).catch((reason) =>
                         setStorageError(errorMessage(reason))

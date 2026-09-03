@@ -5083,3 +5083,74 @@ body.nc-platform-android .nc-ics-feed-row {
 body.nc-platform-android .nc-ics-feed-row__frequency {
     flex: 1 1 100%;
 }
+
+
+/* ── Par quelle carte le lieu s'ouvre ─────────────────────────
+ *
+ * Sur l'ordinateur, le menu pend sous la rangee du lieu. Ici il monte du bas,
+ * pleine largeur, arrondi en haut seulement : c'est la forme qu'Android donne
+ * a tout ce qui propose un choix, et un menu pose au milieu de la fiche se
+ * lisait comme une piece rapportee du web. Le contenu, lui, ne change pas.
+ */
+body.nc-platform-android .nc-panel-maps-sheet {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: 70vh;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 16px 16px 0 0;
+    background: var(--background-secondary);
+    box-shadow: 0 -8px 32px rgb(0 0 0 / 45%);
+}
+
+/* Le voile passe sous la feuille et au-dessus de la fiche. Entre les deux, il
+   avalerait les touchers de la feuille elle-meme. */
+body.nc-platform-android .nc-panel-maps-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 10039;
+    background: rgb(0 0 0 / 45%);
+}
+
+body.nc-platform-android .nc-panel-maps-sheet {
+    z-index: 10040;
+}
+
+/* La poignee : elle ne sert a rien qu'a dire d'ou la feuille vient, ce qui
+   suffit a la faire lire comme une feuille et non comme un menu tombe la. */
+body.nc-platform-android .nc-panel-maps-sheet::before {
+    content: "";
+    display: block;
+    width: 32px;
+    height: 4px;
+    margin: 0 auto 8px;
+    border-radius: 2px;
+    /* L'encre du texte, eteinte : `--nc-border` sortait a un cheveu du fond de
+       la feuille — mesure sur l'emulateur, la poignee ne se voyait pas. Prise
+       sur `currentColor`, elle suit le theme au lieu de parier sur le sien. */
+    background: currentColor;
+    opacity: 0.28;
+}
+
+body.nc-platform-android .nc-panel-maps-heading {
+    padding: 4px 20px 8px;
+}
+
+/* 48 px de haut : la cible qu'Android demande pour ce qu'on touche. Les 30 px
+   du menu de bureau vont a la souris, pas au pouce. */
+body.nc-platform-android .nc-panel-maps-option {
+    gap: 14px;
+    min-height: 48px;
+    padding: 8px 20px;
+    border-radius: 0;
+    font-size: 15px;
+}
+
+body.nc-platform-android .nc-panel-maps-icon {
+    width: 28px;
+    height: 28px;
+}

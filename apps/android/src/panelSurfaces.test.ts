@@ -226,3 +226,53 @@ describe("la bande de la semaine courante sur le telephone", () => {
         expect(band.background).not.toContain("color-mix");
     });
 });
+
+/*
+ * La feuille par laquelle on choisit la carte qui ouvre un lieu.
+ *
+ * Elle monte du bas et non de la rangée : sur un écran tenu à la main, ce qui
+ * propose un choix se pose sous le pouce. Le reste suit ce qu'Android fait de
+ * ses propres feuilles — pleine largeur, coins arrondis en haut seulement, et
+ * un voile qui l'isole de ce qu'elle couvre.
+ */
+describe("the sheet that picks which map opens a place", () => {
+    const SHEET = "body.nc-platform-android .nc-panel-maps-sheet";
+    const VEIL = "body.nc-platform-android .nc-panel-maps-veil";
+
+    it("is anchored to the bottom edge, right across", () => {
+        const sheet = declarationsFor(css, SHEET);
+
+        expect(sheet.position).toBe("fixed");
+        expect(sheet.bottom).toBe("0");
+        expect(sheet.left).toBe("0");
+        expect(sheet.right).toBe("0");
+    });
+
+    /* Arrondie en haut seulement : arrondir le bas ferait flotter une carte au
+       ras de l'écran, ce qu'Android ne fait pas. */
+    it("is rounded where it leaves the edge, and square against it", () => {
+        expect(declarationsFor(css, SHEET)["border-radius"]).toBe(
+            "16px 16px 0 0"
+        );
+    });
+
+    /* Le voile doit passer sous la feuille et au-dessus de la fiche : entre les
+       deux, il avalerait les touchers de la feuille elle-meme. */
+    it("lays its veil under itself", () => {
+        const sheet = declarationsFor(css, SHEET);
+        const veil = declarationsFor(css, VEIL);
+
+        expect(Number(veil["z-index"])).toBeLessThan(Number(sheet["z-index"]));
+    });
+
+    /* 48 px : la cible qu'Android demande pour ce qu'on touche. Une entree de
+       30 px va a la souris, pas au pouce. */
+    it("gives each app a target a thumb can hit", () => {
+        expect(
+            declarationsFor(
+                css,
+                "body.nc-platform-android .nc-panel-maps-option"
+            )["min-height"]
+        ).toBe("48px");
+    });
+});

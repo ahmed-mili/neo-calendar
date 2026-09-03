@@ -3321,6 +3321,16 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     cursor: pointer;
 }
 
+/* Ce que le telephone dessine de chaque application. Sur ordinateur le menu
+   n'en recoit pas — on n'y ouvre que des sites — et la regle ne sert alors a
+   rien : elle est la pour que la meme feuille se lise pareil des deux cotes. */
+.nc-panel-maps-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    flex-shrink: 0;
+}
+
 .nc-panel-maps-option:hover {
     background: var(--nc-bg-hover) !important;
 }

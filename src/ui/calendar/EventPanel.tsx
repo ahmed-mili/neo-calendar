@@ -171,6 +171,8 @@ interface EventPanelProps {
     mapsApps?: readonly MapsApp[];
     /** Vrai sur le téléphone, où les applications répondent à leur schéma. */
     nativeMapsApps?: boolean;
+    /** L'icône de chaque carte, telle que le téléphone la dessine. */
+    mapsAppIcons?: Partial<Record<MapsApp, string>>;
     onOpenLocation?: (url: string) => void;
     onCopyEventLink?: (target: string) => Promise<void>;
     onPickEventAttachment?: (eventId: string) => Promise<void>;
@@ -293,6 +295,7 @@ export default function EventPanel({
     mapsApp,
     mapsApps,
     nativeMapsApps,
+    mapsAppIcons,
     onOpenLocation,
     onCopyEventLink,
     onPickEventAttachment,
@@ -1612,6 +1615,7 @@ export default function EventPanel({
                         mapsApp={mapsApp}
                         mapsApps={mapsApps}
                         nativeMapsApps={nativeMapsApps}
+                        mapsAppIcons={mapsAppIcons}
                         editable={stableCalInfo.editable}
                         setLocation={form.setLocation}
                         onAutoSave={scheduleAutoSave}

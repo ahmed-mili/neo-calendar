@@ -4032,6 +4032,9 @@ interface LocationRowProps {
     /** Vrai là où les applications répondent à leur propre schéma, c'est-à-dire
      *  sur le téléphone : un lien https n'y arrive pas à coup sûr. */
     nativeMapsApps?: boolean;
+    /** L'icône de chaque carte, en `data:` URI, telle que le téléphone la
+     *  dessine. Absente, l'entrée s'affiche sans image. */
+    mapsAppIcons?: Partial<Record<MapsApp, string>>;
     editable: boolean;
     setLocation: (value: string) => void;
     onAutoSave: () => void;
@@ -4060,11 +4063,16 @@ export function LocationRow({
     mapsApp = "ask",
     mapsApps = ["google"],
     nativeMapsApps = false,
+    mapsAppIcons,
     editable,
     setLocation,
     onAutoSave,
     onOpenLocation,
 }: LocationRowProps) {
+    /* Sur le telephone, ce qui propose un choix monte du bas et se ferme en
+       touchant a cote : un menu ancre sur sa rangee est une forme d'ordinateur.
+       C'est la seule difference entre les deux, le contenu ne change pas. */
+    const sheet = isAndroidRuntime();
     const triggerRef = React.useRef<HTMLElement | null>(null);
     const menuRef = React.useRef<HTMLDivElement>(null);
     const [menuOpen, setMenuOpen] = React.useState(false);
@@ -4211,12 +4219,27 @@ export function LocationRow({
                 )}
             </div>
             {menuOpen &&
+                sheet &&
+                ReactDOM.createPortal(
+                    /* Le voile ferme la feuille comme le fait Android, et
+                       porte la marque du panneau : sans elle, le toucher qui
+                       ferme le menu fermerait la fiche avec lui. */
+                    <div
+                        className="nc-panel-maps-veil"
+                        data-nc-popup-portal="true"
+                        onClick={() => setMenuOpen(false)}
+                    />,
+                    document.body
+                )}
+            {menuOpen &&
                 ReactDOM.createPortal(
                     <div
                         ref={menuRef}
-                        className="nc-panel-maps-menu"
+                        className={`nc-panel-maps-menu${
+                            sheet ? " nc-panel-maps-sheet" : ""
+                        }`}
                         role="menu"
-                        style={menuStyle}
+                        style={sheet ? undefined : menuStyle}
                         data-nc-popup-portal="true"
                         onPointerDown={(event) => event.stopPropagation()}
                         onMouseDown={(event) => event.stopPropagation()}
@@ -4238,7 +4261,14 @@ export function LocationRow({
                                     if (url) onOpenLocation?.(url);
                                 }}
                             >
-                                {MAPS_APP_NAMES[app]}
+                                {mapsAppIcons?.[app] && (
+                                    <img
+                                        className="nc-panel-maps-icon"
+                                        src={mapsAppIcons[app]}
+                                        alt=""
+                                    />
+                                )}
+                                <span>{MAPS_APP_NAMES[app]}</span>
                             </button>
                         ))}
                     </div>,
