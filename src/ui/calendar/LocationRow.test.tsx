@@ -574,7 +574,7 @@ describe("LocationRow — les cartes que le système signale", () => {
         });
 
         expect(onOpen).toHaveBeenCalledWith(
-            "geo:48.7887337,2.3637327?q=48.7887337,2.3637327(Amphi%20B)",
+            "geo:48.7887337,2.3637327?q=48.7887337,2.3637327",
             RATP.package
         );
     });

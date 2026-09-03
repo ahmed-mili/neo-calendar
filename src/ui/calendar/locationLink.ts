@@ -52,14 +52,20 @@ const WEB_MAPS_APPS: readonly MapsApp[] = ["google", "citymapper", "waze"];
  * destinations, un nom de salle n'en est pas une, et un lien n'a rien à faire
  * sur une carte. Chaque application se sert ensuite de ce qu'elle sait lire.
  *
- * `label` est le lieu tel qu'il est écrit dans l'évènement. Il ne sert pas à
- * viser — le point s'en charge — mais à nommer l'arrivée sur l'écran de
- * l'application, qui affiche « Amphi B » plutôt qu'une paire de nombres.
+ * Une adresse emporte le point du flux quand il y en a un. Les deux disent le
+ * même endroit dans deux langues : Maps préfère la rue, les cartes de transport
+ * ne visent que des coordonnées, et les priver du point les faisait disparaître
+ * du menu dès qu'une adresse était écrite.
+ *
+ * Le nom de la salle, lui, ne voyage plus. Passé comme nom de destination, il
+ * s'affichait à la place de la rue — « EXT01 » dans Citymapper, « Efrei Bat. C
+ * C001 » dans la barre de recherche de Bonjour RATP, mesuré sur le téléphone le
+ * 2026-09-03 — et aucun moteur d'itinéraire ne sait chercher un nom de salle.
  */
 export type LocationDestination =
     | { kind: "link"; value: string }
-    | { kind: "point"; value: string; label?: string }
-    | { kind: "address"; value: string; label?: string }
+    | { kind: "point"; value: string }
+    | { kind: "address"; value: string; point?: string }
     | { kind: "search"; value: string };
 
 const mapsSearch = (query: string) =>
@@ -153,24 +159,38 @@ export function locationDestinationFor(
 
     if (/^https?:\/\/\S+$/i.test(place)) return { kind: "link", value: place };
 
-    const label = place || undefined;
+    const published = (geo ?? "").trim();
+    const point = COORDINATES.test(published) ? asPoint(published) : undefined;
 
     const address = (linkAddress ?? "").trim();
-    if (address)
-        return COORDINATES.test(address)
-            ? { kind: "point", value: asPoint(address), label }
-            : { kind: "address", value: address, label };
+    if (address) {
+        if (COORDINATES.test(address))
+            return { kind: "point", value: asPoint(address) };
+        return point
+            ? { kind: "address", value: address, point }
+            : { kind: "address", value: address };
+    }
 
-    const point = (geo ?? "").trim();
-    if (COORDINATES.test(point))
-        return { kind: "point", value: asPoint(point), label };
+    if (point) return { kind: "point", value: point };
 
     return place ? { kind: "search", value: place } : null;
 }
 
+/** Les coordonnées de cette destination, quand on en connaît. */
+function pointOf(destination: LocationDestination): string | undefined {
+    if (destination.kind === "point") return destination.value;
+    if (destination.kind === "address") return destination.point;
+    return undefined;
+}
+
+/** La rue de cette destination, seule chose qu'une carte sache afficher. */
+function addressOf(destination: LocationDestination): string | undefined {
+    return destination.kind === "address" ? destination.value : undefined;
+}
+
 /** Ce qu'on ajoute à une URL pour nommer l'arrivée, quand on sait la nommer. */
-const named = (parameter: string, label?: string) =>
-    label ? `&${parameter}=${encodeURIComponent(label)}` : "";
+const named = (parameter: string, address?: string) =>
+    address ? `&${parameter}=${encodeURIComponent(address)}` : "";
 
 /**
  * Les applications à proposer pour cette destination, dans l'ordre du menu.
@@ -193,8 +213,9 @@ export function mapsAppsFor(
 ): MapsApp[] {
     if (destination.kind === "link") return [];
 
-    const candidates: readonly MapsApp[] =
-        destination.kind === "point" ? MAPS_APPS : ["google"];
+    const candidates: readonly MapsApp[] = pointOf(destination)
+        ? MAPS_APPS
+        : ["google"];
 
     return candidates.filter((app) => {
         // Les deux filtres sont indépendants : le premier dit ce qui s'ouvre
@@ -232,25 +253,24 @@ export function mapsUrlFor(
             ? mapsSearch(destination.value)
             : mapsDirections(destination.value, travelMode);
 
-    if (destination.kind !== "point") return null;
+    const coordinates = pointOf(destination);
+    if (!coordinates) return null;
 
-    const point = encodeURIComponent(destination.value);
+    const address = addressOf(destination);
+    const point = encodeURIComponent(coordinates);
 
     if (app === "citymapper") {
         const base = native
             ? "citymapper://directions"
             : "https://citymapper.com/directions";
-        return `${base}?endcoord=${point}${named(
-            "endname",
-            destination.label
-        )}`;
+        return `${base}?endcoord=${point}${named("endaddress", address)}`;
     }
 
     if (app === "moovit") {
-        const [latitude, longitude] = destination.value.split(",");
+        const [latitude, longitude] = coordinates.split(",");
         return `moovit://directions?dest_lat=${latitude}&dest_lon=${longitude}${named(
             "dest_name",
-            destination.label
+            address
         )}`;
     }
 
@@ -286,10 +306,9 @@ export interface GeoApp {
  * main n'en est pas.
  */
 export function geoUrlFor(destination: LocationDestination): string | null {
-    if (destination.kind !== "point") return null;
-    const point = destination.value;
-    const label = destination.label
-        ? `(${encodeURIComponent(destination.label)})`
-        : "";
-    return `geo:${point}?q=${point}${label}`;
+    const point = pointOf(destination);
+    if (!point) return null;
+
+    const address = addressOf(destination);
+    return `geo:${point}?q=${address ? encodeURIComponent(address) : point}`;
 }

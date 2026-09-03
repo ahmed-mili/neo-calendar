@@ -628,6 +628,12 @@ public class MainActivity extends Activity {
         runOnUiThread(()->{try{
           Intent view=new Intent(Intent.ACTION_VIEW,Uri.parse(target));
           if(!pkg.isEmpty()) view.setPackage(pkg);
+          /* Une tache a elle, et non la notre. Sans ce drapeau la carte
+             s'empile SUR Neo Calendar : les deux ne font plus qu'une entree
+             dans les recents, et revenir a l'agenda demande de fermer la carte
+             d'abord. Avec, chacune vit de son cote et l'on passe de l'une a
+             l'autre comme entre deux applications, ce qu'elles sont. */
+          view.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
           startActivity(view);
         }catch(Exception ignored){}});
         return null;

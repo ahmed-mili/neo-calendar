@@ -24,21 +24,24 @@ describe("locationDestinationFor", () => {
         });
     });
 
-    it("prefers the address set on the link to the feed's point", () => {
+    /* L'adresse commande — c'est elle qui a été écrite parce que le flux ne
+       mène pas au bon endroit — mais le point du flux part avec elle : les
+       cartes de transport ne visent que des coordonnées, et les priver du
+       point les faisait disparaître du menu dès qu'une adresse existait. */
+    it("carries the address and the feed's point together", () => {
         expect(
             locationDestinationFor("Efrei Bat. C", CAMPUS, "30 av. République")
         ).toEqual({
             kind: "address",
             value: "30 av. République",
-            label: "Efrei Bat. C",
+            point: CAMPUS,
         });
     });
 
-    it("falls back to the feed's point, keeping the room as its name", () => {
+    it("falls back to the feed's point alone", () => {
         expect(locationDestinationFor("Efrei Bat. C", CAMPUS)).toEqual({
             kind: "point",
             value: CAMPUS,
-            label: "Efrei Bat. C",
         });
     });
 
@@ -46,7 +49,6 @@ describe("locationDestinationFor", () => {
         expect(locationDestinationFor("Efrei", "", CAMPUS)).toEqual({
             kind: "point",
             value: CAMPUS,
-            label: "Efrei",
         });
     });
 
@@ -104,7 +106,10 @@ describe("mapsAppsFor", () => {
         ]);
     });
 
-    it("keeps Google alone for an address, which the others cannot read", () => {
+    /* Une adresse écrite à la main sans point ne se transmet qu'à Maps : les
+       autres ouvriraient un formulaire vide. Avec le point du flux, en
+       revanche, elles savent où aller ET quoi afficher. */
+    it("keeps Google alone when nothing gives a point", () => {
         expect(mapsAppsFor(address, { native: false })).toEqual(["google"]);
         expect(
             mapsAppsFor(search, {
@@ -112,6 +117,20 @@ describe("mapsAppsFor", () => {
                 installed: ["google", "citymapper", "waze"],
             })
         ).toEqual(["google"]);
+    });
+
+    it("offers them all when an address comes with a point", () => {
+        const both = locationDestinationFor(
+            "Efrei Bat. C",
+            CAMPUS,
+            "30 av. République"
+        )!;
+
+        expect(mapsAppsFor(both, { native: false })).toEqual([
+            "google",
+            "citymapper",
+            "waze",
+        ]);
     });
 
     /* Un lien de visioconférence s'ouvre tel quel : aucune carte n'a son mot à
@@ -144,22 +163,39 @@ describe("mapsUrlFor", () => {
     });
 
     /* endcoord est le seul paramètre dont Citymapper ne peut pas se passer ;
-       endname n'habille que l'écran d'arrivée. */
-    it("hands Citymapper the point, and the room as its name", () => {
+       le reste n'habille que l'écran d'arrivée. Sans adresse à donner, on ne
+       donne rien : « EXT01 » écrit là s'affichait à la place de la rue, ce qui
+       ne dit à personne où descendre. */
+    it("hands Citymapper the point, and nothing it cannot use", () => {
         expect(mapsUrlFor(point, "citymapper", { native: false })).toBe(
-            "https://citymapper.com/directions?endcoord=48.7887337%2C2.3637327&endname=Amphi%20B"
+            "https://citymapper.com/directions?endcoord=48.7887337%2C2.3637327"
         );
     });
 
     it("uses Citymapper's own scheme once the app is there to answer it", () => {
         expect(mapsUrlFor(point, "citymapper", { native: true })).toBe(
-            "citymapper://directions?endcoord=48.7887337%2C2.3637327&endname=Amphi%20B"
+            "citymapper://directions?endcoord=48.7887337%2C2.3637327"
+        );
+    });
+
+    it("gives Citymapper the street once the link knows it", () => {
+        const both = locationDestinationFor(
+            "Amphi B",
+            CAMPUS,
+            "30-32 Av. de la République, 94800 Villejuif"
+        )!;
+
+        expect(mapsUrlFor(both, "citymapper", { native: true })).toBe(
+            "citymapper://directions?endcoord=48.7887337%2C2.3637327&endaddress=" +
+                encodeURIComponent(
+                    "30-32 Av. de la République, 94800 Villejuif"
+                )
         );
     });
 
     it("splits the point in two for Moovit, which asks for it that way", () => {
         expect(mapsUrlFor(point, "moovit", { native: true })).toBe(
-            "moovit://directions?dest_lat=48.7887337&dest_lon=2.3637327&dest_name=Amphi%20B"
+            "moovit://directions?dest_lat=48.7887337&dest_lon=2.3637327"
         );
     });
 
@@ -198,14 +234,27 @@ describe("mapsUrlFor", () => {
 describe("geoUrlFor", () => {
     const CAMPUS = "48.7887337,2.3637327";
 
-    it("points at the place, and names it", () => {
-        expect(geoUrlFor(locationDestinationFor("Amphi B", CAMPUS)!)).toBe(
-            "geo:48.7887337,2.3637327?q=48.7887337,2.3637327(Amphi%20B)"
+    /* `q=` est ce qu'une application cherche. Bonjour RATP le porte tel quel
+       dans sa barre de recherche : mesuré sur le téléphone d'Ahmed, elle y
+       affichait des coordonnées et « Efrei Bat. C C001 », deux choses qu'aucun
+       moteur d'itinéraire ne sait chercher. */
+    it("gives the street to search when the link knows it", () => {
+        const both = locationDestinationFor(
+            "Efrei Bat. C C001",
+            CAMPUS,
+            "30-32 Av. de la République, 94800 Villejuif"
+        )!;
+
+        expect(geoUrlFor(both)).toBe(
+            "geo:48.7887337,2.3637327?q=" +
+                encodeURIComponent(
+                    "30-32 Av. de la République, 94800 Villejuif"
+                )
         );
     });
 
-    it("drops the name when the event does not give one", () => {
-        expect(geoUrlFor(locationDestinationFor("", CAMPUS, CAMPUS)!)).toBe(
+    it("falls back to the point itself, never to the room", () => {
+        expect(geoUrlFor(locationDestinationFor("Amphi B", CAMPUS)!)).toBe(
             "geo:48.7887337,2.3637327?q=48.7887337,2.3637327"
         );
     });
