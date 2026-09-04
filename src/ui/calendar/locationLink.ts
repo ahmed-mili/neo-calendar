@@ -57,16 +57,26 @@ const WEB_MAPS_APPS: readonly MapsApp[] = ["google", "citymapper", "waze"];
  * ne visent que des coordonnées, et les priver du point les faisait disparaître
  * du menu dès qu'une adresse était écrite.
  *
- * Le nom de la salle, lui, ne voyage plus. Passé comme nom de destination, il
- * s'affichait à la place de la rue — « EXT01 » dans Citymapper, « Efrei Bat. C
- * C001 » dans la barre de recherche de Bonjour RATP, mesuré sur le téléphone le
- * 2026-09-03 — et aucun moteur d'itinéraire ne sait chercher un nom de salle.
+ * Le nom de la salle, lui, ne voyage plus comme destination. Passé comme telle,
+ * il s'affichait à la place de la rue — « EXT01 » dans Citymapper, « Efrei Bat.
+ * C C001 » dans la barre de recherche de Bonjour RATP, mesuré sur le téléphone
+ * le 2026-09-03 — et aucun moteur d'itinéraire ne sait chercher un nom de
+ * salle.
+ *
+ * Il voyage en revanche comme `label` : ce qu'on écrit sur le point, sans rien
+ * demander à personne de le trouver. Les deux ne se confondent pas, et l'oubli
+ * se voyait — sur le point que le flux Efrei publie pour le bâtiment N, la page
+ * de Citymapper s'ouvrait le 2026-09-04 sur « How to get to End Location », une
+ * arrivée que rien ne rattachait au cours qu'on venait d'ouvrir. C'est
+ * exactement ce que Citymapper appelle « the business name or nickname of the
+ * destination », et Moovit `dest_name`.
  */
-export type LocationDestination =
+export type LocationDestination = { label?: string } & (
     | { kind: "link"; value: string }
     | { kind: "point"; value: string }
     | { kind: "address"; value: string; point?: string }
-    | { kind: "search"; value: string };
+    | { kind: "search"; value: string }
+);
 
 const mapsSearch = (query: string) =>
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -162,16 +172,21 @@ export function locationDestinationFor(
     const published = (geo ?? "").trim();
     const point = COORDINATES.test(published) ? asPoint(published) : undefined;
 
+    /* Une paire de coordonnées écrite dans le champ « lieu » se nommerait
+       elle-même : la carte afficherait ses propres chiffres en guise de titre. */
+    const label =
+        place && !COORDINATES.test(place) ? { label: place } : undefined;
+
     const address = (linkAddress ?? "").trim();
     if (address) {
         if (COORDINATES.test(address))
-            return { kind: "point", value: asPoint(address) };
+            return { kind: "point", value: asPoint(address), ...label };
         return point
-            ? { kind: "address", value: address, point }
-            : { kind: "address", value: address };
+            ? { kind: "address", value: address, point, ...label }
+            : { kind: "address", value: address, ...label };
     }
 
-    if (point) return { kind: "point", value: point };
+    if (point) return { kind: "point", value: point, ...label };
 
     return place ? { kind: "search", value: place } : null;
 }
@@ -188,9 +203,10 @@ function addressOf(destination: LocationDestination): string | undefined {
     return destination.kind === "address" ? destination.value : undefined;
 }
 
-/** Ce qu'on ajoute à une URL pour nommer l'arrivée, quand on sait la nommer. */
-const named = (parameter: string, address?: string) =>
-    address ? `&${parameter}=${encodeURIComponent(address)}` : "";
+/** Ce qu'on ajoute à une URL pour habiller l'arrivée, quand on sait l'habiller.
+ *  La rue et le nom passent tous deux par là, chacun dans son paramètre. */
+const named = (parameter: string, value?: string) =>
+    value ? `&${parameter}=${encodeURIComponent(value)}` : "";
 
 /**
  * Les applications à proposer pour cette destination, dans l'ordre du menu.
@@ -263,14 +279,17 @@ export function mapsUrlFor(
         const base = native
             ? "citymapper://directions"
             : "https://citymapper.com/directions";
-        return `${base}?endcoord=${point}${named("endaddress", address)}`;
+        return `${base}?endcoord=${point}${named(
+            "endaddress",
+            address
+        )}${named("endname", destination.label)}`;
     }
 
     if (app === "moovit") {
         const [latitude, longitude] = coordinates.split(",");
         return `moovit://directions?dest_lat=${latitude}&dest_lon=${longitude}${named(
             "dest_name",
-            address
+            destination.label ?? address
         )}`;
     }
 

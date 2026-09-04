@@ -65,7 +65,7 @@ import {
     titleFromOembed,
     withDeadline,
 } from "./linkTitle";
-import { BrandIcon } from "./BrandIcons";
+import { BrandIcon, type BrandName } from "./BrandIcons";
 import {
     BellIcon,
     ClockIcon,
@@ -4013,6 +4013,25 @@ const MAPS_APP_NAMES: Record<MapsApp, string> = {
     waze: "Waze",
 };
 
+/**
+ * La marque de chaque carte, portée par l'application.
+ *
+ * `mapsAppIcons` vient du téléphone : pour chaque application installée,
+ * Android répond l'icône qu'il dessine lui-même, et c'est celle qu'il faut —
+ * on reconnaît une application à ce qu'on voit sur son écran d'accueil. Sur
+ * ordinateur il n'y a personne pour répondre, on n'y ouvre que des sites, et
+ * le menu sortait en lignes de texte nu. Ces marques-là ne servent donc que
+ * faute de mieux, et elles sont les vraies (BrandIcons) plutôt que dessinées
+ * de mémoire.
+ *
+ * Moovit n'en a pas : elle n'est proposée que là où le téléphone répond.
+ */
+const MAPS_APP_BRANDS: Partial<Record<MapsApp, BrandName>> = {
+    google: "googlemaps",
+    citymapper: "citymapper",
+    waze: "waze",
+};
+
 interface LocationRowProps {
     location: string;
     /** Le point que le flux publie, quand il en publie un : c'est lui qui
@@ -4274,12 +4293,24 @@ export function LocationRow({
                                     if (url) onOpenLocation?.(url);
                                 }}
                             >
-                                {mapsAppIcons?.[app] && (
+                                {mapsAppIcons?.[app] ? (
                                     <img
                                         className="nc-panel-maps-icon"
                                         src={mapsAppIcons[app]}
                                         alt=""
                                     />
+                                ) : (
+                                    MAPS_APP_BRANDS[app] && (
+                                        <span className="nc-panel-maps-icon nc-panel-maps-mark">
+                                            <BrandIcon
+                                                brand={
+                                                    MAPS_APP_BRANDS[
+                                                        app
+                                                    ] as BrandName
+                                                }
+                                            />
+                                        </span>
+                                    )
                                 )}
                                 <span>{MAPS_APP_NAMES[app]}</span>
                             </button>

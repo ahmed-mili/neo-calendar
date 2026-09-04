@@ -987,6 +987,24 @@
     min-width: 0;
     min-height: 0;
     line-height: 0;
+    /* Porte la cible étendue ci-dessous. */
+    position: relative;
+}
+
+/* Ce qu'on vise, et qui n'est pas ce qu'on voit.
+   Le glyphe mesure 14 px, quand un pointeur en demande 24 (WCAG 2.5.8) : les
+   9 px de remplissage que le bloc laisse à sa gauche (3 px de bande de
+   couleur, 6 px de marge) n'appartenaient à personne, et un clic à côté de la
+   coche ouvrait l'évènement au lieu de le cocher. La cible les reprend, sans
+   qu'un pixel dessiné ne bouge.
+   Vers la droite, 2 px seulement : le `gap: 4px` de `.nc-event-content` est
+   tout ce qui sépare la coche du titre, qui garde son propre clic. En hauteur,
+   l'`overflow: hidden` du bloc écrête ce qui dépasserait — un évènement d'un
+   quart d'heure ne vole rien à son voisin. */
+.nc-task-checkbox::before {
+    content: "";
+    position: absolute;
+    inset: -6px -2px -6px -9px;
 }
 
 .nc-task-checkbox:hover,

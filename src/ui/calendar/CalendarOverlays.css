@@ -504,6 +504,35 @@
     pointer-events: none;
 }
 
+/* Le verre imbriqué, sur PC seulement.
+   ─────────────────────────────────────
+   Deux flous empilés font une couture : la grille floutée à 6 px, et sous le
+   panneau un rectangle refloué à 28 px par le panneau lui-même. Le bord se
+   lisait. La planche de comparaison du 2026-09-04 tranchait pour sa carte C,
+   « nested in a blurred parent » : un seul flou, porté par ce qui est derrière,
+   la carte posée dessus sans en porter aucun.
+
+   C'est du CSS seul, le calque restant le frère du panneau plutôt que son
+   parent. Un parent portant `backdrop-filter` devient le bloc conteneur ET le
+   contexte d'empilement de tout ce qu'il contient : le panneau y serait plafonné
+   à z 49, et le `.nc-datepicker` portalisé sur le `body` à z 1000 passerait
+   par-dessus des dialogues du panneau écrits pour être au-dessus de lui. Le
+   rendu ne s'en distingue pas — un panneau à 88 % laisse voir 12 % de ce qui
+   est derrière, et ce qui est derrière est le calque, déjà flouté.
+
+   Le téléphone garde ses deux flous : sa feuille monte du bas sur toute la
+   largeur, il n'y a pas de bord à voir, et la WebView n'a pas montré qu'elle
+   savait rendre un flou de 28 px sur l'écran entier sans y perdre. */
+body:not(.nc-platform-android) .nc-event-popup-backdrop {
+    backdrop-filter: blur(28px) brightness(1.16);
+    -webkit-backdrop-filter: blur(28px) brightness(1.16);
+}
+
+body:not(.nc-platform-android) .nc-event-popup {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
 .nc-event-popup {
     /* The --nc-* design tokens are declared on :root, where Obsidian's native
        theme vars (--background-*, --text-*) are out of scope, so they bake to

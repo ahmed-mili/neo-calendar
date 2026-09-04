@@ -3331,6 +3331,27 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     flex-shrink: 0;
 }
 
+/* La marque embarquee tient la meme case de 20 px que l'icone du telephone,
+   sans quoi le nom de l'application ne commencerait pas au meme endroit des
+   deux cotes. Elle y est dessinee a 16 px : une silhouette monochrome pesant
+   plus lourd qu'une icone d'application, la remplir jusqu'au bord la ferait
+   passer devant le texte. */
+.nc-panel-maps-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--nc-text-secondary, var(--text-muted));
+}
+
+.nc-panel-maps-mark svg {
+    width: 16px;
+    height: 16px;
+}
+
+.nc-panel-maps-option:hover .nc-panel-maps-mark {
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
 .nc-panel-maps-option:hover {
     background: var(--nc-bg-hover) !important;
 }

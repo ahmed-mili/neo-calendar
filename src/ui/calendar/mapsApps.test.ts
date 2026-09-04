@@ -35,13 +35,17 @@ describe("locationDestinationFor", () => {
             kind: "address",
             value: "30 av. République",
             point: CAMPUS,
+            label: "Efrei Bat. C",
         });
     });
 
+    /* Le nom de la salle part avec le point sans en devenir la destination :
+       c'est ce que la carte écrit sur l'épingle, jamais ce qu'elle cherche. */
     it("falls back to the feed's point alone", () => {
         expect(locationDestinationFor("Efrei Bat. C", CAMPUS)).toEqual({
             kind: "point",
             value: CAMPUS,
+            label: "Efrei Bat. C",
         });
     });
 
@@ -49,6 +53,7 @@ describe("locationDestinationFor", () => {
         expect(locationDestinationFor("Efrei", "", CAMPUS)).toEqual({
             kind: "point",
             value: CAMPUS,
+            label: "Efrei",
         });
     });
 
@@ -162,19 +167,40 @@ describe("mapsUrlFor", () => {
         );
     });
 
-    /* endcoord est le seul paramètre dont Citymapper ne peut pas se passer ;
-       le reste n'habille que l'écran d'arrivée. Sans adresse à donner, on ne
-       donne rien : « EXT01 » écrit là s'affichait à la place de la rue, ce qui
-       ne dit à personne où descendre. */
-    it("hands Citymapper the point, and nothing it cannot use", () => {
+    /*
+     * endcoord est le seul paramètre dont Citymapper ne peut pas se passer.
+     * `endname` n'est pas de trop pour autant : mesuré le 2026-09-04 sur le
+     * point que le flux Efrei publie pour le bâtiment N, la page de Citymapper
+     * s'ouvrait sur « How to get to End Location » — une arrivée sans nom, que
+     * rien ne rattachait au cours qu'on venait d'ouvrir. Le même lien avec
+     * `endname` s'ouvre sur « How to get to Efrei Bat. N N008 ».
+     *
+     * Le nom de la salle ne devient pas pour autant une destination : c'est ce
+     * que la documentation de Citymapper appelle « the business name or
+     * nickname of the destination », un libellé posé sur le point, jamais
+     * géocodé. C'est ce qui le distingue de `endaddress`, la rue, qui reste à
+     * l'adresse quand le lien ICS en règle une.
+     */
+    it("names the place it sends Citymapper to", () => {
         expect(mapsUrlFor(point, "citymapper", { native: false })).toBe(
-            "https://citymapper.com/directions?endcoord=48.7887337%2C2.3637327"
+            "https://citymapper.com/directions?endcoord=48.7887337%2C2.3637327" +
+                "&endname=Amphi%20B"
         );
     });
 
     it("uses Citymapper's own scheme once the app is there to answer it", () => {
         expect(mapsUrlFor(point, "citymapper", { native: true })).toBe(
-            "citymapper://directions?endcoord=48.7887337%2C2.3637327"
+            "citymapper://directions?endcoord=48.7887337%2C2.3637327" +
+                "&endname=Amphi%20B"
+        );
+    });
+
+    /* Un point sans nom reste un point : rien à nommer, rien d'écrit. */
+    it("writes no name when the place has none", () => {
+        const unnamed = locationDestinationFor("", CAMPUS)!;
+
+        expect(mapsUrlFor(unnamed, "citymapper", { native: false })).toBe(
+            "https://citymapper.com/directions?endcoord=48.7887337%2C2.3637327"
         );
     });
 
@@ -189,13 +215,17 @@ describe("mapsUrlFor", () => {
             "citymapper://directions?endcoord=48.7887337%2C2.3637327&endaddress=" +
                 encodeURIComponent(
                     "30-32 Av. de la République, 94800 Villejuif"
-                )
+                ) +
+                "&endname=Amphi%20B"
         );
     });
 
+    /* Moovit nomme son arrivée par `dest_name`, et la même absence s'y lisait
+       de la même façon : une épingle sans étiquette. */
     it("splits the point in two for Moovit, which asks for it that way", () => {
         expect(mapsUrlFor(point, "moovit", { native: true })).toBe(
-            "moovit://directions?dest_lat=48.7887337&dest_lon=2.3637327"
+            "moovit://directions?dest_lat=48.7887337&dest_lon=2.3637327" +
+                "&dest_name=Amphi%20B"
         );
     });
 

@@ -378,6 +378,39 @@ describe("LocationRow — le choix de la carte", () => {
         );
     });
 
+    /*
+     * Chaque entrée porte sa marque, sur PC comme sur le téléphone.
+     *
+     * L'icône venait du système : Android répond, pour chaque application
+     * installée, celle qu'il dessine lui-même. L'ordinateur n'a rien à
+     * répondre — on n'y ouvre que des sites — et le menu y sortait en trois
+     * lignes de texte nu. Les marques sont donc portées par l'application,
+     * comme celles des liens (BrandIcons), et ne servent que là où le
+     * téléphone n'en a pas donné.
+     */
+    it("carries each app's own mark when the system gives none", () => {
+        show({});
+        press("[data-nc-location-open]");
+
+        for (const app of ["google", "citymapper", "waze"]) {
+            const option = document.querySelector(
+                `[data-nc-maps-app="${app}"]`
+            );
+            expect(option?.querySelector("svg")).not.toBeNull();
+        }
+    });
+
+    /* Ce que le téléphone dessine vaut mieux que ce qu'on embarque : c'est
+       l'icône que l'utilisateur voit sur son écran d'accueil. */
+    it("prefers the icon the phone drew to the mark it carries", () => {
+        show({ mapsAppIcons: { citymapper: "data:image/png;base64,AA" } });
+        press("[data-nc-location-open]");
+
+        const option = document.querySelector('[data-nc-maps-app="citymapper"]');
+        expect(option?.querySelector("img")).not.toBeNull();
+        expect(option?.querySelector("svg")).toBeNull();
+    });
+
     /* Une visioconférence n'a rien à faire sur une carte : le lien s'ouvre. */
     it("opens a meeting link without asking anything", () => {
         show({ location: "https://teams.test/42", geo: "" });
