@@ -26,6 +26,7 @@ import { useTimeGridResize } from "./useTimeGridResize";
 import { useTimeGridSelection } from "./useTimeGridSelection";
 import { allDayBandRows, useAllDayLanes } from "./useAllDayLanes";
 import { useAxisLock, easeOutCubic } from "./useAxisLock";
+import { useWheelZoom } from "./useWheelZoom";
 import { GRID_LINE_DEBUG } from "./debugFlags";
 import { enableGridLineDebug } from "./gridDebug";
 import { useNowPosition } from "./NowIndicator";
@@ -224,15 +225,25 @@ export default function TimeGrid(props: TimeGridProps) {
        la fin du geste rend un rendu — un seul, pas un par image — et tout ce
        qui se mesure en heures retombe d'accord. */
     const [, setScaleSettled] = useState(0);
+    const noteScaleSettled = React.useCallback(
+        () => setScaleSettled((count) => count + 1),
+        []
+    );
 
     useAxisLock(scrollRootRef, gridRef, onAndroid(), {
         daysPerView: dates.length,
         freeScroll,
         onScaleChange: republishScrollTravel,
-        onScaleSettled: React.useCallback(
-            () => setScaleSettled((count) => count + 1),
-            []
-        ),
+        onScaleSettled: noteScaleSettled,
+    });
+
+    /* Ce que le pincement fait au doigt, la molette le fait à la souris.
+       Ctrl + molette agrandit l'heure et rien d'autre : le même nombre, la
+       même variable CSS, les deux mêmes rappels. Sur téléphone il n'y a pas
+       de molette, et `useAxisLock` tient déjà l'échelle. */
+    useWheelZoom(scrollRootRef, gridRef, !onAndroid(), {
+        onScaleChange: republishScrollTravel,
+        onScaleSettled: noteScaleSettled,
     });
 
     useInfiniteScroll({
