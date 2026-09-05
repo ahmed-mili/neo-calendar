@@ -35,10 +35,6 @@
         "longDescription": "Neo Calendar — un calendrier qui garde ses événements dans vos propres fichiers.",
         "copyright": "© 2026 Ahmed",
         "icon": [
-            "icons/32x32.png",
-            "icons/64x64.png",
-            "icons/128x128.png",
-            "icons/128x128@2x.png",
             "icons/icon.ico"
         ],
         "windows": {
