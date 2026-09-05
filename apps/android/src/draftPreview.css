@@ -1,0 +1,92 @@
+/* One visual contract for timed and all-day draft previews on Android. */
+body.nc-platform-android .nc-draft-preview {
+    --nc-android-draft-color: #4aabe0;
+    box-sizing: border-box;
+    left: 2px;
+    right: 2px;
+    margin: 0;
+    border: 2px solid var(--nc-android-draft-color);
+    border-radius: 6px;
+    background: rgb(74 171 224 / 18%) !important;
+    box-shadow: none;
+    overflow: visible;
+    z-index: 100;
+    opacity: 1;
+    animation: nc-draft-appear var(--nc-draft-fade-ms) ease-out;
+    transition: opacity var(--nc-draft-fade-ms) ease-out;
+}
+
+@keyframes nc-draft-appear {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+body.nc-platform-android .nc-draft-preview[data-draft-state="exiting"] {
+    opacity: 0;
+    animation: none;
+}
+
+body.nc-platform-android .nc-draft-preview .nc-draft-preview-resize {
+    box-sizing: border-box;
+    position: absolute;
+    display: block;
+    width: 14px;
+    min-width: 14px;
+    height: 14px;
+    min-height: 14px;
+    margin: 0;
+    padding: 0;
+    border: 2px solid var(--nc-android-draft-color);
+    border-radius: 50%;
+    background: var(--background-primary, #202124);
+    box-shadow: none;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+    transform: none;
+    z-index: 1;
+}
+
+body.nc-platform-android .nc-draft-preview .nc-draft-preview-resize-top {
+    top: -8px;
+    left: 12px;
+    right: auto;
+    bottom: auto;
+}
+
+body.nc-platform-android .nc-draft-preview .nc-draft-preview-resize-bottom {
+    top: auto;
+    left: auto;
+    right: 12px;
+    bottom: -8px;
+}
+
+/* Small visible rings, with a forgiving touch target. */
+body.nc-platform-android .nc-draft-preview .nc-draft-preview-resize::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+    background: transparent;
+}
+
+body.nc-platform-android .nc-draft-preview[data-draft-state="exiting"],
+body.nc-platform-android .nc-draft-preview[data-draft-state="exiting"] * {
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.nc-platform-android .nc-draft-preview {
+        animation: none;
+        transition: none;
+    }
+}

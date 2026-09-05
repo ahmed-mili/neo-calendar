@@ -280,7 +280,7 @@ function readOffset(element: HTMLElement): number {
 export const REST_SHARE = { sheet: 0.61, draft: 0.5 } as const;
 
 /** No sheet stands taller than this at rest, however tall the screen is. */
-export const REST_CEILING_PX = { sheet: 480, draft: 400 } as const;
+export const REST_CEILING_PX = { sheet: 480, draft: 210 } as const;
 
 /** The translation that leaves the sheet standing at its resting height. */
 export function restOffsetFor({
@@ -333,6 +333,9 @@ export function useSheetDrag({
     // Filled by the effect below while a sheet is on screen; the ref survives
     // the renders between, and is what the X and the backdrop call.
     const slideOutRef = React.useRef<(() => void) | null>(null);
+    const closingRef = React.useRef(false);
+    const onCloseRef = React.useRef(onClose);
+    onCloseRef.current = onClose;
     /*
      * Where the sheet stands, kept in state so the handle can be drawn as the
      * mark for it — and in a ref beside it, because the press handler is built
@@ -356,31 +359,29 @@ export function useSheetDrag({
         const place = () => {
             const height = sheet.getBoundingClientRect().height;
             if (!height) return;
-            sheet.style.setProperty(
-                REST_PROPERTY,
-                restOffsetFor({ height, variant }) + "px"
-            );
+            const restOffset = restOffsetFor({ height, variant });
+            sheet.style.setProperty(REST_PROPERTY, restOffset + "px");
+            if (
+                !closingRef.current &&
+                !document.body.classList.contains(DRAGGING_CLASS)
+            ) {
+                sheet.style.setProperty(
+                    OFFSET_PROPERTY,
+                    offsetForAnchor({
+                        anchor: anchorRef.current,
+                        restOffset,
+                        height,
+                    }) + "px"
+                );
+            }
         };
 
-        // Wherever the last gesture left the sheet is not where the next one
-        // should open it — nor is the anchor it was left standing at.
-        restAt("full");
+        // A grid tap keeps its preview visible. Existing events still open fully.
+        closingRef.current = false;
+        restAt(variant === "draft" ? "half" : "full");
         sheet.style.removeProperty(OFFSET_PROPERTY);
         place();
 
-        /*
-         * It comes up from the bottom, and that is the whole of it.
-         *
-         * Opening at the RESTING anchor made the sheet stop half way, so it
-         * slid out and then parked somewhere in between — one movement read as
-         * two, which is what made it feel odd. Opening full is also what the
-         * sheet did before it could slide at all, so nothing about arriving
-         * changes where it arrives.
-         *
-         * The resting anchor is not lost: it is where a downward drag settles,
-         * one step before dismissal. It is a destination for the gesture, not
-         * for the opening.
-         */
         const height = sheet.getBoundingClientRect().height;
         if (height) {
             sheet.style.setProperty(OFFSET_PROPERTY, height + "px");
@@ -396,7 +397,14 @@ export function useSheetDrag({
              * destination with nothing to animate.
              */
             void sheet.offsetHeight;
-            sheet.style.setProperty(OFFSET_PROPERTY, "0px");
+            sheet.style.setProperty(
+                OFFSET_PROPERTY,
+                offsetForAnchor({
+                    anchor: anchorRef.current,
+                    restOffset: restOffsetFor({ height, variant }),
+                    height,
+                }) + "px"
+            );
         }
         // The keyboard and a rotation both change what "half the screen" means.
         window.addEventListener("resize", place);
@@ -482,10 +490,11 @@ export function useSheetDrag({
             if (anchor !== "closed") restAt(anchor);
             if (anchor === "closed") {
                 if (closingTimer) return;
+                closingRef.current = true;
                 glideTo(height);
                 closingTimer = window.setTimeout(() => {
                     closingTimer = 0;
-                    onClose();
+                    onCloseRef.current();
                 }, SETTLE_MS);
                 return;
             }
@@ -511,6 +520,19 @@ export function useSheetDrag({
             measure();
             settleAt(anchor);
         };
+        // Editing requests the full sheet; simply previewing never opens the keyboard.
+        const onFocusIn = (event: FocusEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (
+                variant === "draft" &&
+                !closingRef.current &&
+                target?.closest("input, textarea, [contenteditable='true']")
+            ) {
+                leaveTo("full");
+            }
+        };
+        sheet.addEventListener("focusin", onFocusIn);
+
         // The same movement a downward drag ends with, offered to the X, the
         // backdrop and the handle, so the sheet always leaves the way it came.
         slideOutRef.current = () => leaveTo("closed");
@@ -626,6 +648,7 @@ export function useSheetDrag({
         });
 
         return () => {
+            sheet.removeEventListener("focusin", onFocusIn);
             sheet.removeEventListener("touchstart", onTouchStart);
             document.removeEventListener("touchmove", onTouchMove);
             document.removeEventListener("touchend", onTouchEnd);
@@ -636,7 +659,7 @@ export function useSheetDrag({
             cancelFrame();
             body.classList.remove(DRAGGING_CLASS);
         };
-    }, [enabled, handleRef, onClose, restAt, sheetRef, variant]);
+    }, [enabled, handleRef, restAt, sheetRef, variant]);
 
     return {
         requestClose: React.useCallback(() => {

@@ -607,7 +607,6 @@ body.nc-platform-android .nc-event-popup {
 
     border-radius: 24px 24px 0 0;
     transform-origin: bottom center !important;
-    animation: nc-android-sheet-in 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
 
     /*
      * The grab handle drawn on the header is now a real one: useSheetDrag
@@ -909,22 +908,23 @@ body.nc-platform-android .nc-panel-menu {
     max-width: min(88vw, 320px);
 }
 
-/* Up from below the screen to wherever the sheet rests — which is a translation
-   now, so the arrival has to end on it rather than on zero. */
-@keyframes nc-android-sheet-in {
-    from {
-        opacity: 0.6;
-        transform: translate3d(0, 100%, 0);
-    }
-    to {
-        opacity: 1;
-        transform: translate3d(
-            0,
-            var(--nc-sheet-offset, var(--nc-sheet-rest-offset, 0px)),
-            0
-        );
-    }
-}
+/*
+ * NE JAMAIS remettre une `animation: … nc-android-sheet-in` (ou tout autre
+ * @keyframes) sur `.nc-event-popup`.
+ *
+ * useSheetDrag.ts ouvre déjà le panneau lui-même : `--nc-sheet-offset` part
+ * de la hauteur du panneau (hors écran) puis glisse vers l'ancre visée via la
+ * `transition: transform` de la règle plus haut. Une @keyframes séparée sur
+ * le même élément lit `var(--nc-sheet-offset, …)` dans son `to` — mais cette
+ * variable n'est PAS encore écrite quand l'animation démarre (elle démarre à
+ * l'insertion DOM, avant que useLayoutEffect ne tourne), donc elle retombe
+ * sur son fallback 0px, c'est-à-dire « plein écran ». Le panneau montait donc
+ * toujours à fond, quelle que soit l'ancre (demi-écran pour un brouillon
+ * comprises), puis retombait d'un coup sur la vraie valeur une fois les
+ * 300 ms de l'animation écoulées — l'ouverture « qui monte trop haut et
+ * redescend de force » signalée le 2026-09-05. Cassé une première fois avec
+ * `nc-android-sheet-in`, ne pas recommencer avec un autre nom.
+ */
 
 /* â”€â”€ Settings and confirmation surfaces â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
@@ -1766,135 +1766,6 @@ body.nc-platform-android .nc-left-rail-window {
 
 /* === NEO ANDROID DRAFT SELECTION START === */
 
-@keyframes nc-android-draft-breathe {
-    0%,
-    100% {
-        opacity: 0.12;
-    }
-
-    50% {
-        opacity: 0.48;
-    }
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"] {
-    --nc-android-draft-color: #4db6ff;
-
-    isolation: isolate;
-    overflow: visible !important;
-    /* Le brouillon est l'evenement avant qu'il existe, donc il se dessine ou
-       l'evenement se dessinera : degage de la regle du jour comme un bloc, et
-       avec le meme angle. Sans cela, poser le brouillon decalait la barre de
-       4 px — le calendrier avait l'air de corriger le placement plutot que de
-       le garder. Le retrait vertical et celui de droite viennent de
-       draftPreviewBox, la ou les blocs prennent les leurs. */
-    margin-left: 4px !important;
-    border: 2px solid var(--nc-android-draft-color) !important;
-    border-radius: 4px !important;
-    background:
-        color-mix(
-            in srgb,
-            var(--nc-android-draft-color) 22%,
-            transparent
-        ) !important;
-    box-shadow:
-        0 0 0 1px
-            color-mix(
-                in srgb,
-                var(--nc-android-draft-color) 28%,
-                transparent
-            ),
-        0 4px 12px rgba(0, 0, 0, 0.22) !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]::before {
-    content: "";
-    position: absolute;
-    z-index: 0;
-    inset: 0;
-    border-radius: 2px;
-    background: var(--nc-android-draft-color);
-    opacity: 0.12;
-    pointer-events: none;
-    animation:
-        nc-android-draft-breathe
-        1.8s
-        ease-in-out
-        infinite;
-    will-change: opacity;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize {
-    position: absolute !important;
-    z-index: 20 !important;
-
-    display: block !important;
-    width: 16px !important;
-    min-width: 16px !important;
-    height: 16px !important;
-    min-height: 16px !important;
-
-    margin: 0 !important;
-    padding: 0 !important;
-
-    border: 2px solid var(--nc-android-draft-color) !important;
-    border-radius: 999px !important;
-    background: var(--background-primary, #11131d) !important;
-    box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.74),
-        0 2px 7px rgba(0, 0, 0, 0.34) !important;
-
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    touch-action: none !important;
-    cursor: ns-resize !important;
-    transform: none !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize-top {
-    top: -8px !important;
-    right: auto !important;
-    bottom: auto !important;
-    left: 10px !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize-bottom {
-    top: auto !important;
-    right: 10px !important;
-    bottom: -8px !important;
-    left: auto !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 44px;
-    height: 44px;
-    transform: translate(-50%, -50%);
-    background: transparent;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    body.nc-platform-android
-        .nc-selection-mirror[data-draft-preview="true"]::before {
-        animation: none !important;
-        opacity: 0.28;
-    }
-}
-
 /* === NEO ANDROID DRAFT SELECTION END === */
 
 /* === NEO ANDROID NOTION DRAFT SHEET V3 START === */
@@ -2049,45 +1920,6 @@ body.nc-platform-android
     margin-left: 0 !important;
     padding-right: 26px !important;
     padding-left: 26px !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"] {
-    z-index: 70 !important;
-    overflow: visible !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize {
-    z-index: 74 !important;
-    width: 20px !important;
-    min-width: 20px !important;
-    height: 20px !important;
-    min-height: 20px !important;
-    border-width: 3px !important;
-    background: #202124 !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize-top {
-    top: -10px !important;
-    left: 9px !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize-bottom {
-    right: 9px !important;
-    bottom: -10px !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize::after {
-    width: 50px !important;
-    height: 50px !important;
 }
 
 /* === NEO ANDROID NOTION DRAFT SHEET V3 END === */
@@ -2257,31 +2089,6 @@ body.nc-platform-android
 }
 
 /* Reliable and comfortable resize handles. */
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize {
-    z-index: 90 !important;
-
-    width: 20px !important;
-    min-width: 20px !important;
-    height: 20px !important;
-    min-height: 20px !important;
-
-    pointer-events: auto !important;
-    touch-action: none !important;
-    user-select: none !important;
-    -webkit-user-select: none !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize::after {
-    width: 54px !important;
-    height: 54px !important;
-
-    pointer-events: auto !important;
-    touch-action: none !important;
-}
 
 /* Cleaner Notion-like Android drawer. */
 body.nc-platform-android .nc-mobile-sidebar-scrim {
@@ -2603,46 +2410,6 @@ body.nc-platform-android
     display: none !important;
 }
 
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"] {
-    z-index: 100 !important;
-    overflow: visible !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize {
-    z-index: 130 !important;
-
-    width: 22px !important;
-    min-width: 22px !important;
-    height: 22px !important;
-    min-height: 22px !important;
-
-    pointer-events: auto !important;
-    touch-action: none !important;
-    user-select: none !important;
-    -webkit-user-select: none !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-
-    width: 58px !important;
-    height: 58px !important;
-
-    transform: translate(-50%, -50%);
-    background: transparent !important;
-
-    pointer-events: auto !important;
-    touch-action: none !important;
-}
-
 html.nc-android-draft-resizing,
 html.nc-android-draft-resizing body,
 html.nc-android-draft-resizing * {
@@ -2653,75 +2420,6 @@ html.nc-android-draft-resizing * {
 
 /* === NEO ANDROID NATIVE TOUCH RESIZE V7.1 START === */
 
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"] {
-    overflow: visible !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize {
-    position: absolute !important;
-    z-index: 150 !important;
-
-    display: block !important;
-
-    /* Deux pastilles de 22 px sur une barre haute de 26 : elles se lisaient
-       comme la chose qu'on place plutot que comme les poignees qui la
-       tiennent. Le carre invisible qui attrape le doigt (::after, 58 px) ne
-       bouge pas et continue de tout attraper. */
-    width: 12px !important;
-    min-width: 12px !important;
-    height: 12px !important;
-    min-height: 12px !important;
-
-    margin: 0 !important;
-    padding: 0 !important;
-
-    border: 2px solid
-        var(
-            --nc-android-draft-color,
-            currentColor
-        ) !important;
-
-    border-radius: 999px !important;
-
-    background:
-        var(
-            --background-primary
-        ) !important;
-
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    touch-action: none !important;
-
-    user-select: none !important;
-    -webkit-user-select: none !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize-top {
-    /* Centrees la ou elles l'etaient : a cheval sur le bord, a 20 px du cote. */
-    top: -6px !important;
-    right: auto !important;
-    bottom: auto !important;
-    left: 14px !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize-bottom {
-    top: auto !important;
-    right: 14px !important;
-    bottom: -6px !important;
-    left: auto !important;
-}
-
-body.nc-platform-android
-    .nc-selection-mirror[data-draft-preview="true"]
-    .nc-draft-preview-resize::after,
 body.nc-platform-android
     .nc-event-block.nc-android-event-resize-selected
     .nc-event-resize-handle::after,

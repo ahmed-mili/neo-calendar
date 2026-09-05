@@ -17,6 +17,7 @@ import {
 } from "./CalendarUtils";
 import { draftPreviewBox, selectionBox } from "./draftPreviewBox";
 import EventBlock from "./EventBlock";
+import DraftPreview from "./DraftPreview";
 import TimezoneColumn, {
     TimezoneColumnHeader,
     TimezoneMenuContext,
@@ -454,7 +455,7 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                     onAllDayPointerDown?.(event, date)
                                 }
                             >
-                                {draftSlot &&
+                                <DraftPreview>{draftSlot &&
                                     draftSlot.allDay &&
                                     isSameDay(draftSlot.start, date) && (
                                         <div
@@ -476,7 +477,7 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                                     : undefined,
                                             }}
                                         />
-                                    )}
+                                    )}</DraftPreview>
                             </div>
                         ))}
                     </div>
@@ -710,7 +711,7 @@ function DayColumn({
                 ) : null
             )}
 
-            {draftPortion && (
+            <DraftPreview>{draftPortion && (
                 <div
                     className="nc-selection-mirror"
                     data-draft-preview="true"
@@ -740,7 +741,7 @@ function DayColumn({
                         />
                     )}
                 </div>
-            )}
+            )}</DraftPreview>
 
             {selPortion && (
                 <div

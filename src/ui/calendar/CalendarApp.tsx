@@ -43,6 +43,7 @@ import { TimezoneUpdate, useTimezoneDrift } from "./useTimezoneDrift";
 import useKeyboardShortcuts from "./useKeyboardShortcuts";
 import CommandPalette from "./CommandPalette";
 import EventPanel from "./EventPanel";
+import { DraftPreviewImmediateContext } from "./DraftPreview";
 import ContextMenu, { ContextMenuItem } from "./ContextMenu";
 import { ClipboardProvider, useClipboard } from "./ClipboardContext";
 import { useClipboardActions } from "./useClipboardActions";
@@ -1359,6 +1360,7 @@ function CalendarAppInner(props: CalendarAppProps) {
                 style={{ position: "relative", height: "100%" }}
                 onAnimationEndCapture={handleCalendarVisibilityAnimationEnd}
             >
+                <DraftPreviewImmediateContext.Provider value={committingDraft || panelEventId !== null}>
                 <CalendarLayout
                     currentDate={currentDate}
                     viewType={viewType}
@@ -1526,6 +1528,7 @@ function CalendarAppInner(props: CalendarAppProps) {
                     onPanelDrop={handlePanelDrop}
                     onEventUnschedule={handleEventUnschedule}
                 />
+                </DraftPreviewImmediateContext.Provider>
                 {pendingSystemZone && (
                     <TimezoneChangePrompt
                         systemZone={pendingSystemZone}
