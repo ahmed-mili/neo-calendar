@@ -1,0 +1,54 @@
+name: Prepare version 1.73.4
+
+on:
+  push:
+    branches:
+      - "chore/version-1.73.4"
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: chore/version-1.73.4
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+
+      - name: Test version tooling
+        run: node --test scripts/set-version.test.mjs
+
+      - name: Bump every version source
+        run: node scripts/set-version.mjs 1.73.4
+
+      - name: Verify synchronized versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "for (const p of ['package.json','apps/windows/package.json','apps/android/package.json']) { const v=require('./'+p).version; if (v !== '1.73.4') throw new Error(p+': '+v) }"
+          grep -q '"version": "1.73.4"' apps/windows/src-tauri/tauri.conf.json
+          grep -q '^version = "1.73.4"$' apps/windows/src-tauri/Cargo.toml
+          grep -q 'versionName = "1.73.4"' apps/android/native/app/build.gradle.kts
+          grep -q 'versionCode = 165' apps/android/native/app/build.gradle.kts
+          for p in package-lock.json apps/windows/package-lock.json apps/android/package-lock.json; do
+            test "$(grep -c '"version": "1.73.4"' "$p")" -ge 2
+          done
+          grep -A2 'name = "neo-calendar-windows"' apps/windows/src-tauri/Cargo.lock | grep -q 'version = "1.73.4"'
+
+      - name: Commit version 1.73.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/prepare-version-1.73.4.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Version 1.73.4"
+          git push origin HEAD:chore/version-1.73.4
