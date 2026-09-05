@@ -1,3 +1,3 @@
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@drawable/neo_calendar_icon"
-    android:inset="12%" />
+    android:inset="4%" />
