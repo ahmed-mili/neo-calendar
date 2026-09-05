@@ -1,0 +1,37 @@
+name: Android AAPT2 validation
+
+on:
+    pull_request:
+        paths:
+            - "apps/android/native/app/src/main/res/**"
+            - "apps/android/native/app/build.gradle.kts"
+            - ".github/workflows/android-aapt2-validation.yml"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    resources:
+        name: Compile release resources
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+            - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+              with:
+                  distribution: temurin
+                  java-version: "17"
+
+            - name: Assurer la plateforme Android 35
+              run: |
+                  yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+                  "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+
+            # Reproduit exactement l'étape qui a cassé la publication v1.73.4 :
+            # AAPT2 doit réellement compiler les ressources de l'APK Release.
+            - name: Compiler les ressources Release avec AAPT2
+              working-directory: apps/android/native
+              run: ./gradlew --no-daemon :app:mergeReleaseResources
