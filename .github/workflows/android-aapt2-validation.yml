@@ -30,8 +30,24 @@ jobs:
                   yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
                   "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
 
+            - name: Restaurer la clé de signature Android
+              shell: bash
+              env:
+                  ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+              run: |
+                  test -n "$ANDROID_KEYSTORE_BASE64" || { echo "Secret ANDROID_KEYSTORE_BASE64 manquant"; exit 1; }
+                  mkdir -p "$RUNNER_TEMP/neo-calendar-signing"
+                  printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/neo-calendar-signing/android.jks"
+                  chmod 600 "$RUNNER_TEMP/neo-calendar-signing/android.jks"
+
             # Reproduit exactement l'étape qui a cassé la publication v1.73.4 :
-            # AAPT2 doit réellement compiler les ressources de l'APK Release.
+            # même variante Release et même configuration de signature ; AAPT2
+            # doit réellement compiler les ressources avant que l'on puisse merger.
             - name: Compiler les ressources Release avec AAPT2
               working-directory: apps/android/native
+              env:
+                  ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/neo-calendar-signing/android.jks
+                  ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+                  ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+                  ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
               run: ./gradlew --no-daemon :app:mergeReleaseResources
