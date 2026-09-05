@@ -27,10 +27,10 @@ android {
   applicationId = "com.ahmed.neocalendar"
   minSdk = 26
   targetSdk = 35
-  versionCode = 163
+  versionCode = 164
  buildFeatures { buildConfig = true }
 
-  versionName = "1.73.2"
+  versionName = "1.73.3"
  }
 
  signingConfigs {
