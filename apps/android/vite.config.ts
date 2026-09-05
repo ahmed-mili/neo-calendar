@@ -71,6 +71,9 @@ export default defineConfig({
     },
     build: {
         target: "es2021",
+        // Lightning CSS drops unprefixed backdrop-filter when the Safari
+        // fallback follows it. Chromium needs the standard property in release.
+        cssMinify: "esbuild",
         outDir: "dist",
         sourcemap: true,
     },

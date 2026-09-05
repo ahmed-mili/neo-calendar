@@ -53,6 +53,15 @@ describe("draft preview presence", () => {
         act(() => jest.advanceTimersByTime(180));
         expect(host.firstElementChild).toBeNull();
     });
+    it("preserves the desktop selection surface from before Android animations", () => {
+        document.body.classList.remove("nc-platform-android");
+        render(100);
+        const preview = host.firstElementChild as HTMLElement;
+        expect(preview.className).toBe("nc-selection-mirror");
+        expect(preview.getAttribute("data-draft-preview")).toBe("true");
+        expect(preview.getAttribute("data-draft-state")).toBeNull();
+        expect(preview.style.cssText).toBe("top: 100px;");
+    });
     it("resizes in place instead of replaying the appearance animation", () => {
         render(100);
         const original = host.firstElementChild;
