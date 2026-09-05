@@ -1,16 +1,9 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import test from "node:test";
 
-const ICO_PATH = "apps/windows/src-tauri/icons/icon.ico";
-const PNG_PATHS = [
-    "apps/windows/src-tauri/icons/icon.png",
-    "apps/windows/src-tauri/icons/32x32.png",
-    "apps/windows/src-tauri/icons/64x64.png",
-    "apps/windows/src-tauri/icons/128x128.png",
-    "apps/windows/src-tauri/icons/128x128@2x.png",
-];
-
+const TAURI_CONFIG = "apps/windows/src-tauri/tauri.conf.json";
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
 function pngColorType(buffer, label) {
@@ -19,8 +12,15 @@ function pngColorType(buffer, label) {
     return buffer[25];
 }
 
-test("Windows icon.ico embeds only truecolor RGBA PNGs accepted by Tauri", async () => {
-    const ico = await readFile(ICO_PATH);
+function assertTruecolorPng(buffer, label) {
+    assert.equal(
+        pngColorType(buffer, label),
+        6,
+        `${label} must be truecolor RGBA (PNG color type 6), not indexed/paletted`,
+    );
+}
+
+function assertTauriIco(ico, label) {
     assert.equal(ico.readUInt16LE(0), 0, "ICO reserved field must be zero");
     assert.equal(ico.readUInt16LE(2), 1, "file must be an ICO");
 
@@ -33,23 +33,25 @@ test("Windows icon.ico embeds only truecolor RGBA PNGs accepted by Tauri", async
         const offset = ico.readUInt32LE(entry + 12);
         const image = ico.subarray(offset, offset + size);
 
-        if (!image.subarray(0, 8).equals(PNG_SIGNATURE)) continue;
-
-        assert.equal(
-            pngColorType(image, `${ICO_PATH} image ${index + 1}`),
-            6,
-            `${ICO_PATH} image ${index + 1} must be truecolor RGBA (PNG color type 6), not indexed/paletted`,
-        );
+        if (image.subarray(0, 8).equals(PNG_SIGNATURE)) {
+            assertTruecolorPng(image, `${label} image ${index + 1}`);
+        }
     }
-});
+}
 
-test("standalone Windows Tauri PNG icons are truecolor RGBA", async () => {
-    for (const path of PNG_PATHS) {
-        const png = await readFile(path);
-        assert.equal(
-            pngColorType(png, path),
-            6,
-            `${path} must be truecolor RGBA (PNG color type 6), not indexed/paletted`,
-        );
+test("every Windows bundle icon configured for Tauri avoids indexed PNG data", async () => {
+    const config = JSON.parse(await readFile(TAURI_CONFIG, "utf8"));
+    const iconPaths = config.bundle?.icon ?? [];
+    assert.ok(iconPaths.length > 0, "Tauri must configure at least one bundle icon");
+
+    for (const relativePath of iconPaths) {
+        const path = join(dirname(TAURI_CONFIG), relativePath);
+        const bytes = await readFile(path);
+
+        if (relativePath.toLowerCase().endsWith(".ico")) {
+            assertTauriIco(bytes, path);
+        } else if (relativePath.toLowerCase().endsWith(".png")) {
+            assertTruecolorPng(bytes, path);
+        }
     }
 });
