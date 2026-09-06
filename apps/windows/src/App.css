@@ -164,25 +164,21 @@ select {
     pointer-events: none;
 }
 
+/*
+ * L'icône de l'application, posée telle quelle : elle est détourée et porte
+ * son propre relief, donc la pastille qui donnait du corps au pictogramme au
+ * trait n'a plus lieu d'être.
+ */
 .nc-welcome__mark {
-    width: 52px;
-    height: 52px;
-    display: grid;
-    place-items: center;
-    margin-bottom: 28px;
-    border-radius: 16px;
-    color: var(--nc-accent);
-    background: rgba(101, 143, 242, 0.12);
-    box-shadow: inset 0 0 0 1px rgba(101, 143, 242, 0.14);
+    width: 58px;
+    height: 58px;
+    margin-bottom: 26px;
 }
 
-.nc-welcome__eyebrow {
-    margin: 0 0 6px;
-    color: var(--nc-accent);
-    font-size: 11px;
-    font-weight: 650;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
+.nc-welcome__mark img {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 .nc-welcome h1 {
@@ -252,16 +248,6 @@ select {
     font-size: 11px;
     overflow-wrap: anywhere;
     white-space: normal;
-}
-
-.nc-welcome__hint {
-    position: relative;
-    z-index: 1;
-    max-width: 36ch;
-    margin: 14px 0 0;
-    overflow-wrap: anywhere;
-    color: var(--nc-text-faint);
-    font-size: 11px;
 }
 
 .nc-welcome__error {

@@ -45,5 +45,8 @@ module.exports = {
         // artefact pour cette raison. La doublure se laisse importer et refuse
         // d'être appelée — voir test_helpers/tauriModuleStub.ts.
         "^@tauri-apps/.*$": "<rootDir>/test_helpers/tauriModuleStub.ts",
+        // Vite transforme une image importée en URL ; Jest, lui, tenterait de
+        // compiler le PNG. Voir test_helpers/imageStub.ts.
+        "\\.(png|jpe?g|webp|avif|gif|svg)$": "<rootDir>/test_helpers/imageStub.ts",
     },
 };

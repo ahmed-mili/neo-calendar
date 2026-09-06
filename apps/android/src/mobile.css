@@ -94,10 +94,9 @@ body.nc-platform-android .nc-welcome {
 }
 
 body.nc-platform-android .nc-welcome__mark {
-    width: 54px;
-    height: 54px;
-    margin-bottom: 24px;
-    border-radius: 17px;
+    width: 62px;
+    height: 62px;
+    margin-bottom: 22px;
 }
 
 body.nc-platform-android .nc-welcome h1 {
@@ -119,7 +118,6 @@ body.nc-platform-android .nc-folder-button {
     font-size: 15px;
 }
 
-body.nc-platform-android .nc-welcome__hint,
 body.nc-platform-android .nc-welcome__error {
     font-size: 12px;
     line-height: 1.5;

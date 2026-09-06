@@ -1,26 +1,19 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
-import sharp from "sharp";
 
-const SOURCE_ICON_PATH =
-    "apps/android/native/app/src/main/res/drawable-nodpi/neo_calendar_icon.png";
-const ADAPTIVE_FOREGROUND_PATH =
-    "apps/android/native/app/src/main/res/drawable/ic_launcher_foreground.xml";
-const ADAPTIVE_ICON_PATHS = [
-    "apps/android/native/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
-    "apps/android/native/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
-];
-const ANDROID_ICON_PATHS = [
-    SOURCE_ICON_PATH,
-    "apps/android/native/app/src/main/res/mipmap/ic_launcher.png",
-    "apps/android/native/app/src/main/res/mipmap/ic_launcher_round.png",
-];
+import { ANDROID_ICONS } from "./generate-android-icons.mjs";
+
+const RES = "apps/android/native/app/src/main/res";
 
 function readPngHeader(buffer, path) {
     const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
     assert.ok(buffer.subarray(0, 8).equals(signature), `${path} must be a PNG`);
-    assert.equal(buffer.toString("ascii", 12, 16), "IHDR", `${path} must start with IHDR`);
+    assert.equal(
+        buffer.toString("ascii", 12, 16),
+        "IHDR",
+        `${path} must start with IHDR`
+    );
     return {
         width: buffer.readUInt32BE(16),
         height: buffer.readUInt32BE(20),
@@ -29,38 +22,10 @@ function readPngHeader(buffer, path) {
     };
 }
 
-async function readVisibleAlphaBounds(path, minimumAlpha = 5) {
-    const { data, info } = await sharp(path).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-    const alphaChannel = info.channels - 1;
-    let left = info.width;
-    let top = info.height;
-    let right = -1;
-    let bottom = -1;
-
-    for (let y = 0; y < info.height; y += 1) {
-        for (let x = 0; x < info.width; x += 1) {
-            const alpha = data[(y * info.width + x) * info.channels + alphaChannel];
-            if (alpha < minimumAlpha) continue;
-            left = Math.min(left, x);
-            top = Math.min(top, y);
-            right = Math.max(right, x);
-            bottom = Math.max(bottom, y);
-        }
-    }
-
-    assert.ok(right >= left && bottom >= top, `${path} must contain visible pixels`);
-    return {
-        width: info.width,
-        height: info.height,
-        visibleWidth: right - left + 1,
-        visibleHeight: bottom - top + 1,
-    };
-}
-
 test("Android launcher PNGs are truecolor RGBA resources accepted by AAPT2", async () => {
-    for (const path of ANDROID_ICON_PATHS) {
+    for (const { file } of ANDROID_ICONS) {
+        const path = `${RES}/${file}`;
         const header = readPngHeader(await readFile(path), path);
-        assert.ok(header.width >= 256 && header.height >= 256, `${path} must be at least 256x256`);
         assert.equal(header.bitDepth, 8, `${path} must use 8-bit channels`);
         assert.equal(
             header.colorType,
@@ -70,46 +35,74 @@ test("Android launcher PNGs are truecolor RGBA resources accepted by AAPT2", asy
     }
 });
 
-test("Android adaptive launcher keeps the complete rounded-square artwork visible", async () => {
-    const foreground = await readFile(ADAPTIVE_FOREGROUND_PATH, "utf8");
-    assert.match(
-        foreground,
-        /android:drawable="@drawable\/neo_calendar_icon"/,
-        "the adaptive foreground must use the complete Neo Calendar artwork"
-    );
-
-    const insetMatch = foreground.match(/android:inset="([0-9.]+)%"/);
-    assert.ok(insetMatch, "the adaptive foreground must declare an inset");
-    const insetFraction = Number(insetMatch[1]) / 100;
-
-    // AdaptiveIconDrawable lays a 108dp layer behind a 72dp viewport, so the
-    // layer is effectively drawn at 150% before the OEM mask is applied.
-    const renderedLayerScale = (108 / 72) * (1 - 2 * insetFraction);
-    assert.ok(
-        renderedLayerScale >= 0.9,
-        `adaptive artwork must stay large enough; current scale is ${renderedLayerScale.toFixed(3)}`
-    );
-
-    const bounds = await readVisibleAlphaBounds(SOURCE_ICON_PATH);
-    const visibleWidthScale = (bounds.visibleWidth / bounds.width) * renderedLayerScale;
-    const visibleHeightScale = (bounds.visibleHeight / bounds.height) * renderedLayerScale;
-    const oemSafeZoneScale = 66 / 72;
-
-    assert.ok(
-        visibleWidthScale <= oemSafeZoneScale,
-        `rounded-square width would be cropped by an OEM mask (${visibleWidthScale.toFixed(3)} > ${oemSafeZoneScale.toFixed(3)})`
-    );
-    assert.ok(
-        visibleHeightScale <= oemSafeZoneScale,
-        `rounded-square height would be cropped by an OEM mask (${visibleHeightScale.toFixed(3)} > ${oemSafeZoneScale.toFixed(3)})`
-    );
-
-    for (const path of ADAPTIVE_ICON_PATHS) {
-        const xml = await readFile(path, "utf8");
-        assert.match(
-            xml,
-            /<foreground android:drawable="@drawable\/ic_launcher_foreground" \/>/,
-            `${path} must use the tested adaptive foreground`
-        );
+test("each density carries the icon already at its own size", async () => {
+    for (const { file, size } of ANDROID_ICONS) {
+        const path = `${RES}/${file}`;
+        const header = readPngHeader(await readFile(path), path);
+        assert.equal(header.width, size, `${path} must be ${size} px wide`);
+        assert.equal(header.height, size, `${path} must be ${size} px tall`);
     }
+});
+
+// L'autre moitié de la géométrie, celle que la 1.74.1 réglait dans l'autre
+// sens. Son inset de 19 % gardait le PNG entier dans les 72 dp visibles, ce
+// qui valait tant que l'illustration était un carré arrondi détouré : la
+// rogner lui aurait coupé les coins. L'illustration d'aujourd'hui est un rendu
+// plein cadre dont les bords ne sont que du fond, et la garder à l'intérieur
+// laissait au contraire un anneau de `ic_launcher_background` autour d'elle,
+// avec une arête carrée dans le masque rond du lanceur. Le premier plan doit
+// donc couvrir la zone visible, et le masque ne rogner que du fond.
+test("the adaptive foreground covers the whole masked area", async () => {
+    const xml = await readFile(
+        `${RES}/drawable/ic_launcher_foreground.xml`,
+        "utf8"
+    );
+    const inset = xml.match(/android:inset="([0-9.]+)%"/);
+    assert.ok(inset, "the adaptive foreground must declare an inset");
+
+    // AdaptiveIconDrawable peint la couche sur 108 dp et n'en montre que les
+    // 72 dp centraux, soit un agrandissement de 150 % avant le masque.
+    const scale = (108 / 72) * (1 - (2 * Number(inset[1])) / 100);
+    assert.ok(
+        scale >= 1,
+        `at ${inset[1]}% the artwork covers ${scale.toFixed(
+            3
+        )} of the masked area, so the background shows around it`
+    );
+    assert.ok(
+        scale <= 1.15,
+        `at ${inset[1]}% the artwork is blown up to ${scale.toFixed(
+            3
+        )} of the masked area, so the mask eats into the calendar`
+    );
+});
+
+// La 1.74.0 est sortie avec une icône crénelée : elle vivait dans un unique
+// `drawable-nodpi/neo_calendar_icon.png` de 768 px, qu'Android réduisait à
+// 162 px au moment de peindre, sans pré-filtrage. Une ressource d'icône sans
+// qualificateur de densité (ou en `nodpi`) laisse cette réduction au rendu,
+// donc la seule parade est de n'en avoir aucune.
+test("no icon bitmap escapes the density buckets", async () => {
+    const entries = await readdir(RES, { withFileTypes: true });
+    const offenders = [];
+    for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const type = entry.name.split("-")[0];
+        if (type !== "drawable" && type !== "mipmap") continue;
+        const qualifiers = entry.name.slice(type.length + 1);
+        // `anydpi-v26` ne porte que des XML : ils décrivent la géométrie de
+        // l'icône adaptative, ils ne sont pas rééchantillonnés.
+        if (qualifiers && !qualifiers.startsWith("nodpi")) continue;
+        for (const file of await readdir(`${RES}/${entry.name}`)) {
+            if (!file.endsWith(".png")) continue;
+            offenders.push(`${entry.name}/${file}`);
+        }
+    }
+    assert.deepEqual(
+        offenders,
+        [],
+        `these bitmaps have no density qualifier, so Android downscales them at paint time: ${offenders.join(
+            ", "
+        )}`
+    );
 });

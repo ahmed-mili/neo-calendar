@@ -1037,12 +1037,31 @@ export function DescriptionSection({
                                 editable ? t("Add a description") : undefined
                             }
                             onChange={(event) => {
-                                const value = event.target.value;
+                                const field = event.target;
+                                const value = field.value;
                                 // Keep the imperative snapshot in lockstep with
                                 // native typing; toolbar/mention logic reads it
                                 // before the next React render on some WebViews.
                                 descriptionRef.current = value;
                                 setDescription(value);
+                                // Typing "- [ ] " turns this plain composer
+                                // into DescriptionRow's checklist view, which
+                                // mounts a different textarea. Without a
+                                // focus request the caret has nowhere to go
+                                // and the field reads as deselected — the
+                                // same hand-off formatDescription() performs
+                                // for the toolbar's checklist button.
+                                if (
+                                    readChecklist(value).some(
+                                        (line) => line.kind === "task"
+                                    )
+                                ) {
+                                    setFocusRequest({
+                                        revision: ++focusRevisionRef.current,
+                                        selectionStart: field.selectionStart,
+                                        selectionEnd: field.selectionEnd,
+                                    });
+                                }
                             }}
                             onBlur={onCommit}
                             readOnly={!editable}

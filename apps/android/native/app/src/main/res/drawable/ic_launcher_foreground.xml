@@ -1,7 +1,15 @@
 <!-- AdaptiveIconDrawable renders each layer in a 108dp canvas while only the
-     inner 72dp is guaranteed to be visible. This PNG already contains the
-     complete rounded-square icon, so keep it inside that viewport instead of
-     zooming into the calendar artwork. -->
+     inner 72dp is guaranteed to be visible.
+
+     The 1.74.1 inset of 19% kept the whole PNG inside that viewport, which was
+     right while the artwork was a cut-out rounded square: cropping it would
+     have shaved its own corners off. This artwork is a full-bleed 3D render
+     whose edges are just backdrop, so keeping it inside the viewport does the
+     opposite — it leaves a ring of ic_launcher_background around it, with a
+     square edge showing through the launcher's round mask.
+
+     At 15% the layer is drawn at 108dp * 0.7 * (108/72) = 1.05 of the visible
+     area: it covers the mask entirely and the mask crops backdrop only. -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@drawable/neo_calendar_icon"
-    android:inset="19%" />
+    android:inset="15%" />

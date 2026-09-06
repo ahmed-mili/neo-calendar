@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { watchDesktopUpdates } from "./platform/desktopUpdates";
-import { CalendarDays, FolderOpen } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 import DesktopCalendar from "./DesktopCalendar";
 import DesktopErrorBoundary from "./DesktopErrorBoundary";
 import { useDesktopBridge } from "./platform/useDesktopBridge";
@@ -12,10 +12,11 @@ import {
     resolveAppearanceMode,
 } from "./themes/appearancePreferences";
 import { getTheme, THEMES } from "./themes/registry";
-import { getWallpaper, isAndroidRuntime } from "./themes/wallpapers";
+import { getWallpaper } from "./themes/wallpapers";
 import { useWallpaperReady } from "./themes/useWallpaperReady";
 import WallpaperRenderLayer from "./WallpaperRenderLayer";
 import "./themes/wallpaperEffects";
+import appIcon from "./assets/app-icon.png";
 import { t } from "../../../src/ui/i18n";
 
 function readStringProperty(
@@ -309,11 +310,8 @@ export default function App() {
         <main className={`nc-desktop ${theme.className}`}>
             <section className="nc-welcome" aria-labelledby="welcome-title">
                 <div className="nc-welcome__mark" aria-hidden="true">
-                    <CalendarDays size={28} strokeWidth={1.8} />
+                    <img src={appIcon} alt="" />
                 </div>
-                <p className="nc-welcome__eyebrow">
-                    Application {isAndroidRuntime() ? "Android" : "Windows"}
-                </p>
                 <h1 id="welcome-title">Neo Calendar</h1>
                 <p className="nc-welcome__description">
                     Choisissez le dossier de données de Neo Calendar.
@@ -328,10 +326,6 @@ export default function App() {
                     <FolderOpen aria-hidden="true" size={18} />
                     Choisir le dossier
                 </button>
-                <p className="nc-welcome__hint">
-                    Les fichiers de calendrier restent hors de tout coffre
-                    Obsidian.
-                </p>
                 {error && (
                     <p className="nc-welcome__error" role="alert">
                         {error}

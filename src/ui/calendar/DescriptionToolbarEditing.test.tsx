@@ -95,6 +95,24 @@ describe("description toolbar keyboard editing", () => {
         expect(editor.value).toBe("hell");
     });
 
+    it("keeps a real textarea focused when typing turns the line into a checklist", () => {
+        act(() => {
+            ReactDOM.render(<Harness />, container);
+        });
+
+        const field = container.querySelector(
+            "textarea[data-description-input='true']"
+        ) as HTMLTextAreaElement;
+        act(() => field.focus());
+
+        nativeInput(field, "- [ ] ");
+        flushAnimationFrames();
+
+        const editor = document.activeElement as HTMLTextAreaElement;
+        expect(editor).toBeInstanceOf(HTMLTextAreaElement);
+        expect(editor.classList.contains("nc-panel-checklist-edit")).toBe(true);
+    });
+
     it("opens the checklist line for typing when formatting an existing checklist", () => {
         act(() => {
             ReactDOM.render(<Harness initial="- [ ] Existing" />, container);

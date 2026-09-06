@@ -1,3 +1,9 @@
 <resources>
-    <color name="ic_launcher_background">#11111B</color>
+    <!--
+        Ce que le masque du lanceur laisse voir autour du premier plan. L'icône
+        le couvre entièrement, donc il ne sert qu'au débord et à la parallaxe :
+        il porte la couleur des coins de l'image pour que rien ne trahisse la
+        jointure si un lanceur montre un peu plus que les 72 dp attendus.
+    -->
+    <color name="ic_launcher_background">#010613</color>
 </resources>
