@@ -5,6 +5,7 @@ import {
     POINTER_SECTION_TITLE,
     SHORTCUT_SECTIONS,
     ShortcutCommand,
+    VIEW_BINDINGS,
     ViewBinding,
     buildSections,
     filterSections,
@@ -294,6 +295,55 @@ describe("buildSections, fusion des deux sources", () => {
         const sections = buildSections([], noKeys);
         expect(sections.map((s) => s.title)).not.toContain(OTHER_SECTION_TITLE);
         expect(sections.every((s) => titles.includes(s.title))).toBe(true);
+    });
+});
+
+describe("buildSections, les touches propres a Windows", () => {
+    const linesOf = (platform?: "shared" | "windows") =>
+        buildSections([], noKeys, undefined, undefined, platform)
+            .filter((section) => section.title !== POINTER_SECTION_TITLE)
+            .flatMap((s) => s.rows)
+            .map(
+                (r) =>
+                    `${r.label}: ${r.chords
+                        .map((c) => c.join(" "))
+                        .join(" / ")}`
+            );
+
+    it("n'annonce aucune fleche dans la sortie par defaut", () => {
+        const lines = linesOf();
+        expect(lines).toContain("Go to Previous Period: K / [");
+        expect(lines).toContain("Go to Next Period: J / ]");
+        expect(lines.join(" ")).not.toContain("←");
+        expect(lines.join(" ")).not.toContain("→");
+    });
+
+    it("ajoute les fleches aux periodes sans retirer J/K ni [/]", () => {
+        const lines = linesOf("windows");
+        expect(lines).toContain("Go to Previous Period: K / [ / ←");
+        expect(lines).toContain("Go to Next Period: J / ] / →");
+    });
+
+    it("ne touche a aucune autre ligne", () => {
+        const shared = linesOf();
+        const windows = linesOf("windows");
+        expect(windows).toHaveLength(shared.length);
+        const changed = windows.filter((line, index) => line !== shared[index]);
+        expect(changed).toEqual([
+            "Go to Previous Period: K / [ / ←",
+            "Go to Next Period: J / ] / →",
+        ]);
+    });
+
+    it("laisse la table du module intacte", () => {
+        // Les liaisons sont un module partage : les enrichir sur place ferait
+        // apparaitre les fleches dans Obsidian au premier panneau ouvert.
+        buildSections([], noKeys, undefined, undefined, "windows");
+        const prev = VIEW_BINDINGS.find((b) => b.id === "go-prev");
+        expect(prev?.hotkeys).toEqual([
+            { modifiers: [], key: "K" },
+            { modifiers: [], key: "[" },
+        ]);
     });
 });
 

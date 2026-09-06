@@ -92,6 +92,7 @@ import {
 import { NeoEvent, validateEvent } from "../../../src/types";
 import { CalendarSource, DisplayEvent, ViewType } from "../../../src/ui/types";
 import { t } from "../../../src/ui/i18n";
+import { DesktopCommands, handleDesktopShortcut } from "./desktopCommands";
 import DesktopSettings from "./DesktopSettings";
 import AddCalendarDialog, {
     type AddCalendarRequest,
@@ -334,6 +335,18 @@ function stableColor(path: string, index: number): string {
 function errorMessage(reason: unknown): string {
     if (reason instanceof Error) return reason.message;
     return String(reason);
+}
+
+/**
+ * Du texte est-il selectionne dans la fenetre ?
+ *
+ * Une selection appartient au clavier de l'utilisateur : les fleches la
+ * deplacent ou l'etendent. Elle se lit au moment de la frappe, jamais depuis un
+ * etat React, qui serait en retard d'un glissement de souris.
+ */
+function hasTextSelection(): boolean {
+    const selection = window.getSelection();
+    return selection !== null && selection.toString().length > 0;
 }
 
 function fileNameFromRelativePath(path: string): string {
@@ -3492,8 +3505,61 @@ export default function DesktopCalendar({
         [calendars, defaultCalendarId, hiddenCalendars]
     );
 
+    /*
+     * Les commandes de la fenetre Windows. Le clavier, la barre de titre et le
+     * menu d'application passeront tous par cet objet : une action, un
+     * identifiant, un seul chemin d'execution. Il ne porte pour l'instant que la
+     * navigation entre periodes.
+     */
+    const desktopCommands = useMemo<DesktopCommands>(
+        () => ({
+            previous: { enabled: true, run: goPrev },
+            next: { enabled: true, run: goNext },
+        }),
+        [goNext, goPrev]
+    );
+
+    /*
+     * Une couche est-elle devant le calendrier ? Meme liste que la garde
+     * d'Echap : ce qui repond a Echap est ce qui tient le clavier.
+     *
+     * La tache 5 ajoutera ici l'ouverture du menu d'application, qui tient le
+     * clavier au meme titre.
+     */
+    const overlayHoldsKeyboard =
+        settingsOpen ||
+        addCalendarOpen ||
+        commandPaletteVisible ||
+        calendarToDelete !== null ||
+        recurringDeleteId !== null ||
+        contextMenu !== null ||
+        panelEventId !== null ||
+        draftSlot !== null;
+
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
+            const calendarShortcutsBlocked =
+                overlayHoldsKeyboard || hasTextSelection();
+            if (
+                !isAndroid &&
+                handleDesktopShortcut(event, {
+                    commands: desktopCommands,
+                    blocked: calendarShortcutsBlocked,
+                    onError: (reason) => setStorageError(errorMessage(reason)),
+                })
+            ) {
+                return;
+            }
+            // Une couche devant le calendrier le tient aussi contre les
+            // anciennes branches : sans ce retour, une touche nue changerait de
+            // vue derriere un dialogue ouvert. Sans preventDefault non plus, la
+            // touche appartenant desormais a la couche de devant.
+            //
+            // La SELECTION, elle, n'arrete que le routeur : elle appartient aux
+            // accords d'edition, pas aux touches de vue, qu'un double-clic
+            // malencontreux rendrait sinon muettes.
+            if (!isAndroid && overlayHoldsKeyboard) return;
+
             const target = event.target as HTMLElement | null;
             const editing =
                 target?.tagName === "INPUT" ||
@@ -3620,11 +3686,14 @@ export default function DesktopCalendar({
         cutEvent,
         deleteTargets,
         deletedBatch.length,
+        desktopCommands,
         duplicateTargets,
         goNext,
         goPrev,
         goToday,
+        isAndroid,
         openNewEvent,
+        overlayHoldsKeyboard,
         pasteEvent,
         toggleSidebar,
         undoLastDeletion,

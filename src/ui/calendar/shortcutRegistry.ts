@@ -284,6 +284,28 @@ export const VIEW_BINDINGS: ViewBinding[] = [
     },
 ];
 
+/**
+ * La classe que la fenetre Windows pose sur le `body` tant qu'elle est montee.
+ *
+ * Le panneau des raccourcis est partage par les trois cibles : c'est ce
+ * marqueur, et lui seul, qui lui dit qu'il tourne dans la fenetre Windows. La
+ * constante vit ici pour que celui qui la pose et celui qui la lit ne puissent
+ * pas diverger d'une lettre.
+ */
+export const WINDOWS_PLATFORM_CLASS = "nc-platform-windows";
+
+/**
+ * Les touches que la seule fenetre Windows ajoute aux liaisons de la vue.
+ *
+ * Les fleches horizontales n'y sont cablees que parce que cette fenetre est la
+ * seule a decider seule de son clavier : dans Obsidian et sur Android, elles
+ * appartiennent au champ, au menu ou a la liste qui a le focus.
+ */
+const WINDOWS_EXTRA_HOTKEYS: { [bindingId: string]: Hotkey } = {
+    "go-prev": { modifiers: [], key: "←" },
+    "go-next": { modifiers: [], key: "→" },
+};
+
 /** L'id court d'une commande, celui que la table de sections utilise. */
 export function shortcutKey(fullId: string): string {
     return fullId.startsWith(ID_PREFIX)
@@ -344,10 +366,23 @@ export function buildSections(
     commands: ShortcutCommand[],
     hotkeysOf: (id: string) => Hotkey[],
     modLabel = "Ctrl",
-    bindings: ViewBinding[] = VIEW_BINDINGS
+    bindings: ViewBinding[] = VIEW_BINDINGS,
+    platform: "shared" | "windows" = "shared"
 ): ShortcutSection[] {
     const chordsOf = (hotkeys: Hotkey[] | undefined): string[][] =>
         (hotkeys || []).map((h) => formatHotkey(h, modLabel));
+
+    // Une copie : enrichir les liaisons sur place ferait apparaitre les touches
+    // de Windows dans Obsidian des qu'une fenetre les a demandees.
+    const shown =
+        platform === "windows"
+            ? bindings.map((binding) => {
+                  const extra = WINDOWS_EXTRA_HOTKEYS[binding.id];
+                  return extra
+                      ? { ...binding, hotkeys: [...binding.hotkeys, extra] }
+                      : binding;
+              })
+            : bindings;
 
     const used = new Set<ViewBinding>();
     const bindingRow = (binding: ViewBinding, label?: string): ShortcutRow => {
@@ -378,7 +413,7 @@ export function buildSections(
         const rows: ShortcutRow[] = [];
         for (const key of section.keys) {
             const command = commands.find((c) => shortcutKey(c.id) === key);
-            const binding = bindings.find((b) => b.commandKey === key);
+            const binding = shown.find((b) => b.commandKey === key);
             if (!command) {
                 if (binding) rows.push(bindingRow(binding));
                 continue;
@@ -399,7 +434,7 @@ export function buildSections(
     // Les touches de la vue qui ne doublent aucune ligne deja posee : celles
     // sans commande, et celles dont la commande porte en plus un raccourci
     // assigne par l'utilisateur (les deux agissent, les deux se lisent).
-    for (const binding of bindings) {
+    for (const binding of shown) {
         if (used.has(binding)) continue;
         const rows = rowsBySection.get(binding.section);
         (rows || rest).push(bindingRow(binding));

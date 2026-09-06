@@ -6,6 +6,7 @@ import { SearchIcon, XIcon } from "./Icons";
 import {
     Hotkey,
     ShortcutCommand,
+    WINDOWS_PLATFORM_CLASS,
     buildSections,
     filterSections,
     resolveHotkeys,
@@ -92,7 +93,20 @@ export default function ShortcutsPanel({
                 app.hotkeyManager.getHotkeys(id),
                 app.hotkeyManager.getDefaultHotkeys(id)
             );
-        return buildSections(commands, hotkeysOf);
+        // Les fleches horizontales ne sont annoncees que la ou elles agissent :
+        // la fenetre Windows se signale par une classe sur le body.
+        const platform = document.body.classList.contains(
+            WINDOWS_PLATFORM_CLASS
+        )
+            ? "windows"
+            : "shared";
+        return buildSections(
+            commands,
+            hotkeysOf,
+            undefined,
+            undefined,
+            platform
+        );
     }, []);
 
     const visible = React.useMemo(

@@ -17,6 +17,7 @@ import { useWallpaperReady } from "./themes/useWallpaperReady";
 import WallpaperRenderLayer from "./WallpaperRenderLayer";
 import "./themes/wallpaperEffects";
 import appIcon from "./assets/app-icon.png";
+import { WINDOWS_PLATFORM_CLASS } from "../../../src/ui/calendar/shortcutRegistry";
 import { t } from "../../../src/ui/i18n";
 
 function readStringProperty(
@@ -121,6 +122,18 @@ export default function App() {
             dropped = true;
             stop?.();
         };
+    }, []);
+
+    /*
+     * Le marqueur de plateforme. Les surfaces partagees avec Obsidian et
+     * Android — le panneau des raccourcis en premier — n'ont aucun autre moyen
+     * de savoir qu'elles tournent dans la fenetre Windows, donc d'annoncer les
+     * touches qui n'agissent qu'ici. Pose au montage, retire au demontage :
+     * rien ne subsiste dans un DOM que cette fenetre n'occupe plus.
+     */
+    useEffect(() => {
+        document.body.classList.add(WINDOWS_PLATFORM_CLASS);
+        return () => document.body.classList.remove(WINDOWS_PLATFORM_CLASS);
     }, []);
 
     useEffect(() => {
