@@ -69,6 +69,10 @@ import {
 import { countedLabel } from "../../../src/ui/calendar/countedLabel";
 import { attachmentPathFor } from "../../../src/ui/calendar/pastedAttachment";
 import { escapeClosesEventsPanel } from "../../../src/ui/calendar/escapeClosing";
+import {
+    EditableProbe,
+    isEditableTarget,
+} from "../../../src/ui/calendar/keyboardGuard";
 import { useCalendarNavigation } from "../../../src/ui/calendar/useCalendarNavigation";
 import { useEventDragResize } from "../../../src/ui/calendar/useEventDragResize";
 import {
@@ -3560,13 +3564,11 @@ export default function DesktopCalendar({
             // malencontreux rendrait sinon muettes.
             if (!isAndroid && overlayHoldsKeyboard) return;
 
-            const target = event.target as HTMLElement | null;
-            const editing =
-                target?.tagName === "INPUT" ||
-                target?.tagName === "TEXTAREA" ||
-                target?.tagName === "SELECT" ||
-                target?.isContentEditable;
-            if (editing) return;
+            // Meme garde que celle du routeur, trois lignes plus haut : une
+            // seule definition de « champ de saisie » dans ce fichier, sinon
+            // l'elargir d'un cote laisserait l'autre lancer une action de
+            // calendrier pendant que l'utilisateur tape.
+            if (isEditableTarget(event.target as EditableProbe | null)) return;
 
             const claim = () => {
                 event.preventDefault();
