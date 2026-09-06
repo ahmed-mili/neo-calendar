@@ -40,7 +40,7 @@ export function shouldAutoCommitDraft({
     );
 }
 
-// "Thu Jun 25" / "jeu. 25 juin", with the year once the date leaves the current
+// "Thu Jun 25" / "jeu 25 juin", with the year once the date leaves the current
 // one — so the common case stays short and a date years away is never ambiguous.
 export function formatDateParts(
     d: Date,

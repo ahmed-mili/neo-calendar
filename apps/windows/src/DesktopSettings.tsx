@@ -1192,7 +1192,7 @@ export default function DesktopSettings({
                         >
                             <span
                                 className="nc-settings__calendar-kind"
-                                title={
+                                data-nc-tooltip={
                                     calendar.type === "local"
                                         ? t("Full note")
                                         : calendar.type === "ical"
@@ -1267,7 +1267,7 @@ export default function DesktopSettings({
                                             onSetDefaultCalendar(calendar.id);
                                         }
                                     }}
-                                    title={
+                                    data-nc-tooltip={
                                         calendar.editable
                                             ? t(
                                                   "Tap to set as default, double-tap to rename"

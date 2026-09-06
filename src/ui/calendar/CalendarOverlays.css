@@ -1007,3 +1007,52 @@ body:not(.nc-platform-android) .nc-event-popup {
         border-radius: 16px 16px 0 0;
     }
 }
+
+/* ── Infobulle ─────────────────────────────────────────────── */
+
+.nc-tooltip {
+    /* Même remap que .nc-context-menu : les --nc-* sont déclarés sur :root, où
+       les variables natives d'Obsidian ne résolvent pas et se figent vides.
+       Re-mappées ici (descendant de <body>) pour rester dépendantes du thème. */
+    --nc-text-primary: var(--text-normal);
+    --nc-border: var(--background-modifier-border);
+
+    position: fixed;
+    /* Pavé opaque, pas de verre dépoli : une infobulle doit se lire d'un coup
+       d'œil sur n'importe quel fond, contrairement aux menus de l'app.
+       --nc-bg-crust est la surface la plus sombre de chaque thème (et la plus
+       claire en apparence claire), donc lisible partout sans couleur en dur. */
+    background: var(--nc-bg-crust, var(--background-secondary, #11111b));
+    color: var(--nc-text-primary, var(--text-normal));
+    border: 1px solid
+        color-mix(in srgb, var(--nc-border, transparent) 60%, transparent);
+    border-radius: 5px;
+    padding: 5px 9px;
+    font-family: var(--nc-ui-font, inherit);
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 500;
+    /* Une ligne dans le cas courant (un libellé de bouton), mais le texte
+       passe à la ligne plutôt que d'être tronqué : certaines bulles portent une
+       URL entière, et une URL coupée ne renseigne plus sur rien. */
+    max-width: min(320px, calc(100vw - 16px));
+    overflow-wrap: anywhere;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.36);
+    /* Au-dessus de tout ce qui peut porter un déclencheur — menu contextuel
+       (10001), réglages et sélecteurs (80010) — mais sous le bandeau de
+       message (90000). Et surtout, jamais de prise sur le pointeur : une bulle
+       posée sous la souris volerait le survol du bouton qu'elle décrit, puis
+       son clic. */
+    z-index: 89000;
+    pointer-events: none;
+    animation: nc-tooltip-in 90ms ease-out;
+}
+
+@keyframes nc-tooltip-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}

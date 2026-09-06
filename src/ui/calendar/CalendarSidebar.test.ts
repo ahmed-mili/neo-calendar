@@ -213,7 +213,7 @@ describe("ICS links menu entry", () => {
                 host.querySelectorAll<HTMLButtonElement>(
                     ".nc-calendar-action-btn"
                 )
-            ).find((button) => button.title === t("More options"));
+            ).find((button) => button.getAttribute("data-nc-tooltip") === t("More options"));
             expect(trigger).toBeTruthy();
             act(() => trigger?.click());
 
@@ -305,7 +305,7 @@ describe("ICS links menu entry", () => {
                 host.querySelectorAll<HTMLButtonElement>(
                     ".nc-calendar-action-btn"
                 )
-            ).find((button) => button.title === t("More options"));
+            ).find((button) => button.getAttribute("data-nc-tooltip") === t("More options"));
             expect(trigger).toBeTruthy();
             act(() => trigger?.click());
 

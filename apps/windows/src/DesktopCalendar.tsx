@@ -2349,6 +2349,9 @@ export default function DesktopCalendar({
         (eventId: string) => {
             const record = findStoredEvent(recordsRef.current, eventId);
             if (!record) return;
+            // Où le bloc est dessiné, s'il l'est. Mesuré AVANT toute
+            // navigation : c'est aussi la réponse à « faut-il naviguer ? ».
+            const anchor = anchorForEvent(eventId);
             // A click from the Someday panel names an event that can be
             // weeks or months from whatever the grid currently shows — same
             // as opening one from a deep link. Without this the panel
@@ -2358,14 +2361,42 @@ export default function DesktopCalendar({
             if (record.event.type === "single") {
                 const preferredDate = record.event.date;
                 if (/^\d{4}-\d{2}-\d{2}$/.test(preferredDate)) {
-                    setCurrentDate(parseLocalDate(preferredDate));
+                    const rawTarget = parseLocalDate(preferredDate);
+                    // `visibleDates` (juste au-dessus) construit la semaine
+                    // comme les 7 jours QUI SUIVENT `currentDate` — elle
+                    // n'aligne rien elle-même. `currentDate` doit donc déjà
+                    // être un début de semaine ; le poser sur la date brute
+                    // de l'événement (un mardi, par exemple) le désaligne, et
+                    // la fenêtre affichée se met à courir à partir de ce
+                    // mardi au lieu du lundi. Le défilement infini de la
+                    // grille (jours tampons) part lui d'un vrai début de
+                    // semaine : les deux se contredisent alors à chaque
+                    // frame, chacun tirant la vue vers son idée de la bonne
+                    // fenêtre — la bascule permanente vue en test.
+                    const target =
+                        viewType === "week" || viewType === "list"
+                            ? getWeekStart(rawTarget, preferences.firstDay)
+                            : rawTarget;
+                    // Ne recentrer que sur ce qui n'est PAS à l'écran — le
+                    // panneau Someday et le lien profond, pour lesquels ce
+                    // recentrage a été écrit. `visibleDates` ne le dit pas :
+                    // elle ne compte que les 7 jours de la semaine, alors que
+                    // la grille en dessine trois de plus de chaque côté (les
+                    // jours tampons du défilement infini, BUFFER_DAYS). Un
+                    // événement cliqué dans un de ces jours passait donc pour
+                    // absent, et la vue sautait d'une semaine sous le curseur.
+                    // Le bloc lui-même est la seule mesure exacte : s'il a été
+                    // trouvé dans le document, il est à l'écran.
+                    if (!anchor) {
+                        setCurrentDate(target);
+                    }
                 }
             }
             setDraftSlot(null);
             setPanelEventId(eventId);
-            setPanelAnchor(anchorForEvent(eventId));
+            setPanelAnchor(anchor);
         },
-        [setCurrentDate]
+        [setCurrentDate, viewType, preferences.firstDay]
     );
 
     const selectEvent = useCallback(

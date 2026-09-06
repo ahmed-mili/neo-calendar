@@ -245,12 +245,12 @@ export default function IcsFeedsPanel({
                                         {/* Coupee a la largeur de la ligne (voir
                                         .nc-ics-feed-row__url) : l'adresse
                                         entiere doit rester joignable, et un
-                                        `title` est le seul endroit ou la
+                                        une infobulle est le seul endroit ou la
                                         mettre sans rendre la ligne haute de
                                         deux lignes. */}
                                         <span
                                             className="nc-ics-feed-row__url"
-                                            title={feed.url}
+                                            data-nc-tooltip={feed.url}
                                         >
                                             {feed.url}
                                         </span>
@@ -294,7 +294,7 @@ export default function IcsFeedsPanel({
                                         type="button"
                                         className="nc-ics-feed-row__action"
                                         data-testid="ics-refresh-now"
-                                        title={t("Refresh now")}
+                                        data-nc-tooltip={t("Refresh now")}
                                         aria-label={`${t("Refresh now")} — ${
                                             feed.name
                                         }`}
@@ -306,7 +306,7 @@ export default function IcsFeedsPanel({
                                         type="button"
                                         className="nc-ics-feed-row__action nc-ics-feed-row__action--danger"
                                         data-testid="ics-remove-feed"
-                                        title={t("Remove link")}
+                                        data-nc-tooltip={t("Remove link")}
                                         aria-label={`${t("Remove link")} — ${
                                             feed.name
                                         }`}

@@ -131,6 +131,76 @@ export function packAllDayLanes(
 }
 
 /**
+ * Combien de rangées la bande doit vraiment montrer, pour les seuls jours à
+ * l'écran.
+ *
+ * Le packing se fait sur les dates étendues (jours tampons compris), sinon une
+ * barre changerait de lane en entrant dans l'écran pendant un défilement
+ * horizontal. Mais une barre posée uniquement dans le tampon peut pousser une
+ * autre barre d'une lane vers le bas : `laneCount` compte alors une rangée que
+ * rien de visible n'occupe, et la bande garde une ligne vide en trop — la même
+ * paire d'évènements donnait une bande correcte ou trop haute selon la fenêtre
+ * de sept jours affichée.
+ *
+ * C'est le plus haut lane VISIBLE + 1, et non le nombre de lanes distinctes :
+ * une barre laissée en lane 1 alors que la lane 0 est vide à l'écran est
+ * dessinée sur la deuxième rangée, qui doit donc exister.
+ */
+export function visibleLaneCount(
+    bars: AllDayLaneBar[],
+    firstVisibleIdx: number,
+    lastVisibleIdx: number
+): number {
+    let highest = -1;
+    for (const bar of bars) {
+        const endIdx = bar.startIdx + bar.span - 1;
+        if (endIdx < firstVisibleIdx || bar.startIdx > lastVisibleIdx) continue;
+        if (bar.lane > highest) highest = bar.lane;
+    }
+    return highest + 1;
+}
+
+/**
+ * Combien d'évènements chaque jour à l'écran porte AU TOTAL, une fois la
+ * bande réduite à `visibleRows` rangées — pas seulement ceux qui sortent du
+ * cadre.
+ *
+ * Replier la bande ne déplace rien (voir le commentaire de `TimeGridAllDay`) :
+ * les barres des lanes suivantes sortent simplement du cadre, sans que rien ne
+ * le dise. La pastille le dit, jour par jour — mais en comptant CE JOUR-LÀ, pas
+ * ce qui est caché : "1 évènement" à côté d'une barre visible laisserait
+ * croire qu'il n'y en a qu'un, quand il y en a deux. Une barre pluri-jours
+ * compte pour chacun des jours qu'elle traverse.
+ *
+ * Les jours tampons sont exclus : ils ne sont pas à l'écran, et une pastille
+ * posée sur eux serait comptée pour une colonne que personne ne voit.
+ *
+ * Renvoie un index de `extendedDates` vers un compte, et seulement les jours
+ * qui cachent au moins un évènement (ceux qui n'en cachent aucun n'ont pas
+ * besoin de pastille : la barre visible suffit à se comprendre).
+ */
+export function hiddenBarCountByDay(
+    bars: AllDayLaneBar[],
+    firstVisibleIdx: number,
+    lastVisibleIdx: number,
+    visibleRows: number
+): Map<number, number> {
+    const totals = new Map<number, number>();
+    const hasHidden = new Set<number>();
+    for (const bar of bars) {
+        const from = Math.max(bar.startIdx, firstVisibleIdx);
+        const to = Math.min(bar.startIdx + bar.span - 1, lastVisibleIdx);
+        for (let idx = from; idx <= to; idx++) {
+            totals.set(idx, (totals.get(idx) ?? 0) + 1);
+            if (bar.lane >= visibleRows) hasHidden.add(idx);
+        }
+    }
+    const counts = new Map<number, number>();
+    for (const idx of hasHidden) counts.set(idx, totals.get(idx) ?? 0);
+    return counts;
+}
+
+/**
  * How many rows the band holds, and how many of them are on screen.
  *
  * There is always ONE row more than the events need, and it is always empty.

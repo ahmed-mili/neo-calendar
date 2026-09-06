@@ -142,6 +142,52 @@ export function offsetToDay(
     return ontoDevicePixel(edge + COLUMN_SEAM_PX);
 }
 
+/** Ce qu'il faut voir d'une colonne pour dire qu'elle est à l'écran.
+ *
+ *  Un cheveu de colonne qui dépasse du bord n'est pas une colonne affichée :
+ *  c'est l'arrondi du défilement. Au-delà, une barre y est bel et bien peinte,
+ *  et la bande doit lui faire de la place. */
+const VISIBLE_COLUMN_MIN_PX = 2;
+
+/**
+ * Les colonnes de jour RÉELLEMENT peintes à l'écran, premières et dernières
+ * incluses, en index de la liste rendue (dates étendues, tampons compris).
+ *
+ * Le défilement horizontal est continu et virtualisé : la plage logique de
+ * jours ne se décale qu'une fois un seuil franchi, si bien qu'entre deux
+ * rebasages une colonne du tampon est visible pour de bon. Se fier à la plage
+ * logique, c'est traiter comme hors écran des jours que l'utilisateur regarde.
+ *
+ * Mesuré, jamais calculé : `columnEdges` donne déjà chaque bord relativement au
+ * conteneur, donc après défilement — il n'y a pas de `scrollLeft` à ajouter.
+ *
+ * Null quand il n'y a rien à mesurer (aucune colonne, ou pas de largeur).
+ */
+export function visibleColumnRange(
+    scroller: HTMLElement
+): { first: number; last: number } | null {
+    const edges = columnEdges(scroller);
+    if (!edges.length) return null;
+    const viewport = scroller.clientWidth;
+    if (!(viewport > 0)) return null;
+
+    // La dernière colonne n'a pas de voisine pour donner sa largeur : elle
+    // reprend le pas des deux premières, à défaut la fenêtre entière.
+    const pitch = edges.length >= 2 ? edges[1] - edges[0] : viewport;
+
+    let first = -1;
+    let last = -1;
+    for (let i = 0; i < edges.length; i++) {
+        const left = edges[i];
+        const right = i + 1 < edges.length ? edges[i + 1] : left + pitch;
+        const shown = Math.min(right, viewport) - Math.max(left, 0);
+        if (shown < VISIBLE_COLUMN_MIN_PX) continue;
+        if (first === -1) first = i;
+        last = i;
+    }
+    return first === -1 ? null : { first, last };
+}
+
 /**
  * How far the grid has to move for the NEAREST day to sit against the rail —
  * the shortest way out of a position between two days.

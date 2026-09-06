@@ -187,7 +187,7 @@ export default function PrayerMosqueDialog({
                         <button
                             type="button"
                             className="nc-prayer-dialog__reset"
-                            title={t("Follow the calendar's colour")}
+                            data-nc-tooltip={t("Follow the calendar's colour")}
                             aria-label={t("Follow the calendar's colour")}
                             onClick={() => {
                                 setPickerAnchor(null);

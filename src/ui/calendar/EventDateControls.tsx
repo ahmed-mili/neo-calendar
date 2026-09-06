@@ -219,7 +219,7 @@ export function DateOptionsRow({
                             type="button"
                             className="nc-series-step-btn"
                             disabled={!canStepBack}
-                            title={t("Go to previous event in this series")}
+                            data-nc-tooltip={t("Go to previous event in this series")}
                             aria-label={t(
                                 "Go to previous event in this series"
                             )}
@@ -231,7 +231,7 @@ export function DateOptionsRow({
                             type="button"
                             className="nc-series-step-btn"
                             disabled={!canStepForward}
-                            title={t("Go to next event in this series")}
+                            data-nc-tooltip={t("Go to next event in this series")}
                             aria-label={t("Go to next event in this series")}
                             onClick={() => onStepOccurrence?.(1)}
                         >

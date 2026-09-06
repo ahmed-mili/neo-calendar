@@ -12,6 +12,7 @@ import MonthView from "./MonthView";
 import ListView from "./ListView";
 import ThreeDayView from "./ThreeDayView";
 import { PlusIcon } from "./Icons";
+import TooltipLayer from "./Tooltip";
 import { useDrawerSwipe } from "./useDrawerSwipe";
 import { t } from "../i18n";
 
@@ -412,11 +413,12 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                 <div className="nc-content">{renderView()}</div>
             </div>
             <div id="nc-android-overlay-root" />
+            <TooltipLayer />
             <button
                 type="button"
                 className="nc-mobile-new-event"
                 aria-label={t("Create a new event")}
-                title={t("New event")}
+                data-nc-tooltip={t("New event")}
                 onClick={onNewEvent}
             >
                 <PlusIcon size={24} />

@@ -31,7 +31,7 @@ const sameDay = (a: Date, b: Date) =>
     a.getDate() === b.getDate();
 
 /**
- * A day as the panel labels it: "Sun Nov 1" / "dim. 1 nov.", plus the year once
+ * A day as the panel labels it: "Sun Nov 1" / "dim 1 nov", plus the year once
  * the date leaves the current one, so a list that scrolls years ahead never
  * leaves you guessing which one you are looking at.
  */

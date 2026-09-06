@@ -257,7 +257,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                 <button
                     className="nc-btn nc-btn-icon nc-btn-sidebar-toggle"
                     onClick={onToggleSidebar}
-                    title={t("Calendars")}
+                    data-nc-tooltip={t("Calendars")}
                     aria-label={t("Calendars")}
                 >
                     <PanelLeftIcon />
@@ -267,7 +267,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                 <button
                     className="nc-btn nc-btn-icon nc-btn-settings"
                     onClick={onOpenSettings}
-                    title={t("Settings")}
+                    data-nc-tooltip={t("Settings")}
                     aria-label={t("Settings")}
                 >
                     <SettingsIcon size={15} />
@@ -492,14 +492,16 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                     <button
                         className="nc-btn nc-btn-icon"
                         onClick={onGoPrev}
-                        title={t("Previous")}
+                        aria-label={t("Previous")}
+                        data-nc-tooltip={t("Previous")}
                     >
                         <ChevronLeftIcon />
                     </button>
                     <button
                         className="nc-btn nc-btn-icon"
                         onClick={onGoNext}
-                        title={t("Next")}
+                        aria-label={t("Next")}
+                        data-nc-tooltip={t("Next")}
                     >
                         <ChevronRightIcon />
                     </button>

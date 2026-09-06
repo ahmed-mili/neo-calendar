@@ -297,7 +297,8 @@ export default function ColorPicker({
                         type="button"
                         className="nc-cp-preset"
                         style={{ background: p }}
-                        title={p}
+                        aria-label={p}
+                        data-nc-tooltip={p}
                         onClick={() => pickPreset(p)}
                     />
                 ))}

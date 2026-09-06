@@ -154,13 +154,13 @@ describe("buildWidgetPayload", () => {
     // given the weekday names rather than a finished date.
     it("hands over the weekday names, Sunday first", () => {
         expect(build([]).weekdays).toEqual([
-            "dim.",
-            "lun.",
-            "mar.",
-            "mer.",
-            "jeu.",
-            "ven.",
-            "sam.",
+            "dim",
+            "lun",
+            "mar",
+            "mer",
+            "jeu",
+            "ven",
+            "sam",
         ]);
     });
 });

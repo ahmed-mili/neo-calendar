@@ -44,7 +44,7 @@ describe("the description editing toolbar", () => {
         expect(html).not.toContain("nc-panel-row-label");
         labels.forEach((label) => {
             expect(html).toContain(`aria-label="${label}"`);
-            expect(html).toContain(`title="${label}"`);
+            expect(html).toContain(`data-nc-tooltip="${label}"`);
         });
         expect(html).not.toContain("data-tooltip=");
         const positions = labels.map((label) =>

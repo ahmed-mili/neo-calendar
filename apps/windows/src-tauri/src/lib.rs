@@ -1742,6 +1742,20 @@ async fn install_pending_update(app: tauri::AppHandle) -> Result<(), String> {
 fn install_pending_update() -> Result<(), String> {
     Err("No update has been downloaded.".to_string())
 }
+// Le webview n'a pas de terminal a lui : ses erreurs et logs restent
+// invisibles tant que quelqu'un n'ouvre pas les DevTools et ne les copie pas a
+// la main. En debug seulement, `main.tsx` reexpedie console.log/warn/error et
+// les erreurs non attrapees ici, qui atterrissent dans le meme terminal que
+// `npm run dev` — lisible directement, sans capture d'ecran.
+#[cfg(debug_assertions)]
+#[tauri::command]
+fn debug_log(level: String, message: String) {
+    println!("[webview:{level}] {message}");
+}
+#[cfg(not(debug_assertions))]
+#[tauri::command]
+fn debug_log(_level: String, _message: String) {}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1820,7 +1834,8 @@ pub fn run() {
             write_desktop_attachment,
             read_desktop_attachment,
             install_pending_update,
-            fetch_desktop_ics
+            fetch_desktop_ics,
+            debug_log
         ])
         .run(tauri::generate_context!())
         .expect("error while running Neo Calendar");

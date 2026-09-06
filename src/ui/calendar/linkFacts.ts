@@ -79,7 +79,7 @@ export function linkFacts(target: string): LinkFacts {
     };
 }
 
-/** « 8 sept. 2024 » — le mois abrégé, dans la langue de l'application. */
+/** « 8 sept 2024 » — le mois abrégé, dans la langue de l'application. */
 export function shortDate(value: Date): string {
     const months = t("months.short").split(",");
     const month = months[value.getMonth()] ?? "";

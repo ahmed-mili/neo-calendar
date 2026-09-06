@@ -51,7 +51,7 @@ function TaskRow({
             className={`nc-tasks-item${done ? " nc-task-completed" : ""}`}
             data-task-id={task.id}
             style={{ "--nc-tasks-item-tint": task.color } as React.CSSProperties}
-            title={task.calendarName}
+            data-nc-tooltip={task.calendarName}
             onClick={() => onTaskClick(task)}
             onKeyDown={(event) => {
                 if (event.target !== event.currentTarget) return;
@@ -74,7 +74,7 @@ function TaskRow({
                             : t("To do")
                         : unavailableToggleLabel
                 }
-                title={canToggle ? undefined : unavailableToggleLabel}
+                data-nc-tooltip={canToggle ? undefined : unavailableToggleLabel}
                 onClick={(event) => {
                     event.stopPropagation();
                     if (canToggle) void onToggleTask(task.id, !done);
@@ -94,7 +94,7 @@ function TaskRow({
             {day && (
                 <span
                     className={`nc-tasks-date${late ? " nc-tasks-late" : ""}`}
-                    title={
+                    data-nc-tooltip={
                         late
                             ? t("Overdue")
                             : hasDeadline
@@ -250,7 +250,7 @@ export default function DesktopTasksPanel({
                                   type="button"
                                   className="nc-task-modal-close"
                                   aria-label={t("Close")}
-                                  title={t("Close")}
+                                  data-nc-tooltip={t("Close")}
                                   onClick={close}
                               >
                                   <XIcon size={14} />

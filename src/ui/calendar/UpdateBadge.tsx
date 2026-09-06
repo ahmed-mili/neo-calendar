@@ -166,7 +166,7 @@ export function UpdateBadge({ onInstall }: { onInstall: () => void }) {
                    ce qui est déjà en train de se faire. */
                 disabled={downloading}
                 onClick={startInstall}
-                title={label}
+                data-nc-tooltip={label}
                 aria-label={label}
             >
                 <span className="nc-update-control__count" aria-hidden="true">

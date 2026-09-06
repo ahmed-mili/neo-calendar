@@ -305,7 +305,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                     <button
                         className="nc-sidebar-top-btn"
                         onClick={onToggleSidebar}
-                        title={t("Toggle sidebar")}
+                        data-nc-tooltip={t("Toggle sidebar")}
                         aria-label={t("Toggle sidebar")}
                     >
                         <PanelLeftIcon />
@@ -319,7 +319,8 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                         <button
                             className="nc-sidebar-top-btn nc-sidebar-search-btn"
                             onClick={onOpenSearch}
-                            title={t("Open command menu")}
+                            aria-label={t("Open command menu")}
+                            data-nc-tooltip={t("Open command menu")}
                         >
                             <SearchIcon />
                         </button>
@@ -342,7 +343,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                         <button
                             className="nc-sidebar-top-btn nc-sidebar-settings-btn"
                             onClick={onOpenSettings}
-                            title={t("Settings")}
+                            data-nc-tooltip={t("Settings")}
                             aria-label={t("Settings")}
                         >
                             <SettingsIcon size={17} />
@@ -495,7 +496,12 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                         setCalendarsCollapsed((v) => !v);
                                     }
                                 }}
-                                title={
+                                aria-label={
+                                    calendarsCollapsed
+                                        ? "Expand calendars"
+                                        : "Collapse calendars"
+                                }
+                                data-nc-tooltip={
                                     calendarsCollapsed
                                         ? "Expand calendars"
                                         : "Collapse calendars"
@@ -524,7 +530,8 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                 e.currentTarget.getBoundingClientRect()
                                             );
                                         }}
-                                        title={t("More options")}
+                                        aria-label={t("More options")}
+                                        data-nc-tooltip={t("More options")}
                                     >
                                         <MoreHorizontalIcon />
                                     </button>
@@ -534,7 +541,8 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                             e.stopPropagation();
                                             onAddCalendar();
                                         }}
-                                        title={t("Add calendar")}
+                                        aria-label={t("Add calendar")}
+                                        data-nc-tooltip={t("Add calendar")}
                                     >
                                         <PlusIcon size={14} />
                                     </button>
@@ -666,7 +674,16 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                                 source.id
                                                             );
                                                     }}
-                                                    title={
+                                                    aria-label={
+                                                        source.editable
+                                                            ? t(
+                                                                  "Set as default"
+                                                              )
+                                                            : t(
+                                                                  "Shift-click to change colour"
+                                                              )
+                                                    }
+                                                    data-nc-tooltip={
                                                         source.editable
                                                             ? t(
                                                                   "Set as default"
@@ -748,7 +765,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                                 commitRename
                                                             }
                                                             disabled={renaming}
-                                                            title={t("Save")}
+                                                            data-nc-tooltip={t("Save")}
                                                         >
                                                             {renaming
                                                                 ? "..."
@@ -760,7 +777,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                                 cancelRename
                                                             }
                                                             disabled={renaming}
-                                                            title={t("Cancel")}
+                                                            data-nc-tooltip={t("Cancel")}
                                                         >
                                                             Cancel
                                                         </button>
@@ -769,7 +786,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                     <>
                                                         <span
                                                             className="nc-calendar-name"
-                                                            title={source.name}
+                                                            data-nc-tooltip={source.name}
                                                         >
                                                             {source.name}
                                                         </span>
@@ -791,7 +808,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                                         source.id
                                                                     );
                                                                 }}
-                                                                title={t(
+                                                                data-nc-tooltip={t(
                                                                     "More options"
                                                                 )}
                                                             >
@@ -808,7 +825,16 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                                         source.id
                                                                     );
                                                                 }}
-                                                                title={
+                                                                aria-label={
+                                                                    hidden
+                                                                        ? t(
+                                                                              "Show"
+                                                                          )
+                                                                        : t(
+                                                                              "Hide"
+                                                                          )
+                                                                }
+                                                                data-nc-tooltip={
                                                                     hidden
                                                                         ? t(
                                                                               "Show"
@@ -854,7 +880,12 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                             setTasksCollapsed((v) => !v);
                                         }
                                     }}
-                                    title={
+                                    aria-label={
+                                        tasksCollapsed
+                                            ? "Expand tasks"
+                                            : "Collapse tasks"
+                                    }
+                                    data-nc-tooltip={
                                         tasksCollapsed
                                             ? "Expand tasks"
                                             : "Collapse tasks"
@@ -913,7 +944,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                         <button
                             type="button"
                             className="nc-sidebar-help-btn"
-                            title={t("Keyboard shortcuts")}
+                            data-nc-tooltip={t("Keyboard shortcuts")}
                             aria-label={t("Keyboard shortcuts")}
                             onClick={(event) =>
                                 setShortcutsAnchor(

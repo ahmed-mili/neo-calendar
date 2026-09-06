@@ -219,7 +219,7 @@ function DescriptionToolbar({
             type="button"
             className="nc-description-tool"
             aria-label={label}
-            title={label}
+            data-nc-tooltip={label}
             data-format-command={command}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => onFormat(command)}
@@ -266,7 +266,7 @@ function DescriptionToolbar({
                 type="button"
                 className="nc-description-tool"
                 aria-label={t("Attachment")}
-                title={t("Attachment")}
+                data-nc-tooltip={t("Attachment")}
                 data-format-command="attachment"
                 disabled={attachmentDisabled}
                 onMouseDown={(event) => event.preventDefault()}
@@ -409,7 +409,7 @@ function DescriptionLinkRow({
             <button
                 type="button"
                 className="nc-description-link"
-                title={item.target}
+                data-nc-tooltip={item.target}
                 aria-expanded={selected}
                 onClick={(event) => {
                     event.preventDefault();
@@ -441,7 +441,7 @@ function DescriptionLinkRow({
                 <button
                     type="button"
                     aria-label={t("Edit link")}
-                    title={t("Edit link")}
+                    data-nc-tooltip={t("Edit link")}
                     disabled={!editable || !eventId || !onRenameLink}
                     onClick={beginEdit}
                 >
@@ -450,7 +450,7 @@ function DescriptionLinkRow({
                 <button
                     type="button"
                     aria-label={t("Copy link")}
-                    title={t("Copy link")}
+                    data-nc-tooltip={t("Copy link")}
                     onClick={() => void copy()}
                 >
                     <CopyIcon size={16} />

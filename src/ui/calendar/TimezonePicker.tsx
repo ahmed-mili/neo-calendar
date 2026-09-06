@@ -100,6 +100,9 @@ export function TimezonePicker({
         timezoneMenu?.labels?.[systemZone] || offsetLabel(homeZone, reference);
 
     const options: TimezoneOption[] = useMemo(() => {
+        // La date change à chaque rebasage de la grille. Formater tous les
+        // fuseaux quand le menu est fermé bloque alors le défilement.
+        if (!adding || !onAddTimezone) return [];
         const zones = listZones();
         const recentZones = (timezoneMenu?.recentTimezones ?? []).filter(
             (zone) => zones.includes(zone)
@@ -118,7 +121,7 @@ export function TimezonePicker({
                     label: richZoneLabel(zone, reference),
                 })),
         ];
-    }, [reference, timezoneMenu?.recentTimezones]);
+    }, [adding, onAddTimezone, reference, timezoneMenu?.recentTimezones]);
     const filteredOptions = useMemo(() => {
         const needle = query.trim().toLocaleLowerCase();
         const matches = needle
@@ -165,7 +168,8 @@ export function TimezonePicker({
                 className="nc-tz-add"
                 role="button"
                 tabIndex={0}
-                title={t("Add timezone")}
+                aria-label={t("Add timezone")}
+                data-nc-tooltip={t("Add timezone")}
                 onClick={togglePicker}
                 onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -180,7 +184,7 @@ export function TimezonePicker({
                 className="nc-tz-primary"
                 role="button"
                 tabIndex={0}
-                title={systemZone}
+                data-nc-tooltip={systemZone}
                 onClick={(event) => {
                     if (!timezoneMenu) return;
                     event.stopPropagation();

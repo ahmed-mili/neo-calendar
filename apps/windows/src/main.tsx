@@ -6,6 +6,9 @@ import "@fontsource-variable/geist-mono/wght.css";
 import "@fontsource-variable/jetbrains-mono/wght.css";
 import "./themes/fonts.css";
 import App from "./App";
+import { installDevConsoleBridge } from "./devConsoleBridge";
+
+installDevConsoleBridge();
 import "./themes/catppuccin-mocha.css";
 import "./themes/tokyo-night.css";
 import "./themes/codex-themes.css";

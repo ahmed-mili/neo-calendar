@@ -5,6 +5,7 @@ import {
     offsetToNearestDay,
     pageWidthFor,
     scrollLeftForDay,
+    visibleColumnRange,
 } from "./gridColumns";
 
 describe("pageWidthFor", () => {
@@ -87,6 +88,55 @@ describe("measureColumnWidth", () => {
 
     it("has nothing to report when the view holds no days", () => {
         expect(measureColumnWidth(gridOfColumns([], [], 412), 0)).toBe(0);
+    });
+});
+
+describe("visibleColumnRange", () => {
+    // 13 colonnes de 100px (7 jours + 3 de tampon de chaque côté) dans une
+    // fenêtre de 700px, la grille posée pile sur le premier jour officiel :
+    // les colonnes 3 à 9 sont à l'écran, les tampons non.
+    const columnsAt = (firstEdge: number) =>
+        gridOfColumns(
+            Array.from({ length: 13 }, (_, i) => firstEdge + i * 100),
+            Array.from({ length: 13 }, () => 100),
+            700
+        );
+
+    it("rend les colonnes à l'écran quand la grille est sur son jour", () => {
+        expect(visibleColumnRange(columnsAt(-300))).toEqual({
+            first: 3,
+            last: 9,
+        });
+    });
+
+    // Le défilement continu : la grille a avancé de deux jours, mais la plage
+    // logique n'a pas encore été rebasée. Les colonnes 5 à 11 — deux jours de
+    // tampon compris — sont bel et bien peintes.
+    it("suit le défilement jusque dans le tampon, avant tout rebasage", () => {
+        expect(visibleColumnRange(columnsAt(-500))).toEqual({
+            first: 5,
+            last: 11,
+        });
+    });
+
+    it("ignore le cheveu de colonne laissé par l'arrondi", () => {
+        // La colonne 2 ne montre qu'un pixel : c'est de l'arrondi, pas un jour.
+        expect(visibleColumnRange(columnsAt(-299))).toEqual({
+            first: 3,
+            last: 9,
+        });
+        // Trois pixels, en revanche, c'est une barre qu'on voit.
+        expect(visibleColumnRange(columnsAt(-297))).toEqual({
+            first: 2,
+            last: 9,
+        });
+    });
+
+    it("n'a rien à dire sans colonne ni sans largeur", () => {
+        expect(visibleColumnRange(gridOfColumns([], [], 700))).toBeNull();
+        expect(visibleColumnRange(gridOfColumns([0, 100], [100, 100], 0))).toBe(
+            null
+        );
     });
 });
 

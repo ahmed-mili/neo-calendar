@@ -310,7 +310,8 @@ export function PanelHeader({
                         <button
                             type="button"
                             className="nc-panel-icon-btn"
-                            title={t("More")}
+                            aria-label={t("More")}
+                            data-nc-tooltip={t("More")}
                             onClick={onToggleMenu}
                         >
                             <DotsIcon />
@@ -377,7 +378,8 @@ export function PanelHeader({
                     <button
                         type="button"
                         className="nc-panel-icon-btn"
-                        title={t("Close")}
+                        aria-label={t("Close")}
+                        data-nc-tooltip={t("Close")}
                         onPointerUp={
                             isAndroidRuntime()
                                 ? (event) => {
@@ -716,7 +718,8 @@ function DateField({
                                     <button
                                         type="button"
                                         className="nc-datepicker-nav"
-                                        title={t("Previous month")}
+                                        aria-label={t("Previous month")}
+                                        data-nc-tooltip={t("Previous month")}
                                         onClick={() =>
                                             setViewMonth(
                                                 new Date(year, month - 1, 1)
@@ -731,7 +734,8 @@ function DateField({
                                     <button
                                         type="button"
                                         className="nc-datepicker-nav"
-                                        title={t("Next month")}
+                                        aria-label={t("Next month")}
+                                        data-nc-tooltip={t("Next month")}
                                         onClick={() =>
                                             setViewMonth(
                                                 new Date(year, month + 1, 1)
@@ -1880,7 +1884,7 @@ export function RemindersRow({
                                         <button
                                             type="button"
                                             className="nc-panel-reminder-remove"
-                                            title={`${t(
+                                            data-nc-tooltip={`${t(
                                                 "Remove reminder"
                                             )} ${label}`}
                                             aria-label={`${t(
@@ -2669,7 +2673,7 @@ function LinkedFileRow({
                         type="button"
                         className="nc-linked-file-reload-button"
                         aria-label={t("Reload this link")}
-                        title={t("Reload this link")}
+                        data-nc-tooltip={t("Reload this link")}
                         disabled={searching}
                         onMouseDown={(event) => {
                             event.preventDefault();
@@ -2690,7 +2694,7 @@ function LinkedFileRow({
                         type="button"
                         className="nc-linked-file-rename-button"
                         aria-label={t("Rename link")}
-                        title={t("Rename link")}
+                        data-nc-tooltip={t("Rename link")}
                         onMouseDown={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
@@ -2721,7 +2725,7 @@ function LinkedFileRow({
                             } as React.CSSProperties
                         }
                         aria-label={`${t("Hold to remove")} — ${displayName}`}
-                        title={t("Hold to remove")}
+                        data-nc-tooltip={t("Hold to remove")}
                         disabled={removing}
                         onMouseDown={(event) => {
                             event.preventDefault();
@@ -3432,7 +3436,7 @@ export function LinksAttachmentsRow({
                                                 : ""
                                         }`}
                                         key={result.id}
-                                        title={fileName}
+                                        data-nc-tooltip={fileName}
                                         onMouseEnter={() =>
                                             setHighlightedIndex(index)
                                         }
@@ -4224,7 +4228,7 @@ export function LocationRow({
                             data-nc-location-open="true"
                             className="nc-panel-location-text nc-panel-location-link"
                             aria-label={t("Open in Maps")}
-                            title={t("Open in Maps")}
+                            data-nc-tooltip={t("Open in Maps")}
                             onClick={open}
                         >
                             {location}
@@ -4243,7 +4247,7 @@ export function LocationRow({
                         data-nc-location-open="true"
                         className="nc-panel-location-open"
                         aria-label={t("Open in Maps")}
-                        title={t("Open in Maps")}
+                        data-nc-tooltip={t("Open in Maps")}
                         onClick={open}
                     >
                         <MapPinIcon size={14} />

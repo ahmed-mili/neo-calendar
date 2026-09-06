@@ -25,13 +25,12 @@ const FR: Record<string, string> = {
     // ── Days and months ──────────────────────────────────────
     // Kept here rather than taken from toLocaleDateString so the grid reads the
     // same whatever locale the machine happens to be set to.
-    "days.short": "dim.,lun.,mar.,mer.,jeu.,ven.,sam.",
+    "days.short": "dim,lun,mar,mer,jeu,ven,sam",
     "days.min": "di,lu,ma,me,je,ve,sa",
     // Écrits en toutes lettres pour le résumé d'une répétition — « toutes les
     // semaines le mardi » — où le jour est au milieu d'une phrase.
     "days.long": "dimanche,lundi,mardi,mercredi,jeudi,vendredi,samedi",
-    "months.short":
-        "janv.,févr.,mars,avr.,mai,juin,juil.,août,sept.,oct.,nov.,déc.",
+    "months.short": "janv,févr,mars,avr,mai,juin,juil,août,sept,oct,nov,déc",
     "months.long":
         "janvier,février,mars,avril,mai,juin,juillet,août,septembre,octobre,novembre,décembre",
 
@@ -368,6 +367,9 @@ const FR: Record<string, string> = {
     "Collapse calendars": "Réduire les calendriers",
     "Expand all-day events": "Afficher les événements sur la journée",
     "Collapse all-day events": "Réduire les événements sur la journée",
+    // Ce qu'une bande repliée garde hors de vue, colonne par colonne.
+    "1 event": "1 événement",
+    "{n} events": "{n} événements",
     "Expand today's agenda": "Développer l'agenda du jour",
     "Collapse today's agenda": "Réduire l'agenda du jour",
 

@@ -51,10 +51,15 @@
     padding-top: 1px;
     padding-right: 4px;
     /* The band's own line, and the same one the band draws on its side of the
-       seam — literal colour included (see .nc-allday-row). It was a border-TOP
+       seam — same colour included (see .nc-allday-row): both fall back to the
+       same literal grey where the theme variable is empty (the Obsidian
+       plugin context), and both follow the active theme's border colour where
+       it isn't (the desktop app, which remaps --nc-border on
+       .nc-desktop--calendar) — a literal grey there ignored the theme and
+       stood out against every other border on screen. It was a border-TOP
        before, which drew the header's line a second time, one pixel below the
        one the headers had already drawn. */
-    border-bottom: 1px solid rgba(128, 128, 128, 0.5);
+    border-bottom: 1px solid var(--nc-border, rgba(128, 128, 128, 0.5));
     border-right: 1px solid rgba(128, 128, 128, 0.35);
 }
 
@@ -606,13 +611,17 @@
     z-index: 3;
     /* No background, same reason as .nc-headers-row: the grid clips itself at
        the band's bottom edge, so this row has nothing to mask. */
-    /* Literal color, not var(--nc-border): the latter maps to an Obsidian theme
-       var that is empty on :root (kept empty so the row stays transparent — see
-       CalendarVariables.css), which would make the whole border-bottom shorthand
-       invalid and render NO line. This separator sits on the sticky row, so it
-       stays pinned at the all-day section's bottom edge while the grid scrolls
-       (the grid's own top line scrolls up and is clipped away). */
-    border-bottom: 1px solid rgba(128, 128, 128, 0.5);
+    /* A fallback, not a literal colour: --nc-border maps to an Obsidian theme
+       var that is empty on :root (kept empty so the row stays transparent —
+       see CalendarVariables.css), which would make the whole border-bottom
+       shorthand invalid and render NO line there — hence the literal grey as
+       a fallback. The desktop app DOES remap --nc-border (on
+       .nc-desktop--calendar), so there this line follows the active theme's
+       border colour instead of standing out grey against it. This separator
+       sits on the sticky row, so it stays pinned at the all-day section's
+       bottom edge while the grid scrolls (the grid's own top line scrolls up
+       and is clipped away). */
+    border-bottom: 1px solid var(--nc-border, rgba(128, 128, 128, 0.5));
     overflow-y: auto;
     overflow-x: hidden;
     will-change: transform;
@@ -633,6 +642,13 @@
 
 .nc-allday-row::-webkit-scrollbar {
     display: none;
+}
+
+.nc-allday-row--collapsed {
+    /* Repliée, un seul rang est vrai : le défilement interne n'est plus une
+       façon discrète d'atteindre ce qui est caché — c'est le badge
+       N-événements qui le fait désormais, en dépliant franchement la bande. */
+    overflow-y: hidden;
 }
 
 /* Full-content-width inner layer; follows horizontal scroll via translateX
@@ -698,6 +714,38 @@
     from {
         opacity: 0;
     }
+}
+
+/* « N événements » : ce que la bande repliée garde hors de vue, dans la colonne
+   du jour concerné. Recouvre entièrement la barre de la rangée visible — une
+   colonne trop étroite pour montrer à la fois un nom d'évènement et ce compte,
+   et Notion tranche pareil (repère fourni par Ahmed) : un jour à plusieurs
+   évènements montre CE texte, pas le premier nom. La barre en dessous garde
+   sa géométrie exacte (lane, span) : rien ne bouge, seul ce qui se peint
+   par-dessus change. */
+.nc-allday-hidden-count {
+    position: absolute;
+    /* .nc-event-block pose z-index:1 — sans le sien, le badge (z-index auto)
+       resterait dessous quel que soit son ordre dans le DOM. */
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    font-size: 11px;
+    line-height: 1;
+    color: var(--nc-text-secondary);
+    white-space: nowrap;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.nc-allday-hidden-count:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+    color: var(--nc-text-primary);
 }
 
 .nc-allday-draft {

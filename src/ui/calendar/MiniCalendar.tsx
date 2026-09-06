@@ -74,8 +74,8 @@ export default function MiniCalendar(props: MiniCalendarProps) {
                         <button
                             className="nc-btn nc-btn-icon nc-btn-sm nc-mini-cal-today-btn"
                             onClick={goToToday}
-                            title={t("Go back to today")}
                             aria-label={t("Go back to today")}
+                            data-nc-tooltip={t("Go back to today")}
                         >
                             <GoTodayIcon />
                         </button>
@@ -83,14 +83,16 @@ export default function MiniCalendar(props: MiniCalendarProps) {
                     <button
                         className="nc-btn nc-btn-icon nc-btn-sm"
                         onClick={goPrevMonth}
-                        title={t("Previous month")}
+                        aria-label={t("Previous month")}
+                        data-nc-tooltip={t("Previous month")}
                     >
                         <ChevronUpIcon />
                     </button>
                     <button
                         className="nc-btn nc-btn-icon nc-btn-sm"
                         onClick={goNextMonth}
-                        title={t("Next month")}
+                        aria-label={t("Next month")}
+                        data-nc-tooltip={t("Next month")}
                     >
                         <ChevronDownNavIcon />
                     </button>

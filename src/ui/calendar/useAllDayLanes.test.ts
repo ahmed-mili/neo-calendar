@@ -1,4 +1,9 @@
-import { allDayBandRows, packAllDayLanes } from "./useAllDayLanes";
+import {
+    allDayBandRows,
+    hiddenBarCountByDay,
+    packAllDayLanes,
+    visibleLaneCount,
+} from "./useAllDayLanes";
 import { DisplayEvent } from "../types";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -116,6 +121,86 @@ describe("packAllDayLanes", () => {
     });
 });
 
+describe("visibleLaneCount", () => {
+    // Sept jours visibles encadrés par trois jours tampons, comme TimeGrid.
+    const BUFFER = 3;
+    const extended = Array.from(
+        { length: BUFFER * 2 + 7 },
+        (_, i) => new Date(2026, 8, 4 + i)
+    );
+    const FIRST = BUFFER;
+    const LAST = BUFFER + 6;
+
+    /** Évènement d'un jour posé à l'index donné DANS extended. */
+    function atIdx(id: string, idx: number, days = 1): DisplayEvent {
+        const start = extended[idx];
+        return {
+            id,
+            title: id,
+            start,
+            end: new Date(start.getTime() + days * DAY),
+            allDay: true,
+            color: "#888",
+        } as DisplayEvent;
+    }
+
+    it("ignore une barre qui n'est que dans le tampon", () => {
+        const ghost = atIdx("fantome", 0); // jour tampon de gauche
+        const seen = atIdx("visible", 0, 5); // tampon → premier jour visible
+        const result = packAllDayLanes(
+            [ghost, seen],
+            extended,
+            arrivedInOrder("fantome", "visible")
+        );
+
+        // Le packing reste inchangé : chaque barre garde sa lane.
+        expect(laneOf(result, "fantome")).toBe(0);
+        expect(laneOf(result, "visible")).toBe(1);
+        expect(result.laneCount).toBe(2);
+
+        // Mais la hauteur ne compte que ce qui touche la fenêtre visible.
+        expect(visibleLaneCount(result.bars, FIRST, LAST)).toBe(2);
+        // …et la barre fantôme seule ne fait grandir la bande de personne.
+        const alone = packAllDayLanes([ghost], extended, () => 0);
+        expect(alone.laneCount).toBe(1);
+        expect(visibleLaneCount(alone.bars, FIRST, LAST)).toBe(0);
+    });
+
+    it("n'ajoute pas de rangée pour un empilement hors écran", () => {
+        const bars = [
+            atIdx("tampon-a", 1),
+            atIdx("tampon-b", 1),
+            atIdx("ecran", FIRST + 2),
+        ];
+        const result = packAllDayLanes(
+            bars,
+            extended,
+            arrivedInOrder("tampon-a", "tampon-b", "ecran")
+        );
+
+        expect(result.laneCount).toBe(2);
+        expect(laneOf(result, "ecran")).toBe(0);
+        expect(visibleLaneCount(result.bars, FIRST, LAST)).toBe(1);
+    });
+
+    // Une barre laissée en lane 1 alors que la lane 0 est vide à l'écran est
+    // dessinée sur la deuxième rangée : elle doit exister.
+    it("garde les rangées sous une barre visible restée en lane haute", () => {
+        const result = packAllDayLanes(
+            [atIdx("tampon", 0, 4), atIdx("decale", FIRST, 1)],
+            extended,
+            arrivedInOrder("tampon", "decale")
+        );
+
+        expect(laneOf(result, "decale")).toBe(1);
+        expect(visibleLaneCount(result.bars, FIRST, LAST)).toBe(2);
+    });
+
+    it("ne compte rien quand la bande est vide", () => {
+        expect(visibleLaneCount([], FIRST, LAST)).toBe(0);
+    });
+});
+
 describe("allDayBandRows", () => {
     const rows = (
         laneCount: number,
@@ -148,5 +233,67 @@ describe("allDayBandRows", () => {
 
     it("shows one row collapsed, whatever it holds", () => {
         expect(rows(3, null, true)).toEqual({ contentRows: 4, visibleRows: 1 });
+    });
+});
+
+describe("hiddenBarCountByDay", () => {
+    const pack = (events: DisplayEvent[], ...order: string[]) =>
+        packAllDayLanes(events, dates, arrivedInOrder(...order)).bars;
+
+    it("ne compte rien quand tout tient dans la rangée visible", () => {
+        const bars = pack([allDay("a", 1), allDay("b", 3)], "a", "b");
+        expect(hiddenBarCountByDay(bars, 0, 4, 1).size).toBe(0);
+    });
+
+    // Le compte est le TOTAL du jour, pas seulement ce qui est caché : "1
+    // évènement" à côté d'une barre déjà visible laisserait croire qu'il n'y
+    // en a qu'un, quand il y en a deux.
+    it("compte le total du jour, pas seulement l'évènement caché", () => {
+        const bars = pack([allDay("a", 1), allDay("b", 1)], "a", "b");
+        expect([...hiddenBarCountByDay(bars, 0, 4, 1)]).toEqual([[1, 2]]);
+    });
+
+    it("compte tous les évènements du jour au-delà de la rangée visible", () => {
+        const bars = pack(
+            [allDay("a", 2), allDay("b", 2), allDay("c", 2), allDay("d", 2)],
+            "a",
+            "b",
+            "c",
+            "d"
+        );
+        expect(hiddenBarCountByDay(bars, 0, 4, 1).get(2)).toBe(4);
+    });
+
+    // Une barre pluri-jours cachée manque dans chacune des colonnes qu'elle
+    // traverse, pas seulement dans celle où elle commence.
+    it("compte une barre pluri-jours sur chacun de ses jours", () => {
+        const bars = pack(
+            [allDay("socle", 1, 4), allDay("longue", 1, 3)],
+            "socle",
+            "longue"
+        );
+        const counts = hiddenBarCountByDay(bars, 0, 4, 1);
+        expect([...counts].sort()).toEqual([
+            [1, 2],
+            [2, 2],
+            [3, 2],
+        ]);
+    });
+
+    // Les jours tampons ne sont pas à l'écran : une pastille posée sur eux
+    // annoncerait une colonne que personne ne voit.
+    it("ignore les jours hors de la fenêtre visible", () => {
+        const bars = pack([allDay("a", 0), allDay("b", 0)], "a", "b");
+        expect(hiddenBarCountByDay(bars, 1, 4, 1).size).toBe(0);
+    });
+
+    it("suit le nombre de rangées visibles quand il est plus grand", () => {
+        const bars = pack(
+            [allDay("a", 1), allDay("b", 1), allDay("c", 1)],
+            "a",
+            "b",
+            "c"
+        );
+        expect(hiddenBarCountByDay(bars, 0, 4, 2).get(1)).toBe(3);
     });
 });

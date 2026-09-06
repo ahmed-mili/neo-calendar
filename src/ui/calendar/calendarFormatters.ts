@@ -38,7 +38,7 @@ export function formatMonthTitleFull(date: Date): string {
     return `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
-/** e.g. "sam. 20 juin", or "Sat, Jun 20" — a date is not read in the same
+/** e.g. "sam 20 juin", or "Sat, Jun 20" — a date is not read in the same
     order in both languages, so the order follows the language too. */
 export function formatDayTitle(date: Date): string {
     const day = DAYS_SHORT[date.getDay()];
@@ -50,7 +50,7 @@ export function formatDayTitle(date: Date): string {
 }
 
 /**
- * A dated day as the panels write it: "Thu Jun 25" / "jeu. 25 juin".
+ * A dated day as the panels write it: "Thu Jun 25" / "jeu 25 juin".
  *
  * Notion-Calendar-style, with NO comma after the weekday — the en-US locale
  * inserts one and it reads better without. Pass `weekday: false` for the two

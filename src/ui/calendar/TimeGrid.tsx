@@ -24,7 +24,12 @@ import { TimeGridProps } from "./TimeGrid.types";
 import { useTimeGridDrag } from "./useTimeGridDrag";
 import { useTimeGridResize } from "./useTimeGridResize";
 import { useTimeGridSelection } from "./useTimeGridSelection";
-import { allDayBandRows, useAllDayLanes } from "./useAllDayLanes";
+import {
+    allDayBandRows,
+    hiddenBarCountByDay,
+    useAllDayLanes,
+    visibleLaneCount,
+} from "./useAllDayLanes";
 import { useAxisLock, easeOutCubic } from "./useAxisLock";
 import { useWheelZoom } from "./useWheelZoom";
 import { GRID_LINE_DEBUG } from "./debugFlags";
@@ -36,6 +41,7 @@ import {
     TimeGridAllDay,
     TimeGridDays,
 } from "./TimeGridSections";
+import { visibleColumnRange } from "./gridColumns";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
@@ -369,6 +375,56 @@ export default function TimeGrid(props: TimeGridProps) {
         return occupied.length ? Math.max(...occupied) + 1 : 0;
     }, [draftSlot, extendedDates, allDayLanes]);
 
+    /* Les colonnes de jour vraiment peintes, en index de `extendedDates`.
+       Mesurées à chaque rendu et à chaque défilement : la hauteur de la bande
+       des journées entières se règle sur ce qui est à l'écran, pas sur la
+       plage logique de sept jours, qui ne bouge qu'au rebasage. */
+    const [paintedColumns, setPaintedColumns] = useState<{
+        first: number;
+        last: number;
+    } | null>(null);
+    const measurePaintedColumns = React.useCallback(() => {
+        const el = scrollRootRef.current;
+        const range = el ? visibleColumnRange(el) : null;
+        setPaintedColumns((current) => {
+            if (current === null && range === null) return current;
+            if (
+                current &&
+                range &&
+                current.first === range.first &&
+                current.last === range.last
+            ) {
+                return current;
+            }
+            return range;
+        });
+    }, []);
+    useLayoutEffect(measurePaintedColumns);
+    useLayoutEffect(() => {
+        const main = scrollRootRef.current;
+        if (!main) return;
+        let frame = 0;
+        const update = () => {
+            frame = 0;
+            measurePaintedColumns();
+        };
+        const onScroll = () => {
+            if (frame) return;
+            frame = requestAnimationFrame(update);
+        };
+        main.addEventListener("scroll", onScroll, { passive: true });
+        const observer =
+            typeof ResizeObserver === "undefined"
+                ? null
+                : new ResizeObserver(update);
+        observer?.observe(main);
+        return () => {
+            main.removeEventListener("scroll", onScroll);
+            observer?.disconnect();
+            if (frame) cancelAnimationFrame(frame);
+        };
+    }, [measurePaintedColumns]);
+
     // Every row the band has to hold, draft included, plus the empty one it
     // always keeps underneath so an all-day event can be added by tapping the
     // day (see allDayBandRows).
@@ -376,14 +432,64 @@ export default function TimeGrid(props: TimeGridProps) {
     // The visible count is capped: it is the value that pushes the days grid
     // down, and it is read below to keep the grid from teleporting vertically
     // when the lane count changes during a horizontal shift.
+    // Les lanes comptées ici sont celles des jours à l'écran seulement : le
+    // packing court sur les jours tampons (stabilité des barres au défilement),
+    // mais une barre qui n'existe que dans le tampon ne doit pas ajouter une
+    // rangée vide à la bande (voir visibleLaneCount).
+    const allDayVisibleLanes = useMemo(() => {
+        if (dates.length === 0) return 0;
+        const fallbackFirst =
+            extendedDates.length === dates.length ? 0 : BUFFER_DAYS;
+        // Les colonnes mesurées d'abord : le défilement est continu, la plage
+        // logique `dates` ne se décale qu'une fois le seuil franchi, et entre
+        // deux rebasages un jour du tampon est bel et bien à l'écran. La plage
+        // logique ne sert que tant qu'il n'y a rien à mesurer (premier rendu,
+        // conteneur sans largeur).
+        const first = paintedColumns
+            ? Math.max(0, paintedColumns.first)
+            : fallbackFirst;
+        const last = paintedColumns
+            ? Math.min(extendedDates.length - 1, paintedColumns.last)
+            : fallbackFirst + dates.length - 1;
+        return visibleLaneCount(allDayLanes.bars, first, last);
+    }, [allDayLanes, dates.length, extendedDates.length, paintedColumns]);
+
     const { contentRows: allDayContentRows, visibleRows: allDayVisibleRows } =
         allDayBandRows({
-            laneCount: allDayLanes.laneCount,
+            laneCount: allDayVisibleLanes,
             draftLane: allDayDraftLane,
             collapsed: allDayCollapsed,
             maxRows: ALLDAY_MAX_ROWS,
         });
     const allDayHeight = allDayVisibleRows * allDayRowHeight();
+
+    /* Ce que le repli cache, jour par jour, sur les seules colonnes peintes —
+       la même fenêtre que celle qui décide de la hauteur de la bande, pour que
+       la pastille et la hauteur ne puissent pas se contredire. */
+    const allDayHiddenByDay = useMemo(() => {
+        if (!allDayCollapsed || dates.length === 0) return undefined;
+        const fallbackFirst =
+            extendedDates.length === dates.length ? 0 : BUFFER_DAYS;
+        const first = paintedColumns
+            ? Math.max(0, paintedColumns.first)
+            : fallbackFirst;
+        const last = paintedColumns
+            ? Math.min(extendedDates.length - 1, paintedColumns.last)
+            : fallbackFirst + dates.length - 1;
+        return hiddenBarCountByDay(
+            allDayLanes.bars,
+            first,
+            last,
+            allDayVisibleRows
+        );
+    }, [
+        allDayCollapsed,
+        allDayLanes,
+        allDayVisibleRows,
+        dates.length,
+        extendedDates.length,
+        paintedColumns,
+    ]);
 
     const overlapByDate = useMemo(() => {
         const map = new Map<string, ReturnType<typeof computeOverlapGroups>>();
@@ -759,6 +865,7 @@ export default function TimeGrid(props: TimeGridProps) {
                             contentRows={allDayContentRows}
                             draftLane={allDayDraftLane}
                             collapsed={allDayCollapsed}
+                            hiddenByDay={allDayHiddenByDay}
                             onToggleCollapse={onToggleAllDayCollapsed}
                             stickyTop={headerHeight}
                             scrollerWidthStyle={scrollerWidthStyle}

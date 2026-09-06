@@ -13,6 +13,17 @@ import {
  *  mid-swipe, a glide still running — and belongs to whoever is moving it. */
 const MAX_RESIDUAL_PX = 2;
 
+/** Le `dateKey` que la plage portera une fois décalée de `days` jours.
+ *
+ *  `toDateString()` est un format fixe, indépendant de la locale, et le seul
+ *  que ce hook reçoive de la grille — il est donc relu tel quel. */
+function keyAfterShift(dateKey: string, days: number): string | null {
+    const first = new Date(dateKey);
+    if (Number.isNaN(first.getTime())) return null;
+    first.setDate(first.getDate() + days);
+    return first.toDateString();
+}
+
 interface Options {
     scrollRef: React.RefObject<HTMLElement>;
     daysPerView: number;
@@ -45,6 +56,7 @@ export function useInfiniteScroll(opts: Options): void {
 
     const dayWidthRef = useRef(0);
     const pendingShiftRef = useRef(0);
+    const previousDateKeyRef = useRef(dateKey);
     const rafRef = useRef<number | null>(null);
     const onShiftDaysRef = useRef(onShiftDays);
     onShiftDaysRef.current = onShiftDays;
@@ -58,15 +70,24 @@ export function useInfiniteScroll(opts: Options): void {
     // After dateKey change (external nav or a shift we triggered), restore
     // scroll position synchronously before paint.
     useLayoutEffect(() => {
+        const previousDateKey = previousDateKeyRef.current;
+        const pendingShift = pendingShiftRef.current;
+        previousDateKeyRef.current = dateKey;
+        pendingShiftRef.current = 0;
+
         const el = scrollRef.current;
         if (!el) return;
         measure();
         const dw = dayWidthRef.current;
         if (dw <= 0) return;
 
-        if (pendingShiftRef.current !== 0) {
-            el.scrollLeft -= pendingShiftRef.current * dw;
-            pendingShiftRef.current = 0;
+        // Une navigation externe peut remplacer le shift attendu : sa
+        // compensation ne vaut que si la plage a vraiment bougé d’autant.
+        if (
+            pendingShift !== 0 &&
+            keyAfterShift(previousDateKey, pendingShift) === dateKey
+        ) {
+            el.scrollLeft -= pendingShift * dw;
             // The subtraction is meant to leave the grid exactly where it
             // looked a moment ago, and now that a day's width is the distance
             // between two columns it does. This takes off whatever is left

@@ -39,20 +39,20 @@ describe("ICS links wording", () => {
 describe("tList", () => {
     it("reads the months in French", () => {
         applyLanguage("fr");
-        expect(tList("months.short", [])[0]).toBe("janv.");
+        expect(tList("months.short", [])[0]).toBe("janv");
         expect(tList("months.short", [])).toHaveLength(12);
     });
 
     it("reads the days in French", () => {
         applyLanguage("fr");
         expect(tList("days.short", [])).toEqual([
-            "dim.",
-            "lun.",
-            "mar.",
-            "mer.",
-            "jeu.",
-            "ven.",
-            "sam.",
+            "dim",
+            "lun",
+            "mar",
+            "mer",
+            "jeu",
+            "ven",
+            "sam",
         ]);
     });
 

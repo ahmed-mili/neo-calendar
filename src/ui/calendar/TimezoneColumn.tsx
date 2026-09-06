@@ -69,7 +69,8 @@ export function TimezoneColumnHeader({
     return (
         <div
             className="nc-tz-corner-cell nc-tz-corner-btn"
-            title={timezone}
+            aria-label={timezone}
+            data-nc-tooltip={timezone}
             role="button"
             tabIndex={0}
             onClick={(event) => {

@@ -128,7 +128,8 @@ export default function ShortcutsPanel({
                     <button
                         type="button"
                         className="nc-shortcuts-search-clear"
-                        title={t("Clear search")}
+                        aria-label={t("Clear search")}
+                        data-nc-tooltip={t("Clear search")}
                         onClick={() => setQuery("")}
                     >
                         <XIcon size={12} />
@@ -154,7 +155,7 @@ export default function ShortcutsPanel({
                                 <div
                                     className="nc-shortcuts-row"
                                     key={row.id}
-                                    title={
+                                    data-nc-tooltip={
                                         row.remappable
                                             ? undefined
                                             : FIXED_KEY_TITLE

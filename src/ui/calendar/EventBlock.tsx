@@ -48,6 +48,12 @@ export default function EventBlock({
         id: `event-${event.id}`,
         data: { event },
         disabled: !event.editable,
+        // dnd-kit makes draggables a native tab stop by default (no keyboard
+        // sensor is registered — dragging is mouse/touch-only here). A
+        // focusable block inside the horizontally virtualized week grid gets
+        // auto-scrolled into view by the browser on click, which can cross
+        // useInfiniteScroll's boundary and shift the whole view a week over.
+        attributes: { tabIndex: -1 },
     });
 
     const handleContextMenu = useCallback(
@@ -212,7 +218,7 @@ export default function EventBlock({
                        at display time; nothing of it is written down. */
                     <span
                         className="nc-event-series-start"
-                        title={t("Start of the series")}
+                        data-nc-tooltip={t("Start of the series")}
                         aria-label={t("Start of the series")}
                     >
                         <ChevronRightIcon size={11} />

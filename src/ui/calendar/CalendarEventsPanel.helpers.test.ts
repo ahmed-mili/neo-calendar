@@ -42,16 +42,16 @@ describe("panel date labels", () => {
     // the tests leave at its default.
     it("omits the year inside the current year", () => {
         expect(formatPanelDay(new Date("2026-11-01T00:00:00"), 2026)).toBe(
-            "dim. 1 nov."
+            "dim 1 nov"
         );
     });
 
     it("adds the year once the date leaves the current one", () => {
         expect(formatPanelDay(new Date("2027-01-01T00:00:00"), 2026)).toBe(
-            "ven. 1 janv. 2027"
+            "ven 1 janv 2027"
         );
         expect(formatPanelDay(new Date("2025-12-25T00:00:00"), 2026)).toBe(
-            "jeu. 25 déc. 2025"
+            "jeu 25 déc 2025"
         );
     });
 
@@ -67,7 +67,7 @@ describe("panel date labels", () => {
             end: new Date("2027-03-29T00:00:00"),
             isTask: false,
         });
-        expect(card(holiday)).toBe("dim. 28 mars 2027");
+        expect(card(holiday)).toBe("dim 28 mars 2027");
     });
 
     it("carries the year onto both ends of a range that crosses years", () => {
@@ -77,7 +77,7 @@ describe("panel date labels", () => {
             end: new Date("2027-01-03T00:00:00"),
             isTask: false,
         });
-        expect(card(spanning)).toBe("31 déc. → 2 janv. 2027");
+        expect(card(spanning)).toBe("31 déc → 2 janv 2027");
     });
 
     it("keeps times alongside the dated label", () => {
@@ -85,7 +85,7 @@ describe("panel date labels", () => {
             start: new Date("2027-02-03T09:00:00"),
             end: new Date("2027-02-03T10:30:00"),
         });
-        expect(card(timed)).toBe("mer. 3 févr. 2027, 09:00 – 10:30");
+        expect(card(timed)).toBe("mer 3 févr 2027, 09:00 – 10:30");
     });
 });
 
@@ -251,7 +251,7 @@ describe("calendar events panel helpers", () => {
                 start: "2026-07-01",
                 end: "2026-07-31",
             })
-        ).toBe("1 juil. – 31 juil. 2026");
+        ).toBe("1 juil – 31 juil 2026");
     });
 });
 

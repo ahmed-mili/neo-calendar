@@ -344,7 +344,7 @@ export default function CalendarEventsPanel({
                         </span>
                         <span
                             className="nc-cep-header-name"
-                            title={calendar.name}
+                            data-nc-tooltip={calendar.name}
                         >
                             {calendar.name}
                         </span>
@@ -355,7 +355,8 @@ export default function CalendarEventsPanel({
                             className={`nc-cep-icon-btn${
                                 openMenu === "more" ? " nc-active" : ""
                             }`}
-                            title={t("More options")}
+                            aria-label={t("More options")}
+                            data-nc-tooltip={t("More options")}
                             aria-expanded={openMenu === "more"}
                             onClick={() => toggleMenu("more")}
                         >
@@ -366,7 +367,8 @@ export default function CalendarEventsPanel({
                             className={`nc-cep-icon-btn${
                                 openMenu === "settings" ? " nc-active" : ""
                             }`}
-                            title={t("Filters")}
+                            aria-label={t("Filters")}
+                            data-nc-tooltip={t("Filters")}
                             aria-expanded={openMenu === "settings"}
                             onClick={() => toggleMenu("settings")}
                         >
@@ -375,7 +377,8 @@ export default function CalendarEventsPanel({
                         <button
                             type="button"
                             className="nc-cep-icon-btn"
-                            title={t("Add event")}
+                            aria-label={t("Add event")}
+                            data-nc-tooltip={t("Add event")}
                             disabled={!calendar.editable}
                             onClick={() => onAddEvent(calendar.id)}
                         >
@@ -390,7 +393,10 @@ export default function CalendarEventsPanel({
                                 className={`nc-cep-icon-btn${
                                     pinned ? " nc-active" : ""
                                 }`}
-                                title={
+                                aria-label={
+                                    pinned ? t("Unpin panel") : t("Pin panel")
+                                }
+                                data-nc-tooltip={
                                     pinned ? t("Unpin panel") : t("Pin panel")
                                 }
                                 aria-pressed={pinned}
@@ -409,7 +415,10 @@ export default function CalendarEventsPanel({
                         <button
                             type="button"
                             className="nc-cep-icon-btn"
-                            title={
+                            aria-label={
+                                onPhone ? t("Back to calendars") : t("Collapse")
+                            }
+                            data-nc-tooltip={
                                 onPhone ? t("Back to calendars") : t("Collapse")
                             }
                             onClick={
@@ -442,7 +451,8 @@ export default function CalendarEventsPanel({
                         <button
                             type="button"
                             className="nc-cep-search-clear"
-                            title={t("Clear search")}
+                            aria-label={t("Clear search")}
+                            data-nc-tooltip={t("Clear search")}
                             onClick={() => setSearchQuery("")}
                         >
                             <XIcon size={12} />
@@ -468,7 +478,7 @@ export default function CalendarEventsPanel({
                         <div className="nc-cep-summary-period">
                             <CalendarGlyphIcon size={14} />
                             <span>{t("Period")}</span>
-                            <strong title={periodLabel}>{periodLabel}</strong>
+                            <strong data-nc-tooltip={periodLabel}>{periodLabel}</strong>
                         </div>
                     </div>
                 )}
@@ -605,7 +615,8 @@ export default function CalendarEventsPanel({
                                                 : "root"
                                         )
                                     }
-                                    title={t("Back")}
+                                    aria-label={t("Back")}
+                                    data-nc-tooltip={t("Back")}
                                 >
                                     <ChevronLeftIcon size={14} />
                                 </button>

@@ -63,7 +63,7 @@ describe("the first occurrence of a series", () => {
         const html = render({ ...occurrence, isSeriesStart: true });
 
         expect(html).toContain("nc-event-series-start");
-        expect(html).toContain('title="Début de la série"');
+        expect(html).toContain('data-nc-tooltip="Début de la série"');
     });
 
     it("says it in the language the app is set to", () => {
@@ -71,7 +71,7 @@ describe("the first occurrence of a series", () => {
 
         const html = render({ ...occurrence, isSeriesStart: true });
 
-        expect(html).toContain('title="Start of the series"');
+        expect(html).toContain('data-nc-tooltip="Start of the series"');
     });
 
     it("leaves the occurrences that follow unmarked", () => {

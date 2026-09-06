@@ -127,7 +127,7 @@ export function DescriptionAddLinkDialog({
                     type="button"
                     className="nc-description-link-dialog-close"
                     aria-label={t("Close")}
-                    title={t("Close")}
+                    data-nc-tooltip={t("Close")}
                     disabled={saving}
                     onClick={close}
                 >

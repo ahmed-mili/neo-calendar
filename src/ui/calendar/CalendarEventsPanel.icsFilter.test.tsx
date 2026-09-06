@@ -113,7 +113,7 @@ describe("CalendarEventsPanel ICS link filter", () => {
         expect(document.body.textContent).toContain("Autre lien");
         expect(document.body.textContent).toContain("Note perso");
 
-        click(document.body.querySelector('[title="Filters"]'));
+        click(document.body.querySelector('[data-nc-tooltip="Filters"]'));
         click(findByText("ICS links"));
 
         const feed1Row = findByText("EFREI");

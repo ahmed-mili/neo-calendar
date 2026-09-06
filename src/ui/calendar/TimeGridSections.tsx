@@ -169,7 +169,12 @@ export function LeftRail({
                             className="nc-allday-collapse-btn"
                             role="button"
                             tabIndex={0}
-                            title={
+                            aria-label={
+                                allDayCollapsed
+                                    ? t("Expand all-day events")
+                                    : t("Collapse all-day events")
+                            }
+                            data-nc-tooltip={
                                 allDayCollapsed
                                     ? t("Expand all-day events")
                                     : t("Collapse all-day events")
@@ -296,7 +301,8 @@ export const TimeGridHeaders = React.forwardRef<HTMLDivElement, HeadersProps>(
                             </span>
                             <button
                                 className="nc-timegrid-header-add"
-                                title={t("New event")}
+                                aria-label={t("New event")}
+                                data-nc-tooltip={t("New event")}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     const start = new Date(date);
@@ -334,6 +340,10 @@ interface AllDayProps {
     /** Row a pending all-day draft stands on, under its day's own events. */
     draftLane?: number | null;
     collapsed?: boolean;
+    /** Par index de jour (dans `extendedDates`), le nombre d'évènements que le
+        repli garde hors de vue. Calculé dans TimeGrid, qui seul connaît les
+        colonnes réellement peintes. */
+    hiddenByDay?: Map<number, number>;
     onToggleCollapse?: () => void;
     stickyTop?: number;
     scrollerWidthStyle: string;
@@ -367,6 +377,7 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
             contentRows,
             draftLane,
             collapsed,
+            hiddenByDay,
             onToggleCollapse,
             stickyTop,
             scrollerWidthStyle,
@@ -422,12 +433,19 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
         //
         // Collapsing now only shortens the row: same track, same lanes, same
         // geometry, and the rows past the first are simply out of view. The
-        // height is decided in TimeGrid (allDayVisibleRows) and the row scrolls
-        // internally, so they can still be reached without unfolding.
+        // height is decided in TimeGrid (allDayVisibleRows).
+        //
+        // Replié, le scroll interne est coupé : y accéder sans le dire ne
+        // valait rien tant qu'aucun signe ne montrait qu'il y avait plus à
+        // voir. Le badge N-événements (ci-dessous) est maintenant ce signe,
+        // et son clic déplie franchement la bande plutôt que de la faire
+        // défiler en douce.
 
         return (
             <div
-                className="nc-allday-row"
+                className={`nc-allday-row${
+                    collapsed ? " nc-allday-row--collapsed" : ""
+                }`}
                 ref={ref}
                 style={{
                     ...(stickyTop !== undefined ? { top: stickyTop } : {}),
@@ -484,28 +502,50 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
 
                     {/* Stacked lane bars */}
                     <div className="nc-allday-lanes">
-                        {allDayLanes.bars.map((bar) => (
-                            <EventBlock
-                                key={bar.event.id}
-                                event={bar.event}
-                                compact
-                                timeFormat24h={timeFormat24h}
-                                onEventClick={onEventClick}
-                                onContextMenu={onContextMenu}
-                                onToggleTask={onToggleTask}
-                                style={{
-                                    position: "absolute",
-                                    top:
-                                        bar.lane * allDayRowHeight() +
-                                        EVENT_VGAP / 2,
-                                    height: allDayRowHeight() - EVENT_VGAP,
-                                    left: `${(bar.startIdx / len) * 100}%`,
-                                    width: `calc(${
-                                        (bar.span / len) * 100
-                                    }% - ${OVERLAP_COL_GAP}px)`,
-                                }}
-                            />
-                        ))}
+                        {allDayLanes.bars.map((bar) => {
+                            // Un badge « N évènements » couvre ce jour : la
+                            // barre garde sa géométrie (lane, span) mais ne
+                            // se peint plus, sinon son nom se lirait derrière
+                            // le texte du badge, transparent par-dessus elle
+                            // (repère Notion : la case ne montre plus aucune
+                            // couleur d'évènement une fois le compte affiché).
+                            const overlapsHiddenDay =
+                                collapsed &&
+                                hiddenByDay &&
+                                Array.from(
+                                    { length: bar.span },
+                                    (_, i) => bar.startIdx + i
+                                ).some((idx) => hiddenByDay.has(idx));
+                            return (
+                                <EventBlock
+                                    key={bar.event.id}
+                                    event={bar.event}
+                                    compact
+                                    timeFormat24h={timeFormat24h}
+                                    onEventClick={onEventClick}
+                                    onContextMenu={onContextMenu}
+                                    onToggleTask={onToggleTask}
+                                    style={{
+                                        position: "absolute",
+                                        top:
+                                            bar.lane * allDayRowHeight() +
+                                            EVENT_VGAP / 2,
+                                        height:
+                                            allDayRowHeight() - EVENT_VGAP,
+                                        left: `${(bar.startIdx / len) * 100}%`,
+                                        width: `calc(${
+                                            (bar.span / len) * 100
+                                        }% - ${OVERLAP_COL_GAP}px)`,
+                                        ...(overlapsHiddenDay
+                                            ? {
+                                                  visibility: "hidden",
+                                                  pointerEvents: "none",
+                                              }
+                                            : {}),
+                                    }}
+                                />
+                            );
+                        })}
                         {allDayPreviews.map((p) => (
                             <div
                                 key={p.id}
@@ -523,6 +563,64 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                 }}
                             />
                         ))}
+                        {/* Ce que le repli garde hors de vue, annoncé dans la
+                            colonne du jour concerné — à droite de la rangée
+                            visible, par-dessus la barre qui occupe déjà toute
+                            la largeur du jour. Un élément EN PLUS : aucune
+                            barre ne change de place, de taille ni de lane.
+
+                            Le compte est le TOTAL du jour, pas seulement ce
+                            qui est caché : la barre visible fait déjà partie
+                            du compte, sinon « 1 événement » à côté d'elle
+                            laisserait croire qu'il n'y en a qu'un, quand il y
+                            en a deux. `hiddenBarCountByDay` ne renvoie donc
+                            jamais moins de 2 ici — le singulier `t("1 event")`
+                            reste géré pour rester correct si la formule change
+                            un jour. */}
+                        {collapsed &&
+                            hiddenByDay &&
+                            [...hiddenByDay].map(([idx, count]) => (
+                                <button
+                                    key={`nc-allday-hidden-${idx}`}
+                                    type="button"
+                                    className="nc-allday-hidden-count"
+                                    // Même geste que le chevron : la bande n'a
+                                    // qu'un seul état déplié, jour par jour ou
+                                    // globalement — ce badge n'est qu'une
+                                    // deuxième cible pour l'atteindre, sur le
+                                    // jour où il manque justement quelque
+                                    // chose à voir (repère Notion : cliquer
+                                    // « N events » déplie toute la bande, pas
+                                    // seulement cette colonne).
+                                    //
+                                    // Il couvre toute la CASE du jour — sans
+                                    // le renfoncement des barres, qui laissent
+                                    // OVERLAP_COL_GAP entre deux évènements
+                                    // côte à côte — et l'efface complètement à
+                                    // l'œil — même repère que Notion : un jour
+                                    // à plusieurs évènements montre CE compte,
+                                    // pas le nom du premier, les deux se
+                                    // disputant sinon le même espace dans une
+                                    // colonne étroite. La barre garde sa
+                                    // géométrie exacte en dessous (lane, span
+                                    // inchangés) : seul ce qui se peint
+                                    // par-dessus change.
+                                    onClick={onToggleCollapse}
+                                    style={{
+                                        top: 0,
+                                        height: allDayRowHeight(),
+                                        left: `${(idx / len) * 100}%`,
+                                        width: `${(1 / len) * 100}%`,
+                                    }}
+                                >
+                                    {count === 1
+                                        ? t("1 event")
+                                        : t("{n} events").replace(
+                                              "{n}",
+                                              String(count)
+                                          )}
+                                </button>
+                            ))}
                     </div>
                 </div>
             </div>
