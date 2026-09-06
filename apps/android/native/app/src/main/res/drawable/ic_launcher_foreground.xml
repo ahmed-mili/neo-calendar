@@ -1,3 +1,7 @@
+<!-- AdaptiveIconDrawable renders each layer in a 108dp canvas while only the
+     inner 72dp is guaranteed to be visible. This PNG already contains the
+     complete rounded-square icon, so keep it inside that viewport instead of
+     zooming into the calendar artwork. -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@drawable/neo_calendar_icon"
-    android:inset="4%" />
+    android:inset="18%" />
