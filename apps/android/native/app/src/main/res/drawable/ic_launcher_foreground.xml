@@ -4,4 +4,4 @@
      zooming into the calendar artwork. -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@drawable/neo_calendar_icon"
-    android:inset="18%" />
+    android:inset="19%" />
