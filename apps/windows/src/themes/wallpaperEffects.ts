@@ -141,9 +141,17 @@ export function applyWallpaperEffects(effects: WallpaperEffects): void {
 
     const surfaceRgb = readThemeSurfaceRgb();
 
+    /* UNE seule opacite de conteneur pour toute l'application. Le chrome --
+       la barre du haut, le titre du mois, la barre d'agenda -- portait
+       `+ 0,08`, si bien que la barre se lisait comme une matiere plus dense
+       que la grille juste dessous, avec une marche nette a leur jonction.
+       Mesure a l'ecran : 0,63 effectif contre 0,55 regle.
+
+       Le ruban lateral est la SEULE exception, et il reste plus dense a
+       dessein : c'est une colonne de navigation, pas une surface de contenu. */
     const gridAlpha = normalized.containerOpacity;
 
-    const chromeAlpha = Math.min(1, normalized.containerOpacity + 0.08);
+    const chromeAlpha = normalized.containerOpacity;
 
     const sidebarAlpha = Math.min(1, normalized.containerOpacity + 0.14);
 
