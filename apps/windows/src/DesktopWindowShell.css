@@ -21,13 +21,24 @@
     height: 100%;
     min-height: 0;
     overflow: hidden;
+    /* La barre flotte AU-DESSUS du contenu au lieu de lui voler sa premiere
+       ligne : c'est ce qui permet au fond d'ecran de passer dessous. */
+    position: relative;
 }
 
 .nc-desktop-window-shell .nc-desktop-titlebar {
     display: flex;
-    flex: none;
     align-items: center;
     height: var(--nc-window-bar-height);
+    /* Posee PAR-DESSUS le contenu, pas a cote de lui. En element de flex elle
+       prenait 45 px sur la hauteur, et le fond d'ecran — peint par le
+       calendrier, donc sous elle — s'arretait a son bord : la barre avait beau
+       etre transparente, il n'y avait rien a voir derriere. */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
     /* 29.5 px from the right edge to the centre of the close glyph, minus half
        a 24 px button. */
     padding-right: 17.5px;
@@ -109,8 +120,63 @@
     flex: 1;
     flex-direction: column;
     min-height: 0;
+    /* Le contenu occupe TOUTE la hauteur, fond d'ecran compris, et se decale
+       de la hauteur de barre pour ne rien glisser dessous. */
+    padding-top: var(--nc-window-bar-height);
+    box-sizing: border-box;
 }
 
 .nc-desktop-window-shell .nc-desktop-window-content > * {
     min-height: 0;
+}
+
+/*
+ * Le fond d'ecran passe DERRIERE la barre.
+ *
+ * Il etait peint par `.nc-desktop--calendar::before`, dans le contenu : la
+ * barre avait beau etre transparente, elle ne decouvrait que la couleur unie
+ * du fond de fenetre — mesure a l'ecran, exactement `--nc-bg-crust`. Cette
+ * couche-ci est posee sur le shell lui-meme, donc sous la barre ET sous le
+ * contenu, et reprend les MEMES variables : meme image, meme voile, memes
+ * reglages de luminosite et de flou. Rien n'est duplique a la main.
+ */
+.nc-desktop-window-shell::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    inset: -32px;
+    pointer-events: none;
+
+    background-color: var(--nc-bg-crust, var(--background-primary));
+    background-image:
+        var(
+            --nc-selected-wallpaper-overlay,
+            var(
+                --nc-wallpaper-overlay,
+                linear-gradient(
+                    rgba(13, 15, 28, 0.1),
+                    rgba(13, 15, 28, 0.18)
+                )
+            )
+        ),
+        var(--nc-selected-wallpaper, var(--nc-wallpaper));
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+
+    filter: brightness(var(--nc-wallpaper-brightness, 0.7))
+        blur(var(--nc-wallpaper-blur, 5px));
+
+    transform: scale(1.04);
+    transform-origin: center;
+}
+
+/* La barre et le contenu passent au-dessus de cette couche. */
+.nc-desktop-window-shell > * {
+    position: relative;
+    z-index: 1;
+}
+
+.nc-desktop-window-shell .nc-desktop-titlebar {
+    z-index: 5;
 }
