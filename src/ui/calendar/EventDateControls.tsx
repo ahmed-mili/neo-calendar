@@ -8,6 +8,7 @@ import {
 } from "./Icons";
 import { RepeatIcon } from "./EventPanelIcons";
 import { placeFlyout } from "./flyoutPlacement";
+import { useFlyoutFollow } from "./useFlyoutFollow";
 import { PresetKey } from "./recurrence";
 import { setReminderDisplayAllDay } from "./reminderChoices";
 import { t } from "../i18n";
@@ -114,7 +115,7 @@ export function DateOptionsRow({
     // exactly the same.
     setReminderDisplayAllDay(allDay);
 
-    const openMenu = () => {
+    const place = () => {
         const anchor = rowRef.current?.getBoundingClientRect();
         if (anchor) {
             // Same placement contract as CalendarRow: same gap, screen margin,
@@ -132,8 +133,15 @@ export function DateOptionsRow({
                 maxHeight: p.maxHeight,
             });
         }
+    };
+
+    const openMenu = () => {
+        place();
         setOpen(true);
     };
+
+    /* La fiche bouge sous le menu : il suit sa ligne plutôt que l'écran. */
+    useFlyoutFollow(open, rowRef, place);
 
     React.useEffect(() => {
         if (!open) return;

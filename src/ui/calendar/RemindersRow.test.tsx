@@ -38,6 +38,43 @@ describe("RemindersRow", () => {
         });
     }
 
+    /* La fiche glisse, se traîne au doigt et défile sous ses propres menus :
+       le menu des rappels restait où la ligne était, posé au milieu de la
+       grille. */
+    it("garde son menu collé à la ligne quand la fiche bouge", () => {
+        let top = 600;
+        const frames: FrameRequestCallback[] = [];
+        jest.spyOn(window, "requestAnimationFrame").mockImplementation(
+            (frame: FrameRequestCallback) => frames.push(frame)
+        );
+        jest.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+        jest.spyOn(
+            HTMLElement.prototype,
+            "getBoundingClientRect"
+        ).mockImplementation(
+            () => ({ top, bottom: top + 40, left: 12, width: 300 } as DOMRect)
+        );
+        try {
+            render([]);
+            act(() => {
+                (host.querySelector(".nc-panel-reminders") as HTMLElement).click();
+            });
+            const menu = document.querySelector(
+                ".nc-reminders-menu"
+            ) as HTMLElement;
+            const opened = menu.style.top || menu.style.bottom;
+
+            top = 300; // la feuille a glissé vers son ancre
+            const due = frames.splice(0, frames.length);
+            act(() => due.forEach((frame) => frame(0)));
+
+            const moved = menu.style.top || menu.style.bottom;
+            expect(moved).not.toBe(opened);
+        } finally {
+            jest.restoreAllMocks();
+        }
+    });
+
     it("shows the placeholder while empty", () => {
         render(undefined);
         expect(host.textContent).toContain("Rappels");

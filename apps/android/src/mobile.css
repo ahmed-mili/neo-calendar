@@ -613,16 +613,31 @@ body.nc-platform-android .nc-event-popup {
      * where it is laid out.
      */
     /*
-     * The last resort is the resting anchor, never the top one.
+     * Le dernier recours est hors écran, et c'est là tout ce qu'il décide.
      *
-     * `0px` here means "filling the screen", so any moment the anchor was not
-     * on the element — before the first layout effect, or after an effect was
-     * torn down while the sheet was still up — the sheet sprang open instead of
-     * staying put. Closing it that way is what made the X grow it. The
-     * stylesheet can work the resting height out on its own; the gesture only
-     * needs pixels for its own arithmetic.
+     * Il ne sert qu'à un seul instant : entre l'insertion du nœud et la
+     * première écriture de `--nc-sheet-offset` par useSheetDrag. Ensuite la
+     * feuille porte toujours l'une des deux variables — le nettoyage de l'effet
+     * laisse même la sienne en place exprès, pour qu'une feuille qui s'en va ne
+     * se remette pas à bouger. Cet instant-là, c'est l'arrivée : la réponse
+     * juste est donc « pas encore entrée ».
+     *
+     * Elle avait valu `0px` (plein écran) : la feuille bondissait ouverte.
+     * Elle a ensuite valu l'ancre de repos, 39 % ou 50 % de la hauteur, ce qui
+     * paraissait prudent mais ne l'était pas : lire la géométrie de n'importe
+     * quel élément fige la valeur calculée du `transform` de celle-ci, et le
+     * premier à le faire est un effet de mise en page de `TimeGrid` — enfant,
+     * donc exécuté AVANT celui de la feuille. La transition d'ouverture partait
+     * de ce repli et DESCENDAIT vers son ancre. Relevé image par image sur le
+     * brouillon Android, 780 px de haut : 304 px, 369, 436… et 570 px à
+     * l'arrivée. C'est l'ouverture « qui monte trop haut puis se remet en
+     * place », signalée trois fois — une @keyframes le 2026-09-05, le focus
+     * automatique de la WebView, puis ce repli le 2026-09-07.
+     *
+     * Les deux autres déclarations de cette variable plus bas disent la même
+     * chose, pour la même raison. Ne pas y remettre une fraction de hauteur.
      */
-    --nc-sheet-rest-fallback: 39%;
+    --nc-sheet-rest-fallback: 100%;
     transform: translate3d(
         0,
         var(
@@ -1802,8 +1817,10 @@ body.nc-platform-android
         0 -1px 0 rgba(255, 255, 255, 0.05) !important;
 
     /* Same grab gesture as any other sheet: `none` here pinned the draft sheet
-       in place while the finger moved. A draft rests lower than an event. */
-    --nc-sheet-rest-fallback: 50%;
+       in place while the finger moved. A draft rests lower than an event.
+       Hors écran tant que le geste n'a rien écrit — voir la déclaration
+       commentée plus haut. */
+    --nc-sheet-rest-fallback: 100%;
     transform: translate3d(
         0,
         var(
@@ -3214,6 +3231,18 @@ body.nc-platform-android #nc-android-overlay-root .nc-event-popup-backdrop {
     pointer-events: none !important;
 }
 
+/* Rien n'est flou en dehors de la feuille.
+   ────────────────────────────────────────
+   Le voile floutait le plein écran à 6 px : la grille restait lisible derrière
+   la feuille, mais floue, et c'est un flou que le réglage ne pilote pas. Sur
+   téléphone la feuille monte du bas et occupe l'écran ; ce qui dépasse d'elle
+   doit rester net. Le verre de la feuille elle-même est conservé — c'est le
+   seul flou de l'écran. */
+body.nc-platform-android .nc-event-popup-backdrop {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
 body.nc-platform-android #nc-android-overlay-root
     .nc-cal-select-menu,
 body.nc-platform-android #nc-android-overlay-root
@@ -3712,8 +3741,13 @@ body.nc-platform-android
      * content at the top so the keyboard fills the space underneath. It is
      * laid out at its tall anchor and pushed down to its resting one, so both
      * are the same box at two translations — nothing is resized mid-gesture.
+     *
+     * C'est cette déclaration-ci que la feuille lit vraiment, les deux plus
+     * haut étant battues par le `#id` du sélecteur : hors écran tant que le
+     * geste n'a rien écrit, pour la raison expliquée à la première d'entre
+     * elles.
      */
-    --nc-sheet-rest-fallback: 39%;
+    --nc-sheet-rest-fallback: 100%;
     transform: translate3d(
         0,
         var(
@@ -4742,6 +4776,44 @@ body.nc-platform-android .nc-panel-body .nc-panel-row.nc-panel-row-desc {
     margin-right: 10px;
 }
 /* NEO_PANEL_ICON_COLUMN_ANDROID_V1_END */
+
+/* NEO_PANEL_SECTION_RULE_ANDROID_V1_START
+ * La ligne qui sépare deux blocs part de la colonne d'icônes.
+ *
+ * Référence : la feuille d'évènement de Notion Calendar, mesurée sur la capture
+ * du 2026-09-07. Le trait y commence exactement au bord gauche des glyphes —
+ * les deux tombent au même pixel, 41, pour un panneau qui commence à 25 — et
+ * court jusqu'au bord droit. Le nôtre allait d'un bord à l'autre et découpait
+ * la feuille en tranches ; parti de la colonne d'icônes, il ne sépare plus que
+ * ce qui est écrit.
+ *
+ * 26 px, c'est là que commence la case du glyphe : les 10 px de marge que
+ * `.nc-panel-row` prend sur le téléphone, plus les 16 px de son remplissage.
+ * Un test tient cette addition, sans quoi déplacer la colonne laisserait le
+ * trait derrière elle.
+ *
+ * La bordure reste en place, transparente : c'est elle qui porte le pixel de
+ * hauteur séparant les blocs, et le trait se peint par-dessus. La retirer
+ * remonterait tout le contenu d'un pixel.
+ */
+body.nc-platform-android .nc-panel-title-row + .nc-panel-section,
+body.nc-platform-android .nc-panel-section + .nc-panel-section {
+    position: relative;
+    border-top-color: transparent;
+}
+
+body.nc-platform-android .nc-panel-title-row + .nc-panel-section::before,
+body.nc-platform-android .nc-panel-section + .nc-panel-section::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    right: 0;
+    left: 26px;
+    height: 1px;
+    background: var(--nc-border);
+    pointer-events: none;
+}
+/* NEO_PANEL_SECTION_RULE_ANDROID_V1_END */
 
 /* ── ICS links panel on Android ───────────────────────────────────────
    Same 22px icon column as the rest of the phone's chrome, a full-width

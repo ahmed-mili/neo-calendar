@@ -103,6 +103,7 @@ import { imageMimeFor, isImageTarget } from "./pastedAttachment";
 import { isAndroidRuntime } from "./CalendarUtils";
 import { decideLinkedFileTap, LinkedFileTap } from "./linkedFileTap";
 import { swallowNextClick } from "./swallowNextClick";
+import { useFlyoutFollow } from "./useFlyoutFollow";
 import { RecurringEditScope } from "./recurringEdit";
 import type { RecurringEditChange } from "./recurringEditChanges";
 
@@ -230,6 +231,11 @@ export function PanelHeader({
             setKindOpen(false);
             return;
         }
+        placeKindMenu();
+        setKindOpen(true);
+    };
+
+    const placeKindMenu = () => {
         const rect = kindTriggerRef.current?.getBoundingClientRect();
         if (!rect) return;
         const placement = placeFlyout(rect, window.innerHeight, {
@@ -249,8 +255,10 @@ export function PanelHeader({
             bottom: placement.bottom ?? undefined,
             maxHeight: placement.maxHeight,
         });
-        setKindOpen(true);
     };
+
+    /* La fiche bouge sous le menu : il suit son bouton plutôt que l'écran. */
+    useFlyoutFollow(kindOpen, kindTriggerRef, placeKindMenu);
 
     React.useEffect(() => {
         if (!kindOpen) return;
@@ -1128,7 +1136,7 @@ function NcSelect({ value, options, onChange, className }: NcSelectProps) {
     const btnRef = React.useRef<HTMLButtonElement>(null);
     const menuRef = React.useRef<HTMLDivElement>(null);
 
-    const openMenu = () => {
+    const place = () => {
         const br = btnRef.current?.getBoundingClientRect();
         if (br) {
             // placeFlyout bascule le menu au-dessus du bouton quand le dessous
@@ -1148,8 +1156,15 @@ function NcSelect({ value, options, onChange, className }: NcSelectProps) {
                 maxHeight: p.maxHeight,
             });
         }
+    };
+
+    const openMenu = () => {
+        place();
         setOpen(true);
     };
+
+    /* La fiche bouge sous le menu : il suit son bouton plutôt que l'écran. */
+    useFlyoutFollow(open, btnRef, place);
 
     React.useEffect(() => {
         if (!open) return;
@@ -1577,7 +1592,7 @@ export function CalendarRow({
     const btnRef = React.useRef<HTMLButtonElement>(null);
     const menuRef = React.useRef<HTMLDivElement>(null);
 
-    const openMenu = () => {
+    const place = () => {
         const br = btnRef.current?.getBoundingClientRect();
         if (br) {
             // Anchor the menu directly on the trigger button: same left/width as
@@ -1604,8 +1619,15 @@ export function CalendarRow({
                 maxHeight: p.maxHeight,
             });
         }
+    };
+
+    const openMenu = () => {
+        place();
         setOpen(true);
     };
+
+    /* La fiche bouge sous le menu : il suit son bouton plutôt que l'écran. */
+    useFlyoutFollow(open, btnRef, place);
 
     React.useEffect(() => {
         if (!open) return;
@@ -1791,6 +1813,14 @@ export function RemindersRow({
         place(REMINDER_CHOICES.length * 40);
         setOpen(true);
     };
+
+    /* La fiche bouge sous le menu : il suit son champ plutôt que l'écran. */
+    useFlyoutFollow(open, fieldRef, () =>
+        place(menuRef.current?.scrollHeight || REMINDER_CHOICES.length * 40)
+    );
+
+    /* La fiche bouge sous le menu : il suit son champ plutôt que l'écran. */
+
 
     /* A menu of five entries fits above or below almost anywhere; scrolling it
        under the field while the whole screen sits free above is the placement

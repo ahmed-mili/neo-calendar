@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 import {
-    HOUR_HEIGHT,
     clampHourHeight,
     currentHourHeight,
     setHourHeight,
 } from "./CalendarUtils";
+import { restingHourHeight } from "./calendarConstants";
 import { measureColumnWidth, offsetToNearestDay } from "./gridColumns";
 
 /**
@@ -971,7 +971,7 @@ export function useAxisLock(
             // height and lay itself out in hours of another.
             delete host.dataset.ncGliding;
             host.style.removeProperty("--nc-hour-height");
-            setHourHeight(HOUR_HEIGHT);
+            setHourHeight(restingHourHeight());
             element.removeEventListener("touchstart", onTouchStart);
             element.removeEventListener("touchmove", onTouchMove);
             element.removeEventListener("touchend", onTouchEnd);

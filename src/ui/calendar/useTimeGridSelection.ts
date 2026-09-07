@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback } from "react";
 import { positionToDate } from "./CalendarUtils";
 import { SelectionState } from "./TimeGrid.types";
+import { swallowNextClick } from "./swallowNextClick";
 
 interface UseTimeGridSelectionParams {
     gridRef: React.RefObject<HTMLDivElement | null>;
@@ -285,6 +286,21 @@ export function useTimeGridSelection({
                 if (!current.moved && isAndroidRuntime()) {
                     pointerEvent.preventDefault();
                     pointerEvent.stopImmediatePropagation();
+
+                    /*
+                     * Le doigt a fini son travail en se levant.
+                     *
+                     * La fiche du brouillon monte du bas de l'ecran et vient
+                     * se poser la ou le doigt se trouve encore. Le navigateur
+                     * doit toujours un `click` a ce geste, et il refait son
+                     * test de survol au moment de le livrer : il tombait donc
+                     * sur la fiche qui venait d'apparaitre, et ouvrait la
+                     * ligne qui se trouvait sous le doigt — le menu
+                     * « Repeter » s'ouvrait tout seul en meme temps que le
+                     * brouillon. `preventDefault` sur le pointerup ne
+                     * supprime pas ce click ; seul l'avaler le supprime.
+                     */
+                    swallowNextClick();
 
                     const range = snappedHalfHour(current.startDate);
 

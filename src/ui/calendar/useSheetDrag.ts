@@ -379,33 +379,49 @@ export function useSheetDrag({
         // A grid tap keeps its preview visible. Existing events still open fully.
         closingRef.current = false;
         restAt(variant === "draft" ? "half" : "full");
-        sheet.style.removeProperty(OFFSET_PROPERTY);
-        place();
 
-        const height = sheet.getBoundingClientRect().height;
-        if (height) {
-            sheet.style.setProperty(OFFSET_PROPERTY, height + "px");
-            /*
-             * Force the off-screen position to be COMPUTED before releasing it.
-             *
-             * Reading a layout property flushes pending style, which is what
-             * gives the transition a "from" to run out of. Scheduling the
-             * release on the next animation frame instead — the first attempt —
-             * is not reliable here: the sheet is portaled and mounted in the
-             * same commit, and the frame could resolve with the browser having
-             * never settled on the starting value, so it jumped straight to its
-             * destination with nothing to animate.
-             */
-            void sheet.offsetHeight;
-            sheet.style.setProperty(
-                OFFSET_PROPERTY,
-                offsetForAnchor({
-                    anchor: anchorRef.current,
-                    restOffset: restOffsetFor({ height, variant }),
-                    height,
-                }) + "px"
-            );
-        }
+        /*
+         * Le point de départ s'écrit AVANT que quoi que ce soit ne mesure la
+         * feuille — c'est tout l'ouvrage de cette ligne.
+         *
+         * Lire la géométrie de la feuille fige la valeur calculée de son
+         * `transform`, et c'est de cette valeur que partira la transition. La
+         * première lecture était celle de `place()`, faite alors que
+         * `--nc-sheet-offset` venait d'être retiré : le navigateur figeait
+         * donc le repli de la feuille de style, `--nc-sheet-rest-fallback`,
+         * soit 39 % de la hauteur de la feuille. L'ouverture partait de la
+         * mi-hauteur et DESCENDAIT vers son ancre — relevé image par image sur
+         * le brouillon Android, 780 px de haut : 304 px, puis 369, 436, et
+         * 570 px à l'arrivée. C'est l'ouverture « qui monte trop haut puis se
+         * remet en place », signalée une troisième fois le 2026-09-07 après
+         * la @keyframes retirée le 2026-09-05 et le focus de la WebView : trois
+         * causes distinctes pour le même mouvement, celle-ci étant la dernière.
+         *
+         * En pourcentage, donc sans rien mesurer : `translate3d` compte les
+         * pourcentages sur la boîte elle-même, et la feuille touche le bas de
+         * l'écran, donc 100 % la met exactement hors champ. Mesurer d'abord
+         * pour écrire des pixels ensuite serait précisément l'ordre qui casse.
+         */
+        sheet.style.setProperty(OFFSET_PROPERTY, "100%");
+
+        /*
+         * Force the off-screen position to be COMPUTED before releasing it.
+         *
+         * Reading a layout property flushes pending style, which is what
+         * gives the transition a "from" to run out of. Scheduling the
+         * release on the next animation frame instead — the first attempt —
+         * is not reliable here: the sheet is portaled and mounted in the
+         * same commit, and the frame could resolve with the browser having
+         * never settled on the starting value, so it jumped straight to its
+         * destination with nothing to animate.
+         */
+        void sheet.offsetHeight;
+
+        // `place()` mesure, puis écrit l'ancre visée : la feuille glisse du bas
+        // jusqu'à elle. Si la feuille n'a pas encore de hauteur, elle reste
+        // hors champ et le ResizeObserver plus bas la fera monter — jamais
+        // apparaître à mi-hauteur pour redescendre.
+        place();
         // The keyboard and a rotation both change what "half the screen" means.
         window.addEventListener("resize", place);
 
@@ -520,17 +536,45 @@ export function useSheetDrag({
             measure();
             settleAt(anchor);
         };
+        /*
+         * Un champ atteint a la main, et non un champ qui a pris le focus tout
+         * seul.
+         *
+         * La WebView pose le focus sur le premier champ de la feuille des
+         * qu'elle apparait — EventPanel le defait aussitot, et une deuxieme
+         * fois 80 ms plus tard, pour ne pas lever le clavier. Mais le
+         * `focusin` est parti avant ces `blur` : la feuille etait deja montee
+         * en plein ecran, et rien ne l'en fait redescendre. C'est l'ouverture
+         * « qui monte trop haut puis se remet en place » : le brouillon devait
+         * s'arreter a mi-hauteur.
+         *
+         * Un focus n'est une demande d'editer que si une main l'a demande.
+         * Personne ne peut viser un champ d'une feuille qui n'est pas encore
+         * la, donc le geste est ce qu'on exige — pas un delai, qui ne ferait
+         * que parier sur la vitesse de la WebView.
+         */
+        let handledPointer = false;
+        const rememberPointer = (event: Event) => {
+            handledPointer = Boolean(
+                (event.target as HTMLElement | null)?.closest(
+                    "input, textarea, [contenteditable='true']"
+                )
+            );
+        };
+
         // Editing requests the full sheet; simply previewing never opens the keyboard.
         const onFocusIn = (event: FocusEvent) => {
             const target = event.target as HTMLElement | null;
             if (
                 variant === "draft" &&
+                handledPointer &&
                 !closingRef.current &&
                 target?.closest("input, textarea, [contenteditable='true']")
             ) {
                 leaveTo("full");
             }
         };
+        sheet.addEventListener("pointerdown", rememberPointer, true);
         sheet.addEventListener("focusin", onFocusIn);
 
         // The same movement a downward drag ends with, offered to the X, the
@@ -648,6 +692,7 @@ export function useSheetDrag({
         });
 
         return () => {
+            sheet.removeEventListener("pointerdown", rememberPointer, true);
             sheet.removeEventListener("focusin", onFocusIn);
             sheet.removeEventListener("touchstart", onTouchStart);
             document.removeEventListener("touchmove", onTouchMove);
