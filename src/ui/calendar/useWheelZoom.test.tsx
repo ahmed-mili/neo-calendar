@@ -417,6 +417,43 @@ describe("useWheelZoom", () => {
             );
         });
 
+        /*
+         * La même image, pas deux en séquence : la molette et la commande
+         * arrivent toutes les deux avant le premier `runFrame()`, donc
+         * `frame` est déjà posé quand la seconde entrée arrive. Celle qui
+         * arrive en second ne doit pas écraser l'ancre de la première — sinon
+         * `draw()` corrige le défilement avec la mauvaise ancre, et la grille
+         * saute sous le pointeur.
+         */
+        it("keeps the wheel's cursor anchor when a command arrives before the frame paints", () => {
+            render();
+            const anchor = anchorUnderCursor();
+
+            wheel({ deltaY: -WHEEL_NOTCH_PX, ctrlKey: true });
+            act(() => {
+                requestHourHeight("increase");
+            });
+            runFrame();
+
+            expect(anchorUnderCursor()).toBeCloseTo(anchor);
+        });
+
+        it("keeps the command's viewport-centre anchor when a wheel notch arrives before the frame paints", () => {
+            render();
+            const centreHours =
+                (scrollTop + VIEWPORT / 2) / currentHourHeight();
+
+            act(() => {
+                requestHourHeight("increase");
+            });
+            wheel({ deltaY: -WHEEL_NOTCH_PX, ctrlKey: true });
+            runFrame();
+
+            expect(
+                (scrollTop + VIEWPORT / 2) / currentHourHeight()
+            ).toBeCloseTo(centreHours);
+        });
+
         it("does nothing where the wheel listener is not wanted either", () => {
             render({ enabled: false });
             act(() => {

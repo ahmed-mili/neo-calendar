@@ -189,9 +189,15 @@ export function useWheelZoom(
                       );
             if (next === hourHeight) return;
 
-            offsetY = element.clientHeight / 2;
-            anchorHours = (element.scrollTop + offsetY) / hourHeight;
-            if (!frame) frame = requestAnimationFrame(draw);
+            // Même garde que la molette, trois lignes plus haut : une image
+            // déjà programmée n'a pas encore corrigé le défilement, donc la
+            // relire ici donnerait une ancre fausse — et une molette et une
+            // commande dans la même image écraseraient l'ancre de l'autre.
+            if (!frame) {
+                offsetY = element.clientHeight / 2;
+                anchorHours = (element.scrollTop + offsetY) / hourHeight;
+                frame = requestAnimationFrame(draw);
+            }
             setHourHeight(next);
             settleAfter();
         };
