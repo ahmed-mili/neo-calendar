@@ -52,17 +52,17 @@ globale de tauri.conf.json après configuration de l’updater : elle effacerait
 
 ## Préparation d’exécution
 
-- [ ] Lire la spec, la capture et la réponse éventuelle d’Ahmed sur Annuler/Rétablir.
-- [ ] Appliquer `using-git-worktrees` à l’exécution si une isolation est nécessaire ;
+- [x] , la capture et la réponse éventuelle d’Ahmed sur Annuler/Rétablir.
+- [x]  `using-git-worktrees` à l’exécution si une isolation est nécessaire ;
   tenir compte des changements locaux au lieu de repartir d’un HEAD incomplet.
-- [ ] Relever l’état initial avec `git status --short`, puis lancer les tests ciblés
+- [x]  l’état initial avec `git status --short`, puis lancer les tests ciblés
   existants ci-dessous. Conserver les échecs préexistants dans le compte rendu.
 
 ```powershell
 npx jest --runInBand --runTestsByPath src/ui/calendar/keyboardGuard.test.ts src/ui/calendar/shortcutRegistry.test.ts src/ui/calendar/useWheelZoom.test.tsx src/ui/calendar/useInfiniteScroll.test.tsx src/ui/calendar/CalendarHeaderMonthSheet.test.tsx
 ```
 
-- [ ] Mesurer dans la référence les centres des contrôles, l’intervalle entre vue,
+- [x]  dans la référence les centres des contrôles, l’intervalle entre vue,
   Aujourd’hui et flèches, les surfaces de survol et les séparateurs. Comparer à la
   capture Tauri initiale à échelle Windows connue. La référence est un montage :
   ne pas assimiler automatiquement ses pixels à des CSS px.
@@ -122,7 +122,7 @@ export function handleDesktopShortcut(
 // true : accord reconnu/consommé ; false : l'ancien gestionnaire continue.
 ```
 
-- [ ] **Step 1: Écrire les tests de navigation avant de changer le clavier.**
+- [x] **Step 1: Écrire les tests de navigation avant de changer le clavier.**
   Le hook conserve son implémentation actuelle si ces tests passent. Monter un
   harness React 17 et vérifier le pas sans dépendre de la date réelle.
 
@@ -159,7 +159,7 @@ test.each<[ViewType, number, number]>([
   Ajouter le cas mois décembre → janvier → décembre, le changement 3 → 5 jours
   via `setDaysCount`, et l’ancrage `alignToday` sans recalage involontaire.
 
-- [ ] **Step 2: Écrire et lancer un test rouge sur le routeur réel.**
+- [x] **Step 2: Écrire et lancer un test rouge sur le routeur réel.**
 
 ```ts
 /** @jest-environment jsdom */
@@ -187,7 +187,7 @@ npx jest --runInBand --runTestsByPath apps/windows/src/desktopCommands.test.ts s
   d’import Tauri. Étendre avec ArrowLeft, `blocked`, `isComposing`, `defaultPrevented`,
   input, textarea, select, descendant contenteditable, rôle menu/dialog et modificateurs.
 
-- [ ] **Step 3: Implémenter le routage et l’insérer avant les anciennes branches.**
+- [x] **Step 3: Implémenter le routage et l’insérer avant les anciennes branches.**
   Les accords simples utilisent `key`, la ponctuation Ctrl+Maj est vérifiée sur
   AZERTY avec `key` et les codes physiques constatés. Aucune touche AltGr n’est
   consommée. Pour une commande reconnue mais désactivée, consommer l’accord hors
@@ -214,7 +214,7 @@ if (!isAndroid && handleDesktopShortcut(event, {
   fonctionner ; les commandes de fenêtre F11 restent accessibles via le shell.
   Ne pas toucher au hook `useKeyboardShortcuts`, qui est celui d’Obsidian.
 
-- [ ] **Step 4: Afficher les flèches dans l’aide Windows uniquement.**
+- [x] **Step 4: Afficher les flèches dans l’aide Windows uniquement.**
   Ajouter un paramètre facultatif `platform: "shared" | "windows" = "shared"`
   à `buildSections` après `bindings` et ajouter ArrowLeft/ArrowRight uniquement
   dans le cas Windows. Le consommateur est `src/ui/calendar/ShortcutsPanel.tsx:95`.
@@ -225,7 +225,7 @@ if (!isAndroid && handleDesktopShortcut(event, {
   Vérifier que les accords J/K et [/] existent toujours et qu’aucun raccourci
   spécifique Windows n’est annoncé dans la sortie par défaut.
 
-- [ ] **Step 5: Relancer les trois suites concernées puis commit ciblé.**
+- [x] **Step 5: Relancer les trois suites concernées puis commit ciblé.**
   Attendu : navigation, routeur et registre passent. Commit :
   `feat(windows): navigate calendar periods with arrow keys`.
 
@@ -266,7 +266,7 @@ export function setDesktopInterfaceScale(scale: number): Promise<void>;
 export function toggleDesktopFullscreen(): Promise<void>;
 ```
 
-- [ ] **Step 1: Tester le shell avec une fausse fenêtre injectée.**
+- [x] **Step 1: Tester le shell avec une fausse fenêtre injectée.**
   Le pont expose une fabrique `createDesktopWindowActions(window)` avec un type
   structurel reprenant les méthodes utilisées ; le composant reçoit ce résultat
   en prop facultative `actions`. Tests : cliquer les trois boutons appelle les
@@ -285,7 +285,7 @@ expect(actions.minimize).toHaveBeenCalledTimes(1);
 expect(host.querySelector("#nc-desktop-titlebar-slot")).not.toBeNull();
 ```
 
-- [ ] **Step 2: Implémenter le shell et seulement ensuite désactiver les décorations.**
+- [x] **Step 2: Implémenter le shell et seulement ensuite désactiver les décorations.**
   Le shell Windows entoure `<App />` dans `main.tsx`, reste hors de l’error boundary
   du calendrier et prend une ligne de hauteur commune. Sa partie droite contient
   les trois contrôles ; sa partie gauche reçoit le portail ou un espace draggable.
@@ -322,7 +322,7 @@ expect(host.querySelector("#nc-desktop-titlebar-slot")).not.toBeNull();
   avec un seul propriétaire du double clic ; ne pas cumuler une gestion manuelle
   et `data-tauri-drag-region` sur la même surface.
 
-- [ ] **Step 3: Ajouter le module natif, sans endpoint CDP arbitraire.**
+- [x] **Step 3: Ajouter le module natif, sans endpoint CDP arbitraire.**
   Dans `window_commands.rs`, exposer trois commandes :
   `reload_desktop(window: WebviewWindow, ignore_cache: bool)`,
   `execute_native_text_command(window: WebviewWindow, command: NativeTextCommand)`
@@ -381,7 +381,7 @@ async fn call_window_protocol(
   toute autre cible. Enregistrer les trois commandes dans `generate_handler!`.
   Ne jamais appeler `clearAllBrowsingData`, qui effacerait autre chose que le cache.
 
-- [ ] **Step 4: Tester les mappings et le vrai build natif.**
+- [x] **Step 4: Tester les mappings et le vrai build natif.**
   Tests Rust : chaque variant a une commande autorisée, `paste-plain` sélectionne
   PasteAndMatchStyle, le JSON de hard reload contient `ignoreCache: true`, une
   chaîne inconnue échoue à la désérialisation. Les tests TS simulent séparément
@@ -394,7 +394,7 @@ cargo test --manifest-path apps/windows/src-tauri/Cargo.toml window_commands
 npm run build
 ```
 
-- [ ] **Step 5: Vérifier réduire/restaurer/fermer et drag dans Tauri, puis commit.**
+- [x] **Step 5: Vérifier réduire/restaurer/fermer et drag dans Tauri, puis commit.**
   Réouvrir l’app après le test de fermeture. Commit :
   `feat(windows): add persistent custom window chrome`.
 
@@ -418,7 +418,7 @@ npm run build
 - Consumes: `DesktopCommands`, fonctions natives de la tâche 2,
   `currentHourHeight`, `restingHourHeight`, `setHourHeight`, `scrollForAnchor`.
 
-- [ ] **Step 1: Tester une commande d’espacement sur le vrai hook de zoom.**
+- [x] **Step 1: Tester une commande d’espacement sur le vrai hook de zoom.**
   Étendre son harness existant, avec `scrollTop`, `clientHeight`, `scrollHeight`
   et RAF contrôlés comme dans les tests actuels. Le test doit observer hauteur,
   CSS, ancrage et callbacks, pas simplement l’émission de l’événement.
@@ -436,7 +436,7 @@ expect(onScaleSettled).toHaveBeenCalled();
   Ajouter min/max, reset, aller-retour increase/decrease, molette après menu,
   menu après molette et listener absent lorsque `enabled=false`.
 
-- [ ] **Step 2: Brancher l’événement sur le même pipeline que la molette.**
+- [x] **Step 2: Brancher l’événement sur le même pipeline que la molette.**
   Dans l’effet de `useWheelZoom`, enregistrer et nettoyer le nouveau listener
   uniquement lorsqu’il est enabled. Capturer l’ancre avant tout changement.
 
@@ -457,7 +457,7 @@ setHourHeight(next);
   Les commandes sont désactivées en vue mois/liste, où aucune grille horaire
   n’est montée. Aucune nouvelle hauteur CSS indépendante.
 
-- [ ] **Step 3: Ajouter le zoom d’interface local Windows.**
+- [x] **Step 3: Ajouter le zoom d’interface local Windows.**
   `setDesktopInterfaceScale` appelle `getCurrentWebview().setZoom(scale)`.
   Autoriser exclusivement les paliers de la spec ; validation à la lecture et
   à l’écriture de `localStorage["neo-calendar:windows-interface-scale"]`.
@@ -473,7 +473,7 @@ export function parseInterfaceScale(value: string | null): number {
 }
 ```
 
-- [ ] **Step 4: Exposer une recherche updater réutilisant son verrou actuel.**
+- [x] **Step 4: Exposer une recherche updater réutilisant son verrou actuel.**
   Modifier `fetch_if_due` pour retourner un `Result<UpdateCheckOutcome, String>`
   avec enum serde `ready/current/busy`. Version déjà téléchargée → ready ;
   verrou occupé → busy ; recherche terminée sans fichier prêt → current.
@@ -499,7 +499,7 @@ test("une recherche manuelle ne lance pas l'installation", async () => {
   ou erreur. Désactiver les commandes pendant leur propre requête et les reloads
   pendant une écriture en cours. La recherche ne déclenche pas d’installation.
 
-- [ ] **Step 5: Lancer les suites touchées, cargo test et commit ciblé.**
+- [x] **Step 5: Lancer les suites touchées, cargo test et commit ciblé.**
 
 ```powershell
 npx jest --runInBand --runTestsByPath src/ui/calendar/hourHeightCommands.test.ts src/ui/calendar/useWheelZoom.test.tsx apps/windows/src/platform/desktopWindow.test.ts apps/windows/src/platform/desktopUpdates.test.ts
@@ -528,7 +528,7 @@ cargo test --manifest-path apps/windows/src-tauri/Cargo.toml
 - Consumes: `DesktopStoredEvent` existant, `deleteEventFiles`, callbacks de copie,
   collage, duplication, suppression et commandes texte natives de la tâche 2.
 
-- [ ] **Step 1: Tester la sélection de la plage réellement affichée.**
+- [x] **Step 1: Tester la sélection de la plage réellement affichée.**
   `displayEvents` contient un tampon : il ne peut pas être sélectionné entièrement.
 
 ```ts
@@ -567,7 +567,7 @@ export function visibleEventIds(events: DisplayEvent[], start: Date, end: Date) 
   Vérifier aussi évènement ponctuel,
   évènement multijour, doublon d’occurrence, grille sans évènement et calendrier masqué.
 
-- [ ] **Step 2: Tester l’historique à un niveau avec des callbacks asynchrones.**
+- [x] **Step 2: Tester l’historique à un niveau avec des callbacks asynchrones.**
   Extraire le lot actuellement géré par `deletedBatch` dans `useDeletionHistory`.
   `rememberDeleted` est appelé uniquement après une suppression réussie.
 
@@ -587,7 +587,7 @@ expect(history.canUndo).toBe(true);
   partielle réessayée sans doublon. La fabrique de fixtures réutilise les champs
   DesktopStoredEvent de la suite taskCompletion existante.
 
-- [ ] **Step 3: Brancher l’historique aux écritures réelles.**
+- [x] **Step 3: Brancher l’historique aux écritures réelles.**
   Extraire le corps de `undoLastDeletion` vers `restoreDeletedRecords(records)`.
   Conserver les chemins, contenus, mise à jour de `recordsRef` et états de sauvegarde.
   Faire rejeter cette fonction après `setStorageError` au lieu d’avaler l’erreur,
@@ -606,7 +606,7 @@ const deletionHistory = useDeletionHistory<DesktopStoredEvent>({
 deletionHistory.rememberDeleted(records);
 ```
 
-- [ ] **Step 4: Unifier les commandes Modifier autour de la cible capturée.**
+- [x] **Step 4: Unifier les commandes Modifier autour de la cible capturée.**
   À l’ouverture du menu, mémoriser le champ, `selectionStart/selectionEnd` pour
   input/textarea ou `getSelection().getRangeAt(0).cloneRange()` pour contenteditable.
   La fermeture restaure focus et sélection avant la commande native ; une cible
@@ -639,7 +639,7 @@ const eventEditCommands: DesktopCommands = {
   Une touche dans un champ continue à être traitée nativement, sans passer par
   cette table d’évènements. Tester qu’un menu ouvert ne fait pas perdre la sélection.
 
-- [ ] **Step 5: Tests ciblés et commit.**
+- [x] **Step 5: Tests ciblés et commit.**
 
 ```powershell
 npx jest --runInBand --runTestsByPath apps/windows/src/desktopEditCommands.test.ts apps/windows/src/useDeletionHistory.test.tsx apps/windows/src/desktopCommands.test.ts apps/windows/src/DesktopCalendar.taskCompletion.test.ts src/ui/calendar/recurrenceDeletion.test.ts src/ui/calendar/useClipboardActions.test.ts
@@ -674,7 +674,7 @@ npx jest --runInBand --runTestsByPath apps/windows/src/desktopEditCommands.test.
 - `CalendarHeaderProps.presentation?: "default" | "window-controls"`.
 - `CalendarSidebarProps.showTopBar?: boolean`, true par défaut.
 
-- [ ] **Step 1: Écrire les tests comportementaux de menu.**
+- [x] **Step 1: Écrire les tests comportementaux de menu.**
   Harness ReactDOM jsdom, langue française, command callbacks simulés. Survoler
   le chevron, puis Modifier, puis entrer dans le sous-menu : celui-ci reste ouvert.
   Vérifier trois rubriques, aucune Aide, version dynamique, ordre des entrées,
@@ -696,7 +696,7 @@ expect(document.querySelector('[role="menu"]')).toBeNull();
   En complément, déclencher ArrowRight dans le menu avec le routeur de Task 1
   monté et vérifier que `commands.next.run` n’est jamais appelé.
 
-- [ ] **Step 2: Construire le menu à partir de la table et des callbacks.**
+- [x] **Step 2: Construire le menu à partir de la table et des callbacks.**
   `ContextMenu` actuel ne supporte ni cascade ni focus roving : ne pas le transformer
   en framework pour tous les menus. Réutiliser ses tokens, séparateurs et raccourcis
   visuels dans `DesktopAppMenu`. Structure typée locale :
@@ -720,7 +720,7 @@ type MenuEntry =
   vers la gauche s’il manque de place. Capturer la cible d’édition avant de déplacer
   le focus dans les menus et nettoyer timers/listeners au démontage.
 
-- [ ] **Step 3: Composer la barre à partir de l’en-tête existant.**
+- [x] **Step 3: Composer la barre à partir de l’en-tête existant.**
   Construire `header` une seule fois dans CalendarLayout, puis choisir son emplacement :
 
 ```tsx
@@ -742,7 +742,7 @@ type MenuEntry =
   flexible, puis UpdateBadge et controls à droite. Les commandes de fenêtre sont
   déjà à droite du slot dans le shell. Une seule hauteur et un seul fond de barre.
 
-- [ ] **Step 4: Appliquer le CSS mesuré sans casser les thèmes et les panneaux.**
+- [x] **Step 4: Appliquer le CSS mesuré sans casser les thèmes et les panneaux.**
   Créer des sélecteurs Windows locaux, min-width:0 sur le slot et ses enfants flex,
   boutons non rétractables, espace central flexible ; ne pas masquer un débordement
   pour cacher une commande. Uniformiser la hauteur du shell, des contrôles et du
@@ -774,7 +774,7 @@ type MenuEntry =
   obtenues en préparation dans les règles locales. Conserver les infobulles
   `data-nc-tooltip` de l’app, ne pas réintroduire de `title` natif.
 
-- [ ] **Step 5: Tests d’intégration, builds et commit.**
+- [x] **Step 5: Tests d’intégration, builds et commit.**
   DesktopTitlebar.test monte le slot, l’en-tête réel et le shell simulé : compter
   une seule occurrence de Today, du sélecteur et de chaque contrôle. Replier la
   sidebar et vérifier menu/recherche/toggle présents. Monter sans slot puis en
@@ -800,7 +800,7 @@ npm run android:frontend
 - Consumes: application intégrée des tâches 1 à 5 et la référence de la spec.
 - Produces: preuves de tests, captures comparatives et limites éventuelles explicites.
 
-- [ ] **Step 1: Exécuter les vérifications automatisées finales.**
+- [x] **Step 1: Exécuter les vérifications automatisées finales.**
 
 ```powershell
 npm test
@@ -816,7 +816,7 @@ git diff --check
   lire la fin et les erreurs. N’élargir les tests qu’après une nouvelle modification
   ou un échec non expliqué.
 
-- [ ] **Step 2: Lancer la vraie application et établir la preuve visuelle.**
+- [x] **Step 2: Lancer la vraie application et établir la preuve visuelle.**
   Lire les skills `senior-dev:real-render-check`, `senior-dev:state-coverage`,
   `css-layout-check`, `no-horizontal-overflow` et le skill d’automatisation approprié
   avant leurs actions. Configurer l’updater seulement si absent, en sauvegardant
@@ -854,21 +854,21 @@ git diff --check
   vérifier Win+Z et le comportement de survol du bouton agrandir ; documenter
   séparément toute différence native plutôt que la déclarer vérifiée par React.
 
-- [ ] **Step 3: Comparer les captures avec la référence et corriger les écarts.**
+- [x] **Step 3: Comparer les captures avec la référence et corriger les écarts.**
   Écrire les tailles réellement mesurées et les captures dans le rapport de
   vérification. Réduire les captures affichées dans la conversation à environ
   1280 px ; conserver les originaux pour la comparaison. Aucun « terminé » sur
   la seule base de tests jsdom. Une case du tableau non exécutée reste déclarée
   non vérifiée.
 
-- [ ] **Step 4: Relecture de code et périmètre final.**
+- [x] **Step 4: Relecture de code et périmètre final.**
   Appliquer `superpowers:requesting-code-review` avec le mode d’exécution retenu.
   Vérifier les callbacks partagés entre boutons/menu/clavier, les états voisins,
   le nettoyage listeners/timers et les autorisations natives minimales.
   Examiner `git diff --stat` et chaque fichier ; ne pas inclure les modifications
   d’icônes et de description préexistantes dans un commit aveugle.
 
-- [ ] **Step 5: Mettre à jour le suivi et remettre la livraison à Ahmed.**
+- [x] **Step 5: Mettre à jour le suivi et remettre la livraison à Ahmed.**
   Cocher l’entrée de PROCHAINE_VERSION seulement si tous les critères applicables
   sont satisfaits ; sinon y noter exactement la vérification restante. Le rapport
   final indique changements, tests et éventuels écarts. Fournir la commande :
