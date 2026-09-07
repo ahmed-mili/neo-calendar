@@ -24,17 +24,16 @@
    deux surfaces que le theme nomme deja. Chargee apres DesktopWindowShell.css,
    donc cette regle-ci gagne sans `!important`. */
 .nc-desktop-window-shell .nc-desktop-titlebar {
-    /* La MEME teinte que le reste du chrome, pas un fond opaque. L'ancien
-       en-tete, le titre du mois et la barre d'agenda partagent tous
-       `--nc-chrome-container-background` : une teinte translucide qui laisse
-       passer le fond d'ecran. La barre unifiee prend leur place, elle prend
-       donc leur materiau. Peinte en `--nc-bg-primary`, elle posait une dalle
-       opaque en haut d'une fenetre dont tout le reste laisse voir l'image. */
-    /* Plus transparente que le reste du chrome (demande d'Ahmed du
-       2026-09-07, vue a l'ecran) : la teinte du chrome ramenee a 65 % de sa
-       densite, le complement etant du vide. Derivee du meme token, donc elle
-       suit le theme au lieu de figer une couleur. */
-    background: transparent;
+    /* La barre est un CONTENEUR comme les autres, et prend leur opacite.
+       L'ancien en-tete, le titre du mois et la barre d'agenda partagent tous
+       `--nc-chrome-container-background` : la barre unifiee prend leur place,
+       elle prend donc leur materiau, sans facteur ni valeur a elle.
+
+       Cette teinte n'a de sens que depuis que le fond d'ecran passe DERRIERE
+       la barre (voir DesktopWindowShell.css) : posee sur la couleur unie du
+       fond de fenetre, elle ne faisait qu'assombrir une dalle. Posee sur
+       l'image, c'est le meme verre que le reste de l'application. */
+    background: var(--nc-chrome-container-background, rgba(17, 17, 27, 0.48));
 }
 
 .nc-desktop-window-shell .nc-desktop-toolbar {
@@ -84,7 +83,7 @@
        `--nc-sidebar-container-background`, la bande qui la prolonge dans la
        barre doit l'etre aussi, sans quoi la colonne change de matiere a
        hauteur de la barre. */
-    background: transparent;
+    background: var(--nc-sidebar-container-background, rgba(17, 17, 27, 0.54));
     border-right: 1px solid var(--nc-border);
 }
 
