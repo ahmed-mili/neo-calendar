@@ -23,6 +23,25 @@
    donne deux teintes, la zone principale et la bande laterale — exactement les
    deux surfaces que le theme nomme deja. Chargee apres DesktopWindowShell.css,
    donc cette regle-ci gagne sans `!important`. */
+/* The grid's canonical token must follow the runtime theme and opacity too.
+   Keep this alias in Windows-only CSS: Android imports App.css and the effects
+   module, but does not mount or import the window shell. */
+.nc-desktop-window-shell {
+    --nc-container-background: var(--nc-grid-container-background);
+}
+
+/* Paint adjacent regions once. Tinting the left toolbar on top of the full
+   titlebar compounded its alpha (0.4 + 0.54 became 0.724). */
+.nc-desktop-window-shell .nc-desktop-titlebar:has(
+    .nc-desktop-toolbar__left[data-sidebar="open"]
+) {
+    background: linear-gradient(
+        to right,
+        var(--nc-sidebar-container-background, rgba(17, 17, 27, 0.54)) 0 var(--nc-sidebar-width),
+        var(--nc-chrome-container-background, rgba(17, 17, 27, 0.4)) var(--nc-sidebar-width) 100%
+    );
+}
+
 .nc-desktop-window-shell .nc-desktop-titlebar {
     /* La barre est un CONTENEUR comme les autres, et prend leur opacite.
        L'ancien en-tete, le titre du mois et la barre d'agenda partagent tous
@@ -79,11 +98,8 @@
 .nc-desktop-window-shell .nc-desktop-toolbar__left[data-sidebar="open"] {
     width: var(--nc-sidebar-width);
     height: 100%;
-    /* Meme raison : la colonne sous elle est peinte de
-       `--nc-sidebar-container-background`, la bande qui la prolonge dans la
-       barre doit l'etre aussi, sans quoi la colonne change de matiere a
-       hauteur de la barre. */
-    background: var(--nc-sidebar-container-background, rgba(17, 17, 27, 0.54));
+    /* The titlebar gradient already paints the sidebar token here. */
+    background: transparent;
     border-right: 1px solid var(--nc-border);
 }
 

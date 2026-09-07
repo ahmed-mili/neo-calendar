@@ -628,21 +628,23 @@ button.nc-settings__theme-card:focus-visible {
     background: transparent;
 }
 
-.nc-desktop--calendar .nc-sidebar {
+/* Android imports this file too: preserve its legacy material. Windows uses
+   the runtime surface tokens below, without a second local blur. */
+:where(body.nc-platform-android) .nc-desktop--calendar .nc-sidebar {
     background: color-mix(in srgb, var(--nc-bg-crust) 54%, transparent);
     backdrop-filter: blur(9px) saturate(112%);
     -webkit-backdrop-filter: blur(9px) saturate(112%);
 }
 
-.nc-desktop--calendar .nc-header {
+:where(body.nc-platform-android) .nc-desktop--calendar .nc-header {
     background: color-mix(in srgb, var(--nc-bg-crust) 28%, transparent);
     backdrop-filter: blur(7px) saturate(110%);
     -webkit-backdrop-filter: blur(7px) saturate(110%);
 }
 
-.nc-desktop--calendar .nc-left-rail-fixed,
-.nc-desktop--calendar .nc-headers-row,
-.nc-desktop--calendar .nc-allday-row {
+:where(body.nc-platform-android) .nc-desktop--calendar .nc-left-rail-fixed,
+:where(body.nc-platform-android) .nc-desktop--calendar .nc-headers-row,
+:where(body.nc-platform-android) .nc-desktop--calendar .nc-allday-row {
     background: color-mix(in srgb, var(--nc-bg-crust) 20%, transparent);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -3599,7 +3601,10 @@ body.nc-appearance-light {
     -webkit-backdrop-filter: none !important;
 }
 
-.nc-desktop--calendar {
+/* The Windows toolbar is outside the calendar. Apply the same user contrast
+   to both surfaces, otherwise identical RGBA values still render differently. */
+.nc-desktop--calendar,
+.nc-desktop-window-shell .nc-desktop-titlebar {
     filter: contrast(calc(0.85 + var(--nc-user-contrast, 50) * 0.003));
 }
 
