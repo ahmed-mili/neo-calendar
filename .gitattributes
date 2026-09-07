@@ -1,1 +1,2 @@
 .ladle/obsidian.css linguist-vendored
+.github/workflows/*.yml text eol=lf

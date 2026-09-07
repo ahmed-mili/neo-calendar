@@ -1,3 +1,97 @@
+use serde::Deserialize;
+use serde_json::{json, Value};
+use tauri::WebviewWindow;
+use webview2_com::CallDevToolsProtocolMethodCompletedHandler;
+use windows_core::HSTRING;
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum NativeTextCommand {
+    Undo,
+    Redo,
+    Cut,
+    Copy,
+    Paste,
+    PastePlain,
+    Delete,
+    SelectAll,
+}
+
+impl NativeTextCommand {
+    fn blink_command(&self) -> &'static str {
+        match self {
+            Self::Undo => "Undo",
+            Self::Redo => "Redo",
+            Self::Cut => "Cut",
+            Self::Copy => "Copy",
+            Self::Paste => "Paste",
+            Self::PastePlain => "PasteAndMatchStyle",
+            Self::Delete => "Delete",
+            Self::SelectAll => "SelectAll",
+        }
+    }
+}
+
+fn text_command_params(command: NativeTextCommand) -> Value {
+    json!({"type": "rawKeyDown", "key": "Unidentified", "commands": [command.blink_command()]})
+}
+
+fn hard_reload_params() -> Value {
+    json!({"ignoreCache": true})
+}
+
+// Called on Tauri's worker pool: the UI thread must remain free to deliver
+// WebView2's completion callback. Return protocol failures to the caller too.
+fn call_protocol(window: WebviewWindow, method: &'static str, params: Value) -> Result<(), String> {
+    let (sender, receiver) = std::sync::mpsc::channel();
+    window.with_webview(move |webview| {
+        let completed = sender.clone();
+        let handler = CallDevToolsProtocolMethodCompletedHandler::create(Box::new(move |result, _| {
+            let _ = completed.send(result.map_err(|error| error.to_string()));
+            Ok(())
+        }));
+        let result = unsafe {
+            webview.controller().CoreWebView2().and_then(|core| {
+                core.CallDevToolsProtocolMethod(
+                    &HSTRING::from(method),
+                    &HSTRING::from(params.to_string()),
+                    &handler,
+                )
+            })
+        };
+        if let Err(error) = result {
+            let _ = sender.send(Err(error.to_string()));
+        }
+    }).map_err(|error| error.to_string())?;
+    receiver.recv_timeout(std::time::Duration::from_secs(15))
+        .map_err(|error| format!("{method}: {error}"))?
+}
+
+#[tauri::command(async)]
+pub fn execute_native_text_command(window: WebviewWindow, command: NativeTextCommand) -> Result<(), String> {
+    call_protocol(window, "Input.dispatchKeyEvent", text_command_params(command))
+}
+
+#[tauri::command(rename_all = "camelCase", async)]
+pub fn reload_desktop(window: WebviewWindow, ignore_cache: bool) -> Result<(), String> {
+    if ignore_cache {
+        call_protocol(window, "Page.reload", hard_reload_params())
+    } else {
+        window.reload().map_err(|error| error.to_string())
+    }
+}
+
+// Tauri cannot detect or close DevTools on Windows; repeated calls focus
+// the existing inspector instead of closing it.
+#[tauri::command]
+pub fn toggle_desktop_devtools(window: WebviewWindow) {
+    if window.is_devtools_open() {
+        window.close_devtools();
+    } else {
+        window.open_devtools();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

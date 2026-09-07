@@ -1817,6 +1817,12 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            #[cfg(windows)]
+            window_commands::reload_desktop,
+            #[cfg(windows)]
+            window_commands::execute_native_text_command,
+            #[cfg(windows)]
+            window_commands::toggle_desktop_devtools,
             has_obsidian_config,
             load_desktop_workspace,
             save_desktop_preferences,

@@ -27,6 +27,8 @@ tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 tauri-plugin-notification = "2.3.3"
 
 [target.'cfg(windows)'.dependencies]
+webview2-com = "0.38.2"
+windows-core = "0.61"
 windows-sys = { version = "0.61.2", features = [
     "Win32_Foundation",
     "Win32_System_DataExchange",
