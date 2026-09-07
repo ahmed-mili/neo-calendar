@@ -30,6 +30,12 @@
     --nc-container-background: var(--nc-grid-container-background);
 }
 
+/* The toolbar keeps the toggle reachable. A collapsed Windows sidebar must
+   release its whole column, including the help button left by the shared UI. */
+.nc-desktop-window-shell .nc-sidebar.nc-sidebar-collapsed {
+    display: none;
+}
+
 /* Paint adjacent regions once. Tinting the left toolbar on top of the full
    titlebar compounded its alpha (0.4 + 0.54 became 0.724). */
 .nc-desktop-window-shell .nc-desktop-titlebar:has(
@@ -127,6 +133,12 @@
     background: transparent;
     color: var(--nc-text-secondary, var(--nc-text-primary, inherit));
     cursor: pointer;
+}
+
+/* Match search and creation glyphs while retaining the 24px hit target. */
+.nc-desktop-window-shell .nc-desktop-toolbar__btn > svg {
+    width: 16px;
+    height: 16px;
 }
 
 .nc-desktop-window-shell .nc-desktop-toolbar__btn:hover {
