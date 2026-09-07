@@ -77,6 +77,13 @@ interface CalendarSidebarProps {
     onToggleSidebar: () => void;
     onOpenSearch: () => void;
     onOpenSettings: () => void;
+    /**
+     * La barre du haut de la colonne — bascule, recherche, version, pastille de
+     * mise à jour. `true` partout, sauf sous la barre unifiée Windows qui porte
+     * déjà les quatre : deux exemplaires de la version, à 200 px l'un de
+     * l'autre, ne renseignent pas deux fois.
+     */
+    showTopBar?: boolean;
 }
 
 export default function CalendarSidebar(props: CalendarSidebarProps) {
@@ -117,6 +124,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         onToggleSidebar,
         onOpenSearch,
         onOpenSettings,
+        showTopBar = true,
     } = props;
 
     const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -298,59 +306,63 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                 sidebarVisible ? "" : "nc-sidebar-collapsed"
             }`}
         >
-            <div className="nc-sidebar-top-bar">
-                {/* Android closes the drawer by dragging it back or tapping
+            {showTopBar && (
+                <div className="nc-sidebar-top-bar">
+                    {/* Android closes the drawer by dragging it back or tapping
                     the calendar beside it, so the button is dead weight. */}
-                {!isAndroid && (
-                    <button
-                        className="nc-sidebar-top-btn"
-                        onClick={onToggleSidebar}
-                        data-nc-tooltip={t("Toggle sidebar")}
-                        aria-label={t("Toggle sidebar")}
-                    >
-                        <PanelLeftIcon />
-                    </button>
-                )}
-                <div className="nc-sidebar-top-right">
-                    {/* Android keeps search in the app bar and creation on the
-                        floating button, so the drawer only carries settings —
-                        which the app bar in turn no longer does. */}
                     {!isAndroid && (
                         <button
-                            className="nc-sidebar-top-btn nc-sidebar-search-btn"
-                            onClick={onOpenSearch}
-                            aria-label={t("Open command menu")}
-                            data-nc-tooltip={t("Open command menu")}
+                            className="nc-sidebar-top-btn"
+                            onClick={onToggleSidebar}
+                            data-nc-tooltip={t("Toggle sidebar")}
+                            aria-label={t("Toggle sidebar")}
                         >
-                            <SearchIcon />
+                            <PanelLeftIcon />
                         </button>
                     )}
-                    {/* Elsewhere the toolbar already carries settings, and an
+                    <div className="nc-sidebar-top-right">
+                        {/* Android keeps search in the app bar and creation on the
+                        floating button, so the drawer only carries settings —
+                        which the app bar in turn no longer does. */}
+                        {!isAndroid && (
+                            <button
+                                className="nc-sidebar-top-btn nc-sidebar-search-btn"
+                                onClick={onOpenSearch}
+                                aria-label={t("Open command menu")}
+                                data-nc-tooltip={t("Open command menu")}
+                            >
+                                <SearchIcon />
+                            </button>
+                        )}
+                        {/* Elsewhere the toolbar already carries settings, and an
                         event is made on the grid where it belongs — a second
                         pair of buttons up here was only ever a duplicate. */}
-                    {/* Le numéro, juste à gauche de l'engrenage. Ce qu'il y a
+                        {/* Le numéro, juste à gauche de l'engrenage. Ce qu'il y a
                         à dire sur les mises à jour est dit par la pastille
                         bleue, quand il y a quelque chose à dire. */}
-                    {version && (
-                        <span className="nc-sidebar-version">v{version}</span>
-                    )}
-                    {/* Ce qui descend et ce qui attend d'être posé : le même
+                        {version && (
+                            <span className="nc-sidebar-version">
+                                v{version}
+                            </span>
+                        )}
+                        {/* Ce qui descend et ce qui attend d'être posé : le même
                         contrôle des deux côtés, parce que c'est la même chose
                         qui se passe. Il n'est là que lorsqu'il a quelque chose
                         à dire. */}
-                    <UpdateBadge onInstall={() => installPendingUpdate()} />
-                    {isAndroid && (
-                        <button
-                            className="nc-sidebar-top-btn nc-sidebar-settings-btn"
-                            onClick={onOpenSettings}
-                            data-nc-tooltip={t("Settings")}
-                            aria-label={t("Settings")}
-                        >
-                            <SettingsIcon size={17} />
-                        </button>
-                    )}
+                        <UpdateBadge onInstall={() => installPendingUpdate()} />
+                        {isAndroid && (
+                            <button
+                                className="nc-sidebar-top-btn nc-sidebar-settings-btn"
+                                onClick={onOpenSettings}
+                                data-nc-tooltip={t("Settings")}
+                                aria-label={t("Settings")}
+                            >
+                                <SettingsIcon size={17} />
+                            </button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* ONE scroller for everything under the top bar.
                 Each section used to be its own: on Android both carried
@@ -765,7 +777,9 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                                 commitRename
                                                             }
                                                             disabled={renaming}
-                                                            data-nc-tooltip={t("Save")}
+                                                            data-nc-tooltip={t(
+                                                                "Save"
+                                                            )}
                                                         >
                                                             {renaming
                                                                 ? "..."
@@ -777,7 +791,9 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                                 cancelRename
                                                             }
                                                             disabled={renaming}
-                                                            data-nc-tooltip={t("Cancel")}
+                                                            data-nc-tooltip={t(
+                                                                "Cancel"
+                                                            )}
                                                         >
                                                             Cancel
                                                         </button>
@@ -786,7 +802,9 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                                     <>
                                                         <span
                                                             className="nc-calendar-name"
-                                                            data-nc-tooltip={source.name}
+                                                            data-nc-tooltip={
+                                                                source.name
+                                                            }
                                                         >
                                                             {source.name}
                                                         </span>

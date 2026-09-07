@@ -1,0 +1,185 @@
+/*
+ * La barre unifiee : une seule ligne de 45 px, montee dans le slot du shell.
+ *
+ * Toutes les mesures viennent de reference-measurements.md, relevees au pixel
+ * sur la capture d'Ahmed a l'echelle 1:1 :
+ *
+ *   - chevron du menu, centre a 22 px du bord ; bascule a 56,5 px ;
+ *   - recherche a 185,5 px et creation a 215 px, calees a DROITE de la bande
+ *     laterale, l'espace flexible etant au milieu du groupe ;
+ *   - deux grammaires de surface seulement : pastille pleine de 30 px pour le
+ *     selecteur de vue et Today (6 px de vide entre elles, rayon 8 px), glyphe
+ *     nu sans aucun fond au repos pour tout le reste ;
+ *   - 26,5 px du bord droit de Today au centre du premier chevron, 31 px entre
+ *     les deux chevrons.
+ *
+ * La bande laterale mesure 238 px sur la capture et 220 px ici
+ * (--nc-sidebar-width) : les positions du groupe gauche sont donc comptees
+ * depuis SES deux bords a lui, ce qui est la traduction fidele de « calees a
+ * droite de la bande laterale ».
+ */
+
+/* UN seul fond de barre, et une seule hauteur : celle du shell. La reference
+   donne deux teintes, la zone principale et la bande laterale — exactement les
+   deux surfaces que le theme nomme deja. Chargee apres DesktopWindowShell.css,
+   donc cette regle-ci gagne sans `!important`. */
+.nc-desktop-window-shell .nc-desktop-titlebar {
+    background: var(--nc-bg-primary);
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    /* Ce qui separe la derniere fleche de la commande « Reduire ». La capture
+       met un bouton de panneau droit dans cet intervalle ; Neo Calendar n'en a
+       pas, donc l'ecart est choisi, pas releve. */
+    padding-right: 24px;
+    /* La surface VIDE de la barre deplace la fenetre. Le shell ecoute le slot
+       lui-meme et exige `event.target === event.currentTarget` : sans cette
+       ligne, cette barre couvrirait le slot et le glissement mourrait. Chaque
+       chose sur laquelle on peut appuyer se readresse ci-dessous. */
+    pointer-events: none;
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar button,
+.nc-desktop-window-shell .nc-desktop-toolbar a,
+.nc-desktop-window-shell .nc-desktop-toolbar input,
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-view-dropdown {
+    pointer-events: auto;
+}
+
+/* Le groupe gauche occupe exactement la bande laterale, et se resserre sur son
+   contenu des qu'elle est repliee — menu, bascule, recherche et creation
+   restent la, jamais rognes. */
+.nc-desktop-window-shell .nc-desktop-toolbar__left {
+    display: flex;
+    align-items: center;
+    flex: none;
+    box-sizing: border-box;
+    /* 22 px de centre pour un bouton de 24 px. */
+    padding-left: 10px;
+    /* 23 px du centre de la creation au bord droit de la bande. */
+    padding-right: 11px;
+}
+
+/* La bande laterale se prolonge dans la barre, comme sous la capture : le
+   groupe gauche est peint du fond de la colonne, et s'arrete a son bord. */
+.nc-desktop-window-shell .nc-desktop-toolbar__left[data-sidebar="open"] {
+    width: var(--nc-sidebar-width);
+    height: 100%;
+    background: var(--nc-bg-secondary);
+    border-right: 1px solid var(--nc-border);
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar__gap {
+    flex: 1 1 auto;
+    min-width: 8px;
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar__drag-space {
+    flex: 1 1 auto;
+    min-width: 0;
+    align-self: stretch;
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar__btn {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--nc-text-secondary, var(--nc-text-primary, inherit));
+    cursor: pointer;
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar__btn:hover {
+    border: 1px solid var(--nc-border);
+    color: var(--nc-text-primary, inherit);
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar__btn:focus-visible {
+    outline: 1px solid var(--nc-border);
+    outline-offset: -1px;
+}
+
+/* Le chevron du menu a 22 px, la bascule a 56,5 px : 34,5 px entre centres,
+   donc 10,5 px entre deux boutons de 24 px. */
+.nc-desktop-window-shell .nc-app-menu-trigger + .nc-desktop-toolbar__btn {
+    margin-left: 10.5px;
+}
+
+/* Recherche puis creation : 29,5 px entre centres. */
+.nc-desktop-window-shell
+    .nc-desktop-toolbar__gap
+    + .nc-desktop-toolbar__btn
+    + .nc-desktop-toolbar__btn {
+    margin-left: 5.5px;
+}
+
+/* ── L'en-tete partage, invite dans la barre ─────────────────── */
+
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-header {
+    flex: 0 0 auto;
+    height: 100%;
+    padding: 0;
+    gap: 0;
+    background: transparent;
+    /* La barre est deja la ligne du haut : l'en-tete n'a plus de hauteur ni de
+       fond a lui. */
+    justify-content: flex-end;
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-header-right {
+    gap: 0;
+}
+
+/* Les deux seules surfaces pleines de la barre : 30 px de haut dans 45, rayon
+   8 px, 6 px de vide entre elles. */
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-view-dropdown-btn,
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-btn-today {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 8px;
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-btn-today {
+    margin-left: 6px;
+}
+
+/* 26,5 px du bord droit de Today au centre du premier chevron : 14,5 px de
+   vide devant un bouton de 24 px. Puis 31 px entre les deux centres. */
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-header-nav {
+    margin-left: 14.5px;
+    gap: 7px;
+}
+
+/* Glyphes nus : aucun fond au repos, contrairement aux deux pastilles. */
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-header-nav .nc-btn {
+    width: 24px;
+    height: 24px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-header-nav .nc-btn:hover {
+    border: 1px solid var(--nc-border);
+}
+
+/* La pastille de mise a jour, quand elle a quelque chose a dire. */
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-update-control {
+    flex: none;
+    margin-right: 8px;
+    pointer-events: auto;
+}

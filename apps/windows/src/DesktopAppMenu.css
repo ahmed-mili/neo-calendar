@@ -1,0 +1,167 @@
+/*
+ * Le menu d'application de la barre Windows.
+ *
+ * Les mesures viennent de la capture annotee (reference-measurements.md) :
+ * panneau au rayon 8 px avec 12 px de remplissage vertical, lignes de 28 px,
+ * libelle a 28 px du bord gauche, chevron de sous-menu cale a droite, survol en
+ * surface PLEINE sur toute la largeur, et un separateur de 1 px sans marge
+ * laterale. Les couleurs, elles, ne viennent pas de la capture : ce sont les
+ * jetons du theme choisi dans Neo Calendar.
+ *
+ * Portee au body, hors de .nc-desktop-window-shell : les selecteurs sont donc
+ * nommes plutot que descendants.
+ */
+
+.nc-app-menu-trigger {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    /* Glyphe nu : la reference ne donne de surface au repos qu'aux deux
+       pastilles (selecteur de vue et Today). */
+    background: transparent;
+    color: var(--nc-text-secondary, var(--nc-text-primary, inherit));
+    cursor: pointer;
+}
+
+.nc-app-menu-trigger:hover {
+    /* Survol = contour, ouvert = surface pleine : la meme grammaire que le
+       panneau d'evenement (voir CLAUDE.md). */
+    border: 1px solid var(--nc-border);
+    color: var(--nc-text-primary, inherit);
+}
+
+.nc-app-menu-trigger[data-open],
+.nc-app-menu-trigger:focus-visible {
+    background: var(--nc-bg-hover);
+    color: var(--nc-text-primary, inherit);
+}
+
+.nc-app-menu-layer {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    /* Au-dessus de la grille, du panneau d'evenement (10000) et du menu
+       contextuel (10001). */
+    z-index: 10002;
+}
+
+.nc-app-menu-panel {
+    position: fixed;
+    min-width: 143px;
+    padding: 12px 0;
+    border: 1px solid var(--nc-border);
+    border-radius: 8px;
+    /* Opaque, jamais translucide : ce panneau se lit par-dessus le papier
+       peint, ou un fond transparent rendrait les libelles illisibles. */
+    background: var(--nc-bg-primary);
+    color: var(--nc-text-primary);
+    box-shadow: 0 18px 36px -8px rgba(0, 0, 0, 0.45),
+        0 3px 8px -2px rgba(0, 0, 0, 0.24);
+    display: flex;
+    flex-direction: column;
+}
+
+.nc-app-menu-item {
+    display: flex;
+    align-items: center;
+    flex: none;
+    width: 100%;
+    height: 28px;
+    padding: 0 10px 0 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: inherit;
+    font-family: inherit;
+    font-size: 13px;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+/* La gouttiere qui pose le libelle a 28 px du bord, et qui porte la coche des
+   paliers d'echelle. Une seule mesure sert les deux. */
+.nc-app-menu-check {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 100%;
+    color: var(--nc-text-secondary);
+}
+
+.nc-app-menu-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nc-app-menu-shortcut {
+    flex: none;
+    margin-left: 24px;
+    color: var(--nc-text-faint, var(--nc-text-secondary));
+    font-size: 12px;
+}
+
+.nc-app-menu-chevron {
+    display: flex;
+    flex: none;
+    align-items: center;
+    margin-left: 24px;
+    color: var(--nc-text-secondary);
+}
+
+/* Surface pleine sur toute la largeur du panneau, pas une pastille interieure :
+   c'est ce que montre la capture, et c'est ce qui fait que la souris ne perd
+   jamais la ligne en route vers le sous-menu. */
+.nc-app-menu-item:hover:not([data-disabled]),
+.nc-app-menu-item:focus:not([data-disabled]),
+.nc-app-menu-item[aria-expanded="true"] {
+    background: var(--nc-bg-hover);
+    color: var(--nc-text-primary);
+    outline: none;
+}
+
+/* Grisee, et non retiree : le libelle ET le raccourci s'attenuent, la ligne
+   reste lisible et atteignable au clavier. */
+.nc-app-menu-item[data-disabled] {
+    color: var(--nc-text-faint, var(--nc-text-secondary));
+    cursor: default;
+}
+
+.nc-app-menu-item[data-disabled] .nc-app-menu-shortcut,
+.nc-app-menu-item[data-disabled] .nc-app-menu-check {
+    opacity: 0.55;
+}
+
+.nc-app-menu-separator {
+    flex: none;
+    height: 1px;
+    margin: 6px 0;
+    /* Toute la largeur, sans marge laterale. */
+    background: var(--nc-border);
+}
+
+/* La version remplace « A propos » : elle dit une chose, elle n'en ouvre
+   aucune — donc ni bouton, ni ligne de menu, ni cible de focus. */
+.nc-app-menu-version {
+    display: flex;
+    align-items: center;
+    flex: none;
+    height: 28px;
+    padding: 0 10px 0 28px;
+    color: var(--nc-text-faint, var(--nc-text-secondary));
+    font-size: 13px;
+    cursor: default;
+}

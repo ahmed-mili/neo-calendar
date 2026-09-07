@@ -5,6 +5,7 @@ import React, {
     useRef,
     useState,
 } from "react";
+import ReactDOM from "react-dom";
 import CalendarLayout from "../../../src/ui/calendar/CalendarLayout";
 import CommandPalette from "../../../src/ui/calendar/CommandPalette";
 import { invoke } from "@tauri-apps/api/core";
@@ -117,6 +118,8 @@ import {
     toggleDesktopFullscreen,
 } from "./platform/desktopWindow";
 import { checkDesktopUpdates } from "./platform/desktopUpdates";
+import DesktopTitlebar from "./DesktopTitlebar";
+import { useDesktopTitlebarHost } from "./DesktopWindowShell";
 import { requestHourHeight } from "../../../src/ui/calendar/hourHeightCommands";
 import DesktopSettings from "./DesktopSettings";
 import AddCalendarDialog, {
@@ -3823,14 +3826,21 @@ export default function DesktopCalendar({
         ]
     );
 
+    /* Le slot de la barre de titre, vide au premier rendu du shell : sans hote,
+       l'en-tete reste a sa place d'origine dans `.nc-main` plutot que de
+       disparaitre en attendant. */
+    const titlebarHost = useDesktopTitlebarHost();
+    const [appMenuOpen, setAppMenuOpen] = useState(false);
+
     /*
      * Une couche est-elle devant le calendrier ? Meme liste que la garde
      * d'Echap : ce qui repond a Echap est ce qui tient le clavier.
      *
-     * La tache 5 ajoutera ici l'ouverture du menu d'application, qui tient le
-     * clavier au meme titre.
+     * Le menu d'application ouvert en fait partie : ses fleches parcourent ses
+     * lignes, elles ne changent pas de periode.
      */
     const overlayHoldsKeyboard =
+        appMenuOpen ||
         settingsOpen ||
         addCalendarOpen ||
         commandPaletteVisible ||
@@ -4012,6 +4022,25 @@ export default function DesktopCalendar({
         >
             <SyncingFeedsContext.Provider value={syncingIcsFeedIds}>
             <CalendarLayout
+                desktopTitlebar={
+                    !isAndroid && titlebarHost
+                        ? (controls) =>
+                              ReactDOM.createPortal(
+                                  <DesktopTitlebar
+                                      controls={controls}
+                                      commands={desktopCommands}
+                                      sidebarVisible={sidebarVisible}
+                                      onToggleSidebar={toggleSidebar}
+                                      onOpenSearch={() =>
+                                          setCommandPaletteVisible(true)
+                                      }
+                                      onNewEvent={() => openNewEvent()}
+                                      onMenuOpenChange={setAppMenuOpen}
+                                  />,
+                                  titlebarHost
+                              )
+                        : undefined
+                }
                 currentDate={currentDate}
                 viewType={viewType}
                 onViewTypeChange={changeView}

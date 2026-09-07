@@ -38,6 +38,18 @@ interface CalendarHeaderProps {
     onToggleSidebar: () => void;
     /** The days the grid is showing, used to decide how the date badge reads. */
     visibleDates: Date[];
+    /**
+     * Où cet en-tête est monté.
+     *
+     * `"default"` — sa ligne à lui, dans `.nc-main` : le rendu d'origine, celui
+     * d'Android, du plugin Obsidian et de toute fenêtre Windows sans barre
+     * unifiée. `"window-controls"` — invité dans la barre de titre Windows, où
+     * la bascule de gauche et l'engrenage existent DÉJÀ ailleurs (la barre porte
+     * la première, le menu d'application le second) : les répéter ici en ferait
+     * deux exemplaires de chacun. Le sélecteur de vue, Today et les deux
+     * flèches, eux, n'existent nulle part ailleurs et restent.
+     */
+    presentation?: "default" | "window-controls";
 }
 
 const VIEW_OPTIONS: { value: ViewType; label: string }[] = [
@@ -83,6 +95,7 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
         onOpenSearch,
         onToggleSidebar,
         visibleDates,
+        presentation = "default",
     } = props;
 
     const isAndroid = isAndroidRuntime();
@@ -250,28 +263,37 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
     }
 
     const currentViewLabel = viewLabel(viewType, dayCount);
+    const inWindowBar = presentation === "window-controls";
 
     return (
-        <div className="nc-header">
-            <div className="nc-header-left">
-                <button
-                    className="nc-btn nc-btn-icon nc-btn-sidebar-toggle"
-                    onClick={onToggleSidebar}
-                    data-nc-tooltip={t("Calendars")}
-                    aria-label={t("Calendars")}
-                >
-                    <PanelLeftIcon />
-                </button>
-            </div>
+        <div
+            className={`nc-header${
+                inWindowBar ? " nc-header--window-controls" : ""
+            }`}
+        >
+            {!inWindowBar && (
+                <div className="nc-header-left">
+                    <button
+                        className="nc-btn nc-btn-icon nc-btn-sidebar-toggle"
+                        onClick={onToggleSidebar}
+                        data-nc-tooltip={t("Calendars")}
+                        aria-label={t("Calendars")}
+                    >
+                        <PanelLeftIcon />
+                    </button>
+                </div>
+            )}
             <div className="nc-header-right">
-                <button
-                    className="nc-btn nc-btn-icon nc-btn-settings"
-                    onClick={onOpenSettings}
-                    data-nc-tooltip={t("Settings")}
-                    aria-label={t("Settings")}
-                >
-                    <SettingsIcon size={15} />
-                </button>
+                {!inWindowBar && (
+                    <button
+                        className="nc-btn nc-btn-icon nc-btn-settings"
+                        onClick={onOpenSettings}
+                        data-nc-tooltip={t("Settings")}
+                        aria-label={t("Settings")}
+                    >
+                        <SettingsIcon size={15} />
+                    </button>
+                )}
                 <div className="nc-view-dropdown" ref={viewMenuRef}>
                     <button
                         className="nc-btn nc-view-dropdown-btn"

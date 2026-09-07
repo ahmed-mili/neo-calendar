@@ -120,6 +120,16 @@ interface CalendarLayoutProps {
         allDay: boolean
     ) => void;
     onEventUnschedule?: (eventId: string) => Promise<boolean>;
+    /**
+     * Où poser l'en-tête, quand la coque le demande.
+     *
+     * Windows monte sa barre de titre dans un slot de fenêtre : la fonction
+     * reçoit l'en-tête DÉJÀ construit et rend le portail qui l'y emmène.
+     * Absente — Android, le plugin Obsidian, une fenêtre sans slot — l'en-tête
+     * reste exactement où il a toujours été, dans `.nc-main`. Le layout ne sait
+     * rien de Tauri : il ne fait que tendre son en-tête.
+     */
+    desktopTitlebar?: (controls: React.ReactNode) => React.ReactNode;
 }
 
 export default function CalendarLayout(props: CalendarLayoutProps) {
@@ -198,6 +208,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         onPanelDragTarget,
         onPanelDrop,
         onEventUnschedule,
+        desktopTitlebar,
     } = props;
 
     // â”€â”€ Events-panel slide transition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -302,6 +313,31 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         },
     });
 
+    /* Construit UNE fois, monté à UN seul endroit : le même en-tête, celui du
+       slot de fenêtre ou celui de `.nc-main`. En construire deux copies serait
+       la seule façon d'en voir deux à l'écran. */
+    const header = (
+        <CalendarHeader
+            currentDate={currentDate}
+            firstDay={firstDay}
+            onDateSelect={onDateSelect}
+            viewType={viewType}
+            onViewTypeChange={onViewTypeChange}
+            dayCount={dayCount}
+            onSetDayCount={onSetDayCount}
+            showWeekNumbers={showWeekNumbers}
+            onToggleWeekNumbers={onToggleWeekNumbers}
+            onGoPrev={onGoPrev}
+            onGoNext={onGoNext}
+            onGoToday={onGoToday}
+            onOpenSettings={onOpenSettings}
+            onOpenSearch={onOpenSearch}
+            onToggleSidebar={onToggleSidebar}
+            visibleDates={visibleDates}
+            presentation={desktopTitlebar ? "window-controls" : "default"}
+        />
+    );
+
     return (
         <div
             className={`nc-layout${
@@ -353,7 +389,9 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                 onToggleSidebar={onToggleSidebar}
                 onOpenSearch={onOpenSearch}
                 onOpenSettings={onOpenSettings}
+                showTopBar={!desktopTitlebar}
             />
+            {desktopTitlebar ? desktopTitlebar(header) : null}
             {panelMounted && (lastCalendarRef.current || selectedCalendar) && (
                 <CalendarEventsPanel
                     calendar={(selectedCalendar || lastCalendarRef.current)!}
@@ -389,24 +427,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                 />
             )}
             <div className="nc-main">
-                <CalendarHeader
-                    currentDate={currentDate}
-                    firstDay={firstDay}
-                    onDateSelect={onDateSelect}
-                    viewType={viewType}
-                    onViewTypeChange={onViewTypeChange}
-                    dayCount={dayCount}
-                    onSetDayCount={onSetDayCount}
-                    showWeekNumbers={showWeekNumbers}
-                    onToggleWeekNumbers={onToggleWeekNumbers}
-                    onGoPrev={onGoPrev}
-                    onGoNext={onGoNext}
-                    onGoToday={onGoToday}
-                    onOpenSettings={onOpenSettings}
-                    onOpenSearch={onOpenSearch}
-                    onToggleSidebar={onToggleSidebar}
-                    visibleDates={visibleDates}
-                />
+                {desktopTitlebar ? null : header}
                 <div className="nc-month-title">
                     {formatMonthTitle(currentDate)}
                 </div>

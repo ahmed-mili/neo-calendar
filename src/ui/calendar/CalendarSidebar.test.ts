@@ -213,7 +213,10 @@ describe("ICS links menu entry", () => {
                 host.querySelectorAll<HTMLButtonElement>(
                     ".nc-calendar-action-btn"
                 )
-            ).find((button) => button.getAttribute("data-nc-tooltip") === t("More options"));
+            ).find(
+                (button) =>
+                    button.getAttribute("data-nc-tooltip") === t("More options")
+            );
             expect(trigger).toBeTruthy();
             act(() => trigger?.click());
 
@@ -305,7 +308,10 @@ describe("ICS links menu entry", () => {
                 host.querySelectorAll<HTMLButtonElement>(
                     ".nc-calendar-action-btn"
                 )
-            ).find((button) => button.getAttribute("data-nc-tooltip") === t("More options"));
+            ).find(
+                (button) =>
+                    button.getAttribute("data-nc-tooltip") === t("More options")
+            );
             expect(trigger).toBeTruthy();
             act(() => trigger?.click());
 
@@ -398,5 +404,100 @@ describe("tasks platform branches", () => {
         expect(host.querySelector(".nc-desktop-tasks-summary")).toBeNull();
         expect(host.querySelector(".nc-tasks-panel")).toBeTruthy();
         expect(host.textContent).toContain(t("Add task"));
+    });
+});
+
+/*
+ * La barre du haut de la colonne : bascule, recherche, version, pastille de
+ * mise à jour.
+ *
+ * Sous la barre unifiée de Windows, les quatre existent déjà en haut de la
+ * fenêtre. `showTopBar` ne fait que la retirer là — et vaut `true` partout
+ * ailleurs, Android et le plugin Obsidian compris, où rien ne change.
+ */
+describe("la barre du haut de la colonne", () => {
+    const baseProps = () => ({
+        sidebarVisible: true,
+        currentDate: new Date(2026, 8, 3),
+        viewType: "week" as const,
+        onViewTypeChange: () => {},
+        dayCount: 7,
+        onSetDayCount: () => {},
+        calendarSources: [],
+        firstDay: 1,
+        onDateSelect: () => {},
+        hiddenCalendars: new Set<string>(),
+        onToggleCalendar: () => {},
+        defaultCalendarId: "",
+        soloCalendarId: null,
+        onSetDefaultCalendar: () => {},
+        onShowOnly: () => {},
+        tasks: [],
+        today: "2026-09-03",
+        onEventClick: () => {},
+        onAddTask: () => {},
+        onToggleTask: async () => true,
+        onAddCalendar: () => {},
+        onRenameCalendar: async () => {},
+        onEditCalendarLink: () => {},
+        onDeleteCalendar: () => {},
+        onColorChange: () => {},
+        onReorderCalendars: () => {},
+        onOpenCalendarFolder: () => {},
+        onOpenRootFolder: () => {},
+        onCalendarClick: () => {},
+        selectedCalendarId: null,
+        onToggleSidebar: () => {},
+        onOpenSearch: () => {},
+        onOpenSettings: () => {},
+    });
+
+    const mount = (extra: Record<string, unknown>) => {
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        act(() => {
+            ReactDOM.render(
+                React.createElement(CalendarSidebar, {
+                    ...baseProps(),
+                    ...extra,
+                }),
+                host
+            );
+        });
+        return host;
+    };
+
+    const unmount = (host: HTMLElement) => {
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
+        host.remove();
+    };
+
+    it("est là par défaut, avec sa recherche et sa version", () => {
+        const host = mount({});
+        try {
+            expect(host.querySelectorAll(".nc-sidebar-top-bar")).toHaveLength(
+                1
+            );
+            expect(host.querySelector(".nc-sidebar-search-btn")).not.toBeNull();
+            expect(host.querySelector(".nc-sidebar-version")).not.toBeNull();
+        } finally {
+            unmount(host);
+        }
+    });
+
+    it("disparaît entièrement quand la barre unifiée la porte", () => {
+        const host = mount({ showTopBar: false });
+        try {
+            expect(host.querySelector(".nc-sidebar-top-bar")).toBeNull();
+            expect(host.querySelector(".nc-sidebar-search-btn")).toBeNull();
+            expect(host.querySelector(".nc-sidebar-version")).toBeNull();
+            // Le reste de la colonne, lui, est intact.
+            expect(host.querySelector(".nc-sidebar")).not.toBeNull();
+            expect(host.querySelector(".nc-sidebar-scroll")).not.toBeNull();
+        } finally {
+            unmount(host);
+        }
     });
 });

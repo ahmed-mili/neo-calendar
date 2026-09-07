@@ -70,3 +70,51 @@ describe("getLanguage", () => {
         expect(getLanguage()).toBe("fr");
     });
 });
+
+/*
+ * Les libellés du menu d'application de Windows. La capture annotée les fixe
+ * mot pour mot ; c'est du français par défaut, donc c'est le français qui est
+ * vérifié.
+ */
+describe("Windows application menu wording", () => {
+    it("names the three rubrics as the reference does", () => {
+        applyLanguage("fr");
+        expect(t("Edit")).toBe("Modifier");
+        expect(t("Display")).toBe("Afficher");
+        // « View » sert déjà de titre de rubrique aux raccourcis clavier : le
+        // menu emploie « Display » pour ne pas lui prendre son sens.
+        expect(t("View")).toBe("Affichage");
+    });
+
+    it("names the entries of each rubric", () => {
+        applyLanguage("fr");
+        expect(t("Check for updates…")).toBe("Rechercher les mises à jour…");
+        expect(t("Settings…")).toBe("Paramètres…");
+        expect(t("Undo")).toBe("Annuler l'action");
+        expect(t("Redo")).toBe("Rétablir");
+        expect(t("Paste and match style")).toBe("Coller et respecter le style");
+        expect(t("Select all visible items")).toBe(
+            "Sélectionner tous les éléments visibles"
+        );
+        expect(t("Default hour spacing")).toBe(
+            "Espacement des heures par défaut"
+        );
+        expect(t("Interface scale")).toBe("Échelle de l'interface");
+        expect(t("Force refresh")).toBe("Forcer le rafraîchissement");
+        expect(t("Show developer tools")).toBe(
+            "Afficher les outils de développement"
+        );
+        expect(t("Toggle full screen")).toBe("Basculer en plein écran");
+    });
+
+    it("reads the shortcut keys in the language of the menu", () => {
+        applyLanguage("fr");
+        expect(t("Ctrl+Comma")).toBe("Ctrl+Virgule");
+        expect(t("Ctrl+Shift+0")).toBe("Ctrl+Maj+0");
+        expect(t("Ctrl+Shift+Period")).toBe("Ctrl+Maj+Point");
+        expect(t("Ctrl+Shift+Comma")).toBe("Ctrl+Maj+Virgule");
+        expect(t("Backspace")).toBe("Retour");
+        applyLanguage("en");
+        expect(t("Ctrl+Comma")).toBe("Ctrl+Comma");
+    });
+});

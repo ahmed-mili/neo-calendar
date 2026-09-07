@@ -23,6 +23,9 @@ import "./desktopDescriptionEditor";
 import "./App.css";
 // After App.css: the shell owns the outermost frame and must win over it.
 import "./DesktopWindowShell.css";
+// La barre unifiée et son menu, après le shell : ils habillent son slot.
+import "./DesktopTitlebar.css";
+import "./DesktopAppMenu.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Neo Calendar root element is missing");

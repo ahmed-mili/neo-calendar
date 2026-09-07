@@ -420,6 +420,39 @@ const FR: Record<string, string> = {
     Navigation: "Navigation",
     View: "Affichage",
 
+    // ── Menu d'application de la fenêtre Windows ─────────────
+    // La barre unifiée reproduit l'organisation de Notion Calendar : trois
+    // rubriques, et les libellés exacts de la capture annotée. « Display »
+    // plutôt que « View » parce que ce dernier sert déjà de titre de rubrique
+    // au panneau des raccourcis, où il se lit « Affichage ».
+    Edit: "Modifier",
+    Display: "Afficher",
+    "Application menu": "Menu de l'application",
+    "Check for updates…": "Rechercher les mises à jour…",
+    "Settings…": "Paramètres…",
+    Undo: "Annuler l'action",
+    Redo: "Rétablir",
+    Paste: "Coller",
+    "Paste and match style": "Coller et respecter le style",
+    "Select all visible items": "Sélectionner tous les éléments visibles",
+    "Default hour spacing": "Espacement des heures par défaut",
+    "Increase hour spacing": "Augmenter l'espacement des heures",
+    "Decrease hour spacing": "Réduire l'espacement des heures",
+    "Interface scale": "Échelle de l'interface",
+    Reload: "Relancer",
+    "Force refresh": "Forcer le rafraîchissement",
+    "Show developer tools": "Afficher les outils de développement",
+    "Toggle full screen": "Basculer en plein écran",
+    // Les raccourcis s'AFFICHENT dans la langue du menu : sur un clavier
+    // français la touche se lit « Virgule », pas « Comma ».
+    "Ctrl+Comma": "Ctrl+Virgule",
+    "Ctrl+Shift+V": "Ctrl+Maj+V",
+    "Ctrl+Shift+R": "Ctrl+Maj+R",
+    "Ctrl+Shift+0": "Ctrl+Maj+0",
+    "Ctrl+Shift+Period": "Ctrl+Maj+Point",
+    "Ctrl+Shift+Comma": "Ctrl+Maj+Virgule",
+    Backspace: "Retour",
+
     // ── Common verbs and controls ────────────────────────────
     Save: "Enregistrer",
     Cancel: "Annuler",
