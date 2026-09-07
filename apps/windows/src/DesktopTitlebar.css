@@ -256,3 +256,16 @@
     margin-right: 8px;
     pointer-events: auto;
 }
+
+/* Native focus is already published by DesktopWindowShell. Only the chrome
+   glyphs fade: the sidebar surface and Week/Today keep their normal contrast. */
+.nc-desktop-window-shell .nc-desktop-toolbar__left button > svg,
+.nc-desktop-window-shell .nc-desktop-window-control > svg {
+    opacity: 1;
+    transition: opacity 100ms ease;
+}
+
+.nc-desktop-window-shell[data-focused="false"] .nc-desktop-toolbar__left button > svg,
+.nc-desktop-window-shell[data-focused="false"] .nc-desktop-window-control > svg {
+    opacity: 0.3;
+}

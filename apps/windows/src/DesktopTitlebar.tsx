@@ -1,7 +1,6 @@
 import * as React from "react";
 import {
     NewEventIcon,
-    PanelLeftIcon,
     SearchIcon,
 } from "../../../src/ui/calendar/Icons";
 import { UpdateBadge } from "../../../src/ui/calendar/UpdateBadge";
@@ -62,7 +61,30 @@ export default function DesktopTitlebar({
                     aria-label={t("Toggle sidebar")}
                     data-nc-tooltip={t("Toggle sidebar")}
                 >
-                    <PanelLeftIcon />
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        aria-hidden="true"
+                        focusable="false"
+                    >
+                        <rect
+                            x="1"
+                            y="3"
+                            width="14"
+                            height="10"
+                            rx="2"
+                            stroke="#ADADAD"
+                            strokeWidth="1.25"
+                        />
+                        <path
+                            d="M5 3.25V12.75"
+                            stroke="#ADADAD"
+                            strokeWidth="1.25"
+                        />
+                    </svg>
                 </button>
                 <div className="nc-desktop-toolbar__gap" />
                 <button
