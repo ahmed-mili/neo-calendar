@@ -24,7 +24,13 @@
    deux surfaces que le theme nomme deja. Chargee apres DesktopWindowShell.css,
    donc cette regle-ci gagne sans `!important`. */
 .nc-desktop-window-shell .nc-desktop-titlebar {
-    background: var(--nc-bg-primary);
+    /* La MEME teinte que le reste du chrome, pas un fond opaque. L'ancien
+       en-tete, le titre du mois et la barre d'agenda partagent tous
+       `--nc-chrome-container-background` : une teinte translucide qui laisse
+       passer le fond d'ecran. La barre unifiee prend leur place, elle prend
+       donc leur materiau. Peinte en `--nc-bg-primary`, elle posait une dalle
+       opaque en haut d'une fenetre dont tout le reste laisse voir l'image. */
+    background: var(--nc-chrome-container-background, rgba(17, 17, 27, 0.48));
 }
 
 .nc-desktop-window-shell .nc-desktop-toolbar {
@@ -70,7 +76,11 @@
 .nc-desktop-window-shell .nc-desktop-toolbar__left[data-sidebar="open"] {
     width: var(--nc-sidebar-width);
     height: 100%;
-    background: var(--nc-bg-secondary);
+    /* Meme raison : la colonne sous elle est peinte de
+       `--nc-sidebar-container-background`, la bande qui la prolonge dans la
+       barre doit l'etre aussi, sans quoi la colonne change de matiere a
+       hauteur de la barre. */
+    background: var(--nc-sidebar-container-background, rgba(17, 17, 27, 0.54));
     border-right: 1px solid var(--nc-border);
 }
 
