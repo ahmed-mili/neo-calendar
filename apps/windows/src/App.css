@@ -4216,8 +4216,17 @@ body.nc-platform-android .nc-wallpaper-option--all {
 :root {
     --nc-wallpaper-brightness: 0.70;
     --nc-wallpaper-blur: 5px;
-    --nc-grid-container-background: rgba(17, 17, 27, 0.40);
-    --nc-chrome-container-background: rgba(17, 17, 27, 0.48);
+    /* UNE seule opacite de conteneur pour toute l'application. La grille,
+       l'en-tete, le titre du mois, la barre d'agenda et la barre unifiee
+       peignent le meme verre : elles derivent toutes de la meme source, donc
+       elles ne peuvent plus diverger sans qu'on le decide ici. Elles valaient
+       0,40 et 0,48, ce qui se lisait comme deux materiaux differents.
+
+       Le ruban lateral est la SEULE exception, et il est plus dense a dessein :
+       c'est une colonne de navigation, pas une surface de contenu. */
+    --nc-container-background: rgba(17, 17, 27, 0.40);
+    --nc-grid-container-background: var(--nc-container-background);
+    --nc-chrome-container-background: var(--nc-container-background);
     --nc-sidebar-container-background: rgba(17, 17, 27, 0.54);
 }
 
@@ -4315,7 +4324,7 @@ body.nc-platform-android .nc-wallpaper-option--all {
     background:
         var(
             --nc-chrome-container-background,
-            rgba(17, 17, 27, 0.48)
+            rgba(17, 17, 27, 0.40)
         ) !important;
     background-image: none !important;
 }
@@ -4330,7 +4339,7 @@ body.nc-platform-android .nc-wallpaper-option--all {
     background:
         var(
             --nc-chrome-container-background,
-            rgba(17, 17, 27, 0.48)
+            rgba(17, 17, 27, 0.40)
         ) !important;
     background-image: none !important;
     margin-bottom: 0 !important;

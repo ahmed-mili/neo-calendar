@@ -33,7 +33,7 @@
        la barre (voir DesktopWindowShell.css) : posee sur la couleur unie du
        fond de fenetre, elle ne faisait qu'assombrir une dalle. Posee sur
        l'image, c'est le meme verre que le reste de l'application. */
-    background: var(--nc-chrome-container-background, rgba(17, 17, 27, 0.48));
+    background: var(--nc-chrome-container-background, rgba(17, 17, 27, 0.4));
 }
 
 .nc-desktop-window-shell .nc-desktop-toolbar {
