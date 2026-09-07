@@ -40,9 +40,18 @@ fn hard_reload_params() -> Value {
     json!({"ignoreCache": true})
 }
 
-// Called on Tauri's worker pool: the UI thread must remain free to deliver
-// WebView2's completion callback. Return protocol failures to the caller too.
-fn call_protocol(window: WebviewWindow, method: &'static str, params: Value) -> Result<(), String> {
+// The completion callback is delivered on the UI thread, so the wait for it
+// must not sit anywhere that thread needs. It must not sit on the async pool
+// either: that pool also carries the update loop of lib.rs, and a WebView2 call
+// that never answers would hold one of its workers for the whole timeout. Hence
+// spawn_blocking — the wait happens on a thread whose only job is to wait.
+// Protocol failures come back to the caller; nothing reports success before the
+// callback actually fires.
+async fn call_protocol(
+    window: WebviewWindow,
+    method: &'static str,
+    params: Value,
+) -> Result<(), String> {
     let (sender, receiver) = std::sync::mpsc::channel();
     window.with_webview(move |webview| {
         let completed = sender.clone();
@@ -63,25 +72,30 @@ fn call_protocol(window: WebviewWindow, method: &'static str, params: Value) -> 
             let _ = sender.send(Err(error.to_string()));
         }
     }).map_err(|error| error.to_string())?;
-    receiver.recv_timeout(std::time::Duration::from_secs(5))
-        .map_err(|error| format!("{method}: {error}"))?
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        receiver
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .map_err(|error| format!("{method}: {error}"))?
+    })
+    .await
+    .map_err(|error| format!("{method}: {error}"))?
 }
 
-#[tauri::command(async)]
-pub fn execute_native_text_command(window: WebviewWindow, command: NativeTextCommand) -> Result<(), String> {
+#[tauri::command]
+pub async fn execute_native_text_command(window: WebviewWindow, command: NativeTextCommand) -> Result<(), String> {
     if window.label() != "main" {
         return Err("Unsupported window".into());
     }
-    call_protocol(window, "Input.dispatchKeyEvent", text_command_params(command))
+    call_protocol(window, "Input.dispatchKeyEvent", text_command_params(command)).await
 }
 
-#[tauri::command(rename_all = "camelCase", async)]
-pub fn reload_desktop(window: WebviewWindow, ignore_cache: bool) -> Result<(), String> {
+#[tauri::command(rename_all = "camelCase")]
+pub async fn reload_desktop(window: WebviewWindow, ignore_cache: bool) -> Result<(), String> {
     if window.label() != "main" {
         return Err("Unsupported window".into());
     }
     if ignore_cache {
-        call_protocol(window, "Page.reload", hard_reload_params())
+        call_protocol(window, "Page.reload", hard_reload_params()).await
     } else {
         window.reload().map_err(|error| error.to_string())
     }
