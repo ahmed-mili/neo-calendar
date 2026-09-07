@@ -1,17 +1,33 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { DesktopWindowActions } from "./platform/desktopWindow";
+import React, {
+    createContext,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+import { Copy, Minus, Square, X } from "lucide-react";
+import {
+    DesktopWindowActions,
+    getDesktopWindowActions,
+} from "./platform/desktopWindow";
+import { t } from "../../../src/ui/i18n";
 
 const TitlebarHost = createContext<HTMLDivElement | null>(null);
 export const useDesktopTitlebarHost = (): HTMLDivElement | null =>
     useContext(TitlebarHost);
 
 export default function DesktopWindowShell({
-    actions,
+    actions: injected,
     children,
 }: {
-    actions: DesktopWindowActions;
+    /** Left out in the app; supplied by the tests, which must not touch Tauri. */
+    actions?: DesktopWindowActions;
     children?: React.ReactNode;
 }): JSX.Element {
+    const actions = useMemo(
+        () => injected ?? getDesktopWindowActions(),
+        [injected]
+    );
     const [slot, setSlot] = useState<HTMLDivElement | null>(null);
     const [maximized, setMaximized] = useState(false);
     const [focused, setFocused] = useState(true);
@@ -93,30 +109,43 @@ export default function DesktopWindowShell({
                                 run(actions.toggleMaximize);
                         }}
                     />
-                    <button
-                        type="button"
-                        aria-label="Réduire"
-                        onClick={() => run(actions.minimize)}
-                    >
-                        Réduire
-                    </button>
-                    <button
-                        type="button"
-                        aria-label={maximized ? "Restaurer" : "Agrandir"}
-                        onClick={() => run(actions.toggleMaximize)}
-                    >
-                        {maximized ? "Restaurer" : "Agrandir"}
-                    </button>
-                    <button
-                        type="button"
-                        aria-label="Fermer"
-                        onClick={() => run(actions.close)}
-                    >
-                        Fermer
-                    </button>
+                    <div className="nc-desktop-window-controls">
+                        <button
+                            type="button"
+                            className="nc-desktop-window-control"
+                            aria-label={t("Minimize")}
+                            onClick={() => run(actions.minimize)}
+                        >
+                            <Minus aria-hidden="true" />
+                        </button>
+                        <button
+                            type="button"
+                            className="nc-desktop-window-control"
+                            aria-label={t(maximized ? "Restore" : "Maximize")}
+                            onClick={() => run(actions.toggleMaximize)}
+                        >
+                            {maximized ? (
+                                <Copy aria-hidden="true" />
+                            ) : (
+                                <Square aria-hidden="true" />
+                            )}
+                        </button>
+                        <button
+                            type="button"
+                            className="nc-desktop-window-control nc-desktop-window-control--close"
+                            aria-label={t("Close")}
+                            onClick={() => run(actions.close)}
+                        >
+                            <X aria-hidden="true" />
+                        </button>
+                    </div>
                 </div>
-                {error !== null && <div role="alert">{error}</div>}
-                {children}
+                {error !== null && (
+                    <div className="nc-desktop-window-error" role="alert">
+                        {error}
+                    </div>
+                )}
+                <div className="nc-desktop-window-content">{children}</div>
             </div>
         </TitlebarHost.Provider>
     );

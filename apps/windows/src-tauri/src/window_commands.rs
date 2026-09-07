@@ -63,17 +63,23 @@ fn call_protocol(window: WebviewWindow, method: &'static str, params: Value) -> 
             let _ = sender.send(Err(error.to_string()));
         }
     }).map_err(|error| error.to_string())?;
-    receiver.recv_timeout(std::time::Duration::from_secs(15))
+    receiver.recv_timeout(std::time::Duration::from_secs(5))
         .map_err(|error| format!("{method}: {error}"))?
 }
 
 #[tauri::command(async)]
 pub fn execute_native_text_command(window: WebviewWindow, command: NativeTextCommand) -> Result<(), String> {
+    if window.label() != "main" {
+        return Err("Unsupported window".into());
+    }
     call_protocol(window, "Input.dispatchKeyEvent", text_command_params(command))
 }
 
 #[tauri::command(rename_all = "camelCase", async)]
 pub fn reload_desktop(window: WebviewWindow, ignore_cache: bool) -> Result<(), String> {
+    if window.label() != "main" {
+        return Err("Unsupported window".into());
+    }
     if ignore_cache {
         call_protocol(window, "Page.reload", hard_reload_params())
     } else {
@@ -84,12 +90,16 @@ pub fn reload_desktop(window: WebviewWindow, ignore_cache: bool) -> Result<(), S
 // Tauri cannot detect or close DevTools on Windows; repeated calls focus
 // the existing inspector instead of closing it.
 #[tauri::command]
-pub fn toggle_desktop_devtools(window: WebviewWindow) {
+pub fn toggle_desktop_devtools(window: WebviewWindow) -> Result<(), String> {
+    if window.label() != "main" {
+        return Err("Unsupported window".into());
+    }
     if window.is_devtools_open() {
         window.close_devtools();
     } else {
         window.open_devtools();
     }
+    Ok(())
 }
 
 #[cfg(test)]

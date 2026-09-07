@@ -1,0 +1,116 @@
+/*
+ * The Windows window chrome, drawn by the app rather than by the system.
+ *
+ * `decorations: false` in tauri.conf.json means there is no native title bar
+ * left: this file is the whole frame. Every measurement comes from the
+ * annotated reference (see reference-measurements.md) — a 45 px single line,
+ * window commands with no resting surface, a 39.5 px step between their
+ * centres, and the last one 29.5 px from the right edge rather than flush
+ * against it like a native caption button.
+ *
+ * Scoped under .nc-desktop-window-shell on purpose: Android and the Obsidian
+ * plugin share src/ui/calendar/ but never mount this shell.
+ */
+
+.nc-desktop-window-shell {
+    /* Task 5 aligns the CalendarHeader fragment against this token. */
+    --nc-window-bar-height: 45px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.nc-desktop-window-shell .nc-desktop-titlebar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    height: var(--nc-window-bar-height);
+    /* 29.5 px from the right edge to the centre of the close glyph, minus half
+       a 24 px button. */
+    padding-right: 17.5px;
+}
+
+/* The empty half of the bar: it drags the window, and Task 5 portals the
+   calendar's own toolbar into it. */
+.nc-desktop-window-shell #nc-desktop-titlebar-slot {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 0;
+    height: 100%;
+}
+
+.nc-desktop-window-shell .nc-desktop-window-controls {
+    display: flex;
+    flex: none;
+    align-items: center;
+    /* 39.5 px between centres = 24 px of button + 15.5 px of gap. */
+    gap: 15.5px;
+}
+
+.nc-desktop-window-shell .nc-desktop-window-control {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    /* No resting surface at all: the reference shows bare glyphs. */
+    background: transparent;
+    color: var(--nc-text-secondary, var(--nc-text-primary, inherit));
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+}
+
+.nc-desktop-window-shell .nc-desktop-window-control > svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 1.5;
+}
+
+.nc-desktop-window-shell .nc-desktop-window-control:hover,
+.nc-desktop-window-shell .nc-desktop-window-control:focus-visible {
+    background: var(--nc-bg-hover);
+    color: var(--nc-text-primary, inherit);
+}
+
+.nc-desktop-window-shell .nc-desktop-window-control:focus-visible {
+    outline: 1px solid var(--nc-border);
+    outline-offset: -1px;
+}
+
+/* The one Windows convention worth keeping: closing goes red under the
+   pointer. The colour comes from the theme, not from a literal. */
+.nc-desktop-window-shell .nc-desktop-window-control--close:hover,
+.nc-desktop-window-shell .nc-desktop-window-control--close:focus-visible {
+    background: var(--nc-danger, #c42b1c);
+    color: #ffffff;
+}
+
+.nc-desktop-window-shell .nc-desktop-window-error {
+    flex: none;
+    padding: 6px 16px;
+    border-bottom: 1px solid var(--nc-border);
+    color: var(--nc-text-primary, inherit);
+    background: var(--nc-bg-hover);
+    font-size: 12px;
+}
+
+/* A defined height, not `auto`: the calendar's `height: 100%` chain resolves
+   against this box, and collapses to nothing without it. */
+.nc-desktop-window-shell .nc-desktop-window-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.nc-desktop-window-shell .nc-desktop-window-content > * {
+    min-height: 0;
+}

@@ -28,6 +28,15 @@ export function createDesktopWindowActions(
     };
 }
 
+// Built on first use, never at import time: the tests import this module with
+// the Tauri stub in place, which throws as soon as a native call is made.
+let currentWindowActions: DesktopWindowActions | null = null;
+export function getDesktopWindowActions(): DesktopWindowActions {
+    if (currentWindowActions === null)
+        currentWindowActions = createDesktopWindowActions(getCurrentWindow());
+    return currentWindowActions;
+}
+
 export type NativeTextCommand =
     | "undo"
     | "redo"

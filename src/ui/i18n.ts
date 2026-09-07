@@ -442,6 +442,12 @@ const FR: Record<string, string> = {
     Show: "Afficher",
     Hide: "Masquer",
     Collapse: "Réduire",
+    // ── The desktop window's own controls ────────────────────
+    // Distinct keys from Collapse/Show: these name window commands, and their
+    // wording must not move when a panel's wording does.
+    Minimize: "Réduire",
+    Maximize: "Agrandir",
+    Restore: "Restaurer",
     More: "Plus",
     "More options": "Plus d'options",
     "Dismiss error": "Masquer l'erreur",
