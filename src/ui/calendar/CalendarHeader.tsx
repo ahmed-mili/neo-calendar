@@ -284,16 +284,20 @@ export default function CalendarHeader(props: CalendarHeaderProps) {
                 </div>
             )}
             <div className="nc-header-right">
-                {!inWindowBar && (
-                    <button
-                        className="nc-btn nc-btn-icon nc-btn-settings"
-                        onClick={onOpenSettings}
-                        data-nc-tooltip={t("Settings")}
-                        aria-label={t("Settings")}
-                    >
-                        <SettingsIcon size={15} />
-                    </button>
-                )}
+                {/* L'engrenage reste dans la barre, y compris unifiee. La
+                    reference Notion n'en a pas — mais elle loge un avatar de
+                    compte a cet endroit, que Neo Calendar n'a pas, et le menu
+                    seul rendait les reglages introuvables : demande d'Ahmed du
+                    2026-09-07, apres l'avoir vu tourner. L'entree Parametres du
+                    menu reste, les deux ouvrent la meme chose. */}
+                <button
+                    className="nc-btn nc-btn-icon nc-btn-settings"
+                    onClick={onOpenSettings}
+                    data-nc-tooltip={t("Settings")}
+                    aria-label={t("Settings")}
+                >
+                    <SettingsIcon size={15} />
+                </button>
                 <div className="nc-view-dropdown" ref={viewMenuRef}>
                     <button
                         className="nc-btn nc-view-dropdown-btn"

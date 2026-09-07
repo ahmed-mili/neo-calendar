@@ -140,10 +140,15 @@ describe("l'en-tête en présentation window-controls", () => {
         document.body.innerHTML = "";
     });
 
-    it("retire la bascule de gauche et l'engrenage", () => {
+    it("retire la bascule de gauche mais garde l'engrenage", () => {
         renderHeader("window-controls");
+        // La bascule part : la barre unifiee porte la sienne, a gauche.
         expect(host.querySelector(".nc-header-left")).toBeNull();
-        expect(host.querySelector(".nc-btn-settings")).toBeNull();
+        // L'engrenage RESTE. La reference Notion n'en a pas, mais elle loge un
+        // avatar de compte a cet endroit que Neo Calendar n'a pas, et le menu
+        // seul rendait les reglages introuvables — vu a l'ecran et tranche par
+        // Ahmed le 2026-09-07. L'entree Parametres du menu reste en plus.
+        expect(host.querySelector(".nc-btn-settings")).not.toBeNull();
     });
 
     it("garde le sélecteur de vue, Today et les deux flèches", () => {

@@ -30,7 +30,15 @@
        passer le fond d'ecran. La barre unifiee prend leur place, elle prend
        donc leur materiau. Peinte en `--nc-bg-primary`, elle posait une dalle
        opaque en haut d'une fenetre dont tout le reste laisse voir l'image. */
-    background: var(--nc-chrome-container-background, rgba(17, 17, 27, 0.48));
+    /* Plus transparente que le reste du chrome (demande d'Ahmed du
+       2026-09-07, vue a l'ecran) : la teinte du chrome ramenee a 65 % de sa
+       densite, le complement etant du vide. Derivee du meme token, donc elle
+       suit le theme au lieu de figer une couleur. */
+    background: color-mix(
+        in srgb,
+        var(--nc-chrome-container-background, rgba(17, 17, 27, 0.48)) 65%,
+        transparent
+    );
 }
 
 .nc-desktop-window-shell .nc-desktop-toolbar {
@@ -80,7 +88,11 @@
        `--nc-sidebar-container-background`, la bande qui la prolonge dans la
        barre doit l'etre aussi, sans quoi la colonne change de matiere a
        hauteur de la barre. */
-    background: var(--nc-sidebar-container-background, rgba(17, 17, 27, 0.54));
+    background: color-mix(
+        in srgb,
+        var(--nc-sidebar-container-background, rgba(17, 17, 27, 0.54)) 65%,
+        transparent
+    );
     border-right: 1px solid var(--nc-border);
 }
 

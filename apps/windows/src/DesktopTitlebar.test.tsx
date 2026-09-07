@@ -167,10 +167,13 @@ describe("un seul exemplaire de chaque contrôle", () => {
 
     it("retire de l'en-tête ce que la barre porte déjà", () => {
         render();
-        // L'engrenage est remplacé par « Paramètres… » dans le menu, et la
-        // bascule de gauche par celle de la barre.
-        expect(countSelector(".nc-header .nc-btn-settings")).toBe(0);
+        // La bascule de gauche part : la barre porte la sienne.
         expect(countSelector(".nc-header-left")).toBe(0);
+        // L'engrenage, lui, RESTE, et en UN seul exemplaire — le menu porte
+        // « Paramètres… » en plus, mais un engrenage introuvable valait pire
+        // qu'un doublon de chemin. Tranché par Ahmed le 2026-09-07 après
+        // l'avoir vu tourner.
+        expect(countSelector(".nc-header .nc-btn-settings")).toBe(1);
         // La version et la pastille de mise à jour ne sont plus dans la
         // colonne : la barre les porte.
         expect(countSelector(".nc-sidebar-top-bar")).toBe(0);
