@@ -4295,17 +4295,25 @@ body.nc-platform-android .nc-wallpaper-option--all {
  * Only one grid layer receives the opacity to avoid stacking the alpha
  * several times over the same wallpaper.
  */
-.nc-desktop--calendar .nc-main-scroller,
-.nc-desktop--calendar .nc-left-rail-window,
-/* The rail corner sits outside .nc-left-rail-window, so it needs the same
-   single grid tint to match the hours below it — with the chrome tint it read
-   as a lighter/darker patch depending on which layer won. */
-.nc-desktop--calendar .nc-left-rail-fixed {
+/* UNE seule surface teintee pour tout le calendrier : `.nc-main`, qui contient
+   le titre du mois, le rail des heures et la grille. Chacun portait la sienne,
+   et deux d'entre elles se superposaient sous le titre du mois : il se lisait a
+   une densite effective d'environ 0,62 la ou la grille etait a 0,40 — la bande
+   horizontale plus dense signalee par Ahmed. Une seule couche, aucun empilement
+   possible, aucune couture entre deux surfaces voisines. */
+.nc-desktop--calendar .nc-main {
     background:
         var(
-            --nc-grid-container-background,
+            --nc-container-background,
             rgba(17, 17, 27, 0.40)
         ) !important;
+    background-image: none !important;
+}
+
+.nc-desktop--calendar .nc-main-scroller,
+.nc-desktop--calendar .nc-left-rail-window,
+.nc-desktop--calendar .nc-left-rail-fixed {
+    background: transparent !important;
     background-image: none !important;
 }
 
@@ -4336,11 +4344,10 @@ body.nc-platform-android .nc-wallpaper-option--all {
    Height and alignment are unchanged: 4px of padding plus 4px of margin become
    8px of padding. */
 .nc-desktop--calendar .nc-month-title {
-    background:
-        var(
-            --nc-chrome-container-background,
-            rgba(17, 17, 27, 0.40)
-        ) !important;
+    /* Plus de fond a lui : il est pose sur la surface unique de `.nc-main`.
+       La marge devenue remplissage reste, elle, pour que la teinte atteigne la
+       grille sans laisser une bande plus fine du meme probleme. */
+    background: transparent !important;
     background-image: none !important;
     margin-bottom: 0 !important;
     padding-bottom: 8px !important;
