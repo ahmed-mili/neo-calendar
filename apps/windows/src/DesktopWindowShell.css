@@ -180,3 +180,22 @@
 .nc-desktop-window-shell .nc-desktop-titlebar {
     z-index: 5;
 }
+
+/*
+ * UNE seule couche de fond d'ecran, et c'est celle du dessus.
+ *
+ * Le calendrier peint la sienne (`.nc-desktop--calendar::before`), a une
+ * autre echelle et un autre ancrage que celle du shell : les deux
+ * superposees, l'image apparaissait deux fois avec une couture a hauteur de
+ * la barre. Sous le shell, c'est la couche du shell qui traverse tout — le
+ * calendrier lui laisse la place, fond de l'element compris, sans quoi sa
+ * couleur unie masquerait l'image.
+ */
+.nc-desktop-window-shell .nc-desktop--calendar::before {
+    display: none !important;
+}
+
+.nc-desktop-window-shell .nc-desktop--calendar {
+    background-color: transparent !important;
+    background-image: none !important;
+}
