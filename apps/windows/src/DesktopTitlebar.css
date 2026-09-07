@@ -28,12 +28,19 @@
    module, but does not mount or import the window shell. */
 .nc-desktop-window-shell {
     --nc-container-background: var(--nc-grid-container-background);
+    /* Resolve once above the calendar's local theme overrides. Both adjoining
+       segments must inherit this value, not resolve the theme name separately. */
+    --nc-sidebar-divider-color: var(--background-modifier-border);
     /* Notion's neutral hover treatment, tinted by the active Neo palette. */
     --nc-toolbar-hover: color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 10%, transparent);
     --nc-toolbar-button: color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 7%, transparent);
     --nc-toolbar-button-hover: color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 12%, transparent);
     --nc-toolbar-button-border: color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 9%, transparent);
     --nc-toolbar-focus: color-mix(in srgb, var(--nc-text-primary, var(--text-normal)) 50%, transparent);
+}
+
+.nc-desktop-window-shell .nc-sidebar {
+    border-right-color: var(--nc-sidebar-divider-color);
 }
 
 /* The toolbar keeps the toggle reachable. A collapsed Windows sidebar must
@@ -112,9 +119,7 @@
     height: 100%;
     /* The titlebar gradient already paints the sidebar token here. */
     background: transparent;
-    /* Outside .nc-desktop--calendar, --nc-border is transparent. Use the same
-       theme border that the calendar remaps inside the sidebar. */
-    border-right: 1px solid var(--background-modifier-border);
+    border-right: 1px solid var(--nc-sidebar-divider-color);
 }
 
 .nc-desktop-window-shell .nc-desktop-toolbar__gap {
