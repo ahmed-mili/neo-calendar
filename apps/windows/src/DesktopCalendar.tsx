@@ -501,6 +501,44 @@ export function shouldRememberDeletedBatch(remember: boolean): boolean {
 }
 
 /**
+ * Quels enregistrements d'un lot à supprimer sont encore réellement présents
+ * (comparaison par id) — et non en lecture seule.
+ *
+ * Reentrant, symétrique au filtre déjà fait par `restoreDeletedRecords` côté
+ * Annuler : `useDeletionHistory` rappelle `remove` avec le lot ENTIER à
+ * chaque tentative de Rétablir, y compris après un échec à mi-lot. Sans ce
+ * filtre, un second Rétablir redemanderait au natif de supprimer un fichier
+ * qu'un essai précédent a déjà retiré du disque.
+ */
+export function pendingDeletions<T extends { id: string; readOnly?: boolean }>(
+    records: readonly T[],
+    presentIds: ReadonlySet<string>
+): T[] {
+    return records.filter(
+        (record) => presentIds.has(record.id) && !record.readOnly
+    );
+}
+
+/**
+ * Supprime un lot déjà filtré (`pendingDeletions`), en commettant chaque
+ * suppression réussie tout de suite (`onRemoved`) avant de passer à la
+ * suivante — pas seulement à la toute fin du lot. Sans ce commit immédiat, un
+ * échec à mi-lot laisserait l'appelant croire qu'AUCUNE suppression n'a eu
+ * lieu, et un second essai retenterait donc aussi celles qui ont déjà
+ * réussi.
+ */
+export async function deleteReentrant<T extends { id: string }>(
+    pending: readonly T[],
+    deleteOne: (record: T) => Promise<void>,
+    onRemoved: (id: string) => void
+): Promise<void> {
+    for (const record of pending) {
+        await deleteOne(record);
+        onRemoved(record.id);
+    }
+}
+
+/**
  * Le meme tableau, avec un enregistrement remplace par sa nouvelle version.
  */
 export function replaceRecord(
@@ -1942,27 +1980,28 @@ export default function DesktopCalendar({
 
     const deleteEventFiles = useCallback(
         async (records: DesktopStoredEvent[]): Promise<void> => {
-            const editableRecords = records.filter(
-                (record) => !record.readOnly
+            const present = new Set(
+                recordsRef.current.map((record) => record.id)
             );
-            if (!editableRecords.length) return;
+            const pending = pendingDeletions(records, present);
+            if (!pending.length) return;
             setIsSaving(true);
             setStorageError(null);
             try {
-                for (const record of editableRecords) {
-                    await deleteDesktopEventFile(
-                        dataFolder,
-                        record.relativePath
-                    );
-                }
-                const removed = new Set(
-                    editableRecords.map((record) => record.id)
+                await deleteReentrant(
+                    pending,
+                    (record) =>
+                        deleteDesktopEventFile(
+                            dataFolder,
+                            record.relativePath
+                        ),
+                    (id) => {
+                        recordsRef.current = recordsRef.current.filter(
+                            (candidate) => candidate.id !== id
+                        );
+                        setStoredEvents(recordsRef.current);
+                    }
                 );
-                const next = recordsRef.current.filter(
-                    (candidate) => !removed.has(candidate.id)
-                );
-                recordsRef.current = next;
-                setStoredEvents(next);
                 setPanelEventId(null);
                 setPanelAnchor(null);
                 setSelectedIds(new Set());
