@@ -1605,13 +1605,29 @@ async fn fetch_available_update(app: tauri::AppHandle) -> tauri_plugin_updater::
     Ok(())
 }
 
+/// Ce qu'une recherche de mise a jour a trouve, dit au frontend.
+///
+/// `ready` : une version attend d'etre posee, deja telechargee. `current` :
+/// rien de neuf. `busy` : une autre recherche tournait deja, la sienne n'a
+/// rien fait.
+#[derive(Serialize, PartialEq, Eq, Debug)]
+#[serde(rename_all = "lowercase")]
+enum UpdateCheckOutcome {
+    Ready,
+    Current,
+    Busy,
+}
+
 /// Chercher, si cela a un sens maintenant.
 ///
 /// Trois raisons de ne rien faire : une version attend deja qu'on la pose (la
 /// suivante se cherchera apres l'installation), une recherche est en cours, ou
 /// la derniere est trop recente pour qu'une autre apprenne quoi que ce soit.
+/// `busy` n'est pose que dans la branche qui cherche reellement, et libere a
+/// la sortie de cette meme branche, succes comme erreur : les trois sorties
+/// anticipees n'ont donc rien a liberer.
 #[cfg(desktop)]
-async fn fetch_if_due(app: tauri::AppHandle, force: bool) {
+async fn fetch_if_due(app: tauri::AppHandle, force: bool) -> Result<UpdateCheckOutcome, String> {
     use std::sync::atomic::Ordering;
 
     let held = app
@@ -1621,7 +1637,7 @@ async fn fetch_if_due(app: tauri::AppHandle, force: bool) {
         .map(|held| held.is_some())
         .unwrap_or(true);
     if held {
-        return;
+        return Ok(UpdateCheckOutcome::Ready);
     }
 
     let watch = app.state::<UpdateWatch>();
@@ -1632,20 +1648,56 @@ async fn fetch_if_due(app: tauri::AppHandle, force: bool) {
             .map(|last| last.map_or(false, |at| at.elapsed() < UPDATE_QUIET))
             .unwrap_or(true);
         if recent {
-            return;
+            return Ok(UpdateCheckOutcome::Current);
         }
     }
     if watch.busy.swap(true, Ordering::SeqCst) {
-        return;
+        return Ok(UpdateCheckOutcome::Busy);
     }
 
     if let Ok(mut last) = watch.last.lock() {
         *last = Some(std::time::Instant::now());
     }
-    if let Err(error) = fetch_available_update(app.clone()).await {
-        eprintln!("Automatic update check failed: {error}");
-    }
+    let result = fetch_available_update(app.clone()).await;
     app.state::<UpdateWatch>().busy.store(false, Ordering::SeqCst);
+
+    match result {
+        Ok(()) => {
+            let ready = app
+                .state::<PendingUpdate>()
+                .0
+                .lock()
+                .map(|held| held.is_some())
+                .unwrap_or(false);
+            Ok(if ready {
+                UpdateCheckOutcome::Ready
+            } else {
+                UpdateCheckOutcome::Current
+            })
+        }
+        Err(error) if force => Err(error.to_string()),
+        Err(error) => {
+            eprintln!("Automatic update check failed: {error}");
+            Ok(UpdateCheckOutcome::Current)
+        }
+    }
+}
+
+/// La recherche manuelle : le meme verrou, force pour ne pas se taire sur un
+/// repos recent, mais ne pose jamais la mise a jour elle-meme —
+/// `install_pending_update` reste le seul geste qui redemarre l'application.
+#[cfg(desktop)]
+#[tauri::command]
+async fn check_desktop_updates(app: tauri::AppHandle) -> Result<UpdateCheckOutcome, String> {
+    fetch_if_due(app, true).await
+}
+
+/// Meme raison que le stub de `install_pending_update` juste en dessous : le
+/// meme code de fenetre peut appeler la commande sans savoir ou il tourne.
+#[cfg(not(desktop))]
+#[tauri::command]
+fn check_desktop_updates() -> Result<UpdateCheckOutcome, String> {
+    Err("No update check available.".to_string())
 }
 
 fn latest_replaces_pending(pending_version: Option<&str>, latest_version: &str) -> bool {
@@ -1784,7 +1836,7 @@ pub fn run() {
                 // Au demarrage, sans attendre le premier battement.
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    fetch_if_due(handle, true).await;
+                    let _ = fetch_if_due(handle, true).await;
                 });
 
                 // Puis toutes les demi-heures, tant que l'application tourne.
@@ -1795,7 +1847,7 @@ pub fn run() {
                 std::thread::spawn(move || loop {
                     std::thread::sleep(UPDATE_POLL);
                     let handle = ticking.clone();
-                    tauri::async_runtime::block_on(fetch_if_due(handle, false));
+                    let _ = tauri::async_runtime::block_on(fetch_if_due(handle, false));
                 });
 
                 // Et au retour sur la fenetre : revenir apres une heure
@@ -1809,7 +1861,7 @@ pub fn run() {
                         }
                         let handle = focused.clone();
                         tauri::async_runtime::spawn(async move {
-                            fetch_if_due(handle, false).await;
+                            let _ = fetch_if_due(handle, false).await;
                         });
                     });
                 }
@@ -1843,6 +1895,7 @@ pub fn run() {
             write_desktop_attachment,
             read_desktop_attachment,
             install_pending_update,
+            check_desktop_updates,
             fetch_desktop_ics,
             debug_log
         ])

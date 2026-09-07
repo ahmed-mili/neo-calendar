@@ -96,7 +96,20 @@ import {
 import { NeoEvent, validateEvent } from "../../../src/types";
 import { CalendarSource, DisplayEvent, ViewType } from "../../../src/ui/types";
 import { t } from "../../../src/ui/i18n";
-import { DesktopCommands, handleDesktopShortcut } from "./desktopCommands";
+import {
+    DesktopCommandId,
+    DesktopCommands,
+    handleDesktopShortcut,
+} from "./desktopCommands";
+import {
+    loadDesktopInterfaceScale,
+    reloadDesktop,
+    setDesktopInterfaceScale,
+    toggleDesktopDevtools,
+    toggleDesktopFullscreen,
+} from "./platform/desktopWindow";
+import { checkDesktopUpdates } from "./platform/desktopUpdates";
+import { requestHourHeight } from "../../../src/ui/calendar/hourHeightCommands";
 import DesktopSettings from "./DesktopSettings";
 import AddCalendarDialog, {
     type AddCalendarRequest,
@@ -894,17 +907,26 @@ export default function DesktopCalendar({
         [dataFolder]
     );
 
+    /* Une seule écriture de préférences suivie ici : assez pour garder le
+       reload — qui jette toute la fenêtre — loin d'une écriture qui n'a pas
+       fini, sans faire de cette table le registre de toutes les écritures du
+       calendrier. */
+    const [preferencesWriting, setPreferencesWriting] = useState(false);
+
     const persistPreferences = useCallback(
         async (
             mutate: (
                 current: DesktopWorkspacePreferences
             ) => DesktopWorkspacePreferences
         ) => {
+            setPreferencesWriting(true);
             try {
                 setPreferences(await preferenceWriter.mutate(mutate));
             } catch (reason) {
                 setPreferences(preferenceWriter.current());
                 setStorageError(errorMessage(reason));
+            } finally {
+                setPreferencesWriting(false);
             }
         },
         [preferenceWriter]
@@ -3509,18 +3531,110 @@ export default function DesktopCalendar({
         [calendars, defaultCalendarId, hiddenCalendars]
     );
 
+    /* Le zoom d'interface retenu la derniere fois qu'il a reussi, reapplique
+       une fois au montage. Le telephone n'a pas de fenetre native a zoomer et
+       ne lit jamais cette cle : elle est propre a cette machine Windows. */
+    useEffect(() => {
+        if (isAndroid) return;
+        const stored = loadDesktopInterfaceScale();
+        if (stored === 1) return;
+        void setDesktopInterfaceScale(stored).catch((reason) =>
+            setStorageError(errorMessage(reason))
+        );
+    }, [isAndroid]);
+
+    /* Les commandes en cours de leur propre requete : chacune se desactive
+       pendant qu'elle tourne, pour qu'un second appui pendant l'aller-retour
+       natif ne double pas l'action. */
+    const [busyCommands, setBusyCommands] = useState<
+        ReadonlySet<DesktopCommandId>
+    >(new Set());
+    const runExclusive = useCallback(
+        (id: DesktopCommandId, action: () => Promise<void>) => {
+            setBusyCommands((current) => new Set(current).add(id));
+            return action()
+                .catch((reason) => setStorageError(errorMessage(reason)))
+                .finally(() => {
+                    setBusyCommands((current) => {
+                        const next = new Set(current);
+                        next.delete(id);
+                        return next;
+                    });
+                });
+        },
+        []
+    );
+
     /*
      * Les commandes de la fenetre Windows. Le clavier, la barre de titre et le
      * menu d'application passeront tous par cet objet : une action, un
-     * identifiant, un seul chemin d'execution. Il ne porte pour l'instant que la
-     * navigation entre periodes.
+     * identifiant, un seul chemin d'execution.
+     *
+     * Les trois commandes d'espacement n'ont de sens que devant une grille
+     * horaire : desactivees en vue mois et liste, ou aucune n'est montee.
+     * Recharger jette toute la fenetre, donc attend qu'une ecriture de
+     * preferences en cours se termine plutot que de la perdre en route.
      */
+    const hasHourGrid = viewType !== "month" && viewType !== "list";
     const desktopCommands = useMemo<DesktopCommands>(
         () => ({
             previous: { enabled: true, run: goPrev },
             next: { enabled: true, run: goNext },
+            settings: {
+                enabled: !busyCommands.has("settings"),
+                run: () => setSettingsOpen(true),
+            },
+            "hours-reset": {
+                enabled: hasHourGrid,
+                run: () => requestHourHeight("reset"),
+            },
+            "hours-increase": {
+                enabled: hasHourGrid,
+                run: () => requestHourHeight("increase"),
+            },
+            "hours-decrease": {
+                enabled: hasHourGrid,
+                run: () => requestHourHeight("decrease"),
+            },
+            reload: {
+                enabled: !preferencesWriting && !busyCommands.has("reload"),
+                run: () => runExclusive("reload", () => reloadDesktop(false)),
+            },
+            "hard-reload": {
+                enabled:
+                    !preferencesWriting &&
+                    !busyCommands.has("hard-reload"),
+                run: () =>
+                    runExclusive("hard-reload", () => reloadDesktop(true)),
+            },
+            devtools: {
+                enabled: !busyCommands.has("devtools"),
+                run: () =>
+                    runExclusive("devtools", () => toggleDesktopDevtools()),
+            },
+            fullscreen: {
+                enabled: !busyCommands.has("fullscreen"),
+                run: () =>
+                    runExclusive("fullscreen", () =>
+                        toggleDesktopFullscreen()
+                    ),
+            },
+            "check-updates": {
+                enabled: !busyCommands.has("check-updates"),
+                run: () =>
+                    runExclusive("check-updates", async () => {
+                        await checkDesktopUpdates();
+                    }),
+            },
         }),
-        [goNext, goPrev]
+        [
+            busyCommands,
+            goNext,
+            goPrev,
+            hasHourGrid,
+            preferencesWriting,
+            runExclusive,
+        ]
     );
 
     /*

@@ -59,6 +59,18 @@ export async function watchDesktopUpdates(): Promise<() => void> {
 }
 
 /**
+ * Recherche manuelle : le même verrou que la recherche automatique, forcé
+ * pour ne pas se taire sur un repos récent, mais elle ne pose jamais la
+ * mise à jour elle-même — seul `installPendingUpdate` redémarre l'application.
+ * Une version déjà prête ou fraîchement téléchargée continue d'apparaître par
+ * `neo-update-ready` et `UpdateBadge`, comme la recherche automatique.
+ */
+export type UpdateCheckOutcome = "ready" | "current" | "busy";
+
+export const checkDesktopUpdates = (): Promise<UpdateCheckOutcome> =>
+    invoke("check_desktop_updates");
+
+/**
  * Pose la mise à jour la plus récente, puis l'application redémarre.
  *
  * Le natif réutilise les octets qui attendent si la release n'a pas bougé. Si

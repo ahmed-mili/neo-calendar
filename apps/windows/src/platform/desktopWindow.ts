@@ -54,8 +54,57 @@ export const executeNativeTextCommand = (
 ): Promise<void> => invoke("execute_native_text_command", { command });
 export const toggleDesktopDevtools = (): Promise<void> =>
     invoke("toggle_desktop_devtools");
-export const setDesktopInterfaceScale = (scale: number): Promise<void> =>
-    getCurrentWebview().setZoom(scale);
+
+/**
+ * Les paliers de zoom autorisés pour la fenêtre. Indépendant de la hauteur
+ * d'heure — même mécanisme que le zoom d'un navigateur, pas une échelle de
+ * calendrier — et jamais synchronisé avec Android : cette clé est locale à
+ * cette machine.
+ */
+export const INTERFACE_SCALES = [0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2] as const;
+
+const INTERFACE_SCALE_STORAGE_KEY = "neo-calendar:windows-interface-scale";
+
+/** Un palier reconnu, ou 1 pour tout le reste — absent, corrompu, ou un
+    nombre que la liste ne porte pas. */
+export function parseInterfaceScale(value: string | null): number {
+    const scale = Number(value);
+    return INTERFACE_SCALES.some((candidate) => candidate === scale)
+        ? scale
+        : 1;
+}
+
+/** Ce que la fenêtre a retenu la dernière fois qu'un zoom a réussi. */
+export function loadDesktopInterfaceScale(): number {
+    try {
+        return parseInterfaceScale(
+            window.localStorage.getItem(INTERFACE_SCALE_STORAGE_KEY)
+        );
+    } catch {
+        return 1;
+    }
+}
+
+/**
+ * Applique le zoom natif et ne le retient que s'il a réellement pris : un
+ * palier hors liste n'est jamais envoyé à `setZoom`, et un rejet du natif
+ * laisse la valeur enregistrée telle qu'elle était.
+ */
+export async function setDesktopInterfaceScale(scale: number): Promise<void> {
+    const validated = parseInterfaceScale(String(scale));
+    await getCurrentWebview().setZoom(validated);
+    try {
+        window.localStorage.setItem(
+            INTERFACE_SCALE_STORAGE_KEY,
+            String(validated)
+        );
+    } catch {
+        // Le stockage local peut être indisponible (mode privé, quota) ; le
+        // zoom a quand même pris, seul le prochain lancement ne s'en
+        // souviendra pas.
+    }
+}
+
 export async function toggleDesktopFullscreen(): Promise<void> {
     const window = getCurrentWindow();
     await window.setFullscreen(!(await window.isFullscreen()));

@@ -18,6 +18,7 @@ import {
     useWheelZoom,
     zoomedHourHeight,
 } from "./useWheelZoom";
+import { requestHourHeight } from "./hourHeightCommands";
 
 describe("zoomedHourHeight", () => {
     it("grows the hour when the wheel goes up, shrinks it when it goes down", () => {
@@ -270,5 +271,160 @@ describe("useWheelZoom", () => {
         expect(
             wheel({ deltaY: -WHEEL_NOTCH_PX, ctrlKey: true }).defaultPrevented
         ).toBe(false);
+    });
+
+    /*
+     * Le menu d'application et le raccourci clavier partagent la même
+     * canalisation que la molette : même hauteur, même variable CSS, même
+     * ancrage, mêmes rappels. `requestHourHeight` ne connaît rien de la
+     * grille — c'est ce test qui prouve que quelque chose l'écoute vraiment.
+     */
+    describe("requestHourHeight", () => {
+        it("stretches the hour and writes the stylesheet, same as the wheel", () => {
+            const onScaleSettled = jest.fn();
+            render({ options: { onScaleSettled } });
+            const before = currentHourHeight();
+
+            act(() => {
+                requestHourHeight("increase");
+            });
+            runFrame();
+            act(() => {
+                jest.runOnlyPendingTimers();
+            });
+
+            expect(currentHourHeight()).toBeCloseTo(
+                before * WHEEL_ZOOM_PER_NOTCH
+            );
+            expect(host.style.getPropertyValue("--nc-hour-height")).toBe(
+                `${currentHourHeight()}px`
+            );
+            expect(onScaleSettled).toHaveBeenCalled();
+        });
+
+        it("shrinks the hour on decrease", () => {
+            render();
+            const before = currentHourHeight();
+
+            act(() => {
+                requestHourHeight("decrease");
+            });
+            runFrame();
+
+            expect(currentHourHeight()).toBeCloseTo(
+                before / WHEEL_ZOOM_PER_NOTCH
+            );
+        });
+
+        it("stops at the top of the range instead of running past it", () => {
+            render();
+            for (let i = 0; i < 60; i += 1) {
+                act(() => {
+                    requestHourHeight("increase");
+                });
+                runFrame();
+            }
+            expect(currentHourHeight()).toBe(MAX_HOUR_HEIGHT);
+        });
+
+        it("stops at the bottom of the range instead of running past it", () => {
+            render();
+            for (let i = 0; i < 60; i += 1) {
+                act(() => {
+                    requestHourHeight("decrease");
+                });
+                runFrame();
+            }
+            expect(currentHourHeight()).toBe(MIN_HOUR_HEIGHT);
+        });
+
+        it("resets to the resting height declared by the stylesheet", () => {
+            render();
+            act(() => {
+                requestHourHeight("increase");
+            });
+            runFrame();
+            expect(currentHourHeight()).not.toBe(HOUR_HEIGHT);
+
+            act(() => {
+                requestHourHeight("reset");
+            });
+            runFrame();
+
+            expect(currentHourHeight()).toBe(HOUR_HEIGHT);
+        });
+
+        it("comes back where it started, an increase then a decrease", () => {
+            render();
+            const before = currentHourHeight();
+
+            act(() => {
+                requestHourHeight("increase");
+            });
+            runFrame();
+            act(() => {
+                requestHourHeight("decrease");
+            });
+            runFrame();
+
+            expect(currentHourHeight()).toBeCloseTo(before);
+        });
+
+        it("keeps the viewport centre still, not a cursor position", () => {
+            render();
+            const centreHours =
+                (scrollTop + VIEWPORT / 2) / currentHourHeight();
+
+            act(() => {
+                requestHourHeight("increase");
+            });
+            runFrame();
+
+            expect(
+                (scrollTop + VIEWPORT / 2) / currentHourHeight()
+            ).toBeCloseTo(centreHours);
+        });
+
+        it("keeps working after the wheel has already zoomed", () => {
+            render();
+            wheel({ deltaY: -WHEEL_NOTCH_PX, ctrlKey: true });
+            runFrame();
+            const afterWheel = currentHourHeight();
+
+            act(() => {
+                requestHourHeight("increase");
+            });
+            runFrame();
+
+            expect(currentHourHeight()).toBeCloseTo(
+                afterWheel * WHEEL_ZOOM_PER_NOTCH
+            );
+        });
+
+        it("leaves the wheel working after a command has already zoomed", () => {
+            render();
+            act(() => {
+                requestHourHeight("increase");
+            });
+            runFrame();
+            const afterCommand = currentHourHeight();
+
+            wheel({ deltaY: -WHEEL_NOTCH_PX, ctrlKey: true });
+            runFrame();
+
+            expect(currentHourHeight()).toBeCloseTo(
+                afterCommand * WHEEL_ZOOM_PER_NOTCH
+            );
+        });
+
+        it("does nothing where the wheel listener is not wanted either", () => {
+            render({ enabled: false });
+            act(() => {
+                requestHourHeight("increase");
+            });
+            runFrame();
+
+            expect(currentHourHeight()).toBe(HOUR_HEIGHT);
+        });
     });
 });

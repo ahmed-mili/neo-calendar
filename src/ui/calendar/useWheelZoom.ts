@@ -6,6 +6,10 @@ import {
     setHourHeight,
 } from "./calendarConstants";
 import { scrollForAnchor } from "./useAxisLock";
+import {
+    HOUR_HEIGHT_COMMAND_EVENT,
+    HourHeightCommand,
+} from "./hourHeightCommands";
 
 /**
  * Ctrl + molette agrandit l'heure, sur PC.
@@ -134,6 +138,17 @@ export function useWheelZoom(
             optionsRef.current.onScaleChange?.();
         };
 
+        /** Une image en attente, un règlement d'oisiveté : les deux entrées
+            partagent le même minuteur, pour que la molette pendant un menu ou
+            un menu pendant la molette ne posent jamais deux images à la fois. */
+        const settleAfter = () => {
+            if (idle !== null) window.clearTimeout(idle);
+            idle = window.setTimeout(() => {
+                idle = null;
+                optionsRef.current.onScaleSettled?.();
+            }, WHEEL_ZOOM_IDLE_MS);
+        };
+
         const onWheel = (event: WheelEvent) => {
             if (!event.ctrlKey && !event.metaKey) return;
             event.preventDefault();
@@ -156,17 +171,36 @@ export function useWheelZoom(
                 frame = requestAnimationFrame(draw);
             }
             setHourHeight(next);
+            settleAfter();
+        };
 
-            if (idle !== null) window.clearTimeout(idle);
-            idle = window.setTimeout(() => {
-                idle = null;
-                optionsRef.current.onScaleSettled?.();
-            }, WHEEL_ZOOM_IDLE_MS);
+        /** Un menu ou un raccourci clavier : pas de curseur, donc l'ancre est
+            le centre du viewport plutôt qu'un point sous une souris. */
+        const onCommand = (event: Event) => {
+            const command = (event as CustomEvent<HourHeightCommand>).detail;
+            const hourHeight = currentHourHeight();
+            const next =
+                command === "reset"
+                    ? restingHourHeight()
+                    : clampHourHeight(
+                          hourHeight *
+                              WHEEL_ZOOM_PER_NOTCH **
+                                  (command === "increase" ? 1 : -1)
+                      );
+            if (next === hourHeight) return;
+
+            offsetY = element.clientHeight / 2;
+            anchorHours = (element.scrollTop + offsetY) / hourHeight;
+            if (!frame) frame = requestAnimationFrame(draw);
+            setHourHeight(next);
+            settleAfter();
         };
 
         element.addEventListener("wheel", onWheel, { passive: false });
+        window.addEventListener(HOUR_HEIGHT_COMMAND_EVENT, onCommand);
         return () => {
             element.removeEventListener("wheel", onWheel);
+            window.removeEventListener(HOUR_HEIGHT_COMMAND_EVENT, onCommand);
             if (frame) cancelAnimationFrame(frame);
             if (idle !== null) window.clearTimeout(idle);
 
