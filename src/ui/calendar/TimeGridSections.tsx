@@ -455,10 +455,17 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                 <div
                     className="nc-allday-track"
                     ref={trackRef}
-                    style={{
-                        width: trackWidth || scrollerWidthStyle,
-                        height: contentRows * allDayRowHeight(),
-                    }}
+                    style={
+                        {
+                            width: trackWidth || scrollerWidthStyle,
+                            height: contentRows * allDayRowHeight(),
+                            // Buffer-day bars can occupy more lanes than the
+                            // visible days. Windows uses their full extent for
+                            // its separator grid, without growing the viewport.
+                            "--nc-allday-packed-height":
+                                allDayLanes.laneCount * allDayRowHeight() + "px",
+                        } as React.CSSProperties
+                    }
                 >
                     {/* Per-day background grid (double-click target + draft) */}
                     <div className="nc-allday-cells">

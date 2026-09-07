@@ -87,21 +87,12 @@
 
 .nc-desktop-window-shell .nc-desktop-window-control:hover,
 .nc-desktop-window-shell .nc-desktop-window-control:focus-visible {
-    background: var(--nc-bg-hover);
     color: var(--nc-text-primary, inherit);
 }
 
 .nc-desktop-window-shell .nc-desktop-window-control:focus-visible {
-    outline: 1px solid var(--nc-border);
+    outline: 1px solid var(--nc-toolbar-focus);
     outline-offset: -1px;
-}
-
-/* The one Windows convention worth keeping: closing goes red under the
-   pointer. The colour comes from the theme, not from a literal. */
-.nc-desktop-window-shell .nc-desktop-window-control--close:hover,
-.nc-desktop-window-shell .nc-desktop-window-control--close:focus-visible {
-    background: var(--nc-danger, #c42b1c);
-    color: #ffffff;
 }
 
 .nc-desktop-window-shell .nc-desktop-window-error {
@@ -198,4 +189,11 @@
 .nc-desktop-window-shell .nc-desktop--calendar {
     background-color: transparent !important;
     background-image: none !important;
+}
+
+/* Off-screen buffer events still contribute vertical overflow. The grid of
+   separators must cover those lanes too, or scrolling reveals an unruled strip
+   below the shorter track. Android and Obsidian do not import this sheet. */
+.nc-desktop-window-shell .nc-allday-track {
+    min-height: var(--nc-allday-packed-height, 0px);
 }

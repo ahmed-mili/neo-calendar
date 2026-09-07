@@ -30,15 +30,13 @@
 }
 
 .nc-app-menu-trigger:hover {
-    /* Survol = contour, ouvert = surface pleine : la meme grammaire que le
-       panneau d'evenement (voir CLAUDE.md). */
-    border: 1px solid var(--nc-border);
+    background: var(--nc-toolbar-hover);
     color: var(--nc-text-primary, inherit);
 }
 
 .nc-app-menu-trigger[data-open],
 .nc-app-menu-trigger:focus-visible {
-    background: var(--nc-bg-hover);
+    background: var(--nc-toolbar-hover);
     color: var(--nc-text-primary, inherit);
 }
 
