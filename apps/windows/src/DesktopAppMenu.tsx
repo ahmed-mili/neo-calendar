@@ -567,7 +567,11 @@ export default function DesktopAppMenu({
                 aria-expanded={open}
                 data-open={open || undefined}
                 aria-label={t("Application menu")}
-                data-nc-tooltip={t("Application menu")}
+                /* Pas d'infobulle pendant que le menu est ouvert : les deux
+                   s'ouvrent au survol du même bouton, et l'infobulle se posait
+                   par-dessus la première rubrique du menu, la rendant
+                   illisible. Vu à l'écran le 2026-09-07. */
+                data-nc-tooltip={open ? undefined : t("Application menu")}
                 onMouseEnter={() => openMenu(false)}
                 onMouseLeave={scheduleExit}
                 onClick={() => (open ? close(false) : openMenu(true))}
