@@ -486,6 +486,21 @@ function isAndroidRuntime(): boolean {
 }
 
 /**
+ * Un lot supprimé doit-il rejoindre l'historique d'Annuler ?
+ *
+ * Volontairement sans paramètre de plateforme : Android portait déjà cet
+ * Annuler avant la Tâche 4 (`setDeletedBatch` n'était conditionné que par
+ * `remember`, jamais par `isAndroid`), et `deleteEvents` doit continuer à
+ * appeler CETTE fonction plutôt qu'un `if` qui pourrait, lui, se remettre à
+ * lire `isAndroid`. Seul le ROUTEUR clavier de la table de commandes
+ * (`desktopCommands`, Ctrl+Y « Rétablir », le futur menu Modifier) est
+ * réservé à Windows — pas la mémorisation elle-même.
+ */
+export function shouldRememberDeletedBatch(remember: boolean): boolean {
+    return remember;
+}
+
+/**
  * Le meme tableau, avec un enregistrement remplace par sa nouvelle version.
  */
 export function replaceRecord(
@@ -1971,14 +1986,11 @@ export default function DesktopCalendar({
             const records = [...unique.values()];
             if (!records.length) return;
             await deleteEventFiles(records);
-            // L'Android historique n'a jamais porté cet Annuler : seule la
-            // fenetre Windows le retient, et seulement pour une suppression
-            // que l'appelant veut voir réessayable (`remember`).
-            if (remember && !isAndroid) {
+            if (shouldRememberDeletedBatch(remember)) {
                 deletionHistoryRef.current?.rememberDeleted(records);
             }
         },
-        [deleteEventFiles, isAndroid]
+        [deleteEventFiles]
     );
 
     const deleteEvent = useCallback(

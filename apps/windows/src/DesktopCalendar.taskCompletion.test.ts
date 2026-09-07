@@ -1,4 +1,9 @@
+/** @jest-environment jsdom */
+import React from "react";
+import * as ReactDOM from "react-dom";
+import { act } from "react-dom/test-utils";
 import { NeoEvent } from "../../../src/types";
+import { useDeletionHistory } from "./useDeletionHistory";
 
 jest.mock("./platform/tauriSettingsStore", () => ({
     loadDeviceWorkspacePreferences: jest.fn(),
@@ -11,6 +16,7 @@ import {
     canPersistDesktopTaskCompletion,
     replaceRecord,
     revertRecord,
+    shouldRememberDeletedBatch,
 } from "./DesktopCalendar";
 
 const task = (overrides: Partial<NeoEvent> = {}): NeoEvent =>
@@ -102,5 +108,67 @@ describe("un enregistrement qu'on montre avant de l'écrire", () => {
         const shown = record({ contents: "montré" });
 
         expect(revertRecord([], shown, before)).toEqual([]);
+    });
+});
+
+/*
+ * Régression : Android tenait déjà l'Annuler d'une suppression avant la
+ * Tâche 4 (`setDeletedBatch` n'était conditionné que par `remember`, jamais
+ * par la plateforme). Un premier passage de cette tâche avait ajouté
+ * `&& !isAndroid` à cette garde en suivant le brief au pied de la lettre —
+ * cassant l'Annuler sur un Xiaomi avec clavier Bluetooth. `deleteEvents`
+ * (DesktopCalendar.tsx) n'appelle plus qu'un `if`, mais passe TOUJOURS par
+ * `shouldRememberDeletedBatch`, qui n'a délibérément aucun paramètre de
+ * plateforme : ce test verrouille à la fois cette fonction et sa composition
+ * avec `useDeletionHistory`, pour qu'un futur `&& !isAndroid` glissé ici la
+ * fasse échouer plutôt que de repasser inaperçu.
+ */
+describe("shouldRememberDeletedBatch — l'Annuler ne connaît pas la plateforme", () => {
+    it("dit oui quand l'appelant le demande, sans paramètre de plateforme à côté duquel glisser un `isAndroid`", () => {
+        expect(shouldRememberDeletedBatch(true)).toBe(true);
+        expect(shouldRememberDeletedBatch(false)).toBe(false);
+    });
+
+    it("composé avec useDeletionHistory (le chemin réel de deleteEvents) : une suppression mémorisée rend canUndo vrai — y compris \"sur Android\"", () => {
+        // Rejoue exactement ce que `deleteEvents` fait après une suppression
+        // réussie, sans jamais lire `isAndroid` : si ce chemin le faisait, ce
+        // test resterait vert par accident. C'est précisément la garde qui a
+        // régressé lors du premier passage de cette tâche.
+        const container = document.createElement("div");
+        document.body.appendChild(container);
+        const restore = jest.fn().mockResolvedValue(undefined);
+        const remove = jest.fn().mockResolvedValue(undefined);
+        let history!: ReturnType<typeof useDeletionHistory>;
+        function Harness() {
+            history = useDeletionHistory({ restore, remove });
+            return null;
+        }
+        act(() => {
+            ReactDOM.render(React.createElement(Harness), container);
+        });
+
+        const deleted = [
+            {
+                id: "android-delete",
+                calendarId: "cal",
+                calendarPath: "Études",
+                relativePath: "Études/note.md",
+                fileName: "note.md",
+                contents: "---\ntitle: Note\n---\n",
+                event: task(),
+            } as never,
+        ];
+        act(() => {
+            if (shouldRememberDeletedBatch(true)) {
+                history.rememberDeleted(deleted);
+            }
+        });
+
+        expect(history.canUndo).toBe(true);
+
+        act(() => {
+            ReactDOM.unmountComponentAtNode(container);
+        });
+        container.remove();
     });
 });
