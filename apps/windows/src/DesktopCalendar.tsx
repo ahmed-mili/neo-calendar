@@ -102,6 +102,14 @@ import {
     handleDesktopShortcut,
 } from "./desktopCommands";
 import {
+    visibleEventIds,
+    visibleSelectionRange,
+} from "./desktopEditCommands";
+import {
+    useDeletionHistory,
+    type UseDeletionHistory,
+} from "./useDeletionHistory";
+import {
     loadDesktopInterfaceScale,
     reloadDesktop,
     setDesktopInterfaceScale,
@@ -702,9 +710,8 @@ export default function DesktopCalendar({
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [marquee, setMarquee] = useState<MarqueeState | null>(null);
     const [clipboard, setClipboard] = useState<ClipboardState | null>(null);
-    const [deletedBatch, setDeletedBatch] = useState<DesktopStoredEvent[]>([]);
     const [panelPreview, setPanelPreview] = useState<DragPreview | null>(null);
-    const [, setIsSaving] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [storageError, setStorageError] = useState<string | null>(null);
     const [prayerDialogCalendarId, setPrayerDialogCalendarId] = useState<
         string | null
@@ -724,6 +731,14 @@ export default function DesktopCalendar({
         typeof createReminderScheduler
     > | null>(null);
     const recordsRef = useRef(storedEvents);
+    // `deleteEvents` est déclarée avant `useDeletionHistory` plus bas dans ce
+    // composant (elle-même construite à partir de `restoreDeletedRecords`,
+    // qui dépend de `deleteEventFiles`) : cette ref casse la dépendance
+    // circulaire sans réordonner tout le fichier. Réassignée à chaque rendu,
+    // donc toujours à jour avant qu'un gestionnaire ne l'utilise.
+    const deletionHistoryRef = useRef<UseDeletionHistory<DesktopStoredEvent> | null>(
+        null
+    );
     const pendingEventRouteRef = useRef<DesktopEventRoute | null>(null);
     const didApplyInitialViewRef = useRef(false);
     useEffect(() => {
@@ -1000,6 +1015,10 @@ export default function DesktopCalendar({
 
                 recordsRef.current = result.records;
                 setStoredEvents(result.records);
+                // Une synchronisation ICS écrit sous ce composant : un lot
+                // restauré et en attente de Rétablir peut ne plus être ce que
+                // le disque porte désormais.
+                deletionHistoryRef.current?.invalidateRedo();
                 icsRuntimeStatesRef.current = result.states;
                 setIcsRuntimeStates(result.states);
                 void saveIcsRuntimeState(result.states);
@@ -1539,6 +1558,11 @@ export default function DesktopCalendar({
                 throw new Error("The selected calendar no longer exists.");
             }
 
+            // Toute nouvelle mutation invalide un Rétablir en attente : une
+            // note éditée après Annuler n'est plus celle que Rétablir
+            // supprimerait sans le dire.
+            deletionHistoryRef.current?.invalidateRedo();
+
             setIsSaving(true);
             setStorageError(null);
             const contents = serializeEventMarkdown(
@@ -1946,10 +1970,15 @@ export default function DesktopCalendar({
             }
             const records = [...unique.values()];
             if (!records.length) return;
-            if (remember) setDeletedBatch(records);
             await deleteEventFiles(records);
+            // L'Android historique n'a jamais porté cet Annuler : seule la
+            // fenetre Windows le retient, et seulement pour une suppression
+            // que l'appelant veut voir réessayable (`remember`).
+            if (remember && !isAndroid) {
+                deletionHistoryRef.current?.rememberDeleted(records);
+            }
         },
-        [deleteEventFiles]
+        [deleteEventFiles, isAndroid]
     );
 
     const deleteEvent = useCallback(
@@ -2018,37 +2047,66 @@ export default function DesktopCalendar({
         return !!record && isTask(record.event);
     }, [recurringDeleteId]);
 
-    const undoLastDeletion = useCallback(async () => {
-        if (!deletedBatch.length) return;
-        setIsSaving(true);
-        setStorageError(null);
-        try {
-            const restored: DesktopStoredEvent[] = [];
-            for (const record of deletedBatch) {
-                const relativePath = await writeDesktopEventFile({
-                    dataFolder,
-                    calendarPath: record.calendarPath,
-                    fileName: record.fileName,
-                    contents: record.contents,
-                });
-                restored.push({ ...record, relativePath });
+    /**
+     * Réécrit un lot de notes supprimées. Reprenable : un id déjà présent
+     * dans `recordsRef.current` (un essai précédent qui a réussi jusque-là)
+     * n'est pas réécrit — sans quoi le natif, ne recevant pas de chemin
+     * précédent pour un fichier qui existe déjà sur disque, en créerait un
+     * doublon plutôt que d'échouer.
+     *
+     * Rejette plutôt que d'avaler l'erreur (contrairement à l'ancienne
+     * `undoLastDeletion`) : c'est `useDeletionHistory` qui décide, à partir
+     * de ce rejet, de garder le lot annulable plutôt que d'annoncer un
+     * rétablissement qui n'a pas eu lieu.
+     */
+    const restoreDeletedRecords = useCallback(
+        async (records: readonly DesktopStoredEvent[]): Promise<void> => {
+            setIsSaving(true);
+            setStorageError(null);
+            try {
+                const alreadyRestored = new Set(
+                    recordsRef.current.map((record) => record.id)
+                );
+                const pending = records.filter(
+                    (record) => !alreadyRestored.has(record.id)
+                );
+                for (const record of pending) {
+                    const relativePath = await writeDesktopEventFile({
+                        dataFolder,
+                        calendarPath: record.calendarPath,
+                        fileName: record.fileName,
+                        contents: record.contents,
+                    });
+                    const restoredRecord = { ...record, relativePath };
+                    recordsRef.current = [
+                        ...recordsRef.current.filter(
+                            (candidate) => candidate.id !== restoredRecord.id
+                        ),
+                        restoredRecord,
+                    ];
+                    setStoredEvents(recordsRef.current);
+                }
+            } catch (reason) {
+                setStorageError(errorMessage(reason));
+                throw reason;
+            } finally {
+                setIsSaving(false);
             }
-            const restoredIds = new Set(restored.map((record) => record.id));
-            const next = [
-                ...recordsRef.current.filter(
-                    (record) => !restoredIds.has(record.id)
-                ),
-                ...restored,
-            ];
-            recordsRef.current = next;
-            setStoredEvents(next);
-            setDeletedBatch([]);
-        } catch (reason) {
-            setStorageError(errorMessage(reason));
-        } finally {
-            setIsSaving(false);
-        }
-    }, [dataFolder, deletedBatch]);
+        },
+        [dataFolder]
+    );
+
+    const deletionHistoryRemove = useCallback(
+        (records: readonly DesktopStoredEvent[]): Promise<void> =>
+            deleteEventFiles([...records]),
+        [deleteEventFiles]
+    );
+
+    const deletionHistory = useDeletionHistory<DesktopStoredEvent>({
+        restore: restoreDeletedRecords,
+        remove: deletionHistoryRemove,
+    });
+    deletionHistoryRef.current = deletionHistory;
 
     const controller = useMemo<DesktopCacheController>(
         () => ({
@@ -3576,13 +3634,78 @@ export default function DesktopCalendar({
      * preferences en cours se termine plutot que de la perdre en route.
      */
     const hasHourGrid = viewType !== "month" && viewType !== "list";
-    const desktopCommands = useMemo<DesktopCommands>(
-        () => ({
+
+    // Au moins une des cibles est réellement supprimable : ni en lecture
+    // seule, ni logée dans un calendrier qui ne l'est pas. Copier et dupliquer
+    // n'ont pas besoin de cette garde — copier une note en lecture seule
+    // fonctionne déjà, dupliquer écrit toujours dans un AUTRE calendrier.
+    const mutableTargetCount = useCallback(
+        (ids: string[]): number =>
+            ids.filter((id) => {
+                const record = findStoredEvent(recordsRef.current, id);
+                if (!record || record.readOnly) return false;
+                return calendarById.get(record.calendarId)?.editable !== false;
+            }).length,
+        [calendarById]
+    );
+
+    const desktopCommands = useMemo<DesktopCommands>(() => {
+        const targets = actionTargetIds();
+        return {
             previous: { enabled: true, run: goPrev },
             next: { enabled: true, run: goNext },
             settings: {
                 enabled: !busyCommands.has("settings"),
                 run: () => setSettingsOpen(true),
+            },
+            undo: {
+                enabled: deletionHistory.canUndo && !deletionHistory.busy,
+                run: deletionHistory.undo,
+            },
+            redo: {
+                enabled: deletionHistory.canRedo && !deletionHistory.busy,
+                run: deletionHistory.redo,
+            },
+            copy: {
+                enabled: targets.length > 0,
+                run: () => copyEvent(targets[0]),
+            },
+            cut: {
+                enabled: mutableTargetCount(targets) > 0 && !isSaving,
+                run: () => cutEvent(targets[0]),
+            },
+            paste: {
+                enabled: clipboard !== null,
+                run: () => void pasteEvent(currentDate),
+            },
+            // Le collage « respecter le style » ne concerne que le texte : la
+            // grille n'a rien à en faire, et cette entrée n'existe encore
+            // pour aucune cible d'édition native.
+            "paste-plain": { enabled: false, run: () => {} },
+            delete: {
+                enabled: mutableTargetCount(targets) > 0 && !isSaving,
+                run: deleteTargets,
+            },
+            duplicate: {
+                enabled: targets.length > 0,
+                run: duplicateTargets,
+            },
+            "select-all": {
+                enabled: displayEvents.length > 0,
+                run: () => {
+                    const range = visibleSelectionRange(
+                        calendarRootRef.current,
+                        hasHourGrid,
+                        visibleDates
+                    );
+                    if (!range) return;
+                    const ids = visibleEventIds(
+                        displayEvents,
+                        range.start,
+                        range.end
+                    );
+                    if (ids.length) setSelectedIds(new Set(ids));
+                },
             },
             "hours-reset": {
                 enabled: hasHourGrid,
@@ -3602,8 +3725,7 @@ export default function DesktopCalendar({
             },
             "hard-reload": {
                 enabled:
-                    !preferencesWriting &&
-                    !busyCommands.has("hard-reload"),
+                    !preferencesWriting && !busyCommands.has("hard-reload"),
                 run: () =>
                     runExclusive("hard-reload", () => reloadDesktop(true)),
             },
@@ -3626,14 +3748,27 @@ export default function DesktopCalendar({
                         await checkDesktopUpdates();
                     }),
             },
-        }),
-        [
+        };
+    }, [
+            actionTargetIds,
             busyCommands,
+            clipboard,
+            copyEvent,
+            currentDate,
+            cutEvent,
+            deleteTargets,
+            deletionHistory,
+            displayEvents,
+            duplicateTargets,
             goNext,
             goPrev,
             hasHourGrid,
+            isSaving,
+            mutableTargetCount,
+            pasteEvent,
             preferencesWriting,
             runExclusive,
+            visibleDates,
         ]
     );
 
@@ -3715,9 +3850,13 @@ export default function DesktopCalendar({
                         void duplicateTargets();
                         return;
                     case "z":
-                        if (deletedBatch.length) {
+                        if (deletionHistory.canUndo) {
                             claim();
-                            void undoLastDeletion();
+                            deletionHistory
+                                .undo()
+                                .catch((reason) =>
+                                    setStorageError(errorMessage(reason))
+                                );
                         }
                         return;
                     case "k":
@@ -3801,7 +3940,7 @@ export default function DesktopCalendar({
         currentDate,
         cutEvent,
         deleteTargets,
-        deletedBatch.length,
+        deletionHistory,
         desktopCommands,
         duplicateTargets,
         goNext,
@@ -3812,7 +3951,6 @@ export default function DesktopCalendar({
         overlayHoldsKeyboard,
         pasteEvent,
         toggleSidebar,
-        undoLastDeletion,
     ]);
 
     return (

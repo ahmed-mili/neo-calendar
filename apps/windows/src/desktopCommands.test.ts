@@ -368,4 +368,41 @@ describe("les accords d'édition", () => {
         expect(paste).toHaveBeenCalledTimes(1);
         expect(plain).toHaveBeenCalledTimes(1);
     });
+
+    it("Ctrl + A route vers select-all plutôt que de laisser le navigateur agir", () => {
+        const selectAll = jest.fn();
+        const commands: DesktopCommands = {
+            "select-all": { enabled: true, run: selectAll },
+        };
+        const { handled, event } = press(
+            { key: "a", ctrlKey: true },
+            { commands }
+        );
+        expect(handled).toBe(true);
+        expect(event.defaultPrevented).toBe(true);
+        expect(selectAll).toHaveBeenCalledTimes(1);
+    });
+
+    it("un menu Modifier ouvert (role=menu) ne consomme pas les accords d'un champ éditable derrière lui", () => {
+        // Le clavier appartient à un menu ouvert au même titre qu'un champ de
+        // saisie : la garde `targetKeepsKeys` le traite déjà comme une
+        // surface qui garde ses touches pour elle, donc l'accord n'atteint
+        // jamais la table de commandes tant que le focus y reste — la
+        // sélection d'évènements sous le menu n'est donc jamais touchée par
+        // cette frappe.
+        const host = mount('<div role="menu"><button>Item</button></div>');
+        const button = host.querySelector("button") as HTMLElement;
+        const selectAll = jest.fn();
+        const commands: DesktopCommands = {
+            "select-all": { enabled: true, run: selectAll },
+        };
+        const { handled } = press(
+            { key: "a", ctrlKey: true },
+            { commands },
+            button
+        );
+        expect(handled).toBe(false);
+        expect(selectAll).not.toHaveBeenCalled();
+        host.remove();
+    });
 });
