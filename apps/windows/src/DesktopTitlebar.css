@@ -112,7 +112,9 @@
     height: 100%;
     /* The titlebar gradient already paints the sidebar token here. */
     background: transparent;
-    border-right: 1px solid var(--nc-border);
+    /* Outside .nc-desktop--calendar, --nc-border is transparent. Use the same
+       theme border that the calendar remaps inside the sidebar. */
+    border-right: 1px solid var(--background-modifier-border);
 }
 
 .nc-desktop-window-shell .nc-desktop-toolbar__gap {

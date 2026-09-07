@@ -76,12 +76,12 @@ export default function DesktopTitlebar({
                             width="14"
                             height="10"
                             rx="2"
-                            stroke="#ADADAD"
+                            stroke="currentColor"
                             strokeWidth="1.25"
                         />
                         <path
                             d="M5 3.25V12.75"
-                            stroke="#ADADAD"
+                            stroke="currentColor"
                             strokeWidth="1.25"
                         />
                     </svg>
