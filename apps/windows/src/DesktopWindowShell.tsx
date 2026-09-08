@@ -19,10 +19,33 @@ export const useDesktopTitlebarHost = (): HTMLDivElement | null =>
 /**
  * WebView2 peut faire matcher :focus-visible a un bouton clique des qu'une
  * touche clavier est pressee, y compris une touche modificatrice seule comme
- * Shift. Neo Calendar ne publie donc le focus clavier de la barre qu'apres une
- * vraie navigation de focus avec Tab/Shift+Tab.
+ * Shift. Neo Calendar garde donc la modalite pointeur pour les touches qui ne
+ * font qu'etre des modificateurs, mais repasse en modalite clavier des qu'une
+ * vraie touche d'action/navigation est utilisee (Tab, fleches, Enter, etc.).
  */
 export const DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE = "data-nc-keyboard-focus";
+
+const MODIFIER_ONLY_KEYS = new Set([
+    "Shift",
+    "Control",
+    "Alt",
+    "Meta",
+    "AltGraph",
+    "CapsLock",
+    "NumLock",
+    "ScrollLock",
+    "Fn",
+    "FnLock",
+    "Symbol",
+    "SymbolLock",
+    "OS",
+    "Hyper",
+    "Super",
+]);
+
+export function keyboardInputShowsFocus(event: KeyboardEvent): boolean {
+    return !MODIFIER_ONLY_KEYS.has(event.key);
+}
 
 export default function DesktopWindowShell({
     actions: injected,
@@ -47,9 +70,7 @@ export default function DesktopWindowShell({
     useEffect(() => {
         const root = document.documentElement;
         const onKeyDown = (event: KeyboardEvent) => {
-            // Shift seul ne change PAS la modalite. Shift+Tab, oui, car la
-            // touche de navigation reelle reste Tab.
-            if (event.key === "Tab") {
+            if (keyboardInputShowsFocus(event)) {
                 root.setAttribute(DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE, "true");
             }
         };
