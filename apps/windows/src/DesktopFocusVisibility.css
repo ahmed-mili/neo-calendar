@@ -2,15 +2,17 @@
  * WebView2 peut promouvoir un bouton clique vers :focus-visible apres une
  * simple touche modificatrice (Shift). Le shell publie
  * data-nc-keyboard-focus uniquement apres Tab/Shift+Tab : tant que cette preuve
- * de navigation clavier manque, aucun anneau de focus de la barre ne doit
- * apparaitre autour du bouton que la souris vient de laisser focalise.
+ * de navigation clavier manque, aucun bouton Windows ne doit recevoir l'anneau
+ * de focus natif simplement parce que la souris l'a laisse focalise.
+ *
+ * IMPORTANT : les panneaux, menus et dialogues partages sont souvent rendus
+ * par portal directement sous document.body, donc HORS de
+ * .nc-desktop-window-shell. Le correctif doit couvrir le document Windows
+ * entier, pas seulement la barre de titre. Cette feuille n'est importee que par
+ * apps/windows/src/main.tsx : Android et le plugin Obsidian ne sont pas touches.
  */
-html:not([data-nc-keyboard-focus="true"])
-    .nc-desktop-window-shell
-    .nc-desktop-titlebar
-    button:focus-visible {
+html:not([data-nc-keyboard-focus="true"]) body button:focus-visible {
     outline: none !important;
-    box-shadow: none !important;
 }
 
 /* Le declencheur du menu ajoute aussi une surface sur :focus-visible. Apres un
