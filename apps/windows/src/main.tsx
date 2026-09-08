@@ -23,9 +23,12 @@ import "./desktopDescriptionEditor";
 import "./App.css";
 // After App.css: the shell owns the outermost frame and must win over it.
 import "./DesktopWindowShell.css";
-// La barre unifiée et son menu, après le shell : ils habillent son slot.
+// La barre unifiee et son menu, apres le shell : ils habillent son slot.
 import "./DesktopTitlebar.css";
 import "./DesktopAppMenu.css";
+// Derniere couche : elle neutralise uniquement les faux :focus-visible que
+// WebView2 peut produire apres un clic souris + Shift.
+import "./DesktopFocusVisibility.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Neo Calendar root element is missing");
