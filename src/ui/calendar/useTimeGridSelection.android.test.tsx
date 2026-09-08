@@ -58,15 +58,17 @@ describe("Un tap Android sur la grille ne clique pas la fiche qu'il ouvre", () =
 
     it.each([
         [72, 40, 347],
+        [72, -1000, 404],
         [72, -200, 327],
         [144, -350, 443],
     ])(
-        "keeps a tap at its minute after scrolling and zooming (%i px/hour)",
+        "snaps a tap to a quarter-hour using rendered geometry after scrolling and zooming (%i px/hour)",
         (hourHeight, top, y) => {
-            setHourHeight(hourHeight);
+            setHourHeight(60); // Deliberately stale: use the rendered Android grid.
             const day = host.querySelector(".nc-timegrid-day") as HTMLElement;
             jest.spyOn(day, "getBoundingClientRect").mockReturnValue({
                 top,
+                height: 24 * hourHeight,
             } as DOMRect);
             try {
                 act(() => {
@@ -92,8 +94,16 @@ describe("Un tap Android sur la grille ne clique pas la fiche qu'il ouvre", () =
                         hourHeight) /
                         60;
                 expect(Math.abs(renderedY - y)).toBeLessThanOrEqual(
-                    hourHeight / 120
+                    hourHeight / 8
                 );
+                expect(start.getMinutes() % 15).toBe(0);
+                expect(end.getMinutes() % 15).toBe(0);
+                if (y === 404) {
+                    expect([start.getHours(), start.getMinutes()]).toEqual([
+                        19, 30,
+                    ]);
+                    expect([end.getHours(), end.getMinutes()]).toEqual([20, 0]);
+                }
                 expect(end.getTime() - start.getTime()).toBe(30 * 60000);
             } finally {
                 setHourHeight(HOUR_HEIGHT);

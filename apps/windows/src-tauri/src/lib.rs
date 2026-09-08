@@ -24,6 +24,8 @@ use windows_sys::Win32::{
 };
 
 const PREFERENCES_FILE_NAME: &str = ".neo-calendar.json";
+const PREFERENCES_DIRECTORY_NAME: &str = ".neo-calendar";
+static PREFERENCES_WRITE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 const LEGACY_PREFERENCES_FILE_NAME: &str = ".neo-calendar-desktop.json";
 const DEFAULT_CALENDAR_NAME: &str = "Default";
 
@@ -160,13 +162,12 @@ fn read_preferences(root: &Path) -> Result<Value, String> {
 
 /// Reads the preference file, and reports whether there was one to read.
 fn read_preferences_found(root: &Path) -> Result<(Value, bool), String> {
-    let path = root.join(PREFERENCES_FILE_NAME);
-    let legacy_path = root.join(LEGACY_PREFERENCES_FILE_NAME);
-    let source = if path.exists() {
-        path
-    } else if legacy_path.exists() {
-        legacy_path
-    } else {
+    let candidates = [
+        root.join(PREFERENCES_DIRECTORY_NAME).join(PREFERENCES_FILE_NAME),
+        root.join(PREFERENCES_FILE_NAME),
+        root.join(LEGACY_PREFERENCES_FILE_NAME),
+    ];
+    let Some(source) = candidates.iter().find(|path| path.exists()) else {
         return Ok((Value::Object(Default::default()), false));
     };
 
@@ -212,7 +213,15 @@ fn merge_preserving_colors(stored: &Value, incoming: &Value) -> Value {
 }
 
 fn write_preferences(root: &Path, preferences: &Value) -> Result<(), String> {
-    let path = root.join(PREFERENCES_FILE_NAME);
+    // Serialize the entire read/merge/write transaction: concurrent saves used
+    // to rename the same temporary file twice and lose each other's colours.
+    let _guard = PREFERENCES_WRITE_LOCK.lock()
+        .map_err(|error| format!("Unable to lock calendar preferences: {error}"))?;
+    let directory = root.join(PREFERENCES_DIRECTORY_NAME);
+    fs::create_dir_all(&directory).map_err(|error| {
+        format!("Unable to create preferences folder '{}': {error}", directory.display())
+    })?;
+    let path = directory.join(PREFERENCES_FILE_NAME);
 
     // Re-read rather than trust the caller's snapshot: the file is in a synced
     // folder, so it may have gained colours from another device since it was
@@ -228,15 +237,18 @@ fn write_preferences(root: &Path, preferences: &Value) -> Result<(), String> {
 
     // Write through a temporary file so an interrupted save can never leave a
     // truncated preference file behind.
-    let temporary = root.join(format!("{PREFERENCES_FILE_NAME}.tmp"));
+    let temporary = directory.join(format!("{PREFERENCES_FILE_NAME}.tmp"));
     fs::write(&temporary, format!("{json}\n"))
         .map_err(|error| format!("Unable to write '{}': {error}", temporary.display()))?;
     fs::rename(&temporary, &path)
         .map_err(|error| format!("Unable to write '{}': {error}", path.display()))?;
 
-    let legacy_path = root.join(LEGACY_PREFERENCES_FILE_NAME);
-    if legacy_path.exists() {
-        let _ = fs::remove_file(&legacy_path);
+    // Retire old locations only after the new file has been safely committed.
+    for name in [PREFERENCES_FILE_NAME, LEGACY_PREFERENCES_FILE_NAME] {
+        let old_path = root.join(name);
+        if old_path.exists() {
+            let _ = fs::remove_file(old_path);
+        }
     }
     Ok(())
 }
@@ -2132,7 +2144,7 @@ mod tests {
 
         write_preferences(&root, &json!({"colors": {"Work": "#00ff00"}})).unwrap();
 
-        assert!(root.join(PREFERENCES_FILE_NAME).exists());
+        assert!(root.join(PREFERENCES_DIRECTORY_NAME).join(PREFERENCES_FILE_NAME).exists());
         assert!(!root.join(LEGACY_PREFERENCES_FILE_NAME).exists());
         assert_eq!(
             read_preferences(&root).unwrap()["colors"]["Work"],
@@ -2156,6 +2168,35 @@ mod tests {
 
         write_preferences(&root, &json!({"a": 1})).unwrap();
 
-        assert!(!root.join(format!("{PREFERENCES_FILE_NAME}.tmp")).exists());
+        assert_eq!(fs::read_dir(root.join(PREFERENCES_DIRECTORY_NAME)).unwrap().count(), 1);
     }
+    #[test]
+    fn concurrent_preference_saves_preserve_every_colour() {
+        let root = temporary_root("concurrent-preferences");
+        let gate = std::sync::Arc::new(std::sync::Barrier::new(12));
+        let threads: Vec<_> = (0..12).map(|i| {
+            let root = root.clone();
+            let gate = gate.clone();
+            std::thread::spawn(move || {
+                gate.wait();
+                write_preferences(&root, &json!({"colors": {format!("calendar-{i}"): "#ff0000"}}))
+            })
+        }).collect();
+        let results: Vec<_> = threads.into_iter().map(|t| t.join().unwrap()).collect();
+        assert!(results.iter().all(Result::is_ok), "{results:?}");
+        assert_eq!(read_preferences(&root).unwrap()["colors"].as_object().unwrap().len(), 12);
+    }
+
+    #[test]
+    fn preferences_migrate_into_the_metadata_directory() {
+        let root = temporary_root("preferences-subfolder");
+        fs::write(root.join(PREFERENCES_FILE_NAME), r##"{"colors":{"Work":"#ff0000"}}"##).unwrap();
+        assert_eq!(read_preferences(&root).unwrap()["colors"]["Work"], "#ff0000");
+        write_preferences(&root, &json!({"colors": {"Sport": "#00ff00"}})).unwrap();
+        let path = root.join(".neo-calendar").join(PREFERENCES_FILE_NAME);
+        let saved: Value = serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap();
+        assert_eq!(saved["colors"].as_object().unwrap().len(), 2);
+        assert!(!root.join(PREFERENCES_FILE_NAME).exists());
+    }
+
 }

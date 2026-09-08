@@ -21,20 +21,13 @@ function isAndroidRuntime(): boolean {
     );
 }
 
-function snappedHalfHour(
-    date: Date,
-    snapMinutes = 15
-): {
+function snappedHalfHour(date: Date): {
     start: Date;
     end: Date;
 } {
     const start = new Date(date);
 
-    start.setMinutes(
-        Math.round(start.getMinutes() / snapMinutes) * snapMinutes,
-        0,
-        0
-    );
+    start.setMinutes(Math.round(start.getMinutes() / 15) * 15, 0, 0);
 
     return {
         start,
@@ -166,7 +159,18 @@ export function useTimeGridSelection({
 
             const dayRect = dayColumn.getBoundingClientRect();
 
-            const startDate = positionToDate(event.clientY - dayRect.top, date);
+            // Android columns span exactly 24 hours. Measure at pointerdown so
+            // stale global zoom state cannot shift the hour beneath the finger.
+            const renderedHourHeight =
+                isAndroidRuntime() && dayRect.height > 0
+                    ? dayRect.height / 24
+                    : undefined;
+            const startDate = positionToDate(
+                event.clientY - dayRect.top,
+                date,
+                15,
+                renderedHourHeight
+            );
 
             selectionRef.current = {
                 isSelecting: true,
@@ -309,16 +313,7 @@ export function useTimeGridSelection({
                      */
                     swallowNextClick();
 
-                    // A tap places the draft at the finger, not at a nearby
-                    // quarter-hour. Use the original origin even if the grid moved.
-                    const range = snappedHalfHour(
-                        positionToDate(
-                            current.startClientY - dayRect.top,
-                            current.dayDate,
-                            1
-                        ),
-                        1
-                    );
+                    const range = snappedHalfHour(current.startDate);
 
                     setSelection(null);
                     selectionRef.current = null;

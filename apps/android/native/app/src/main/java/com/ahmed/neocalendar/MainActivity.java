@@ -734,8 +734,27 @@ public class MainActivity extends Activity {
   }
   /** Missing file means first run; an unreadable or corrupt one must fail so the
    *  app never saves its defaults over a healthy configuration. */
-  private JSONObject readPreferences(Uri tree)throws Exception{Uri p=findChild(tree,PREFERENCES_FILE_NAME);if(p==null)p=findChild(tree,LEGACY_PREFERENCES_FILE_NAME);if(p==null)return new JSONObject();String raw=readText(p);if(raw.trim().isEmpty())return new JSONObject();try{return new JSONObject(raw);}catch(JSONException e){throw new Exception("Le fichier de preferences est illisible: "+e.getMessage());}}
-  private void savePreferences(Uri tree,Object preferences)throws Exception{writeText(findOrCreate(tree,PREFERENCES_FILE_NAME,"application/json"),(preferences instanceof JSONObject?((JSONObject)preferences).toString(2):String.valueOf(preferences))+"\n");Uri legacy=findChild(tree,LEGACY_PREFERENCES_FILE_NAME);if(legacy!=null)DocumentsContract.deleteDocument(getContentResolver(),legacy);}
+  private synchronized JSONObject readPreferences(Uri tree)throws Exception {
+    Uri metadata=findChild(tree,".neo-calendar");
+    Uri p=metadata==null?null:findChild(metadata,PREFERENCES_FILE_NAME);
+    if(p==null)p=findChild(tree,PREFERENCES_FILE_NAME);
+    if(p==null)p=findChild(tree,LEGACY_PREFERENCES_FILE_NAME);
+    if(p==null)return new JSONObject();
+    String raw=readText(p);
+    if(raw.trim().isEmpty())return new JSONObject();
+    try{return new JSONObject(raw);}
+    catch(JSONException e){throw new Exception("Le fichier de preferences est illisible: "+e.getMessage());}
+  }
+  private synchronized void savePreferences(Uri tree,Object preferences)throws Exception {
+    Uri metadata=findOrCreate(tree,".neo-calendar",DocumentsContract.Document.MIME_TYPE_DIR);
+    if(metadata==null)throw new IOException("Creation du dossier de preferences impossible");
+    writeText(findOrCreate(metadata,PREFERENCES_FILE_NAME,"application/json"),
+      (preferences instanceof JSONObject?((JSONObject)preferences).toString(2):String.valueOf(preferences))+"\n");
+    for(String name:new String[]{PREFERENCES_FILE_NAME,LEGACY_PREFERENCES_FILE_NAME}){
+      Uri old=findChild(tree,name);
+      if(old!=null)DocumentsContract.deleteDocument(getContentResolver(),old);
+    }
+  }
   /** Writes an event file, moving it when its calendar changed.
    *
    *  DocumentsContract.renameDocument only renames INSIDE a folder — it cannot

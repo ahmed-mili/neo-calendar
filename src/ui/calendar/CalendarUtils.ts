@@ -80,13 +80,13 @@ export function isMultiDayTimed(event: {
 export function positionToDate(
     yPosition: number,
     dayDate: Date,
-    snapMinutes = 15
+    snapMinutes = 15,
+    hourHeight = currentHourHeight()
 ): Date {
     // Clamp to the day's own range [00:00, 24:00]. Dragging the pointer below
     // the grid otherwise yields hours >= 24, which setHours rolls over into the
     // NEXT day (e.g. 25:00 → 01:00) — so a downward drag "stuck" at 01:00
     // instead of reaching midnight. 24:00 resolves to next-day 00:00 = midnight.
-    const hourHeight = currentHourHeight();
     const clampedY = Math.max(0, Math.min(yPosition, 24 * hourHeight));
     const totalMinutes = (clampedY / hourHeight) * 60;
     const hours = Math.floor(totalMinutes / 60);

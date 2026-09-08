@@ -451,11 +451,22 @@
     }
 }
 
+/* A programmatic scroll written in rAF is newer than the scroll timeline's
+   sample. Use TimeGrid's synchronous vertical values until the next sample;
+   horizontal timelines remain native throughout the all-day animation. */
+.nc-timegrid-wrapper[data-nc-manual-scroll] .nc-left-rail-scrollable,
+.nc-timegrid-wrapper[data-nc-manual-scroll] .nc-main-content {
+    animation: none;
+}
+
 /* ── Main scroller (the only horizontal/vertical scroller) ── */
 
 .nc-main-scroller {
     flex: 1;
     overflow: auto;
+    /* TimeGrid compensates all-day height changes itself. Browser anchoring
+       would apply that same displacement a second time and move the hours. */
+    overflow-anchor: none;
     position: relative;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;

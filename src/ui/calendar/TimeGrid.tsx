@@ -204,18 +204,21 @@ export default function TimeGrid(props: TimeGridProps) {
      *  scroll says they belong: the hours rail's translateY, the grid's top
      *  clip, and the all-day band's pair of counter-translations.
      *
-     *  Nothing to do where the scroll timelines drive all three (see
-     *  PANELS_RIDE_SCROLL) — CSS runs them on the render cycle, and a JS write
-     *  here would only fight the cascade. */
+     *  Native timelines own normal scrolling. During a programmatic layout
+     *  change, only the vertical panels are handed to this same-frame mirror;
+     *  horizontal scrolling continues on its native timeline. */
     const mirrorPinnedPanels = React.useCallback(() => {
         const main = scrollRootRef.current;
-        if (!main || PANELS_RIDE_SCROLL) return;
+        if (!main) return;
+        const manual = gridRef.current?.hasAttribute("data-nc-manual-scroll");
+        if (PANELS_RIDE_SCROLL && !manual) return;
         const x = main.scrollLeft;
         const scrollable = leftScrollableRef.current;
         main.style.setProperty("--nc-scroll-y", `${clampScrollTop(main)}px`);
         if (scrollable) {
             scrollable.style.transform = `translateY(${-main.scrollTop}px)`;
         }
+        if (PANELS_RIDE_SCROLL) return;
         if (allDayRowRef.current) {
             allDayRowRef.current.style.transform = `translateX(${x}px)`;
         }
@@ -223,6 +226,28 @@ export default function TimeGrid(props: TimeGridProps) {
             allDayTrackRef.current.style.transform = `translateX(${-x}px)`;
         }
     }, []);
+
+    // Scroll timelines are sampled before rAF. When JS changes scrollTop in
+    // that rAF, their transform still describes the previous scroll position.
+    // Own the vertical panels for that render, then return them to the native
+    // timeline on the next frame, after it has sampled the new position.
+    const releasePanelSyncRef = useRef(0);
+    const syncProgrammaticScroll = React.useCallback(() => {
+        const host = gridRef.current;
+        if (PANELS_RIDE_SCROLL && host) {
+            host.setAttribute("data-nc-manual-scroll", "");
+            cancelAnimationFrame(releasePanelSyncRef.current);
+            releasePanelSyncRef.current = requestAnimationFrame(() => {
+                releasePanelSyncRef.current = 0;
+                host.removeAttribute("data-nc-manual-scroll");
+            });
+        }
+        mirrorPinnedPanels();
+    }, [mirrorPinnedPanels]);
+    useLayoutEffect(
+        () => () => cancelAnimationFrame(releasePanelSyncRef.current),
+        []
+    );
 
     /* Ce que le pincement a changé sans passer par React.
        La grille suit la variable CSS toute seule ; la bande des journées
@@ -611,7 +636,7 @@ export default function TimeGrid(props: TimeGridProps) {
     //     hours underneath stay where the eye left them;
     //   · --nc-rail-travel, the scroll range the pinned panels ride on, which
     //     grows with the band;
-    //   · and, where the scroll timelines are missing, the mirrored transforms.
+    //   · and the vertical panels, mirrored synchronously for this render.
     //
     // They are all written HERE, in one rAF, off one clock. The band used to
     // grow on a CSS `transition: height` while only the scroll correction ran on
@@ -668,7 +693,7 @@ export default function TimeGrid(props: TimeGridProps) {
             paintAllDayBand(allDayHeight);
             if (from !== null) el.scrollTop += allDayHeight - from;
             publishScrollTravel(el, gridRef.current);
-            mirrorPinnedPanels();
+            syncProgrammaticScroll();
             return;
         }
 
@@ -706,7 +731,7 @@ export default function TimeGrid(props: TimeGridProps) {
             // Read AFTER both, so the range describes the layout this frame is
             // about to paint rather than the one before it.
             publishScrollTravel(el, gridRef.current);
-            mirrorPinnedPanels();
+            syncProgrammaticScroll();
 
             if (progress < 1) {
                 allDayGrowFrameRef.current = requestAnimationFrame(step);
@@ -716,7 +741,7 @@ export default function TimeGrid(props: TimeGridProps) {
         };
         allDayGrowFrameRef.current = requestAnimationFrame(step);
         return () => cancelAnimationFrame(allDayGrowFrameRef.current);
-    }, [allDayHeight, mirrorPinnedPanels, paintAllDayBand]);
+    }, [allDayHeight, syncProgrammaticScroll, paintAllDayBand]);
 
     // The fallback path for everything the scroll timelines drive: the hours
     // rail's translateY, the grid's top clip, and the all-day band's pair of
