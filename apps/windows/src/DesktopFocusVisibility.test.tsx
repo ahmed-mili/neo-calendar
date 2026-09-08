@@ -32,9 +32,7 @@ afterEach(() => {
     act(() => {
         ReactDOM.unmountComponentAtNode(host);
     });
-    document.documentElement.removeAttribute(
-        DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE
-    );
+    document.documentElement.removeAttribute(DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE);
     host.remove();
 });
 
@@ -62,9 +60,7 @@ test("clic souris puis Shift ne transforme pas le bouton focalise en focus clavi
     });
     expect(document.activeElement).toBe(button);
     expect(
-        document.documentElement.hasAttribute(
-            DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE
-        )
+        document.documentElement.hasAttribute(DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE)
     ).toBe(false);
 
     await act(async () => {
@@ -81,9 +77,7 @@ test("clic souris puis Shift ne transforme pas le bouton focalise en focus clavi
     // autoriser les styles visuels de focus clavier sur le bouton clique.
     expect(document.activeElement).toBe(button);
     expect(
-        document.documentElement.hasAttribute(
-            DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE
-        )
+        document.documentElement.hasAttribute(DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE)
     ).toBe(false);
 
     await act(async () => {
@@ -92,9 +86,7 @@ test("clic souris puis Shift ne transforme pas le bouton focalise en focus clavi
         );
     });
     expect(
-        document.documentElement.getAttribute(
-            DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE
-        )
+        document.documentElement.getAttribute(DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE)
     ).toBe("true");
 
     // Un nouveau geste souris reprend la modalite et retire l'anneau clavier.
@@ -104,15 +96,16 @@ test("clic souris puis Shift ne transforme pas le bouton focalise en focus clavi
         );
     });
     expect(
-        document.documentElement.hasAttribute(
-            DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE
-        )
+        document.documentElement.hasAttribute(DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE)
     ).toBe(false);
 });
 
 test("le CSS masque l'anneau WebView2 hors navigation Tab et le conserve pour Tab", () => {
     const css = fs
-        .readFileSync(path.join(__dirname, "DesktopFocusVisibility.css"), "utf8")
+        .readFileSync(
+            path.join(__dirname, "DesktopFocusVisibility.css"),
+            "utf8"
+        )
         .replace(/\s+/g, " ");
 
     expect(css).toContain(
