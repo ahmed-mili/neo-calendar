@@ -1,0 +1,33 @@
+/*
+ * WebView2 peut promouvoir un bouton clique vers :focus-visible apres une
+ * simple touche modificatrice (Shift). Le shell publie
+ * data-nc-keyboard-focus uniquement apres Tab/Shift+Tab : tant que cette preuve
+ * de navigation clavier manque, aucun anneau de focus de la barre ne doit
+ * apparaitre autour du bouton que la souris vient de laisser focalise.
+ */
+html:not([data-nc-keyboard-focus="true"])
+    .nc-desktop-window-shell
+    .nc-desktop-titlebar
+    button:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Le declencheur du menu ajoute aussi une surface sur :focus-visible. Apres un
+   clic souris + Shift, elle doit rester absente; hover et menu ouvert gardent
+   bien leurs propres surfaces. */
+html:not([data-nc-keyboard-focus="true"])
+    .nc-desktop-window-shell
+    .nc-app-menu-trigger:focus-visible:not(:hover):not([data-open]) {
+    background: transparent;
+    color: var(--nc-text-secondary, var(--nc-text-primary, inherit));
+}
+
+/* Avec une vraie navigation Tab, le menu garde un indicateur coherent avec les
+   autres glyphes de la barre au lieu de retomber sur l'outline natif WebView2. */
+html[data-nc-keyboard-focus="true"]
+    .nc-desktop-window-shell
+    .nc-app-menu-trigger:focus-visible {
+    outline: 1px solid var(--nc-toolbar-focus);
+    outline-offset: -1px;
+}
