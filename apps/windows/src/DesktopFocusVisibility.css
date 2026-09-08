@@ -1,9 +1,10 @@
 /*
  * WebView2 peut promouvoir un bouton clique vers :focus-visible apres une
- * simple touche modificatrice (Shift). Le shell publie
- * data-nc-keyboard-focus uniquement apres Tab/Shift+Tab : tant que cette preuve
- * de navigation clavier manque, aucun bouton Windows ne doit recevoir l'anneau
- * de focus natif simplement parce que la souris l'a laisse focalise.
+ * simple touche modificatrice (Shift). Le shell ne publie
+ * data-nc-keyboard-focus qu'apres une vraie touche d'action/navigation : tant
+ * que l'utilisateur n'a presse qu'un modificateur, aucun bouton Windows ne doit
+ * recevoir l'anneau de focus natif simplement parce que la souris l'a laisse
+ * focalise.
  *
  * IMPORTANT : les panneaux, menus et dialogues partages sont souvent rendus
  * par portal directement sous document.body, donc HORS de
@@ -25,8 +26,9 @@ html:not([data-nc-keyboard-focus="true"])
     color: var(--nc-text-secondary, var(--nc-text-primary, inherit));
 }
 
-/* Avec une vraie navigation Tab, le menu garde un indicateur coherent avec les
-   autres glyphes de la barre au lieu de retomber sur l'outline natif WebView2. */
+/* Avec une vraie navigation clavier, le menu garde un indicateur coherent avec
+   les autres glyphes de la barre au lieu de retomber sur l'outline natif
+   WebView2. */
 html[data-nc-keyboard-focus="true"]
     .nc-desktop-window-shell
     .nc-app-menu-trigger:focus-visible {
