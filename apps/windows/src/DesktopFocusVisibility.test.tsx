@@ -34,9 +34,9 @@ afterEach(() => {
         ReactDOM.unmountComponentAtNode(host);
     });
     document.documentElement.removeAttribute(DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE);
-    document.querySelectorAll("[data-test-portal-button]").forEach((element) =>
-        element.remove()
-    );
+    document
+        .querySelectorAll("[data-test-portal-button]")
+        .forEach((element) => element.remove());
     host.remove();
 });
 
