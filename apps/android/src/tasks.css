@@ -1,0 +1,43 @@
+/* The same two status rows as desktop, with touch-sized controls. */
+body.nc-platform-android .nc-desktop-tasks-row {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 14px;
+    touch-action: manipulation;
+}
+
+body.nc-platform-android .nc-task-modal-backdrop {
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+}
+
+body.nc-platform-android .nc-task-modal {
+    width: 100%;
+    max-width: 560px;
+    max-height: 85dvh;
+}
+
+body.nc-platform-android .nc-task-modal-close,
+body.nc-platform-android .nc-task-modal .nc-tasks-checkbox {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    touch-action: manipulation;
+}
+
+body.nc-platform-android .nc-task-modal-search input {
+    min-height: 44px;
+    font-size: 16px;
+}
+
+body.nc-platform-android .nc-task-modal-list {
+    overscroll-behavior: contain;
+}
+
+@media (hover: none) {
+    body.nc-platform-android .nc-desktop-tasks-row:hover {
+        background: transparent;
+    }
+    body.nc-platform-android .nc-desktop-tasks-row:active {
+        background: var(--background-modifier-hover);
+    }
+}

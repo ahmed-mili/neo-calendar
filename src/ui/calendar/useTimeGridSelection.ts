@@ -21,13 +21,20 @@ function isAndroidRuntime(): boolean {
     );
 }
 
-function snappedHalfHour(date: Date): {
+function snappedHalfHour(
+    date: Date,
+    snapMinutes = 15
+): {
     start: Date;
     end: Date;
 } {
     const start = new Date(date);
 
-    start.setMinutes(Math.round(start.getMinutes() / 15) * 15, 0, 0);
+    start.setMinutes(
+        Math.round(start.getMinutes() / snapMinutes) * snapMinutes,
+        0,
+        0
+    );
 
     return {
         start,
@@ -302,7 +309,16 @@ export function useTimeGridSelection({
                      */
                     swallowNextClick();
 
-                    const range = snappedHalfHour(current.startDate);
+                    // A tap places the draft at the finger, not at a nearby
+                    // quarter-hour. Use the original origin even if the grid moved.
+                    const range = snappedHalfHour(
+                        positionToDate(
+                            current.startClientY - dayRect.top,
+                            current.dayDate,
+                            1
+                        ),
+                        1
+                    );
 
                     setSelection(null);
                     selectionRef.current = null;

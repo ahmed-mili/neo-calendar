@@ -177,15 +177,25 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         if (rect) setColorPicker({ id, color, rect });
     };
 
-    // Drag-to-reorder the calendar list. On drop we translate the moved index
-    // into the new full order of ids and hand it up to persist.
-    const reorder = useSidebarReorder(calendarSources.length, (from, to) => {
-        const ids = calendarSources.map((s) => s.id);
+    const visibleSources = calendarSources.filter(
+        (source) => !hiddenCalendars.has(source.id)
+    );
+    const hiddenSources = calendarSources.filter((source) =>
+        hiddenCalendars.has(source.id)
+    );
+
+    // Reorder visible rows, retaining hidden calendars in their stored slots.
+    const reorder = useSidebarReorder(visibleSources.length, (from, to) => {
+        const ids = visibleSources.map((source) => source.id);
         const [moved] = ids.splice(from, 1);
         ids.splice(to, 0, moved);
-        onReorderCalendars(ids);
+        let visibleIndex = 0;
+        onReorderCalendars(
+            calendarSources.map((source) =>
+                hiddenCalendars.has(source.id) ? source.id : ids[visibleIndex++]
+            )
+        );
     });
-
     const startRename = (source: CalendarSource) => {
         setEditingId(source.id);
         setEditName(source.name);
@@ -566,7 +576,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                                         reorder.dragging ? " nc-reordering" : ""
                                     }`}
                                 >
-                                    {calendarSources.map((source, index) => {
+                                    {visibleSources.map((source, index) => {
                                         const hidden = hiddenCalendars.has(
                                             source.id
                                         );
@@ -882,73 +892,19 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                         you have to be, this answers what you have to get done —
                         including the tasks whose date has already slipped by,
                         which the grid buries in a month nobody scrolls to. */}
-                        {isAndroid ? (
-                            <div className="nc-sidebar-section">
-                                <div
-                                    className="nc-sidebar-title-row"
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => setTasksCollapsed((v) => !v)}
-                                    onKeyDown={(e) => {
-                                        if (
-                                            e.key === "Enter" ||
-                                            e.key === " "
-                                        ) {
-                                            e.preventDefault();
-                                            setTasksCollapsed((v) => !v);
-                                        }
-                                    }}
-                                    aria-label={
-                                        tasksCollapsed
-                                            ? "Expand tasks"
-                                            : "Collapse tasks"
-                                    }
-                                    data-nc-tooltip={
-                                        tasksCollapsed
-                                            ? "Expand tasks"
-                                            : "Collapse tasks"
-                                    }
-                                >
-                                    <span className="nc-sidebar-title-label">
-                                        <span className="nc-sidebar-title">
-                                            {t("Tasks")}
-                                        </span>
-                                        <span
-                                            className={`nc-sidebar-title-chevron${
-                                                tasksCollapsed
-                                                    ? " nc-collapsed"
-                                                    : ""
-                                            }`}
-                                        >
-                                            <ChevronDownIcon size={14} />
-                                        </span>
-                                    </span>
-                                </div>
-                                {!tasksCollapsed && (
-                                    <TasksPanel
-                                        tasks={tasks}
-                                        today={today}
-                                        onTaskClick={onEventClick}
-                                        onAddTask={onAddTask}
-                                        onToggleTask={onToggleTask}
-                                    />
-                                )}
+                        <div className="nc-sidebar-section">
+                            <div className="nc-sidebar-title-row nc-sidebar-title-row-static">
+                                <span className="nc-sidebar-title">
+                                    {t("Tasks")}
+                                </span>
                             </div>
-                        ) : (
-                            <div className="nc-sidebar-section">
-                                <div className="nc-sidebar-title-row nc-sidebar-title-row-static">
-                                    <span className="nc-sidebar-title">
-                                        {t("Tasks")}
-                                    </span>
-                                </div>
-                                <DesktopTasksPanel
-                                    tasks={tasks}
-                                    today={today}
-                                    onTaskClick={onEventClick}
-                                    onToggleTask={onToggleTask}
-                                />
-                            </div>
-                        )}
+                            <DesktopTasksPanel
+                                tasks={tasks}
+                                today={today}
+                                onTaskClick={onEventClick}
+                                onToggleTask={onToggleTask}
+                            />
+                        </div>
                     </>
                 )}
 
@@ -999,6 +955,12 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                             icon: <FolderIcon />,
                             onClick: onOpenRootFolder,
                         },
+                        ...hiddenSources.map((source) => ({
+                            key: `show-${source.id}`,
+                            label: `${t("Show")} : ${source.name}`,
+                            swatchColor: source.color,
+                            onClick: () => onToggleCalendar(source.id),
+                        })),
                     ]}
                     anchorRect={headerMenuAnchor}
                     onClose={() => setHeaderMenuAnchor(null)}

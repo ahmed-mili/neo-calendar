@@ -79,10 +79,48 @@
     -webkit-app-region: no-drag;
 }
 
+.nc-desktop-window-shell .nc-toolbar-icon {
+    display: block;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    background: currentColor;
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+}
+
+.nc-desktop-window-shell .nc-toolbar-icon--minimize {
+    -webkit-mask-image: url("./assets/toolbar/minimize.svg");
+    mask-image: url("./assets/toolbar/minimize.svg");
+}
+
+.nc-desktop-window-shell .nc-toolbar-icon--maximize {
+    -webkit-mask-image: url("./assets/toolbar/maximize.svg");
+    mask-image: url("./assets/toolbar/maximize.svg");
+}
+
+.nc-desktop-window-shell .nc-toolbar-icon--close {
+    -webkit-mask-image: url("./assets/toolbar/close.svg");
+    mask-image: url("./assets/toolbar/close.svg");
+}
+
+.nc-desktop-window-shell .nc-desktop-window-control > .nc-toolbar-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.nc-desktop-window-shell .nc-desktop-window-control > .nc-toolbar-icon--maximize {
+    width: 20px;
+    height: 20px;
+}
+
 .nc-desktop-window-shell .nc-desktop-window-control > svg {
     width: 16px;
     height: 16px;
-    stroke-width: 1.5;
 }
 
 .nc-desktop-window-shell .nc-desktop-window-control:hover,

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="24" height="24" viewBox="0 0 24 24"
+     fill="none">
+  <g stroke="currentColor"
+     stroke-width="1.5"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+    <!-- Rounded square -->
+    <path d="M11 5H6.75A2.75 2.75 0 0 0 4 7.75v9.5A2.75 2.75 0 0 0 6.75 20h9.5A2.75 2.75 0 0 0 19 17.25V13"/>
+    <!-- Edit / pencil -->
+    <path d="M8.25 15.75 17.9 6.1"/>
+    <path d="M17.9 6.1 19.35 4.65"/>
+  </g>
+</svg>

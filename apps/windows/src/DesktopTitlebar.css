@@ -148,10 +148,35 @@
     cursor: pointer;
 }
 
-/* Match search and creation glyphs while retaining the 24px hit target. */
-.nc-desktop-window-shell .nc-desktop-toolbar__btn > svg {
-    width: 16px;
-    height: 16px;
+/* Match the visible Notion glyphs, including the supplied SVG inner margins. */
+.nc-desktop-window-shell .nc-desktop-toolbar__btn > .nc-toolbar-icon,
+.nc-desktop-window-shell .nc-app-menu-trigger > .nc-toolbar-icon {
+    width: 22px;
+    height: 22px;
+}
+
+.nc-desktop-window-shell .nc-app-menu-trigger > .nc-toolbar-icon--chevron-down {
+    width: 24px;
+    height: 24px;
+    -webkit-mask-image: url("./assets/toolbar/chevron-down.svg");
+    mask-image: url("./assets/toolbar/chevron-down.svg");
+}
+
+.nc-desktop-window-shell .nc-toolbar-icon--sidebar {
+    -webkit-mask-image: url("./assets/toolbar/sidebar.svg");
+    mask-image: url("./assets/toolbar/sidebar.svg");
+}
+
+.nc-desktop-window-shell .nc-toolbar-icon--search {
+    -webkit-mask-image: url("./assets/toolbar/search.svg");
+    mask-image: url("./assets/toolbar/search.svg");
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar__btn > .nc-toolbar-icon--edit {
+    width: 18px;
+    height: 18px;
+    -webkit-mask-image: url("./assets/toolbar/edit.svg");
+    mask-image: url("./assets/toolbar/edit.svg");
 }
 
 .nc-desktop-window-shell .nc-desktop-toolbar__btn:hover {
@@ -205,8 +230,8 @@
     border: 1px solid var(--nc-toolbar-button-border);
     background: var(--nc-toolbar-button) !important;
     color: var(--nc-text-primary, var(--text-normal));
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     font-weight: 500;
     transition: background-color 100ms ease, color 100ms ease;
 }
@@ -245,6 +270,52 @@
     box-shadow: none !important;
 }
 
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-header-nav .nc-btn > svg {
+    display: none;
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-header-nav .nc-btn::before {
+    content: "";
+    width: 24px;
+    height: 24px;
+    background: currentColor;
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-header-nav .nc-btn:first-child::before {
+    -webkit-mask-image: url("./assets/toolbar/chevron-left.svg");
+    mask-image: url("./assets/toolbar/chevron-left.svg");
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-header-nav .nc-btn:last-child::before {
+    -webkit-mask-image: url("./assets/toolbar/chevron-right.svg");
+    mask-image: url("./assets/toolbar/chevron-right.svg");
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-btn-settings > svg {
+    display: none;
+}
+
+.nc-desktop-window-shell .nc-desktop-toolbar .nc-btn-settings::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    background: currentColor;
+    -webkit-mask-image: url("./assets/toolbar/settings.svg");
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-image: url("./assets/toolbar/settings.svg");
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+}
+
 .nc-desktop-window-shell .nc-desktop-toolbar .nc-btn-settings:hover,
 .nc-desktop-window-shell .nc-desktop-toolbar .nc-header-nav .nc-btn:hover {
     background: var(--nc-toolbar-hover) !important;
@@ -266,13 +337,15 @@
 
 /* Native focus is already published by DesktopWindowShell. Only the chrome
    glyphs fade: the sidebar surface and Week/Today keep their normal contrast. */
-.nc-desktop-window-shell .nc-desktop-toolbar__left button > svg,
+.nc-desktop-window-shell .nc-desktop-toolbar__left button > .nc-toolbar-icon,
+.nc-desktop-window-shell .nc-desktop-window-control > .nc-toolbar-icon,
 .nc-desktop-window-shell .nc-desktop-window-control > svg {
     opacity: 1;
     transition: opacity 100ms ease;
 }
 
-.nc-desktop-window-shell[data-focused="false"] .nc-desktop-toolbar__left button > svg,
+.nc-desktop-window-shell[data-focused="false"] .nc-desktop-toolbar__left button > .nc-toolbar-icon,
+.nc-desktop-window-shell[data-focused="false"] .nc-desktop-window-control > .nc-toolbar-icon,
 .nc-desktop-window-shell[data-focused="false"] .nc-desktop-window-control > svg {
     opacity: 0.3;
 }

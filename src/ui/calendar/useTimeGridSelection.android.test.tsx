@@ -3,6 +3,7 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { act } from "react-dom/test-utils";
 import { useTimeGridSelection } from "./useTimeGridSelection";
+import { setHourHeight, HOUR_HEIGHT } from "./calendarConstants";
 
 /**
  * Un appui sur la grille ouvre un brouillon, et la fiche du brouillon vient se
@@ -55,11 +56,59 @@ describe("Un tap Android sur la grille ne clique pas la fiche qu'il ouvre", () =
         return event;
     };
 
+    it.each([
+        [72, 40, 347],
+        [72, -200, 327],
+        [144, -350, 443],
+    ])(
+        "keeps a tap at its minute after scrolling and zooming (%i px/hour)",
+        (hourHeight, top, y) => {
+            setHourHeight(hourHeight);
+            const day = host.querySelector(".nc-timegrid-day") as HTMLElement;
+            jest.spyOn(day, "getBoundingClientRect").mockReturnValue({
+                top,
+            } as DOMRect);
+            try {
+                act(() => {
+                    day.dispatchEvent(
+                        pointer("pointerdown", {
+                            button: 0,
+                            pointerId: 2,
+                            clientY: y,
+                        })
+                    );
+                    document.dispatchEvent(
+                        pointer("pointerup", {
+                            button: 0,
+                            pointerId: 2,
+                            clientY: y,
+                        })
+                    );
+                });
+                const [start, end] = selected.mock.calls[0];
+                const renderedY =
+                    top +
+                    ((start.getHours() * 60 + start.getMinutes()) *
+                        hourHeight) /
+                        60;
+                expect(Math.abs(renderedY - y)).toBeLessThanOrEqual(
+                    hourHeight / 120
+                );
+                expect(end.getTime() - start.getTime()).toBe(30 * 60000);
+            } finally {
+                setHourHeight(HOUR_HEIGHT);
+            }
+        }
+    );
     it("avale le click que le geste doit encore", () => {
         const day = host.querySelector(".nc-timegrid-day") as HTMLElement;
         act(() => {
             day.dispatchEvent(
-                pointer("pointerdown", { button: 0, pointerId: 1, clientY: 300 })
+                pointer("pointerdown", {
+                    button: 0,
+                    pointerId: 1,
+                    clientY: 300,
+                })
             );
             document.dispatchEvent(
                 pointer("pointerup", { button: 0, pointerId: 1, clientY: 300 })

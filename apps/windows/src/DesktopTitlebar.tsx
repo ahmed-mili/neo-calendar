@@ -1,8 +1,4 @@
 import * as React from "react";
-import {
-    NewEventIcon,
-    SearchIcon,
-} from "../../../src/ui/calendar/Icons";
 import { UpdateBadge } from "../../../src/ui/calendar/UpdateBadge";
 import { installPendingUpdate } from "../../../src/ui/calendar/appUpdates";
 import { t } from "../../../src/ui/i18n";
@@ -61,30 +57,10 @@ export default function DesktopTitlebar({
                     aria-label={t("Toggle sidebar")}
                     data-nc-tooltip={t("Toggle sidebar")}
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
+                    <span
+                        className="nc-toolbar-icon nc-toolbar-icon--sidebar"
                         aria-hidden="true"
-                        focusable="false"
-                    >
-                        <rect
-                            x="1"
-                            y="3"
-                            width="14"
-                            height="10"
-                            rx="2"
-                            stroke="currentColor"
-                            strokeWidth="1.25"
-                        />
-                        <path
-                            d="M5 3.25V12.75"
-                            stroke="currentColor"
-                            strokeWidth="1.25"
-                        />
-                    </svg>
+                    />
                 </button>
                 <div className="nc-desktop-toolbar__gap" />
                 <button
@@ -94,7 +70,10 @@ export default function DesktopTitlebar({
                     aria-label={t("Open command menu")}
                     data-nc-tooltip={t("Open command menu")}
                 >
-                    <SearchIcon />
+                    <span
+                        className="nc-toolbar-icon nc-toolbar-icon--search"
+                        aria-hidden="true"
+                    />
                 </button>
                 <button
                     type="button"
@@ -103,7 +82,10 @@ export default function DesktopTitlebar({
                     aria-label={t("New event")}
                     data-nc-tooltip={t("New event")}
                 >
-                    <NewEventIcon />
+                    <span
+                        className="nc-toolbar-icon nc-toolbar-icon--edit"
+                        aria-hidden="true"
+                    />
                 </button>
             </div>
             {/* La surface vide de la barre : c'est elle qui deplace la fenetre,

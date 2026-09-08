@@ -36,20 +36,26 @@ test.each(["chargement", "accueil", "calendrier"])("controls survive %s children
     expect(window.close).toHaveBeenCalledTimes(1);
     expect(window.startDragging).not.toHaveBeenCalled();
 });
-test("window controls are icons, and the maximize icon follows the window state", async () => {
+test("window controls use colourable masks except for the restored window state", async () => {
     const window = fakeWindow();
     await act(async () => { ReactDOM.render(<DesktopWindowShell actions={createDesktopWindowActions(window)}>content</DesktopWindowShell>, host); });
     const controls = Array.from(host.querySelectorAll(".nc-desktop-window-control"));
     expect(controls.map(control => control.getAttribute("aria-label"))).toEqual(["Réduire", "Agrandir", "Fermer"]);
     controls.forEach(control => {
-        expect(control.querySelector("svg")).not.toBeNull();
+        expect(control.querySelector(".nc-toolbar-icon")).not.toBeNull();
         expect(control.textContent).toBe("");
     });
-    const restingIcon = host.querySelector('button[aria-label="Agrandir"] svg')!.getAttribute("class");
     window.isMaximized.mockResolvedValue(true);
     await act(async () => { resized(); });
-    const maximizedIcon = host.querySelector('button[aria-label="Restaurer"] svg')!.getAttribute("class");
-    expect(maximizedIcon).not.toBe(restingIcon);
+    expect(host.querySelector('button[aria-label="Restaurer"] img')).toBeNull();
+    expect(host.querySelector('button[aria-label="Restaurer"] svg')).not.toBeNull();
+});
+test("window controls use the supplied toolbar assets", async () => {
+    const window = fakeWindow();
+    await act(async () => { ReactDOM.render(<DesktopWindowShell actions={createDesktopWindowActions(window)}>content</DesktopWindowShell>, host); });
+    expect(host.querySelector('button[aria-label="Réduire"] .nc-toolbar-icon')?.getAttribute("data-toolbar-icon")).toBe("minimize");
+    expect(host.querySelector('button[aria-label="Agrandir"] .nc-toolbar-icon')?.getAttribute("data-toolbar-icon")).toBe("maximize");
+    expect(host.querySelector('button[aria-label="Fermer"] .nc-toolbar-icon')?.getAttribute("data-toolbar-icon")).toBe("close");
 });
 test("calendar render failure leaves window controls usable", async () => {
     const window = fakeWindow();

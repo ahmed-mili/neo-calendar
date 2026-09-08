@@ -5,7 +5,7 @@ import React, {
     useMemo,
     useState,
 } from "react";
-import { Copy, Minus, Square, X } from "lucide-react";
+import { Copy } from "lucide-react";
 import {
     DesktopWindowActions,
     getDesktopWindowActions,
@@ -116,7 +116,11 @@ export default function DesktopWindowShell({
                             aria-label={t("Minimize")}
                             onClick={() => run(actions.minimize)}
                         >
-                            <Minus aria-hidden="true" />
+                            <span
+                                className="nc-toolbar-icon nc-toolbar-icon--minimize"
+                                aria-hidden="true"
+                                data-toolbar-icon="minimize"
+                            />
                         </button>
                         <button
                             type="button"
@@ -125,9 +129,16 @@ export default function DesktopWindowShell({
                             onClick={() => run(actions.toggleMaximize)}
                         >
                             {maximized ? (
-                                <Copy aria-hidden="true" />
+                                <Copy
+                                    aria-hidden="true"
+                                    data-toolbar-icon="restore"
+                                />
                             ) : (
-                                <Square aria-hidden="true" />
+                                <span
+                                    className="nc-toolbar-icon nc-toolbar-icon--maximize"
+                                    aria-hidden="true"
+                                    data-toolbar-icon="maximize"
+                                />
                             )}
                         </button>
                         <button
@@ -136,7 +147,11 @@ export default function DesktopWindowShell({
                             aria-label={t("Close")}
                             onClick={() => run(actions.close)}
                         >
-                            <X aria-hidden="true" />
+                            <span
+                                className="nc-toolbar-icon nc-toolbar-icon--close"
+                                aria-hidden="true"
+                                data-toolbar-icon="close"
+                            />
                         </button>
                     </div>
                 </div>

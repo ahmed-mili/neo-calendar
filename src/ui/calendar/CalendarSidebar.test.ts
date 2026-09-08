@@ -390,7 +390,7 @@ describe("tasks platform branches", () => {
         applyLanguage("fr");
     });
 
-    it("uses desktop status modals while Android keeps the inline add-task panel", () => {
+    it("uses the same compact status rows and dialogs on desktop and Android", () => {
         act(() => {
             ReactDOM.render(React.createElement(CalendarSidebar, props), host);
         });
@@ -401,9 +401,9 @@ describe("tasks platform branches", () => {
         act(() => {
             ReactDOM.render(React.createElement(CalendarSidebar, props), host);
         });
-        expect(host.querySelector(".nc-desktop-tasks-summary")).toBeNull();
-        expect(host.querySelector(".nc-tasks-panel")).toBeTruthy();
-        expect(host.textContent).toContain(t("Add task"));
+        expect(host.querySelector(".nc-desktop-tasks-summary")).toBeTruthy();
+        expect(host.querySelector(".nc-tasks-panel")).toBeNull();
+        expect(host.textContent).not.toContain(t("Add task"));
     });
 });
 
@@ -474,6 +474,98 @@ describe("la barre du haut de la colonne", () => {
         host.remove();
     };
 
+    it("moves hidden calendars into the header menu and restores them", () => {
+        const sources = [
+            {
+                id: "local",
+                name: "Personnel",
+                color: "red",
+                editable: true,
+                type: "local" as const,
+            },
+            {
+                id: "remote",
+                name: "Abonnement",
+                color: "blue",
+                editable: false,
+                type: "ical" as const,
+            },
+            {
+                id: "auto",
+                name: "Automatique",
+                color: "green",
+                editable: false,
+                type: "auto" as const,
+            },
+        ];
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        const Harness = () => {
+            const [hidden, setHidden] = React.useState(
+                new Set(sources.map((s) => s.id))
+            );
+            return React.createElement(CalendarSidebar, {
+                ...baseProps(),
+                calendarSources: sources,
+                hiddenCalendars: hidden,
+                onToggleCalendar: (id: string) =>
+                    setHidden((current) => {
+                        const next = new Set(current);
+                        if (next.has(id)) next.delete(id);
+                        else next.add(id);
+                        return next;
+                    }),
+            });
+        };
+        try {
+            act(() => {
+                ReactDOM.render(React.createElement(Harness), host);
+            });
+            expect(host.querySelectorAll(".nc-calendar-item")).toHaveLength(0);
+            act(() => {
+                (
+                    host.querySelector(
+                        `button[aria-label="${t("More options")}"]`
+                    ) as HTMLButtonElement
+                ).click();
+            });
+            const restoreButtons = Array.from(
+                document.querySelectorAll<HTMLButtonElement>(
+                    ".nc-cal-menu-item"
+                )
+            );
+            for (const source of sources) {
+                expect(
+                    restoreButtons.some(
+                        (button) =>
+                            button.textContent ===
+                            `${t("Show")} : ${source.name}`
+                    )
+                ).toBe(true);
+            }
+            act(() => {
+                restoreButtons
+                    .find((button) =>
+                        button.textContent?.includes("Personnel")
+                    )!
+                    .click();
+            });
+            expect(host.querySelectorAll(".nc-calendar-item")).toHaveLength(1);
+            expect(
+                host.querySelector(".nc-calendar-item")!.textContent
+            ).toContain("Personnel");
+            act(() => {
+                (
+                    host.querySelector(
+                        `.nc-calendar-item button[aria-label="${t("Hide")}"]`
+                    ) as HTMLButtonElement
+                ).click();
+            });
+            expect(host.querySelectorAll(".nc-calendar-item")).toHaveLength(0);
+        } finally {
+            unmount(host);
+        }
+    });
     it("est là par défaut, avec sa recherche et sa version", () => {
         const host = mount({});
         try {

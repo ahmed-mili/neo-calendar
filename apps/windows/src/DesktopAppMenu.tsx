@@ -2,7 +2,6 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import {
     CheckIcon,
-    ChevronDownIcon,
     ChevronRightIcon,
 } from "../../../src/ui/calendar/Icons";
 import { appVersion } from "../../../src/ui/calendar/appUpdates";
@@ -582,7 +581,10 @@ export default function DesktopAppMenu({
                     }
                 }}
             >
-                <ChevronDownIcon />
+                <span
+                    className="nc-toolbar-icon nc-toolbar-icon--chevron-down"
+                    aria-hidden="true"
+                />
             </button>
             {open &&
                 ReactDOM.createPortal(
