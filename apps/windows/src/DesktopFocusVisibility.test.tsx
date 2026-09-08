@@ -6,6 +6,7 @@ import ReactDOM from "react-dom";
 import { act } from "react-dom/test-utils";
 import DesktopWindowShell, {
     DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE,
+    keyboardInputShowsFocus,
 } from "./DesktopWindowShell";
 import { createDesktopWindowActions } from "./platform/desktopWindow";
 
@@ -33,7 +34,24 @@ afterEach(() => {
         ReactDOM.unmountComponentAtNode(host);
     });
     document.documentElement.removeAttribute(DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE);
+    document
+        .querySelectorAll("[data-test-portal-button]")
+        .forEach((element) => element.remove());
     host.remove();
+});
+
+test("les modificateurs seuls ne deviennent pas une modalite clavier", () => {
+    for (const key of ["Shift", "Control", "Alt", "Meta"]) {
+        expect(
+            keyboardInputShowsFocus(new KeyboardEvent("keydown", { key }))
+        ).toBe(false);
+    }
+
+    for (const key of ["Tab", "ArrowDown", "Enter", " "]) {
+        expect(
+            keyboardInputShowsFocus(new KeyboardEvent("keydown", { key }))
+        ).toBe(true);
+    }
 });
 
 test("clic souris puis Shift ne transforme pas le bouton focalise en focus clavier", async () => {
@@ -100,7 +118,72 @@ test("clic souris puis Shift ne transforme pas le bouton focalise en focus clavi
     ).toBe(false);
 });
 
-test("le CSS masque l'anneau WebView2 hors navigation Tab et le conserve pour Tab", () => {
+test("clic puis Shift reste en mode pointeur pour un bouton rendu par portal hors du shell", async () => {
+    await act(async () => {
+        ReactDOM.render(
+            <DesktopWindowShell
+                actions={createDesktopWindowActions(fakeWindow())}
+            >
+                content
+            </DesktopWindowShell>,
+            host
+        );
+    });
+
+    // EventPanel et plusieurs autres overlays Windows sont rendus directement
+    // sous document.body. C'est precisement ce que l'ancien correctif limite a
+    // .nc-desktop-titlebar ne couvrait pas.
+    const portalButton = document.createElement("button");
+    portalButton.type = "button";
+    portalButton.className = "nc-panel-icon-btn";
+    portalButton.dataset.testPortalButton = "true";
+    portalButton.setAttribute("aria-label", "Close");
+    document.body.append(portalButton);
+
+    expect(portalButton.closest(".nc-desktop-window-shell")).toBeNull();
+
+    await act(async () => {
+        portalButton.dispatchEvent(
+            new MouseEvent("pointerdown", { bubbles: true, button: 0 })
+        );
+        portalButton.focus();
+    });
+    expect(document.activeElement).toBe(portalButton);
+    expect(
+        document.documentElement.hasAttribute(DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE)
+    ).toBe(false);
+
+    await act(async () => {
+        portalButton.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "Shift",
+                shiftKey: true,
+                bubbles: true,
+            })
+        );
+    });
+
+    expect(document.activeElement).toBe(portalButton);
+    expect(
+        document.documentElement.hasAttribute(DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE)
+    ).toBe(false);
+
+    // On ne doit pas corriger Shift en cassant la navigation clavier des menus
+    // portales : une vraie touche de navigation repasse en modalite clavier.
+    await act(async () => {
+        portalButton.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowDown",
+                bubbles: true,
+            })
+        );
+    });
+    expect(
+        document.documentElement.getAttribute(DESKTOP_KEYBOARD_FOCUS_ATTRIBUTE)
+    ).toBe("true");
+});
+
+test("le CSS masque l'anneau WebView2 sur tous les boutons Windows hors navigation clavier", () => {
     const css = fs
         .readFileSync(
             path.join(__dirname, "DesktopFocusVisibility.css"),
@@ -108,9 +191,16 @@ test("le CSS masque l'anneau WebView2 hors navigation Tab et le conserve pour Ta
         )
         .replace(/\s+/g, " ");
 
+    // Doit couvrir aussi les boutons rendus par portal sous body, donc ne doit
+    // plus dependre de .nc-desktop-window-shell ni de .nc-desktop-titlebar.
     expect(css).toContain(
-        'html:not([data-nc-keyboard-focus="true"]) .nc-desktop-window-shell .nc-desktop-titlebar button:focus-visible { outline: none !important; box-shadow: none !important; }'
+        'html:not([data-nc-keyboard-focus="true"]) body button:focus-visible { outline: none !important; }'
     );
+    expect(css).not.toContain(
+        'html:not([data-nc-keyboard-focus="true"]) .nc-desktop-window-shell .nc-desktop-titlebar button:focus-visible'
+    );
+
+    // Une vraie navigation clavier garde au contraire l'indicateur voulu.
     expect(css).toContain(
         'html[data-nc-keyboard-focus="true"] .nc-desktop-window-shell .nc-app-menu-trigger:focus-visible { outline: 1px solid var(--nc-toolbar-focus); outline-offset: -1px; }'
     );
