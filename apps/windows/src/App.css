@@ -5143,7 +5143,13 @@ body.nc-platform-android .nc-wallpaper-option--all {
     grid-auto-flow: column;
     grid-auto-columns: 1fr;
     height: 28px;
-    background: var(--background-modifier-form-field);
+    /* Pas le gris du champ de formulaire : la teinte de l'accent, comme le
+       survol des lignes autour. */
+    background: color-mix(
+        in srgb,
+        var(--nc-accent, var(--interactive-accent)) 8%,
+        transparent
+    );
     border: 1px solid var(--delay-line);
     border-radius: 8px;
     overflow: hidden;
@@ -5167,8 +5173,9 @@ body.nc-platform-android .nc-wallpaper-option--all {
     border-left: 1px solid var(--delay-line);
 }
 
+.nc-cal-menu-delay__part:hover,
 .nc-cal-menu-delay__part:focus-within {
-    background: var(--nc-bg-hover, var(--background-modifier-hover));
+    background: var(--nc-hover-tint);
 }
 
 .nc-cal-menu-delay__part input {
