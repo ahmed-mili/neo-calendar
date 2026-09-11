@@ -88,6 +88,8 @@ import type {
 import { prayerLinesFor } from "../../../src/ui/calendar/prayerTimes";
 import { prayerTimetableById } from "../../../src/ui/calendar/prayerTimetables";
 import { isPrayerCalendarName } from "../../../src/ui/calendar/prayerCalendarName";
+import { BellIcon, ClockIcon } from "../../../src/ui/calendar/EventPanelIcons";
+import { LinkIcon } from "../../../src/ui/calendar/Icons";
 import type { PanelDropTarget } from "../../../src/ui/calendar/usePanelDrag";
 import {
     CopyIcon,
@@ -4169,15 +4171,35 @@ export default function DesktopCalendar({
                             );
                         }
                     }}
-                    onManageIcsFeeds={(calendarId: string) =>
-                        setIcsFeedsPanelCalendarId(calendarId)
-                    }
-                    onManagePrayerTimes={(calendarId: string) =>
-                        setPrayerDialogCalendarId(calendarId)
-                    }
-                    onManageReminder={(calendarId: string) =>
-                        setReminderDialogCalendarId(calendarId)
-                    }
+                    extraMenuItems={(calendarId: string) => [
+                        {
+                            key: "reminder",
+                            label: t("Reminder"),
+                            icon: <BellIcon />,
+                            onClick: () =>
+                                setReminderDialogCalendarId(calendarId),
+                        },
+                        {
+                            key: "ics-feeds",
+                            label: t("ICS links"),
+                            icon: <LinkIcon />,
+                            onClick: () =>
+                                setIcsFeedsPanelCalendarId(calendarId),
+                        },
+                        ...(isPrayerCalendarName(
+                            calendarById.get(calendarId)?.name
+                        )
+                            ? [
+                                  {
+                                      key: "prayer-times",
+                                      label: t("Prayer times"),
+                                      icon: <ClockIcon />,
+                                      onClick: () =>
+                                          setPrayerDialogCalendarId(calendarId),
+                                  },
+                              ]
+                            : []),
+                    ]}
                     panelIcsFeeds={panelIcsFeeds}
                     onDeleteCalendar={(calendarId: string) =>
                         void removeCalendar(calendarId)

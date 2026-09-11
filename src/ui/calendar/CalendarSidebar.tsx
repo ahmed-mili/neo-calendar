@@ -1,9 +1,6 @@
 import * as React from "react";
 import { CalendarSource, DisplayEvent, ViewType } from "../types";
 import MiniCalendar from "./MiniCalendar";
-// L'horloge du panneau d'evenement plutot qu'une nouvelle : c'est la meme
-// chose qu'elle dit, une heure de la journee.
-import { BellIcon, ClockIcon } from "./EventPanelIcons";
 import DesktopTasksPanel from "./DesktopTasksPanel";
 import TasksPanel from "./TasksPanel";
 import { TaskItem } from "../tasks/taskList";
@@ -29,7 +26,6 @@ import ShortcutsPanel from "./ShortcutsPanel";
 import { ObsidianIcon } from "../components/ObsidianIcon";
 import { useSidebarReorder } from "./useSidebarReorder";
 import { isAndroidRuntime } from "./CalendarUtils";
-import { isPrayerCalendarName } from "./prayerCalendarName";
 import { installPendingUpdate, appVersion } from "./appUpdates";
 import { useUpdateAvailable } from "./useUpdateAvailable";
 import { UpdateBadge } from "./UpdateBadge";
@@ -62,15 +58,11 @@ interface CalendarSidebarProps {
     onAddCalendar: () => void;
     onRenameCalendar: (calendarId: string, newName: string) => Promise<void>;
     onEditCalendarLink: (calendarId: string) => void;
-    /** Omitted on surfaces without an ICS preferences store (the Obsidian
-     *  plugin path) — the sidebar simply leaves the menu item out rather than
-     *  showing something that would do nothing when pressed. */
-    onManageIcsFeeds?: (calendarId: string) => void;
-    /** Ouvre le choix de la mosquee dont ce calendrier suit les horaires. */
-    onManagePrayerTimes?: (calendarId: string) => void;
-    /** Le rappel par défaut de ce calendrier. Absent là où rien ne peut
-     *  l'enregistrer, comme les deux entrées au-dessus. */
-    onManageReminder?: (calendarId: string) => void;
+    /** Ce que l'application ajoute au menu d'un calendrier local (rappel,
+     *  liens ICS, horaires de prière), déjà construit : la colonne l'insère
+     *  après « Ouvrir le dossier ». Absent sur une surface qui n'a rien à y
+     *  mettre, comme le plugin Obsidian. */
+    extraMenuItems?: (calendarId: string) => CalendarMenuItem[];
     onDeleteCalendar: (calendarId: string) => void;
     onColorChange: (calendarId: string, color: string) => void;
     onReorderCalendars: (orderedIds: string[]) => void;
@@ -116,9 +108,7 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         onAddCalendar,
         onRenameCalendar,
         onEditCalendarLink,
-        onManageIcsFeeds,
-        onManagePrayerTimes,
-        onManageReminder,
+        extraMenuItems,
         onDeleteCalendar,
         onColorChange,
         onReorderCalendars,
@@ -267,43 +257,10 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                 icon: <FolderIcon />,
                 onClick: () => onOpenCalendarFolder(source.id),
             });
-            // Full Note calendars manage their ICS subscriptions here — the
-            // legacy `ical` type keeps its own "Edit link" item above until
-            // it is retired. Left out entirely where there is nothing to
-            // open (no ICS preferences store on this surface) rather than
-            // shown as a click that silently does nothing.
-            if (onManageIcsFeeds) {
-                items.push({
-                    key: "ics-feeds",
-                    label: t("ICS links"),
-                    icon: <LinkIcon />,
-                    onClick: () => onManageIcsFeeds(source.id),
-                });
-            }
-            // Le rappel par defaut des evenements de ce calendrier. Celui
-            // des Parametres repond tant que rien n'est regle ici : l'entree
-            // sert a s'en ecarter, calendrier par calendrier.
-            if (onManageReminder) {
-                items.push({
-                    key: "reminder",
-                    label: t("Reminder"),
-                    icon: <BellIcon />,
-                    onClick: () => onManageReminder(source.id),
-                });
-            }
-            // Les horaires de priere d'une mosquee, montres par un trait dans
-            // la grille plutot que par des evenements. Absent la ou rien ne
-            // peut les enregistrer, comme l'entree au-dessus — et reserve au
-            // calendrier qui porte ce sujet, seul ou l'entree veut dire
-            // quelque chose.
-            if (onManagePrayerTimes && isPrayerCalendarName(source.name)) {
-                items.push({
-                    key: "prayer-times",
-                    label: t("Prayer times"),
-                    icon: <ClockIcon />,
-                    onClick: () => onManagePrayerTimes(source.id),
-                });
-            }
+            // Ce que l'application ajoute (rappel, liens ICS, horaires de
+            // priere) arrive tout construit ; la colonne ne fait que
+            // l'inserer a la suite.
+            if (extraMenuItems) items.push(...extraMenuItems(source.id));
         }
         items.push({
             key: "solo",

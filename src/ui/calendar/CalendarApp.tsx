@@ -1360,174 +1360,186 @@ function CalendarAppInner(props: CalendarAppProps) {
                 style={{ position: "relative", height: "100%" }}
                 onAnimationEndCapture={handleCalendarVisibilityAnimationEnd}
             >
-                <DraftPreviewImmediateContext.Provider value={committingDraft || panelEventId !== null}>
-                <CalendarLayout
-                    currentDate={currentDate}
-                    viewType={viewType}
-                    onViewTypeChange={setViewType}
-                    dayCount={dayCount}
-                    onSetDayCount={setDaysCount}
-                    showWeekNumbers={showWeekNumbers}
-                    onToggleWeekNumbers={() => setShowWeekNumbers((v) => !v)}
-                    onGoPrev={goPrev}
-                    onGoNext={goNext}
-                    onGoToday={goToday}
-                    onOpenSettings={() => {
-                        const setting = (props.plugin.app as any).setting;
-                        setting.open();
-                        setting.openTabById("neo-calendar");
-                    }}
-                    onShiftDays={shiftDays}
-                    onShiftMonths={shiftMonths}
-                    onNewEvent={handleNewEvent}
-                    events={eventsWithSelection}
-                    calendarSources={calendarSources}
-                    visibleDates={visibleDates}
-                    firstDay={settings.firstDay}
-                    timeFormat24h={settings.timeFormat24h}
-                    freeScroll={settings.freeScroll}
-                    sidebarVisible={sidebarVisible}
-                    onToggleSidebar={() => setSidebarVisible((v) => !v)}
-                    onEventClick={handleEventSelect}
-                    onEventDrag={handleEventDrag}
-                    onEventResize={handleEventResize}
-                    onSelectRange={(start, end, allDay) => {
-                        // Starting a new range selection clears any multi-select.
-                        clearMultiSelection();
-                        handleSelectRange(start, end, allDay);
-                    }}
-                    onMonthDayClick={(date) => {
-                        clearMultiSelection();
-                        // The setting says what a click on a month day does.
-                        // It used to say nothing at all: the cell always opened
-                        // a new event, so switching it off changed nothing.
-                        if (props.settings.clickToCreateEventFromMonthView) {
-                            handleSelectRange(date, date, true);
-                        } else {
-                            goToDateInView(date, "day");
+                <DraftPreviewImmediateContext.Provider
+                    value={committingDraft || panelEventId !== null}
+                >
+                    <CalendarLayout
+                        currentDate={currentDate}
+                        viewType={viewType}
+                        onViewTypeChange={setViewType}
+                        dayCount={dayCount}
+                        onSetDayCount={setDaysCount}
+                        showWeekNumbers={showWeekNumbers}
+                        onToggleWeekNumbers={() =>
+                            setShowWeekNumbers((v) => !v)
                         }
-                    }}
-                    onContextMenu={handleContextMenu}
-                    onToggleTask={handleToggleTask}
-                    onEmptyContextMenu={handleEmptyContextMenu}
-                    contextLine={contextLine}
-                    onDateSelect={(date) => setCurrentDate(date)}
-                    hiddenCalendars={hiddenCalendars}
-                    onToggleCalendar={handleToggleCalendarVisibility}
-                    defaultCalendarId={defaultCalendarId}
-                    soloCalendarId={soloCalendarId}
-                    onSetDefaultCalendar={handleSetDefaultCalendar}
-                    onShowOnly={handleShowOnlyCalendar}
-                    tasks={tasks}
-                    today={today}
-                    onAddTask={handleAddTask}
-                    onAddCalendar={handleAddCalendar}
-                    onRenameCalendar={handleRenameCalendar}
-                    onEditCalendarLink={handleEditCalendarLink}
-                    // No `onManageIcsFeeds`: the Obsidian plugin doesn't carry
-                    // the desktop/Android app's ICS feed preferences store, so
-                    // CalendarSidebar leaves the "Liens ICS" menu item out
-                    // entirely here rather than showing an inert click.
-                    onDeleteCalendar={handleDeleteCalendar}
-                    onColorChange={handleColorChange}
-                    onReorderCalendars={handleReorderCalendars}
-                    onOpenCalendarFolder={handleOpenCalendarFolder}
-                    onOpenRootFolder={handleOpenRootFolder}
-                    onCalendarClick={handleCalendarClick}
-                    selectedCalendar={selectedCalendar}
-                    panelEvents={panelEvents}
-                    onAddPanelEvent={handleAddPanelEvent}
-                    onCloseEventsPanel={() => setSelectedCalendarId(null)}
-                    onPanelEventClick={handleEventClick}
-                    onQuickAdd={async (partialEvent: Partial<NeoEvent>) => {
-                        const dateStr =
-                            (partialEvent as any).date ||
-                            new Date().toISOString().split("T")[0];
-                        const allDay = partialEvent.allDay || false;
-
-                        if (partialEvent.title && dateStr) {
-                            try {
-                                const editableCalendars = Array.from(
-                                    cache["calendars"].values()
-                                ).filter(
-                                    (cal): cal is EditableCalendar =>
-                                        cal instanceof EditableCalendar
-                                );
-                                if (editableCalendars.length > 0) {
-                                    const calendarId = editableCalendars[0].id;
-                                    const newEvent: any = {
-                                        title: partialEvent.title,
-                                        date: dateStr,
-                                        type: "single",
-                                        allDay,
-                                    };
-                                    if (
-                                        !allDay &&
-                                        (partialEvent as any).startTime
-                                    ) {
-                                        newEvent.startTime = (
-                                            partialEvent as any
-                                        ).startTime;
-                                        newEvent.endTime =
-                                            (partialEvent as any).endTime ||
-                                            null;
-                                    }
-                                    if (
-                                        allDay &&
-                                        (partialEvent as any).endDate
-                                    ) {
-                                        newEvent.endDate = (
-                                            partialEvent as any
-                                        ).endDate;
-                                    }
-                                    if (settings.defaultEventsAsTasks) {
-                                        newEvent.completed = false;
-                                    }
-                                    await cache.addEvent(calendarId, newEvent);
-                                    new Notice("Event created");
-                                    return;
-                                }
-                            } catch (e) {
-                                // Fall back to modal if direct creation fails
+                        onGoPrev={goPrev}
+                        onGoNext={goNext}
+                        onGoToday={goToday}
+                        onOpenSettings={() => {
+                            const setting = (props.plugin.app as any).setting;
+                            setting.open();
+                            setting.openTabById("neo-calendar");
+                        }}
+                        onShiftDays={shiftDays}
+                        onShiftMonths={shiftMonths}
+                        onNewEvent={handleNewEvent}
+                        events={eventsWithSelection}
+                        calendarSources={calendarSources}
+                        visibleDates={visibleDates}
+                        firstDay={settings.firstDay}
+                        timeFormat24h={settings.timeFormat24h}
+                        freeScroll={settings.freeScroll}
+                        sidebarVisible={sidebarVisible}
+                        onToggleSidebar={() => setSidebarVisible((v) => !v)}
+                        onEventClick={handleEventSelect}
+                        onEventDrag={handleEventDrag}
+                        onEventResize={handleEventResize}
+                        onSelectRange={(start, end, allDay) => {
+                            // Starting a new range selection clears any multi-select.
+                            clearMultiSelection();
+                            handleSelectRange(start, end, allDay);
+                        }}
+                        onMonthDayClick={(date) => {
+                            clearMultiSelection();
+                            // The setting says what a click on a month day does.
+                            // It used to say nothing at all: the cell always opened
+                            // a new event, so switching it off changed nothing.
+                            if (
+                                props.settings.clickToCreateEventFromMonthView
+                            ) {
+                                handleSelectRange(date, date, true);
+                            } else {
+                                goToDateInView(date, "day");
                             }
+                        }}
+                        onContextMenu={handleContextMenu}
+                        onToggleTask={handleToggleTask}
+                        onEmptyContextMenu={handleEmptyContextMenu}
+                        contextLine={contextLine}
+                        onDateSelect={(date) => setCurrentDate(date)}
+                        hiddenCalendars={hiddenCalendars}
+                        onToggleCalendar={handleToggleCalendarVisibility}
+                        defaultCalendarId={defaultCalendarId}
+                        soloCalendarId={soloCalendarId}
+                        onSetDefaultCalendar={handleSetDefaultCalendar}
+                        onShowOnly={handleShowOnlyCalendar}
+                        tasks={tasks}
+                        today={today}
+                        onAddTask={handleAddTask}
+                        onAddCalendar={handleAddCalendar}
+                        onRenameCalendar={handleRenameCalendar}
+                        onEditCalendarLink={handleEditCalendarLink}
+                        // No `extraMenuItems`: the Obsidian plugin doesn't carry
+                        // the desktop/Android app's reminder, ICS feed or prayer
+                        // times preferences, so CalendarSidebar leaves those menu
+                        // items out entirely here rather than showing an inert
+                        // click.
+                        onDeleteCalendar={handleDeleteCalendar}
+                        onColorChange={handleColorChange}
+                        onReorderCalendars={handleReorderCalendars}
+                        onOpenCalendarFolder={handleOpenCalendarFolder}
+                        onOpenRootFolder={handleOpenRootFolder}
+                        onCalendarClick={handleCalendarClick}
+                        selectedCalendar={selectedCalendar}
+                        panelEvents={panelEvents}
+                        onAddPanelEvent={handleAddPanelEvent}
+                        onCloseEventsPanel={() => setSelectedCalendarId(null)}
+                        onPanelEventClick={handleEventClick}
+                        onQuickAdd={async (partialEvent: Partial<NeoEvent>) => {
+                            const dateStr =
+                                (partialEvent as any).date ||
+                                new Date().toISOString().split("T")[0];
+                            const allDay = partialEvent.allDay || false;
+
+                            if (partialEvent.title && dateStr) {
+                                try {
+                                    const editableCalendars = Array.from(
+                                        cache["calendars"].values()
+                                    ).filter(
+                                        (cal): cal is EditableCalendar =>
+                                            cal instanceof EditableCalendar
+                                    );
+                                    if (editableCalendars.length > 0) {
+                                        const calendarId =
+                                            editableCalendars[0].id;
+                                        const newEvent: any = {
+                                            title: partialEvent.title,
+                                            date: dateStr,
+                                            type: "single",
+                                            allDay,
+                                        };
+                                        if (
+                                            !allDay &&
+                                            (partialEvent as any).startTime
+                                        ) {
+                                            newEvent.startTime = (
+                                                partialEvent as any
+                                            ).startTime;
+                                            newEvent.endTime =
+                                                (partialEvent as any).endTime ||
+                                                null;
+                                        }
+                                        if (
+                                            allDay &&
+                                            (partialEvent as any).endDate
+                                        ) {
+                                            newEvent.endDate = (
+                                                partialEvent as any
+                                            ).endDate;
+                                        }
+                                        if (settings.defaultEventsAsTasks) {
+                                            newEvent.completed = false;
+                                        }
+                                        await cache.addEvent(
+                                            calendarId,
+                                            newEvent
+                                        );
+                                        new Notice("Event created");
+                                        return;
+                                    }
+                                } catch (e) {
+                                    // Fall back to modal if direct creation fails
+                                }
+                            }
+                            const start = new Date(dateStr + "T00:00:00");
+                            const end = new Date(
+                                dateStr + (allDay ? "T23:59:59" : "T01:00:00")
+                            );
+                            props.onSelectRange(start, end, allDay);
+                        }}
+                        onOpenSearch={() => setCommandPaletteVisible(true)}
+                        secondaryTimezones={secondaryTimezones}
+                        onAddTimezone={handleAddTimezone}
+                        onRemoveTimezone={handleRemoveTimezone}
+                        allDayCollapsed={allDayCollapsed}
+                        onToggleAllDayCollapsed={handleToggleAllDayCollapsed}
+                        draftSlot={
+                            draftSlot && !committingDraft
+                                ? {
+                                      start: draftSlot.start,
+                                      end: draftSlot.end,
+                                      allDay: draftSlot.allDay,
+                                  }
+                                : null
                         }
-                        const start = new Date(dateStr + "T00:00:00");
-                        const end = new Date(
-                            dateStr + (allDay ? "T23:59:59" : "T01:00:00")
-                        );
-                        props.onSelectRange(start, end, allDay);
-                    }}
-                    onOpenSearch={() => setCommandPaletteVisible(true)}
-                    secondaryTimezones={secondaryTimezones}
-                    onAddTimezone={handleAddTimezone}
-                    onRemoveTimezone={handleRemoveTimezone}
-                    allDayCollapsed={allDayCollapsed}
-                    onToggleAllDayCollapsed={handleToggleAllDayCollapsed}
-                    draftSlot={
-                        draftSlot && !committingDraft
-                            ? {
-                                  start: draftSlot.start,
-                                  end: draftSlot.end,
-                                  allDay: draftSlot.allDay,
-                              }
-                            : null
-                    }
-                    draftColor={
-                        (draftSlot
-                            ? calendarSources.find(
-                                  (s) => s.id === draftSlot.calendarId
-                              )?.color
-                            : undefined) ??
-                        calendarSources.find((s) => s.id === defaultCalendarId)
-                            ?.color ??
-                        "var(--nc-accent)"
-                    }
-                    onResizeDraft={resizeDraft}
-                    panelPreview={panelPreview}
-                    onPanelDragTarget={handlePanelDragTarget}
-                    onPanelDrop={handlePanelDrop}
-                    onEventUnschedule={handleEventUnschedule}
-                />
+                        draftColor={
+                            (draftSlot
+                                ? calendarSources.find(
+                                      (s) => s.id === draftSlot.calendarId
+                                  )?.color
+                                : undefined) ??
+                            calendarSources.find(
+                                (s) => s.id === defaultCalendarId
+                            )?.color ??
+                            "var(--nc-accent)"
+                        }
+                        onResizeDraft={resizeDraft}
+                        panelPreview={panelPreview}
+                        onPanelDragTarget={handlePanelDragTarget}
+                        onPanelDrop={handlePanelDrop}
+                        onEventUnschedule={handleEventUnschedule}
+                    />
                 </DraftPreviewImmediateContext.Provider>
                 {pendingSystemZone && (
                     <TimezoneChangePrompt

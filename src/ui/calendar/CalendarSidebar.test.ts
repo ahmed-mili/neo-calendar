@@ -141,199 +141,6 @@ describe("calendar removal wording", () => {
     });
 });
 
-describe("ICS links menu entry", () => {
-    it("offers Liens ICS on a local calendar and hands its id up, without touching the legacy ical menu", () => {
-        expect(component).toContain('key: "ics-feeds"');
-        expect(component).toContain('label: t("ICS links")');
-        expect(component).toContain("onManageIcsFeeds(source.id)");
-        // The legacy `ical` branch stays exactly as it was — this task does
-        // not touch it (Task 6 removes it).
-        expect(component).toContain('label: t("Edit link")');
-    });
-
-    it("opens the ICS links panel for a Full Note calendar from its menu", () => {
-        const onManageIcsFeeds = jest.fn();
-        const props: React.ComponentProps<typeof CalendarSidebar> = {
-            sidebarVisible: true,
-            currentDate: new Date(2026, 8, 3),
-            viewType: "week",
-            onViewTypeChange: () => {},
-            dayCount: 7,
-            onSetDayCount: () => {},
-            calendarSources: [
-                {
-                    id: "cal-1",
-                    name: "Cours",
-                    color: "#4477aa",
-                    editable: true,
-                    type: "local",
-                },
-            ],
-            firstDay: 1,
-            onDateSelect: () => {},
-            hiddenCalendars: new Set(),
-            onToggleCalendar: () => {},
-            defaultCalendarId: "",
-            soloCalendarId: null,
-            onSetDefaultCalendar: () => {},
-            onShowOnly: () => {},
-            tasks: [],
-            today: "2026-09-03",
-            onEventClick: () => {},
-            onAddTask: () => {},
-            onToggleTask: async () => true,
-            onAddCalendar: () => {},
-            onRenameCalendar: async () => {},
-            onEditCalendarLink: () => {},
-            onManageIcsFeeds,
-            onDeleteCalendar: () => {},
-            onColorChange: () => {},
-            onReorderCalendars: () => {},
-            onOpenCalendarFolder: () => {},
-            onOpenRootFolder: () => {},
-            onCalendarClick: () => {},
-            selectedCalendarId: null,
-            onToggleSidebar: () => {},
-            onOpenSearch: () => {},
-            onOpenSettings: () => {},
-        };
-
-        applyLanguage("fr");
-        const host = document.createElement("div");
-        document.body.appendChild(host);
-        try {
-            act(() => {
-                ReactDOM.render(
-                    React.createElement(CalendarSidebar, props),
-                    host
-                );
-            });
-
-            const trigger = Array.from(
-                host.querySelectorAll<HTMLButtonElement>(
-                    ".nc-calendar-action-btn"
-                )
-            ).find(
-                (button) =>
-                    button.getAttribute("data-nc-tooltip") === t("More options")
-            );
-            expect(trigger).toBeTruthy();
-            act(() => trigger?.click());
-
-            const menuItem = Array.from(
-                document.querySelectorAll<HTMLButtonElement>(
-                    '.nc-cal-menu [role="menuitem"]'
-                )
-            ).find((button) => button.textContent?.includes(t("ICS links")));
-            expect(menuItem).toBeTruthy();
-            act(() => menuItem?.click());
-
-            expect(onManageIcsFeeds).toHaveBeenCalledWith("cal-1");
-        } finally {
-            act(() => {
-                ReactDOM.unmountComponentAtNode(host);
-            });
-            host.remove();
-            document
-                .querySelectorAll(".nc-cal-menu, .nc-cal-menu-overlay")
-                .forEach((node) => node.remove());
-            applyLanguage("fr");
-        }
-    });
-
-    /*
-     * A surface with no ICS preferences store (the Obsidian plugin) omits
-     * `onManageIcsFeeds` entirely. The menu must leave the item out rather
-     * than show a click that silently does nothing — worse than no item at
-     * all, since it looks broken instead of simply absent.
-     */
-    it("leaves the ICS links item out of the menu when the surface has no callback for it", () => {
-        const props: React.ComponentProps<typeof CalendarSidebar> = {
-            sidebarVisible: true,
-            currentDate: new Date(2026, 8, 3),
-            viewType: "week",
-            onViewTypeChange: () => {},
-            dayCount: 7,
-            onSetDayCount: () => {},
-            calendarSources: [
-                {
-                    id: "cal-1",
-                    name: "Cours",
-                    color: "#4477aa",
-                    editable: true,
-                    type: "local",
-                },
-            ],
-            firstDay: 1,
-            onDateSelect: () => {},
-            hiddenCalendars: new Set(),
-            onToggleCalendar: () => {},
-            defaultCalendarId: "",
-            soloCalendarId: null,
-            onSetDefaultCalendar: () => {},
-            onShowOnly: () => {},
-            tasks: [],
-            today: "2026-09-03",
-            onEventClick: () => {},
-            onAddTask: () => {},
-            onToggleTask: async () => true,
-            onAddCalendar: () => {},
-            onRenameCalendar: async () => {},
-            onEditCalendarLink: () => {},
-            // onManageIcsFeeds intentionally omitted.
-            onDeleteCalendar: () => {},
-            onColorChange: () => {},
-            onReorderCalendars: () => {},
-            onOpenCalendarFolder: () => {},
-            onOpenRootFolder: () => {},
-            onCalendarClick: () => {},
-            selectedCalendarId: null,
-            onToggleSidebar: () => {},
-            onOpenSearch: () => {},
-            onOpenSettings: () => {},
-        };
-
-        applyLanguage("fr");
-        const host = document.createElement("div");
-        document.body.appendChild(host);
-        try {
-            act(() => {
-                ReactDOM.render(
-                    React.createElement(CalendarSidebar, props),
-                    host
-                );
-            });
-
-            const trigger = Array.from(
-                host.querySelectorAll<HTMLButtonElement>(
-                    ".nc-calendar-action-btn"
-                )
-            ).find(
-                (button) =>
-                    button.getAttribute("data-nc-tooltip") === t("More options")
-            );
-            expect(trigger).toBeTruthy();
-            act(() => trigger?.click());
-
-            const menuItem = Array.from(
-                document.querySelectorAll<HTMLButtonElement>(
-                    '.nc-cal-menu [role="menuitem"]'
-                )
-            ).find((button) => button.textContent?.includes(t("ICS links")));
-            expect(menuItem).toBeUndefined();
-        } finally {
-            act(() => {
-                ReactDOM.unmountComponentAtNode(host);
-            });
-            host.remove();
-            document
-                .querySelectorAll(".nc-cal-menu, .nc-cal-menu-overlay")
-                .forEach((node) => node.remove());
-            applyLanguage("fr");
-        }
-    });
-});
-
 describe("tasks platform branches", () => {
     const props: React.ComponentProps<typeof CalendarSidebar> = {
         sidebarVisible: true,
@@ -359,7 +166,6 @@ describe("tasks platform branches", () => {
         onAddCalendar: () => {},
         onRenameCalendar: async () => {},
         onEditCalendarLink: () => {},
-        onManageIcsFeeds: () => {},
         onDeleteCalendar: () => {},
         onColorChange: () => {},
         onReorderCalendars: () => {},
@@ -595,19 +401,22 @@ describe("la barre du haut de la colonne", () => {
 });
 
 /*
- * Ce que le menu d'un calendrier propose, calendrier par calendrier.
- *
- * Les horaires de prière ne veulent dire quelque chose que sur le calendrier
- * qui porte ce sujet-là : ailleurs, l'entrée n'encombre plus le menu. Le
- * rappel, lui, se règle sur n'importe lequel, là où se règle déjà sa couleur.
+ * Ce que l'application ajoute au menu d'un calendrier local lui arrive tout
+ * construit, par `extraMenuItems` : la colonne l'insère après « Ouvrir le
+ * dossier », tel quel. Une surface qui ne passe rien (le plugin Obsidian)
+ * n'a rien de plus.
  */
 describe("le menu d'un calendrier", () => {
-    const source = (id: string, name: string) => ({
+    const source = (
+        id: string,
+        name: string,
+        type: "local" | "ical" = "local"
+    ) => ({
         id,
         name,
         color: "#4477aa",
         editable: true,
-        type: "local" as const,
+        type,
     });
 
     const baseProps = () => ({
@@ -695,61 +504,75 @@ describe("le menu d'un calendrier", () => {
     const labels = (items: HTMLButtonElement[]) =>
         items.map((item) => item.textContent ?? "");
 
-    it("n'offre les horaires de prière qu'au calendrier qui porte ce nom", () => {
+    it("insère les entrées de l'application après « Ouvrir le dossier »", () => {
+        const extraMenuItems = jest.fn(() => [
+            { key: "reminder", label: t("Reminder"), onClick: () => {} },
+            { key: "ics-feeds", label: t("ICS links"), onClick: () => {} },
+        ]);
         const host = mount({
-            calendarSources: [
-                source("cours", "Cours"),
-                source("islam", "Islam"),
-                source("arabe", "الإسلام"),
-            ],
-            onManagePrayerTimes: () => {},
+            calendarSources: [source("cours", "Cours")],
+            extraMenuItems,
         });
         try {
-            expect(
-                labels(openMenu(host, "Cours")).some((label) =>
-                    label.includes(t("Prayer times"))
-                )
-            ).toBe(false);
-            for (const name of ["Islam", "الإسلام"]) {
-                expect(
-                    labels(openMenu(host, name)).some((label) =>
-                        label.includes(t("Prayer times"))
-                    )
-                ).toBe(true);
-            }
+            const found = labels(openMenu(host, "Cours"));
+            expect(extraMenuItems).toHaveBeenCalledWith("cours");
+            const folder = found.findIndex((label) =>
+                label.includes("Open folder")
+            );
+            expect(found[folder + 1]).toContain(t("Reminder"));
+            expect(found[folder + 2]).toContain(t("ICS links"));
         } finally {
             unmount(host);
         }
     });
 
-    it("ouvre le rappel d'un calendrier depuis son menu", () => {
-        const onManageReminder = jest.fn();
+    it("n'ajoute rien à un calendrier qui n'est pas local", () => {
+        const extraMenuItems = jest.fn(() => [
+            { key: "reminder", label: t("Reminder"), onClick: () => {} },
+        ]);
+        const host = mount({
+            calendarSources: [source("abo", "Abonnement", "ical")],
+            extraMenuItems,
+        });
+        try {
+            expect(
+                labels(openMenu(host, "Abonnement")).some((l) =>
+                    l.includes(t("Reminder"))
+                )
+            ).toBe(false);
+            expect(extraMenuItems).not.toHaveBeenCalled();
+        } finally {
+            unmount(host);
+        }
+    });
+
+    it("n'a rien de plus quand la surface ne passe rien", () => {
+        const host = mount({ calendarSources: [source("cours", "Cours")] });
+        try {
+            expect(
+                labels(openMenu(host, "Cours")).some((l) =>
+                    l.includes(t("Reminder"))
+                )
+            ).toBe(false);
+        } finally {
+            unmount(host);
+        }
+    });
+
+    it("remonte le clic d'une entrée de l'application", () => {
+        const onClick = jest.fn();
         const host = mount({
             calendarSources: [source("cours", "Cours")],
-            onManageReminder,
+            extraMenuItems: () => [
+                { key: "reminder", label: t("Reminder"), onClick },
+            ],
         });
         try {
             const entry = openMenu(host, "Cours").find((item) =>
                 item.textContent?.includes(t("Reminder"))
             );
-            expect(entry).toBeTruthy();
             act(() => entry?.click());
-            expect(onManageReminder).toHaveBeenCalledWith("cours");
-        } finally {
-            unmount(host);
-        }
-    });
-
-    /* Une surface qui n'a pas où l'enregistrer — le plugin Obsidian — laisse
-       l'entrée de côté plutôt que d'offrir un clic sans effet. */
-    it("laisse le rappel de côté quand la surface ne sait pas l'enregistrer", () => {
-        const host = mount({ calendarSources: [source("cours", "Cours")] });
-        try {
-            expect(
-                labels(openMenu(host, "Cours")).some((label) =>
-                    label.includes(t("Reminder"))
-                )
-            ).toBe(false);
+            expect(onClick).toHaveBeenCalled();
         } finally {
             unmount(host);
         }

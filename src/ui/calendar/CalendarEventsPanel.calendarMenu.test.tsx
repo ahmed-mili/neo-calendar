@@ -6,9 +6,10 @@ import CalendarEventsPanel from "./CalendarEventsPanel";
 import { applyLanguage, t } from "../i18n";
 
 /*
- * Le menu du panneau propose les mêmes réglages que celui de la colonne, et
- * doit donc les proposer aux mêmes conditions : les horaires de prière au seul
- * calendrier qui porte ce sujet, le rappel à tous.
+ * Le menu « ⋯ » du panneau rend ses lignes par le même composant que celui de
+ * la colonne (`CalendarItemMenu`) plutôt que par sa propre implémentation. Ce
+ * que l'application ajoute (rappel, liens ICS, horaires de prière) lui arrive
+ * tout construit par `extraMenuItems`, avant « Retirer la vue de la liste ».
  */
 describe("le menu de calendrier du panneau d'évènements", () => {
     let host: HTMLDivElement;
@@ -50,13 +51,14 @@ describe("le menu de calendrier du panneau d'évènements", () => {
         });
         host.remove();
         document
-            .querySelectorAll(".nc-cep-slot, .nc-cep-popover")
+            .querySelectorAll(
+                ".nc-cep-slot, .nc-cep-popover, .nc-cal-menu, .nc-cal-menu-overlay"
+            )
             .forEach((node) => node.remove());
     });
 
+    /** Ouvre le menu « ⋯ » du panneau et rend ses lignes, portées sur body. */
     const openMenu = (extra: Record<string, unknown>, name = "Cours") => {
-        // Repartir d'un panneau fermé : le déclencheur bascule le menu, et
-        // deux appels de suite le rouvriraient puis le refermeraient.
         act(() => {
             ReactDOM.unmountComponentAtNode(host);
         });
@@ -79,43 +81,68 @@ describe("le menu de calendrier du panneau d'évènements", () => {
         });
         return Array.from(
             document.body.querySelectorAll<HTMLButtonElement>(
-                ".nc-cep-menu-row"
+                '.nc-cal-menu [role="menuitem"]'
             )
         );
     };
 
-    const has = (rows: HTMLButtonElement[], label: string) =>
-        rows.some((row) => row.textContent?.includes(label));
-
-    it("n'offre les horaires de prière qu'au calendrier qui porte ce nom", () => {
-        expect(
-            has(
-                openMenu({ onManagePrayerTimes: jest.fn() }, "Cours"),
-                t("Prayer times")
-            )
-        ).toBe(false);
-        expect(
-            has(
-                openMenu({ onManagePrayerTimes: jest.fn() }, "Islam"),
-                t("Prayer times")
-            )
-        ).toBe(true);
-    });
-
-    it("ouvre le rappel du calendrier depuis son menu", () => {
-        const onManageReminder = jest.fn();
-        const rows = openMenu({ onManageReminder });
-        const entry = rows.find((row) =>
-            row.textContent?.includes(t("Reminder"))
+    it("rend son menu par le même composant que la colonne", () => {
+        const rows = openMenu({});
+        expect(rows.map((r) => r.textContent)).toEqual(
+            expect.arrayContaining([
+                expect.stringContaining(t("Color")),
+                expect.stringContaining(t("Set as default")),
+                expect.stringContaining(t("Show only this view")),
+                expect.stringContaining(t("Show totals")),
+                expect.stringContaining(t("Remove view from list")),
+            ])
         );
-        expect(entry).toBeTruthy();
-        act(() => {
-            entry?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-        });
-        expect(onManageReminder).toHaveBeenCalledWith("cal-1");
     });
 
-    it("laisse le rappel de côté quand la surface ne sait pas l'enregistrer", () => {
-        expect(has(openMenu({}), t("Reminder"))).toBe(false);
+    it("insère les entrées de l'application avant « Retirer la vue »", () => {
+        const rows = openMenu({
+            extraMenuItems: () => [
+                { key: "reminder", label: t("Reminder"), onClick: () => {} },
+            ],
+        });
+        const texts = rows.map((r) => r.textContent ?? "");
+        const reminder = texts.findIndex((x) => x.includes(t("Reminder")));
+        expect(reminder).toBeGreaterThan(-1);
+        expect(texts[texts.length - 1]).toContain(t("Remove view from list"));
+        expect(reminder).toBeLessThan(texts.length - 1);
+    });
+
+    it("coche « Afficher les totaux » une fois choisi", () => {
+        const first = openMenu({});
+        const totals = first.find((r) =>
+            r.textContent?.includes(t("Show totals"))
+        )!;
+        expect(totals.getAttribute("aria-checked")).toBe("false");
+        act(() => totals.click());
+        // Le clic referme le menu ; le rouvrir montre la coche.
+        const trigger = document.body.querySelector(
+            `[data-nc-tooltip="${t("More options")}"]`
+        );
+        act(() => {
+            (trigger as HTMLElement).dispatchEvent(
+                new MouseEvent("click", { bubbles: true })
+            );
+        });
+        const again = Array.from(
+            document.body.querySelectorAll<HTMLButtonElement>(
+                '.nc-cal-menu [role="menuitem"]'
+            )
+        );
+        expect(
+            again
+                .find((r) => r.textContent?.includes(t("Show totals")))!
+                .getAttribute("aria-checked")
+        ).toBe("true");
+    });
+
+    it("n'a rien de plus quand la surface ne passe rien", () => {
+        expect(
+            openMenu({}).some((r) => r.textContent?.includes(t("Reminder")))
+        ).toBe(false);
     });
 });

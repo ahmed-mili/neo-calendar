@@ -487,14 +487,6 @@
     white-space: nowrap;
 }
 
-.nc-cep-menu-swatch {
-    width: 13px;
-    height: 13px;
-    border-radius: 4px;
-    flex-shrink: 0;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-}
-
 .nc-cep-menu-check {
     display: inline-flex;
     align-items: center;
@@ -513,11 +505,6 @@
     height: 1px;
     margin: 7px 5px;
     background: var(--cep-border);
-}
-
-.nc-cep-menu-danger,
-.nc-cep-menu-danger:hover {
-    color: var(--nc-error, var(--text-error));
 }
 
 .nc-cep-period-editor {

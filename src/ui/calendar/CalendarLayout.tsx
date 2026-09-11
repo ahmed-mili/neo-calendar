@@ -6,6 +6,7 @@ import { formatMonthTitle, isAndroidRuntime } from "./CalendarUtils";
 import CalendarHeader from "./CalendarHeader";
 import CalendarSidebar from "./CalendarSidebar";
 import CalendarEventsPanel from "./CalendarEventsPanel";
+import { CalendarMenuItem } from "./CalendarItemMenu";
 import DayView from "./DayView";
 import WeekView from "./WeekView";
 import MonthView from "./MonthView";
@@ -74,9 +75,11 @@ interface CalendarLayoutProps {
     onAddCalendar: () => void;
     onRenameCalendar: (calendarId: string, newName: string) => Promise<void>;
     onEditCalendarLink: (calendarId: string) => void;
-    onManageIcsFeeds?: (calendarId: string) => void;
-    onManagePrayerTimes?: (calendarId: string) => void;
-    onManageReminder?: (calendarId: string) => void;
+    /** Ce que l'application ajoute au menu d'un calendrier local (rappel,
+     *  liens ICS, horaires de prière), déjà construit : la colonne et le
+     *  panneau l'insèrent chacun à leur tour dans leur menu. Absent sur une
+     *  surface qui n'a rien à y mettre, comme le plugin Obsidian. */
+    extraMenuItems?: (calendarId: string) => CalendarMenuItem[];
     /** The panel's own calendar's ICS links, for its Filters page. */
     panelIcsFeeds?: { id: string; name: string }[];
     onDeleteCalendar: (calendarId: string) => void;
@@ -182,9 +185,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         onAddCalendar,
         onRenameCalendar,
         onEditCalendarLink,
-        onManageIcsFeeds,
-        onManagePrayerTimes,
-        onManageReminder,
+        extraMenuItems,
         panelIcsFeeds,
         onDeleteCalendar,
         onColorChange,
@@ -379,9 +380,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                 onAddCalendar={onAddCalendar}
                 onRenameCalendar={onRenameCalendar}
                 onEditCalendarLink={onEditCalendarLink}
-                onManageIcsFeeds={onManageIcsFeeds}
-                onManagePrayerTimes={onManagePrayerTimes}
-                onManageReminder={onManageReminder}
+                extraMenuItems={extraMenuItems}
                 onDeleteCalendar={onDeleteCalendar}
                 onColorChange={onColorChange}
                 onReorderCalendars={onReorderCalendars}
@@ -419,9 +418,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                     onAddEvent={onAddPanelEvent}
                     onSetDefault={onSetDefaultCalendar}
                     onShowOnly={onShowOnly}
-                    onManageIcsFeeds={onManageIcsFeeds}
-                    onManagePrayerTimes={onManagePrayerTimes}
-                    onManageReminder={onManageReminder}
+                    extraMenuItems={extraMenuItems}
                     icsFeeds={panelIcsFeeds}
                     onRemove={onDeleteCalendar}
                     onColorChange={onColorChange}

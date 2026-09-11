@@ -4,8 +4,7 @@ import { DisplayEvent } from "../types";
 import { CalendarInfo } from "../../types";
 import { formatTime, addDays, isAndroidRuntime } from "./CalendarUtils";
 import ColorPicker from "./ColorPicker";
-import { BellIcon, ClockIcon } from "./EventPanelIcons";
-import { isPrayerCalendarName } from "./prayerCalendarName";
+import CalendarItemMenu, { CalendarMenuItem } from "./CalendarItemMenu";
 import { usePanelDrag, PanelDropTarget } from "./usePanelDrag";
 import { useCalendarEventsPanelSwipe } from "./useCalendarEventsPanelSwipe";
 import {
@@ -63,17 +62,14 @@ interface CalendarEventsPanelProps {
     onAddEvent: (calendarId: string) => void;
     onSetDefault: (calendarId: string) => void;
     onShowOnly: (calendarId: string) => void;
-    /** Omitted on surfaces without an ICS preferences store (the Obsidian
-     *  plugin path) — the menu simply leaves the item out rather than
-     *  showing something that would do nothing when pressed. */
-    onManageIcsFeeds?: (calendarId: string) => void;
-    /** Le choix de la mosquee dont ce calendrier suit les horaires, omis pour
-     *  la meme raison que `onManageIcsFeeds`. */
-    onManagePrayerTimes?: (calendarId: string) => void;
-    onManageReminder?: (calendarId: string) => void;
+    /** Ce que l'application ajoute au menu d'un calendrier local (rappel,
+     *  liens ICS, horaires de prière), déjà construit : la colonne l'insère
+     *  après « Ouvrir le dossier ». Absent sur une surface qui n'a rien à y
+     *  mettre, comme le plugin Obsidian. */
+    extraMenuItems?: (calendarId: string) => CalendarMenuItem[];
     /** The calendar's own ICS links, for the Filters page that lets one be
      *  shown or hidden — omitted the same way and for the same reason as
-     *  `onManageIcsFeeds`. */
+     *  `extraMenuItems`. */
     icsFeeds?: { id: string; name: string }[];
     onRemove: (calendarId: string) => void;
     onColorChange: (calendarId: string, color: string) => void;
@@ -146,7 +142,7 @@ function currentMonthPeriod(): PanelPeriod {
     };
 }
 
-type OpenMenu = "more" | "settings" | null;
+type OpenMenu = "settings" | null;
 type SettingsPage = "root" | "status" | "date" | "period" | "icsLinks";
 
 const STATUS_OPTIONS: { value: PanelStatusFilter; label: string }[] = [
@@ -174,9 +170,7 @@ export default function CalendarEventsPanel({
     onAddEvent,
     onSetDefault,
     onShowOnly,
-    onManageIcsFeeds,
-    onManagePrayerTimes,
-    onManageReminder,
+    extraMenuItems,
     icsFeeds,
     onRemove,
     onColorChange,
@@ -202,8 +196,8 @@ export default function CalendarEventsPanel({
         backdropRef,
         onBack: onBack ?? onClose,
     });
-    const colorRowRef = React.useRef<HTMLButtonElement>(null);
     const [openMenu, setOpenMenu] = React.useState<OpenMenu>(null);
+    const [moreAnchor, setMoreAnchor] = React.useState<DOMRect | null>(null);
     const [settingsPage, setSettingsPage] =
         React.useState<SettingsPage>("root");
     const [statusFilter, setStatusFilter] =
@@ -257,6 +251,7 @@ export default function CalendarEventsPanel({
         setPeriod(null);
         setDraftPeriod(currentMonthPeriod());
         setSearchQuery("");
+        setMoreAnchor(null);
     }, [calendar.id]);
 
     const filteredEvents = React.useMemo(
@@ -280,8 +275,8 @@ export default function CalendarEventsPanel({
         [dateFilter, period]
     );
 
-    const toggleMenu = (menu: Exclude<OpenMenu, null>) => {
-        setOpenMenu((current) => (current === menu ? null : menu));
+    const toggleMenu = () => {
+        setOpenMenu((current) => (current === "settings" ? null : "settings"));
         setSettingsPage("root");
     };
 
@@ -315,6 +310,52 @@ export default function CalendarEventsPanel({
             : settingsPage === "icsLinks"
             ? t("ICS links")
             : t("Custom period");
+
+    /* Le menu « ⋯ » : les mêmes lignes qu'avant, rendues par le menu de la
+       colonne plutôt que par une seconde implémentation. Ce que l'application
+       ajoute (rappel, liens ICS, horaires de prière) arrive construit par
+       `extraMenuItems`, avant la dernière ligne. */
+    const moreItems: CalendarMenuItem[] = [
+        {
+            key: "color",
+            label: t("Color"),
+            swatchColor: calendar.color,
+            value: getCalendarColorName(calendar.color),
+            onClick: () => {
+                if (moreAnchor) setColorAnchor(moreAnchor);
+            },
+        },
+        {
+            key: "default",
+            label: t("Set as default"),
+            icon: <CalendarGlyphIcon size={15} />,
+            disabled: !calendar.editable || calendar.id === defaultCalendarId,
+            onClick: () => onSetDefault(calendar.id),
+        },
+        {
+            key: "solo",
+            label: t("Show only this view"),
+            icon: <EyeIcon size={15} />,
+            onClick: () => onShowOnly(calendar.id),
+        },
+        {
+            key: "totals",
+            label: t("Show totals"),
+            icon: <ChartColumnIcon size={15} />,
+            checked: showTotals,
+            onClick: () => setShowTotals((value) => !value),
+        },
+        ...(calendar.type === "local" && extraMenuItems
+            ? extraMenuItems(calendar.id)
+            : []),
+        {
+            key: "remove",
+            label: t("Remove view from list"),
+            icon: <ListXIcon size={15} />,
+            danger: true,
+            onClick: () => onRemove(calendar.id),
+        },
+    ];
 
     return (
         <div
@@ -356,12 +397,24 @@ export default function CalendarEventsPanel({
                         <button
                             type="button"
                             className={`nc-cep-icon-btn${
-                                openMenu === "more" ? " nc-active" : ""
+                                moreAnchor ? " nc-active" : ""
                             }`}
                             aria-label={t("More options")}
                             data-nc-tooltip={t("More options")}
-                            aria-expanded={openMenu === "more"}
-                            onClick={() => toggleMenu("more")}
+                            aria-haspopup="menu"
+                            aria-expanded={moreAnchor !== null}
+                            onClick={(event) => {
+                                // Le rectangle est lu tout de suite : React
+                                // recycle l'évènement synthétique une fois ce
+                                // gestionnaire revenu, avant que la fonction
+                                // de mise à jour ci-dessous ne s'exécute.
+                                const rect =
+                                    event.currentTarget.getBoundingClientRect();
+                                setOpenMenu(null);
+                                setMoreAnchor((current) =>
+                                    current ? null : rect
+                                );
+                            }}
                         >
                             <MoreHorizontalIcon />
                         </button>
@@ -373,7 +426,7 @@ export default function CalendarEventsPanel({
                             aria-label={t("Filters")}
                             data-nc-tooltip={t("Filters")}
                             aria-expanded={openMenu === "settings"}
-                            onClick={() => toggleMenu("settings")}
+                            onClick={() => toggleMenu()}
                         >
                             <SlidersIcon />
                         </button>
@@ -488,141 +541,12 @@ export default function CalendarEventsPanel({
                     </div>
                 )}
 
-                {openMenu === "more" && (
-                    <div className="nc-cep-popover" role="menu">
-                        <button
-                            ref={colorRowRef}
-                            type="button"
-                            className="nc-cep-menu-row"
-                            onClick={() => {
-                                const rect =
-                                    colorRowRef.current?.getBoundingClientRect();
-                                if (rect) setColorAnchor(rect);
-                            }}
-                        >
-                            <span
-                                className="nc-cep-menu-swatch"
-                                style={{ backgroundColor: calendar.color }}
-                            />
-                            <span className="nc-cep-menu-label">
-                                {t("Color")}
-                            </span>
-                            <span className="nc-cep-menu-value">
-                                {getCalendarColorName(calendar.color)}
-                            </span>
-                            <ChevronRightIcon size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            className="nc-cep-menu-row"
-                            disabled={
-                                !calendar.editable ||
-                                calendar.id === defaultCalendarId
-                            }
-                            onClick={() => {
-                                onSetDefault(calendar.id);
-                                setOpenMenu(null);
-                            }}
-                        >
-                            <CalendarGlyphIcon size={15} />
-                            <span className="nc-cep-menu-label">
-                                {t("Set as default")}
-                            </span>
-                        </button>
-                        <button
-                            type="button"
-                            className="nc-cep-menu-row"
-                            onClick={() => {
-                                onShowOnly(calendar.id);
-                                setOpenMenu(null);
-                            }}
-                        >
-                            <EyeIcon size={15} />
-                            <span className="nc-cep-menu-label">
-                                {t("Show only this view")}
-                            </span>
-                        </button>
-                        <button
-                            type="button"
-                            className="nc-cep-menu-row"
-                            aria-pressed={showTotals}
-                            onClick={() => {
-                                setShowTotals((value) => !value);
-                                setOpenMenu(null);
-                            }}
-                        >
-                            <ChartColumnIcon size={15} />
-                            <span className="nc-cep-menu-label">
-                                {t("Show totals")}
-                            </span>
-                            <span className="nc-cep-menu-check">
-                                {showTotals && <CheckIcon size={14} />}
-                            </span>
-                        </button>
-                        {calendar.type === "local" && onManageIcsFeeds && (
-                            <button
-                                type="button"
-                                className="nc-cep-menu-row"
-                                onClick={() => {
-                                    setOpenMenu(null);
-                                    onManageIcsFeeds(calendar.id);
-                                }}
-                            >
-                                <LinkIcon size={15} />
-                                <span className="nc-cep-menu-label">
-                                    {t("ICS links")}
-                                </span>
-                            </button>
-                        )}
-                        {calendar.type === "local" && onManageReminder && (
-                            <button
-                                type="button"
-                                className="nc-cep-menu-row"
-                                onClick={() => {
-                                    setOpenMenu(null);
-                                    onManageReminder(calendar.id);
-                                }}
-                            >
-                                <BellIcon />
-                                <span className="nc-cep-menu-label">
-                                    {t("Reminder")}
-                                </span>
-                            </button>
-                        )}
-                        {/* Reserve au calendrier qui porte ce sujet : ailleurs,
-                            l'entree n'aurait jamais servi. */}
-                        {calendar.type === "local" &&
-                            onManagePrayerTimes &&
-                            isPrayerCalendarName(calendar.name) && (
-                                <button
-                                    type="button"
-                                    className="nc-cep-menu-row"
-                                    onClick={() => {
-                                        setOpenMenu(null);
-                                        onManagePrayerTimes(calendar.id);
-                                    }}
-                                >
-                                    <ClockIcon />
-                                    <span className="nc-cep-menu-label">
-                                        {t("Prayer times")}
-                                    </span>
-                                </button>
-                            )}
-                        <div className="nc-cep-menu-separator" />
-                        <button
-                            type="button"
-                            className="nc-cep-menu-row nc-cep-menu-danger"
-                            onClick={() => {
-                                setOpenMenu(null);
-                                onRemove(calendar.id);
-                            }}
-                        >
-                            <ListXIcon size={15} />
-                            <span className="nc-cep-menu-label">
-                                {t("Remove view from list")}
-                            </span>
-                        </button>
-                    </div>
+                {moreAnchor && (
+                    <CalendarItemMenu
+                        items={moreItems}
+                        anchorRect={moreAnchor}
+                        onClose={() => setMoreAnchor(null)}
+                    />
                 )}
 
                 {openMenu === "settings" && (
