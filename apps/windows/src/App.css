@@ -11,7 +11,15 @@ body,
     margin: 0;
 }
 
+/* Le survol des menus et des réglages : l'accent à peine posé, plutôt que le
+   gris clair du thème qui jurait sur le fond d'écran. Sur le body : les menus
+   sont portés hors du calendrier, et les réglages aussi. */
 body {
+    --nc-hover-tint: color-mix(
+        in srgb,
+        var(--nc-accent, var(--interactive-accent)) 16%,
+        transparent
+    );
     overflow: hidden;
     color: var(--nc-text-primary, var(--text-normal));
     background: var(--nc-bg-crust, #11111b);
@@ -5070,6 +5078,14 @@ body.nc-platform-android .nc-wallpaper-option--all {
     font-size: 15px;
 }
 
+/* Les menus d'un calendrier : survol et ligne ouverte dans la teinte de
+   l'accent, comme les réglages. */
+.nc-cal-menu-item:hover:not(:disabled),
+.nc-cal-menu-item--open,
+.nc-cal-menu-item--open:hover {
+    background: var(--nc-hover-tint) !important;
+}
+
 /* Le nombre de minutes au bout de la ligne « Personnalisé » du sous-menu. */
 .nc-cal-menu-minutes {
     display: inline-flex;
@@ -5666,13 +5682,12 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     padding: 10px 8px 10px 0;
 }
 
+/* Le survol d'une ligne : une teinte de l'accent, pas un gris, et la ligne
+   ne bouge pas (elle se décalait de 8 px, ce qui se lisait comme un saut). */
 .nc-settings__desktop-page .nc-set-row--action:hover {
     padding-left: 8px;
-    background: color-mix(
-        in srgb,
-        var(--background-modifier-hover) 66%,
-        transparent
-    );
+    margin-left: -8px;
+    background: var(--nc-hover-tint);
 }
 
 .nc-settings__desktop-page .nc-set-version {
