@@ -5086,6 +5086,13 @@ body.nc-platform-android .nc-wallpaper-option--all {
     background: var(--nc-hover-tint) !important;
 }
 
+/* La barre de la fiche d'évènement, saisie pour la déplacer : même teinte
+   d'accent au survol que les menus, à la place du gris du thème. */
+body:not(.nc-platform-android) .nc-panel-header:hover,
+body:not(.nc-platform-android) .nc-panel-header:active {
+    background: var(--nc-hover-tint);
+}
+
 /* Le nombre de minutes au bout de la ligne « Personnalisé » du sous-menu. */
 .nc-cal-menu-minutes {
     display: inline-flex;
