@@ -166,6 +166,98 @@ describe("the colour of a calendar's prayer lines", () => {
 });
 
 /*
+ * Le rappel par défaut d'un calendrier.
+ *
+ * Celui des Paramètres vaut pour tous les calendriers : une entrée n'est
+ * écrite que pour le calendrier qui s'en écarte. Absente veut donc dire
+ * « celui de l'application », et non « aucun rappel » — faute de quoi changer
+ * le réglage général ne déplacerait plus rien.
+ */
+describe("a calendar's own reminder", () => {
+    it("is absent until someone sets one", () => {
+        expect(
+            defaultDesktopWorkspacePreferences().calendarReminderMinutes
+        ).toEqual({});
+        expect(
+            parseDesktopWorkspacePreferences({}).calendarReminderMinutes
+        ).toEqual({});
+    });
+
+    it("keeps a delay written for a calendar, custom values included", () => {
+        expect(
+            parseDesktopWorkspacePreferences({
+                calendarReminderMinutes: { Cours: 45, Islam: 0 },
+            }).calendarReminderMinutes
+        ).toEqual({ Cours: 45, Islam: 0 });
+    });
+
+    it("refuses anything that is not a whole number of minutes in range", () => {
+        // Un fichier de préférences s'édite à la main : un texte, un négatif,
+        // une fraction ou un délai de plus de quatre semaines n'y ont rien à
+        // faire, et une entrée illisible doit retomber sur le réglage général
+        // plutôt que d'éteindre les rappels de ce calendrier.
+        expect(
+            parseDesktopWorkspacePreferences({
+                calendarReminderMinutes: {
+                    a: "30",
+                    b: -5,
+                    c: 12.5,
+                    d: 40321,
+                    e: 40320,
+                },
+            }).calendarReminderMinutes
+        ).toEqual({ e: 40320 });
+    });
+
+    it("lets the file win over what was already in hand, calendar by calendar", () => {
+        const merged = reconcileWorkspacePreferences({
+            previous: {
+                ...defaultDesktopWorkspacePreferences(),
+                calendarReminderMinutes: { ancien: 5, commun: 10 },
+            },
+            loaded: {
+                ...defaultDesktopWorkspacePreferences(),
+                calendarReminderMinutes: { commun: 30, nouveau: 45 },
+            },
+            fileExisted: true,
+        });
+
+        expect(merged.calendarReminderMinutes).toEqual({
+            ancien: 5,
+            commun: 30,
+            nouveau: 45,
+        });
+    });
+});
+
+/*
+ * Le réglage général des Paramètres.
+ *
+ * Il ne se choisissait que dans une liste de six valeurs, et rien d'autre ne
+ * survivait à une relecture du fichier. Une durée personnalisée se règle
+ * maintenant calendrier par calendrier comme pour toute l'application : la
+ * validation est donc la même des deux côtés, un nombre entier de minutes.
+ */
+describe("the app-wide reminder", () => {
+    it("keeps a custom number of minutes", () => {
+        expect(
+            parseDesktopWorkspacePreferences({ reminderMinutes: 45 })
+                .reminderMinutes
+        ).toBe(45);
+    });
+
+    it("falls back to the default for a value it could never have written", () => {
+        const fallback = defaultDesktopWorkspacePreferences().reminderMinutes;
+        for (const reminderMinutes of ["30", -5, 12.5, 40321]) {
+            expect(
+                parseDesktopWorkspacePreferences({ reminderMinutes })
+                    .reminderMinutes
+            ).toBe(fallback);
+        }
+    });
+});
+
+/*
  * Le mode de trajet des liens de lieu.
  *
  * Le lieu d'un évènement ouvre un itinéraire depuis la position de l'appareil ;

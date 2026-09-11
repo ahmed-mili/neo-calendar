@@ -25,6 +25,8 @@ import {
     SettingsSliderRow,
     SettingsToggleRow,
 } from "./SettingsPrimitives";
+import ReminderChoiceDialog from "./ReminderChoiceDialog";
+import { reminderDelayLabel } from "../../../src/ui/calendar/reminderDelay";
 import {
     AppearanceMode,
     AppearancePreferences,
@@ -314,6 +316,7 @@ export default function DesktopSettings({
     );
     const [themeDirty, setThemeDirty] = useState(false);
     const [choice, setChoice] = useState<SettingsChoice | null>(null);
+    const [reminderOpen, setReminderOpen] = useState(false);
     const [settingsSearch, setSettingsSearch] = useState("");
     const isAndroid =
         typeof document !== "undefined" &&
@@ -751,22 +754,16 @@ export default function DesktopSettings({
                         }
                     />
                 )}
-                <SettingsChoiceRow
+                {/* Le rappel de tous les evenements qui n'en portent pas.
+                    Il ouvre son propre dialogue plutot qu'une liste fermee :
+                    un delai s'y ecrit aussi au chiffre, et chaque calendrier
+                    peut s'ecarter de celui-ci depuis son propre menu. */}
+                <SettingsRow
                     label={t("Reminder")}
                     icon={<Bell size={18} />}
-                    value={String(preferences.reminderMinutes)}
-                    options={[
-                        { value: "0", label: t("No reminder") },
-                        { value: "5", label: t("5 minutes before") },
-                        { value: "10", label: t("10 minutes before") },
-                        { value: "15", label: t("15 minutes before") },
-                        { value: "30", label: t("30 minutes before") },
-                        { value: "60", label: t("1 hour before") },
-                    ]}
-                    onOpen={openChoice}
-                    onChange={(value) =>
-                        patchPreferences({ reminderMinutes: Number(value) })
-                    }
+                    value={reminderDelayLabel(preferences.reminderMinutes)}
+                    navigates
+                    onClick={() => setReminderOpen(true)}
                 />
                 {/* Suivre le lieu d'un evenement ouvre un itineraire depuis
                     la position de l'appareil ; comment on compte s'y rendre ne
@@ -1847,6 +1844,17 @@ export default function DesktopSettings({
                 <SettingsChoiceDialog
                     choice={choice}
                     onClose={() => setChoice(null)}
+                />
+            )}
+
+            {reminderOpen && (
+                <ReminderChoiceDialog
+                    title={t("Reminder")}
+                    minutes={preferences.reminderMinutes}
+                    onPick={(minutes) =>
+                        patchPreferences({ reminderMinutes: minutes ?? 0 })
+                    }
+                    onClose={() => setReminderOpen(false)}
                 />
             )}
 

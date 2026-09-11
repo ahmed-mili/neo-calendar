@@ -22,6 +22,7 @@ import {
 } from "../../../src/ui/calendar/locationLink";
 import {
     buildReminders,
+    remindersByCalendarId,
     REMINDER_HORIZON_DAYS,
 } from "./platform/androidReminders";
 import { createReminderScheduler } from "./platform/desktopReminderScheduler";
@@ -86,6 +87,7 @@ import type {
 } from "../../../src/ui/calendar/TimeGrid.types";
 import { prayerLinesFor } from "../../../src/ui/calendar/prayerTimes";
 import { prayerTimetableById } from "../../../src/ui/calendar/prayerTimetables";
+import { isPrayerCalendarName } from "../../../src/ui/calendar/prayerCalendarName";
 import type { PanelDropTarget } from "../../../src/ui/calendar/usePanelDrag";
 import {
     CopyIcon,
@@ -102,10 +104,7 @@ import {
     DesktopCommands,
     handleDesktopShortcut,
 } from "./desktopCommands";
-import {
-    visibleEventIds,
-    visibleSelectionRange,
-} from "./desktopEditCommands";
+import { visibleEventIds, visibleSelectionRange } from "./desktopEditCommands";
 import {
     useDeletionHistory,
     type UseDeletionHistory,
@@ -128,6 +127,7 @@ import AddCalendarDialog, {
 import ConfirmDialog from "./ConfirmDialog";
 import IcsFeedsPanel from "./IcsFeedsPanel";
 import PrayerMosqueDialog from "./PrayerMosqueDialog";
+import ReminderChoiceDialog from "./ReminderChoiceDialog";
 import type { IcsFeedSubscription } from "./platform/icsFeedPreferences";
 import RecurringDeleteDialog from "./RecurringDeleteDialog";
 import {
@@ -750,9 +750,8 @@ export default function DesktopCalendar({
         if (!panelEventId) return undefined;
         const record = findStoredEvent(storedEvents, panelEventId);
         if (!record?.icsFeedId) return undefined;
-        return preferences.icsFeeds.find(
-            (feed) => feed.id === record.icsFeedId
-        )?.address;
+        return preferences.icsFeeds.find((feed) => feed.id === record.icsFeedId)
+            ?.address;
     }, [panelEventId, preferences.icsFeeds, storedEvents]);
     const [panelAnchor, setPanelAnchor] = useState<DOMRect | null>(null);
     const [draftSlot, setDraftSlot] = useState<DraftSlot | null>(null);
@@ -769,6 +768,9 @@ export default function DesktopCalendar({
     const [panelPreview, setPanelPreview] = useState<DragPreview | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [storageError, setStorageError] = useState<string | null>(null);
+    const [reminderDialogCalendarId, setReminderDialogCalendarId] = useState<
+        string | null
+    >(null);
     const [prayerDialogCalendarId, setPrayerDialogCalendarId] = useState<
         string | null
     >(null);
@@ -792,9 +794,8 @@ export default function DesktopCalendar({
     // qui dépend de `deleteEventFiles`) : cette ref casse la dépendance
     // circulaire sans réordonner tout le fichier. Réassignée à chaque rendu,
     // donc toujours à jour avant qu'un gestionnaire ne l'utilise.
-    const deletionHistoryRef = useRef<UseDeletionHistory<DesktopStoredEvent> | null>(
-        null
-    );
+    const deletionHistoryRef =
+        useRef<UseDeletionHistory<DesktopStoredEvent> | null>(null);
     const pendingEventRouteRef = useRef<DesktopEventRoute | null>(null);
     const didApplyInitialViewRef = useRef(false);
     useEffect(() => {
@@ -822,7 +823,11 @@ export default function DesktopCalendar({
             if (!(active instanceof HTMLElement) || active === document.body) {
                 return;
             }
-            if (active.matches('input, textarea, select, [contenteditable="true"]')) {
+            if (
+                active.matches(
+                    'input, textarea, select, [contenteditable="true"]'
+                )
+            ) {
                 return;
             }
             const target = event.target as Node | null;
@@ -1095,7 +1100,8 @@ export default function DesktopCalendar({
                     });
                 }
             } finally {
-                for (const item of due) icsSyncInFlightRef.current.delete(item.id);
+                for (const item of due)
+                    icsSyncInFlightRef.current.delete(item.id);
                 setSyncingIcsFeedIds((current) => {
                     const next = new Set(current);
                     for (const item of due) next.delete(item.id);
@@ -1505,6 +1511,12 @@ export default function DesktopCalendar({
             calendars.find(
                 (calendar) =>
                     !hiddenCalendars.has(calendar.id) &&
+                    // Seul le calendrier qui porte ce sujet trace des traits :
+                    // c'est aussi le seul dont le menu propose de les régler,
+                    // et une mosquée restée attachée à un calendrier renommé
+                    // depuis dessinerait sinon des traits qu'on ne pourrait
+                    // plus retirer.
+                    isPrayerCalendarName(calendar.name) &&
                     prayerTimetableById(
                         preferences.prayerMosques[calendar.relativePath]
                     ) !== null
@@ -1521,8 +1533,8 @@ export default function DesktopCalendar({
     // Le reglage prime, la couleur du calendrier repond a defaut : une entree
     // absente veut dire « celle du calendrier », et non « pas de couleur ».
     const prayerLineColor = prayerCalendar
-        ? (preferences.prayerColors[prayerCalendar.relativePath] ??
-          prayerCalendar.color)
+        ? preferences.prayerColors[prayerCalendar.relativePath] ??
+          prayerCalendar.color
         : undefined;
 
     // La minute, pas la seconde : le trait de la prochaine prière ne bouge
@@ -1994,10 +2006,7 @@ export default function DesktopCalendar({
                 await deleteReentrant(
                     pending,
                     (record) =>
-                        deleteDesktopEventFile(
-                            dataFolder,
-                            record.relativePath
-                        ),
+                        deleteDesktopEventFile(dataFolder, record.relativePath),
                     (id) => {
                         recordsRef.current = recordsRef.current.filter(
                             (candidate) => candidate.id !== id
@@ -3553,6 +3562,10 @@ export default function DesktopCalendar({
             events: reminderEvents,
             now: new Date(),
             minutesBefore: preferences.reminderMinutes,
+            minutesByCalendar: remindersByCalendarId(
+                calendars,
+                preferences.calendarReminderMinutes
+            ),
             timeFormat24h: preferences.timeFormat24h,
         });
 
@@ -3571,7 +3584,9 @@ export default function DesktopCalendar({
         if (reminders.length > 0) void ensureNotificationPermission();
         reminderSchedulerRef.current?.set(reminders);
     }, [
+        calendars,
         isAndroid,
+        preferences.calendarReminderMinutes,
         preferences.reminderMinutes,
         preferences.timeFormat24h,
         reminderEvents,
@@ -3791,9 +3806,7 @@ export default function DesktopCalendar({
             fullscreen: {
                 enabled: !busyCommands.has("fullscreen"),
                 run: () =>
-                    runExclusive("fullscreen", () =>
-                        toggleDesktopFullscreen()
-                    ),
+                    runExclusive("fullscreen", () => toggleDesktopFullscreen()),
             },
             "check-updates": {
                 enabled: !busyCommands.has("check-updates"),
@@ -3804,27 +3817,26 @@ export default function DesktopCalendar({
             },
         };
     }, [
-            actionTargetIds,
-            busyCommands,
-            clipboard,
-            copyEvent,
-            currentDate,
-            cutEvent,
-            deleteTargets,
-            deletionHistory,
-            displayEvents,
-            duplicateTargets,
-            goNext,
-            goPrev,
-            hasHourGrid,
-            isSaving,
-            mutableTargetCount,
-            pasteEvent,
-            preferencesWriting,
-            runExclusive,
-            visibleDates,
-        ]
-    );
+        actionTargetIds,
+        busyCommands,
+        clipboard,
+        copyEvent,
+        currentDate,
+        cutEvent,
+        deleteTargets,
+        deletionHistory,
+        displayEvents,
+        duplicateTargets,
+        goNext,
+        goPrev,
+        hasHourGrid,
+        isSaving,
+        mutableTargetCount,
+        pasteEvent,
+        preferencesWriting,
+        runExclusive,
+        visibleDates,
+    ]);
 
     /* Le slot de la barre de titre, vide au premier rendu du shell : sans hote,
        l'en-tete reste a sa place d'origine dans `.nc-main` plutot que de
@@ -4021,238 +4033,260 @@ export default function DesktopCalendar({
             data-view={viewType}
         >
             <SyncingFeedsContext.Provider value={syncingIcsFeedIds}>
-            <CalendarLayout
-                desktopTitlebar={
-                    !isAndroid && titlebarHost
-                        ? (controls) =>
-                              ReactDOM.createPortal(
-                                  <DesktopTitlebar
-                                      controls={controls}
-                                      commands={desktopCommands}
-                                      sidebarVisible={sidebarVisible}
-                                      onToggleSidebar={toggleSidebar}
-                                      onOpenSearch={() =>
-                                          setCommandPaletteVisible(true)
-                                      }
-                                      onNewEvent={() => openNewEvent()}
-                                      onMenuOpenChange={setAppMenuOpen}
-                                  />,
-                                  titlebarHost
-                              )
-                        : undefined
-                }
-                currentDate={currentDate}
-                viewType={viewType}
-                onViewTypeChange={changeView}
-                dayCount={dayCount}
-                onSetDayCount={changeDayCount}
-                showWeekNumbers={showWeekNumbers}
-                onToggleWeekNumbers={() => {
-                    const next = !showWeekNumbers;
-                    setShowWeekNumbers(next);
-                    void persistPreferences((stored) => ({
-                        ...stored,
-                        showWeekNumbers: next,
-                    }));
-                }}
-                onGoPrev={goPrev}
-                onGoNext={goNext}
-                onGoToday={goToday}
-                onOpenSettings={() => setSettingsOpen(true)}
-                onShiftDays={shiftDays}
-                onShiftMonths={shiftMonths}
-                onNewEvent={() => openNewEvent()}
-                events={displayEvents}
-                calendarSources={calendarSources}
-                visibleDates={visibleDates}
-                firstDay={preferences.firstDay}
-                timeFormat24h={preferences.timeFormat24h}
-                // Paged scrolling was tuned for a swipe's momentum on a
-                // touch panel: free scroll is the only mode that reads right
-                // under a mouse wheel or a trackpad, so the desktop build
-                // never pages regardless of what a synced device wrote here.
-                // Le telephone, lui, garde le choix — c'est son geste qui a
-                // deux lectures possibles, et le reglage existe pour lui
-                // (voir DesktopSettings, ou la ligne n'apparait que la).
-                freeScroll={isAndroid ? preferences.freeScroll : true}
-                prayerLines={prayerLines}
-                prayerColor={prayerLineColor}
-                sidebarVisible={sidebarVisible}
-                onToggleSidebar={toggleSidebar}
-                onEventClick={selectEvent}
-                onEventDrag={handleEventDrag}
-                onEventResize={handleEventResize}
-                onSelectRange={(start: Date, end: Date, allDay: boolean) => {
-                    setSelectedIds(new Set());
-                    openDraft(start, end, allDay);
-                }}
-                onMonthDayClick={(date: Date) => {
-                    setSelectedIds(new Set());
-                    if (preferences.clickToCreateEventFromMonthView) {
-                        openDraft(date, date, true);
-                    } else {
-                        setCurrentDate(date);
-                        changeView("day");
+                <CalendarLayout
+                    desktopTitlebar={
+                        !isAndroid && titlebarHost
+                            ? (controls) =>
+                                  ReactDOM.createPortal(
+                                      <DesktopTitlebar
+                                          controls={controls}
+                                          commands={desktopCommands}
+                                          sidebarVisible={sidebarVisible}
+                                          onToggleSidebar={toggleSidebar}
+                                          onOpenSearch={() =>
+                                              setCommandPaletteVisible(true)
+                                          }
+                                          onNewEvent={() => openNewEvent()}
+                                          onMenuOpenChange={setAppMenuOpen}
+                                      />,
+                                      titlebarHost
+                                  )
+                            : undefined
                     }
-                }}
-                onContextMenu={(eventId: string, mouseEvent: MouseEvent) => {
-                    mouseEvent.preventDefault();
-                    setContextLine(null);
-                    setContextMenu({
-                        type: "event",
-                        eventId,
-                        x: mouseEvent.clientX,
-                        y: mouseEvent.clientY,
-                    });
-                }}
-                onEmptyContextMenu={(date: Date, mouseEvent: MouseEvent) => {
-                    mouseEvent.preventDefault();
-                    setContextMenu({
-                        type: "empty",
-                        date,
-                        x: mouseEvent.clientX,
-                        y: mouseEvent.clientY,
-                    });
-                    setContextLine({
-                        date,
-                        top: getEventTop(date, startOfDay(date)),
-                    });
-                }}
-                contextLine={contextLine}
-                onToggleTask={toggleTask}
-                onDateSelect={setCurrentDate}
-                hiddenCalendars={hiddenCalendars}
-                onToggleCalendar={toggleCalendar}
-                defaultCalendarId={defaultCalendarId}
-                soloCalendarId={soloCalendarId}
-                onSetDefaultCalendar={setDefaultCalendar}
-                onShowOnly={showOnlyCalendar}
-                tasks={tasks}
-                today={today}
-                onAddTask={() => void createSomeday()}
-                onQuickAdd={(partial: Partial<NeoEvent>) =>
-                    void quickAdd(partial)
-                }
-                onOpenSearch={() => setCommandPaletteVisible(true)}
-                onAddCalendar={() => void addCalendar()}
-                onRenameCalendar={renameCalendar}
-                onEditCalendarLink={(calendarId: string) => {
-                    const source = preferences.externalCalendars.find(
-                        (candidate) =>
-                            externalCalendarId(candidate) === calendarId
-                    );
-                    if (source?.type === "ical") {
-                        setStorageError(
-                            `To change “${source.name}”, remove it and add the new feed URL.`
+                    currentDate={currentDate}
+                    viewType={viewType}
+                    onViewTypeChange={changeView}
+                    dayCount={dayCount}
+                    onSetDayCount={changeDayCount}
+                    showWeekNumbers={showWeekNumbers}
+                    onToggleWeekNumbers={() => {
+                        const next = !showWeekNumbers;
+                        setShowWeekNumbers(next);
+                        void persistPreferences((stored) => ({
+                            ...stored,
+                            showWeekNumbers: next,
+                        }));
+                    }}
+                    onGoPrev={goPrev}
+                    onGoNext={goNext}
+                    onGoToday={goToday}
+                    onOpenSettings={() => setSettingsOpen(true)}
+                    onShiftDays={shiftDays}
+                    onShiftMonths={shiftMonths}
+                    onNewEvent={() => openNewEvent()}
+                    events={displayEvents}
+                    calendarSources={calendarSources}
+                    visibleDates={visibleDates}
+                    firstDay={preferences.firstDay}
+                    timeFormat24h={preferences.timeFormat24h}
+                    // Paged scrolling was tuned for a swipe's momentum on a
+                    // touch panel: free scroll is the only mode that reads right
+                    // under a mouse wheel or a trackpad, so the desktop build
+                    // never pages regardless of what a synced device wrote here.
+                    // Le telephone, lui, garde le choix — c'est son geste qui a
+                    // deux lectures possibles, et le reglage existe pour lui
+                    // (voir DesktopSettings, ou la ligne n'apparait que la).
+                    freeScroll={isAndroid ? preferences.freeScroll : true}
+                    prayerLines={prayerLines}
+                    prayerColor={prayerLineColor}
+                    sidebarVisible={sidebarVisible}
+                    onToggleSidebar={toggleSidebar}
+                    onEventClick={selectEvent}
+                    onEventDrag={handleEventDrag}
+                    onEventResize={handleEventResize}
+                    onSelectRange={(
+                        start: Date,
+                        end: Date,
+                        allDay: boolean
+                    ) => {
+                        setSelectedIds(new Set());
+                        openDraft(start, end, allDay);
+                    }}
+                    onMonthDayClick={(date: Date) => {
+                        setSelectedIds(new Set());
+                        if (preferences.clickToCreateEventFromMonthView) {
+                            openDraft(date, date, true);
+                        } else {
+                            setCurrentDate(date);
+                            changeView("day");
+                        }
+                    }}
+                    onContextMenu={(
+                        eventId: string,
+                        mouseEvent: MouseEvent
+                    ) => {
+                        mouseEvent.preventDefault();
+                        setContextLine(null);
+                        setContextMenu({
+                            type: "event",
+                            eventId,
+                            x: mouseEvent.clientX,
+                            y: mouseEvent.clientY,
+                        });
+                    }}
+                    onEmptyContextMenu={(
+                        date: Date,
+                        mouseEvent: MouseEvent
+                    ) => {
+                        mouseEvent.preventDefault();
+                        setContextMenu({
+                            type: "empty",
+                            date,
+                            x: mouseEvent.clientX,
+                            y: mouseEvent.clientY,
+                        });
+                        setContextLine({
+                            date,
+                            top: getEventTop(date, startOfDay(date)),
+                        });
+                    }}
+                    contextLine={contextLine}
+                    onToggleTask={toggleTask}
+                    onDateSelect={setCurrentDate}
+                    hiddenCalendars={hiddenCalendars}
+                    onToggleCalendar={toggleCalendar}
+                    defaultCalendarId={defaultCalendarId}
+                    soloCalendarId={soloCalendarId}
+                    onSetDefaultCalendar={setDefaultCalendar}
+                    onShowOnly={showOnlyCalendar}
+                    tasks={tasks}
+                    today={today}
+                    onAddTask={() => void createSomeday()}
+                    onQuickAdd={(partial: Partial<NeoEvent>) =>
+                        void quickAdd(partial)
+                    }
+                    onOpenSearch={() => setCommandPaletteVisible(true)}
+                    onAddCalendar={() => void addCalendar()}
+                    onRenameCalendar={renameCalendar}
+                    onEditCalendarLink={(calendarId: string) => {
+                        const source = preferences.externalCalendars.find(
+                            (candidate) =>
+                                externalCalendarId(candidate) === calendarId
                         );
+                        if (source?.type === "ical") {
+                            setStorageError(
+                                `To change “${source.name}”, remove it and add the new feed URL.`
+                            );
+                        }
+                    }}
+                    onManageIcsFeeds={(calendarId: string) =>
+                        setIcsFeedsPanelCalendarId(calendarId)
                     }
-                }}
-                onManageIcsFeeds={(calendarId: string) =>
-                    setIcsFeedsPanelCalendarId(calendarId)
-                }
-                onManagePrayerTimes={(calendarId: string) =>
-                    setPrayerDialogCalendarId(calendarId)
-                }
-                panelIcsFeeds={panelIcsFeeds}
-                onDeleteCalendar={(calendarId: string) =>
-                    void removeCalendar(calendarId)
-                }
-                onColorChange={changeColor}
-                onReorderCalendars={reorderCalendars}
-                onOpenCalendarFolder={(calendarId: string) => {
-                    const calendar = calendarById.get(calendarId);
-                    if (calendar?.editable && calendar.type === "local") {
-                        void openDesktopPath(dataFolder, calendar.relativePath);
-                        return;
+                    onManagePrayerTimes={(calendarId: string) =>
+                        setPrayerDialogCalendarId(calendarId)
                     }
-                    const source = preferences.externalCalendars.find(
-                        (candidate) =>
-                            externalCalendarId(candidate) === calendarId
-                    );
-                    if (source?.type === "ical" && hasIcalDirectory(source)) {
-                        void openDesktopPath(dataFolder, source.directory);
+                    onManageReminder={(calendarId: string) =>
+                        setReminderDialogCalendarId(calendarId)
                     }
-                }}
-                onOpenRootFolder={() => void openDesktopPath(dataFolder)}
-                onCalendarClick={(calendarId: string) => {
-                    /*
-                     * The same everywhere now: the row opens the calendar's
-                     * events, the swatch beside it sets the default.
-                     *
-                     * This used to divert to the default on Android, because
-                     * the panel was a second column whose close button ended up
-                     * under the status bar — a list with no way out. It slides
-                     * in over the drawer there instead, clear of the status bar
-                     * and leaving a strip of calendar that closes it.
-                     *
-                     * The drawer stays open BEHIND it, which is what makes the
-                     * panel a step forward rather than a change of screen:
-                     * pushing it back off the same edge uncovers the list the
-                     * calendar was picked from, still where it was left.
-                     */
-                    setSelectedCalendarId(
-                        selectedCalendarId !== calendarId ? calendarId : null
-                    );
-                }}
-                selectedCalendar={selectedCalendar}
-                panelEvents={panelEvents}
-                onAddPanelEvent={(calendarId: string) =>
-                    void addPanelEvent(calendarId)
-                }
-                onCloseEventsPanel={() => setSelectedCalendarId(null)}
-                onPanelEventClick={selectEvent}
-                secondaryTimezones={secondaryTimezones}
-                onAddTimezone={(timezone: string) => {
-                    const next = secondaryTimezones.includes(timezone)
-                        ? secondaryTimezones
-                        : [...secondaryTimezones, timezone];
-                    setSecondaryTimezones(next);
-                    void persistPreferences((stored) => ({
-                        ...stored,
-                        secondaryTimezones: next,
-                    }));
-                }}
-                onRemoveTimezone={(timezone: string) => {
-                    const next = secondaryTimezones.filter(
-                        (item) => item !== timezone
-                    );
-                    setSecondaryTimezones(next);
-                    void persistPreferences((stored) => ({
-                        ...stored,
-                        secondaryTimezones: next,
-                    }));
-                }}
-                allDayCollapsed={allDayCollapsed}
-                onToggleAllDayCollapsed={toggleAllDayCollapsed}
-                draftSlot={draftSlot}
-                draftColor={
-                    calendarById.get(draftSlot?.calendarId ?? defaultCalendarId)
-                        ?.color ?? "var(--nc-accent)"
-                }
-                onResizeDraft={(range) =>
-                    setDraftSlot((current) =>
-                        current
-                            ? {
-                                  ...current,
-                                  start: range.start,
-                                  end: range.end,
-                              }
-                            : current
-                    )
-                }
-                panelPreview={panelPreview}
-                onPanelDragTarget={handlePanelDragTarget}
-                onPanelDrop={(
-                    event: DisplayEvent,
-                    start: Date,
-                    end: Date,
-                    allDay: boolean
-                ) => {
-                    setPanelPreview(null);
-                    void handleEventDrag(event.id, start, end, allDay);
-                }}
-                onEventUnschedule={handleEventUnschedule}
-            />
+                    panelIcsFeeds={panelIcsFeeds}
+                    onDeleteCalendar={(calendarId: string) =>
+                        void removeCalendar(calendarId)
+                    }
+                    onColorChange={changeColor}
+                    onReorderCalendars={reorderCalendars}
+                    onOpenCalendarFolder={(calendarId: string) => {
+                        const calendar = calendarById.get(calendarId);
+                        if (calendar?.editable && calendar.type === "local") {
+                            void openDesktopPath(
+                                dataFolder,
+                                calendar.relativePath
+                            );
+                            return;
+                        }
+                        const source = preferences.externalCalendars.find(
+                            (candidate) =>
+                                externalCalendarId(candidate) === calendarId
+                        );
+                        if (
+                            source?.type === "ical" &&
+                            hasIcalDirectory(source)
+                        ) {
+                            void openDesktopPath(dataFolder, source.directory);
+                        }
+                    }}
+                    onOpenRootFolder={() => void openDesktopPath(dataFolder)}
+                    onCalendarClick={(calendarId: string) => {
+                        /*
+                         * The same everywhere now: the row opens the calendar's
+                         * events, the swatch beside it sets the default.
+                         *
+                         * This used to divert to the default on Android, because
+                         * the panel was a second column whose close button ended up
+                         * under the status bar — a list with no way out. It slides
+                         * in over the drawer there instead, clear of the status bar
+                         * and leaving a strip of calendar that closes it.
+                         *
+                         * The drawer stays open BEHIND it, which is what makes the
+                         * panel a step forward rather than a change of screen:
+                         * pushing it back off the same edge uncovers the list the
+                         * calendar was picked from, still where it was left.
+                         */
+                        setSelectedCalendarId(
+                            selectedCalendarId !== calendarId
+                                ? calendarId
+                                : null
+                        );
+                    }}
+                    selectedCalendar={selectedCalendar}
+                    panelEvents={panelEvents}
+                    onAddPanelEvent={(calendarId: string) =>
+                        void addPanelEvent(calendarId)
+                    }
+                    onCloseEventsPanel={() => setSelectedCalendarId(null)}
+                    onPanelEventClick={selectEvent}
+                    secondaryTimezones={secondaryTimezones}
+                    onAddTimezone={(timezone: string) => {
+                        const next = secondaryTimezones.includes(timezone)
+                            ? secondaryTimezones
+                            : [...secondaryTimezones, timezone];
+                        setSecondaryTimezones(next);
+                        void persistPreferences((stored) => ({
+                            ...stored,
+                            secondaryTimezones: next,
+                        }));
+                    }}
+                    onRemoveTimezone={(timezone: string) => {
+                        const next = secondaryTimezones.filter(
+                            (item) => item !== timezone
+                        );
+                        setSecondaryTimezones(next);
+                        void persistPreferences((stored) => ({
+                            ...stored,
+                            secondaryTimezones: next,
+                        }));
+                    }}
+                    allDayCollapsed={allDayCollapsed}
+                    onToggleAllDayCollapsed={toggleAllDayCollapsed}
+                    draftSlot={draftSlot}
+                    draftColor={
+                        calendarById.get(
+                            draftSlot?.calendarId ?? defaultCalendarId
+                        )?.color ?? "var(--nc-accent)"
+                    }
+                    onResizeDraft={(range) =>
+                        setDraftSlot((current) =>
+                            current
+                                ? {
+                                      ...current,
+                                      start: range.start,
+                                      end: range.end,
+                                  }
+                                : current
+                        )
+                    }
+                    panelPreview={panelPreview}
+                    onPanelDragTarget={handlePanelDragTarget}
+                    onPanelDrop={(
+                        event: DisplayEvent,
+                        start: Date,
+                        end: Date,
+                        allDay: boolean
+                    ) => {
+                        setPanelPreview(null);
+                        void handleEventDrag(event.id, start, end, allDay);
+                    }}
+                    onEventUnschedule={handleEventUnschedule}
+                />
             </SyncingFeedsContext.Provider>
 
             <CommandPalette
@@ -4485,6 +4519,39 @@ export default function DesktopCalendar({
                 onClose={() => setAddCalendarOpen(false)}
                 onCreate={createCalendar}
             />
+
+            {reminderDialogCalendarId !== null && (
+                <ReminderChoiceDialog
+                    title={`${t("Reminder")} — ${
+                        calendarById.get(reminderDialogCalendarId)?.name ?? ""
+                    }`}
+                    minutes={
+                        preferences.calendarReminderMinutes[
+                            calendarById.get(reminderDialogCalendarId)
+                                ?.relativePath ?? ""
+                        ] ?? null
+                    }
+                    inheritedMinutes={preferences.reminderMinutes}
+                    onPick={(minutes) => {
+                        const path = calendarById.get(
+                            reminderDialogCalendarId
+                        )?.relativePath;
+                        if (!path) return;
+                        // Retirer l'entree plutot que d'y recopier le reglage
+                        // de l'application : figer une copie ferait cesser ce
+                        // calendrier de le suivre le jour ou il change.
+                        const next = {
+                            ...preferences.calendarReminderMinutes,
+                        };
+                        if (minutes === null) delete next[path];
+                        else next[path] = minutes;
+                        void updateWorkspacePreferences({
+                            calendarReminderMinutes: next,
+                        });
+                    }}
+                    onClose={() => setReminderDialogCalendarId(null)}
+                />
+            )}
 
             <PrayerMosqueDialog
                 open={prayerDialogCalendarId !== null}

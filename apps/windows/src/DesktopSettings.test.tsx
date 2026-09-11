@@ -88,6 +88,27 @@ describe("Windows settings", () => {
         expect(html).not.toContain("nc-settings__page--buried");
     });
 
+    /*
+     * Le rappel ne se choisissait que dans une liste de six valeurs. Un défaut
+     * à quarante-cinq minutes s'écrit maintenant dans un champ, et la ligne
+     * doit le relire — sinon un réglage posé à la main ne se voit nulle part.
+     */
+    it("reads a custom reminder delay back on its row", () => {
+        const html = renderToStaticMarkup(
+            <DesktopSettings
+                open
+                initialTab="general"
+                {...commonProps}
+                preferences={{
+                    ...defaultDesktopWorkspacePreferences(),
+                    reminderMinutes: 45,
+                }}
+            />
+        );
+
+        expect(html).toContain("45 minutes avant");
+    });
+
     it("lists every subject on its first page", () => {
         const general = renderToStaticMarkup(
             <DesktopSettings open initialTab="general" {...commonProps} />

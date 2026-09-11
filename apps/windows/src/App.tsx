@@ -16,6 +16,7 @@ import { getWallpaper } from "./themes/wallpapers";
 import { useWallpaperReady } from "./themes/useWallpaperReady";
 import WallpaperRenderLayer from "./WallpaperRenderLayer";
 import "./themes/wallpaperEffects";
+import { useStartupReveal } from "./useStartupReveal";
 import appIcon from "./assets/app-icon.png";
 import { WINDOWS_PLATFORM_CLASS } from "../../../src/ui/calendar/shortcutRegistry";
 import { t } from "../../../src/ui/i18n";
@@ -87,6 +88,9 @@ export default function App() {
     // nothing is clickable before the stored preferences are known.
     const [isCalendarReady, setIsCalendarReady] = useState(false);
     const handleCalendarReady = useCallback(() => setIsCalendarReady(true), []);
+    const startupRef = useStartupReveal(
+        !!preferences && (!dataFolder || isCalendarReady)
+    );
 
     const appearanceMode = useMemo(
         () => resolveAppearanceMode(appearance.mode),
@@ -257,6 +261,7 @@ export default function App() {
     if (!preferences) {
         return (
             <main
+                ref={startupRef}
                 className={`nc-desktop nc-desktop--loading ${theme.className}`}
                 aria-busy="true"
             >
@@ -287,6 +292,7 @@ export default function App() {
 
         return (
             <main
+                ref={startupRef}
                 className={`nc-desktop nc-desktop--calendar ${theme.className}${
                     isCalendarReady ? "" : " nc-desktop--booting"
                 }`}
@@ -320,7 +326,7 @@ export default function App() {
     }
 
     return (
-        <main className={`nc-desktop ${theme.className}`}>
+        <main ref={startupRef} className={`nc-desktop ${theme.className}`}>
             <section className="nc-welcome" aria-labelledby="welcome-title">
                 <div className="nc-welcome__mark" aria-hidden="true">
                     <img src={appIcon} alt="" />

@@ -1,5 +1,9 @@
 import type { DisplayEvent } from "../../../../src/ui/types";
-import { ALL_DAY_REMINDER_HOUR, buildReminders } from "./androidReminders";
+import {
+    ALL_DAY_REMINDER_HOUR,
+    buildReminders,
+    remindersByCalendarId,
+} from "./androidReminders";
 
 function event(
     id: string,
@@ -361,5 +365,122 @@ describe("what a reminder says", () => {
         const written = reminder.details.split("\n").at(-1) ?? "";
         expect(written).toHaveLength(200);
         expect(written.endsWith("…")).toBe(true);
+    });
+});
+
+/*
+ * Le reglage des Parametres est le rappel de tous les calendriers ; un
+ * calendrier n'enregistre quelque chose que pour s'en ecarter. Absent de la
+ * table veut donc dire « celui de l'application », et non « aucun rappel ».
+ */
+describe("le rappel propre a un calendrier", () => {
+    const buildWith = (
+        events: DisplayEvent[],
+        minutesByCalendar: Record<string, number>,
+        minutesBefore = 10
+    ) =>
+        buildReminders({
+            events,
+            now: NOW,
+            minutesBefore,
+            minutesByCalendar,
+            timeFormat24h: true,
+        });
+
+    it("prend le pas sur le reglage de l'application", () => {
+        const [reminder] = buildWith(
+            [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
+            { cal: 45 }
+        );
+
+        expect(reminder.atMs).toBe(+new Date("2026-08-07T13:15:00"));
+        expect(reminder.body).toBe("Dans 45 min · 14:00");
+    });
+
+    it("laisse repondre le reglage de l'application pour un autre calendrier", () => {
+        const [reminder] = buildWith(
+            [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
+            { autre: 45 }
+        );
+
+        expect(reminder.atMs).toBe(+new Date("2026-08-07T13:50:00"));
+    });
+
+    it("fait taire un calendrier regle sur aucun rappel", () => {
+        expect(
+            buildWith(
+                [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
+                { cal: 0 }
+            )
+        ).toEqual([]);
+    });
+
+    it("parle pour un calendrier regle alors que l'application se tait", () => {
+        const [reminder] = buildWith(
+            [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
+            { cal: 30 },
+            0
+        );
+
+        expect(reminder.atMs).toBe(+new Date("2026-08-07T13:30:00"));
+    });
+
+    it("cede aux rappels poses sur l'evenement lui-meme", () => {
+        const [reminder] = buildWith(
+            [
+                event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00", {
+                    reminders: [5],
+                }),
+            ],
+            { cal: 45 }
+        );
+
+        expect(reminder.atMs).toBe(+new Date("2026-08-07T13:55:00"));
+    });
+
+    it("fait taire une journee entiere sur un calendrier sans rappel", () => {
+        expect(
+            buildWith(
+                [
+                    event(
+                        "whole",
+                        "2026-08-09T00:00:00",
+                        "2026-08-10T00:00:00",
+                        {
+                            allDay: true,
+                        }
+                    ),
+                ],
+                { cal: 0 }
+            )
+        ).toEqual([]);
+    });
+});
+
+/*
+ * Les preferences rangent le delai sous le chemin du calendrier, comme les
+ * couleurs et les mosquees ; les evenements, eux, ne connaissent que son
+ * identifiant. La table qui sert a planifier se lit donc dans l'autre sens.
+ */
+describe("remindersByCalendarId", () => {
+    const calendars = [
+        { id: "cal-1", relativePath: "Cours" },
+        { id: "cal-2", relativePath: "Islam" },
+    ];
+
+    it("relit les delais sous l'identifiant du calendrier", () => {
+        expect(remindersByCalendarId(calendars, { Cours: 45 })).toEqual({
+            "cal-1": 45,
+        });
+    });
+
+    it("laisse de cote un chemin qu'aucun calendrier ne porte", () => {
+        expect(
+            remindersByCalendarId(calendars, { Disparu: 45, Islam: 0 })
+        ).toEqual({ "cal-2": 0 });
+    });
+
+    it("ne retient rien tant que personne ne s'est ecarte du reglage", () => {
+        expect(remindersByCalendarId(calendars, {})).toEqual({});
     });
 });

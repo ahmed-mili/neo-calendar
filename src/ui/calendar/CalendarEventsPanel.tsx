@@ -4,7 +4,8 @@ import { DisplayEvent } from "../types";
 import { CalendarInfo } from "../../types";
 import { formatTime, addDays, isAndroidRuntime } from "./CalendarUtils";
 import ColorPicker from "./ColorPicker";
-import { ClockIcon } from "./EventPanelIcons";
+import { BellIcon, ClockIcon } from "./EventPanelIcons";
+import { isPrayerCalendarName } from "./prayerCalendarName";
 import { usePanelDrag, PanelDropTarget } from "./usePanelDrag";
 import { useCalendarEventsPanelSwipe } from "./useCalendarEventsPanelSwipe";
 import {
@@ -69,6 +70,7 @@ interface CalendarEventsPanelProps {
     /** Le choix de la mosquee dont ce calendrier suit les horaires, omis pour
      *  la meme raison que `onManageIcsFeeds`. */
     onManagePrayerTimes?: (calendarId: string) => void;
+    onManageReminder?: (calendarId: string) => void;
     /** The calendar's own ICS links, for the Filters page that lets one be
      *  shown or hidden — omitted the same way and for the same reason as
      *  `onManageIcsFeeds`. */
@@ -174,6 +176,7 @@ export default function CalendarEventsPanel({
     onShowOnly,
     onManageIcsFeeds,
     onManagePrayerTimes,
+    onManageReminder,
     icsFeeds,
     onRemove,
     onColorChange,
@@ -478,7 +481,9 @@ export default function CalendarEventsPanel({
                         <div className="nc-cep-summary-period">
                             <CalendarGlyphIcon size={14} />
                             <span>{t("Period")}</span>
-                            <strong data-nc-tooltip={periodLabel}>{periodLabel}</strong>
+                            <strong data-nc-tooltip={periodLabel}>
+                                {periodLabel}
+                            </strong>
                         </div>
                     </div>
                 )}
@@ -569,21 +574,40 @@ export default function CalendarEventsPanel({
                                 </span>
                             </button>
                         )}
-                        {calendar.type === "local" && onManagePrayerTimes && (
+                        {calendar.type === "local" && onManageReminder && (
                             <button
                                 type="button"
                                 className="nc-cep-menu-row"
                                 onClick={() => {
                                     setOpenMenu(null);
-                                    onManagePrayerTimes(calendar.id);
+                                    onManageReminder(calendar.id);
                                 }}
                             >
-                                <ClockIcon />
+                                <BellIcon />
                                 <span className="nc-cep-menu-label">
-                                    {t("Prayer times")}
+                                    {t("Reminder")}
                                 </span>
                             </button>
                         )}
+                        {/* Reserve au calendrier qui porte ce sujet : ailleurs,
+                            l'entree n'aurait jamais servi. */}
+                        {calendar.type === "local" &&
+                            onManagePrayerTimes &&
+                            isPrayerCalendarName(calendar.name) && (
+                                <button
+                                    type="button"
+                                    className="nc-cep-menu-row"
+                                    onClick={() => {
+                                        setOpenMenu(null);
+                                        onManagePrayerTimes(calendar.id);
+                                    }}
+                                >
+                                    <ClockIcon />
+                                    <span className="nc-cep-menu-label">
+                                        {t("Prayer times")}
+                                    </span>
+                                </button>
+                            )}
                         <div className="nc-cep-menu-separator" />
                         <button
                             type="button"
@@ -686,13 +710,12 @@ export default function CalendarEventsPanel({
                                                 // one (showing "0/1" for a
                                                 // single link isolated, i.e.
                                                 // fully visible).
-                                                const visible =
-                                                    icsFeeds.filter(
-                                                        (feedItem) =>
-                                                            !hiddenFeedIds.has(
-                                                                feedItem.id
-                                                            )
-                                                    ).length;
+                                                const visible = icsFeeds.filter(
+                                                    (feedItem) =>
+                                                        !hiddenFeedIds.has(
+                                                            feedItem.id
+                                                        )
+                                                ).length;
                                                 // "All" only when nothing is
                                                 // filtered at all — isolating
                                                 // a calendar's single link
@@ -701,8 +724,7 @@ export default function CalendarEventsPanel({
                                                 // as "yes, something is
                                                 // filtered" even though every
                                                 // link itself is visible.
-                                                return hiddenFeedIds.size ===
-                                                    0
+                                                return hiddenFeedIds.size === 0
                                                     ? t("All")
                                                     : `${visible}/${icsFeeds.length}`;
                                             })()}
@@ -773,8 +795,7 @@ export default function CalendarEventsPanel({
                         {settingsPage === "icsLinks" &&
                             icsFeeds?.map((feedItem) => {
                                 const hidden = hiddenFeedIds.has(feedItem.id);
-                                const menuOpen =
-                                    openFeedMenuId === feedItem.id;
+                                const menuOpen = openFeedMenuId === feedItem.id;
                                 const isOnlyVisible =
                                     !hidden &&
                                     hiddenFeedIds.has(PANEL_NO_ICS_FEED) &&
@@ -818,9 +839,7 @@ export default function CalendarEventsPanel({
                                                     }`}
                                                 >
                                                     {!hidden && (
-                                                        <CheckIcon
-                                                            size={14}
-                                                        />
+                                                        <CheckIcon size={14} />
                                                     )}
                                                 </span>
                                                 <span className="nc-cep-menu-label">
@@ -830,9 +849,7 @@ export default function CalendarEventsPanel({
                                             <button
                                                 type="button"
                                                 className="nc-cep-ics-link-more"
-                                                aria-label={t(
-                                                    "More options"
-                                                )}
+                                                aria-label={t("More options")}
                                                 onClick={() =>
                                                     setOpenFeedMenuId(
                                                         menuOpen
@@ -841,9 +858,7 @@ export default function CalendarEventsPanel({
                                                     )
                                                 }
                                             >
-                                                <MoreHorizontalIcon
-                                                    size={15}
-                                                />
+                                                <MoreHorizontalIcon size={15} />
                                             </button>
                                         </div>
                                         {menuOpen && (

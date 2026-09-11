@@ -45,6 +45,14 @@ export interface DesktopWorkspacePreferences {
     /** Minutes before an event to be reminded. 0 means no reminder at all. */
     reminderMinutes: number;
     /**
+     * Par calendrier, le délai qui s'écarte de celui des Paramètres.
+     *
+     * Une entrée absente veut dire « celui de l'application », et non « aucun
+     * rappel » : sans ça, changer le réglage général ne déplacerait plus rien.
+     * Clé : le chemin du calendrier, comme pour les couleurs juste au-dessus.
+     */
+    calendarReminderMinutes: Record<string, number>;
+    /**
      * Comment on compte se rendre au lieu d'un évènement.
      *
      * Le lien du lieu ouvre un itinéraire depuis la position de l'appareil ;
@@ -103,9 +111,24 @@ const DESKTOP_INITIAL_VIEWS: DesktopInitialView[] = [
 ];
 const MOBILE_INITIAL_VIEWS: MobileInitialView[] = ["day", "3days", "list"];
 
-/** How long before an event a reminder may be set for. Anything else stored in
-    the file is a value this app never wrote, so it falls back to the default. */
+/** Les délais proposés tels quels, avant la durée personnalisée. */
 export const REMINDER_CHOICES: readonly number[] = [0, 5, 10, 15, 30, 60];
+
+/** Quatre semaines : au-delà, le délai a été écrit à la main par erreur — la
+    grille des rappels ne regarde de toute façon pas si loin devant elle. */
+export const MAX_REMINDER_MINUTES = 40320;
+
+/** Un délai qu'un choix a pu produire : un nombre entier de minutes, de zéro
+    (aucun rappel) à quatre semaines. Tout le reste vient d'une édition à la
+    main du fichier, et retombe sur la valeur par défaut. */
+export function isReminderMinutes(value: unknown): value is number {
+    return (
+        typeof value === "number" &&
+        Number.isInteger(value) &&
+        value >= 0 &&
+        value <= MAX_REMINDER_MINUTES
+    );
+}
 
 export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreferences {
     return {
@@ -135,6 +158,7 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         // Kept in step with the plugin's default in src/ui/settings.ts.
         defaultEventsAsTasks: false,
         reminderMinutes: 10,
+        calendarReminderMinutes: {},
         // La carte connaît les habitudes de celui qui la lit, l'application
         // non : elle ne se prononce donc pas tant qu'on ne le lui demande pas.
         mapsTravelMode: "auto",
@@ -289,6 +313,10 @@ export function reconcileWorkspacePreferences({
         // calendriers que les deux connaissent.
         prayerMosques: { ...previous.prayerMosques, ...loaded.prayerMosques },
         prayerColors: { ...previous.prayerColors, ...loaded.prayerColors },
+        calendarReminderMinutes: {
+            ...previous.calendarReminderMinutes,
+            ...loaded.calendarReminderMinutes,
+        },
     };
 }
 
@@ -386,11 +414,12 @@ export function parseDesktopWorkspacePreferences(
             source.defaultEventsAsTasks,
             defaults.defaultEventsAsTasks
         ),
-        reminderMinutes: REMINDER_CHOICES.includes(
-            Number(source.reminderMinutes)
-        )
-            ? Number(source.reminderMinutes)
+        reminderMinutes: isReminderMinutes(source.reminderMinutes)
+            ? source.reminderMinutes
             : defaults.reminderMinutes,
+        calendarReminderMinutes: calendarRemindersOf(
+            source.calendarReminderMinutes
+        ),
         mapsTravelMode: (MAPS_TRAVEL_MODES as readonly string[]).includes(
             source.mapsTravelMode as string
         )
@@ -435,6 +464,19 @@ function prayerColorsOf(source: unknown): Record<string, string> {
     const pairs = Object.entries(source as Record<string, unknown>).filter(
         (pair): pair is [string, string] =>
             typeof pair[1] === "string" && /^#[0-9a-fA-F]{6}$/.test(pair[1])
+    );
+    return Object.fromEntries(pairs);
+}
+
+/** Des paires « chemin de calendrier → délai ». Une entrée illisible est
+ *  retirée plutôt que ramenée à zéro : elle doit retomber sur le réglage de
+ *  l'application, et non éteindre les rappels de ce calendrier. */
+function calendarRemindersOf(source: unknown): Record<string, number> {
+    if (!source || typeof source !== "object" || Array.isArray(source)) {
+        return {};
+    }
+    const pairs = Object.entries(source as Record<string, unknown>).filter(
+        (pair): pair is [string, number] => isReminderMinutes(pair[1])
     );
     return Object.fromEntries(pairs);
 }

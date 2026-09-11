@@ -179,7 +179,14 @@ export function LeftRail({
                                     ? t("Expand all-day events")
                                     : t("Collapse all-day events")
                             }
-                            onClick={onToggleAllDayCollapsed}
+                            onClick={(event) => {
+                                // Pointer focus must not turn into a keyboard
+                                // ring on the next Shift press. Keep focus for
+                                // keyboard and assistive clicks (detail === 0).
+                                if (event.detail > 0)
+                                    event.currentTarget.blur();
+                                onToggleAllDayCollapsed?.();
+                            }}
                             onKeyDown={(event) => {
                                 if (
                                     event.key === "Enter" ||

@@ -76,6 +76,7 @@ interface CalendarLayoutProps {
     onEditCalendarLink: (calendarId: string) => void;
     onManageIcsFeeds?: (calendarId: string) => void;
     onManagePrayerTimes?: (calendarId: string) => void;
+    onManageReminder?: (calendarId: string) => void;
     /** The panel's own calendar's ICS links, for its Filters page. */
     panelIcsFeeds?: { id: string; name: string }[];
     onDeleteCalendar: (calendarId: string) => void;
@@ -183,6 +184,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
         onEditCalendarLink,
         onManageIcsFeeds,
         onManagePrayerTimes,
+        onManageReminder,
         panelIcsFeeds,
         onDeleteCalendar,
         onColorChange,
@@ -379,6 +381,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                 onEditCalendarLink={onEditCalendarLink}
                 onManageIcsFeeds={onManageIcsFeeds}
                 onManagePrayerTimes={onManagePrayerTimes}
+                onManageReminder={onManageReminder}
                 onDeleteCalendar={onDeleteCalendar}
                 onColorChange={onColorChange}
                 onReorderCalendars={onReorderCalendars}
@@ -418,6 +421,7 @@ export default function CalendarLayout(props: CalendarLayoutProps) {
                     onShowOnly={onShowOnly}
                     onManageIcsFeeds={onManageIcsFeeds}
                     onManagePrayerTimes={onManagePrayerTimes}
+                    onManageReminder={onManageReminder}
                     icsFeeds={panelIcsFeeds}
                     onRemove={onDeleteCalendar}
                     onColorChange={onColorChange}

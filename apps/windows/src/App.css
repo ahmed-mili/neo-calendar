@@ -432,7 +432,8 @@ button.nc-settings__theme-card {
     box-shadow: none;
     text-align: left;
     cursor: pointer;
-    transition: background 100ms ease, border-color 100ms ease, transform 100ms ease;
+    transition: background 100ms ease, border-color 100ms ease,
+        transform 100ms ease;
 }
 
 button.nc-settings__theme-card:hover {
@@ -442,8 +443,16 @@ button.nc-settings__theme-card:hover {
 }
 
 button.nc-settings__theme-card[aria-pressed="true"] {
-    border-color: color-mix(in srgb, var(--nc-accent) 72%, var(--background-modifier-border));
-    background: color-mix(in srgb, var(--nc-accent) 11%, var(--background-secondary));
+    border-color: color-mix(
+        in srgb,
+        var(--nc-accent) 72%,
+        var(--background-modifier-border)
+    );
+    background: color-mix(
+        in srgb,
+        var(--nc-accent) 11%,
+        var(--background-secondary)
+    );
 }
 
 button.nc-settings__theme-card:focus-visible {
@@ -595,8 +604,16 @@ button.nc-settings__theme-card:focus-visible {
        calendar through it and made rows look blurred/blank. Structural panels
        are made transparent explicitly below instead. */
     --nc-bg-primary: var(--background-primary);
-    --nc-bg-secondary: color-mix(in srgb, var(--background-secondary) 58%, transparent);
-    --nc-bg-hover: color-mix(in srgb, var(--background-modifier-hover) 78%, transparent);
+    --nc-bg-secondary: color-mix(
+        in srgb,
+        var(--background-secondary) 58%,
+        transparent
+    );
+    --nc-bg-hover: color-mix(
+        in srgb,
+        var(--background-modifier-hover) 78%,
+        transparent
+    );
     --nc-border: var(--background-modifier-border);
     --nc-grid-line: color-mix(in srgb, var(--text-faint) 24%, transparent);
 }
@@ -1000,18 +1017,21 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 .nc-links-attachments .nc-panel-row-link-attachments {
-    transition:
-        border-color var(--nc-transition-fast, 100ms ease),
+    transition: border-color var(--nc-transition-fast, 100ms ease),
         background-color var(--nc-transition-fast, 100ms ease),
         color var(--nc-transition-fast, 100ms ease);
 }
 
 .nc-links-attachments .nc-panel-row-link-attachments:hover:not(:disabled) {
-    border-color: var(--nc-border, var(--background-modifier-border)) !important;
+    border-color: var(
+        --nc-border,
+        var(--background-modifier-border)
+    ) !important;
     background: transparent !important;
 }
 
-.nc-links-attachments .nc-panel-row-link-attachments:focus-visible:not(:disabled) {
+.nc-links-attachments
+    .nc-panel-row-link-attachments:focus-visible:not(:disabled) {
     border-color: color-mix(
         in srgb,
         var(--nc-accent) 55%,
@@ -1022,8 +1042,7 @@ button.nc-settings__theme-card:focus-visible {
         var(--nc-bg-hover, var(--background-modifier-hover)) 45%,
         transparent
     ) !important;
-    box-shadow: 0 0 0 2px
-        color-mix(in srgb, var(--nc-accent) 12%, transparent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--nc-accent) 12%, transparent) !important;
     outline: none;
 }
 
@@ -1049,12 +1068,14 @@ button.nc-settings__theme-card:focus-visible {
     transition: color var(--nc-transition-fast, 100ms ease);
 }
 
-.nc-links-attachments .nc-panel-row-link-attachments[aria-expanded="false"]
+.nc-links-attachments
+    .nc-panel-row-link-attachments[aria-expanded="false"]
     .nc-panel-row-icon:has(svg) {
     transition: color var(--nc-transition-fast, 100ms ease);
 }
 
-.nc-links-attachments .nc-panel-row-link-attachments:has(.nc-panel-row-label)
+.nc-links-attachments
+    .nc-panel-row-link-attachments:has(.nc-panel-row-label)
     .nc-panel-row-icon {
     color: var(--nc-text-secondary, var(--text-muted));
 }
@@ -1102,16 +1123,25 @@ button.nc-settings__theme-card:focus-visible {
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18) inset;
     font: inherit;
     font-size: 12px;
-    transition: border-color 100ms ease, box-shadow 100ms ease, background 100ms ease;
+    transition: border-color 100ms ease, box-shadow 100ms ease,
+        background 100ms ease;
 }
 
 .nc-link-search-input:hover:not(:disabled) {
     border-color: color-mix(in srgb, var(--text-muted) 76%, transparent);
-    background: color-mix(in srgb, var(--background-modifier-hover) 40%, var(--background-primary));
+    background: color-mix(
+        in srgb,
+        var(--background-modifier-hover) 40%,
+        var(--background-primary)
+    );
 }
 
 .nc-link-search-input:focus {
-    border-color: color-mix(in srgb, var(--nc-accent-strong, var(--nc-accent)) 78%, white 5%);
+    border-color: color-mix(
+        in srgb,
+        var(--nc-accent-strong, var(--nc-accent)) 78%,
+        white 5%
+    );
     background: var(--background-primary);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--nc-accent) 20%, transparent);
 }
@@ -1168,7 +1198,8 @@ button.nc-settings__theme-card:focus-visible {
     border-radius: 9px;
     color: var(--text-normal);
     background: color-mix(in srgb, var(--background-primary) 97%, transparent);
-    box-shadow: 0 14px 34px -8px rgba(0, 0, 0, 0.52), 0 2px 7px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 14px 34px -8px rgba(0, 0, 0, 0.52),
+        0 2px 7px rgba(0, 0, 0, 0.28);
     backdrop-filter: blur(14px) saturate(115%);
     -webkit-backdrop-filter: blur(14px) saturate(115%);
     font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
@@ -1231,7 +1262,11 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 .nc-link-result:active {
-    background: color-mix(in srgb, var(--background-modifier-hover) 84%, var(--nc-accent) 16%) !important;
+    background: color-mix(
+        in srgb,
+        var(--background-modifier-hover) 84%,
+        var(--nc-accent) 16%
+    ) !important;
 }
 
 .nc-link-result-content {
@@ -1360,8 +1395,7 @@ button.nc-settings__theme-card:focus-visible {
     color: var(--nc-text-primary, var(--text-normal));
     background: transparent;
     cursor: default;
-    transition:
-        background-color var(--nc-transition-fast, 100ms ease),
+    transition: background-color var(--nc-transition-fast, 100ms ease),
         border-color var(--nc-transition-fast, 100ms ease);
 }
 
@@ -1459,19 +1493,16 @@ button.nc-settings__theme-card:focus-visible {
 
 .nc-linked-file[data-clickable="true"].is-hovered .nc-linked-file-name {
     text-decoration: underline;
-    text-decoration-color: color-mix(
-        in srgb,
-        currentColor 62%,
-        transparent
-    );
+    text-decoration-color: color-mix(in srgb, currentColor 62%, transparent);
 }
 
 .nc-linked-file[data-clickable="true"]:focus-visible {
-    outline: 1px solid color-mix(
-        in srgb,
-        var(--nc-accent, var(--interactive-accent)) 72%,
-        transparent
-    );
+    outline: 1px solid
+        color-mix(
+            in srgb,
+            var(--nc-accent, var(--interactive-accent)) 72%,
+            transparent
+        );
     outline-offset: 1px;
 }
 
@@ -1658,8 +1689,7 @@ button.nc-settings__theme-card:focus-visible {
     opacity: 0;
     cursor: pointer;
     transform: translateY(-50%);
-    transition:
-        opacity var(--nc-transition-fast, 100ms ease),
+    transition: opacity var(--nc-transition-fast, 100ms ease),
         background-color var(--nc-transition-fast, 100ms ease),
         color var(--nc-transition-fast, 100ms ease);
 }
@@ -1712,8 +1742,7 @@ button.nc-settings__theme-card:focus-visible {
     opacity: 0;
     cursor: pointer;
     transform: translateY(-50%);
-    transition:
-        opacity var(--nc-transition-fast, 100ms ease),
+    transition: opacity var(--nc-transition-fast, 100ms ease),
         background-color var(--nc-transition-fast, 100ms ease),
         color var(--nc-transition-fast, 100ms ease);
 }
@@ -1802,8 +1831,7 @@ button.nc-settings__theme-card:focus-visible {
     opacity: 0;
     cursor: pointer;
     transform: translateY(-50%);
-    transition:
-        opacity var(--nc-transition-fast, 100ms ease),
+    transition: opacity var(--nc-transition-fast, 100ms ease),
         background-color var(--nc-transition-fast, 100ms ease),
         color var(--nc-transition-fast, 100ms ease);
 }
@@ -1891,11 +1919,12 @@ button.nc-settings__theme-card:focus-visible {
     gap: 8px;
     padding: 5px 6px 5px 10px;
     overflow: hidden;
-    border: 1px solid color-mix(
-        in srgb,
-        var(--nc-border, var(--background-modifier-border)) 82%,
-        transparent
-    );
+    border: 1px solid
+        color-mix(
+            in srgb,
+            var(--nc-border, var(--background-modifier-border)) 82%,
+            transparent
+        );
     border-radius: 8px;
     color: var(--nc-text-primary, var(--text-normal));
     background: color-mix(
@@ -1915,8 +1944,7 @@ button.nc-settings__theme-card:focus-visible {
 
 .nc-linked-file-tooltip.is-closing {
     pointer-events: none;
-    animation: nc-linked-file-tooltip-out 140ms cubic-bezier(0.4, 0, 1, 1)
-        both;
+    animation: nc-linked-file-tooltip-out 140ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 @keyframes nc-linked-file-tooltip-in {
@@ -2038,9 +2066,7 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 .nc-settings__detected-vault {
-    transition:
-        opacity 120ms ease,
-        background-color 120ms ease,
+    transition: opacity 120ms ease, background-color 120ms ease,
         border-color 120ms ease;
 }
 
@@ -2062,12 +2088,13 @@ button.nc-settings__theme-card:focus-visible {
     padding: 2px;
     border: 1px solid var(--background-modifier-border);
     border-radius: 999px;
-    background: var(--background-modifier-form-field, var(--background-primary));
+    background: var(
+        --background-modifier-form-field,
+        var(--background-primary)
+    );
     box-shadow: none;
     cursor: pointer;
-    transition:
-        background-color 120ms ease,
-        border-color 120ms ease;
+    transition: background-color 120ms ease, border-color 120ms ease;
 }
 
 .nc-settings__vault-toggle > span {
@@ -2077,14 +2104,17 @@ button.nc-settings__theme-card:focus-visible {
     border-radius: 50%;
     background: var(--text-muted);
     transform: translateX(0);
-    transition:
-        transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
         background-color 120ms ease;
 }
 
 .nc-settings__vault-toggle[aria-checked="true"] {
     border-color: color-mix(in srgb, var(--nc-accent) 78%, transparent);
-    background: color-mix(in srgb, var(--nc-accent) 78%, var(--background-primary));
+    background: color-mix(
+        in srgb,
+        var(--nc-accent) 78%,
+        var(--background-primary)
+    );
 }
 
 .nc-settings__vault-toggle[aria-checked="true"] > span {
@@ -2121,7 +2151,11 @@ button.nc-settings__theme-card:focus-visible {
     padding: 14px 16px;
     border: 1px solid var(--background-modifier-border);
     border-radius: 12px;
-    background: color-mix(in srgb, var(--background-secondary) 82%, transparent);
+    background: color-mix(
+        in srgb,
+        var(--background-secondary) 82%,
+        transparent
+    );
 }
 
 .nc-settings__preference-row > span,
@@ -2158,14 +2192,18 @@ button.nc-settings__theme-card:focus-visible {
     border: 1px solid var(--background-modifier-border);
     border-radius: 8px;
     color: var(--text-normal);
-    background: var(--background-modifier-form-field, var(--background-primary));
+    background: var(
+        --background-modifier-form-field,
+        var(--background-primary)
+    );
     outline: none;
 }
 
 .nc-settings__preference-row select:focus,
 .nc-settings__timezone-control input:focus {
     border-color: var(--interactive-accent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 18%, transparent);
+    box-shadow: 0 0 0 2px
+        color-mix(in srgb, var(--interactive-accent) 18%, transparent);
 }
 
 .nc-settings__switch,
@@ -2264,7 +2302,10 @@ button.nc-settings__theme-card:focus-visible {
     border: 1px solid var(--background-modifier-border);
     border-radius: 8px;
     color: var(--text-normal);
-    background: var(--background-modifier-form-field, var(--background-primary));
+    background: var(
+        --background-modifier-form-field,
+        var(--background-primary)
+    );
 }
 
 .nc-settings__calendar-item {
@@ -2329,7 +2370,10 @@ button.nc-settings__theme-card:focus-visible {
     padding: 5px 8px;
     border: 1px solid var(--interactive-accent);
     border-radius: 7px;
-    background: var(--background-modifier-form-field, var(--background-primary));
+    background: var(
+        --background-modifier-form-field,
+        var(--background-primary)
+    );
     outline: none;
 }
 
@@ -2502,18 +2546,20 @@ button.nc-settings__theme-card:focus-visible {
 
 /* Shift alone must not switch the WebView into its white keyboard focus ring.
    Multi-selection still begins only after Shift + pointer drag. */
-.nc-desktop-calendar :where(
-    .nc-event-block,
-    .nc-month-event,
-    .nc-calendar-item,
-    [data-event-id]
-):focus,
-.nc-desktop-calendar :where(
-    .nc-event-block,
-    .nc-month-event,
-    .nc-calendar-item,
-    [data-event-id]
-):focus-visible {
+.nc-desktop-calendar
+    :where(
+        .nc-event-block,
+        .nc-month-event,
+        .nc-calendar-item,
+        [data-event-id]
+    ):focus,
+.nc-desktop-calendar
+    :where(
+        .nc-event-block,
+        .nc-month-event,
+        .nc-calendar-item,
+        [data-event-id]
+    ):focus-visible {
     outline: none !important;
 }
 
@@ -2625,7 +2671,11 @@ button.nc-settings__theme-card:focus-visible {
     border: 1px solid var(--prayer-line);
     border-radius: 10px;
     color: var(--text-normal);
-    background: color-mix(in srgb, var(--text-normal) 3%, transparent) !important;
+    background: color-mix(
+        in srgb,
+        var(--text-normal) 3%,
+        transparent
+    ) !important;
     box-shadow: none !important;
     text-align: left;
 }
@@ -2694,7 +2744,11 @@ button.nc-settings__theme-card:focus-visible {
     padding: 10px 12px;
     border: 1px solid var(--prayer-line);
     border-radius: 10px;
-    background: color-mix(in srgb, var(--text-normal) 3%, transparent) !important;
+    background: color-mix(
+        in srgb,
+        var(--text-normal) 3%,
+        transparent
+    ) !important;
     box-shadow: none !important;
     color: var(--text-normal);
     font-family: inherit;
@@ -3148,7 +3202,10 @@ button.nc-settings__theme-card:focus-visible {
 
 @media (pointer: coarse) {
     .nc-ics-feed-row__action:active {
-        background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+        background: var(
+            --nc-bg-hover,
+            var(--background-modifier-hover)
+        ) !important;
     }
 }
 
@@ -3392,7 +3449,6 @@ body[class*="nc-theme-"] kbd {
 }
 
 @media (max-width: 620px) {
-
     .nc-settings__theme-detail {
         align-items: flex-start;
         flex-direction: column;
@@ -3453,21 +3509,22 @@ body[class*="nc-theme-"] kbd {
     border-radius: 10px;
     background: #303033;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-    transition:
-        border-color 140ms ease,
-        box-shadow 140ms ease,
+    transition: border-color 140ms ease, box-shadow 140ms ease,
         transform 140ms ease;
 }
 
 .nc-appearance-mode-card:hover .nc-appearance-mode-preview {
-    border-color: color-mix(in srgb, var(--nc-accent) 55%, var(--background-modifier-border));
+    border-color: color-mix(
+        in srgb,
+        var(--nc-accent) 55%,
+        var(--background-modifier-border)
+    );
     transform: translateY(-1px);
 }
 
 .nc-appearance-mode-card[aria-checked="true"] .nc-appearance-mode-preview {
     border-color: color-mix(in srgb, var(--nc-accent) 72%, white 12%);
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--nc-accent) 50%, transparent),
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--nc-accent) 50%, transparent),
         0 8px 22px rgba(0, 0, 0, 0.16);
 }
 
@@ -3543,7 +3600,9 @@ body[class*="nc-theme-"] kbd {
 }
 
 .nc-appearance-mode-card--dark .nc-appearance-mode-preview__window b,
-.nc-appearance-mode-card--system .nc-appearance-mode-preview__window b:nth-child(even) {
+.nc-appearance-mode-card--system
+    .nc-appearance-mode-preview__window
+    b:nth-child(even) {
     background: #858587;
 }
 
@@ -3587,7 +3646,10 @@ body.nc-appearance-light {
     --nc-text-faint: #9a9aa3;
     --nc-accent-text: #ffffff;
     --nc-wallpaper: linear-gradient(145deg, #e7e8ed, #f7f7f9);
-    --nc-wallpaper-overlay: linear-gradient(rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.34));
+    --nc-wallpaper-overlay: linear-gradient(
+        rgba(255, 255, 255, 0.34),
+        rgba(255, 255, 255, 0.34)
+    );
 }
 
 html.nc-appearance-light body,
@@ -3656,21 +3718,22 @@ body:not(.nc-platform-android) .nc-event-popup-backdrop {
 /* ── Bundled theme typography and editable per-theme values ─────────────── */
 html[class*="nc-theme-"],
 body[class*="nc-theme-"],
-body[class*="nc-theme-"] :where(
-    button,
-    input,
-    select,
-    textarea,
-    option,
-    .nc-layout,
-    .nc-settings,
-    .nc-event-panel,
-    .nc-add-calendar-dialog,
-    .nc-confirm-dialog,
-    .nc-shortcuts-panel,
-    .nc-cal-menu,
-    .nc-view-dropdown-menu
-) {
+body[class*="nc-theme-"]
+    :where(
+        button,
+        input,
+        select,
+        textarea,
+        option,
+        .nc-layout,
+        .nc-settings,
+        .nc-event-panel,
+        .nc-add-calendar-dialog,
+        .nc-confirm-dialog,
+        .nc-shortcuts-panel,
+        .nc-cal-menu,
+        .nc-view-dropdown-menu
+    ) {
     font-family: var(
         --nc-ui-font,
         "Inter Variable",
@@ -3870,7 +3933,8 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 
 .nc-theme-color-popover__presets button:hover {
     transform: translateY(-1px) scale(1.04);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 4px 10px rgba(0, 0, 0, 0.22) !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+        0 4px 10px rgba(0, 0, 0, 0.22) !important;
 }
 
 .nc-theme-color-popover__presets button[aria-pressed="true"] {
@@ -3941,7 +4005,11 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
 
 .nc-wallpaper-option[aria-selected="true"] {
     border-color: color-mix(in srgb, var(--nc-accent) 58%, transparent);
-    background: color-mix(in srgb, var(--nc-accent) 12%, transparent) !important;
+    background: color-mix(
+        in srgb,
+        var(--nc-accent) 12%,
+        transparent
+    ) !important;
 }
 
 /* Portrait crops of portrait photos: the thumbnail should look like what the
@@ -4219,7 +4287,7 @@ body.nc-platform-android .nc-wallpaper-option--all {
 /* === NEO WALLPAPER EFFECTS V8.2 START === */
 
 :root {
-    --nc-wallpaper-brightness: 0.70;
+    --nc-wallpaper-brightness: 0.7;
     --nc-wallpaper-blur: 5px;
     /* UNE seule opacite de conteneur pour toute l'application. La grille,
        l'en-tete, le titre du mois, la barre d'agenda et la barre unifiee
@@ -4229,7 +4297,7 @@ body.nc-platform-android .nc-wallpaper-option--all {
 
        Le ruban lateral est la SEULE exception, et il est plus dense a dessein :
        c'est une colonne de navigation, pas une surface de contenu. */
-    --nc-container-background: rgba(17, 17, 27, 0.40);
+    --nc-container-background: rgba(17, 17, 27, 0.4);
     --nc-grid-container-background: var(--nc-container-background);
     --nc-chrome-container-background: var(--nc-container-background);
     --nc-sidebar-container-background: rgba(17, 17, 27, 0.54);
@@ -4242,8 +4310,7 @@ body.nc-platform-android .nc-wallpaper-option--all {
 .nc-desktop--calendar {
     position: relative !important;
     isolation: isolate !important;
-    background-color:
-        var(--nc-bg-crust, var(--background-primary)) !important;
+    background-color: var(--nc-bg-crust, var(--background-primary)) !important;
     background-image: none !important;
 }
 
@@ -4254,36 +4321,23 @@ body.nc-platform-android .nc-wallpaper-option--all {
     inset: -32px;
     pointer-events: none;
 
-    background-color:
-        var(--nc-bg-crust, var(--background-primary));
+    background-color: var(--nc-bg-crust, var(--background-primary));
 
-    background-image:
-        var(
+    background-image: var(
             --nc-selected-wallpaper-overlay,
             var(
                 --nc-wallpaper-overlay,
-                linear-gradient(
-                    rgba(13, 15, 28, 0.10),
-                    rgba(13, 15, 28, 0.18)
-                )
+                linear-gradient(rgba(13, 15, 28, 0.1), rgba(13, 15, 28, 0.18))
             )
         ),
-        var(
-            --nc-selected-wallpaper,
-            var(--nc-wallpaper)
-        );
+        var(--nc-selected-wallpaper, var(--nc-wallpaper));
 
     background-position: center center;
     background-repeat: no-repeat;
     background-size: cover;
 
-    filter:
-        brightness(
-            var(--nc-wallpaper-brightness, 0.70)
-        )
-        blur(
-            var(--nc-wallpaper-blur, 5px)
-        );
+    filter: brightness(var(--nc-wallpaper-brightness, 0.7))
+        blur(var(--nc-wallpaper-blur, 5px));
 
     transform: scale(1.04);
     transform-origin: center;
@@ -4307,11 +4361,10 @@ body.nc-platform-android .nc-wallpaper-option--all {
    horizontale plus dense signalee par Ahmed. Une seule couche, aucun empilement
    possible, aucune couture entre deux surfaces voisines. */
 .nc-desktop--calendar .nc-main {
-    background:
-        var(
-            --nc-container-background,
-            rgba(17, 17, 27, 0.40)
-        ) !important;
+    background: var(
+        --nc-container-background,
+        rgba(17, 17, 27, 0.4)
+    ) !important;
     background-image: none !important;
 }
 
@@ -4334,11 +4387,10 @@ body.nc-platform-android .nc-wallpaper-option--all {
 
 .nc-desktop--calendar .nc-header,
 .nc-desktop--calendar .nc-mobile-agenda-bar {
-    background:
-        var(
-            --nc-chrome-container-background,
-            rgba(17, 17, 27, 0.40)
-        ) !important;
+    background: var(
+        --nc-chrome-container-background,
+        rgba(17, 17, 27, 0.4)
+    ) !important;
     background-image: none !important;
 }
 
@@ -4376,11 +4428,10 @@ body.nc-platform-android .nc-wallpaper-option--all {
 }
 
 .nc-desktop--calendar .nc-sidebar {
-    background:
-        var(
-            --nc-sidebar-container-background,
-            rgba(17, 17, 27, 0.54)
-        ) !important;
+    background: var(
+        --nc-sidebar-container-background,
+        rgba(17, 17, 27, 0.54)
+    ) !important;
     background-image: none !important;
 }
 
@@ -4442,9 +4493,14 @@ body.nc-platform-android .nc-wallpaper-option--all {
 .nc-set-group__rows {
     display: grid;
     overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--background-modifier-border) 70%, transparent);
+    border: 1px solid
+        color-mix(in srgb, var(--background-modifier-border) 70%, transparent);
     border-radius: 14px;
-    background: color-mix(in srgb, var(--background-secondary) 62%, transparent);
+    background: color-mix(
+        in srgb,
+        var(--background-secondary) 62%,
+        transparent
+    );
     backdrop-filter: blur(18px) saturate(1.06);
     -webkit-backdrop-filter: blur(18px) saturate(1.06);
 }
@@ -4463,7 +4519,11 @@ body.nc-platform-android .nc-wallpaper-option--all {
     right: 0;
     left: 16px;
     height: 1px;
-    background: color-mix(in srgb, var(--background-modifier-border) 52%, transparent);
+    background: color-mix(
+        in srgb,
+        var(--background-modifier-border) 52%,
+        transparent
+    );
 }
 
 .nc-set-row {
@@ -4982,6 +5042,94 @@ body.nc-platform-android .nc-wallpaper-option--all {
     color: var(--nc-accent);
 }
 
+/* Une ligne qui porte une note tient sur deux lignes de texte : elle dit à
+   quoi le réglage qu'elle propose est posé, ce qu'un nom seul ne peut pas
+   porter. Le `nowrap` des lignes simples ne vaut alors que pour le nom. */
+.nc-choice-option__label:has(.nc-choice-option__note) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    white-space: normal;
+}
+
+.nc-choice-option__note {
+    font-size: 13px;
+    color: var(--nc-text-secondary, var(--text-muted));
+}
+
+/* La durée personnalisée, sous la liste : un nombre, son unité, « avant ».
+   Elle prolonge la dernière ligne plutôt que d'ouvrir un second écran — le
+   choix se lit alors d'un seul coup d'œil avec les six autres. */
+.nc-reminder-custom {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 16px 8px 16px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 15px;
+}
+
+/* Le dialogue fait 322 px : nombre, trois unités et « avant » doivent tenir
+   dans les 290 qui restent, sinon le dernier mot passe seul à la ligne. */
+.nc-reminder-custom__amount {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 56px;
+    height: 32px;
+    padding: 0 8px;
+    font: inherit;
+    text-align: center;
+    color: var(--text-normal);
+    background-color: var(--background-modifier-form-field);
+    border: 1px solid var(--nc-border);
+    border-radius: 8px;
+    box-shadow: none !important;
+    outline: none;
+}
+
+.nc-reminder-custom__amount:focus {
+    border-color: var(--nc-accent);
+}
+
+.nc-reminder-custom__amount::-webkit-inner-spin-button,
+.nc-reminder-custom__amount::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.nc-reminder-custom__units {
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 10px;
+    background: var(--background-modifier-form-field);
+}
+
+.nc-reminder-custom__unit {
+    padding: 4px 8px;
+    border: 0;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.nc-reminder-custom__unit:hover {
+    background: var(--background-modifier-hover);
+}
+
+/* L'unité tenue pèse plus lourd que celle qu'on survole : une surface pleine
+   contre un simple fond de survol, sans quoi l'unité sous la souris se lirait
+   comme celle qui est choisie. */
+.nc-reminder-custom__unit[aria-pressed="true"] {
+    color: var(--text-on-accent, #fff);
+    background: var(--nc-accent);
+}
+
 @keyframes nc-choice-fade {
     from {
         opacity: 0;
@@ -5008,7 +5156,11 @@ body.nc-platform-android .nc-wallpaper-option--all {
     height: 26px;
     flex: 0 0 auto;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--background-modifier-border) 90%, transparent);
+    background: color-mix(
+        in srgb,
+        var(--background-modifier-border) 90%,
+        transparent
+    );
     transition: background 160ms ease;
 }
 
@@ -5095,8 +5247,7 @@ body:not(.nc-platform-android) .nc-settings--desktop {
        dans l'application empaquetee, donc les 8 % que 92 % laissait passer
        etaient huit pour cent de calendrier lisible en travers des reglages. */
     background: var(--nc-float-surface) !important;
-    box-shadow:
-        0 34px 96px rgba(0, 0, 0, 0.54),
+    box-shadow: 0 34px 96px rgba(0, 0, 0, 0.54),
         0 1px 0 color-mix(in srgb, var(--text-normal) 5%, transparent) inset;
     backdrop-filter: blur(28px) saturate(1.08);
     -webkit-backdrop-filter: blur(28px) saturate(1.08);
@@ -5118,8 +5269,13 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     flex-direction: column;
     padding: 18px 14px 14px;
     overflow: hidden;
-    border-right: 1px solid color-mix(in srgb, var(--background-modifier-border) 72%, transparent);
-    background: color-mix(in srgb, var(--background-secondary) 76%, transparent);
+    border-right: 1px solid
+        color-mix(in srgb, var(--background-modifier-border) 72%, transparent);
+    background: color-mix(
+        in srgb,
+        var(--background-secondary) 76%,
+        transparent
+    );
 }
 
 .nc-settings__search {
@@ -5130,14 +5286,23 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     align-items: center;
     gap: 9px;
     padding: 0 11px;
-    border: 1px solid color-mix(in srgb, var(--background-modifier-border) 86%, transparent);
+    border: 1px solid
+        color-mix(in srgb, var(--background-modifier-border) 86%, transparent);
     border-radius: 10px;
     color: var(--nc-text-faint, var(--text-faint));
-    background: color-mix(in srgb, var(--background-modifier-form-field) 70%, transparent);
+    background: color-mix(
+        in srgb,
+        var(--background-modifier-form-field) 70%,
+        transparent
+    );
 }
 
 .nc-settings__search:focus-within {
-    border-color: color-mix(in srgb, var(--nc-accent) 68%, var(--background-modifier-border));
+    border-color: color-mix(
+        in srgb,
+        var(--nc-accent) 68%,
+        var(--background-modifier-border)
+    );
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--nc-accent) 12%, transparent);
 }
 
@@ -5205,7 +5370,9 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     cursor: pointer;
 }
 
-.nc-settings__nav-item > svg { justify-self: center; }
+.nc-settings__nav-item > svg {
+    justify-self: center;
+}
 .nc-settings__nav-item > span {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -5226,7 +5393,11 @@ body:not(.nc-platform-android) .nc-settings--desktop {
 .nc-settings__nav-item[aria-current="page"] {
     border-color: color-mix(in srgb, var(--nc-accent) 14%, transparent);
     color: var(--text-normal);
-    background: color-mix(in srgb, var(--nc-accent) 12%, var(--background-modifier-hover));
+    background: color-mix(
+        in srgb,
+        var(--nc-accent) 12%,
+        var(--background-modifier-hover)
+    );
 }
 
 .nc-settings__nav-item[aria-current="page"]::before {
@@ -5271,7 +5442,8 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     justify-content: space-between;
     gap: 16px;
     padding: 16px 20px 15px 34px;
-    border-bottom: 1px solid color-mix(in srgb, var(--background-modifier-border) 52%, transparent);
+    border-bottom: 1px solid
+        color-mix(in srgb, var(--background-modifier-border) 52%, transparent);
 }
 
 .nc-settings__desktop-header h2 {
@@ -5345,19 +5517,36 @@ body:not(.nc-platform-android) .nc-settings--desktop {
 
 .nc-settings__desktop-page .nc-set-row--action:hover {
     padding-left: 8px;
-    background: color-mix(in srgb, var(--background-modifier-hover) 66%, transparent);
+    background: color-mix(
+        in srgb,
+        var(--background-modifier-hover) 66%,
+        transparent
+    );
 }
 
-.nc-settings__desktop-page .nc-set-version { display: none; }
+.nc-settings__desktop-page .nc-set-version {
+    display: none;
+}
 
 @keyframes nc-settings-desktop-page-in {
-    from { opacity: 0; transform: translateY(3px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @media (max-width: 1080px) {
-    .nc-settings__desktop-shell { grid-template-columns: 230px minmax(0, 1fr); }
-    .nc-settings__desktop-page { padding-right: 24px; padding-left: 24px; }
+    .nc-settings__desktop-shell {
+        grid-template-columns: 230px minmax(0, 1fr);
+    }
+    .nc-settings__desktop-page {
+        padding-right: 24px;
+        padding-left: 24px;
+    }
 }
 
 /* On a phone the panel is the screen: full height, no floating card, and the

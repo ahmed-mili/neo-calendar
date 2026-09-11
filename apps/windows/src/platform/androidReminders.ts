@@ -49,6 +49,24 @@ function offsetsFor(event: DisplayEvent, fallbackMinutes: number): number[] {
     return fallbackMinutes > 0 ? [fallbackMinutes] : [];
 }
 
+/**
+ * Combien de minutes avant, pour cet évènement.
+ *
+ * Trois réponses possibles, de la plus précise à la plus générale : celle que
+ * l'évènement porte lui-même, celle réglée sur son calendrier, celle réglée
+ * dans les Paramètres. Un calendrier absent de la table n'a rien dit : c'est
+ * le réglage de l'application qui répond, et non « aucun rappel » — sans quoi
+ * changer ce réglage ne déplacerait plus rien.
+ */
+function fallbackFor(
+    event: DisplayEvent,
+    minutesBefore: number,
+    minutesByCalendar: Record<string, number>
+): number {
+    const own = minutesByCalendar[event.calendarId];
+    return typeof own === "number" ? own : minutesBefore;
+}
+
 function bodyFor(
     offsetMinutes: number,
     start: Date,
@@ -119,15 +137,37 @@ function allDayReminderAt(start: Date, offsetMinutes: number): number {
     return +at;
 }
 
+/**
+ * Les délais réglés calendrier par calendrier, relus sous l'identifiant que
+ * les évènements portent.
+ *
+ * Les préférences les rangent sous le chemin du calendrier — c'est ce qui
+ * survit à un renommage, et c'est déjà la clé des couleurs et des mosquées.
+ * Un chemin qu'aucun calendrier ne porte est laissé de côté plutôt que gardé :
+ * il vient d'un dossier retiré depuis, et n'a plus d'évènement à régler.
+ */
+export function remindersByCalendarId(
+    calendars: readonly { id: string; relativePath: string }[],
+    minutesByPath: Record<string, number>
+): Record<string, number> {
+    const pairs = calendars
+        .filter((calendar) => calendar.relativePath in minutesByPath)
+        .map((calendar) => [calendar.id, minutesByPath[calendar.relativePath]]);
+    return Object.fromEntries(pairs);
+}
+
 export function buildReminders({
     events,
     now,
     minutesBefore,
+    minutesByCalendar = {},
     timeFormat24h,
 }: {
     events: readonly DisplayEvent[];
     now: Date;
     minutesBefore: number;
+    /** Par calendrier, le délai qui s'écarte de celui des Paramètres. */
+    minutesByCalendar?: Record<string, number>;
     timeFormat24h: boolean;
 }): Reminder[] {
     const horizon = new Date(now);
@@ -140,6 +180,11 @@ export function buildReminders({
             .flatMap((event) => {
                 const title = event.title || t("Untitled");
                 const details = detailsFor(event, timeFormat24h);
+                const fallback = fallbackFor(
+                    event,
+                    minutesBefore,
+                    minutesByCalendar
+                );
 
                 if (event.allDay) {
                     // An explicit list is the new all-day contract: every value
@@ -157,7 +202,7 @@ export function buildReminders({
                             details,
                         }));
                     }
-                    if (minutesBefore <= 0) return [];
+                    if (fallback <= 0) return [];
                     return [
                         {
                             id: event.id,
@@ -173,7 +218,7 @@ export function buildReminders({
                     ];
                 }
 
-                const offsets = offsetsFor(event, minutesBefore);
+                const offsets = offsetsFor(event, fallback);
                 if (offsets.length === 0) return [];
                 return offsets.map((offset) => ({
                     id: event.id,

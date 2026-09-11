@@ -593,3 +593,165 @@ describe("la barre du haut de la colonne", () => {
         }
     });
 });
+
+/*
+ * Ce que le menu d'un calendrier propose, calendrier par calendrier.
+ *
+ * Les horaires de prière ne veulent dire quelque chose que sur le calendrier
+ * qui porte ce sujet-là : ailleurs, l'entrée n'encombre plus le menu. Le
+ * rappel, lui, se règle sur n'importe lequel, là où se règle déjà sa couleur.
+ */
+describe("le menu d'un calendrier", () => {
+    const source = (id: string, name: string) => ({
+        id,
+        name,
+        color: "#4477aa",
+        editable: true,
+        type: "local" as const,
+    });
+
+    const baseProps = () => ({
+        sidebarVisible: true,
+        currentDate: new Date(2026, 8, 3),
+        viewType: "week" as const,
+        onViewTypeChange: () => {},
+        dayCount: 7,
+        onSetDayCount: () => {},
+        calendarSources: [],
+        firstDay: 1,
+        onDateSelect: () => {},
+        hiddenCalendars: new Set<string>(),
+        onToggleCalendar: () => {},
+        defaultCalendarId: "",
+        soloCalendarId: null,
+        onSetDefaultCalendar: () => {},
+        onShowOnly: () => {},
+        tasks: [],
+        today: "2026-09-03",
+        onEventClick: () => {},
+        onAddTask: () => {},
+        onToggleTask: async () => true,
+        onAddCalendar: () => {},
+        onRenameCalendar: async () => {},
+        onEditCalendarLink: () => {},
+        onDeleteCalendar: () => {},
+        onColorChange: () => {},
+        onReorderCalendars: () => {},
+        onOpenCalendarFolder: () => {},
+        onOpenRootFolder: () => {},
+        onCalendarClick: () => {},
+        selectedCalendarId: null,
+        onToggleSidebar: () => {},
+        onOpenSearch: () => {},
+        onOpenSettings: () => {},
+    });
+
+    /** Ouvre le menu du calendrier nommé, et rend ses entrées. */
+    const openMenu = (host: HTMLElement, name: string) => {
+        const row = Array.from(
+            host.querySelectorAll<HTMLElement>(".nc-calendar-item")
+        ).find((item) => item.textContent?.includes(name));
+        if (!row) throw new Error(`Calendrier absent de la colonne : ${name}`);
+        const trigger = Array.from(
+            row.querySelectorAll<HTMLButtonElement>(".nc-calendar-action-btn")
+        ).find(
+            (button) =>
+                button.getAttribute("data-nc-tooltip") === t("More options")
+        );
+        act(() => trigger?.click());
+        return Array.from(
+            document.querySelectorAll<HTMLButtonElement>(
+                '.nc-cal-menu [role="menuitem"]'
+            )
+        );
+    };
+
+    const mount = (extra: Record<string, unknown>) => {
+        applyLanguage("fr");
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        act(() => {
+            ReactDOM.render(
+                React.createElement(CalendarSidebar, {
+                    ...baseProps(),
+                    ...extra,
+                }),
+                host
+            );
+        });
+        return host;
+    };
+
+    const unmount = (host: HTMLElement) => {
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
+        host.remove();
+        document
+            .querySelectorAll(".nc-cal-menu, .nc-cal-menu-overlay")
+            .forEach((node) => node.remove());
+    };
+
+    const labels = (items: HTMLButtonElement[]) =>
+        items.map((item) => item.textContent ?? "");
+
+    it("n'offre les horaires de prière qu'au calendrier qui porte ce nom", () => {
+        const host = mount({
+            calendarSources: [
+                source("cours", "Cours"),
+                source("islam", "Islam"),
+                source("arabe", "الإسلام"),
+            ],
+            onManagePrayerTimes: () => {},
+        });
+        try {
+            expect(
+                labels(openMenu(host, "Cours")).some((label) =>
+                    label.includes(t("Prayer times"))
+                )
+            ).toBe(false);
+            for (const name of ["Islam", "الإسلام"]) {
+                expect(
+                    labels(openMenu(host, name)).some((label) =>
+                        label.includes(t("Prayer times"))
+                    )
+                ).toBe(true);
+            }
+        } finally {
+            unmount(host);
+        }
+    });
+
+    it("ouvre le rappel d'un calendrier depuis son menu", () => {
+        const onManageReminder = jest.fn();
+        const host = mount({
+            calendarSources: [source("cours", "Cours")],
+            onManageReminder,
+        });
+        try {
+            const entry = openMenu(host, "Cours").find((item) =>
+                item.textContent?.includes(t("Reminder"))
+            );
+            expect(entry).toBeTruthy();
+            act(() => entry?.click());
+            expect(onManageReminder).toHaveBeenCalledWith("cours");
+        } finally {
+            unmount(host);
+        }
+    });
+
+    /* Une surface qui n'a pas où l'enregistrer — le plugin Obsidian — laisse
+       l'entrée de côté plutôt que d'offrir un clic sans effet. */
+    it("laisse le rappel de côté quand la surface ne sait pas l'enregistrer", () => {
+        const host = mount({ calendarSources: [source("cours", "Cours")] });
+        try {
+            expect(
+                labels(openMenu(host, "Cours")).some((label) =>
+                    label.includes(t("Reminder"))
+                )
+            ).toBe(false);
+        } finally {
+            unmount(host);
+        }
+    });
+});
