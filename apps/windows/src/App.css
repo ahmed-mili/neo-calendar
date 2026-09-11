@@ -5213,10 +5213,14 @@ body.nc-platform-android .nc-wallpaper-option--all {
 .nc-cal-menu-delay__part:hover input,
 .nc-cal-menu-delay__part:focus-within input,
 .nc-cal-menu-delay__part:hover input::placeholder,
-.nc-cal-menu-delay__part:focus-within input::placeholder,
 .nc-cal-menu-delay__part:hover span,
 .nc-cal-menu-delay__part:focus-within span {
     color: var(--text-normal);
+}
+
+/* En saisie, le 0 suggéré s'efface : la place est au nombre qu'on tape. */
+.nc-cal-menu-delay__part input:focus::placeholder {
+    color: transparent;
 }
 
 .nc-cal-menu-delay__suffix {
