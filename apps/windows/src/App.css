@@ -5173,11 +5173,6 @@ body.nc-platform-android .nc-wallpaper-option--all {
     border-left: 1px solid var(--delay-line);
 }
 
-.nc-cal-menu-delay__part:hover,
-.nc-cal-menu-delay__part:focus-within {
-    background: var(--nc-hover-tint);
-}
-
 .nc-cal-menu-delay__part input {
     appearance: none;
     -webkit-appearance: none;
@@ -5197,6 +5192,7 @@ body.nc-platform-android .nc-wallpaper-option--all {
 
 .nc-cal-menu-delay__part input::placeholder {
     color: var(--nc-text-faint, var(--text-faint));
+    transition: color var(--nc-transition-fast, 120ms);
 }
 
 .nc-cal-menu-delay__part input::-webkit-inner-spin-button,
@@ -5212,10 +5208,15 @@ body.nc-platform-android .nc-wallpaper-option--all {
     transition: color var(--nc-transition-fast, 120ms);
 }
 
-/* L'unité s'allume dès que sa zone est survolée ou en cours de saisie. */
+/* Au survol comme en saisie, rien ne bouge : le nombre et son unité passent
+   simplement en clair. */
+.nc-cal-menu-delay__part:hover input,
+.nc-cal-menu-delay__part:focus-within input,
+.nc-cal-menu-delay__part:hover input::placeholder,
+.nc-cal-menu-delay__part:focus-within input::placeholder,
 .nc-cal-menu-delay__part:hover span,
 .nc-cal-menu-delay__part:focus-within span {
-    color: var(--nc-accent, var(--interactive-accent));
+    color: var(--text-normal);
 }
 
 .nc-cal-menu-delay__suffix {
