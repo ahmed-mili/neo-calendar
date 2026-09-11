@@ -109,6 +109,7 @@ const FR: Record<string, string> = {
     "Remove reminder": "Retirer le rappel",
     "At start of event": "Au début de l'événement",
     "App setting": "Réglage de l'application",
+    Add: "Ajouter",
     Unit: "Unité",
     minute: "minute",
     minutes: "minutes",

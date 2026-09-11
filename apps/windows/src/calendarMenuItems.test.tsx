@@ -121,15 +121,24 @@ describe("buildCalendarMenuItems", () => {
             ReactDOM.render(<>{custom.trailing}</>, host);
         });
         const amount = host.querySelector<HTMLInputElement>("input")!;
+        // Pas de coche tant que rien n'est écrit ; elle apparaît avec le
+        // premier chiffre, et valide comme Entrée.
+        expect(host.querySelector("button")).toBeNull();
         act(() => {
             amount.value = "45";
-            Simulate.keyDown(amount, { key: "Enter" });
+            Simulate.change(amount);
+        });
+        const ok = host.querySelector<HTMLButtonElement>("button")!;
+        expect(ok).not.toBeNull();
+        act(() => {
+            ok.click();
         });
         expect(ctx.setCalendarReminder).toHaveBeenLastCalledWith(
             "Études",
             [45, 120]
         );
         expect(amount.value).toBe("");
+        expect(host.querySelector("button")).toBeNull();
         act(() => {
             ReactDOM.unmountComponentAtNode(host);
         });

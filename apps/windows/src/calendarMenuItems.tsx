@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { CalendarMenuItem } from "../../../src/ui/calendar/CalendarItemMenu";
 import { BellIcon, ClockIcon } from "../../../src/ui/calendar/EventPanelIcons";
-import { LinkIcon } from "../../../src/ui/calendar/Icons";
+import { CheckIcon, LinkIcon } from "../../../src/ui/calendar/Icons";
 import { isPrayerCalendarName } from "../../../src/ui/calendar/prayerCalendarName";
 import { reminderDelayLabel } from "../../../src/ui/calendar/reminderDelay";
 import { t } from "../../../src/ui/i18n";
@@ -91,34 +91,56 @@ function reminderSubmenu(
                 onClick: () => undefined,
                 // Un nombre de minutes, et rien d'autre : Entrée l'ajoute à
                 // la liste, puis le champ se vide pour le suivant.
-                trailing: (
-                    <label className="nc-cal-menu-minutes">
-                        <input
-                            type="number"
-                            min={1}
-                            max={MAX_REMINDER_MINUTES}
-                            aria-label={t("Custom")}
-                            // Un nombre qui ne ressemble à aucun réglage : le
-                            // délai de l'app en gris se lisait comme une valeur.
-                            placeholder="67"
-                            onKeyDown={(event) => {
-                                if (event.key !== "Enter") return;
-                                const input = event.currentTarget;
-                                const minutes = Math.floor(Number(input.value));
-                                if (minutes >= 1) {
-                                    toggle(
-                                        Math.min(MAX_REMINDER_MINUTES, minutes)
-                                    );
-                                    input.value = "";
-                                }
-                            }}
-                        />
-                        min
-                    </label>
-                ),
+                trailing: <CustomMinutesField onAdd={toggle} />,
             },
         ],
     };
+}
+
+/**
+ * Le nombre de minutes en bout de la ligne « Personnalisé ». Dès qu'on écrit,
+ * une coche apparaît à droite : Entrée valide aussi, mais rien ne le dit, et
+ * un champ sans bouton laisse croire qu'il n'y a pas de sortie.
+ */
+function CustomMinutesField({ onAdd }: { onAdd: (minutes: number) => void }) {
+    const [value, setValue] = React.useState("");
+    const submit = () => {
+        const minutes = Math.floor(Number(value));
+        if (minutes >= 1) {
+            onAdd(Math.min(MAX_REMINDER_MINUTES, minutes));
+            setValue("");
+        }
+    };
+    return (
+        <span className="nc-cal-menu-minutes">
+            <input
+                type="number"
+                min={1}
+                max={MAX_REMINDER_MINUTES}
+                aria-label={t("Custom")}
+                // Un nombre qui ne ressemble à aucun réglage : le délai de
+                // l'app en gris se lisait comme une valeur.
+                placeholder="67"
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+                onKeyDown={(event) => {
+                    if (event.key === "Enter") submit();
+                }}
+            />
+            min
+            {value !== "" && (
+                <button
+                    type="button"
+                    className="nc-cal-menu-minutes__ok"
+                    aria-label={t("Add")}
+                    data-nc-tooltip={t("Add")}
+                    onClick={submit}
+                >
+                    <CheckIcon size={14} />
+                </button>
+            )}
+        </span>
+    );
 }
 
 /**

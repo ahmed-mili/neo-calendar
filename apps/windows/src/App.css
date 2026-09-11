@@ -5101,6 +5101,21 @@ body.nc-platform-android .nc-wallpaper-option--all {
     border-color: var(--nc-accent);
 }
 
+/* La coche de validation, à droite, dès qu'un nombre est écrit. */
+.nc-cal-menu-minutes__ok {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-left: 2px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--nc-accent);
+    color: var(--text-on-accent, #fff);
+    cursor: pointer;
+}
+
 .nc-cal-menu-minutes input::-webkit-inner-spin-button,
 .nc-cal-menu-minutes input::-webkit-outer-spin-button {
     -webkit-appearance: none;
