@@ -88,9 +88,11 @@ import type {
 import { prayerLinesFor } from "../../../src/ui/calendar/prayerTimes";
 import { prayerTimetableById } from "../../../src/ui/calendar/prayerTimetables";
 import { isPrayerCalendarName } from "../../../src/ui/calendar/prayerCalendarName";
-import { BellIcon, ClockIcon } from "../../../src/ui/calendar/EventPanelIcons";
-import { LinkIcon } from "../../../src/ui/calendar/Icons";
 import type { PanelDropTarget } from "../../../src/ui/calendar/usePanelDrag";
+import {
+    buildCalendarMenuItems,
+    CalendarMenuContext,
+} from "./calendarMenuItems";
 import {
     CopyIcon,
     DuplicateIcon,
@@ -3506,6 +3508,44 @@ export default function DesktopCalendar({
     );
     updatePreferencesRef.current = updateWorkspacePreferences;
 
+    /* Ce que le menu d'un calendrier propose en plus, construit ici parce que
+       c'est ici que vivent les préférences et les dialogues. */
+    const setCalendarReminder = useCallback(
+        (relativePath: string, minutes: number | null) => {
+            // Retirer l'entrée plutôt que d'y recopier le réglage de
+            // l'application : figer une copie ferait cesser ce calendrier de
+            // le suivre le jour où il change.
+            const next = { ...preferences.calendarReminderMinutes };
+            if (minutes === null) delete next[relativePath];
+            else next[relativePath] = minutes;
+            void updateWorkspacePreferences({ calendarReminderMinutes: next });
+        },
+        [preferences.calendarReminderMinutes, updateWorkspacePreferences]
+    );
+    const menuContext = useMemo(
+        (): CalendarMenuContext => ({
+            calendars,
+            reminderMinutes: preferences.reminderMinutes,
+            calendarReminderMinutes: preferences.calendarReminderMinutes,
+            onPhone: isAndroid,
+            setCalendarReminder,
+            openReminderDialog: setReminderDialogCalendarId,
+            openIcsFeeds: setIcsFeedsPanelCalendarId,
+            openPrayerTimes: setPrayerDialogCalendarId,
+        }),
+        [
+            calendars,
+            isAndroid,
+            preferences.calendarReminderMinutes,
+            preferences.reminderMinutes,
+            setCalendarReminder,
+        ]
+    );
+    const extraMenuItems = useCallback(
+        (calendarId: string) => buildCalendarMenuItems(menuContext, calendarId),
+        [menuContext]
+    );
+
     /*
      * Hand the reminders to the phone.
      *
@@ -4171,35 +4211,7 @@ export default function DesktopCalendar({
                             );
                         }
                     }}
-                    extraMenuItems={(calendarId: string) => [
-                        {
-                            key: "reminder",
-                            label: t("Reminder"),
-                            icon: <BellIcon />,
-                            onClick: () =>
-                                setReminderDialogCalendarId(calendarId),
-                        },
-                        {
-                            key: "ics-feeds",
-                            label: t("ICS links"),
-                            icon: <LinkIcon />,
-                            onClick: () =>
-                                setIcsFeedsPanelCalendarId(calendarId),
-                        },
-                        ...(isPrayerCalendarName(
-                            calendarById.get(calendarId)?.name
-                        )
-                            ? [
-                                  {
-                                      key: "prayer-times",
-                                      label: t("Prayer times"),
-                                      icon: <ClockIcon />,
-                                      onClick: () =>
-                                          setPrayerDialogCalendarId(calendarId),
-                                  },
-                              ]
-                            : []),
-                    ]}
+                    extraMenuItems={extraMenuItems}
                     panelIcsFeeds={panelIcsFeeds}
                     onDeleteCalendar={(calendarId: string) =>
                         void removeCalendar(calendarId)
@@ -4559,17 +4571,7 @@ export default function DesktopCalendar({
                             reminderDialogCalendarId
                         )?.relativePath;
                         if (!path) return;
-                        // Retirer l'entree plutot que d'y recopier le reglage
-                        // de l'application : figer une copie ferait cesser ce
-                        // calendrier de le suivre le jour ou il change.
-                        const next = {
-                            ...preferences.calendarReminderMinutes,
-                        };
-                        if (minutes === null) delete next[path];
-                        else next[path] = minutes;
-                        void updateWorkspacePreferences({
-                            calendarReminderMinutes: next,
-                        });
+                        setCalendarReminder(path, minutes);
                     }}
                     onClose={() => setReminderDialogCalendarId(null)}
                 />
