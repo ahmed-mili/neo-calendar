@@ -123,6 +123,9 @@ interface EventPanelProps {
         type: CalendarInfo["type"];
     }[];
     defaultCalendarId: string;
+    /** Calendriers masques dans la liste laterale : ils sortent aussi du
+        selecteur de calendrier, sauf celui qui porte l'evenement ouvert. */
+    hiddenCalendarIds?: Set<string>;
     onClose: () => void;
     onDraftCommit: (
         title: string,
@@ -278,6 +281,7 @@ export default function EventPanel({
     cache,
     calendars,
     defaultCalendarId,
+    hiddenCalendarIds,
     onClose,
     onDraftCommit,
     onOpenFile,
@@ -353,12 +357,20 @@ export default function EventPanel({
     const stableCalInfo =
         calInfo.editable || !sameEvent ? calInfo : lastCalInfoRef.current.info;
 
+    // Masquer un calendrier le retire de la liste laterale ET du selecteur :
+    // proposer une destination invisible ferait disparaitre l'evenement des
+    // sa creation. Le calendrier de l'evenement ouvert reste listé, sinon la
+    // ligne afficherait un calendrier qui n'est pas le sien.
+    const currentCalendarId = stableCalInfo.currentId;
     const editableCalendars = useMemo(
         () =>
             calendars.filter(
-                (cal) => cal.type === "local" || cal.type === "dailynote"
+                (cal) =>
+                    (cal.type === "local" || cal.type === "dailynote") &&
+                    (!hiddenCalendarIds?.has(cal.id) ||
+                        cal.id === currentCalendarId)
             ),
-        [calendars]
+        [calendars, hiddenCalendarIds, currentCalendarId]
     );
 
     const form = useEventFormState({

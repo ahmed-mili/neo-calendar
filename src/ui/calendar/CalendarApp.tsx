@@ -1575,6 +1575,7 @@ function CalendarAppInner(props: CalendarAppProps) {
                         type: s.type as import("../../types").CalendarInfo["type"],
                     }))}
                     defaultCalendarId={defaultCalendarId}
+                    hiddenCalendarIds={hiddenCalendars}
                     onClose={() => {
                         setPanelEventId(null);
                         setPanelAnchor(null);
