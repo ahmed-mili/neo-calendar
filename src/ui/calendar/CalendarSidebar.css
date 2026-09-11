@@ -479,6 +479,10 @@
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
 }
 
 .nc-cal-menu-danger {
@@ -487,6 +491,71 @@
 
 .nc-cal-menu-danger .nc-cal-menu-icon {
     color: var(--nc-error, var(--text-error));
+}
+
+/* Un sous-menu se pose à droite de sa ligne, première ligne alignée sur elle,
+   et touche le panneau parent de 3 px : c'est ce recouvrement qui permet à la
+   souris de passer de l'un à l'autre sans traverser de vide. Même grammaire
+   que le menu d'application Windows. */
+.nc-cal-menu--sub {
+    z-index: 10002;
+}
+
+.nc-cal-menu-item:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.nc-cal-menu-item:disabled:hover {
+    background: transparent !important;
+}
+
+/* Ouvert pèse plus lourd que survolé : la ligne dont le sous-menu est
+   ouvert reste dessinée comme telle quand la souris est dans le sous-menu. */
+.nc-cal-menu-item--open,
+.nc-cal-menu-item--open:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
+}
+
+.nc-cal-menu-note {
+    font-size: 11px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nc-cal-menu-value {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--nc-text-secondary, var(--text-muted));
+}
+
+.nc-cal-menu-check,
+.nc-cal-menu-chevron {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
+    color: var(--nc-text-secondary, var(--text-muted));
+}
+
+.nc-cal-menu-check {
+    color: var(--nc-accent, var(--interactive-accent));
+}
+
+/* La coche prend la place du chevron ; quand les deux sont là, le chevron
+   seul reste calé au bord. */
+.nc-cal-menu-check + .nc-cal-menu-chevron {
+    margin-left: 6px;
+}
+
+/* Un bloc libre en fin de sous-menu (le champ personnalisé du rappel) : un
+   filet au-dessus le sépare des lignes, et il garde leur retrait. */
+.nc-cal-menu-content {
+    margin-top: 3px;
+    padding: 6px 10px 4px;
+    border-top: 1px solid var(--nc-border, var(--background-modifier-border));
 }
 
 .nc-calendar-action-btn {
