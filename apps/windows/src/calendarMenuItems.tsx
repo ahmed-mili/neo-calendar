@@ -5,19 +5,24 @@ import { LinkIcon } from "../../../src/ui/calendar/Icons";
 import { isPrayerCalendarName } from "../../../src/ui/calendar/prayerCalendarName";
 import { reminderDelayLabel } from "../../../src/ui/calendar/reminderDelay";
 import { t } from "../../../src/ui/i18n";
-import { REMINDER_CHOICES } from "./platform/desktopWorkspacePreferences";
-import ReminderCustomField from "./ReminderCustomField";
+import {
+    MAX_REMINDER_MINUTES,
+    REMINDER_CHOICES,
+} from "./platform/desktopWorkspacePreferences";
 
 export interface CalendarMenuContext {
     calendars: readonly { id: string; name: string; relativePath: string }[];
     /** Le rappel des Paramètres, celui de tous les calendriers qui n'ont rien dit. */
     reminderMinutes: number;
     /** Par chemin de calendrier, le délai qui s'en écarte. */
-    calendarReminderMinutes: Record<string, number>;
+    calendarReminderMinutes: Record<string, number[]>;
     /** Vrai sur téléphone : pas de survol, les dialogues restent. */
     onPhone: boolean;
     /** `null` retire l'entrée : le calendrier suit de nouveau l'application. */
-    setCalendarReminder: (relativePath: string, minutes: number | null) => void;
+    setCalendarReminder: (
+        relativePath: string,
+        minutes: number[] | null
+    ) => void;
     openReminderDialog: (calendarId: string) => void;
     openIcsFeeds: (calendarId: string) => void;
     openPrayerTimes: (calendarId: string) => void;
@@ -25,17 +30,29 @@ export interface CalendarMenuContext {
 
 /**
  * Le sous-menu Rappel : la même liste que le dialogue, la coche sur le choix
- * courant, et le champ personnalisé en bloc libre à la fin. Choisir une ligne
- * écrit et referme ; écrire dans le champ écrit et laisse ouvert.
+ * courant, et un nombre de minutes au bout de la ligne Personnalisé. Choisir
+ * une ligne écrit et referme ; écrire dans le champ écrit et laisse ouvert.
  */
 function reminderSubmenu(
     context: CalendarMenuContext,
     relativePath: string
-): Pick<CalendarMenuItem, "children" | "content"> {
+): Pick<CalendarMenuItem, "children"> {
     const current = context.calendarReminderMinutes[relativePath] ?? null;
-    const isCustom = current !== null && !REMINDER_CHOICES.includes(current);
-    const set = (minutes: number | null) =>
+    const set = (minutes: number[] | null) =>
         context.setCalendarReminder(relativePath, minutes);
+    /* Cocher ou décocher une valeur : la liste reste triée et sans doublon. */
+    const toggle = (minutes: number) => {
+        const list = current ?? [];
+        const next = list.includes(minutes)
+            ? list.filter((value) => value !== minutes)
+            : [...list, minutes].sort((a, b) => a - b);
+        set(next);
+    };
+    /* Les délais cochés que la liste ne propose pas : écrits au champ, ils
+       ont leur ligne pour pouvoir être décochés. */
+    const extras = (current ?? []).filter(
+        (minutes) => !REMINDER_CHOICES.includes(minutes)
+    );
     return {
         children: [
             {
@@ -45,30 +62,60 @@ function reminderSubmenu(
                 checked: current === null,
                 onClick: () => set(null),
             },
-            ...REMINDER_CHOICES.map((preset) => ({
-                key: String(preset),
-                label: reminderDelayLabel(preset),
-                checked: current === preset,
-                onClick: () => set(preset),
+            {
+                key: "none",
+                label: t("No reminder"),
+                checked: current !== null && current.length === 0,
+                onClick: () => set([]),
+            },
+            ...REMINDER_CHOICES.filter((preset) => preset > 0).map(
+                (preset) => ({
+                    key: String(preset),
+                    label: reminderDelayLabel(preset),
+                    checked: current?.includes(preset) ?? false,
+                    keepOpen: true,
+                    onClick: () => toggle(preset),
+                })
+            ),
+            ...extras.map((minutes) => ({
+                key: `extra-${minutes}`,
+                label: reminderDelayLabel(minutes),
+                checked: true,
+                keepOpen: true,
+                onClick: () => toggle(minutes),
             })),
             {
                 key: "custom",
                 label: t("Custom"),
-                checked: isCustom,
                 keepOpen: true,
                 onClick: () => undefined,
+                // Un nombre de minutes, et rien d'autre : Entrée l'ajoute à
+                // la liste, puis le champ se vide pour le suivant.
+                trailing: (
+                    <label className="nc-cal-menu-minutes">
+                        <input
+                            type="number"
+                            min={1}
+                            max={MAX_REMINDER_MINUTES}
+                            aria-label={t("Custom")}
+                            placeholder={String(context.reminderMinutes)}
+                            onKeyDown={(event) => {
+                                if (event.key !== "Enter") return;
+                                const input = event.currentTarget;
+                                const minutes = Math.floor(Number(input.value));
+                                if (minutes >= 1) {
+                                    toggle(
+                                        Math.min(MAX_REMINDER_MINUTES, minutes)
+                                    );
+                                    input.value = "";
+                                }
+                            }}
+                        />
+                        min
+                    </label>
+                ),
             },
         ],
-        content: (
-            <ReminderCustomField
-                // La clé force un champ neuf quand le calendrier ou sa valeur
-                // change de l'extérieur : le brouillon repart de la valeur lue.
-                key={`${relativePath}:${current ?? "inherit"}`}
-                minutes={current}
-                fallbackMinutes={context.reminderMinutes}
-                onChange={(minutes) => set(minutes)}
-            />
-        ),
     };
 }
 

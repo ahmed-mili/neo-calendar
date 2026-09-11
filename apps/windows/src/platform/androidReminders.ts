@@ -44,9 +44,9 @@ const DESCRIPTION_LIMIT = 200;
  * law: an event carrying its own list is announced on its own terms, and an
  * event carrying an empty one has asked for silence.
  */
-function offsetsFor(event: DisplayEvent, fallbackMinutes: number): number[] {
+function offsetsFor(event: DisplayEvent, fallback: number[]): number[] {
     if (event.reminders) return event.reminders;
-    return fallbackMinutes > 0 ? [fallbackMinutes] : [];
+    return fallback;
 }
 
 /**
@@ -61,10 +61,11 @@ function offsetsFor(event: DisplayEvent, fallbackMinutes: number): number[] {
 function fallbackFor(
     event: DisplayEvent,
     minutesBefore: number,
-    minutesByCalendar: Record<string, number>
-): number {
+    minutesByCalendar: Record<string, number[]>
+): number[] {
     const own = minutesByCalendar[event.calendarId];
-    return typeof own === "number" ? own : minutesBefore;
+    if (own) return own;
+    return minutesBefore > 0 ? [minutesBefore] : [];
 }
 
 function bodyFor(
@@ -148,8 +149,8 @@ function allDayReminderAt(start: Date, offsetMinutes: number): number {
  */
 export function remindersByCalendarId(
     calendars: readonly { id: string; relativePath: string }[],
-    minutesByPath: Record<string, number>
-): Record<string, number> {
+    minutesByPath: Record<string, number[]>
+): Record<string, number[]> {
     const pairs = calendars
         .filter((calendar) => calendar.relativePath in minutesByPath)
         .map((calendar) => [calendar.id, minutesByPath[calendar.relativePath]]);
@@ -167,7 +168,7 @@ export function buildReminders({
     now: Date;
     minutesBefore: number;
     /** Par calendrier, le délai qui s'écarte de celui des Paramètres. */
-    minutesByCalendar?: Record<string, number>;
+    minutesByCalendar?: Record<string, number[]>;
     timeFormat24h: boolean;
 }): Reminder[] {
     const horizon = new Date(now);
@@ -202,7 +203,7 @@ export function buildReminders({
                             details,
                         }));
                     }
-                    if (fallback <= 0) return [];
+                    if (fallback.length === 0) return [];
                     return [
                         {
                             id: event.id,

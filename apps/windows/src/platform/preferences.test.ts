@@ -186,9 +186,17 @@ describe("a calendar's own reminder", () => {
     it("keeps a delay written for a calendar, custom values included", () => {
         expect(
             parseDesktopWorkspacePreferences({
+                calendarReminderMinutes: { Cours: [45, 5], Islam: [] },
+            }).calendarReminderMinutes
+        ).toEqual({ Cours: [5, 45], Islam: [] });
+    });
+
+    it("relit un nombre seul, ecrit par la 1.75.0, comme une liste d'un", () => {
+        expect(
+            parseDesktopWorkspacePreferences({
                 calendarReminderMinutes: { Cours: 45, Islam: 0 },
             }).calendarReminderMinutes
-        ).toEqual({ Cours: 45, Islam: 0 });
+        ).toEqual({ Cours: [45], Islam: [] });
     });
 
     it("refuses anything that is not a whole number of minutes in range", () => {
@@ -202,30 +210,31 @@ describe("a calendar's own reminder", () => {
                     a: "30",
                     b: -5,
                     c: 12.5,
-                    d: 40321,
-                    e: 40320,
+                    d: [40321],
+                    e: [40320, 40320],
+                    f: [10, "x"],
                 },
             }).calendarReminderMinutes
-        ).toEqual({ e: 40320 });
+        ).toEqual({ e: [40320] });
     });
 
     it("lets the file win over what was already in hand, calendar by calendar", () => {
         const merged = reconcileWorkspacePreferences({
             previous: {
                 ...defaultDesktopWorkspacePreferences(),
-                calendarReminderMinutes: { ancien: 5, commun: 10 },
+                calendarReminderMinutes: { ancien: [5], commun: [10] },
             },
             loaded: {
                 ...defaultDesktopWorkspacePreferences(),
-                calendarReminderMinutes: { commun: 30, nouveau: 45 },
+                calendarReminderMinutes: { commun: [30], nouveau: [45] },
             },
             fileExisted: true,
         });
 
         expect(merged.calendarReminderMinutes).toEqual({
-            ancien: 5,
-            commun: 30,
-            nouveau: 45,
+            ancien: [5],
+            commun: [30],
+            nouveau: [45],
         });
     });
 });

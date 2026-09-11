@@ -51,7 +51,7 @@ export interface DesktopWorkspacePreferences {
      * rappel » : sans ça, changer le réglage général ne déplacerait plus rien.
      * Clé : le chemin du calendrier, comme pour les couleurs juste au-dessus.
      */
-    calendarReminderMinutes: Record<string, number>;
+    calendarReminderMinutes: Record<string, number[]>;
     /**
      * Comment on compte se rendre au lieu d'un évènement.
      *
@@ -468,16 +468,28 @@ function prayerColorsOf(source: unknown): Record<string, string> {
     return Object.fromEntries(pairs);
 }
 
-/** Des paires « chemin de calendrier → délai ». Une entrée illisible est
- *  retirée plutôt que ramenée à zéro : elle doit retomber sur le réglage de
- *  l'application, et non éteindre les rappels de ce calendrier. */
-function calendarRemindersOf(source: unknown): Record<string, number> {
+/** Des paires « chemin de calendrier → délais ». Une liste vide veut dire
+ *  « aucun rappel » ; une entrée illisible est retirée plutôt que vidée, pour
+ *  retomber sur le réglage de l'application et non éteindre ce calendrier.
+ *  Un nombre seul est lu comme une liste d'un : c'est ce que la 1.75.0
+ *  écrivait, et zéro y voulait dire « aucun ». */
+export function reminderListOf(value: unknown): number[] | null {
+    if (isReminderMinutes(value)) return value === 0 ? [] : [value];
+    if (!Array.isArray(value) || !value.every(isReminderMinutes)) return null;
+    return Array.from(new Set(value.filter((minutes) => minutes > 0))).sort(
+        (a, b) => a - b
+    );
+}
+
+function calendarRemindersOf(source: unknown): Record<string, number[]> {
     if (!source || typeof source !== "object" || Array.isArray(source)) {
         return {};
     }
-    const pairs = Object.entries(source as Record<string, unknown>).filter(
-        (pair): pair is [string, number] => isReminderMinutes(pair[1])
-    );
+    const pairs = Object.entries(source as Record<string, unknown>)
+        .map(([path, value]) => [path, reminderListOf(value)] as const)
+        .filter(
+            (pair): pair is readonly [string, number[]] => pair[1] !== null
+        );
     return Object.fromEntries(pairs);
 }
 

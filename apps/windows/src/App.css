@@ -5070,11 +5070,41 @@ body.nc-platform-android .nc-wallpaper-option--all {
     font-size: 15px;
 }
 
-/* Dans le sous-menu du calendrier, la ligne impose sa largeur au menu (qui
-   s'étire jusqu'à 320 px) plutôt que de replier « avant » sous le champ. */
-.nc-cal-menu-content .nc-reminder-custom {
-    flex-wrap: nowrap;
-    padding: 0;
+/* Le nombre de minutes au bout de la ligne « Personnalisé » du sous-menu. */
+.nc-cal-menu-minutes {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 12px;
+    font-size: 12px;
+    color: var(--nc-text-secondary, var(--text-muted));
+}
+
+.nc-cal-menu-minutes input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 48px;
+    height: 24px;
+    padding: 0 6px;
+    font: inherit;
+    font-size: 12px;
+    text-align: center;
+    color: var(--text-normal);
+    background: var(--background-modifier-form-field);
+    border: 1px solid var(--nc-border);
+    border-radius: 6px;
+    box-shadow: none !important;
+    outline: none;
+}
+
+.nc-cal-menu-minutes input:focus {
+    border-color: var(--nc-accent);
+}
+
+.nc-cal-menu-minutes input::-webkit-inner-spin-button,
+.nc-cal-menu-minutes input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 /* Le dialogue fait 322 px : nombre, trois unités et « avant » doivent tenir

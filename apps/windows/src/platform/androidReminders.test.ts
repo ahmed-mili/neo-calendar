@@ -376,7 +376,7 @@ describe("what a reminder says", () => {
 describe("le rappel propre a un calendrier", () => {
     const buildWith = (
         events: DisplayEvent[],
-        minutesByCalendar: Record<string, number>,
+        minutesByCalendar: Record<string, number[]>,
         minutesBefore = 10
     ) =>
         buildReminders({
@@ -390,7 +390,7 @@ describe("le rappel propre a un calendrier", () => {
     it("prend le pas sur le reglage de l'application", () => {
         const [reminder] = buildWith(
             [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
-            { cal: 45 }
+            { cal: [45] }
         );
 
         expect(reminder.atMs).toBe(+new Date("2026-08-07T13:15:00"));
@@ -400,7 +400,7 @@ describe("le rappel propre a un calendrier", () => {
     it("laisse repondre le reglage de l'application pour un autre calendrier", () => {
         const [reminder] = buildWith(
             [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
-            { autre: 45 }
+            { autre: [45] }
         );
 
         expect(reminder.atMs).toBe(+new Date("2026-08-07T13:50:00"));
@@ -410,7 +410,7 @@ describe("le rappel propre a un calendrier", () => {
         expect(
             buildWith(
                 [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
-                { cal: 0 }
+                { cal: [] }
             )
         ).toEqual([]);
     });
@@ -418,7 +418,7 @@ describe("le rappel propre a un calendrier", () => {
     it("parle pour un calendrier regle alors que l'application se tait", () => {
         const [reminder] = buildWith(
             [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
-            { cal: 30 },
+            { cal: [30] },
             0
         );
 
@@ -432,7 +432,7 @@ describe("le rappel propre a un calendrier", () => {
                     reminders: [5],
                 }),
             ],
-            { cal: 45 }
+            { cal: [45] }
         );
 
         expect(reminder.atMs).toBe(+new Date("2026-08-07T13:55:00"));
@@ -451,7 +451,7 @@ describe("le rappel propre a un calendrier", () => {
                         }
                     ),
                 ],
-                { cal: 0 }
+                { cal: [] }
             )
         ).toEqual([]);
     });
@@ -469,18 +469,34 @@ describe("remindersByCalendarId", () => {
     ];
 
     it("relit les delais sous l'identifiant du calendrier", () => {
-        expect(remindersByCalendarId(calendars, { Cours: 45 })).toEqual({
-            "cal-1": 45,
+        expect(remindersByCalendarId(calendars, { Cours: [45] })).toEqual({
+            "cal-1": [45],
         });
     });
 
     it("laisse de cote un chemin qu'aucun calendrier ne porte", () => {
         expect(
-            remindersByCalendarId(calendars, { Disparu: 45, Islam: 0 })
-        ).toEqual({ "cal-2": 0 });
+            remindersByCalendarId(calendars, { Disparu: [45], Islam: [] })
+        ).toEqual({ "cal-2": [] });
     });
 
     it("ne retient rien tant que personne ne s'est ecarte du reglage", () => {
         expect(remindersByCalendarId(calendars, {})).toEqual({});
+    });
+});
+
+describe("plusieurs rappels sur un calendrier", () => {
+    it("en pose un par delai de la liste", () => {
+        const reminders = buildReminders({
+            events: [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
+            now: NOW,
+            minutesBefore: 10,
+            minutesByCalendar: { cal: [5, 30] },
+            timeFormat24h: true,
+        });
+        expect(reminders.map((r) => r.atMs)).toEqual([
+            +new Date("2026-08-07T13:30:00"),
+            +new Date("2026-08-07T13:55:00"),
+        ]);
     });
 });

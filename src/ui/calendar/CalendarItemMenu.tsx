@@ -23,6 +23,9 @@ export interface CalendarMenuItem {
     content?: React.ReactNode;
     /** Le clic ne referme pas le menu. */
     keepOpen?: boolean;
+    /** Un petit contrôle en bout de ligne (un champ) : ses clics et ses
+     *  touches restent à lui, ils n'activent ni ne déplacent la ligne. */
+    trailing?: React.ReactNode;
     onClick?: () => void;
 }
 
@@ -378,6 +381,15 @@ function MenuLevel({
                                 </small>
                             )}
                         </span>
+                        {item.trailing && (
+                            <span
+                                className="nc-cal-menu-trailing"
+                                onClick={(event) => event.stopPropagation()}
+                                onKeyDown={(event) => event.stopPropagation()}
+                            >
+                                {item.trailing}
+                            </span>
+                        )}
                         {item.value && (
                             <span className="nc-cal-menu-value">
                                 {item.value}

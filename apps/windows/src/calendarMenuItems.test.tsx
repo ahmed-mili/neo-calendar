@@ -19,7 +19,7 @@ describe("buildCalendarMenuItems", () => {
             { id: "islam", name: "الْإِسْلَامُ", relativePath: "الْإِسْلَامُ" },
         ],
         reminderMinutes: 10,
-        calendarReminderMinutes: {},
+        calendarReminderMinutes: {} as Record<string, number[]>,
         onPhone: false,
         setCalendarReminder: jest.fn(),
         openReminderDialog: jest.fn(),
@@ -62,45 +62,74 @@ describe("buildCalendarMenuItems", () => {
         ]);
     });
 
-    it("coche la valeur enregistrée, et écrit celle qu'on choisit", () => {
-        const ctx = context({ calendarReminderMinutes: { Études: 30 } });
+    it("coche chaque délai de la liste, et en ajoute un sans fermer le menu", () => {
+        const ctx = context({ calendarReminderMinutes: { Études: [5, 30] } });
         const [reminder] = buildCalendarMenuItems(ctx, "cours");
+        const five = reminder.children!.find(
+            (c) => c.label === "5 minutes avant"
+        )!;
         const thirty = reminder.children!.find(
             (c) => c.label === "30 minutes avant"
         )!;
-        expect(thirty.checked).toBe(true);
-        reminder.children!.find((c) => c.label === "5 minutes avant")!
-            .onClick!();
-        expect(ctx.setCalendarReminder).toHaveBeenCalledWith("Études", 5);
+        const ten = reminder.children!.find(
+            (c) => c.label === "10 minutes avant"
+        )!;
+        expect([five.checked, thirty.checked, ten.checked]).toEqual([
+            true,
+            true,
+            false,
+        ]);
+        expect(ten.keepOpen).toBe(true);
+        ten.onClick!();
+        expect(ctx.setCalendarReminder).toHaveBeenCalledWith(
+            "Études",
+            [5, 10, 30]
+        );
     });
 
-    it("« Réglage de l'application » retire l'entrée du calendrier", () => {
-        const ctx = context({ calendarReminderMinutes: { Études: 30 } });
+    it("décoche un délai déjà dans la liste", () => {
+        const ctx = context({ calendarReminderMinutes: { Études: [5, 30] } });
         const [reminder] = buildCalendarMenuItems(ctx, "cours");
+        reminder.children!.find((c) => c.label === "30 minutes avant")!
+            .onClick!();
+        expect(ctx.setCalendarReminder).toHaveBeenCalledWith("Études", [5]);
+    });
+
+    it("« Aucun rappel » vide la liste, « Réglage de l'application » retire l'entrée", () => {
+        const ctx = context({ calendarReminderMinutes: { Études: [30] } });
+        const [reminder] = buildCalendarMenuItems(ctx, "cours");
+        reminder.children!.find((c) => c.label === t("No reminder"))!
+            .onClick!();
+        expect(ctx.setCalendarReminder).toHaveBeenCalledWith("Études", []);
         reminder.children![0].onClick!();
         expect(ctx.setCalendarReminder).toHaveBeenCalledWith("Études", null);
     });
 
-    it("coche Personnalisé pour un délai hors liste, et son champ écrit en minutes", () => {
-        const ctx = context({ calendarReminderMinutes: { Études: 120 } });
+    it("donne une ligne cochée à un délai hors liste, et le champ en ajoute un par Entrée", () => {
+        const ctx = context({ calendarReminderMinutes: { Études: [120] } });
         const [reminder] = buildCalendarMenuItems(ctx, "cours");
+        const extra = reminder.children!.find(
+            (c) => c.label === "2 heures avant"
+        )!;
+        expect(extra.checked).toBe(true);
         const custom = reminder.children!.find((c) => c.label === t("Custom"))!;
-        expect(custom.checked).toBe(true);
         expect(custom.keepOpen).toBe(true);
+        expect(reminder.content).toBeUndefined();
         const host = document.createElement("div");
         document.body.appendChild(host);
         act(() => {
-            ReactDOM.render(<>{reminder.content}</>, host);
+            ReactDOM.render(<>{custom.trailing}</>, host);
         });
-        const amount = host.querySelector<HTMLInputElement>(
-            ".nc-reminder-custom__amount"
-        )!;
-        expect(amount.value).toBe("2");
+        const amount = host.querySelector<HTMLInputElement>("input")!;
         act(() => {
-            amount.value = "3";
-            Simulate.change(amount);
+            amount.value = "45";
+            Simulate.keyDown(amount, { key: "Enter" });
         });
-        expect(ctx.setCalendarReminder).toHaveBeenLastCalledWith("Études", 180);
+        expect(ctx.setCalendarReminder).toHaveBeenLastCalledWith(
+            "Études",
+            [45, 120]
+        );
+        expect(amount.value).toBe("");
         act(() => {
             ReactDOM.unmountComponentAtNode(host);
         });

@@ -3511,7 +3511,7 @@ export default function DesktopCalendar({
     /* Ce que le menu d'un calendrier propose en plus, construit ici parce que
        c'est ici que vivent les préférences et les dialogues. */
     const setCalendarReminder = useCallback(
-        (relativePath: string, minutes: number | null) => {
+        (relativePath: string, minutes: number[] | null) => {
             // Retirer l'entrée plutôt que d'y recopier le réglage de
             // l'application : figer une copie ferait cesser ce calendrier de
             // le suivre le jour où il change.
@@ -4559,19 +4559,30 @@ export default function DesktopCalendar({
                     title={`${t("Reminder")} — ${
                         calendarById.get(reminderDialogCalendarId)?.name ?? ""
                     }`}
-                    minutes={
-                        preferences.calendarReminderMinutes[
-                            calendarById.get(reminderDialogCalendarId)
-                                ?.relativePath ?? ""
-                        ] ?? null
-                    }
+                    // Le dialogue (Android) ne règle qu'un délai : il lit le
+                    // premier de la liste, et en écrit une d'un seul.
+                    minutes={(() => {
+                        const list =
+                            preferences.calendarReminderMinutes[
+                                calendarById.get(reminderDialogCalendarId)
+                                    ?.relativePath ?? ""
+                            ];
+                        return list ? list[0] ?? 0 : null;
+                    })()}
                     inheritedMinutes={preferences.reminderMinutes}
                     onPick={(minutes) => {
                         const path = calendarById.get(
                             reminderDialogCalendarId
                         )?.relativePath;
                         if (!path) return;
-                        setCalendarReminder(path, minutes);
+                        setCalendarReminder(
+                            path,
+                            minutes === null
+                                ? null
+                                : minutes === 0
+                                ? []
+                                : [minutes]
+                        );
                     }}
                     onClose={() => setReminderDialogCalendarId(null)}
                 />
