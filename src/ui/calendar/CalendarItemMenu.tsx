@@ -23,6 +23,9 @@ export interface CalendarMenuItem {
     content?: React.ReactNode;
     /** Le clic ne referme pas le menu. */
     keepOpen?: boolean;
+    /** Grisée mais cliquable : un choix qui ne s'applique plus, et où l'on
+     *  peut revenir. */
+    muted?: boolean;
     /** Un petit contrôle en bout de ligne (un champ) : ses clics et ses
      *  touches restent à lui, ils n'activent ni ne déplacent la ligne. */
     trailing?: React.ReactNode;
@@ -338,7 +341,9 @@ function MenuLevel({
                         role="menuitem"
                         className={`nc-cal-menu-item${
                             item.danger ? " nc-cal-menu-danger" : ""
-                        }${expanded ? " nc-cal-menu-item--open" : ""}`}
+                        }${expanded ? " nc-cal-menu-item--open" : ""}${
+                            item.muted ? " nc-cal-menu-item--muted" : ""
+                        }`}
                         disabled={item.disabled}
                         aria-haspopup={item.children ? "menu" : undefined}
                         aria-expanded={expanded}

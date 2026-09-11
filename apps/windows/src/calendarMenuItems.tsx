@@ -3,12 +3,12 @@ import type { CalendarMenuItem } from "../../../src/ui/calendar/CalendarItemMenu
 import { BellIcon, ClockIcon } from "../../../src/ui/calendar/EventPanelIcons";
 import { CheckIcon, LinkIcon } from "../../../src/ui/calendar/Icons";
 import { isPrayerCalendarName } from "../../../src/ui/calendar/prayerCalendarName";
-import { reminderDelayLabel } from "../../../src/ui/calendar/reminderDelay";
-import { t } from "../../../src/ui/i18n";
 import {
-    MAX_REMINDER_MINUTES,
-    REMINDER_CHOICES,
-} from "./platform/desktopWorkspacePreferences";
+    reminderDelayLabel,
+    reminderMinutesFrom,
+} from "../../../src/ui/calendar/reminderDelay";
+import { t } from "../../../src/ui/i18n";
+import { REMINDER_CHOICES } from "./platform/desktopWorkspacePreferences";
 
 export interface CalendarMenuContext {
     calendars: readonly { id: string; name: string; relativePath: string }[];
@@ -60,6 +60,9 @@ function reminderSubmenu(
                 label: t("App setting"),
                 note: reminderDelayLabel(context.reminderMinutes),
                 checked: current === null,
+                // Dès qu'on s'en écarte, la ligne se grise : elle n'est plus
+                // ce qui s'applique. Elle reste cliquable pour y revenir.
+                muted: current !== null,
                 onClick: () => set(null),
             },
             {
@@ -87,48 +90,70 @@ function reminderSubmenu(
             {
                 key: "custom",
                 label: t("Custom"),
-                keepOpen: true,
-                onClick: () => undefined,
-                // Un nombre de minutes, et rien d'autre : Entrée l'ajoute à
-                // la liste, puis le champ se vide pour le suivant.
-                trailing: <CustomMinutesField onAdd={toggle} />,
+                // Un sous-menu à lui : l'unité s'y choisit comme une ligne, et
+                // le nombre s'écrit en bas. Aucune ligne : tout est le bloc.
+                children: [],
+                content: <CustomDelayField onAdd={toggle} />,
             },
         ],
     };
 }
 
 /**
- * Le nombre de minutes en bout de la ligne « Personnalisé ». Dès qu'on écrit,
- * une coche apparaît à droite : Entrée valide aussi, mais rien ne le dit, et
- * un champ sans bouton laisse croire qu'il n'y a pas de sortie.
+ * Le sous-menu « Personnalisé » : un compteur jours / heures / minutes, pour
+ * poser un délai précis d'un coup (« 1 jour et 30 minutes »), et une coche
+ * qui apparaît dès qu'une part est écrite. Entrée valide aussi.
  */
-function CustomMinutesField({ onAdd }: { onAdd: (minutes: number) => void }) {
-    const [value, setValue] = React.useState("");
+function CustomDelayField({ onAdd }: { onAdd: (minutes: number) => void }) {
+    const [days, setDays] = React.useState("");
+    const [hours, setHours] = React.useState("");
+    const [minutes, setMinutes] = React.useState("");
+    const whole = (value: string) =>
+        Math.max(0, Math.floor(Number(value) || 0));
+    const total = whole(days) * 1440 + whole(hours) * 60 + whole(minutes);
     const submit = () => {
-        const minutes = Math.floor(Number(value));
-        if (minutes >= 1) {
-            onAdd(Math.min(MAX_REMINDER_MINUTES, minutes));
-            setValue("");
-        }
+        if (total < 1) return;
+        onAdd(reminderMinutesFrom(total, "minutes"));
+        setDays("");
+        setHours("");
+        setMinutes("");
     };
-    return (
-        <span className="nc-cal-menu-minutes">
+    /* Une seule case pour les trois nombres : « 1 j 0 h 30 min avant ». Les
+       champs y sont nus, séparés par leur unité en abrégé, et la case entière
+       se lit comme un seul réglage plutôt que trois. */
+    const part = (
+        label: string,
+        short: string,
+        value: string,
+        set: (next: string) => void,
+        max: number
+    ) => (
+        <label className="nc-cal-menu-delay__part">
             <input
                 type="number"
-                min={1}
-                max={MAX_REMINDER_MINUTES}
-                aria-label={t("Custom")}
-                // Un nombre qui ne ressemble à aucun réglage : le délai de
-                // l'app en gris se lisait comme une valeur.
-                placeholder="67"
+                min={0}
+                max={max}
+                placeholder="0"
+                aria-label={label}
                 value={value}
-                onChange={(event) => setValue(event.target.value)}
+                onChange={(event) => set(event.target.value)}
                 onKeyDown={(event) => {
+                    event.stopPropagation();
                     if (event.key === "Enter") submit();
                 }}
             />
-            min
-            {value !== "" && (
+            <span aria-hidden="true">{short}</span>
+        </label>
+    );
+    return (
+        <div className="nc-cal-menu-delay">
+            <span className="nc-cal-menu-delay__field">
+                {part(t("days"), "j", days, setDays, 28)}
+                {part(t("hours"), "h", hours, setHours, 23)}
+                {part(t("minutes"), "min", minutes, setMinutes, 59)}
+            </span>
+            <span className="nc-cal-menu-delay__suffix">{t("before")}</span>
+            {total >= 1 && (
                 <button
                     type="button"
                     className="nc-cal-menu-minutes__ok"
@@ -139,7 +164,7 @@ function CustomMinutesField({ onAdd }: { onAdd: (minutes: number) => void }) {
                     <CheckIcon size={14} />
                 </button>
             )}
-        </span>
+        </div>
     );
 }
 

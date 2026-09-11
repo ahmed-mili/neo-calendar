@@ -5101,6 +5101,76 @@ body.nc-platform-android .nc-wallpaper-option--all {
     border-color: var(--nc-accent);
 }
 
+/* Le sous-menu « Personnalisé » n'a que ce bloc : ses lignes d'unité sont des
+   lignes de menu, donc pas de filet ni de retrait de bloc libre au-dessus, et
+   le champ prend la place d'une ligne en bas. */
+.nc-cal-menu-content:has(.nc-cal-menu-delay) {
+    margin-top: 0;
+    padding: 0;
+    border-top: 0;
+}
+
+.nc-cal-menu-delay {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: var(--nc-text-secondary, var(--text-muted));
+}
+
+/* Une seule case pour les trois nombres, comme un champ unique. */
+.nc-cal-menu-delay__field {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 4px;
+    background: var(--background-modifier-form-field);
+    border: 1px solid var(--nc-border);
+    border-radius: 7px;
+}
+
+.nc-cal-menu-delay__field:focus-within {
+    border-color: var(--nc-accent);
+}
+
+.nc-cal-menu-delay__part {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    padding: 0 3px;
+}
+
+.nc-cal-menu-delay__part + .nc-cal-menu-delay__part {
+    border-left: 1px solid var(--nc-border);
+}
+
+.nc-cal-menu-delay__part input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 26px;
+    height: 22px;
+    padding: 0;
+    font: inherit;
+    font-size: 13px;
+    text-align: right;
+    color: var(--text-normal);
+    background: transparent;
+    border: 0;
+    box-shadow: none !important;
+    outline: none;
+}
+
+.nc-cal-menu-delay__part input::placeholder {
+    color: var(--nc-text-faint, var(--text-faint));
+}
+
+.nc-cal-menu-delay__part input::-webkit-inner-spin-button,
+.nc-cal-menu-delay__part input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 /* La coche de validation, à droite, dès qu'un nombre est écrit. */
 .nc-cal-menu-minutes__ok {
     display: inline-flex;

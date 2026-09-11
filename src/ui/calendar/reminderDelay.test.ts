@@ -58,5 +58,7 @@ describe("reminderDelayLabel", () => {
         expect(reminderDelayLabel(120)).toBe("2 heures avant");
         expect(reminderDelayLabel(1440)).toBe("1 jour avant");
         expect(reminderDelayLabel(2880)).toBe("2 jours avant");
+        expect(reminderDelayLabel(1470)).toBe("1 jour 30 minutes avant");
+        expect(reminderDelayLabel(1501)).toBe("1 jour 1 heure 1 minute avant");
     });
 });

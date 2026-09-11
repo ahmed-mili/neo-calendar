@@ -501,6 +501,11 @@
     z-index: 10002;
 }
 
+.nc-cal-menu-item--muted,
+.nc-cal-menu-item--muted .nc-cal-menu-note {
+    color: var(--nc-text-faint, var(--text-faint));
+}
+
 .nc-cal-menu-item:disabled {
     opacity: 0.45;
     cursor: default;

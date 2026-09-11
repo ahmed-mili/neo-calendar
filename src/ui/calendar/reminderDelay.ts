@@ -66,6 +66,16 @@ function unitWord(amount: number, unit: ReminderUnit): string {
  *  qu'il est, puisqu'un « 0 minute avant » ne dit rien à personne. */
 export function reminderDelayLabel(minutes: number): string {
     if (minutes <= 0) return t("No reminder");
-    const { amount, unit } = splitReminderDelay(minutes);
-    return `${amount} ${unitWord(amount, unit)} ${t("before")}`;
+    // Un délai composé se lit en toutes ses parts : « 1 jour 30 minutes
+    // avant », pas « 1470 minutes avant ».
+    const parts: string[] = [];
+    let rest = minutes;
+    for (const unit of [...REMINDER_UNITS].reverse()) {
+        const amount = Math.floor(rest / MINUTES_PER[unit]);
+        if (amount > 0) {
+            parts.push(`${amount} ${unitWord(amount, unit)}`);
+            rest -= amount * MINUTES_PER[unit];
+        }
+    }
+    return `${parts.join(" ")} ${t("before")}`;
 }

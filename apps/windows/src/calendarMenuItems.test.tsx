@@ -50,6 +50,7 @@ describe("buildCalendarMenuItems", () => {
         expect(app.label).toBe(t("App setting"));
         expect(app.note).toBe("10 minutes avant");
         expect(app.checked).toBe(true);
+        expect(app.muted).toBe(false);
         expect(reminder.children!.map((c) => c.label)).toEqual([
             t("App setting"),
             t("No reminder"),
@@ -79,6 +80,9 @@ describe("buildCalendarMenuItems", () => {
             true,
             false,
         ]);
+        // Le réglage de l'application ne s'applique plus : grisé, décoché.
+        expect(reminder.children![0].checked).toBe(false);
+        expect(reminder.children![0].muted).toBe(true);
         expect(ten.keepOpen).toBe(true);
         ten.onClick!();
         expect(ctx.setCalendarReminder).toHaveBeenCalledWith(
@@ -105,7 +109,7 @@ describe("buildCalendarMenuItems", () => {
         expect(ctx.setCalendarReminder).toHaveBeenCalledWith("Études", null);
     });
 
-    it("donne une ligne cochée à un délai hors liste, et le champ en ajoute un par Entrée", () => {
+    it("donne une ligne cochée à un délai hors liste, et « Personnalisé » ouvre un compteur jours / heures / minutes", () => {
         const ctx = context({ calendarReminderMinutes: { Études: [120] } });
         const [reminder] = buildCalendarMenuItems(ctx, "cours");
         const extra = reminder.children!.find(
@@ -113,32 +117,41 @@ describe("buildCalendarMenuItems", () => {
         )!;
         expect(extra.checked).toBe(true);
         const custom = reminder.children!.find((c) => c.label === t("Custom"))!;
-        expect(custom.keepOpen).toBe(true);
-        expect(reminder.content).toBeUndefined();
+        expect(custom.children).toEqual([]);
         const host = document.createElement("div");
         document.body.appendChild(host);
         act(() => {
-            ReactDOM.render(<>{custom.trailing}</>, host);
+            ReactDOM.render(<>{custom.content}</>, host);
         });
-        const amount = host.querySelector<HTMLInputElement>("input")!;
-        // Pas de coche tant que rien n'est écrit ; elle apparaît avec le
-        // premier chiffre, et valide comme Entrée.
-        expect(host.querySelector("button")).toBeNull();
+        const inputs = Array.from(
+            host.querySelectorAll<HTMLInputElement>("input")
+        );
+        expect(inputs.map((i) => i.getAttribute("aria-label"))).toEqual([
+            t("days"),
+            t("hours"),
+            t("minutes"),
+        ]);
+        // Pas de coche tant que rien n'est écrit ; elle apparaît avec la
+        // première part, et valide la somme : 1 jour et 30 minutes.
+        expect(host.querySelector(".nc-cal-menu-minutes__ok")).toBeNull();
         act(() => {
-            amount.value = "45";
-            Simulate.change(amount);
+            inputs[0].value = "1";
+            Simulate.change(inputs[0]);
+            inputs[2].value = "30";
+            Simulate.change(inputs[2]);
         });
-        const ok = host.querySelector<HTMLButtonElement>("button")!;
+        const ok = host.querySelector<HTMLButtonElement>(
+            ".nc-cal-menu-minutes__ok"
+        )!;
         expect(ok).not.toBeNull();
         act(() => {
             ok.click();
         });
         expect(ctx.setCalendarReminder).toHaveBeenLastCalledWith(
             "Études",
-            [45, 120]
+            [120, 1470]
         );
-        expect(amount.value).toBe("");
-        expect(host.querySelector("button")).toBeNull();
+        expect(inputs.map((i) => i.value)).toEqual(["", "", ""]);
         act(() => {
             ReactDOM.unmountComponentAtNode(host);
         });
