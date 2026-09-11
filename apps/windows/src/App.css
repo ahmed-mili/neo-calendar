@@ -5070,6 +5070,13 @@ body.nc-platform-android .nc-wallpaper-option--all {
     font-size: 15px;
 }
 
+/* Dans le sous-menu du calendrier, la ligne impose sa largeur au menu (qui
+   s'étire jusqu'à 320 px) plutôt que de replier « avant » sous le champ. */
+.nc-cal-menu-content .nc-reminder-custom {
+    flex-wrap: nowrap;
+    padding: 0;
+}
+
 /* Le dialogue fait 322 px : nombre, trois unités et « avant » doivent tenir
    dans les 290 qui restent, sinon le dernier mot passe seul à la ligne. */
 .nc-reminder-custom__amount {

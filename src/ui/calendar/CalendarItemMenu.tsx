@@ -68,8 +68,13 @@ export default function CalendarItemMenu({
 }: CalendarItemMenuProps) {
     /* Le chemin ouvert : la clé du sous-menu ouvert à chaque profondeur, et le
        rectangle de la ligne qui l'a ouvert. */
-    const [path, setPath] = useState<string[]>([]);
-    const [anchors, setAnchors] = useState<DOMRect[]>([]);
+    /* Clé et rectangle dans le MÊME état : posés par deux `setState`, un rendu
+       partait entre les deux quand l'ouverture venait du minuteur de survol
+       (React 17 ne regroupe pas hors d'un gestionnaire d'évènement), et le
+       sous-menu se rendait avec une clé mais sans rectangle. */
+    const [opened, setOpened] = useState<{ key: string; rect: DOMRect }[]>([]);
+    const path = opened.map((level) => level.key);
+    const anchors = opened.map((level) => level.rect);
     const openTimer = useRef<number | null>(null);
     const exitTimer = useRef<number | null>(null);
 
@@ -90,12 +95,10 @@ export default function CalendarItemMenu({
     const openAt = (depth: number, key: string, rect: DOMRect) => {
         clearTimer(openTimer);
         clearTimer(exitTimer);
-        setPath((current) => [...current.slice(0, depth), key]);
-        setAnchors((current) => [...current.slice(0, depth), rect]);
+        setOpened((current) => [...current.slice(0, depth), { key, rect }]);
     };
     const closeBelow = (depth: number) => {
-        setPath((current) => current.slice(0, depth));
-        setAnchors((current) => current.slice(0, depth));
+        setOpened((current) => current.slice(0, depth));
     };
     const scheduleClose = (depth: number) => {
         clearTimer(exitTimer);
