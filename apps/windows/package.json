@@ -1,6 +1,6 @@
 {
   "name": "@neo-calendar/windows",
-  "version": "1.74.9",
+  "version": "1.74.10",
   "private": true,
   "type": "module",
   "scripts": {
