@@ -98,7 +98,9 @@ function reminderSubmenu(
                             min={1}
                             max={MAX_REMINDER_MINUTES}
                             aria-label={t("Custom")}
-                            placeholder={String(context.reminderMinutes)}
+                            // Un nombre qui ne ressemble à aucun réglage : le
+                            // délai de l'app en gris se lisait comme une valeur.
+                            placeholder="67"
                             onKeyDown={(event) => {
                                 if (event.key !== "Enter") return;
                                 const input = event.currentTarget;
