@@ -5113,21 +5113,24 @@ body.nc-platform-android .nc-wallpaper-option--all {
 .nc-cal-menu-delay {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    font-size: 12px;
-    color: var(--nc-text-secondary, var(--text-muted));
+    gap: 10px;
+    padding: 8px 12px;
 }
 
-/* Une seule case pour les trois nombres, comme un champ unique. */
+/* Une seule case pour les trois nombres, comme un champ unique : trois
+   segments égaux, séparés d'un filet, chacun son nombre puis son unité. */
 .nc-cal-menu-delay__field {
-    display: inline-flex;
-    align-items: center;
-    height: 26px;
-    padding: 0 4px;
+    /* `--nc-border` vaut `transparent` dans le thème par défaut : le filet
+       vient du texte, pour que les segments se voient. */
+    --delay-line: color-mix(in srgb, var(--text-normal) 14%, transparent);
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    height: 28px;
     background: var(--background-modifier-form-field);
-    border: 1px solid var(--nc-border);
-    border-radius: 7px;
+    border: 1px solid var(--delay-line);
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .nc-cal-menu-delay__field:focus-within {
@@ -5136,23 +5139,31 @@ body.nc-platform-android .nc-wallpaper-option--all {
 
 .nc-cal-menu-delay__part {
     display: inline-flex;
-    align-items: baseline;
-    gap: 2px;
-    padding: 0 3px;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 52px;
+    padding: 0 8px;
+    cursor: text;
 }
 
 .nc-cal-menu-delay__part + .nc-cal-menu-delay__part {
-    border-left: 1px solid var(--nc-border);
+    border-left: 1px solid var(--delay-line);
+}
+
+.nc-cal-menu-delay__part:focus-within {
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
 }
 
 .nc-cal-menu-delay__part input {
     appearance: none;
     -webkit-appearance: none;
-    width: 26px;
-    height: 22px;
+    width: 22px;
+    height: 100%;
     padding: 0;
     font: inherit;
     font-size: 13px;
+    font-variant-numeric: tabular-nums;
     text-align: right;
     color: var(--text-normal);
     background: transparent;
@@ -5169,6 +5180,24 @@ body.nc-platform-android .nc-wallpaper-option--all {
 .nc-cal-menu-delay__part input::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
+}
+
+.nc-cal-menu-delay__part span {
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--nc-text-secondary, var(--text-muted));
+    transition: color var(--nc-transition-fast, 120ms);
+}
+
+/* L'unité s'allume dès que sa zone est survolée ou en cours de saisie. */
+.nc-cal-menu-delay__part:hover span,
+.nc-cal-menu-delay__part:focus-within span {
+    color: var(--nc-accent, var(--interactive-accent));
+}
+
+.nc-cal-menu-delay__suffix {
+    font-size: 13px;
+    color: var(--text-normal);
 }
 
 /* La coche de validation, à droite, dès qu'un nombre est écrit. */
