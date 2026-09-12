@@ -15,22 +15,25 @@ import { CopyIcon, PencilIcon, SearchIcon, XIcon } from "./Icons";
 import { LinesIcon } from "./EventPanelIcons";
 import {
     DescriptionFocusRequest,
+    DescriptionLinkActions,
     DescriptionRow,
     LinksAttachmentsRow,
+    readsAsNote,
 } from "./EventPanelRows";
+import {
+    InlineLink,
+    inlineLinkEndingAt,
+    inlineLinkMarkdown,
+    inlineLinkTouching,
+    readInlineLinks,
+} from "./descriptionInlineLinks";
 import {
     DescriptionMention,
     descriptionMentionAt,
     labelFor,
-    sameTarget,
     urlMarkdown,
-    withoutDescriptionMention,
 } from "./linkInput";
-import {
-    readChecklist,
-    replaceLine,
-    taskPrefixLength,
-} from "./descriptionChecklist";
+import { replaceLine, taskPrefixLength } from "./descriptionChecklist";
 import {
     applyDescriptionFormat,
     DescriptionFormatCommand,
@@ -72,7 +75,6 @@ interface DescriptionSectionProps {
         query: string,
         vaultPath?: string
     ) => Promise<DescriptionSearchTarget[]>;
-    onAddLink?: (eventId: string, markdown: string) => Promise<void>;
     onRemoveLink?: (eventId: string, target: string) => Promise<void>;
     onRenameLink?: (
         eventId: string,
@@ -93,6 +95,28 @@ interface FieldSnapshot {
     text: string;
     start: number;
     end: number;
+}
+
+/** Une petite barre posée sur un lien du texte. */
+interface InlineLinkPopup {
+    link: InlineLink;
+    top: number;
+    left: number;
+}
+
+/** Un lien du texte, ouvert dans sa fenêtre pour être renommé ou retiré. */
+interface InlineLinkEdit {
+    link: InlineLink;
+    label: string;
+    target: string;
+    error: string | null;
+}
+
+/** De quelle sorte est cette adresse — ce que l'hôte a besoin de savoir. */
+function inlineLinkKind(target: string): DescriptionLinkedItem["kind"] {
+    if (/^obsidian:\/\//i.test(target)) return "note";
+    if (/^[a-z][a-z0-9+.-]*:/i.test(target)) return "web";
+    return "attachment";
 }
 
 interface PickerPosition {
@@ -566,7 +590,6 @@ export function DescriptionSection({
     vaults,
     items,
     onSearch,
-    onAddLink,
     onRemoveLink,
     onRenameLink,
     onOpenLink,
@@ -588,7 +611,6 @@ export function DescriptionSection({
     const [results, setResults] = React.useState<DescriptionSearchTarget[]>([]);
     const [highlighted, setHighlighted] = React.useState(0);
     const [loading, setLoading] = React.useState(false);
-    const [saving, setSaving] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const [pickerPosition, setPickerPosition] =
         React.useState<PickerPosition | null>(null);
@@ -598,9 +620,16 @@ export function DescriptionSection({
     );
     const links = items.filter((item) => item.kind !== "attachment");
     const attachments = items.filter((item) => item.kind === "attachment");
-    const checklist = readChecklist(description).some(
-        (line) => line.kind === "task"
+    /* Une description qui porte une étape ou un lien se lit ligne par ligne :
+       ni la case ni le lien ne se dessinent dans un champ de texte nu. */
+    const asNote = readsAsNote(description);
+    /** Le lien dont la petite barre est ouverte, et où elle est posée. */
+    const [linkMenu, setLinkMenu] = React.useState<InlineLinkPopup | null>(
+        null
     );
+    /** Le lien en cours de renommage, tel que la fenêtre le tient. */
+    const [linkEdit, setLinkEdit] = React.useState<InlineLinkEdit | null>(null);
+    const [linkCopied, setLinkCopied] = React.useState(false);
 
     const resizeField = React.useCallback(() => {
         const field = fieldRef.current;
@@ -610,6 +639,43 @@ export function DescriptionSection({
     }, []);
 
     React.useEffect(resizeField, [description, resizeField]);
+
+    /* Un appui ailleurs referme la petite barre — elle est posee sur le lien,
+       pas ancree a lui : rien d'autre ne la ferait disparaitre. */
+    React.useEffect(() => {
+        if (!linkMenu) return;
+        const close = (event: PointerEvent) => {
+            const node = event.target;
+            if (
+                node instanceof Element &&
+                node.closest(".nc-description-inline-actions")
+            ) {
+                return;
+            }
+            setLinkMenu(null);
+        };
+        document.addEventListener("pointerdown", close);
+        return () => document.removeEventListener("pointerdown", close);
+    }, [linkMenu]);
+
+    /* Un appui hors de la fenêtre du lien la referme, comme la croix : elle
+       est posée au milieu de l'écran, sans voile, et rien d'autre ne dirait
+       qu'on l'a quittée. */
+    React.useEffect(() => {
+        if (!linkEdit) return;
+        const close = (event: PointerEvent) => {
+            const node = event.target;
+            if (
+                node instanceof Element &&
+                node.closest(".nc-description-inline-link-dialog")
+            ) {
+                return;
+            }
+            setLinkEdit(null);
+        };
+        document.addEventListener("pointerdown", close);
+        return () => document.removeEventListener("pointerdown", close);
+    }, [linkEdit]);
 
     const closeMention = React.useCallback(() => {
         setMention(null);
@@ -624,7 +690,7 @@ export function DescriptionSection({
         (field: HTMLTextAreaElement) => {
             activeFieldRef.current = field;
             const snapshot = snapshotForField(field, descriptionRef.current);
-            if (!snapshot || !editable || !eventId || !onSearch || !onAddLink) {
+            if (!snapshot || !editable || !onSearch) {
                 closeMention();
                 return;
             }
@@ -636,7 +702,7 @@ export function DescriptionSection({
             descriptionRef.current = snapshot.text;
             setMention(next);
         },
-        [closeMention, editable, eventId, onAddLink, onSearch]
+        [closeMention, editable, onSearch]
     );
 
     React.useEffect(() => {
@@ -700,57 +766,76 @@ export function DescriptionSection({
         setPickerPosition({ top, left, width, maxHeight });
     }, [mention]);
 
-    const addStoredLink = React.useCallback(
-        async (markdown: string): Promise<"added" | "duplicate" | "failed"> => {
-            if (!eventId || !onAddLink || saving) return "failed";
-            const target = markdownTarget(markdown);
-            if (
-                target &&
-                items.some((item) => sameTarget(item.target, target))
-            ) {
-                setError(t("This link is already here"));
-                return "duplicate";
-            }
-            setSaving(true);
-            setError(null);
-            try {
-                await onAddLink(eventId, markdown.trim());
-                return "added";
-            } catch (reason) {
-                setError(
-                    reason instanceof Error ? reason.message : String(reason)
-                );
-                return "failed";
-            } finally {
-                setSaving(false);
-            }
+    /**
+     * Écrire un lien là où le curseur est.
+     *
+     * Un lien ajouté partait dans le corps de la note, hors de la description :
+     * il se dessinait au-dessus du champ, qui restait vide et continuait de
+     * proposer qu'on le remplisse, et il n'y avait nulle part où poser le
+     * curseur pour écrire avant lui. Un lien est du texte, `[nom](adresse)`,
+     * comme dans n'importe quelle note Obsidian — il compte donc dans la
+     * description, et une case ou une puce se met devant lui comme devant
+     * n'importe quelle ligne.
+     */
+    const insertMarkdown = React.useCallback(
+        (
+            markdown: string,
+            snapshot: FieldSnapshot | null,
+            focusAfterInsert = true
+        ): InlineLink | null => {
+            const source = snapshot ?? {
+                text: descriptionRef.current,
+                start: descriptionRef.current.length,
+                end: descriptionRef.current.length,
+            };
+            const next = replaceSelection(source, markdown);
+            const caret = source.start + markdown.length;
+            const parsed = readInlineLinks(markdown)[0];
+            const inserted = parsed
+                ? {
+                      ...parsed,
+                      start: source.start + parsed.start,
+                      end: source.start + parsed.end,
+                  }
+                : null;
+            descriptionRef.current = next;
+            setDescription(next);
+            onCommit();
+            if (!focusAfterInsert) return inserted;
+
+            setFocusRequest({
+                revision: ++focusRevisionRef.current,
+                selectionStart: caret,
+                selectionEnd: caret,
+            });
+            // Le champ simple garde ce ref ; la vue ligne à ligne, elle, monte
+            // un autre champ et suit la demande de focus ci-dessus.
+            window.requestAnimationFrame(() => {
+                const field = fieldRef.current;
+                if (!field?.isConnected) return;
+                field.focus();
+                field.setSelectionRange(caret, caret);
+            });
+            return inserted;
         },
-        [eventId, items, onAddLink, saving]
+        [onCommit, setDescription]
     );
 
     const pickResult = React.useCallback(
-        async (result: DescriptionSearchTarget) => {
+        (result: DescriptionSearchTarget) => {
             if (!mention) return;
-            const outcome = await addStoredLink(result.markdown);
-            if (outcome === "failed") return;
-            const next = withoutDescriptionMention(
-                descriptionRef.current,
-                mention
-            );
-            descriptionRef.current = next.value;
-            setDescription(next.value);
-            closeMention();
-            onCommit();
-            window.requestAnimationFrame(() => {
-                const field = activeFieldRef.current;
-                if (!field) return;
-                field.focus();
-                if (field.dataset.descriptionInput === "true") {
-                    field.setSelectionRange(next.caret, next.caret);
-                }
+            const field = activeFieldRef.current;
+            const snapshot = field
+                ? snapshotForField(field, descriptionRef.current)
+                : null;
+            insertMarkdown(result.markdown, {
+                text: snapshot?.text ?? descriptionRef.current,
+                start: mention.start,
+                end: mention.end,
             });
+            closeMention();
         },
-        [addStoredLink, closeMention, mention, onCommit, setDescription]
+        [closeMention, insertMarkdown, mention]
     );
 
     const handlePaste = (
@@ -758,23 +843,191 @@ export function DescriptionSection({
     ) => {
         const field = event.target as HTMLTextAreaElement;
         if (!(field instanceof HTMLTextAreaElement)) return;
+        if (!editable) return;
         const pasted = event.clipboardData.getData("text/plain");
         const markdown = urlMarkdown(pasted);
-        if (!markdown || !eventId || !onAddLink || !editable) return;
+        if (!markdown) return;
         const snapshot = snapshotForField(field, descriptionRef.current);
         if (!snapshot) return;
         event.preventDefault();
         activeFieldRef.current = field;
-        void addStoredLink(markdown).then((outcome) => {
-            if (outcome !== "failed") return;
-            const next = replaceSelection(snapshot, pasted);
-            descriptionRef.current = next;
-            setDescription(next);
-            onCommit();
+        insertMarkdown(markdown, snapshot);
+    };
+
+    /* Le texte avec un lien réécrit ou retiré. Pas de curseur à replacer : la
+       fenêtre s'est ouverte à la souris, et la ligne s'est refermée en la
+       laissant partir. */
+    const applyDescription = (next: string) => {
+        descriptionRef.current = next;
+        setDescription(next);
+        onCommit();
+    };
+
+    /** Un clic sur un lien : on y va. C'est tout ce qu'un lien fait. */
+    const openInlineLink = (link: InlineLink) => {
+        setLinkMenu(null);
+        void onOpenLink?.({
+            id: `inline:${link.start}`,
+            label: link.label,
+            target: link.target,
+            kind: inlineLinkKind(link.target),
         });
     };
 
+    /**
+     * La fenêtre du lien : son nom, son adresse, et de quoi le retirer.
+     *
+     * Le nom n'est pré-rempli que s'il en est un : celui qui n'est que
+     * l'adresse, ou l'abrégé qu'on en tire faute de titre, n'apprend rien et
+     * laisserait croire qu'il a été choisi.
+     */
+    const editInlineLink = (link: InlineLink) => {
+        setLinkMenu(null);
+        const automatic = labelFor(link.target);
+        const named =
+            link.label && link.label !== link.target && link.label !== automatic
+                ? link.label
+                : "";
+        setLinkEdit({
+            link,
+            label: named,
+            target: link.target,
+            error: null,
+        });
+    };
+
+    /**
+     * Un clic à côté d'un lien ouvre sa fenêtre.
+     *
+     * Ouvrir la ligne montrerait `[nom](adresse)`, alors qu'un clic contre le
+     * lien vise ses réglages. La ligne reste donc rendue, même à la fermeture.
+     */
+    const touchInlineLink = (caret: number): boolean => {
+        if (!editable) return false;
+        const link = inlineLinkTouching(descriptionRef.current, caret);
+        if (!link) return false;
+        editInlineLink(link);
+        return true;
+    };
+
+    const dismissInlineLink = () => setLinkEdit(null);
+
+    const showInlineLinkMenu = (link: InlineLink, anchor: DOMRect) => {
+        setLinkEdit(null);
+        setLinkCopied(false);
+        const width = 74;
+        const height = 40;
+        const left = Math.max(
+            8,
+            Math.min(anchor.left, window.innerWidth - width - 8)
+        );
+        const top =
+            anchor.top - height >= 8 ? anchor.top - height : anchor.bottom + 6;
+        setLinkMenu({ link, top, left });
+    };
+
+    const copyInlineLink = async (link: InlineLink) => {
+        try {
+            if (onCopyLink) await onCopyLink(link.target);
+            else await navigator.clipboard.writeText(link.target);
+            setLinkCopied(true);
+            window.setTimeout(() => setLinkCopied(false), 1400);
+        } catch {
+            setError(t("Could not copy link"));
+        }
+        setLinkMenu(null);
+    };
+
+    const confirmInlineLink = () => {
+        if (!linkEdit) return;
+        const markdown = urlMarkdown(linkEdit.target);
+        const destination = markdown ? markdownTarget(markdown) : null;
+        if (!destination) {
+            setLinkEdit({
+                ...linkEdit,
+                error: t("That does not look like a link"),
+            });
+            return;
+        }
+        const written = inlineLinkMarkdown(
+            linkEdit.label.trim() || labelFor(destination),
+            destination
+        );
+        const text = descriptionRef.current;
+        applyDescription(
+            text.slice(0, linkEdit.link.start) +
+                written +
+                text.slice(linkEdit.link.end)
+        );
+        setLinkEdit(null);
+    };
+
+    /**
+     * Le lien s'en va d'un coup, et la ligne avec lui quand elle ne disait que
+     * ça — sans quoi retirer un lien laisserait une ligne vide à effacer à la
+     * main.
+     */
+    const removeInlineLink = () => {
+        if (!linkEdit) return;
+        const text = descriptionRef.current;
+        const { start, end } = linkEdit.link;
+        const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+        const breakAfter = text.indexOf("\n", end);
+        const lineEnd = breakAfter === -1 ? text.length : breakAfter;
+        const rest = (
+            text.slice(lineStart, start) + text.slice(end, lineEnd)
+        ).trim();
+        let from = start;
+        let to = end;
+        if (!rest) {
+            from = lineStart;
+            to = breakAfter === -1 ? lineEnd : breakAfter + 1;
+            if (breakAfter === -1 && lineStart > 0) from = lineStart - 1;
+        }
+        applyDescription(text.slice(0, from) + text.slice(to));
+        setLinkEdit(null);
+    };
+
+    const linkActions: DescriptionLinkActions = {
+        open: openInlineLink,
+        menu: showInlineLinkMenu,
+        touch: touchInlineLink,
+    };
+
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        /*
+         * Un retour arrière contre un lien ouvre sa fenêtre.
+         *
+         * Effacer `[nom](adresse)` caractère par caractère commence par le
+         * défaire en syntaxe : la parenthèse part, le lien redevient du texte,
+         * et il faut vingt appuis pour finir ce qu'on voulait faire d'un.
+         * Personne n'a jamais voulu supprimer une parenthèse.
+         */
+        if (
+            event.key === "Backspace" &&
+            editable &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.altKey
+        ) {
+            const field = event.target;
+            if (field instanceof HTMLTextAreaElement) {
+                const snapshot = snapshotForField(
+                    field,
+                    descriptionRef.current
+                );
+                const link =
+                    snapshot && snapshot.start === snapshot.end
+                        ? inlineLinkEndingAt(snapshot.text, snapshot.start)
+                        : null;
+                if (link) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    editInlineLink(link);
+                    return;
+                }
+            }
+        }
         if (!mention) return;
         if (event.key === "ArrowDown") {
             event.preventDefault();
@@ -880,10 +1133,19 @@ export function DescriptionSection({
         >
             <DescriptionAddLinkDialog
                 hostRef={sectionRef}
-                eventId={eventId}
                 editable={editable}
-                items={items}
-                onAddLink={onAddLink}
+                items={[...items, ...readInlineLinks(description)]}
+                onInsert={(markdown) => {
+                    const field = activeFieldRef.current;
+                    const inserted = insertMarkdown(
+                        markdown,
+                        field?.isConnected
+                            ? snapshotForField(field, descriptionRef.current)
+                            : null,
+                        false
+                    );
+                    if (inserted) editInlineLink(inserted);
+                }}
             />
             {attachments.length > 0 && (
                 <div className="nc-description-attachments">
@@ -913,7 +1175,7 @@ export function DescriptionSection({
                 </div>
             )}
 
-            {checklist ? (
+            {asNote ? (
                 <>
                     <DescriptionRow
                         description={description}
@@ -921,6 +1183,7 @@ export function DescriptionSection({
                         setDescription={setDescription}
                         onCommit={onCommit}
                         focusRequest={focusRequest}
+                        linkActions={linkActions}
                         toolbar={
                             editable ? (
                                 <DescriptionToolbar
@@ -1044,18 +1307,14 @@ export function DescriptionSection({
                                 // before the next React render on some WebViews.
                                 descriptionRef.current = value;
                                 setDescription(value);
-                                // Typing "- [ ] " turns this plain composer
-                                // into DescriptionRow's checklist view, which
-                                // mounts a different textarea. Without a
-                                // focus request the caret has nowhere to go
-                                // and the field reads as deselected — the
-                                // same hand-off formatDescription() performs
-                                // for the toolbar's checklist button.
-                                if (
-                                    readChecklist(value).some(
-                                        (line) => line.kind === "task"
-                                    )
-                                ) {
+                                // Écrire « - », « - [ ] » ou un lien fait
+                                // passer ce champ unique à la vue ligne par
+                                // ligne, qui monte un autre champ. Sans
+                                // demande de focus le curseur n'a nulle part
+                                // où aller et le champ se lit comme
+                                // désélectionné — la même passation que
+                                // formatDescription() fait pour les boutons.
+                                if (readsAsNote(value)) {
                                     setFocusRequest({
                                         revision: ++focusRevisionRef.current,
                                         selectionStart: field.selectionStart,
@@ -1069,6 +1328,134 @@ export function DescriptionSection({
                     </div>
                 </div>
             )}
+
+            {linkCopied && (
+                <span className="nc-description-link-status" role="status">
+                    {t("Link copied")}
+                </span>
+            )}
+
+            {linkMenu &&
+                ReactDOM.createPortal(
+                    <div
+                        className="nc-description-link-actions nc-description-inline-actions"
+                        data-nc-popup-portal="true"
+                        style={{ top: linkMenu.top, left: linkMenu.left }}
+                    >
+                        <button
+                            type="button"
+                            aria-label={t("Edit link")}
+                            data-nc-tooltip={t("Edit link")}
+                            disabled={!editable}
+                            onClick={() => editInlineLink(linkMenu.link)}
+                        >
+                            <PencilIcon size={16} />
+                        </button>
+                        <button
+                            type="button"
+                            aria-label={t("Copy link")}
+                            data-nc-tooltip={t("Copy link")}
+                            onClick={() => void copyInlineLink(linkMenu.link)}
+                        >
+                            <CopyIcon size={16} />
+                        </button>
+                    </div>,
+                    portalTarget()
+                )}
+
+            {linkEdit &&
+                ReactDOM.createPortal(
+                    <div
+                        className="nc-description-link-dialog nc-description-inline-link-dialog"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={t("Edit link")}
+                        data-nc-popup-portal="true"
+                        style={{
+                            top: "50%",
+                            left: "50%",
+                            transform: "translate(-50%, -50%)",
+                        }}
+                        onKeyDown={(event) => {
+                            if (event.key === "Escape") {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                dismissInlineLink();
+                            } else if (event.key === "Enter") {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                confirmInlineLink();
+                            }
+                        }}
+                    >
+                        <div className="nc-description-link-dialog-head">
+                            <strong>{t("Edit link")}</strong>
+                            <button
+                                type="button"
+                                className="nc-description-link-dialog-close"
+                                aria-label={t("Close")}
+                                data-nc-tooltip={t("Close")}
+                                onClick={dismissInlineLink}
+                            >
+                                <XIcon size={15} />
+                            </button>
+                        </div>
+                        <input
+                            autoFocus
+                            value={linkEdit.label}
+                            aria-label={t("Link text")}
+                            placeholder={t("Link text")}
+                            onChange={(event) =>
+                                setLinkEdit({
+                                    ...linkEdit,
+                                    label: event.target.value,
+                                    error: null,
+                                })
+                            }
+                        />
+                        <input
+                            value={linkEdit.target}
+                            aria-label={t("Link address")}
+                            placeholder={t("Link address")}
+                            autoCapitalize="none"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            onChange={(event) =>
+                                setLinkEdit({
+                                    ...linkEdit,
+                                    target: event.target.value,
+                                    error: null,
+                                })
+                            }
+                        />
+                        {linkEdit.error && (
+                            <div
+                                className="nc-description-link-dialog-error"
+                                role="alert"
+                            >
+                                {linkEdit.error}
+                            </div>
+                        )}
+                        <div className="nc-description-link-dialog-actions">
+                            <button
+                                type="button"
+                                className="nc-description-link-confirm"
+                                disabled={!linkEdit.target.trim()}
+                                onClick={confirmInlineLink}
+                            >
+                                {t("Confirm")}
+                            </button>
+                            <button
+                                type="button"
+                                className="nc-description-link-remove"
+                                onClick={removeInlineLink}
+                            >
+                                {t("Remove link")}
+                            </button>
+                        </div>
+                    </div>,
+                    portalTarget()
+                )}
 
             {mention &&
                 pickerPosition &&

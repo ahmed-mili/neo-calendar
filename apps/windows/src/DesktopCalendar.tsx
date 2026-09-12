@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import ReactDOM from "react-dom";
 import CalendarLayout from "../../../src/ui/calendar/CalendarLayout";
+import { inlineLinkMarkdown } from "../../../src/ui/calendar/descriptionInlineLinks";
 import CommandPalette from "../../../src/ui/calendar/CommandPalette";
 import { invoke } from "@tauri-apps/api/core";
 import { buildWidgetPayload, readWidgetTheme } from "./platform/androidWidget";
@@ -1794,6 +1795,90 @@ export default function DesktopCalendar({
     );
 
     /**
+     * Les liens d'un évènement passent du corps de la note à sa description.
+     *
+     * Ils étaient gardés à part : écrits sous le frontmatter, puis tirés de là
+     * pour être dessinés au-dessus du champ. La description restait donc vide
+     * sous eux — elle proposait encore qu'on la remplisse — et il n'y avait
+     * nulle part où poser le curseur pour écrire avant un lien : ni une case,
+     * ni une puce, ni un mot. Un lien est du texte, et sa place est dans le
+     * texte.
+     *
+     * Une seule écriture : le corps perd ses liens et la description les
+     * reçoit dans le même fichier réécrit, pour qu'une panne au milieu ne
+     * puisse pas les faire disparaître des deux côtés à la fois. Les pièces
+     * jointes restent où elles sont — ce sont des fichiers, montrés en
+     * vignettes, et personne ne les écrit à la main.
+     *
+     * Faite à l'ouverture de l'évènement, avant que la fiche n'en lise la
+     * description : la fiche ne relit pas un évènement déjà ouvert, et
+     * sauvegarderait par-dessus ce que cette migration vient d'écrire.
+     */
+    const eventBodyLinksToInline = useCallback((eventId: string) => {
+        const record = findStoredEvent(recordsRef.current, eventId);
+        if (!record || record.readOnly) return [];
+        return extractEventBodyLinks(record.contents).filter(
+            (link) => link.kind !== "attachment"
+        );
+    }, []);
+
+    const inlineEventBodyLinks = useCallback(
+        async (eventId: string): Promise<void> => {
+            const previous = findStoredEvent(recordsRef.current, eventId);
+            const links = eventBodyLinksToInline(eventId);
+            if (!previous || !links.length) return;
+
+            let body = previous.contents;
+            for (const link of links) {
+                body = removeMarkdownTargetFromEventBody(body, link.target);
+            }
+            const written = links.map((link) =>
+                inlineLinkMarkdown(link.label, link.target)
+            );
+            const description = [
+                (previous.event.description ?? "").trimEnd(),
+                ...written,
+            ]
+                .filter((part) => part.length > 0)
+                .join("\n");
+            const contents = serializeEventMarkdown(
+                { ...previous.event, description },
+                body
+            );
+            if (contents === previous.contents) return;
+
+            setIsSaving(true);
+            setStorageError(null);
+            try {
+                const relativePath = await writeDesktopEventFile({
+                    dataFolder,
+                    calendarPath: previous.calendarPath,
+                    previousRelativePath: previous.relativePath,
+                    fileName: previous.fileName,
+                    contents,
+                });
+                const nextRecord: DesktopStoredEvent = {
+                    ...previous,
+                    relativePath,
+                    fileName: fileNameFromRelativePath(relativePath),
+                    contents,
+                    event: { ...previous.event, description },
+                };
+                const next = recordsRef.current.map((record) =>
+                    record.id === previous.id ? nextRecord : record
+                );
+                recordsRef.current = next;
+                setStoredEvents(next);
+            } catch (reason) {
+                setStorageError(errorMessage(reason));
+            } finally {
+                setIsSaving(false);
+            }
+        },
+        [dataFolder, eventBodyLinksToInline]
+    );
+
+    /**
      * Nommer un lien soi-même.
      *
      * Le titre est lu une fois, à l'ajout, et ce que le site voulait bien dire
@@ -2556,11 +2641,29 @@ export default function DesktopCalendar({
                     }
                 }
             }
-            setDraftSlot(null);
-            setPanelEventId(eventId);
-            setPanelAnchor(anchor);
+            const show = () => {
+                setDraftSlot(null);
+                setPanelEventId(eventId);
+                setPanelAnchor(anchor);
+            };
+            /* Les liens restés dans le corps de la note rejoignent sa
+               description AVANT que la fiche ne l'ouvre : une fiche déjà
+               ouverte ne relit pas son évènement, et sauvegarderait sa vieille
+               description par-dessus. Rien à déplacer, rien à attendre : le
+               chemin ordinaire ne passe par aucune promesse. */
+            if (eventBodyLinksToInline(eventId).length) {
+                void inlineEventBodyLinks(eventId).then(show, show);
+                return;
+            }
+            show();
         },
-        [setCurrentDate, viewType, preferences.firstDay]
+        [
+            eventBodyLinksToInline,
+            inlineEventBodyLinks,
+            setCurrentDate,
+            viewType,
+            preferences.firstDay,
+        ]
     );
 
     const selectEvent = useCallback(
@@ -4404,7 +4507,6 @@ export default function DesktopCalendar({
                 onFetchPage={fetchDesktopPage}
                 onResolveUrl={resolveDesktopUrl}
                 linkedItems={panelLinkedItems}
-                onAddEventLink={appendEventBody}
                 onRemoveEventLink={removeEventBodyLink}
                 onRenameEventLink={renameEventBodyLink}
                 linkAddress={panelLinkAddress}

@@ -89,16 +89,23 @@ import {
 import { linkSubtitle } from "./linkFacts";
 import { needsResolving } from "./shareLink";
 import { Toast, ToastMessage } from "./Toast";
+import { TaskCheckbox } from "./TaskCheckbox";
 import { t } from "../i18n";
 import {
     CaretMove,
+    markerEnd,
+    markerPrefixLength,
     mergeLine,
     readChecklist,
-    taskPrefixLength,
     replaceLine,
     splitLine,
     toggleLine,
 } from "./descriptionChecklist";
+import {
+    hasInlineLink,
+    InlineLink,
+    splitInlineLinks,
+} from "./descriptionInlineLinks";
 import { imageMimeFor, isImageTarget } from "./pastedAttachment";
 import { isAndroidRuntime } from "./CalendarUtils";
 import { decideLinkedFileTap, LinkedFileTap } from "./linkedFileTap";
@@ -1820,7 +1827,6 @@ export function RemindersRow({
     );
 
     /* La fiche bouge sous le menu : il suit son champ plutôt que l'écran. */
-
 
     /* A menu of five entries fits above or below almost anywhere; scrolling it
        under the field while the whole screen sits free above is the placement
@@ -3692,13 +3698,165 @@ function descriptionLineSelection(
     }
 
     const raw = rawLines[index] ?? "";
-    const prefix = taskPrefixLength(raw) ?? 0;
+    const prefix = markerPrefixLength(raw);
     const contentLength = Math.max(0, raw.length - prefix);
     const clampLocal = (offset: number) =>
         Math.max(0, Math.min(offset - lineStart - prefix, contentLength));
     const localStart = clampLocal(start);
     const localEnd = Math.max(localStart, clampLocal(end));
     return { index, start: localStart, end: localEnd };
+}
+
+/** Ce qu'un lien écrit dans la description sait faire quand on le touche. */
+export interface DescriptionLinkActions {
+    /** Un clic : on y va. Les positions sont celles du texte entier. */
+    open: (link: InlineLink) => void;
+    /** Un clic droit : la petite barre, posée sur le lien. */
+    menu: (link: InlineLink, anchor: DOMRect) => void;
+    /** Un clic qui poserait le curseur ici, dans le texte entier. Rend vrai
+     *  quand un lien est touché et que sa fenêtre s'en charge : la ligne ne
+     *  s'ouvre alors pas. */
+    touch?: (caret: number) => boolean;
+}
+
+/**
+ * La description se lit-elle ligne par ligne plutôt que comme un seul champ ?
+ *
+ * Une étape doit montrer sa case, un lien doit se laisser suivre : ni l'une ni
+ * l'autre ne se dessine dans un `textarea`, qui ne connaît que du texte nu.
+ * Une description qui n'a ni l'un ni l'autre reste donc un champ, comme avant.
+ */
+export function readsAsNote(description: string): boolean {
+    return (
+        readChecklist(description).some((line) => line.kind !== "text") ||
+        hasInlineLink(description)
+    );
+}
+
+/**
+ * Où, dans le texte d'un morceau, un clic est tombé.
+ *
+ * Le curseur se posait en bout de morceau quel que soit l'endroit du clic :
+ * cliquer au milieu d'un mot ouvrait la ligne trois mots plus loin, et un clic
+ * sur le premier mot d'une ligne passait pour un clic contre le lien qui la
+ * finit. Le navigateur sait dire quel caractère est sous la souris ; sans lui
+ * (les tests), la fin du morceau reste le repli.
+ */
+function caretOffsetAt(
+    element: HTMLElement,
+    x: number,
+    y: number,
+    fallback: number
+): number {
+    const doc = element.ownerDocument as Document & {
+        caretPositionFromPoint?: (
+            x: number,
+            y: number
+        ) => { offsetNode: Node; offset: number } | null;
+    };
+    const position = doc.caretPositionFromPoint
+        ? doc.caretPositionFromPoint(x, y)
+        : null;
+    const range =
+        !position && typeof doc.caretRangeFromPoint === "function"
+            ? doc.caretRangeFromPoint(x, y)
+            : null;
+    const node = position?.offsetNode ?? range?.startContainer ?? null;
+    const offset = position?.offset ?? range?.startOffset ?? null;
+    if (!node || offset === null || !element.contains(node)) return fallback;
+    return Math.max(0, Math.min(offset, fallback));
+}
+
+/**
+ * Une ligne telle qu'elle se lit : son texte, et ses liens dessinés comme des
+ * liens.
+ *
+ * Le texte reste ce qui est écrit — cliquer à côté du lien ouvre la ligne avec
+ * son markdown, comme Obsidian le fait en aperçu.
+ */
+function DescriptionLineText({
+    source,
+    offset,
+    actions,
+    onCaret,
+}: {
+    source: string;
+    /** Où cette ligne commence dans la description entière. */
+    offset: number;
+    actions?: DescriptionLinkActions;
+    /** Poser le curseur à cet endroit de la ligne. */
+    onCaret: (position: number) => void;
+}) {
+    const segments = splitInlineLinks(source);
+    if (!segments.some((segment) => segment.kind === "link")) {
+        return <>{source || " "}</>;
+    }
+
+    return (
+        <>
+            {segments.map((segment, index) => {
+                if (segment.kind === "text") {
+                    return (
+                        <span
+                            key={index}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onCaret(
+                                    segment.start +
+                                        caretOffsetAt(
+                                            event.currentTarget,
+                                            event.clientX,
+                                            event.clientY,
+                                            segment.text.length
+                                        )
+                                );
+                            }}
+                            role="presentation"
+                        >
+                            {segment.text}
+                        </span>
+                    );
+                }
+                const absolute: InlineLink = {
+                    ...segment,
+                    start: offset + segment.start,
+                    end: offset + segment.end,
+                };
+                return (
+                    <a
+                        key={index}
+                        className="nc-description-inline-link"
+                        role="link"
+                        tabIndex={0}
+                        data-nc-tooltip={segment.target}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            actions?.open(absolute);
+                        }}
+                        onContextMenu={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            actions?.menu(
+                                absolute,
+                                event.currentTarget.getBoundingClientRect()
+                            );
+                        }}
+                        onKeyDown={(event) => {
+                            if (event.key !== "Enter" && event.key !== " ") {
+                                return;
+                            }
+                            event.preventDefault();
+                            event.stopPropagation();
+                            actions?.open(absolute);
+                        }}
+                    >
+                        {segment.label || segment.target}
+                    </a>
+                );
+            })}
+        </>
+    );
 }
 
 interface DescriptionRowProps {
@@ -3708,6 +3866,7 @@ interface DescriptionRowProps {
     onCommit: () => void;
     toolbar?: React.ReactNode;
     focusRequest?: DescriptionFocusRequest | null;
+    linkActions?: DescriptionLinkActions;
 }
 
 export function DescriptionRow({
@@ -3717,6 +3876,7 @@ export function DescriptionRow({
     onCommit,
     toolbar,
     focusRequest,
+    linkActions,
 }: DescriptionRowProps) {
     const fieldRef = React.useRef<HTMLTextAreaElement>(null);
     /*
@@ -3733,8 +3893,31 @@ export function DescriptionRow({
      * lines would take away the one thing a textarea does well.
      */
     const lines = readChecklist(description);
-    const asNote = lines.some((line) => line.kind === "task");
+    const asNote = readsAsNote(description);
+    /** Où chaque ligne commence dans le texte entier, pour situer ses liens. */
+    const lineOffsets = React.useMemo(() => {
+        const offsets: number[] = [];
+        let total = 0;
+        for (const line of description.split("\n")) {
+            offsets.push(total);
+            total += line.length + 1;
+        }
+        return offsets;
+    }, [description]);
     const [editing, setEditing] = React.useState<number | null>(null);
+    /** Le marqueur de la ligne ouverte est-il montre tel qu'il s'ecrit ? */
+    const [revealed, setRevealed] = React.useState(false);
+    /*
+     * Tout le texte dans un seul champ, le temps d'un Ctrl+A.
+     *
+     * Ligne par ligne, chaque champ ne tient que sa ligne : Ctrl+A n'y
+     * sélectionnait qu'elle, et rien ne permettait de prendre la description
+     * entière pour la copier ou la remplacer. L'appui remonte donc tout le
+     * texte tel qu'il s'écrit, sélectionné d'un bout à l'autre ; quitter ce
+     * champ rend les lignes.
+     */
+    const [whole, setWhole] = React.useState(false);
+    const lineByLine = asNote && !whole;
     /** Where the selection goes once the line it belongs to is on screen. */
     const selectionRef = React.useRef<{ start: number; end: number } | null>(
         null
@@ -3742,11 +3925,19 @@ export function DescriptionRow({
     const lineRef = React.useRef<HTMLTextAreaElement>(null);
 
     React.useLayoutEffect(() => {
-        const field = asNote ? lineRef.current : fieldRef.current;
+        const field = lineByLine ? lineRef.current : fieldRef.current;
         if (!field) return;
         field.style.height = "auto";
         field.style.height = `${field.scrollHeight}px`;
-    }, [asNote, description, editing]);
+    }, [lineByLine, description, editing]);
+
+    React.useLayoutEffect(() => {
+        if (!whole) return;
+        const field = fieldRef.current;
+        if (!field) return;
+        field.focus();
+        field.select();
+    }, [whole]);
 
     React.useLayoutEffect(() => {
         const field = lineRef.current;
@@ -3760,12 +3951,12 @@ export function DescriptionRow({
             Math.min(selection.end, field.value.length)
         );
         field.setSelectionRange(start, end);
-    }, [editing]);
+    }, [editing, revealed]);
 
     React.useLayoutEffect(() => {
         if (!focusRequest || !editable) return;
 
-        if (!asNote) {
+        if (!lineByLine) {
             const field = fieldRef.current;
             if (!field) return;
             field.focus();
@@ -3803,21 +3994,40 @@ export function DescriptionRow({
             start: target.start,
             end: target.end,
         };
+        setRevealed(false);
         setEditing(target.index);
         // Toolbar focus is a one-shot hand-off. Typing changes the
         // description but must not replay this request or reset the caret.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [focusRequest?.revision]);
 
-    /** Opens a line for editing, with the caret placed inside it. */
+    /** Opens a line for editing, with the caret placed inside it.
+     *
+     *  Le curseur y arrive par ce qui se lit — le titre d'une etape, le texte
+     *  d'une puce — donc apres le marqueur : la ligne ouvre rendue. */
     const edit = (index: number, caret: number) => {
         if (!editable) return;
         selectionRef.current = { start: caret, end: caret };
+        setRevealed(false);
         setEditing(index);
+    };
+
+    /** Un clic sur la ligne : comme `edit`, sauf quand il touche un lien.
+     *
+     *  Les fleches, elles, passent par `edit` directement : descendre sur une
+     *  ligne qui finit par un lien ne doit pas ouvrir sa fenetre. */
+    const click = (index: number, caret: number) => {
+        if (!editable) return;
+        const raw = description.split("\n")[index] ?? "";
+        const absolute =
+            (lineOffsets[index] ?? 0) + markerPrefixLength(raw) + caret;
+        if (linkActions?.touch?.(absolute)) return;
+        edit(index, caret);
     };
 
     const leave = () => {
         setEditing(null);
+        setRevealed(false);
         onCommit();
     };
 
@@ -3830,13 +4040,18 @@ export function DescriptionRow({
     const move = (next: CaretMove) => {
         setDescription(next.text);
         const landed = next.text.split("\n")[next.focus] ?? "";
-        const prefix = taskPrefixLength(landed) ?? 0;
+        const prefix = markerPrefixLength(landed);
         const caret = Math.max(0, next.caret - prefix);
         selectionRef.current = { start: caret, end: caret };
+        setRevealed(false);
         setEditing(next.focus);
     };
 
-    if (!asNote) {
+    if (!lineByLine) {
+        const leaveWhole = () => {
+            setWhole(false);
+            onCommit();
+        };
         return (
             <div className="nc-panel-row nc-panel-row-desc">
                 <span className="nc-panel-row-icon">
@@ -3848,12 +4063,20 @@ export function DescriptionRow({
                         ref={fieldRef}
                         rows={1}
                         className="nc-panel-textarea"
+                        data-description-input="true"
                         value={description}
                         /* An empty row that says what it is FOR beats one that
                            says it is empty, which was visible already. */
                         placeholder={t("Add a description")}
                         onChange={(e) => setDescription(e.target.value)}
-                        onBlur={onCommit}
+                        onBlur={leaveWhole}
+                        onKeyDown={(e) => {
+                            if (e.key === "Escape" && whole) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                leaveWhole();
+                            }
+                        }}
                         readOnly={!editable}
                     />
                 </div>
@@ -3872,41 +4095,126 @@ export function DescriptionRow({
                     {lines.map((line, index) => {
                         const editingThis = index === editing;
                         const raw = description.split("\n")[index] ?? "";
-                        /* Le prefixe est ce que la case occupe : le champ ne
-                           tient que le titre, donc tout ce qui en sort — le
-                           texte reecrit, la position du curseur — repasse par
-                           lui. Zero sur une ligne de prose. */
-                        const prefix = taskPrefixLength(raw) ?? 0;
+                        /* Le prefixe est ce que le marqueur occupe : le champ
+                           ne tient que ce qui suit, donc tout ce qui en sort —
+                           le texte reecrit, la position du curseur — repasse
+                           par lui. Zero sur une ligne de prose. */
+                        const prefix = markerPrefixLength(raw);
+                        /*
+                         * Le brut se montre quand le curseur entre dedans.
+                         *
+                         * Un marqueur se rend des qu'il est complet : le tiret
+                         * devient un rond, `- [ ]` devient une case, sans
+                         * attendre qu'on quitte la ligne. Ce qu'on vient
+                         * d'ecrire est alors ce qu'on lira, tout de suite.
+                         *
+                         * Mais rendu, il n'est plus fait de caracteres, et il
+                         * n'y avait plus aucune facon de le defaire : un retour
+                         * arriere contre une case mangeait le mot d'avant, pas
+                         * la case. Le curseur ramene dedans — fleche gauche,
+                         * clic, retour arriere — rouvre donc les cinq
+                         * caracteres, qui s'effacent alors comme du texte.
+                         */
+                        const rawMode = editingThis && (revealed || !prefix);
+                        const shown = rawMode ? raw : raw.slice(prefix);
+
+                        /** Ou le curseur est dans la ligne entiere. */
+                        const absolute = (local: number) =>
+                            local + (rawMode ? 0 : prefix);
+
+                        /** Passe d'un mode a l'autre sans lacher le curseur. */
+                        const reveal = (wanted: boolean, caret: number) => {
+                            const local = wanted ? caret : caret - prefix;
+                            selectionRef.current = {
+                                start: local,
+                                end: local,
+                            };
+                            setRevealed(wanted);
+                        };
+
                         const field = (
                             <textarea
                                 key="edit"
                                 ref={lineRef}
                                 rows={1}
                                 className="nc-panel-checklist-edit"
-                                value={raw.slice(prefix)}
-                                onChange={(e) =>
+                                value={shown}
+                                onChange={(e) => {
+                                    const written = rawMode
+                                        ? e.target.value
+                                        : raw.slice(0, prefix) + e.target.value;
+                                    const caret = absolute(
+                                        e.target.selectionStart
+                                    );
                                     setDescription(
-                                        replaceLine(
-                                            description,
-                                            index,
-                                            raw.slice(0, prefix) +
-                                                e.target.value
-                                        )
-                                    )
-                                }
+                                        replaceLine(description, index, written)
+                                    );
+                                    /* Ce qui vient d'etre tape a pu faire
+                                       naitre le marqueur, ou le defaire : le
+                                       mode se decide sur la ligne telle
+                                       qu'elle est maintenant. */
+                                    const next = markerPrefixLength(written);
+                                    const wanted = !next || caret < next;
+                                    if (wanted !== rawMode) {
+                                        const local = wanted
+                                            ? caret
+                                            : caret - next;
+                                        selectionRef.current = {
+                                            start: local,
+                                            end: local,
+                                        };
+                                        setRevealed(wanted);
+                                    }
+                                }}
+                                onSelect={(e) => {
+                                    // Une bascule deja demandee pose elle-meme
+                                    // le curseur : la lire ici la deferait.
+                                    if (selectionRef.current || !prefix) return;
+                                    const caret = absolute(
+                                        e.currentTarget.selectionStart
+                                    );
+                                    const wanted = caret < prefix;
+                                    if (wanted !== rawMode) {
+                                        reveal(wanted, caret);
+                                    }
+                                }}
                                 onBlur={leave}
                                 onKeyDown={(e) => {
                                     const input = e.currentTarget;
                                     const at = input.selectionStart;
+                                    if (
+                                        (e.ctrlKey || e.metaKey) &&
+                                        !e.altKey &&
+                                        e.key.toLowerCase() === "a"
+                                    ) {
+                                        e.preventDefault();
+                                        setWhole(true);
+                                        return;
+                                    }
                                     if (e.key === "Enter" && !e.shiftKey) {
                                         e.preventDefault();
                                         move(
                                             splitLine(
                                                 description,
                                                 index,
-                                                prefix + at
+                                                absolute(at)
                                             )
                                         );
+                                        return;
+                                    }
+                                    /* Contre le marqueur rendu, le retour
+                                       arriere le rouvre plutot que de manger
+                                       ce qu'il y a avant lui : le curseur se
+                                       pose derriere son dernier caractere, et
+                                       l'appui suivant efface celui-la. */
+                                    if (
+                                        e.key === "Backspace" &&
+                                        at === 0 &&
+                                        input.selectionEnd === 0 &&
+                                        !rawMode
+                                    ) {
+                                        e.preventDefault();
+                                        reveal(true, markerEnd(raw));
                                         return;
                                     }
                                     if (
@@ -3916,6 +4224,18 @@ export function DescriptionRow({
                                     ) {
                                         e.preventDefault();
                                         move(mergeLine(description, index));
+                                        return;
+                                    }
+                                    /* La fleche gauche entre dans le marqueur
+                                       comme elle entrerait dans un mot : d'un
+                                       caractere, et il se montre. */
+                                    if (
+                                        e.key === "ArrowLeft" &&
+                                        at === 0 &&
+                                        !rawMode
+                                    ) {
+                                        e.preventDefault();
+                                        reveal(true, prefix - 1);
                                         return;
                                     }
                                     /* Up and down leave the line the way they
@@ -3954,6 +4274,17 @@ export function DescriptionRow({
                             />
                         );
 
+                        /* Le marqueur ouvert n'est plus dessine : ses
+                           caracteres sont dans le champ, et le voir deux fois
+                           — en rond ET en tiret — dirait qu'il y en a deux. */
+                        if (rawMode) {
+                            return (
+                                <React.Fragment key={index}>
+                                    {field}
+                                </React.Fragment>
+                            );
+                        }
+
                         /* Une <div> et pas un <label> : un label
                            renverrait le clic sur le texte a la case, et
                            ce clic-la ouvre l'edition. Toucher le texte
@@ -3985,40 +4316,104 @@ export function DescriptionRow({
                                         editingThis
                                             ? undefined
                                             : () =>
-                                                  edit(index, line.title.length)
+                                                  click(
+                                                      index,
+                                                      line.title.length
+                                                  )
                                     }
                                     role="presentation"
                                 >
-                                    <input
-                                        type="checkbox"
-                                        checked={line.done}
+                                    <button
+                                        type="button"
+                                        className="nc-panel-checklist-checkbox"
+                                        role="checkbox"
+                                        aria-checked={line.done}
+                                        aria-label={
+                                            line.done
+                                                ? t("Complete")
+                                                : t("To do")
+                                        }
                                         disabled={!editable}
                                         /* The box is not a way into the text:
                                            ticking one is a whole gesture on its
                                            own, and opening the editor under the
                                            finger would take the tick away. */
-                                        onClick={(e) => e.stopPropagation()}
-                                        onChange={() => {
+                                        onClick={(event) => {
+                                            event.stopPropagation();
                                             setDescription(
                                                 toggleLine(description, index)
                                             );
                                             onCommit();
                                         }}
-                                    />
+                                    >
+                                        <TaskCheckbox completed={line.done} />
+                                    </button>
                                     {editingThis ? (
                                         field
                                     ) : (
-                                        <span>{line.title}</span>
+                                        <span>
+                                            <DescriptionLineText
+                                                source={line.title}
+                                                offset={
+                                                    (lineOffsets[index] ?? 0) +
+                                                    prefix
+                                                }
+                                                actions={linkActions}
+                                                onCaret={(position) =>
+                                                    click(index, position)
+                                                }
+                                            />
+                                        </span>
                                     )}
                                 </div>
                             );
                         }
 
-                        if (editingThis) {
+                        /* Un rond plutot qu'un tiret, dessine a cote du texte
+                           comme la case l'est : les deux sont la meme famille,
+                           et une liste a puces qui garde son tiret nu a cote
+                           d'une liste a cases se lit comme du brouillon reste
+                           a cote du propre. */
+                        if (line.kind === "bullet") {
                             return (
-                                <React.Fragment key={index}>
-                                    {field}
-                                </React.Fragment>
+                                <div
+                                    key={index}
+                                    className="nc-panel-checklist-line nc-panel-checklist-bulleted"
+                                    style={{
+                                        paddingLeft: `${
+                                            line.indent.length * 6
+                                        }px`,
+                                    }}
+                                    onClick={
+                                        editingThis
+                                            ? undefined
+                                            : () =>
+                                                  click(index, line.text.length)
+                                    }
+                                    role="presentation"
+                                >
+                                    <span
+                                        className="nc-panel-checklist-bullet"
+                                        aria-hidden="true"
+                                    />
+                                    {editingThis ? (
+                                        field
+                                    ) : (
+                                        <span>
+                                            <DescriptionLineText
+                                                source={line.text}
+                                                offset={
+                                                    (lineOffsets[index] ?? 0) +
+                                                    prefix
+                                                }
+                                                actions={linkActions}
+                                                onCaret={(position) =>
+                                                    click(index, position)
+                                                }
+                                            />
+                                        </span>
+                                    )}
+                                </div>
                             );
                         }
 
@@ -4026,10 +4421,17 @@ export function DescriptionRow({
                             <p
                                 key={index}
                                 className="nc-panel-checklist-text"
-                                onClick={() => edit(index, line.text.length)}
+                                onClick={() => click(index, line.text.length)}
                                 role="presentation"
                             >
-                                {line.text || "\u00a0"}
+                                <DescriptionLineText
+                                    source={line.text}
+                                    offset={lineOffsets[index] ?? 0}
+                                    actions={linkActions}
+                                    onCaret={(position) =>
+                                        click(index, position)
+                                    }
+                                />
                             </p>
                         );
                     })}

@@ -1,4 +1,6 @@
 import {
+    markerEnd,
+    markerPrefixLength,
     mergeLine,
     readChecklist,
     taskPrefixLength,
@@ -67,9 +69,46 @@ describe("reading a description as lines", () => {
 
     it("ne prend pas une liste ordinaire pour une case", () => {
         expect(readChecklist("- Une puce sans case")[0]).toEqual({
-            kind: "text",
-            text: "- Une puce sans case",
+            kind: "bullet",
+            text: "Une puce sans case",
+            indent: "",
         });
+    });
+
+    it("lit une puce, et exige son espace comme la case exige le sien", () => {
+        expect(readChecklist("  * Deuxième niveau")[0]).toEqual({
+            kind: "bullet",
+            text: "Deuxième niveau",
+            indent: "  ",
+        });
+        expect(readChecklist("-5 degrés")[0]).toEqual({
+            kind: "text",
+            text: "-5 degrés",
+        });
+    });
+});
+
+describe("markerPrefixLength / markerEnd", () => {
+    it("mesure la case, espace facultatif compris", () => {
+        expect(markerPrefixLength("- [ ] Étape")).toBe(6);
+        expect(markerPrefixLength("- [x]")).toBe(5);
+    });
+
+    it("mesure la puce", () => {
+        expect(markerPrefixLength("- Courses")).toBe(2);
+        expect(markerPrefixLength("   + Courses")).toBe(5);
+    });
+
+    it("ne mesure rien sur de la prose", () => {
+        expect(markerPrefixLength("Courses")).toBe(0);
+        expect(markerEnd("Courses")).toBe(0);
+    });
+
+    it("pose le curseur derrière le dernier caractère du marqueur", () => {
+        // Derrière le `]`, et non derrière l'espace qui le suit.
+        expect(markerEnd("- [ ] Étape")).toBe(5);
+        expect(markerEnd("- [x]")).toBe(5);
+        expect(markerEnd("- Courses")).toBe(1);
     });
 });
 

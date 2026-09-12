@@ -150,7 +150,6 @@ interface EventPanelProps {
         vaultPath?: string
     ) => Promise<EventLinkTarget[]>;
     linkedItems?: EventLinkedItem[];
-    onAddEventLink?: (eventId: string, markdown: string) => Promise<void>;
     onRemoveEventLink?: (eventId: string, target: string) => Promise<void>;
     /** Renomme un lien : le libellé est du texte, pas une donnée du site. */
     onRenameEventLink?: (
@@ -293,7 +292,6 @@ export default function EventPanel({
     linkVaults = [],
     onSearchEventLinks,
     linkedItems = [],
-    onAddEventLink,
     onRemoveEventLink,
     onRenameEventLink,
     onOpenEventLink,
@@ -1394,308 +1392,309 @@ export default function EventPanel({
             <div
                 ref={popupRef}
                 className={`nc-event-popup nc-placement-${position.placement}${
-                isDraft ? " nc-event-popup--draft" : ""
-            }${androidDraft ? " nc-event-popup--android-draft" : ""}${
-                leaving ? ` ${PANEL_EXIT_CLASS}` : ""
-            }`}
-            // The panel is taken off the screen when its exit animation says it
-            // is done, rather than after a duration copied out of the
-            // stylesheet: one place decides how long leaving takes, and the
-            // reduced-motion rule that shortens every animation to 1 ms is
-            // obeyed for free.
-            onAnimationEnd={(e) => {
-                if (
-                    !panelHasLeft({
-                        leaving,
-                        animationName: e.animationName,
-                        fromPanel: e.target === e.currentTarget,
-                    })
-                )
-                    return;
-                onClose();
-            }}
-            role="dialog"
-            aria-label={isDraft ? "New event" : "Event details"}
-            style={{
-                left: computedLeft,
-                top: computedTop,
-                width: position.width,
-                // PAS de maxHeight en inline : posee ici, elle battrait la
-                // regle CSS et resterait figee a la hauteur du viewport
-                // d'ouverture. Le clavier virtuel d'Android ampute environ 40 %
-                // de la hauteur APRES coup, sans re-render — le panneau
-                // debordait alors, bas inatteignable. La borne vit donc dans
-                // CalendarOverlays.css, en `dvh`, qui suit la hauteur
-                // reellement visible. POPUP_MAX_HEIGHT y est repris a
-                // l'identique et sert encore ici au calcul du placement.
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                    requestCloseGuarded();
-                }
-                e.stopPropagation();
-            }}
-        >
-            <PanelHeader
-                headerRef={headerRef}
-                sheetHandle={sheetHandle}
-                isDraft={isDraft}
-                isTask={isTask}
-                kind={entryKind}
-                setKind={setEntryKind}
-                editable={stableCalInfo.editable}
-                eventId={eventId}
-                menuOpen={menuOpen}
-                menuRef={menuRef}
-                onHeaderMouseDown={handleHeaderMouseDown}
-                onToggleMenu={() => setMenuOpen((v) => !v)}
-                onOpenFile={(id) => {
-                    setMenuOpen(false);
-                    onOpenFile(id);
+                    isDraft ? " nc-event-popup--draft" : ""
+                }${androidDraft ? " nc-event-popup--android-draft" : ""}${
+                    leaving ? ` ${PANEL_EXIT_CLASS}` : ""
+                }`}
+                // The panel is taken off the screen when its exit animation says it
+                // is done, rather than after a duration copied out of the
+                // stylesheet: one place decides how long leaving takes, and the
+                // reduced-motion rule that shortens every animation to 1 ms is
+                // obeyed for free.
+                onAnimationEnd={(e) => {
+                    if (
+                        !panelHasLeft({
+                            leaving,
+                            animationName: e.animationName,
+                            fromPanel: e.target === e.currentTarget,
+                        })
+                    )
+                        return;
+                    onClose();
                 }}
-                onCopyFilePath={
-                    onCopyFilePath
-                        ? (id) => {
-                              setMenuOpen(false);
-                              void onCopyFilePath(id)
-                                  .then(() =>
-                                      setCopyPathToast({
-                                          title: t("Path copied"),
-                                          detail: t(
-                                              "Paste it wherever you like"
-                                          ),
-                                      })
-                                  )
-                                  .catch(() => {
-                                      // The desktop shell reports the concrete
-                                      // filesystem error in its usual banner.
-                                  });
-                          }
-                        : undefined
-                }
-                onDuplicate={
-                    onDuplicate
-                        ? (id) => {
-                              // Same exit as deleting: the copy lands on the
-                              // slot the panel is covering, so staying open on
-                              // the original hides the thing just made.
-                              setMenuOpen(false);
-                              onDuplicate(id);
-                              // The copy was made from the note, not from what
-                              // is held here; asking about the held edit on top
-                              // of it would stack two answers on one gesture.
-                              heldEditRef.current = false;
-                              leave();
-                          }
-                        : undefined
-                }
-                onDeleteClick={() => {
-                    setMenuOpen(false);
-                    handleDeleteClick();
+                role="dialog"
+                aria-label={isDraft ? "New event" : "Event details"}
+                style={{
+                    left: computedLeft,
+                    top: computedTop,
+                    width: position.width,
+                    // PAS de maxHeight en inline : posee ici, elle battrait la
+                    // regle CSS et resterait figee a la hauteur du viewport
+                    // d'ouverture. Le clavier virtuel d'Android ampute environ 40 %
+                    // de la hauteur APRES coup, sans re-render — le panneau
+                    // debordait alors, bas inatteignable. La borne vit donc dans
+                    // CalendarOverlays.css, en `dvh`, qui suit la hauteur
+                    // reellement visible. POPUP_MAX_HEIGHT y est repris a
+                    // l'identique et sert encore ici au calcul du placement.
                 }}
-                onClose={requestCloseGuarded}
-            />
-
-            <form
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    if (isDraft) commitDraftIfNeeded();
+                onMouseDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                        requestCloseGuarded();
+                    }
+                    e.stopPropagation();
                 }}
-                className="nc-panel-body"
             >
-                <TitleRow
-                    title={form.title}
+                <PanelHeader
+                    headerRef={headerRef}
+                    sheetHandle={sheetHandle}
+                    isDraft={isDraft}
+                    isTask={isTask}
+                    kind={entryKind}
+                    setKind={setEntryKind}
                     editable={stableCalInfo.editable}
-                    inputRef={titleInputRef}
-                    onChange={form.setTitle}
-                    onCommit={onTitleCommit}
+                    eventId={eventId}
+                    menuOpen={menuOpen}
+                    menuRef={menuRef}
+                    onHeaderMouseDown={handleHeaderMouseDown}
+                    onToggleMenu={() => setMenuOpen((v) => !v)}
+                    onOpenFile={(id) => {
+                        setMenuOpen(false);
+                        onOpenFile(id);
+                    }}
+                    onCopyFilePath={
+                        onCopyFilePath
+                            ? (id) => {
+                                  setMenuOpen(false);
+                                  void onCopyFilePath(id)
+                                      .then(() =>
+                                          setCopyPathToast({
+                                              title: t("Path copied"),
+                                              detail: t(
+                                                  "Paste it wherever you like"
+                                              ),
+                                          })
+                                      )
+                                      .catch(() => {
+                                          // The desktop shell reports the concrete
+                                          // filesystem error in its usual banner.
+                                      });
+                              }
+                            : undefined
+                    }
+                    onDuplicate={
+                        onDuplicate
+                            ? (id) => {
+                                  // Same exit as deleting: the copy lands on the
+                                  // slot the panel is covering, so staying open on
+                                  // the original hides the thing just made.
+                                  setMenuOpen(false);
+                                  onDuplicate(id);
+                                  // The copy was made from the note, not from what
+                                  // is held here; asking about the held edit on top
+                                  // of it would stack two answers on one gesture.
+                                  heldEditRef.current = false;
+                                  leave();
+                              }
+                            : undefined
+                    }
+                    onDeleteClick={() => {
+                        setMenuOpen(false);
+                        handleDeleteClick();
+                    }}
+                    onClose={requestCloseGuarded}
                 />
 
-                <div className="nc-panel-section nc-panel-section-schedule">
-                    <DateRow
-                        date={form.date}
-                        dateLabel={dateLabel}
-                        endDateLabel={endDateLabel}
-                        endDate={endDateValue}
-                        startTime={form.startTime}
-                        endTime={form.endTime}
-                        duration={duration}
-                        allDay={form.allDay}
-                        isRecurring={form.isRecurring}
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        if (isDraft) commitDraftIfNeeded();
+                    }}
+                    className="nc-panel-body"
+                >
+                    <TitleRow
+                        title={form.title}
                         editable={stableCalInfo.editable}
-                        firstDay={firstDay}
-                        setDate={form.setDate}
-                        setEndDate={form.setEndDate}
-                        setStartTime={form.setStartTime}
-                        setEndTime={form.setEndTime}
-                        // Back to the unscheduled list. Every field that only a
-                        // DATED event can carry has to go with the date, because
-                        // buildPayload reads them all: a repeat left standing would
-                        // send the payload down the rrule branch and write a series
-                        // whose start date is the empty string, and times left
-                        // standing would keep `allDay: false` — the one thing a
-                        // someday can never be — leaving stale hours in the note.
-                        //
-                        // The same note the drag-onto-the-panel route writes, by the
-                        // same reasoning: see buildUnscheduledPayload.
-                        //
-                        // Nothing is saved from here. The panel's change-watching
-                        // effect already follows date, endDate, allDay, startTime,
-                        // endTime and isRecurring, and fires once React has applied
-                        // the finished state.
-                        onClearDate={
-                            isDraft
-                                ? undefined
-                                : () => {
-                                      form.setDate("");
-                                      form.setEndDate(undefined);
-                                      form.setIsRecurring(false);
-                                      form.setAllDay(true);
-                                      form.setStartTime("");
-                                      form.setEndTime("");
-                                  }
-                        }
-                        onAutoSave={autoSave}
+                        inputRef={titleInputRef}
+                        onChange={form.setTitle}
+                        onCommit={onTitleCommit}
                     />
 
-                    <DateOptionsRow
-                        allDay={form.allDay}
-                        editable={stableCalInfo.editable}
-                        onToggleAllDay={toggleAllDay}
-                        isRecurring={form.isRecurring}
-                        currentPreset={currentPreset}
-                        summary={repeatSummary}
-                        onChooseRepeat={chooseRepeat}
-                        onStepOccurrence={
-                            onGoToOccurrence &&
-                            (previousOccurrence || nextOccurrence)
-                                ? stepOccurrence
-                                : undefined
-                        }
-                        canStepBack={Boolean(previousOccurrence)}
-                        canStepForward={Boolean(nextOccurrence)}
-                    />
+                    <div className="nc-panel-section nc-panel-section-schedule">
+                        <DateRow
+                            date={form.date}
+                            dateLabel={dateLabel}
+                            endDateLabel={endDateLabel}
+                            endDate={endDateValue}
+                            startTime={form.startTime}
+                            endTime={form.endTime}
+                            duration={duration}
+                            allDay={form.allDay}
+                            isRecurring={form.isRecurring}
+                            editable={stableCalInfo.editable}
+                            firstDay={firstDay}
+                            setDate={form.setDate}
+                            setEndDate={form.setEndDate}
+                            setStartTime={form.setStartTime}
+                            setEndTime={form.setEndTime}
+                            // Back to the unscheduled list. Every field that only a
+                            // DATED event can carry has to go with the date, because
+                            // buildPayload reads them all: a repeat left standing would
+                            // send the payload down the rrule branch and write a series
+                            // whose start date is the empty string, and times left
+                            // standing would keep `allDay: false` — the one thing a
+                            // someday can never be — leaving stale hours in the note.
+                            //
+                            // The same note the drag-onto-the-panel route writes, by the
+                            // same reasoning: see buildUnscheduledPayload.
+                            //
+                            // Nothing is saved from here. The panel's change-watching
+                            // effect already follows date, endDate, allDay, startTime,
+                            // endTime and isRecurring, and fires once React has applied
+                            // the finished state.
+                            onClearDate={
+                                isDraft
+                                    ? undefined
+                                    : () => {
+                                          form.setDate("");
+                                          form.setEndDate(undefined);
+                                          form.setIsRecurring(false);
+                                          form.setAllDay(true);
+                                          form.setStartTime("");
+                                          form.setEndTime("");
+                                      }
+                            }
+                            onAutoSave={autoSave}
+                        />
 
-                    {form.isRecurring &&
-                        customRepeat &&
-                        customRecurrenceOpen && (
-                            <CustomRecurrencePanel
-                                recurrence={form.recurrence}
-                                startDate={form.date}
-                                firstDay={firstDay}
-                                setRecurrence={form.setRecurrence}
-                                onAutoSave={scheduleAutoSave}
-                                onClose={() => setCustomRecurrenceOpen(false)}
-                            />
-                        )}
-                </div>
+                        <DateOptionsRow
+                            allDay={form.allDay}
+                            editable={stableCalInfo.editable}
+                            onToggleAllDay={toggleAllDay}
+                            isRecurring={form.isRecurring}
+                            currentPreset={currentPreset}
+                            summary={repeatSummary}
+                            onChooseRepeat={chooseRepeat}
+                            onStepOccurrence={
+                                onGoToOccurrence &&
+                                (previousOccurrence || nextOccurrence)
+                                    ? stepOccurrence
+                                    : undefined
+                            }
+                            canStepBack={Boolean(previousOccurrence)}
+                            canStepForward={Boolean(nextOccurrence)}
+                        />
 
-                <div className="nc-panel-section nc-panel-section-properties">
-                    <CalendarRow
-                        editableCalendars={editableCalendars}
-                        calendarIndex={form.calendarIndex}
-                        editable={stableCalInfo.editable}
-                        readOnlyCalendar={
-                            stableCalInfo.editable || isDraft
-                                ? null
-                                : {
-                                      name: stableCalInfo.name,
-                                      color: stableCalInfo.color,
-                                  }
-                        }
-                        onChange={form.setCalendarIndex}
-                        onAutoSave={autoSave}
-                    />
+                        {form.isRecurring &&
+                            customRepeat &&
+                            customRecurrenceOpen && (
+                                <CustomRecurrencePanel
+                                    recurrence={form.recurrence}
+                                    startDate={form.date}
+                                    firstDay={firstDay}
+                                    setRecurrence={form.setRecurrence}
+                                    onAutoSave={scheduleAutoSave}
+                                    onClose={() =>
+                                        setCustomRecurrenceOpen(false)
+                                    }
+                                />
+                            )}
+                    </div>
 
-                    {/* Only for something that happens at a time: an entry
+                    <div className="nc-panel-section nc-panel-section-properties">
+                        <CalendarRow
+                            editableCalendars={editableCalendars}
+                            calendarIndex={form.calendarIndex}
+                            editable={stableCalInfo.editable}
+                            readOnlyCalendar={
+                                stableCalInfo.editable || isDraft
+                                    ? null
+                                    : {
+                                          name: stableCalInfo.name,
+                                          color: stableCalInfo.color,
+                                      }
+                            }
+                            onChange={form.setCalendarIndex}
+                            onAutoSave={autoSave}
+                        />
+
+                        {/* Only for something that happens at a time: an entry
                     waiting in the unscheduled list has no moment to be early
                     for. */}
-                    {(form.date || form.isRecurring) && (
-                        <RemindersRow
-                            reminders={form.reminders}
-                            editable={stableCalInfo.editable}
-                            setReminders={form.setReminders}
-                            onAutoSave={scheduleAutoSave}
-                        />
-                    )}
+                        {(form.date || form.isRecurring) && (
+                            <RemindersRow
+                                reminders={form.reminders}
+                                editable={stableCalInfo.editable}
+                                setReminders={form.setReminders}
+                                onAutoSave={scheduleAutoSave}
+                            />
+                        )}
 
-                    {/* Ou l'evenement se tient, juste au-dessus de ce qu'il
+                        {/* Ou l'evenement se tient, juste au-dessus de ce qu'il
                         raconte : la place que Notion Calendar lui donne, et
                         celle ou on la cherche. */}
-                    <LocationRow
-                        location={form.location}
-                        geo={stableEvent?.geo}
-                        linkAddress={linkAddress}
-                        travelMode={travelMode}
-                        mapsApp={mapsApp}
-                        mapsApps={mapsApps}
-                        nativeMapsApps={nativeMapsApps}
-                        mapsAppIcons={mapsAppIcons}
-                        geoApps={geoApps}
+                        <LocationRow
+                            location={form.location}
+                            geo={stableEvent?.geo}
+                            linkAddress={linkAddress}
+                            travelMode={travelMode}
+                            mapsApp={mapsApp}
+                            mapsApps={mapsApps}
+                            nativeMapsApps={nativeMapsApps}
+                            mapsAppIcons={mapsAppIcons}
+                            geoApps={geoApps}
+                            editable={stableCalInfo.editable}
+                            setLocation={form.setLocation}
+                            onAutoSave={scheduleAutoSave}
+                            onOpenLocation={onOpenLocation}
+                        />
+                    </div>
+
+                    <DescriptionSection
+                        description={form.description}
                         editable={stableCalInfo.editable}
-                        setLocation={form.setLocation}
-                        onAutoSave={scheduleAutoSave}
-                        onOpenLocation={onOpenLocation}
+                        setDescription={form.setDescription}
+                        onCommit={onTitleCommit}
+                        eventId={eventId}
+                        vaults={linkVaults}
+                        items={linkedItems}
+                        onSearch={onSearchEventLinks}
+                        onRemoveLink={onRemoveEventLink}
+                        onRenameLink={onRenameEventLink}
+                        onOpenLink={onOpenEventLink}
+                        onCopyLink={onCopyEventLink}
+                        onPickAttachment={onPickEventAttachment}
+                        onReadAttachment={onReadEventAttachment}
                     />
-                </div>
+                </form>
 
-                <DescriptionSection
-                    description={form.description}
-                    editable={stableCalInfo.editable}
-                    setDescription={form.setDescription}
-                    onCommit={onTitleCommit}
-                    eventId={eventId}
-                    vaults={linkVaults}
-                    items={linkedItems}
-                    onSearch={onSearchEventLinks}
-                    onAddLink={onAddEventLink}
-                    onRemoveLink={onRemoveEventLink}
-                    onRenameLink={onRenameEventLink}
-                    onOpenLink={onOpenEventLink}
-                    onCopyLink={onCopyEventLink}
-                    onPickAttachment={onPickEventAttachment}
-                    onReadAttachment={onReadEventAttachment}
-                />
-            </form>
+                {scopeAsked && (
+                    <RecurringScopeDialog
+                        isTask={isTask}
+                        changes={scopeChanges}
+                        onCancel={cancelScopedEdit}
+                        onConfirm={confirmScopedEdit}
+                    />
+                )}
 
-            {scopeAsked && (
-                <RecurringScopeDialog
-                    isTask={isTask}
-                    changes={scopeChanges}
-                    onCancel={cancelScopedEdit}
-                    onConfirm={confirmScopedEdit}
-                />
-            )}
+                {copyPathToast && (
+                    <Toast
+                        message={copyPathToast}
+                        onClose={() => setCopyPathToast(null)}
+                    />
+                )}
 
-            {copyPathToast && (
-                <Toast
-                    message={copyPathToast}
-                    onClose={() => setCopyPathToast(null)}
-                />
-            )}
-
-            {/* Read-only events (holidays, .ics) are backed by no note at all,
+                {/* Read-only events (holidays, .ics) are backed by no note at all,
                 so the footer would open nothing. */}
-            {(isDraft || stableCalInfo.editable) && (
-                <div className="nc-panel-foot">
-                    <button
-                        type="button"
-                        className="nc-panel-foot-btn"
-                        disabled={isDraft || !eventId}
-                        title={
-                            isDraft || !eventId
-                                ? t("Available once the event is created")
-                                : undefined
-                        }
-                        onClick={() => eventId && onOpenFile(eventId)}
-                    >
-                        <FileTextIcon />
-                        {t("View note")}
-                    </button>
-                </div>
-            )}
-        </div>
+                {(isDraft || stableCalInfo.editable) && (
+                    <div className="nc-panel-foot">
+                        <button
+                            type="button"
+                            className="nc-panel-foot-btn"
+                            disabled={isDraft || !eventId}
+                            title={
+                                isDraft || !eventId
+                                    ? t("Available once the event is created")
+                                    : undefined
+                            }
+                            onClick={() => eventId && onOpenFile(eventId)}
+                        >
+                            <FileTextIcon />
+                            {t("View note")}
+                        </button>
+                    </div>
+                )}
+            </div>
         </>,
         portalTarget
     );

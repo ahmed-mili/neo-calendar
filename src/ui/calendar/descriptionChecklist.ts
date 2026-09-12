@@ -16,6 +16,7 @@
 /** One line of a description, as the panel needs to draw it. */
 export type ChecklistLine =
     | { kind: "text"; text: string }
+    | { kind: "bullet"; text: string; indent: string }
     | { kind: "task"; done: boolean; title: string; indent: string };
 
 /*
@@ -26,6 +27,17 @@ export type ChecklistLine =
  * the box is required too, so `- [x]something` stays prose.
  */
 const TASK_LINE = /^(\s*)([-*+]) \[(.)\] ?(.*)$/;
+
+/**
+ * `- `, `* `, `+ ` : une puce, et rien de plus.
+ *
+ * La meme famille que la case, une marche en dessous. Une ligne qui commence
+ * ainsi EST un point de liste, en Markdown comme sous les yeux : la montrer
+ * telle quelle laissait un tiret nu la ou tout autre editeur dessine un rond.
+ * L'espace est exige pour la meme raison que sur la case : « -5 degres » n'est
+ * pas une liste.
+ */
+const BULLET_LINE = /^(\s*)([-*+]) (.*)$/;
 
 /**
  * Combien de caractères d'une ligne sont sa case plutôt que ce qu'elle dit, ou
@@ -42,20 +54,54 @@ export function taskPrefixLength(line: string): number | null {
     return match ? line.length - match[4].length : null;
 }
 
+/**
+ * Ce que le marqueur d'une ligne occupe : sa case, sa puce, ou rien.
+ *
+ * Le champ d'edition ne tient que ce qui suit — le reste est dessine a cote —
+ * donc tout ce qui sort du champ (le texte reecrit, la position du curseur)
+ * repasse par cette longueur. Zero sur une ligne de prose, ou le champ tient
+ * la ligne entiere.
+ */
+export function markerPrefixLength(line: string): number {
+    const task = taskPrefixLength(line);
+    if (task !== null) return task;
+    const bullet = BULLET_LINE.exec(line);
+    return bullet ? line.length - bullet[3].length : 0;
+}
+
+/**
+ * Ou se pose le curseur quand on rouvre un marqueur rendu.
+ *
+ * Juste derriere son dernier caractere — le `]` d'une case, le tiret d'une
+ * puce — et non derriere l'espace qui le suit : c'est ce caractere-la qu'un
+ * retour arriere visait, et l'espace n'est pas ce qu'on voulait effacer.
+ */
+export function markerEnd(line: string): number {
+    const prefix = markerPrefixLength(line);
+    if (prefix === 0) return 0;
+    return line[prefix - 1] === " " ? prefix - 1 : prefix;
+}
+
 /** Marks other plugins write for "started", which is not "done". */
 const DONE_MARKS = new Set(["x", "X"]);
 
-/** Every line of a description, said as either prose or a step. */
+/** Every line of a description, said as prose, as a bullet, or as a step. */
 export function readChecklist(description: string): ChecklistLine[] {
     return description.split("\n").map((line) => {
         const match = TASK_LINE.exec(line);
-        if (!match) return { kind: "text", text: line };
-        return {
-            kind: "task",
-            done: DONE_MARKS.has(match[3]),
-            title: match[4],
-            indent: match[1],
-        };
+        if (match) {
+            return {
+                kind: "task",
+                done: DONE_MARKS.has(match[3]),
+                title: match[4],
+                indent: match[1],
+            };
+        }
+        const bullet = BULLET_LINE.exec(line);
+        if (bullet) {
+            return { kind: "bullet", text: bullet[3], indent: bullet[1] };
+        }
+        return { kind: "text", text: line };
     });
 }
 

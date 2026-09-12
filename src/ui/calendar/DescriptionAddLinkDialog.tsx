@@ -11,10 +11,11 @@ interface DescriptionLinkItem {
 
 interface DescriptionAddLinkDialogProps {
     hostRef: React.RefObject<HTMLDivElement>;
-    eventId: string | null;
     editable: boolean;
+    /** Les liens déjà là, pour ne pas en écrire deux fois le même. */
     items: readonly DescriptionLinkItem[];
-    onAddLink?: (eventId: string, markdown: string) => Promise<void>;
+    /** Écrit le lien dans la description, là où le curseur était. */
+    onInsert?: (markdown: string) => void;
 }
 
 function markdownTarget(markdown: string): string | null {
@@ -27,29 +28,26 @@ function escapeMarkdownLabel(value: string): string {
 
 export function DescriptionAddLinkDialog({
     hostRef,
-    eventId,
     editable,
     items,
-    onAddLink,
+    onInsert,
 }: DescriptionAddLinkDialogProps) {
     const [open, setOpen] = React.useState(false);
     const [label, setLabel] = React.useState("");
     const [target, setTarget] = React.useState("");
-    const [saving, setSaving] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const labelRef = React.useRef<HTMLInputElement>(null);
 
     const close = React.useCallback(() => {
-        if (saving) return;
         setOpen(false);
         setError(null);
-    }, [saving]);
+    }, []);
 
     React.useEffect(() => {
         const host = hostRef.current;
         if (!host) return;
         const show = () => {
-            if (!editable || !eventId || !onAddLink || saving) return;
+            if (!editable || !onInsert) return;
             setLabel("");
             setTarget("");
             setError(null);
@@ -58,7 +56,7 @@ export function DescriptionAddLinkDialog({
         host.addEventListener(OPEN_DESCRIPTION_LINK_DIALOG_EVENT, show);
         return () =>
             host.removeEventListener(OPEN_DESCRIPTION_LINK_DIALOG_EVENT, show);
-    }, [editable, eventId, hostRef, onAddLink, saving]);
+    }, [editable, hostRef, onInsert]);
 
     React.useEffect(() => {
         if (!open) return;
@@ -66,8 +64,25 @@ export function DescriptionAddLinkDialog({
         return () => window.clearTimeout(timer);
     }, [open]);
 
-    const confirm = async () => {
-        if (!eventId || !onAddLink || saving) return;
+    /* Un appui hors de la fenêtre la referme, comme la croix. */
+    React.useEffect(() => {
+        if (!open) return;
+        const press = (event: PointerEvent) => {
+            const node = event.target;
+            if (
+                node instanceof Element &&
+                node.closest(".nc-description-add-link-dialog")
+            ) {
+                return;
+            }
+            close();
+        };
+        document.addEventListener("pointerdown", press);
+        return () => document.removeEventListener("pointerdown", press);
+    }, [open, close]);
+
+    const confirm = () => {
+        if (!onInsert) return;
         const normalized = urlMarkdown(target);
         const destination = normalized ? markdownTarget(normalized) : null;
         if (!destination) {
@@ -80,19 +95,11 @@ export function DescriptionAddLinkDialog({
         }
 
         const visibleLabel = label.trim() || labelFor(destination);
-        const markdown = `[${escapeMarkdownLabel(visibleLabel)}](${destination})`;
-        setSaving(true);
+        onInsert(`[${escapeMarkdownLabel(visibleLabel)}](${destination})`);
+        setOpen(false);
+        setLabel("");
+        setTarget("");
         setError(null);
-        try {
-            await onAddLink(eventId, markdown);
-            setOpen(false);
-            setLabel("");
-            setTarget("");
-        } catch (reason) {
-            setError(reason instanceof Error ? reason.message : String(reason));
-        } finally {
-            setSaving(false);
-        }
     };
 
     if (!open) return null;
@@ -117,7 +124,7 @@ export function DescriptionAddLinkDialog({
                 } else if (event.key === "Enter") {
                     event.preventDefault();
                     event.stopPropagation();
-                    void confirm();
+                    confirm();
                 }
             }}
         >
@@ -128,7 +135,6 @@ export function DescriptionAddLinkDialog({
                     className="nc-description-link-dialog-close"
                     aria-label={t("Close")}
                     data-nc-tooltip={t("Close")}
-                    disabled={saving}
                     onClick={close}
                 >
                     <XIcon />
@@ -139,14 +145,12 @@ export function DescriptionAddLinkDialog({
                 value={label}
                 aria-label={t("Link text")}
                 placeholder={t("Link text")}
-                disabled={saving}
                 onChange={(event) => setLabel(event.target.value)}
             />
             <input
                 value={target}
                 aria-label={t("Link")}
                 placeholder={t("Link")}
-                disabled={saving}
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
@@ -164,13 +168,13 @@ export function DescriptionAddLinkDialog({
                 <button
                     type="button"
                     className="nc-description-link-confirm"
-                    disabled={saving || !target.trim()}
-                    onClick={() => void confirm()}
+                    disabled={!target.trim()}
+                    onClick={confirm}
                 >
                     {t("Confirm")}
                 </button>
             </div>
         </div>,
-        document.body,
+        document.body
     );
 }

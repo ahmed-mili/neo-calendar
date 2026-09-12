@@ -1222,6 +1222,36 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--nc-accent) 22%, transparent) !important;
 }
 
+/* ── Un lien écrit dans la description ───────────────────────────────────
+   Un lien est du texte : il garde la taille du texte autour de lui. Il était
+   dessiné hors du champ, dans la police du panneau, et grossissait donc à
+   l'écrit — la ligne sautait d'un pixel entre ce qu'on tape et ce qu'on lit.
+   La couleur et le trait suffisent à le distinguer. */
+.nc-description-inline-link {
+    color: var(--nc-accent, var(--interactive-accent));
+    font: inherit;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    cursor: pointer;
+    transition: color 120ms ease, text-decoration-thickness 120ms ease;
+}
+
+.nc-description-inline-link:hover,
+.nc-description-inline-link:focus-visible {
+    color: var(--nc-accent-strong, var(--interactive-accent-hover));
+    text-decoration-thickness: 2px;
+    outline: none;
+}
+
+.nc-description-inline-link:focus-visible {
+    border-radius: 3px;
+    box-shadow: 0 0 0 2px
+        color-mix(in srgb, var(--nc-accent) 22%, transparent);
+}
+
 .nc-description-link-actions {
     position: absolute;
     bottom: calc(100% + 5px);
@@ -1234,6 +1264,16 @@
     border-radius: 9px;
     background: var(--nc-bg-primary, var(--background-primary));
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.34);
+}
+
+/* La barre du clic droit est posée sur le lien, à l'écran, et non ancrée dans
+   la ligne : le texte ne doit pas bouger parce qu'on a ouvert un menu. Portée
+   sur le body, elle prend l'étage des fenêtres du lien — à 40, celui d'une
+   barre qui vit DANS le panneau, elle s'ouvrait derrière lui. */
+.nc-description-inline-actions {
+    position: fixed;
+    bottom: auto;
+    z-index: 20060;
 }
 
 .nc-description-link-actions[hidden] {
@@ -1362,6 +1402,36 @@
         var(--background-modifier-border)
     ) !important;
     background: transparent;
+}
+
+/* Les deux boutons de la fenêtre ne répondaient pas au survol : rien ne disait
+   lequel allait se faire presser. Celui qui retire prend la couleur de ce
+   qu'il fait. */
+.nc-description-link-dialog-actions button {
+    transition: background 120ms ease, border-color 120ms ease,
+        color 120ms ease;
+}
+
+.nc-description-link-confirm:hover:not(:disabled),
+.nc-description-link-confirm:focus-visible {
+    background: var(--nc-accent-strong, var(--interactive-accent-hover));
+    outline: none;
+}
+
+.nc-description-link-remove:hover:not(:disabled),
+.nc-description-link-remove:focus-visible {
+    color: var(--text-error, #ef6b73);
+    border-color: color-mix(
+        in srgb,
+        var(--text-error, #ef6b73) 45%,
+        transparent
+    ) !important;
+    background: color-mix(
+        in srgb,
+        var(--text-error, #ef6b73) 12%,
+        transparent
+    );
+    outline: none;
 }
 
 .nc-description-mention-popover {
@@ -1748,15 +1818,92 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     min-width: 0;
 }
 
-.nc-panel-checklist-line input {
-    /* Alignee sur la premiere ligne du texte plutot que centree sur un bloc qui
-       peut faire trois lignes de haut. */
+/* Le rond d'une puce occupe exactement la place d'une case, sur la meme
+   colonne : passer de l'une a l'autre en tapant deux crochets ne doit pas
+   decaler le texte d'un pixel. */
+.nc-panel-checklist-bullet {
     margin: 2px 0 0;
     width: 14px;
     height: 14px;
     flex-shrink: 0;
-    accent-color: var(--nc-accent);
+    display: grid;
+    place-items: center;
+}
+
+.nc-panel-checklist-bullet::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--nc-text-secondary, var(--text-muted));
+}
+
+.nc-panel-checklist-bulleted {
+    cursor: text;
+}
+
+.nc-panel-checklist-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    margin: 2px 0 0;
+    padding: 0;
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
+    flex: 0 0 14px;
+    border: 0;
+    border-radius: 50%;
+    color: var(--nc-text-secondary, var(--text-muted));
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none;
     cursor: pointer;
+}
+
+/* Le glyphe reste compact dans la ligne, mais sa cible atteint 24 px sans
+   pousser le texte ni agrandir l'espacement visible. */
+.nc-panel-checklist-checkbox::before {
+    content: "";
+    position: absolute;
+    inset: -5px;
+}
+
+.nc-panel-checklist-checkbox svg {
+    display: block;
+    transition: color 100ms ease, transform 100ms ease;
+}
+
+.nc-panel-checklist-checkbox[aria-checked="true"] {
+    color: var(--nc-accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .nc-panel-checklist-checkbox:hover:not(:disabled) {
+        color: var(--nc-accent);
+    }
+
+    .nc-panel-checklist-checkbox:hover:not(:disabled) svg {
+        transform: scale(1.12);
+    }
+}
+
+.nc-panel-checklist-checkbox:focus-visible {
+    color: var(--nc-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--nc-accent) 24%, transparent) !important;
+}
+
+.nc-panel-checklist-checkbox:active:not(:disabled) svg {
+    transform: scale(0.88);
+}
+
+.nc-panel-checklist-checkbox:disabled {
+    color: var(--nc-text-faint, var(--text-faint));
+    opacity: 0.5;
+    cursor: default;
 }
 
 /* Faite, donc plus a lire : barree et en retrait de l'attention, comme dans une
