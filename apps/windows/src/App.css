@@ -5065,19 +5065,6 @@ body.nc-platform-android .nc-wallpaper-option--all {
     color: var(--nc-text-secondary, var(--text-muted));
 }
 
-/* La durée personnalisée, sous la liste : un nombre, son unité, « avant ».
-   Elle prolonge la dernière ligne plutôt que d'ouvrir un second écran — le
-   choix se lit alors d'un seul coup d'œil avec les six autres. */
-.nc-reminder-custom {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 0 16px 8px 16px;
-    color: var(--nc-text-secondary, var(--text-muted));
-    font-size: 15px;
-}
-
 /* Les menus d'un calendrier : survol et ligne ouverte dans la teinte de
    l'accent, comme les réglages. */
 .nc-cal-menu-item:hover:not(:disabled),
@@ -5270,64 +5257,52 @@ body:not(.nc-platform-android) .nc-panel-header:active {
     margin: 0;
 }
 
-/* Le dialogue fait 322 px : nombre, trois unités et « avant » doivent tenir
-   dans les 290 qui restent, sinon le dernier mot passe seul à la ligne. */
-.nc-reminder-custom__amount {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 56px;
-    height: 32px;
-    padding: 0 8px;
-    font: inherit;
-    text-align: center;
-    color: var(--text-normal);
-    background-color: var(--background-modifier-form-field);
-    border: 1px solid var(--nc-border);
-    border-radius: 8px;
-    box-shadow: none !important;
-    outline: none;
+/* Le compteur jours / heures / minutes, sous la ligne Personnalisé du
+   dialogue : la même case que dans le sous-menu du PC, alignée sur le texte
+   des lignes au-dessus, et haute de ce qu'un doigt demande sur téléphone. */
+.nc-choice-dialog .nc-cal-menu-delay {
+    padding: 4px 16px 8px;
 }
 
-.nc-reminder-custom__amount:focus {
-    border-color: var(--nc-accent);
+.nc-choice-option--static {
+    cursor: default;
 }
 
-.nc-reminder-custom__amount::-webkit-inner-spin-button,
-.nc-reminder-custom__amount::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.nc-reminder-custom__units {
-    display: flex;
-    gap: 2px;
-    padding: 2px;
-    border-radius: 10px;
-    background: var(--background-modifier-form-field);
-}
-
-.nc-reminder-custom__unit {
-    padding: 4px 8px;
-    border: 0;
-    border-radius: 8px;
-    font: inherit;
-    font-size: 13px;
-    color: var(--nc-text-secondary, var(--text-muted));
+.nc-choice-option--static:hover {
     background: transparent;
-    box-shadow: none;
-    cursor: pointer;
 }
 
-.nc-reminder-custom__unit:hover {
-    background: var(--background-modifier-hover);
+/* Le réglage de l'application, une fois qu'on s'en est écarté : il ne
+   s'applique plus, la ligne se grise mais reste cliquable pour y revenir. */
+.nc-choice-option--muted,
+.nc-choice-option--muted .nc-choice-option__note {
+    color: var(--nc-text-faint, var(--text-faint));
 }
 
-/* L'unité tenue pèse plus lourd que celle qu'on survole : une surface pleine
-   contre un simple fond de survol, sans quoi l'unité sous la souris se lirait
-   comme celle qui est choisie. */
-.nc-reminder-custom__unit[aria-pressed="true"] {
-    color: var(--text-on-accent, #fff);
-    background: var(--nc-accent);
+body.nc-platform-android .nc-choice-dialog .nc-cal-menu-delay__field {
+    height: 36px;
+}
+
+body.nc-platform-android .nc-choice-dialog .nc-cal-menu-delay__part {
+    min-width: 60px;
+}
+
+body.nc-platform-android .nc-choice-dialog .nc-cal-menu-delay__part input {
+    width: 26px;
+    font-size: 15px;
+}
+
+body.nc-platform-android .nc-choice-dialog .nc-cal-menu-delay__part span {
+    font-size: 13px;
+}
+
+body.nc-platform-android .nc-choice-dialog .nc-cal-menu-delay__suffix {
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-choice-dialog .nc-cal-menu-minutes__ok {
+    width: 28px;
+    height: 28px;
 }
 
 @keyframes nc-choice-fade {

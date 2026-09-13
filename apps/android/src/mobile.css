@@ -478,20 +478,63 @@ body.nc-platform-android .nc-panel-row-allday .nc-panel-row-label {
     font-size: 14px;
 }
 
+/* Le dialogue de choix reprend la matière et la géométrie des menus du PC
+   (`.nc-cal-menu`) : la même surface flottante, le même verre, des lignes
+   serrées aux coins courts — pas une dalle opaque aux grandes lignes. */
 body.nc-platform-android .nc-choice-dialog {
-    width: min(360px, 100%);
-    padding: 12px 8px;
-    border-radius: 20px;
-    background: var(--background-secondary, #1a1d29) !important;
+    width: min(300px, 100%);
+    padding: 6px 4px 4px;
+    gap: 1px;
+    border: 1px solid var(--background-modifier-border) !important;
+    border-radius: 12px;
+    background: var(--nc-float-surface) !important;
     background-image: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55) !important;
+    backdrop-filter: blur(28px) saturate(118%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(118%) !important;
+    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.4),
+        0 2px 6px -1px rgba(0, 0, 0, 0.22) !important;
+}
+
+body.nc-platform-android .nc-choice-dialog__title {
+    margin: 4px 0 6px;
+    padding: 0 10px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+body.nc-platform-android .nc-choice-dialog__options {
+    gap: 1px;
 }
 
 body.nc-platform-android .nc-choice-option {
-    min-height: 50px;
-    font-size: 15px;
+    min-height: 40px;
+    padding: 7px 10px;
+    gap: 10px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+body.nc-platform-android .nc-choice-option__note {
+    font-size: 12px;
+}
+
+body.nc-platform-android .nc-choice-option__check {
+    width: 16px;
+    height: 16px;
+}
+
+body.nc-platform-android .nc-choice-option:hover,
+body.nc-platform-android .nc-choice-option:active {
+    background: var(--nc-hover-tint);
+}
+
+body.nc-platform-android .nc-choice-option--static:hover,
+body.nc-platform-android .nc-choice-option--static:active {
+    background: transparent;
+}
+
+body.nc-platform-android .nc-choice-dialog .nc-cal-menu-delay {
+    padding: 2px 10px 6px;
 }
 
 body.nc-platform-android .nc-choice-option input[type="radio"] {

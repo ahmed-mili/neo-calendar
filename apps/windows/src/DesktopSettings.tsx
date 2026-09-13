@@ -1852,7 +1852,7 @@ export default function DesktopSettings({
                     title={t("Reminder")}
                     minutes={preferences.reminderMinutes}
                     onPick={(minutes) =>
-                        patchPreferences({ reminderMinutes: minutes ?? 0 })
+                        patchPreferences({ reminderMinutes: minutes })
                     }
                     onClose={() => setReminderOpen(false)}
                 />

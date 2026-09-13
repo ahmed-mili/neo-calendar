@@ -4661,30 +4661,19 @@ export default function DesktopCalendar({
                     title={`${t("Reminder")} — ${
                         calendarById.get(reminderDialogCalendarId)?.name ?? ""
                     }`}
-                    // Le dialogue (Android) ne règle qu'un délai : il lit le
-                    // premier de la liste, et en écrit une d'un seul.
-                    minutes={(() => {
-                        const list =
-                            preferences.calendarReminderMinutes[
-                                calendarById.get(reminderDialogCalendarId)
-                                    ?.relativePath ?? ""
-                            ];
-                        return list ? list[0] ?? 0 : null;
-                    })()}
+                    mode="list"
+                    minutes={
+                        preferences.calendarReminderMinutes[
+                            calendarById.get(reminderDialogCalendarId)
+                                ?.relativePath ?? ""
+                        ] ?? null
+                    }
                     inheritedMinutes={preferences.reminderMinutes}
                     onPick={(minutes) => {
                         const path = calendarById.get(
                             reminderDialogCalendarId
                         )?.relativePath;
-                        if (!path) return;
-                        setCalendarReminder(
-                            path,
-                            minutes === null
-                                ? null
-                                : minutes === 0
-                                ? []
-                                : [minutes]
-                        );
+                        if (path) setCalendarReminder(path, minutes);
                     }}
                     onClose={() => setReminderDialogCalendarId(null)}
                 />

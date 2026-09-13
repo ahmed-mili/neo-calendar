@@ -35,21 +35,27 @@ describe("ReminderChoiceDialog", () => {
             ReactDOM.render(
                 React.createElement(ReminderChoiceDialog, {
                     title: `${t("Reminder")} — Cours`,
+                    mode: "list",
                     minutes: null,
                     inheritedMinutes: 10,
-                    onPick: (value) => picked.push(value),
+                    onPick: (value: number | number[] | null) =>
+                        picked.push(value),
                     onClose: () => {
                         closed += 1;
                     },
                     ...props,
-                }),
+                } as React.ComponentProps<typeof ReminderChoiceDialog>),
                 host
             );
         });
     };
 
     const options = () =>
-        Array.from(document.querySelectorAll<HTMLElement>('[role="radio"]'));
+        Array.from(
+            document.querySelectorAll<HTMLElement>(
+                '[role="checkbox"], [role="radio"]'
+            )
+        );
 
     const optionNamed = (text: string) => {
         const found = options().find((option) =>
@@ -59,25 +65,17 @@ describe("ReminderChoiceDialog", () => {
         return found;
     };
 
-    const amountField = () =>
-        document.querySelector<HTMLInputElement>(
-            ".nc-reminder-custom__amount"
-        )!;
-
-    /* Trois unités se posent en boutons : un menu déroulant natif ouvre un
-       popup dessiné par le système, que le thème ne sait pas habiller. */
-    const unitButton = (unit: string) =>
-        document.querySelector<HTMLButtonElement>(
-            `.nc-reminder-custom__unit[data-unit="${unit}"]`
-        )!;
-
-    const chosenUnit = () =>
+    /* Le compteur jours / heures / minutes, le même que dans le sous-menu du
+       PC : trois champs nus dans une seule case, et une coche pour valider. */
+    const parts = () =>
         Array.from(
-            document.querySelectorAll<HTMLButtonElement>(
-                ".nc-reminder-custom__unit"
+            document.querySelectorAll<HTMLInputElement>(
+                ".nc-cal-menu-delay__part input"
             )
-        ).find((button) => button.getAttribute("aria-pressed") === "true")
-            ?.dataset.unit;
+        );
+
+    const okButton = () =>
+        document.querySelector<HTMLButtonElement>(".nc-cal-menu-minutes__ok");
 
     it("offers the app setting first, saying what it is set to", () => {
         render({ inheritedMinutes: 10 });
@@ -87,9 +85,12 @@ describe("ReminderChoiceDialog", () => {
         expect(options()[0].getAttribute("aria-checked")).toBe("true");
     });
 
-    it("hands the calendar back to the app setting", () => {
-        render({ minutes: 30 });
+    it("hands the calendar back to the app setting, greyed once left", () => {
+        render({ minutes: [30] });
 
+        expect(options()[0].classList.contains("nc-choice-option--muted")).toBe(
+            true
+        );
         act(() => {
             optionNamed(t("App setting")).click();
         });
@@ -98,15 +99,22 @@ describe("ReminderChoiceDialog", () => {
         expect(closed).toBe(1);
     });
 
-    it("keeps a delay picked from the list", () => {
-        render();
+    /* Comme dans le sous-menu du PC : les lignes se cochent et se décochent,
+       et le dialogue reste ouvert pour la suivante. */
+    it("ticks and unticks delays from the list without closing", () => {
+        render({ minutes: [10] });
 
         act(() => {
             optionNamed("30 minutes avant").click();
         });
+        expect(picked).toEqual([[10, 30]]);
 
-        expect(picked).toEqual([30]);
-        expect(closed).toBe(1);
+        render({ minutes: [10, 30] });
+        act(() => {
+            optionNamed("30 minutes avant").click();
+        });
+        expect(picked.at(-1)).toEqual([10]);
+        expect(closed).toBe(0);
     });
 
     it("names the silence rather than a delay of zero", () => {
@@ -116,47 +124,49 @@ describe("ReminderChoiceDialog", () => {
             optionNamed(t("No reminder")).click();
         });
 
-        expect(picked).toEqual([0]);
+        expect(picked).toEqual([[]]);
+        expect(closed).toBe(1);
     });
 
-    /* Un délai qui n'est pas dans la liste a été écrit dans le champ : le
-       dialogue doit se rouvrir dessus, rempli, et non sur une liste où rien
-       n'est coché. */
-    it("opens on the custom row for a delay the list does not offer", () => {
-        render({ minutes: 45 });
+    /* Un délai que la liste ne propose pas a été écrit au compteur : il a sa
+       ligne, cochée, et se décoche comme les autres. */
+    it("gives a delay the list does not offer its own ticked row", () => {
+        render({ minutes: [45] });
 
-        expect(optionNamed(t("Custom")).getAttribute("aria-checked")).toBe(
-            "true"
-        );
-        expect(amountField().value).toBe("45");
-        expect(chosenUnit()).toBe("minutes");
-    });
-
-    it("reads a custom delay back in the unit it was written in", () => {
-        render({ minutes: 120 });
-
-        expect(amountField().value).toBe("2");
-        expect(chosenUnit()).toBe("hours");
-    });
-
-    it("ranges the chosen unit into minutes", () => {
-        render({ minutes: 45 });
-
+        const extra = optionNamed("45 minutes avant");
+        expect(extra.getAttribute("aria-checked")).toBe("true");
         act(() => {
-            amountField().value = "2";
-            Simulate.change(amountField());
-            unitButton("hours").click();
+            extra.click();
+        });
+        expect(picked).toEqual([[]]);
+    });
+
+    it("adds the sum of the counter, days and minutes together", () => {
+        render({ minutes: [30] });
+
+        expect(okButton()).toBeNull();
+        const [days, , minutes] = parts();
+        act(() => {
+            days.value = "1";
+            Simulate.change(days);
+            minutes.value = "30";
+            Simulate.change(minutes);
+        });
+        act(() => {
+            okButton()!.click();
         });
 
-        expect(picked.at(-1)).toBe(120);
-        // Le champ reste ouvert : on y revient pour corriger l'unité.
+        expect(picked.at(-1)).toEqual([30, 1470]);
+        expect(parts().map((input) => input.value)).toEqual(["", "", ""]);
+        // Le dialogue reste ouvert : on y revient pour le délai suivant.
         expect(closed).toBe(0);
     });
 
-    /* Les Paramètres règlent ce défaut-là : lui proposer de se suivre
-       lui-même ne veut rien dire. */
-    it("leaves the app setting out when the app setting is what is being chosen", () => {
-        render({ inheritedMinutes: undefined, minutes: 10 });
+    /* Les Paramètres règlent ce défaut-là : un seul délai, pas de ligne
+       « Réglage de l'application » (lui proposer de se suivre lui-même ne
+       veut rien dire), et un choix referme. */
+    it("picks a single delay and closes when choosing the app setting", () => {
+        render({ mode: "single", minutes: 10 });
 
         expect(
             options().some((option) =>
@@ -166,5 +176,30 @@ describe("ReminderChoiceDialog", () => {
         expect(
             optionNamed("10 minutes avant").getAttribute("aria-checked")
         ).toBe("true");
+
+        act(() => {
+            optionNamed("30 minutes avant").click();
+        });
+        expect(picked).toEqual([30]);
+        expect(closed).toBe(1);
+    });
+
+    it("writes a single custom delay from the counter and closes", () => {
+        render({ mode: "single", minutes: 45 });
+
+        expect(
+            optionNamed("45 minutes avant").getAttribute("aria-checked")
+        ).toBe("true");
+        const [, hours] = parts();
+        act(() => {
+            hours.value = "2";
+            Simulate.change(hours);
+        });
+        act(() => {
+            okButton()!.click();
+        });
+
+        expect(picked).toEqual([120]);
+        expect(closed).toBe(1);
     });
 });

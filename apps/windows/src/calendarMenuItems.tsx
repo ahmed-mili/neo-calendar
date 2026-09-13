@@ -1,13 +1,11 @@
 import * as React from "react";
 import type { CalendarMenuItem } from "../../../src/ui/calendar/CalendarItemMenu";
 import { BellIcon, ClockIcon } from "../../../src/ui/calendar/EventPanelIcons";
-import { CheckIcon, LinkIcon } from "../../../src/ui/calendar/Icons";
+import { LinkIcon } from "../../../src/ui/calendar/Icons";
 import { isPrayerCalendarName } from "../../../src/ui/calendar/prayerCalendarName";
-import {
-    reminderDelayLabel,
-    reminderMinutesFrom,
-} from "../../../src/ui/calendar/reminderDelay";
+import { reminderDelayLabel } from "../../../src/ui/calendar/reminderDelay";
 import { t } from "../../../src/ui/i18n";
+import DelayCounterField from "./DelayCounterField";
 import { REMINDER_CHOICES } from "./platform/desktopWorkspacePreferences";
 
 export interface CalendarMenuContext {
@@ -93,79 +91,10 @@ function reminderSubmenu(
                 // Un sous-menu à lui : l'unité s'y choisit comme une ligne, et
                 // le nombre s'écrit en bas. Aucune ligne : tout est le bloc.
                 children: [],
-                content: <CustomDelayField onAdd={toggle} />,
+                content: <DelayCounterField onAdd={toggle} />,
             },
         ],
     };
-}
-
-/**
- * Le sous-menu « Personnalisé » : un compteur jours / heures / minutes, pour
- * poser un délai précis d'un coup (« 1 jour et 30 minutes »), et une coche
- * qui apparaît dès qu'une part est écrite. Entrée valide aussi.
- */
-function CustomDelayField({ onAdd }: { onAdd: (minutes: number) => void }) {
-    const [days, setDays] = React.useState("");
-    const [hours, setHours] = React.useState("");
-    const [minutes, setMinutes] = React.useState("");
-    const whole = (value: string) =>
-        Math.max(0, Math.floor(Number(value) || 0));
-    const total = whole(days) * 1440 + whole(hours) * 60 + whole(minutes);
-    const submit = () => {
-        if (total < 1) return;
-        onAdd(reminderMinutesFrom(total, "minutes"));
-        setDays("");
-        setHours("");
-        setMinutes("");
-    };
-    /* Une seule case pour les trois nombres : « 1 j 0 h 30 min avant ». Les
-       champs y sont nus, séparés par leur unité en abrégé, et la case entière
-       se lit comme un seul réglage plutôt que trois. */
-    const part = (
-        label: string,
-        short: string,
-        value: string,
-        set: (next: string) => void,
-        max: number
-    ) => (
-        <label className="nc-cal-menu-delay__part">
-            <input
-                type="number"
-                min={0}
-                max={max}
-                placeholder="0"
-                aria-label={label}
-                value={value}
-                onChange={(event) => set(event.target.value)}
-                onKeyDown={(event) => {
-                    event.stopPropagation();
-                    if (event.key === "Enter") submit();
-                }}
-            />
-            <span aria-hidden="true">{short}</span>
-        </label>
-    );
-    return (
-        <div className="nc-cal-menu-delay">
-            <span className="nc-cal-menu-delay__field">
-                {part(t("days"), "j", days, setDays, 28)}
-                {part(t("hours"), "h", hours, setHours, 23)}
-                {part(t("minutes"), "min", minutes, setMinutes, 59)}
-            </span>
-            <span className="nc-cal-menu-delay__suffix">{t("before")}</span>
-            {total >= 1 && (
-                <button
-                    type="button"
-                    className="nc-cal-menu-minutes__ok"
-                    aria-label={t("Add")}
-                    data-nc-tooltip={t("Add")}
-                    onClick={submit}
-                >
-                    <CheckIcon size={14} />
-                </button>
-            )}
-        </div>
-    );
 }
 
 /**
