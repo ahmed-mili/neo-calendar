@@ -2,6 +2,7 @@ import { applyLanguage, t } from "../i18n";
 import {
     REMINDER_UNITS,
     reminderDelayLabel,
+    reminderListLabel,
     reminderMinutesFrom,
     splitReminderDelay,
 } from "./reminderDelay";
@@ -60,5 +61,15 @@ describe("reminderDelayLabel", () => {
         expect(reminderDelayLabel(2880)).toBe("2 jours avant");
         expect(reminderDelayLabel(1470)).toBe("1 jour 30 minutes avant");
         expect(reminderDelayLabel(1501)).toBe("1 jour 1 heure 1 minute avant");
+    });
+});
+
+describe("reminderListLabel", () => {
+    it("names each delay once, and « avant » once at the end", () => {
+        expect(reminderListLabel([5, 60])).toBe(`5 minutes, 1 heure ${t("before")}`);
+    });
+
+    it("names the empty list as silence", () => {
+        expect(reminderListLabel([])).toBe(t("No reminder"));
     });
 });

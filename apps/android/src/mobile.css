@@ -62,6 +62,7 @@ body.nc-platform-android :focus-visible {
 
 body.nc-platform-android input[type="text"]:focus-visible,
 body.nc-platform-android input[type="search"]:focus-visible,
+body.nc-platform-android input[type="number"]:focus-visible,
 body.nc-platform-android input:not([type]):focus-visible,
 body.nc-platform-android textarea:focus-visible,
 body.nc-platform-android [contenteditable]:focus-visible {

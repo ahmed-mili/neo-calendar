@@ -60,12 +60,10 @@ function offsetsFor(event: DisplayEvent, fallback: number[]): number[] {
  */
 function fallbackFor(
     event: DisplayEvent,
-    minutesBefore: number,
+    minutesBefore: number[],
     minutesByCalendar: Record<string, number[]>
 ): number[] {
-    const own = minutesByCalendar[event.calendarId];
-    if (own) return own;
-    return minutesBefore > 0 ? [minutesBefore] : [];
+    return minutesByCalendar[event.calendarId] ?? minutesBefore;
 }
 
 function bodyFor(
@@ -166,7 +164,7 @@ export function buildReminders({
 }: {
     events: readonly DisplayEvent[];
     now: Date;
-    minutesBefore: number;
+    minutesBefore: number[];
     /** Par calendrier, le délai qui s'écarte de celui des Paramètres. */
     minutesByCalendar?: Record<string, number[]>;
     timeFormat24h: boolean;

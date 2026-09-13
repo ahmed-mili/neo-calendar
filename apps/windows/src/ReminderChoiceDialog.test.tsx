@@ -35,9 +35,9 @@ describe("ReminderChoiceDialog", () => {
             ReactDOM.render(
                 React.createElement(ReminderChoiceDialog, {
                     title: `${t("Reminder")} — Cours`,
-                    mode: "list",
+                    mode: "calendar",
                     minutes: null,
-                    inheritedMinutes: 10,
+                    inheritedMinutes: [10],
                     onPick: (value: number | number[] | null) =>
                         picked.push(value),
                     onClose: () => {
@@ -78,7 +78,7 @@ describe("ReminderChoiceDialog", () => {
         document.querySelector<HTMLButtonElement>(".nc-cal-menu-minutes__ok");
 
     it("offers the app setting first, saying what it is set to", () => {
-        render({ inheritedMinutes: 10 });
+        render({ inheritedMinutes: [10] });
 
         expect(options()[0].textContent).toContain(t("App setting"));
         expect(options()[0].textContent).toContain("10 minutes avant");
@@ -144,7 +144,7 @@ describe("ReminderChoiceDialog", () => {
     it("adds the sum of the counter, days and minutes together", () => {
         render({ minutes: [30] });
 
-        expect(okButton()).toBeNull();
+        expect(okButton()!.disabled).toBe(true);
         const [days, , minutes] = parts();
         act(() => {
             days.value = "1";
@@ -162,11 +162,11 @@ describe("ReminderChoiceDialog", () => {
         expect(closed).toBe(0);
     });
 
-    /* Les Paramètres règlent ce défaut-là : un seul délai, pas de ligne
-       « Réglage de l'application » (lui proposer de se suivre lui-même ne
-       veut rien dire), et un choix referme. */
-    it("picks a single delay and closes when choosing the app setting", () => {
-        render({ mode: "single", minutes: 10 });
+    /* Les Paramètres règlent ce défaut-là : pas de ligne « Réglage de
+       l'application » (lui proposer de se suivre lui-même ne veut rien dire),
+       mais la même liste à cocher, qui reste ouverte. */
+    it("lets the app setting hold several delays too", () => {
+        render({ mode: "app", minutes: [10] });
 
         expect(
             options().some((option) =>
@@ -180,12 +180,12 @@ describe("ReminderChoiceDialog", () => {
         act(() => {
             optionNamed("30 minutes avant").click();
         });
-        expect(picked).toEqual([30]);
-        expect(closed).toBe(1);
+        expect(picked).toEqual([[10, 30]]);
+        expect(closed).toBe(0);
     });
 
-    it("writes a single custom delay from the counter and closes", () => {
-        render({ mode: "single", minutes: 45 });
+    it("writes a custom app delay from the counter, on its own row", () => {
+        render({ mode: "app", minutes: [45] });
 
         expect(
             optionNamed("45 minutes avant").getAttribute("aria-checked")
@@ -199,7 +199,7 @@ describe("ReminderChoiceDialog", () => {
             okButton()!.click();
         });
 
-        expect(picked).toEqual([120]);
-        expect(closed).toBe(1);
+        expect(picked).toEqual([[45, 120]]);
+        expect(closed).toBe(0);
     });
 });

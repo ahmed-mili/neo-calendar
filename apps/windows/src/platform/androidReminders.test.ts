@@ -33,7 +33,7 @@ function event(
 
 const NOW = new Date("2026-08-07T12:00:00");
 
-const build = (events: DisplayEvent[], minutesBefore = 10) =>
+const build = (events: DisplayEvent[], minutesBefore: number[] = [10]) =>
     buildReminders({ events, now: NOW, minutesBefore, timeFormat24h: true });
 
 describe("buildReminders", () => {
@@ -50,7 +50,7 @@ describe("buildReminders", () => {
     it("honours a different delay", () => {
         const [reminder] = build(
             [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
-            30
+            [30]
         );
 
         expect(reminder.atMs).toBe(+new Date("2026-08-07T13:30:00"));
@@ -130,7 +130,7 @@ describe("buildReminders", () => {
 
     it("schedules nothing at all when reminders are off", () => {
         expect(
-            build([event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")], 0)
+            build([event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")], [])
         ).toEqual([]);
     });
 
@@ -377,7 +377,7 @@ describe("le rappel propre a un calendrier", () => {
     const buildWith = (
         events: DisplayEvent[],
         minutesByCalendar: Record<string, number[]>,
-        minutesBefore = 10
+        minutesBefore: number[] = [10]
     ) =>
         buildReminders({
             events,
@@ -490,7 +490,7 @@ describe("plusieurs rappels sur un calendrier", () => {
         const reminders = buildReminders({
             events: [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
             now: NOW,
-            minutesBefore: 10,
+            minutesBefore: [10],
             minutesByCalendar: { cal: [5, 30] },
             timeFormat24h: true,
         });

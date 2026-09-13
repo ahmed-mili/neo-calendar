@@ -101,12 +101,12 @@ describe("Windows settings", () => {
                 {...commonProps}
                 preferences={{
                     ...defaultDesktopWorkspacePreferences(),
-                    reminderMinutes: 45,
+                    reminderMinutes: [45, 120],
                 }}
             />
         );
 
-        expect(html).toContain("45 minutes avant");
+        expect(html).toContain("45 minutes, 2 heures avant");
     });
 
     it("lists every subject on its first page", () => {

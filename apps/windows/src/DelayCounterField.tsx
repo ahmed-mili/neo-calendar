@@ -29,9 +29,9 @@ export default function DelayCounterField({
         setHours("");
         setMinutes("");
     };
-    /* Une seule case pour les trois nombres : « 1 j 0 h 30 min avant ». Les
-       champs y sont nus, séparés par leur unité en abrégé, et la case entière
-       se lit comme un seul réglage plutôt que trois. */
+    /* Une capsule pour les trois nombres, puis le mot qui les suit : « 1 j
+       0 h 30 min avant ». Les champs y sont nus, séparés par leur unité en
+       abrégé, et la capsule se lit comme un seul réglage plutôt que trois. */
     const part = (
         label: string,
         short: string,
@@ -65,17 +65,18 @@ export default function DelayCounterField({
                 {part(t("minutes"), "min", minutes, setMinutes, 59)}
             </span>
             <span className="nc-cal-menu-delay__suffix">{t("before")}</span>
-            {total >= 1 && (
-                <button
-                    type="button"
-                    className="nc-cal-menu-minutes__ok"
-                    aria-label={t("Add")}
-                    data-nc-tooltip={t("Add")}
-                    onClick={submit}
-                >
-                    <CheckIcon size={14} />
-                </button>
-            )}
+            {/* La coche a sa place dès le départ, éteinte tant que rien n'est
+                écrit : la ligne ne saute pas quand elle s'allume. */}
+            <button
+                type="button"
+                className="nc-cal-menu-minutes__ok"
+                aria-label={t("Add")}
+                data-nc-tooltip={t("Add")}
+                disabled={total < 1}
+                onClick={submit}
+            >
+                <CheckIcon size={16} />
+            </button>
         </div>
     );
 }

@@ -62,6 +62,18 @@ function unitWord(amount: number, unit: ReminderUnit): string {
     return t(amount === 1 ? "day" : "days");
 }
 
+/** Plusieurs délais en un souffle : « 5 minutes, 1 heure avant ». Vide, c'est
+ *  le silence. */
+export function reminderListLabel(minutes: readonly number[]): string {
+    if (minutes.length === 0) return t("No reminder");
+    const before = ` ${t("before")}`;
+    return (
+        minutes
+            .map((value) => reminderDelayLabel(value).slice(0, -before.length))
+            .join(", ") + before
+    );
+}
+
 /** « 45 minutes avant », « 2 jours avant » — et le silence nommé pour ce
  *  qu'il est, puisqu'un « 0 minute avant » ne dit rien à personne. */
 export function reminderDelayLabel(minutes: number): string {

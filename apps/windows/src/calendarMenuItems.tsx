@@ -3,7 +3,10 @@ import type { CalendarMenuItem } from "../../../src/ui/calendar/CalendarItemMenu
 import { BellIcon, ClockIcon } from "../../../src/ui/calendar/EventPanelIcons";
 import { LinkIcon } from "../../../src/ui/calendar/Icons";
 import { isPrayerCalendarName } from "../../../src/ui/calendar/prayerCalendarName";
-import { reminderDelayLabel } from "../../../src/ui/calendar/reminderDelay";
+import {
+    reminderDelayLabel,
+    reminderListLabel,
+} from "../../../src/ui/calendar/reminderDelay";
 import { t } from "../../../src/ui/i18n";
 import DelayCounterField from "./DelayCounterField";
 import { REMINDER_CHOICES } from "./platform/desktopWorkspacePreferences";
@@ -11,7 +14,7 @@ import { REMINDER_CHOICES } from "./platform/desktopWorkspacePreferences";
 export interface CalendarMenuContext {
     calendars: readonly { id: string; name: string; relativePath: string }[];
     /** Le rappel des Paramètres, celui de tous les calendriers qui n'ont rien dit. */
-    reminderMinutes: number;
+    reminderMinutes: number[];
     /** Par chemin de calendrier, le délai qui s'en écarte. */
     calendarReminderMinutes: Record<string, number[]>;
     /** Vrai sur téléphone : pas de survol, les dialogues restent. */
@@ -56,7 +59,7 @@ function reminderSubmenu(
             {
                 key: "inherit",
                 label: t("App setting"),
-                note: reminderDelayLabel(context.reminderMinutes),
+                note: reminderListLabel(context.reminderMinutes),
                 checked: current === null,
                 // Dès qu'on s'en écarte, la ligne se grise : elle n'est plus
                 // ce qui s'applique. Elle reste cliquable pour y revenir.

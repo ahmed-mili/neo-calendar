@@ -26,7 +26,7 @@ import {
     SettingsToggleRow,
 } from "./SettingsPrimitives";
 import ReminderChoiceDialog from "./ReminderChoiceDialog";
-import { reminderDelayLabel } from "../../../src/ui/calendar/reminderDelay";
+import { reminderListLabel } from "../../../src/ui/calendar/reminderDelay";
 import {
     AppearanceMode,
     AppearancePreferences,
@@ -761,7 +761,7 @@ export default function DesktopSettings({
                 <SettingsRow
                     label={t("Reminder")}
                     icon={<Bell size={18} />}
-                    value={reminderDelayLabel(preferences.reminderMinutes)}
+                    value={reminderListLabel(preferences.reminderMinutes)}
                     navigates
                     onClick={() => setReminderOpen(true)}
                 />

@@ -18,7 +18,7 @@ describe("buildCalendarMenuItems", () => {
             { id: "cours", name: "Cours", relativePath: "Études" },
             { id: "islam", name: "الْإِسْلَامُ", relativePath: "الْإِسْلَامُ" },
         ],
-        reminderMinutes: 10,
+        reminderMinutes: [10],
         calendarReminderMinutes: {} as Record<string, number[]>,
         onPhone: false,
         setCalendarReminder: jest.fn(),
@@ -131,9 +131,12 @@ describe("buildCalendarMenuItems", () => {
             t("hours"),
             t("minutes"),
         ]);
-        // Pas de coche tant que rien n'est écrit ; elle apparaît avec la
-        // première part, et valide la somme : 1 jour et 30 minutes.
-        expect(host.querySelector(".nc-cal-menu-minutes__ok")).toBeNull();
+        // La coche est éteinte tant que rien n'est écrit ; elle s'allume avec
+        // la première part, et valide la somme : 1 jour et 30 minutes.
+        expect(
+            host.querySelector<HTMLButtonElement>(".nc-cal-menu-minutes__ok")!
+                .disabled
+        ).toBe(true);
         act(() => {
             inputs[0].value = "1";
             Simulate.change(inputs[0]);
@@ -143,7 +146,7 @@ describe("buildCalendarMenuItems", () => {
         const ok = host.querySelector<HTMLButtonElement>(
             ".nc-cal-menu-minutes__ok"
         )!;
-        expect(ok).not.toBeNull();
+        expect(ok.disabled).toBe(false);
         act(() => {
             ok.click();
         });

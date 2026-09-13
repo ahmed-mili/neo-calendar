@@ -248,20 +248,33 @@ describe("a calendar's own reminder", () => {
  * validation est donc la même des deux côtés, un nombre entier de minutes.
  */
 describe("the app-wide reminder", () => {
-    it("keeps a custom number of minutes", () => {
+    it("keeps a list of delays, sorted and without twins", () => {
+        expect(
+            parseDesktopWorkspacePreferences({ reminderMinutes: [60, 45, 45] })
+                .reminderMinutes
+        ).toEqual([45, 60]);
+    });
+
+    /* Un nombre seul est ce qu'écrivaient les versions d'avant la 1.79.0 ;
+       zéro y voulait dire « aucun rappel ». */
+    it("reads the single number the older versions wrote", () => {
         expect(
             parseDesktopWorkspacePreferences({ reminderMinutes: 45 })
                 .reminderMinutes
-        ).toBe(45);
+        ).toEqual([45]);
+        expect(
+            parseDesktopWorkspacePreferences({ reminderMinutes: 0 })
+                .reminderMinutes
+        ).toEqual([]);
     });
 
     it("falls back to the default for a value it could never have written", () => {
         const fallback = defaultDesktopWorkspacePreferences().reminderMinutes;
-        for (const reminderMinutes of ["30", -5, 12.5, 40321]) {
+        for (const reminderMinutes of ["30", -5, 12.5, 40321, [5, "x"]]) {
             expect(
                 parseDesktopWorkspacePreferences({ reminderMinutes })
                     .reminderMinutes
-            ).toBe(fallback);
+            ).toEqual(fallback);
         }
     });
 });

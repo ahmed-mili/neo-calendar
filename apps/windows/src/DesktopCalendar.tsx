@@ -4661,7 +4661,7 @@ export default function DesktopCalendar({
                     title={`${t("Reminder")} — ${
                         calendarById.get(reminderDialogCalendarId)?.name ?? ""
                     }`}
-                    mode="list"
+                    mode="calendar"
                     minutes={
                         preferences.calendarReminderMinutes[
                             calendarById.get(reminderDialogCalendarId)

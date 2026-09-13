@@ -43,7 +43,8 @@ export interface DesktopWorkspacePreferences {
     freeScroll: boolean;
     defaultEventsAsTasks: boolean;
     /** Minutes before an event to be reminded. 0 means no reminder at all. */
-    reminderMinutes: number;
+    /** Les délais de tout évènement qui n'en porte pas ; vide, aucun. */
+    reminderMinutes: number[];
     /**
      * Par calendrier, le délai qui s'écarte de celui des Paramètres.
      *
@@ -157,7 +158,7 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         // panel's Type row switches either way, so this is only the start.
         // Kept in step with the plugin's default in src/ui/settings.ts.
         defaultEventsAsTasks: false,
-        reminderMinutes: 10,
+        reminderMinutes: [10],
         calendarReminderMinutes: {},
         // La carte connaît les habitudes de celui qui la lit, l'application
         // non : elle ne se prononce donc pas tant qu'on ne le lui demande pas.
@@ -414,9 +415,9 @@ export function parseDesktopWorkspacePreferences(
             source.defaultEventsAsTasks,
             defaults.defaultEventsAsTasks
         ),
-        reminderMinutes: isReminderMinutes(source.reminderMinutes)
-            ? source.reminderMinutes
-            : defaults.reminderMinutes,
+        // Un nombre seul est ce qu'écrivaient les versions d'avant la 1.79.0.
+        reminderMinutes:
+            reminderListOf(source.reminderMinutes) ?? defaults.reminderMinutes,
         calendarReminderMinutes: calendarRemindersOf(
             source.calendarReminderMinutes
         ),
