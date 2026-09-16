@@ -1,4 +1,5 @@
 import { t } from "../i18n";
+import { reminderDelayLabel } from "./reminderDelay";
 
 /** Timed events keep the compact relative delays people already use. */
 export const TIMED_REMINDER_CHOICES = [0, 5, 10, 30, 60] as const;
@@ -75,9 +76,12 @@ export function reminderLabelParts(
     if (allDay) return allDayReminderLabelParts(minutes);
     if (minutes === 0) return { amount: t("At start of event"), suffix: "" };
     if (minutes < 60) return { amount: `${minutes} min`, suffix: t("before") };
-    const hours = minutes / 60;
+    // `reminderDelayLabel` découpe la durée en toutes ses parts et finit par
+    // « avant ». La puce porte ce mot dans son propre champ : on le retire
+    // plutôt que d'écrire un second découpage qui dériverait du premier.
+    const before = ` ${t("before")}`;
     return {
-        amount: `${hours} ${t(hours === 1 ? "hour" : "hours")}`,
+        amount: reminderDelayLabel(minutes).slice(0, -before.length),
         suffix: t("before"),
     };
 }

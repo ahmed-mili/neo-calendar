@@ -6,7 +6,7 @@ import {
     reminderLabelParts,
     setReminderDisplayAllDay,
 } from "./reminderChoices";
-import { applyLanguage } from "../i18n";
+import { applyLanguage, t } from "../i18n";
 
 describe("the reminders on offer", () => {
     afterEach(() => {
@@ -80,6 +80,45 @@ describe("the reminders on offer", () => {
         expect(reminderLabelParts(900, true)).toEqual({
             amount: "09:00",
             suffix: "1 day before",
+        });
+    });
+});
+
+describe("reminderLabelParts sur un délai composé", () => {
+    beforeEach(() => {
+        applyLanguage("fr");
+        setReminderDisplayAllDay(false);
+    });
+
+    /* 90 minutes donnaient « 1.5 heures » : une division sans reste sur une
+       durée qui en a un. La notification disait déjà autre chose du même
+       délai. */
+    it("writes the remainder instead of a decimal", () => {
+        expect(reminderLabelParts(90)).toEqual({
+            amount: "1 heure 30 minutes",
+            suffix: "avant",
+        });
+    });
+
+    it("counts a whole day in days", () => {
+        expect(reminderLabelParts(1440)).toEqual({
+            amount: "1 jour",
+            suffix: "avant",
+        });
+    });
+
+    it("leaves the short forms alone", () => {
+        expect(reminderLabelParts(45)).toEqual({
+            amount: "45 min",
+            suffix: "avant",
+        });
+        expect(reminderLabelParts(60)).toEqual({
+            amount: "1 heure",
+            suffix: "avant",
+        });
+        expect(reminderLabelParts(0)).toEqual({
+            amount: t("At start of event"),
+            suffix: "",
         });
     });
 });
