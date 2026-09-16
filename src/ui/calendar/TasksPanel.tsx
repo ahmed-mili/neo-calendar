@@ -139,10 +139,7 @@ export default function TasksPanel({
     // Same grouping as the desktop panel: outstanding and dateless tasks share
     // one pile instead of splitting into "To do" / "No date" — a task without
     // a date is still something to do, not a separate kind of thing.
-    const groups = React.useMemo(
-        () => buildDesktopTaskGroups(tasks),
-        [tasks]
-    );
+    const groups = React.useMemo(() => buildDesktopTaskGroups(tasks), [tasks]);
 
     const [query, setQuery] = React.useState("");
     const searching = query.trim() !== "";

@@ -131,7 +131,7 @@ describe("shouldRememberDeletedBatch — l'Annuler ne connaît pas la plateforme
         expect(shouldRememberDeletedBatch(false)).toBe(false);
     });
 
-    it("composé avec useDeletionHistory (le chemin réel de deleteEvents) : une suppression mémorisée rend canUndo vrai — y compris \"sur Android\"", () => {
+    it('composé avec useDeletionHistory (le chemin réel de deleteEvents) : une suppression mémorisée rend canUndo vrai — y compris "sur Android"', () => {
         // Rejoue exactement ce que `deleteEvents` fait après une suppression
         // réussie, sans jamais lire `isAndroid` : si ce chemin le faisait, ce
         // test resterait vert par accident. C'est précisément la garde qui a
@@ -206,7 +206,9 @@ describe("deleteReentrant / pendingDeletions — Rétablir reprend ce qu'il rest
                 throw new Error("verrouillé");
             }
         });
-        const remove = async (records: readonly { id: string; readOnly?: boolean }[]) => {
+        const remove = async (
+            records: readonly { id: string; readOnly?: boolean }[]
+        ) => {
             const present = new Set(liveRecords.map((r) => r.id));
             const pending = pendingDeletions(records, present);
             await deleteReentrant(pending, deleteOne, (id) => {
@@ -255,9 +257,9 @@ describe("deleteReentrant / pendingDeletions — Rétablir reprend ce qu'il rest
         expect(history.canUndo).toBe(true);
         expect(liveRecords).toEqual([]);
         expect(deleteOne).toHaveBeenCalledTimes(3); // "a" une fois, "b" deux fois
-        expect(
-            deleteOne.mock.calls.filter(([r]) => r.id === "a")
-        ).toHaveLength(1);
+        expect(deleteOne.mock.calls.filter(([r]) => r.id === "a")).toHaveLength(
+            1
+        );
 
         act(() => {
             ReactDOM.unmountComponentAtNode(container);

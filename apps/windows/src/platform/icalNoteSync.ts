@@ -244,10 +244,8 @@ export function startOfLocalWeekIso(now: Date): string {
     return iso;
 }
 
-const occurrenceKeyOf = (
-    uid: string,
-    recurrenceId: string | null
-): string => (recurrenceId === null ? uid : `${uid}::${recurrenceId}`);
+const occurrenceKeyOf = (uid: string, recurrenceId: string | null): string =>
+    recurrenceId === null ? uid : `${uid}::${recurrenceId}`;
 
 /**
  * The next free "<name>.md" in a folder, mirroring the numbering the desktop
@@ -315,10 +313,7 @@ export function planIcsNoteSync(args: {
             continue;
         }
         owned.set(
-            occurrenceKeyOf(
-                metadata.neoIcsUid,
-                metadata.neoIcsRecurrenceId
-            ),
+            occurrenceKeyOf(metadata.neoIcsUid, metadata.neoIcsRecurrenceId),
             record
         );
         const signature = occurrenceSignature(record.event);

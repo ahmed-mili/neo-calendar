@@ -279,10 +279,10 @@ export function mapsUrlFor(
         const base = native
             ? "citymapper://directions"
             : "https://citymapper.com/directions";
-        return `${base}?endcoord=${point}${named(
-            "endaddress",
-            address
-        )}${named("endname", destination.label)}`;
+        return `${base}?endcoord=${point}${named("endaddress", address)}${named(
+            "endname",
+            destination.label
+        )}`;
     }
 
     if (app === "moovit") {

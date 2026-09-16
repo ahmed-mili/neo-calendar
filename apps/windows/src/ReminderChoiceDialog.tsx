@@ -34,7 +34,9 @@ export interface ReminderCalendarProps extends ReminderChoiceDialogBase {
     onPick: (minutes: number[] | null) => void;
 }
 
-export type ReminderChoiceDialogProps = ReminderAppProps | ReminderCalendarProps;
+export type ReminderChoiceDialogProps =
+    | ReminderAppProps
+    | ReminderCalendarProps;
 
 /**
  * Le rappel par défaut — celui de l'application, ou ceux d'un calendrier.

@@ -105,7 +105,10 @@ describe("CalendarEventsPanel ICS link filter", () => {
     it("hides every other link's events and marks the button active once clicked", () => {
         const props = baseProps();
         act(() => {
-            ReactDOM.render(React.createElement(CalendarEventsPanel, props), host);
+            ReactDOM.render(
+                React.createElement(CalendarEventsPanel, props),
+                host
+            );
         });
 
         // All three visible before any filtering.

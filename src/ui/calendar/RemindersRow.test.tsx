@@ -57,7 +57,9 @@ describe("RemindersRow", () => {
         try {
             render([]);
             act(() => {
-                (host.querySelector(".nc-panel-reminders") as HTMLElement).click();
+                (
+                    host.querySelector(".nc-panel-reminders") as HTMLElement
+                ).click();
             });
             const menu = document.querySelector(
                 ".nc-reminders-menu"

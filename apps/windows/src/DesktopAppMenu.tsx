@@ -1,9 +1,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import {
-    CheckIcon,
-    ChevronRightIcon,
-} from "../../../src/ui/calendar/Icons";
+import { CheckIcon, ChevronRightIcon } from "../../../src/ui/calendar/Icons";
 import { appVersion } from "../../../src/ui/calendar/appUpdates";
 import { t } from "../../../src/ui/i18n";
 import { DesktopCommandId, DesktopCommands } from "./desktopCommands";

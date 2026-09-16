@@ -17,9 +17,7 @@ describe("desktop Description icon transition", () => {
         );
         cssContains("transition: transform 180ms ease");
         cssContains("transform: scale(0.55) rotate(90deg)");
-        cssContains(
-            "transform: translate(-50%, -50%) scale(1) rotate(0deg)"
-        );
+        cssContains("transform: translate(-50%, -50%) scale(1) rotate(0deg)");
     });
 
     it("does not paint the formatting toolbar until the + menu is opened", () => {
