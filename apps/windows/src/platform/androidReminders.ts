@@ -1,5 +1,11 @@
 import type { DisplayEvent } from "../../../../src/ui/types";
-import { formatTime } from "../../../../src/ui/calendar/calendarFormatters";
+import {
+    formatDatedDay,
+    formatTime,
+} from "../../../../src/ui/calendar/calendarFormatters";
+import { DAYS_SHORT } from "../../../../src/ui/calendar/calendarConstants";
+import { startOfDay } from "../../../../src/ui/calendar/calendarDateUtils";
+import { relativeDelayLabel } from "../../../../src/ui/calendar/reminderDelay";
 import { t } from "../../../../src/ui/i18n";
 
 /**
@@ -66,18 +72,37 @@ function fallbackFor(
     return minutesByCalendar[event.calendarId] ?? minutesBefore;
 }
 
+/** Un jour entier, en millisecondes. */
+const DAY_MS = 24 * 60 * 60_000;
+
+/**
+ * L'heure, qualifiée quand l'évènement n'est pas aujourd'hui.
+ *
+ * Le calcul est en jours de calendrier locaux, pas en heures écoulées : un
+ * rappel posé à 23 h 50 pour un évènement à 00 h 10 doit dire « demain », alors
+ * qu'il n'y a que vingt minutes entre les deux. `Math.round` absorbe au passage
+ * les journées de 23 ou 25 heures des changements d'heure.
+ */
+function whenFor(start: Date, now: Date, timeFormat24h: boolean): string {
+    const time = formatTime(start, timeFormat24h);
+    const days = Math.round((+startOfDay(start) - +startOfDay(now)) / DAY_MS);
+    if (days <= 0) return time;
+    if (days === 1) return `${t("Tomorrow")} ${time}`;
+    // Dans la semaine, le nom du jour suffit ; au-delà il ne suffit plus, deux
+    // lundis tombant dans l'horizon de trente jours.
+    if (days < 7) return `${DAYS_SHORT[start.getDay()]} ${time}`;
+    return `${formatDatedDay(start)} ${time}`;
+}
+
 function bodyFor(
     offsetMinutes: number,
     start: Date,
+    now: Date,
     timeFormat24h: boolean
 ): string {
-    const time = formatTime(start, timeFormat24h);
-    if (offsetMinutes <= 0) return `${t("Starting now")} · ${time}`;
-    const away =
-        offsetMinutes % 60 === 0
-            ? `${offsetMinutes / 60} h`
-            : `${offsetMinutes} min`;
-    return `${t("In")} ${away} · ${time}`;
+    const when = whenFor(start, now, timeFormat24h);
+    if (offsetMinutes <= 0) return `${t("Starting now")} · ${when}`;
+    return `${t("In")} ${relativeDelayLabel(offsetMinutes)} · ${when}`;
 }
 
 /** Le lieu, ajouté à une ligne quand l'évènement en connaît un. */
@@ -225,7 +250,7 @@ export function buildReminders({
                     atMs: +event.start - offset * 60_000,
                     title,
                     body: withPlace(
-                        bodyFor(offset, event.start, timeFormat24h),
+                        bodyFor(offset, event.start, now, timeFormat24h),
                         event.location
                     ),
                     details,

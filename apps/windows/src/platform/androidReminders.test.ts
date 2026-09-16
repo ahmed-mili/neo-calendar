@@ -1,9 +1,12 @@
 import type { DisplayEvent } from "../../../../src/ui/types";
+import { applyLanguage } from "../../../../src/ui/i18n";
 import {
     ALL_DAY_REMINDER_HOUR,
     buildReminders,
     remindersByCalendarId,
 } from "./androidReminders";
+
+beforeEach(() => applyLanguage("fr"));
 
 function event(
     id: string,
@@ -130,7 +133,10 @@ describe("buildReminders", () => {
 
     it("schedules nothing at all when reminders are off", () => {
         expect(
-            build([event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")], [])
+            build(
+                [event("a", "2026-08-07T14:00:00", "2026-08-07T15:00:00")],
+                []
+            )
         ).toEqual([]);
     });
 
@@ -482,6 +488,71 @@ describe("remindersByCalendarId", () => {
 
     it("ne retient rien tant que personne ne s'est ecarte du reglage", () => {
         expect(remindersByCalendarId(calendars, {})).toEqual({});
+    });
+});
+
+describe("la ligne d'une notification", () => {
+    const event = (start: Date): DisplayEvent =>
+        ({
+            id: "e1",
+            title: "Ethical Hacking 1",
+            start,
+            end: new Date(+start + 60 * 60_000),
+            allDay: false,
+            calendarId: "c1",
+            calendarName: "Efrei",
+            color: "#888",
+            editable: false,
+            isSomeday: false,
+        } as unknown as DisplayEvent);
+
+    const bodyOf = (now: Date, start: Date, offset: number): string =>
+        buildReminders({
+            events: [event(start)],
+            now,
+            minutesBefore: [offset],
+            timeFormat24h: true,
+        })[0].body;
+
+    /* Le défaut signalé le 2026-09-16 : « In 90 min » obligeait à faire la
+       division pour savoir de combien de temps on disposait. */
+    it("says a compound delay instead of a heap of minutes", () => {
+        // Une seconde avant la demie tapante : buildReminders écarte un rappel
+        // dont l'instant est déjà passé, et 12 h 30 pile l'est autant que 12 h 29.
+        const now = new Date(2026, 8, 16, 12, 29, 59);
+        const start = new Date(2026, 8, 16, 14, 0);
+        expect(bodyOf(now, start, 90)).toBe("Dans 1 h 30 · 14:00");
+    });
+
+    it("keeps the hour bare when the event is today", () => {
+        const now = new Date(2026, 8, 16, 8, 29, 59);
+        const start = new Date(2026, 8, 16, 9, 15);
+        expect(bodyOf(now, start, 45)).toBe("Dans 45 min · 09:15");
+    });
+
+    /* Vingt minutes séparent ces deux instants, et pourtant l'évènement est
+       demain : le qualificatif se compte en jours de calendrier, pas en
+       heures écoulées. */
+    it("says tomorrow across midnight, however close it is", () => {
+        const now = new Date(2026, 8, 16, 23, 49, 59);
+        const start = new Date(2026, 8, 17, 0, 10);
+        expect(bodyOf(now, start, 20)).toBe("Dans 20 min · Demain 00:10");
+    });
+
+    it("names the weekday inside the week, and dates it beyond", () => {
+        const now = new Date(2026, 8, 16, 9, 0);
+        expect(bodyOf(now, new Date(2026, 8, 18, 8, 0), 1440)).toBe(
+            "Dans 1 j · ven 08:00"
+        );
+        expect(bodyOf(now, new Date(2026, 8, 28, 8, 0), 1440)).toBe(
+            "Dans 1 j · lun 28 sept 08:00"
+        );
+    });
+
+    it("still announces an event that starts now", () => {
+        const now = new Date(2026, 8, 16, 13, 59);
+        const start = new Date(2026, 8, 16, 14, 0);
+        expect(bodyOf(now, start, 0)).toBe("Ça commence · 14:00");
     });
 });
 
