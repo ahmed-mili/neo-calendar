@@ -318,6 +318,9 @@ const FR: Record<string, string> = {
     // unités en toutes lettres (voir `reminderDelayLabel`).
     h: "h",
     j: "j",
+    "Launch at Windows startup": "Lancer au démarrage de Windows",
+    "Neo Calendar keeps watch here": "Neo Calendar continue de veiller ici.",
+    "Right-click the icon to quit.": "Clic droit sur l'icône pour quitter.",
     Someday: "Un jour",
 
     // ── Calendars ────────────────────────────────────────────
