@@ -312,6 +312,12 @@ const FR: Record<string, string> = {
     "1 hour before": "1 heure avant",
     "Tomorrow, all day": "Demain, toute la journée",
     In: "Dans",
+    Tomorrow: "Demain",
+    // Les unités abrégées de la ligne d'une notification, qu'on lit d'un coup
+    // d'œil : « Dans 1 h 30 », « Dans 2 j ». Les réglages, eux, écrivent les
+    // unités en toutes lettres (voir `reminderDelayLabel`).
+    h: "h",
+    j: "j",
     Someday: "Un jour",
 
     // ── Calendars ────────────────────────────────────────────
