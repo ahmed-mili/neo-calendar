@@ -12,7 +12,29 @@ describe("normalizeDesktopPreferences", () => {
             themeId: "catppuccin-mocha",
             vaultFolders: [],
             disabledVaults: [],
+            startupDefaultApplied: false,
+            trayHintSeen: false,
         });
+    });
+
+    /* Les deux drapeaux de la machine, qui ne voyagent pas avec les
+       préférences partagées : sans eux, le démarrage automatique se
+       réappliquerait à chaque lancement et la bulle se remontrerait sans
+       fin. Tout ce qui n'est pas exactement `true` vaut « pas encore ». */
+    it("only accepts a real true for the machine's own flags", () => {
+        expect(
+            normalizeDesktopPreferences({
+                startupDefaultApplied: true,
+                trayHintSeen: true,
+            })
+        ).toMatchObject({ startupDefaultApplied: true, trayHintSeen: true });
+
+        expect(
+            normalizeDesktopPreferences({
+                startupDefaultApplied: "true",
+                trayHintSeen: 1,
+            })
+        ).toMatchObject({ startupDefaultApplied: false, trayHintSeen: false });
     });
 
     it("keeps a selected folder", () => {
@@ -26,6 +48,8 @@ describe("normalizeDesktopPreferences", () => {
             themeId: "catppuccin-mocha",
             vaultFolders: [],
             disabledVaults: [],
+            startupDefaultApplied: false,
+            trayHintSeen: false,
         });
     });
 
@@ -40,6 +64,8 @@ describe("normalizeDesktopPreferences", () => {
             themeId: "catppuccin-mocha",
             vaultFolders: [],
             disabledVaults: [],
+            startupDefaultApplied: false,
+            trayHintSeen: false,
         });
     });
 
@@ -56,6 +82,8 @@ describe("normalizeDesktopPreferences", () => {
             themeId: "catppuccin-mocha",
             vaultFolders: ["C:\\obsidian-vaults"],
             disabledVaults: ["C:\\obsidian-vaults\\Troubleshooting"],
+            startupDefaultApplied: false,
+            trayHintSeen: false,
         });
     });
 });

@@ -6,6 +6,13 @@ export interface DesktopPreferences {
     themeId: ThemeId;
     vaultFolders: string[];
     disabledVaults: string[];
+    /** Le démarrage automatique a déjà été posé une première fois. Sans ce
+     *  drapeau, le « activé au repos » se réappliquerait à chaque lancement et
+     *  annulerait la décision de l'avoir coupé. */
+    startupDefaultApplied: boolean;
+    /** La bulle « Neo Calendar continue de veiller ici » a été montrée. Elle
+     *  répond à une question qu'on ne se pose qu'une fois. */
+    trayHintSeen: boolean;
 }
 
 function pathKey(value: string): string {
@@ -69,6 +76,8 @@ export function normalizeDesktopPreferences(
         themeId,
         vaultFolders: migrateLegacyVaultFolders(input),
         disabledVaults: normalizePathList(input.disabledVaults),
+        startupDefaultApplied: input.startupDefaultApplied === true,
+        trayHintSeen: input.trayHintSeen === true,
     };
 }
 
