@@ -30,6 +30,7 @@ import { createReminderScheduler } from "./platform/desktopReminderScheduler";
 import {
     ensureNotificationPermission,
     postReminder,
+    postTrayHint,
 } from "./platform/desktopNotifications";
 import ContextMenu, {
     ContextMenuItem,
@@ -163,7 +164,17 @@ import {
     saveDeviceWorkspacePreferences,
     loadIcsRuntimeState,
     saveIcsRuntimeState,
+    /* Deux modules exportent `saveDesktopPreferences`, et ce ne sont pas les
+       memes : celui de `desktopCalendarStore`, deja importe plus haut, ecrit
+       le fichier partage du dossier de donnees ; celui-ci ecrit les reglages
+       de cette machine seule. Les deux drapeaux du demarrage automatique et de
+       la bulle ne doivent jamais partir vers le telephone. */
+    loadDesktopPreferences as loadMachinePreferences,
+    saveDesktopPreferences as saveMachinePreferences,
 } from "./platform/tauriSettingsStore";
+import { listen } from "@tauri-apps/api/event";
+import { setStartupEnabled } from "./platform/desktopAutostart";
+import { useHourlyEpoch } from "./platform/useHourlyEpoch";
 import type { DesktopDetectedVaultDto } from "./platform/desktopCalendarStore";
 import {
     DesktopCacheController,
@@ -3663,6 +3674,10 @@ export default function DesktopCalendar({
      * view, so a reminder set on an event three weeks out would only be armed
      * once you scrolled to it.
      */
+    /* Ce qui fait avancer le maintenant des deux blocs ci-dessous, dont React
+       ne peut pas deviner qu'ils lisent l'horloge. */
+    const reminderEpoch = useHourlyEpoch();
+
     const reminderEvents = useMemo(() => {
         const from = new Date();
         const to = addDays(from, REMINDER_HORIZON_DAYS);
@@ -3686,7 +3701,7 @@ export default function DesktopCalendar({
                 to
             );
         });
-    }, [calendarById, hiddenCalendars, storedEvents]);
+    }, [calendarById, hiddenCalendars, reminderEpoch, storedEvents]);
 
     /* Windows has no alarm to hand the list to, so the app keeps it and
        watches the clock while it is open. */
@@ -3699,6 +3714,68 @@ export default function DesktopCalendar({
         return () => {
             scheduler.stop();
             reminderSchedulerRef.current = null;
+        };
+    }, [isAndroid]);
+
+    /*
+     * Le demarrage automatique est pose au repos, parce que sans lui le reglage
+     * Rappel promet ce qu'il ne peut pas tenir. Il n'est pose qu'une fois : le
+     * drapeau separe pas-encore-propose de propose-puis-refuse, et sans lui
+     * chaque lancement re-annulerait la decision de l'avoir coupe.
+     */
+    useEffect(() => {
+        if (isAndroid) return;
+        let alive = true;
+
+        void (async () => {
+            const stored = await loadMachinePreferences().catch(() => null);
+            if (!alive || stored === null || stored.startupDefaultApplied) {
+                return;
+            }
+            await setStartupEnabled(true);
+            await saveMachinePreferences({
+                ...stored,
+                startupDefaultApplied: true,
+            });
+        })();
+
+        return () => {
+            alive = false;
+        };
+    }, [isAndroid]);
+
+    /*
+     * La bulle repond a la question qu'on se pose la premiere fois qu'on ferme
+     * la fenetre et que l'application est toujours la. C'est donc le masquage
+     * qui la declenche (le Rust l'annonce par `nc://window-hidden`), et une
+     * seule fois : posee a chaque fermeture, elle deviendrait le bruit qu'elle
+     * est censee eviter.
+     */
+    useEffect(() => {
+        if (isAndroid) return;
+        let alive = true;
+        let dispose: (() => void) | undefined;
+
+        void listen("nc://window-hidden", () => {
+            if (!alive) return;
+            void (async () => {
+                const stored = await loadMachinePreferences().catch(() => null);
+                if (!alive || stored === null || stored.trayHintSeen) return;
+                await postTrayHint();
+                await saveMachinePreferences({ ...stored, trayHintSeen: true });
+            })();
+        })
+            .then((unlisten) => {
+                if (alive) dispose = unlisten;
+                else unlisten();
+            })
+            .catch(() => {
+                // Sans le pont natif, il n'y a pas de masquage a annoncer.
+            });
+
+        return () => {
+            alive = false;
+            dispose?.();
         };
     }, [isAndroid]);
 
@@ -3734,6 +3811,7 @@ export default function DesktopCalendar({
         preferences.calendarReminderMinutes,
         preferences.reminderMinutes,
         preferences.timeFormat24h,
+        reminderEpoch,
         reminderEvents,
     ]);
 
