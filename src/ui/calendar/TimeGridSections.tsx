@@ -470,7 +470,8 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                             // visible days. Windows uses their full extent for
                             // its separator grid, without growing the viewport.
                             "--nc-allday-packed-height":
-                                allDayLanes.laneCount * allDayRowHeight() + "px",
+                                allDayLanes.laneCount * allDayRowHeight() +
+                                "px",
                         } as React.CSSProperties
                     }
                 >
@@ -487,29 +488,31 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                     onAllDayPointerDown?.(event, date)
                                 }
                             >
-                                <DraftPreview>{draftSlot &&
-                                    draftSlot.allDay &&
-                                    isSameDay(draftSlot.start, date) && (
-                                        <div
-                                            className="nc-selection-mirror nc-allday-draft"
-                                            data-draft-preview="true"
-                                            style={{
-                                                // On the row it will keep once
-                                                // named: under whatever the day
-                                                // already holds, never over it.
-                                                top:
-                                                    (draftLane ?? 0) *
-                                                        allDayRowHeight() +
-                                                    EVENT_VGAP / 2,
-                                                height:
-                                                    allDayRowHeight() -
-                                                    EVENT_VGAP,
-                                                backgroundColor: draftColor
-                                                    ? draftColor + "25"
-                                                    : undefined,
-                                            }}
-                                        />
-                                    )}</DraftPreview>
+                                <DraftPreview>
+                                    {draftSlot &&
+                                        draftSlot.allDay &&
+                                        isSameDay(draftSlot.start, date) && (
+                                            <div
+                                                className="nc-selection-mirror nc-allday-draft"
+                                                data-draft-preview="true"
+                                                style={{
+                                                    // On the row it will keep once
+                                                    // named: under whatever the day
+                                                    // already holds, never over it.
+                                                    top:
+                                                        (draftLane ?? 0) *
+                                                            allDayRowHeight() +
+                                                        EVENT_VGAP / 2,
+                                                    height:
+                                                        allDayRowHeight() -
+                                                        EVENT_VGAP,
+                                                    backgroundColor: draftColor
+                                                        ? draftColor + "25"
+                                                        : undefined,
+                                                }}
+                                            />
+                                        )}
+                                </DraftPreview>
                             </div>
                         ))}
                     </div>
@@ -544,8 +547,7 @@ export const TimeGridAllDay = React.forwardRef<HTMLDivElement, AllDayProps>(
                                         top:
                                             bar.lane * allDayRowHeight() +
                                             EVENT_VGAP / 2,
-                                        height:
-                                            allDayRowHeight() - EVENT_VGAP,
+                                        height: allDayRowHeight() - EVENT_VGAP,
                                         left: `${(bar.startIdx / len) * 100}%`,
                                         width: `calc(${
                                             (bar.span / len) * 100
@@ -823,37 +825,39 @@ function DayColumn({
                 ) : null
             )}
 
-            <DraftPreview>{draftPortion && (
-                <div
-                    className="nc-selection-mirror"
-                    data-draft-preview="true"
-                    style={{
-                        ...draftPreviewBox(draftPortion),
-                        backgroundColor: draftColor
-                            ? draftColor + "25"
-                            : undefined,
-                    }}
-                >
-                    {draftPortion.hasStart && (
-                        <div
-                            className="nc-draft-preview-resize nc-draft-preview-resize-top"
-                            data-neo-resize-edge="top"
-                            onPointerDown={(event) =>
-                                handleDraftResizeStart(event, "top")
-                            }
-                        />
-                    )}
-                    {draftPortion.hasEnd && (
-                        <div
-                            className="nc-draft-preview-resize nc-draft-preview-resize-bottom"
-                            data-neo-resize-edge="bottom"
-                            onPointerDown={(event) =>
-                                handleDraftResizeStart(event, "bottom")
-                            }
-                        />
-                    )}
-                </div>
-            )}</DraftPreview>
+            <DraftPreview>
+                {draftPortion && (
+                    <div
+                        className="nc-selection-mirror"
+                        data-draft-preview="true"
+                        style={{
+                            ...draftPreviewBox(draftPortion),
+                            backgroundColor: draftColor
+                                ? draftColor + "25"
+                                : undefined,
+                        }}
+                    >
+                        {draftPortion.hasStart && (
+                            <div
+                                className="nc-draft-preview-resize nc-draft-preview-resize-top"
+                                data-neo-resize-edge="top"
+                                onPointerDown={(event) =>
+                                    handleDraftResizeStart(event, "top")
+                                }
+                            />
+                        )}
+                        {draftPortion.hasEnd && (
+                            <div
+                                className="nc-draft-preview-resize nc-draft-preview-resize-bottom"
+                                data-neo-resize-edge="bottom"
+                                onPointerDown={(event) =>
+                                    handleDraftResizeStart(event, "bottom")
+                                }
+                            />
+                        )}
+                    </div>
+                )}
+            </DraftPreview>
 
             {selPortion && (
                 <div

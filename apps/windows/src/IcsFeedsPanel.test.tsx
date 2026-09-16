@@ -290,5 +290,4 @@ describe("IcsFeedsPanel", () => {
             document.body.querySelector(".nc-ics-panel__summary")
         ).toBeTruthy();
     });
-
 });

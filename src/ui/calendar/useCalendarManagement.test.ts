@@ -26,14 +26,18 @@ jest.mock("obsidian", () => {
         }
         addText(cb: (text: unknown) => void) {
             cb({
-                setValue: () => ({ setPlaceholder: () => ({ onChange: () => {} }) }),
+                setValue: () => ({
+                    setPlaceholder: () => ({ onChange: () => {} }),
+                }),
                 inputEl: { style: {}, addEventListener: () => {} },
             });
             return this;
         }
         addButton(cb: (btn: unknown) => void) {
             cb({
-                setButtonText: () => ({ setCta: () => ({ onClick: () => {} }) }),
+                setButtonText: () => ({
+                    setCta: () => ({ onClick: () => {} }),
+                }),
             });
             return this;
         }
@@ -57,13 +61,7 @@ describe("useCalendarManagement", () => {
     let host: HTMLDivElement;
     let hookResult: ReturnType<typeof useCalendarManagement> | null;
 
-    function Harness({
-        settings,
-        plugin,
-    }: {
-        settings: any;
-        plugin: any;
-    }) {
+    function Harness({ settings, plugin }: { settings: any; plugin: any }) {
         hookResult = useCalendarManagement({
             settings,
             plugin,
@@ -117,7 +115,9 @@ describe("useCalendarManagement", () => {
         });
 
         await act(async () => {
-            await hookResult!.handleDeleteCalendar("ical::https://example.test/calendar.ics");
+            await hookResult!.handleDeleteCalendar(
+                "ical::https://example.test/calendar.ics"
+            );
         });
 
         expect(settings.calendarSources).toEqual([]);

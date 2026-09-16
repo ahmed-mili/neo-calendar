@@ -36,7 +36,10 @@ export function installDevConsoleBridge(): void {
     });
 
     window.addEventListener("error", (event) => {
-        send("error", `Uncaught: ${event.message}\n${event.error?.stack ?? ""}`);
+        send(
+            "error",
+            `Uncaught: ${event.message}\n${event.error?.stack ?? ""}`
+        );
     });
     window.addEventListener("unhandledrejection", (event) => {
         send("error", `Unhandled rejection: ${format([event.reason])}`);

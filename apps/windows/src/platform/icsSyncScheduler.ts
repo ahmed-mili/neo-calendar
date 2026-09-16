@@ -1,5 +1,8 @@
 import { DateTime } from "luxon";
-import type { IcsFeedSubscription, IcsRefreshMinutes } from "./icsFeedPreferences";
+import type {
+    IcsFeedSubscription,
+    IcsRefreshMinutes,
+} from "./icsFeedPreferences";
 import type { IcsSyncState } from "./icalNoteSync";
 
 export type IcsRuntimeStateByFeed = Record<string, IcsSyncState>;
@@ -71,9 +74,7 @@ export async function runIcsQueue<T>(
     }
 
     const workerCount = Math.min(concurrency, uniqueFeeds.length);
-    await Promise.all(
-        Array.from({ length: workerCount }, () => runNext())
-    );
+    await Promise.all(Array.from({ length: workerCount }, () => runNext()));
 
     return results;
 }

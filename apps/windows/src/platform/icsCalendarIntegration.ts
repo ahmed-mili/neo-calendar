@@ -108,8 +108,7 @@ export function icsSyncWindow(now: Date): { from: string; to: string } {
 export async function syncIcsFeeds(
     args: IcsCalendarSyncArgs
 ): Promise<IcsCalendarSyncResult> {
-    const { feeds, states, records, now, defaultMinutes, forcedIds, io } =
-        args;
+    const { feeds, states, records, now, defaultMinutes, forcedIds, io } = args;
 
     const due = dueIcsFeeds(feeds, states, now, defaultMinutes, forcedIds);
 

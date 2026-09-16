@@ -1,4 +1,7 @@
-import type { IcsOccurrence, IcsSnapshot } from "../../../../src/calendars/parsing/ics";
+import type {
+    IcsOccurrence,
+    IcsSnapshot,
+} from "../../../../src/calendars/parsing/ics";
 import type { NeoEvent } from "../../../../src/types";
 import { parseEvent } from "../../../../src/types/schema";
 import {
@@ -389,7 +392,12 @@ describe("planIcsNoteSync — conservation and prudent deletion", () => {
         // planner itself must not mutate the inputs a retry will reuse.
         const record = managedRecord("mon", "2026-09-02");
         const previousState = Object.freeze(
-            state({ missingCounts: Object.freeze({ mon: 1 }) as Record<string, number> })
+            state({
+                missingCounts: Object.freeze({ mon: 1 }) as Record<
+                    string,
+                    number
+                >,
+            })
         );
         const existingRecords = Object.freeze([record]);
 
@@ -586,7 +594,6 @@ describe("planIcsNoteSync — conservation and prudent deletion", () => {
         expect(plan.writes).toHaveLength(1);
         expect(plan.writes[0].previousRelativePath).toBeUndefined();
     });
-
 });
 
 describe("planIcsNoteSync — one note, one identity", () => {

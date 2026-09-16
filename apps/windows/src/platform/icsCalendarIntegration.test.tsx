@@ -24,7 +24,9 @@ function ics(uid: string, summary = "Course", date = TODAY): string {
     ].join("\r\n");
 }
 
-function feed(overrides: Partial<IcsFeedSubscription> = {}): IcsFeedSubscription {
+function feed(
+    overrides: Partial<IcsFeedSubscription> = {}
+): IcsFeedSubscription {
     return {
         id: "feed-1",
         calendarPath: "Cours",
@@ -335,7 +337,9 @@ describe("syncIcsFeeds", () => {
             'neoIcsStatus: "confirmed"',
             'title: "Course"',
             'type: "single"',
-            `date: "${TODAY.slice(0, 4)}-${TODAY.slice(4, 6)}-${TODAY.slice(6)}"`,
+            `date: "${TODAY.slice(0, 4)}-${TODAY.slice(4, 6)}-${TODAY.slice(
+                6
+            )}"`,
             "endDate: null",
             "allDay: true",
             "---",
@@ -351,7 +355,9 @@ describe("syncIcsFeeds", () => {
                 id: "neo-calendar:ics::feed-1::event-1",
                 title: "Course",
                 type: "single",
-                date: `${TODAY.slice(0, 4)}-${TODAY.slice(4, 6)}-${TODAY.slice(6)}`,
+                date: `${TODAY.slice(0, 4)}-${TODAY.slice(4, 6)}-${TODAY.slice(
+                    6
+                )}`,
                 endDate: null,
                 allDay: true,
             } as DesktopStoredEvent["event"],
@@ -450,7 +456,10 @@ describe("syncIcsFeeds — one file, one record", () => {
                 io: io({
                     fetchIcs: async () => {
                         cycle += 1;
-                        return duplicatedIcs(`uid-${cycle}-a`, `uid-${cycle}-b`);
+                        return duplicatedIcs(
+                            `uid-${cycle}-a`,
+                            `uid-${cycle}-b`
+                        );
                     },
                 }),
             });

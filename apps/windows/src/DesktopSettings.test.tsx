@@ -277,3 +277,17 @@ describe("l'application de cartes", () => {
         expect(html).toContain("Citymapper");
     });
 });
+
+describe("le réglage du démarrage automatique", () => {
+    beforeEach(() => applyLanguage("fr"));
+
+    /* Sans lui, la promesse « les rappels arrivent même app fermée » ne tient
+       pas : c'est cette entrée qui relance l'application à l'ouverture de
+       session Windows. */
+    it("is offered on the desktop", () => {
+        const markup = renderToStaticMarkup(
+            <DesktopSettings open {...commonProps} />
+        );
+        expect(markup).toContain("Lancer au démarrage de Windows");
+    });
+});

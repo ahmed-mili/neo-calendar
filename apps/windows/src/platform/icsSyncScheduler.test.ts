@@ -2,7 +2,9 @@ import { dueIcsFeeds, runIcsQueue } from "./icsSyncScheduler";
 import type { IcsFeedSubscription } from "./icsFeedPreferences";
 import type { IcsSyncState } from "./icalNoteSync";
 
-const feed = (overrides: Partial<IcsFeedSubscription>): IcsFeedSubscription => ({
+const feed = (
+    overrides: Partial<IcsFeedSubscription>
+): IcsFeedSubscription => ({
     id: "feed",
     calendarPath: "Calendrier",
     name: "Feed",
@@ -25,25 +27,44 @@ describe("dueIcsFeeds", () => {
             feed({ id: "fresh" }),
         ];
         const states = {
-            overdue: state({ lastAttemptAt: "2026-08-30T16:00:00Z", lastSuccessAt: "2026-08-30T16:00:00Z" }),
-            fresh: state({ lastAttemptAt: "2026-08-30T18:00:00Z", lastSuccessAt: "2026-08-30T18:00:00Z" }),
+            overdue: state({
+                lastAttemptAt: "2026-08-30T16:00:00Z",
+                lastSuccessAt: "2026-08-30T16:00:00Z",
+            }),
+            fresh: state({
+                lastAttemptAt: "2026-08-30T18:00:00Z",
+                lastSuccessAt: "2026-08-30T18:00:00Z",
+            }),
         };
 
         expect(
-            dueIcsFeeds(feeds, states, new Date("2026-08-30T18:05:00Z"), 60).map((f) => f.id)
+            dueIcsFeeds(
+                feeds,
+                states,
+                new Date("2026-08-30T18:05:00Z"),
+                60
+            ).map((f) => f.id)
         ).toEqual(["never", "overdue"]);
     });
 
     it("lets a per-feed refresh interval override the global default", () => {
         const feeds = [feed({ id: "quick", refreshMinutes: 15 })];
         const states = {
-            quick: state({ lastAttemptAt: "2026-08-30T17:50:00Z", lastSuccessAt: "2026-08-30T17:50:00Z" }),
+            quick: state({
+                lastAttemptAt: "2026-08-30T17:50:00Z",
+                lastSuccessAt: "2026-08-30T17:50:00Z",
+            }),
         };
 
         // Global default of 60 would not be due yet, but the 15-minute
         // per-feed override has already elapsed.
         expect(
-            dueIcsFeeds(feeds, states, new Date("2026-08-30T18:06:00Z"), 60).map((f) => f.id)
+            dueIcsFeeds(
+                feeds,
+                states,
+                new Date("2026-08-30T18:06:00Z"),
+                60
+            ).map((f) => f.id)
         ).toEqual(["quick"]);
     });
 
@@ -52,7 +73,12 @@ describe("dueIcsFeeds", () => {
         const states = {};
 
         expect(
-            dueIcsFeeds(feeds, states, new Date("2026-08-30T18:05:00Z"), 60).map((f) => f.id)
+            dueIcsFeeds(
+                feeds,
+                states,
+                new Date("2026-08-30T18:05:00Z"),
+                60
+            ).map((f) => f.id)
         ).toEqual([]);
         expect(
             dueIcsFeeds(
@@ -68,7 +94,10 @@ describe("dueIcsFeeds", () => {
     it("includes a non-due feed when forced by manual refresh", () => {
         const feeds = [feed({ id: "fresh" })];
         const states = {
-            fresh: state({ lastAttemptAt: "2026-08-30T18:00:00Z", lastSuccessAt: "2026-08-30T18:00:00Z" }),
+            fresh: state({
+                lastAttemptAt: "2026-08-30T18:00:00Z",
+                lastSuccessAt: "2026-08-30T18:00:00Z",
+            }),
         };
 
         expect(

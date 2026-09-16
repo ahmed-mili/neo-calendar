@@ -406,7 +406,9 @@ describe("LocationRow — le choix de la carte", () => {
         show({ mapsAppIcons: { citymapper: "data:image/png;base64,AA" } });
         press("[data-nc-location-open]");
 
-        const option = document.querySelector('[data-nc-maps-app="citymapper"]');
+        const option = document.querySelector(
+            '[data-nc-maps-app="citymapper"]'
+        );
         expect(option?.querySelector("img")).not.toBeNull();
         expect(option?.querySelector("svg")).toBeNull();
     });

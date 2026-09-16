@@ -1,6 +1,7 @@
 import { applyLanguage, t } from "../i18n";
 import {
     REMINDER_UNITS,
+    relativeDelayLabel,
     reminderDelayLabel,
     reminderListLabel,
     reminderMinutesFrom,
@@ -66,10 +67,49 @@ describe("reminderDelayLabel", () => {
 
 describe("reminderListLabel", () => {
     it("names each delay once, and « avant » once at the end", () => {
-        expect(reminderListLabel([5, 60])).toBe(`5 minutes, 1 heure ${t("before")}`);
+        expect(reminderListLabel([5, 60])).toBe(
+            `5 minutes, 1 heure ${t("before")}`
+        );
     });
 
     it("names the empty list as silence", () => {
         expect(reminderListLabel([])).toBe(t("No reminder"));
+    });
+});
+
+describe("relativeDelayLabel", () => {
+    beforeEach(() => applyLanguage("fr"));
+
+    /* Le défaut signalé par Ahmed le 2026-09-16 : un rappel réglé à 1 h 30
+       annonçait « 90 min », et il fallait faire la division soi-même. */
+    it("reads a compound delay the way it is said out loud", () => {
+        expect(relativeDelayLabel(90)).toBe("1 h 30");
+        expect(relativeDelayLabel(125)).toBe("2 h 05");
+        expect(relativeDelayLabel(1439)).toBe("23 h 59");
+    });
+
+    it("keeps minutes below the hour", () => {
+        expect(relativeDelayLabel(1)).toBe("1 min");
+        expect(relativeDelayLabel(45)).toBe("45 min");
+        expect(relativeDelayLabel(59)).toBe("59 min");
+    });
+
+    it("drops the remainder when there is none", () => {
+        expect(relativeDelayLabel(60)).toBe("1 h");
+        expect(relativeDelayLabel(120)).toBe("2 h");
+        expect(relativeDelayLabel(2880)).toBe("2 j");
+    });
+
+    /* Un jour entier se dit « 1 j », jamais « 24 h » : c'est la même durée,
+       mais pas la même façon de se la représenter. */
+    it("counts in days past the day", () => {
+        expect(relativeDelayLabel(1440)).toBe("1 j");
+        expect(relativeDelayLabel(1470)).toBe("1 j 30 min");
+        expect(relativeDelayLabel(3600)).toBe("2 j 12 h");
+    });
+
+    it("names silence rather than writing a zero", () => {
+        expect(relativeDelayLabel(0)).toBe(t("Starting now"));
+        expect(relativeDelayLabel(-10)).toBe(t("Starting now"));
     });
 });

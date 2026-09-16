@@ -50,7 +50,9 @@ function TaskRow({
         <div
             className={`nc-tasks-item${done ? " nc-task-completed" : ""}`}
             data-task-id={task.id}
-            style={{ "--nc-tasks-item-tint": task.color } as React.CSSProperties}
+            style={
+                { "--nc-tasks-item-tint": task.color } as React.CSSProperties
+            }
             data-nc-tooltip={task.calendarName}
             onClick={() => onTaskClick(task)}
             onKeyDown={(event) => {
@@ -147,7 +149,9 @@ export default function DesktopTasksPanel({
     );
     const recentlyCompleted = recentlyCompletedIds
         .map((id) => tasksById.get(id))
-        .filter((task): task is TaskItem => !!task && task.status === "complete");
+        .filter(
+            (task): task is TaskItem => !!task && task.status === "complete"
+        );
     const handleToggleTask = React.useCallback(
         (id: string, done: boolean) => {
             if (openGroup === "todo" && done) {

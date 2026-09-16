@@ -311,10 +311,12 @@ describe("who owns a note, and whether a hand may touch it", () => {
      * la synchro suivante.
      */
     it("keeps a generated note read-only inside an editable calendar", () => {
-        expect(recordOwnership(record({ readOnly: true }), null)).toMatchObject({
-            calendarId: "local::Etudes",
-            readOnly: true,
-        });
+        expect(recordOwnership(record({ readOnly: true }), null)).toMatchObject(
+            {
+                calendarId: "local::Etudes",
+                readOnly: true,
+            }
+        );
     });
 
     it("still hands a mirrored folder's notes to that calendar, read-only", () => {

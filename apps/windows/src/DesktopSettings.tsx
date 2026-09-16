@@ -26,6 +26,10 @@ import {
     SettingsToggleRow,
 } from "./SettingsPrimitives";
 import ReminderChoiceDialog from "./ReminderChoiceDialog";
+import {
+    isStartupEnabled,
+    setStartupEnabled,
+} from "./platform/desktopAutostart";
 import { reminderListLabel } from "../../../src/ui/calendar/reminderDelay";
 import {
     AppearanceMode,
@@ -80,6 +84,7 @@ import {
     PanelLeft,
     RefreshCw,
     Map,
+    Power,
     Route,
     Smartphone,
     Plus,
@@ -317,6 +322,10 @@ export default function DesktopSettings({
     const [themeDirty, setThemeDirty] = useState(false);
     const [choice, setChoice] = useState<SettingsChoice | null>(null);
     const [reminderOpen, setReminderOpen] = useState(false);
+    /* Relu à l'ouverture plutôt que gardé en préférence : c'est le registre
+       qui tient cet état, et une entrée retirée depuis le Gestionnaire des
+       tâches de Windows doit se voir ici. */
+    const [startupOn, setStartupOn] = useState(false);
     const [settingsSearch, setSettingsSearch] = useState("");
     const isAndroid =
         typeof document !== "undefined" &&
@@ -380,6 +389,17 @@ export default function DesktopSettings({
         window.addEventListener("keydown", closeOnEscape);
         return () => window.removeEventListener("keydown", closeOnEscape);
     }, [editingCalendarId, goBack, isAndroid, onClose, open]);
+
+    useEffect(() => {
+        if (isAndroid) return;
+        let alive = true;
+        void isStartupEnabled().then((value) => {
+            if (alive) setStartupOn(value);
+        });
+        return () => {
+            alive = false;
+        };
+    }, [isAndroid]);
 
     useEffect(() => {
         if (!open) return;
@@ -765,6 +785,19 @@ export default function DesktopSettings({
                     navigates
                     onClick={() => setReminderOpen(true)}
                 />
+                {/* Ce qui fait tenir la promesse de la ligne au-dessus : sans
+                    l'application relancée a l'ouverture de session, un rappel
+                    posé pour demain matin n'a personne pour le poster. */}
+                {!isAndroid && (
+                    <SettingsToggleRow
+                        label={t("Launch at Windows startup")}
+                        icon={<Power size={18} />}
+                        checked={startupOn}
+                        onChange={(checked) => {
+                            void setStartupEnabled(checked).then(setStartupOn);
+                        }}
+                    />
+                )}
                 {/* Suivre le lieu d'un evenement ouvre un itineraire depuis
                     la position de l'appareil ; comment on compte s'y rendre ne
                     se devine pas. Au repos la carte tranche, ce qu'elle fait

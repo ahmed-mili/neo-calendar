@@ -4,6 +4,7 @@ import {
     sendNotification,
 } from "@tauri-apps/plugin-notification";
 import type { Reminder } from "./androidReminders";
+import { t } from "../../../../src/ui/i18n";
 
 /**
  * Notifications on Windows.
@@ -50,5 +51,26 @@ export async function postReminder(reminder: Reminder): Promise<void> {
     } catch {
         // A notification that could not be posted is not worth interrupting
         // the calendar for.
+    }
+}
+
+/**
+ * Dit une fois que fermer la fenetre n'a pas ferme l'application.
+ *
+ * C'est le prix du choix qui fait tenir les rappels : le bouton Fermer masque.
+ * Sans un mot, on croit avoir quitte, et on decouvre l'icone par hasard. Avec
+ * une boite de dialogue, on demanderait un clic pour une information qui
+ * n'appelle aucune decision : une notification se lit et s'oublie.
+ */
+export async function postTrayHint(): Promise<void> {
+    if (!(await ensureNotificationPermission())) return;
+    try {
+        sendNotification({
+            title: t("Neo Calendar keeps watch here"),
+            body: t("Right-click the icon to quit."),
+        });
+    } catch {
+        // Une bulle qui n'a pas pu etre posee ne vaut pas qu'on interrompe le
+        // calendrier pour elle.
     }
 }

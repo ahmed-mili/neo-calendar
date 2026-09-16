@@ -91,3 +91,35 @@ export function reminderDelayLabel(minutes: number): string {
     }
     return `${parts.join(" ")} ${t("before")}`;
 }
+
+/**
+ * Le délai en abrégé, tel qu'on le dirait à voix haute : « 1 h 30 », pas
+ * « 90 min ».
+ *
+ * `reminderDelayLabel` écrit la même durée en toutes lettres pour les réglages
+ * (« 1 heure 30 minutes avant ») ; celle-ci en est la forme courte, pour la
+ * ligne d'une notification qu'on lit d'un coup d'œil. Les deux découpent la
+ * durée de la même manière — c'est ce qui fait que l'application ne dit pas
+ * deux choses différentes du même délai.
+ *
+ * Le reste des heures est écrit sur deux chiffres et sans unité, comme on lit
+ * une heure : « 2 h 05 », et non « 2 h 5 min ».
+ */
+export function relativeDelayLabel(minutes: number): string {
+    if (minutes <= 0) return t("Starting now");
+    if (minutes < MINUTES_PER.hours) return `${minutes} min`;
+
+    if (minutes < MINUTES_PER.days) {
+        const hours = Math.floor(minutes / MINUTES_PER.hours);
+        const rest = minutes % MINUTES_PER.hours;
+        if (rest === 0) return `${hours} ${t("h")}`;
+        return `${hours} ${t("h")} ${String(rest).padStart(2, "0")}`;
+    }
+
+    const days = Math.floor(minutes / MINUTES_PER.days);
+    const rest = minutes % MINUTES_PER.days;
+    // Le reste repasse par la même règle : un jour et demi se dit « 1 j 12 h »,
+    // une journée et demi-heure « 1 j 30 min ».
+    if (rest === 0) return `${days} ${t("j")}`;
+    return `${days} ${t("j")} ${relativeDelayLabel(rest)}`;
+}
