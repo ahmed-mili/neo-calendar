@@ -9,6 +9,9 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::Manager;
 #[cfg(desktop)]
 use tauri_plugin_updater::UpdaterExt;
@@ -1823,23 +1826,109 @@ fn debug_log(level: String, message: String) {
 #[tauri::command]
 fn debug_log(_level: String, _message: String) {}
 
+/// Vrai quand l'application est lancee par l'entree de demarrage de Windows.
+///
+/// Elle doit alors se construire sans se montrer. L'inverse — une fenetre
+/// visible qu'on masque aussitot — ferait clignoter une fenetre a chaque
+/// ouverture de session. La comparaison est exacte plutot qu'un prefixe : un
+/// futur `--hidden-quelque-chose` ne doit pas emprunter ce chemin par hasard.
+fn starts_hidden<I: IntoIterator<Item = String>>(args: I) -> bool {
+    args.into_iter().any(|argument| argument == "--hidden")
+}
+
+/// Ramener la fenetre : le meme geste pour le clic sur l'icone de la zone de
+/// notification, pour son entree « Ouvrir », et pour un second lancement que
+/// `single-instance` intercepte. Trois portes, une seule serrure.
+fn reveal_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+/// Vrai des que l'icone de la zone de notification existe.
+///
+/// C'est elle qui rend une fenetre masquee recuperable. Tant qu'elle n'existe
+/// pas, masquer la fenetre l'enfermerait hors d'atteinte : le bouton Fermer
+/// redevient donc un vrai Fermer.
+static TRAY_READY: AtomicBool = AtomicBool::new(false);
+
+/// L'icone de la zone de notification, son infobulle et son menu.
+///
+/// Elle est desormais ce qui fait vivre l'application quand sa fenetre est
+/// fermee — c'est elle qui tient les rappels. Le clic gauche ramene la fenetre ;
+/// c'est le clic droit qui ouvre le menu, comme partout ailleurs sur Windows.
+fn build_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    let open = MenuItem::with_id(app, "open", "Ouvrir", true, None::<&str>)
+        .map_err(|error| error.to_string())?;
+    let quit = MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)
+        .map_err(|error| error.to_string())?;
+    let menu = Menu::with_items(app, &[&open, &quit]).map_err(|error| error.to_string())?;
+    let icon = app
+        .default_window_icon()
+        .cloned()
+        .ok_or_else(|| "aucune icone embarquee".to_string())?;
+
+    TrayIconBuilder::with_id("main")
+        .icon(icon)
+        .tooltip("Neo Calendar")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "open" => reveal_main_window(app),
+            "quit" => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                reveal_main_window(tray.app_handle());
+            }
+        })
+        .build(app)
+        .map_err(|error| error.to_string())?;
+
+    TRAY_READY.store(true, Ordering::Relaxed);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.unminimize();
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
+            reveal_main_window(app);
         }))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--hidden"]),
+        ))
         .setup(|app| {
             #[cfg(desktop)]
             {
+                if let Err(reason) = build_tray(app.handle()) {
+                    // Pas fatal : sans icone, la fenetre restera simplement
+                    // une fenetre ordinaire, qui se ferme pour de bon.
+                    eprintln!("Icone de la zone de notification indisponible : {reason}");
+                }
+
+                // La fenetre est declaree invisible dans tauri.conf.json. Sans
+                // cela, un lancement par l'entree de demarrage montrerait une
+                // fenetre le temps de la masquer. Elle est aussi montree quand
+                // l'icone manque, quel que soit l'argument : mieux vaut une
+                // fenetre non demandee qu'une application injoignable.
+                if !starts_hidden(std::env::args()) || !TRAY_READY.load(Ordering::Relaxed) {
+                    reveal_main_window(app.handle());
+                }
+
                 app.handle()
                     .plugin(tauri_plugin_updater::Builder::new().build())?;
                 app.manage(PendingUpdate::default());
@@ -1868,6 +1957,23 @@ pub fn run() {
                 if let Some(window) = app.get_webview_window("main") {
                     let focused = app.handle().clone();
                     window.on_window_event(move |event| {
+                        // Fermer masque : l'application doit continuer de
+                        // veiller pour que ses rappels partent. « Quitter »,
+                        // dans le menu de l'icone, est le seul vrai depart.
+                        // Sans icone, en revanche, Fermer reste Fermer.
+                        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                            if !TRAY_READY.load(Ordering::Relaxed) {
+                                return;
+                            }
+                            api.prevent_close();
+                            if let Some(window) = focused.get_webview_window("main") {
+                                if window.hide().is_ok() {
+                                    use tauri::Emitter;
+                                    let _ = focused.emit("nc://window-hidden", ());
+                                }
+                            }
+                            return;
+                        }
                         if !matches!(event, tauri::WindowEvent::Focused(true)) {
                             return;
                         }
@@ -2197,6 +2303,24 @@ mod tests {
         let saved: Value = serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap();
         assert_eq!(saved["colors"].as_object().unwrap().len(), 2);
         assert!(!root.join(PREFERENCES_FILE_NAME).exists());
+    }
+
+    /// L'entree de demarrage de Windows lance l'application avec `--hidden`,
+    /// et c'est le seul argument qui la fait se construire sans se montrer.
+    /// L'inverse — une fenetre visible qu'on masque aussitot — ferait
+    /// clignoter une fenetre a chaque ouverture de session.
+    #[test]
+    fn the_startup_entry_launches_without_showing_a_window() {
+        let hidden = vec!["neo-calendar.exe".to_string(), "--hidden".to_string()];
+        let plain = vec!["neo-calendar.exe".to_string()];
+        let lookalike = vec![
+            "neo-calendar.exe".to_string(),
+            "--hidden-agenda".to_string(),
+        ];
+
+        assert!(starts_hidden(hidden));
+        assert!(!starts_hidden(plain));
+        assert!(!starts_hidden(lookalike));
     }
 
 }
