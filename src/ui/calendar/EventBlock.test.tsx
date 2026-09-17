@@ -54,6 +54,49 @@ describe("an event in the all-day band", () => {
     });
 });
 
+/*
+ * La salle se lit sur la grille, sans ouvrir la fiche.
+ *
+ * Un cours de l'Efrei porte sa salle dans son lieu ; sur un bloc d'une heure il
+ * y a la place de l'ecrire sous le nom, et c'est ce qu'un coup d'oeil vient
+ * chercher avant de partir. Le CSS decide s'il y a la place (voir
+ * .nc-event-location) ; le composant ne fait que l'ecrire quand il y a un lieu.
+ */
+describe("the location of an event", () => {
+    it("is written in the block, between the title and the time", () => {
+        const html = render({ ...occurrence, location: "Salle 301" });
+
+        expect(html).toContain(
+            '<span class="nc-event-location">Salle 301</span>'
+        );
+        expect(html.indexOf("nc-event-title")).toBeLessThan(
+            html.indexOf("nc-event-location")
+        );
+        expect(html.indexOf("nc-event-location")).toBeLessThan(
+            html.indexOf("nc-event-time")
+        );
+    });
+
+    it("is left out when the event has none", () => {
+        expect(render(occurrence)).not.toContain("nc-event-location");
+        expect(render({ ...occurrence, location: "   " })).not.toContain(
+            "nc-event-location"
+        );
+    });
+
+    it("is left out of the one-row layouts, which have no room for it", () => {
+        const short = {
+            ...occurrence,
+            location: "Salle 301",
+            end: new Date(2026, 6, 22, 9, 30),
+        };
+        expect(render(short)).not.toContain("nc-event-location");
+        expect(
+            render({ ...occurrence, allDay: true, location: "Salle 301" }, true)
+        ).not.toContain("nc-event-location");
+    });
+});
+
 describe("the first occurrence of a series", () => {
     afterEach(() => applyLanguage("fr"));
 

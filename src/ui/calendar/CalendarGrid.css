@@ -1191,6 +1191,39 @@
     flex-shrink: 0;
 }
 
+/* La salle, entre le nom et l'heure, dans l'encre de l'heure : c'est une
+   indication, pas un second titre. Une seule ligne, coupee par des points de
+   suspension quand la colonne est etroite.
+
+   Elle n'apparait que si le bloc a la hauteur de trois lignes. Le seuil est lu
+   sur le bloc lui-meme (container query sur sa hauteur, que la grille lui
+   donne en pixels), et non sur la duree de l'evenement : au zoom de base une
+   heure fait 60 px et suffit, mais dezoome, la meme heure n'a plus la place,
+   et une ligne a moitie coupee par `overflow: hidden` se lit plus mal que pas
+   de ligne du tout. 52 px = 17 (titre) + 14 (salle) + 14 (heure) + 8 de
+   remplissage, avec un peu de marge. */
+.nc-event-block {
+    container-type: size;
+}
+
+.nc-event-location {
+    display: none;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--nc-event-ink-muted, var(--nc-text-secondary));
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+}
+
+@container (min-height: 52px) {
+    .nc-event-location {
+        display: block;
+    }
+}
+
 /* Event resize handle */
 .nc-event-resize-handle {
     position: absolute;

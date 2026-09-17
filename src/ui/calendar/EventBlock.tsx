@@ -163,6 +163,13 @@ export default function EventBlock({
     // the top of a second line below the bar.
     const inlineLayout = isShort || compact;
 
+    // La salle, lue sur la grille plutôt que dans la fiche : un cours de
+    // l'Efrei porte la sienne dans son lieu. Seule la colonne a de quoi
+    // l'écrire ; c'est ensuite le CSS qui la montre ou non selon la hauteur
+    // réelle du bloc (voir .nc-event-location), puisqu'une heure ne mesure pas
+    // le même nombre de pixels d'un zoom à l'autre.
+    const location = inlineLayout ? undefined : event.location?.trim();
+
     // Ce que le lien a deja ecrit reste lisible pendant qu'il se rafraichit ;
     // le battement dit seulement que la reponse n'est pas encore arrivee. Rien
     // n'est retire de la grille en attendant : une case vide se lit comme une
@@ -230,6 +237,9 @@ export default function EventBlock({
                     }`}
                 >
                     <span className="nc-event-title">{event.title}</span>
+                    {location && (
+                        <span className="nc-event-location">{location}</span>
+                    )}
                     {!event.allDay && (
                         <span className="nc-event-time">
                             {formatTime(labelStart, timeFormat24h)} –{" "}
