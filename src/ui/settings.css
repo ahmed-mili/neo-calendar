@@ -275,7 +275,7 @@
 
 .neo-cal-row-delete:hover {
     color: var(--nc-error);
-    border-color: var(--nc-error);
+    background: color-mix(in srgb, var(--nc-error) 14%, transparent);
 }
 
 .neo-cal-row-delete.is-confirm {

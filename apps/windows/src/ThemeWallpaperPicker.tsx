@@ -1,11 +1,4 @@
-import React, {
-    useCallback,
-    useEffect,
-    useLayoutEffect,
-    useRef,
-    useState,
-} from "react";
-import { createPortal } from "react-dom";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     Check,
     ChevronRight,
@@ -38,7 +31,6 @@ import {
 } from "./themes/wallpaperBatch";
 import { openDesktopExternalTarget as openExternalTarget } from "./platform/desktopCalendarStore";
 import { SettingsDialog } from "./SettingsPrimitives";
-import { placeFlyout } from "../../../src/ui/calendar/flyoutPlacement";
 import { t } from "../../../src/ui/i18n";
 
 interface ThemeWallpaperPickerProps {
@@ -48,23 +40,6 @@ interface ThemeWallpaperPickerProps {
     /** Applied the moment it is picked — there is nothing to confirm. */
     onChange: (value: WallpaperId) => void;
 }
-
-interface MenuPosition {
-    top: number | null;
-    bottom: number | null;
-    left: number;
-    width: number;
-    maxHeight: number;
-}
-
-/** Espace entre le champ et le menu de bureau. */
-const MENU_GAP = 6;
-/** Marge minimale conservée contre le bord de l'écran. */
-const MENU_MARGIN = 12;
-/** En dessous de cette hauteur, le menu bascule au-dessus du champ. */
-const MENU_MIN_HEIGHT = 200;
-/** Un menu plus étroit que ça écraserait la vignette et son libellé. */
-const MENU_MIN_WIDTH = 280;
 
 /**
  * La marque d'Unsplash, dessinée plutôt qu'écrite.
@@ -135,10 +110,7 @@ export default function ThemeWallpaperPicker({
     surface,
     onChange,
 }: ThemeWallpaperPickerProps) {
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    const menuRef = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
-    const [position, setPosition] = useState<MenuPosition | null>(null);
     const current = getWallpaper(value);
 
     // Sur Android les pleines résolutions ne sont plus dans l'APK : elles vivent
@@ -179,80 +151,20 @@ export default function ThemeWallpaperPicker({
             wallpaper.category === categoryFilter
     );
 
-    // La feuille modale plein écran est un geste de téléphone : sur PC le choix
-    // se fait dans un menu ancré sous le champ, comme le sélecteur de thème et
-    // celui de couleur du même panneau.
-    const anchored = runtime === "pc";
-
-    const updatePosition = useCallback(() => {
-        const rect = triggerRef.current?.getBoundingClientRect();
-        if (!rect) return;
-
-        const placement = placeFlyout(rect, window.innerHeight, {
-            gap: MENU_GAP,
-            margin: MENU_MARGIN,
-            minHeight: MENU_MIN_HEIGHT,
-        });
-        const width = Math.max(rect.width, MENU_MIN_WIDTH);
-
-        setPosition({
-            top: placement.top,
-            bottom: placement.bottom,
-            left: Math.max(
-                MENU_MARGIN,
-                Math.min(rect.left, window.innerWidth - width - MENU_MARGIN)
-            ),
-            width,
-            maxHeight: placement.maxHeight,
-        });
-    }, []);
-
-    // Le panneau de réglages défile : sans réancrage le menu resterait où le
-    // champ était.
-    useLayoutEffect(() => {
-        if (!open || !anchored) return;
-        updatePosition();
-        window.addEventListener("resize", updatePosition);
-        window.addEventListener("scroll", updatePosition, true);
-        return () => {
-            window.removeEventListener("resize", updatePosition);
-            window.removeEventListener("scroll", updatePosition, true);
-        };
-    }, [open, anchored, updatePosition]);
-
-    useEffect(() => {
-        if (!open) return;
-
-        const onPointerDown = (event: PointerEvent) => {
-            // Fermer pendant un téléchargement laisserait l'utilisateur sans
-            // rien à regarder alors que quelque chose se passe.
-            if (busy) return;
-            const target = event.target;
-            if (!(target instanceof Node)) return;
-            if (
-                !menuRef.current?.contains(target) &&
-                !triggerRef.current?.contains(target)
-            ) {
-                setOpen(false);
-            }
-        };
-
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key !== "Escape" || busy) return;
-            // Le panneau des réglages écoute Échap lui aussi : sans cela, une
-            // seule pression fermait ce sélecteur ET reculait d'une page.
-            event.stopPropagation();
-            setOpen(false);
-        };
-
-        document.addEventListener("pointerdown", onPointerDown, true);
-        document.addEventListener("keydown", onKeyDown);
-
-        return () => {
-            document.removeEventListener("pointerdown", onPointerDown, true);
-            document.removeEventListener("keydown", onKeyDown);
-        };
-    }, [open, busy]);
+    /*
+     * Le meme dialogue centre sur les deux plateformes.
+     *
+     * Sur ordinateur c'etait un menu ancre sous le champ, porte sur le `body`
+     * en `position: fixed`. Trois calculs pour une grille d'images : se recaler
+     * a chaque defilement du panneau, tenir dans un dialogue qui n'est pas son
+     * parent, et basculer au-dessus du champ quand le bas manque. Il debordait
+     * malgre tout sous le panneau, et une grille de vignettes demande de la
+     * place, pas un ruban cale sous une ligne.
+     *
+     * Le dialogue centre n'a aucun de ces problemes : il porte deja son voile,
+     * sa sortie au clic dehors et sa touche Echap (`SettingsDialog`), et il
+     * prend la largeur qu'il lui faut au milieu de l'ecran.
+     */
 
     /** Ce fond est-il à aller chercher avant de pouvoir être appliqué ? */
     const missing = useCallback(
@@ -506,10 +418,9 @@ export default function ThemeWallpaperPicker({
                 choisi tient la place de l'icône, et son nom celle de la
                 valeur. */}
             <button
-                ref={triggerRef}
                 className="nc-set-row nc-set-row--action"
                 type="button"
-                aria-haspopup="listbox"
+                aria-haspopup="dialog"
                 aria-expanded={open}
                 onClick={() => setOpen((currentOpen) => !currentOpen)}
             >
@@ -528,43 +439,17 @@ export default function ThemeWallpaperPicker({
                 </span>
             </button>
 
-            {open &&
-                anchored &&
-                position &&
-                createPortal(
-                    <div
-                        ref={menuRef}
-                        className="nc-wallpaper-menu"
-                        style={{
-                            top: position.top ?? undefined,
-                            bottom: position.bottom ?? undefined,
-                            left: position.left,
-                            width: position.width,
-                            maxHeight: position.maxHeight,
-                        }}
-                        role="listbox"
-                        aria-label={t("Wallpapers")}
-                    >
-                        {categoryFilterRow}
-                        {fetchAllRow}
-                        {options}
-                    </div>,
-                    document.body
-                )}
-
-            {/* Sur téléphone, le même panneau que tous les autres sous-menus.
-                C'était une feuille à part : pas de titre, pas de flou derrière,
-                des lignes deux fois plus hautes — un troisième dessin dans un
-                écran qui n'en veut qu'un. */}
-            {open && !anchored && (
+            {open && (
                 <SettingsDialog
                     title={t("Wallpapers")}
                     onClose={() => {
+                        // Fermer pendant un téléchargement laisserait
+                        // l'utilisateur sans rien à regarder alors que quelque
+                        // chose se passe.
                         if (!busy && !running) setOpen(false);
                     }}
                 >
                     <div
-                        ref={menuRef}
                         className="nc-wallpaper-options"
                         role="listbox"
                         aria-label={t("Wallpapers")}

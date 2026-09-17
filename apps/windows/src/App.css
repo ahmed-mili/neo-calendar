@@ -444,8 +444,11 @@ button.nc-settings__theme-card {
         transform 100ms ease;
 }
 
+/* Survol = surface, jamais contour (regle tranchee le 2026-09-17). Le contour
+   ne disparait pas seul : la ou il etait tout le survol, une surface le
+   remplace, sinon le survol devient invisible. Le panneau d'evenement garde sa
+   grammaire, qui est ecrite dans le CLAUDE.md du projet. */
 button.nc-settings__theme-card:hover {
-    border-color: var(--background-modifier-border-hover);
     background: var(--background-modifier-hover);
     transform: translateY(-1px);
 }
@@ -1031,11 +1034,7 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 .nc-links-attachments .nc-panel-row-link-attachments:hover:not(:disabled) {
-    border-color: var(
-        --nc-border,
-        var(--background-modifier-border)
-    ) !important;
-    background: transparent !important;
+    background: var(--nc-bg-hover, var(--background-modifier-hover)) !important;
 }
 
 .nc-links-attachments
@@ -1217,6 +1216,7 @@ button.nc-settings__theme-card:focus-visible {
 .nc-event-popup::-webkit-scrollbar,
 .nc-panel-body::-webkit-scrollbar,
 .nc-settings__page::-webkit-scrollbar,
+.nc-settings__desktop-page::-webkit-scrollbar,
 .nc-shortcuts-body::-webkit-scrollbar {
     width: 9px;
 }
@@ -1225,6 +1225,7 @@ button.nc-settings__theme-card:focus-visible {
 .nc-event-popup::-webkit-scrollbar-thumb,
 .nc-panel-body::-webkit-scrollbar-thumb,
 .nc-settings__page::-webkit-scrollbar-thumb,
+.nc-settings__desktop-page::-webkit-scrollbar-thumb,
 .nc-shortcuts-body::-webkit-scrollbar-thumb {
     border: 2px solid transparent;
     border-radius: 999px;
@@ -1236,6 +1237,7 @@ button.nc-settings__theme-card:focus-visible {
 .nc-event-popup::-webkit-scrollbar-thumb:hover,
 .nc-panel-body::-webkit-scrollbar-thumb:hover,
 .nc-settings__page::-webkit-scrollbar-thumb:hover,
+.nc-settings__desktop-page::-webkit-scrollbar-thumb:hover,
 .nc-shortcuts-body::-webkit-scrollbar-thumb:hover {
     background: var(--nc-scrollbar-thumb-hover);
     background-clip: padding-box;
@@ -2816,8 +2818,8 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 .nc-prayer-dialog__reset:hover {
-    border-color: var(--prayer-line);
     color: var(--text-normal);
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
 }
 
 .nc-prayer-dialog__hint {
@@ -3071,7 +3073,7 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 .nc-ics-feed-address__input:hover {
-    border-color: var(--ics-line);
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
 }
 
 .nc-ics-feed-address__input:focus {
@@ -3118,7 +3120,7 @@ button.nc-settings__theme-card:focus-visible {
 }
 
 .nc-ics-feed-row__name:hover {
-    border-color: var(--ics-line);
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
 }
 
 .nc-ics-feed-row__name:focus-visible {
@@ -3203,8 +3205,8 @@ button.nc-settings__theme-card:focus-visible {
 
 @media (hover: hover) and (pointer: fine) {
     .nc-ics-feed-row__action:hover {
-        border-color: var(--ics-line);
         color: var(--text-normal);
+        background: var(--nc-bg-hover, var(--background-modifier-hover));
     }
 }
 
@@ -3224,7 +3226,7 @@ button.nc-settings__theme-card:focus-visible {
 
 .nc-ics-feed-row__action--danger:hover {
     color: var(--text-error);
-    border-color: var(--text-error);
+    background: color-mix(in srgb, var(--text-error) 14%, transparent);
 }
 
 .nc-ics-feed-row__action:disabled {
@@ -4174,27 +4176,14 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     color: var(--text-normal);
 }
 
+/* `--interactive-accent` est l'accent du theme ; tout le reste de ce panneau
+   est sur `--nc-accent`, celui qu'Ahmed choisit dans « Couleurs » juste
+   au-dessus. Une pastille qui ne suit pas le reglage pose deux accents dans le
+   meme ecran. */
 .nc-wallpaper-category.nc-active {
-    border-color: var(--interactive-accent);
-    background: var(--interactive-accent);
-    color: var(--text-on-accent, #fff);
-}
-
-.nc-wallpaper-menu {
-    position: fixed;
-    z-index: 80000;
-    display: grid;
-    gap: 2px;
-    padding: 6px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--background-primary) 97%, transparent);
-    box-shadow: 0 22px 56px rgba(0, 0, 0, 0.46), 0 3px 10px rgba(0, 0, 0, 0.26);
-    backdrop-filter: blur(16px) saturate(1.08);
-    -webkit-backdrop-filter: blur(16px) saturate(1.08);
-    font-family: var(--nc-ui-font) !important;
+    border-color: var(--nc-accent);
+    background: var(--nc-accent);
+    color: var(--nc-accent-text, var(--text-on-accent, #fff));
 }
 
 /*
@@ -4270,24 +4259,108 @@ body.nc-platform-android .nc-wallpaper-option--all {
     color: var(--nc-accent);
 }
 
+/*
+ * Choisir un fond d'ecran sur ordinateur : une grille de vignettes.
+ *
+ * Le telephone garde sa liste — une colonne etroite, une image par ligne, et
+ * c'est le bon dessin pour un pouce. L'ordinateur avait la meme liste dans un
+ * menu ancre large de 810 px : une vignette de 96 px par ligne, cinq fonds
+ * visibles sur vingt-sept. Une image se choisit en la voyant, donc la case
+ * porte la vignette sur toute sa largeur et le nom passe dessous.
+ */
+body:not(.nc-platform-android) .nc-choice-dialog:has(.nc-wallpaper-options) {
+    width: min(920px, 100%);
+    max-height: min(80vh, 720px);
+}
+
+body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-options {
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+    align-content: start;
+    gap: 12px;
+    padding: 2px 8px 10px;
+}
+
+/* Ce qui n'est pas un fond d'ecran prend la largeur entiere. */
+body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-categories,
+body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option--all {
+    grid-column: 1 / -1;
+}
+
+body:not(.nc-platform-android)
+    .nc-choice-dialog
+    .nc-wallpaper-option:not(.nc-wallpaper-option--all) {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 8px;
+    padding: 8px;
+}
+
+/* Vignettes paysage : les fonds proposes a un ecran large le sont, un cadre
+   portrait n'en montrerait qu'une bande centrale. */
+body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__image {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    border-radius: 9px;
+}
+
+body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__label {
+    font-size: 13px;
+    font-weight: 560;
+}
+
+/* Le credit etait retrait de 8 px pour se detacher du nom qui le precedait sur
+   la meme ligne ; dans une carte il est deja dessous. */
+body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__credit {
+    margin-left: 0;
+}
+
+/*
+ * Le fond choisi, dans une grille, se montre par sa carte et non par la
+ * couleur de son nom : en liste le nom est la seule chose qui tienne la
+ * largeur, dans une grille c'est l'image qu'on regarde.
+ */
+body:not(.nc-platform-android)
+    .nc-choice-dialog
+    .nc-wallpaper-option[aria-selected="true"] {
+    border-color: color-mix(in srgb, var(--nc-accent) 58%, transparent);
+    background: color-mix(
+        in srgb,
+        var(--nc-accent) 12%,
+        transparent
+    ) !important;
+}
+
+body:not(.nc-platform-android)
+    .nc-choice-dialog
+    .nc-wallpaper-option[aria-selected="true"]
+    .nc-wallpaper-option__label {
+    color: var(--text-normal);
+}
+
+/* L'etat se pose sur la vignette : une carte n'a pas de troisieme colonne ou
+   le ranger, et sur l'image il se lit sans etre cherche. La pastille le
+   detache d'une photo dont on ne sait pas si elle est claire ou sombre. */
+body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__check,
+body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__get,
+body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__spin,
+body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    box-sizing: content-box;
+    padding: 3px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--background-primary) 82%, transparent);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
 /* Le corps du selecteur de couleur, partage par la bulle ancree du bureau et
    le panneau du telephone. */
 .nc-theme-color-body {
     display: grid;
     gap: 11px;
-}
-
-/* Vignettes paysage : les fonds proposes a un ecran large le sont, un cadre
-   portrait n'en montrerait qu'une bande centrale. */
-.nc-wallpaper-menu .nc-wallpaper-option {
-    grid-template-columns: 96px minmax(0, 1fr) 18px;
-    gap: 10px;
-    padding: 6px;
-}
-
-.nc-wallpaper-menu .nc-wallpaper-option__image {
-    width: 96px;
-    height: 54px;
 }
 
 /* === NEO WALLPAPER LIBRARY V8 END === */
@@ -5310,7 +5383,9 @@ body.nc-platform-android .nc-choice-dialog .nc-cal-menu-delay__part {
     padding: 0 11px;
 }
 
-body.nc-platform-android .nc-choice-dialog .nc-cal-menu-delay__part:first-child {
+body.nc-platform-android
+    .nc-choice-dialog
+    .nc-cal-menu-delay__part:first-child {
     padding-left: 14px;
 }
 
@@ -5443,6 +5518,15 @@ body:not(.nc-platform-android) .nc-settings-backdrop {
    stable index and one scrolling subject, so its settings read as a desktop
    dialog instead of an enlarged phone screen. */
 body:not(.nc-platform-android) .nc-settings--desktop {
+    /* L'accent a 16 % — la teinte des menus — vire au gris violace sur la
+       surface de ce panneau, ou il n'a pas le fond d'ecran derriere lui pour
+       le porter. Un peu plus d'accent, et le galet se lit comme une intention
+       plutot que comme une salissure. */
+    --nc-settings-hover-tint: color-mix(
+        in srgb,
+        var(--nc-accent) 22%,
+        transparent
+    );
     width: min(1180px, calc(100vw - 64px));
     max-width: calc(100vw - 64px);
     height: min(780px, calc(100vh - 64px));
@@ -5474,13 +5558,14 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     flex-direction: column;
     padding: 18px 14px 14px;
     overflow: hidden;
+    /* La colonne etait `background-secondary` a 76 % et la page
+       `background-primary` a 54 %, toutes deux posees sur un panneau deja
+       opaque : deux valeurs si proches que seul le trait les separait. Elle
+       s'enfonce maintenant sous la page, et le trait n'a plus a porter la
+       separation a lui seul. */
     border-right: 1px solid
-        color-mix(in srgb, var(--background-modifier-border) 72%, transparent);
-    background: color-mix(
-        in srgb,
-        var(--background-secondary) 76%,
-        transparent
-    );
+        color-mix(in srgb, var(--background-modifier-border) 46%, transparent);
+    background: color-mix(in srgb, var(--background-primary) 84%, #000);
 }
 
 .nc-settings__search {
@@ -5573,6 +5658,9 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     font-weight: 560;
     text-align: left;
     cursor: pointer;
+    transition: background var(--nc-transition-fast, 120ms ease),
+        border-color var(--nc-transition-fast, 120ms ease),
+        color var(--nc-transition-fast, 120ms ease);
 }
 
 .nc-settings__nav-item > svg {
@@ -5584,9 +5672,15 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     white-space: nowrap;
 }
 
+/*
+ * Le survol de la colonne parle la meme langue que celui d'une ligne : un
+ * contour d'accent et une teinte a peine posee. Il etait au gris du theme,
+ * quand la ligne d'a cote recevait un galet d'accent — deux grammaires pour
+ * le meme geste, dans la meme boite.
+ */
 .nc-settings__nav-item:hover {
     color: var(--text-normal);
-    background: var(--background-modifier-hover);
+    background: color-mix(in srgb, var(--nc-accent) 12%, transparent);
 }
 
 .nc-settings__nav-item:focus-visible,
@@ -5595,25 +5689,37 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     outline-offset: 1px;
 }
 
+/*
+ * L'onglet ouvert doit peser plus lourd que l'onglet survole, sinon celui que
+ * la souris touche se lit comme celui qu'on regarde. Il etait a l'accent 12 %
+ * melange au gris de survol, c'est-a-dire a un cheveu du survol lui-meme.
+ *
+ * La difference tient a la seule densite de la surface : ni contour, ni balle
+ * verticale a gauche. Trois facons de dire « celui-ci » dans un galet de
+ * 38 px, c'est deux de trop, et le contour d'accent sur fond d'accent ne
+ * faisait qu'epaissir le bord du galet.
+ */
 .nc-settings__nav-item[aria-current="page"] {
-    border-color: color-mix(in srgb, var(--nc-accent) 14%, transparent);
     color: var(--text-normal);
-    background: color-mix(
-        in srgb,
-        var(--nc-accent) 12%,
-        var(--background-modifier-hover)
-    );
+    background: color-mix(in srgb, var(--nc-accent) 30%, transparent);
 }
 
-.nc-settings__nav-item[aria-current="page"]::before {
-    content: "";
-    position: absolute;
-    top: 9px;
-    bottom: 9px;
-    left: 0;
-    width: 2px;
-    border-radius: 0 2px 2px 0;
-    background: var(--nc-accent);
+/*
+ * L'appui, dans la meme grammaire : la surface se densifie, rien ne bouge.
+ *
+ * Sans transition — un enfoncement qui met 120 ms a arriver n'est plus un
+ * retour d'appui, c'est une animation qui suit le doigt. Elle reste au
+ * relachement, ou la surface redescend vers le survol.
+ */
+.nc-settings__nav-item:active {
+    background: color-mix(in srgb, var(--nc-accent) 24%, transparent);
+    transition-duration: 0s;
+}
+
+/* L'onglet deja ouvert s'enfonce depuis sa propre densite, pas depuis celle
+   du survol : sinon un clic dessus l'eclaircit. */
+.nc-settings__nav-item[aria-current="page"]:active {
+    background: color-mix(in srgb, var(--nc-accent) 44%, transparent);
 }
 
 .nc-settings__nav-empty {
@@ -5635,7 +5741,7 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    background: color-mix(in srgb, var(--background-primary) 54%, transparent);
+    background: var(--background-primary);
 }
 
 .nc-settings__desktop-header {
@@ -5699,11 +5805,25 @@ body:not(.nc-platform-android) .nc-settings--desktop {
     gap: 34px;
 }
 
+/* Il etait en 15 px gras dans la couleur du texte : exactement le poids de
+   « Premier jour de la semaine », juste en dessous. Un titre qui pese autant
+   que ce qu'il titre ne titre rien. Il reprend donc la mesure du telephone —
+   petit, secondaire, en bas de casse. */
 .nc-settings__desktop-page .nc-set-group__title {
-    margin: 0 0 7px;
-    color: var(--text-normal);
-    font-size: 15px;
-    font-weight: 670;
+    margin: 0 0 9px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 13px;
+    font-weight: 620;
+    letter-spacing: 0.01em;
+}
+
+/* Les filets partent de 16 px, la mesure de la carte du telephone, ou la
+   ligne a justement 16 px de retrait : le trait y commence sous l'icone. La
+   ligne d'ordinateur n'a aucun retrait a gauche, si bien que le meme 16 px
+   plantait le trait 16 px APRES l'icone, aligne sur rien. */
+.nc-settings__desktop-page .nc-set-group__rows > * + *::before {
+    right: 0;
+    left: 0;
 }
 
 .nc-settings__desktop-page .nc-set-group__rows {
@@ -5716,16 +5836,66 @@ body:not(.nc-platform-android) .nc-settings--desktop {
 }
 
 .nc-settings__desktop-page .nc-set-row {
+    position: relative;
+    /* La ligne devient son propre contexte d'empilement, pour que le galet
+       ci-dessous, pose en z-index negatif, descende sous le texte de la ligne
+       sans descendre sous le fond de la page qui la porte. */
+    isolation: isolate;
     min-height: 58px;
     padding: 10px 8px 10px 0;
 }
 
-/* Le survol d'une ligne : une teinte de l'accent, pas un gris, et la ligne
-   ne bouge pas (elle se décalait de 8 px, ce qui se lisait comme un saut). */
+/*
+ * Le survol d'une ligne, porte par un pseudo-element plutot que par la boite.
+ *
+ * Il l'etait par la boite, un `padding-left: 8px` compense d'un
+ * `margin-left: -8px` : la teinte debordait de 8 px a gauche, s'arretait net
+ * au bord droit du contenu, n'avait aucun arrondi, et mordait les filets du
+ * dessus et du dessous — la ligne survolee semblait sortir de son bloc. Le
+ * galet deborde maintenant d'autant des deux cotes, et ses 3 px de retrait
+ * vertical le tiennent a l'ecart des filets.
+ *
+ * Le texte, lui, ne bouge plus d'un pixel : c'est le pseudo-element qui
+ * s'etend, pas la ligne.
+ */
+.nc-settings__desktop-page .nc-set-row--action::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 3px -12px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    transition: background var(--nc-transition-fast, 120ms ease),
+        border-color var(--nc-transition-fast, 120ms ease);
+}
+
+/* L'appui densifie la surface, sans transition : un enfoncement qui met 120 ms
+   a arriver n'est plus un retour d'appui. */
+.nc-settings__desktop-page .nc-set-row--action:active::after {
+    background: color-mix(in srgb, var(--nc-accent) 34%, transparent);
+    transition-duration: 0s;
+}
+
+.nc-settings__desktop-page .nc-set-row--action:hover::after {
+    background: var(--nc-settings-hover-tint);
+}
+
+/* Le gris du theme, herite de la regle commune, n'a plus rien a peindre. */
 .nc-settings__desktop-page .nc-set-row--action:hover {
-    padding-left: 8px;
-    margin-left: -8px;
-    background: var(--nc-hover-tint);
+    background: transparent;
+}
+
+/* Le liseré du clavier suivait la boite, a 2 px en dedans : il dessinait un
+   rectangle la ou le survol dessine un galet. Il epouse donc le galet. */
+.nc-settings__desktop-page .nc-set-row--action:focus-visible {
+    outline: none;
+}
+
+.nc-settings__desktop-page .nc-set-row--action:focus-visible::after {
+    border-color: var(--nc-accent);
+    background: var(--nc-settings-hover-tint);
+    box-shadow: 0 0 0 1px var(--nc-accent);
 }
 
 .nc-settings__desktop-page .nc-set-version {
