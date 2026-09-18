@@ -1907,10 +1907,6 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec!["--hidden"]),
-        ))
         .setup(|app| {
             #[cfg(desktop)]
             {
@@ -1931,6 +1927,19 @@ pub fn run() {
 
                 app.handle()
                     .plugin(tauri_plugin_updater::Builder::new().build())?;
+
+                // Le demarrage automatique inscrit `current_exe()` dans le
+                // registre. Un binaire de debug qui s'y inscrit se relance a
+                // chaque session sur `localhost:1420` sans Vite derriere, et
+                // bloque ensuite `npm run dev` par single-instance. Il n'a
+                // donc pas le plugin : `enable` et `isEnabled` echouent, et la
+                // fiche lit « non » au lieu d'ecrire un chemin de `target/`.
+                #[cfg(not(debug_assertions))]
+                app.handle().plugin(tauri_plugin_autostart::init(
+                    tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+                    Some(vec!["--hidden"]),
+                ))?;
+
                 app.manage(PendingUpdate::default());
                 app.manage(UpdateWatch::default());
 
