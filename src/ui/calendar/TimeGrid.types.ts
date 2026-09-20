@@ -1,4 +1,5 @@
 import { DisplayEvent } from "../types";
+import type { PrayerName } from "./prayerTimes";
 
 /** Cadre d'atterrissage affiche pendant un drag. Partage par le drag interne
     de la grille et par le drag venu du panneau. */
@@ -37,6 +38,8 @@ export interface PrayerLine {
     minutes: number;
     /** Celui de la prochaine prière : plein, quand les autres sont estompés. */
     next: boolean;
+    /** Laquelle : la Jumu'a se dessine autrement que les autres heures. */
+    name?: PrayerName;
 }
 
 export interface TimeGridProps {

@@ -2778,6 +2778,20 @@ button.nc-settings__theme-card:focus-visible {
     white-space: nowrap;
 }
 
+/* La rangee Rappel reprend la rangee Couleur : une cloche devant le libelle,
+   la valeur en mots a droite, coupee avant de pousser le chevron. */
+.nc-prayer-dialog__reminder .nc-prayer-dialog__colour-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nc-prayer-dialog__reminder-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .nc-prayer-dialog__swatch-value {
     display: flex;
     align-items: center;

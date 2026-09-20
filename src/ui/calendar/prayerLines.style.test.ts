@@ -95,6 +95,51 @@ describe("the prayer lines on the grid", () => {
     });
 });
 
+/*
+ * La Jumu'a n'est pas une heure comme les autres : c'est la prière commune,
+ * et l'on peut la faire dans une autre mosquée que celle dont on suit les
+ * horaires. Son trait se distingue par sa texture — un reflet qui glisse —,
+ * pas par sa couleur, qui reste celle du calendrier.
+ */
+describe("the Jumu'a line", () => {
+    it("is told apart from the other hours by the column", () => {
+        expect(sections).toContain("data-prayer={line.name}");
+    });
+
+    /* Les blocs @media, à part : l'analyseur du haut fusionnerait la règle
+       nue et celle du mouvement réduit en une seule. */
+    const mediaBlocks = [...grid.matchAll(/@media[^{]+\{([\s\S]*?\})\s*\}/g)];
+    const bare = mediaBlocks.reduce(
+        (css, block) => css.replace(block[0], ""),
+        grid
+    );
+
+    it("shimmers along its length, in the calendar's colour", () => {
+        const line = declarationsFor(
+            bare,
+            '.nc-prayer-line[data-prayer="jumua"]'
+        );
+        expect(line.animation).toContain("nc-prayer-shimmer");
+        expect(line["background-image"]).toContain("var(--nc-prayer-color)");
+        expect(grid).toContain("@keyframes nc-prayer-shimmer");
+    });
+
+    it("holds still, dashed, when motion is to be reduced", () => {
+        const reduced = mediaBlocks.find(
+            (block) =>
+                block[0].includes("prefers-reduced-motion: reduce") &&
+                block[1].includes('.nc-prayer-line[data-prayer="jumua"]')
+        );
+        expect(reduced).toBeDefined();
+        const line = declarationsFor(
+            reduced![1],
+            '.nc-prayer-line[data-prayer="jumua"]'
+        );
+        expect(line.animation).toBe("none");
+        expect(line["background-image"]).toContain("repeating-linear-gradient");
+    });
+});
+
 describe("the description of an event nothing can change", () => {
     /*
      * « Ajouter une description » invitait à une chose impossible sur un

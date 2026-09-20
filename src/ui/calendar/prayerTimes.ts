@@ -134,6 +134,28 @@ export function nextPrayer(
     return prayersOn(timetable, tomorrow)[0] ?? null;
 }
 
+/**
+ * La même table, avec d'autres séances de Jumu'a.
+ *
+ * On suit les horaires d'une mosquée et l'on fait la Jumu'a dans une autre :
+ * les cinq heures du jour ne bougent pas, seules celles du vendredi. Rien ne
+ * change, rien n'est copié : la référence reste la même, pour que rien en aval
+ * ne croie à un changement.
+ */
+export function withJumua(
+    timetable: PrayerTimetable,
+    jumua: readonly string[] | undefined
+): PrayerTimetable {
+    if (
+        !jumua ||
+        (jumua.length === timetable.jumua.length &&
+            jumua.every((time, index) => time === timetable.jumua[index]))
+    ) {
+        return timetable;
+    }
+    return { ...timetable, jumua: [...jumua] };
+}
+
 /** L'heure d'une prière en heures décimales, l'unité dans laquelle la grille
  *  place ses traits. */
 export function prayerHours(prayer: PrayerMoment): number {
@@ -149,6 +171,8 @@ export interface PrayerLineSpec {
      *  ce chiffre dit à quelle minute, et c'est lui que la gouttière imprime. */
     minutes: number;
     next: boolean;
+    /** Laquelle : la grille dessine la Jumu'a autrement que les autres. */
+    name: PrayerName;
 }
 
 /**
@@ -181,6 +205,7 @@ export function prayerLinesFor({
         hours: prayerHours(prayer),
         minutes: prayer.minutes,
         next: isNext,
+        name: prayer.name,
     });
 
     if (!showAll) return next ? [lineFor(next, true)] : [];

@@ -1380,6 +1380,49 @@
     z-index: 4;
 }
 
+/* La Jumu'a, la priere commune, qu'on peut faire ailleurs que la ou l'on
+   suit les horaires : son trait se distingue par sa texture, pas par sa
+   couleur. Un reflet clair glisse le long du trait, dans la couleur du
+   calendrier, et le fond reste le trait plein. */
+.nc-prayer-line[data-prayer="jumua"] {
+    background-image: linear-gradient(
+        90deg,
+        var(--nc-prayer-color) 0%,
+        var(--nc-prayer-color) 30%,
+        #ffffff 50%,
+        var(--nc-prayer-color) 70%,
+        var(--nc-prayer-color) 100%
+    );
+    background-size: 200% 100%;
+    /* Un halo dans sa couleur, en plus de l'ombre : a l'arret aussi, ce
+       trait-la ne se confond pas avec les autres. */
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.35), 0 0 6px var(--nc-prayer-color);
+    animation: nc-prayer-shimmer 2.6s linear infinite;
+}
+
+@keyframes nc-prayer-shimmer {
+    from {
+        background-position: 100% 0;
+    }
+    to {
+        background-position: -100% 0;
+    }
+}
+
+/* Sans mouvement, la Jumu'a se lit en pointilles : toujours a part, jamais
+   animee. */
+@media (prefers-reduced-motion: reduce) {
+    .nc-prayer-line[data-prayer="jumua"] {
+        animation: none;
+        background-image: repeating-linear-gradient(
+            90deg,
+            var(--nc-prayer-color) 0 6px,
+            transparent 6px 10px
+        );
+        background-size: auto;
+    }
+}
+
 /* Le meme tiret vertical qu'au bord de la colonne du jour, porte par la ligne
    plutot que par un noeud de plus : il pose le trait contre le bord de la
    colonne au lieu de le laisser flotter. */

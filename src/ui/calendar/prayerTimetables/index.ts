@@ -24,3 +24,27 @@ export function prayerTimetableById(
     if (!id) return null;
     return PRAYER_TIMETABLES.find((timetable) => timetable.id === id) ?? null;
 }
+
+/** Une séance de Jumu'a qu'on peut choisir, et les mosquées qui la tiennent. */
+export interface JumuaChoice {
+    /** « HH:MM ». */
+    time: string;
+    mosques: string[];
+}
+
+/**
+ * Les séances de Jumu'a parmi lesquelles choisir : celles des mosquées
+ * enregistrées, et rien d'autre. Une heure que deux mosquées partagent n'est
+ * proposée qu'une fois, avec les deux noms.
+ */
+export function jumuaChoices(): JumuaChoice[] {
+    const byTime = new Map<string, string[]>();
+    for (const timetable of PRAYER_TIMETABLES) {
+        for (const time of timetable.jumua) {
+            byTime.set(time, [...(byTime.get(time) ?? []), timetable.name]);
+        }
+    }
+    return [...byTime.entries()]
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([time, mosques]) => ({ time, mosques }));
+}

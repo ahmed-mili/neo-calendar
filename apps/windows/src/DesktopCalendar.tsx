@@ -27,6 +27,7 @@ import {
     REMINDER_HORIZON_DAYS,
 } from "./platform/androidReminders";
 import { createReminderScheduler } from "./platform/desktopReminderScheduler";
+import { prayerRemindersFor } from "./platform/prayerReminders";
 import {
     ensureNotificationPermission,
     postReminder,
@@ -87,7 +88,10 @@ import type {
     DragPreview,
     PrayerLine,
 } from "../../../src/ui/calendar/TimeGrid.types";
-import { prayerLinesFor } from "../../../src/ui/calendar/prayerTimes";
+import {
+    prayerLinesFor,
+    withJumua,
+} from "../../../src/ui/calendar/prayerTimes";
 import { prayerTimetableById } from "../../../src/ui/calendar/prayerTimetables";
 import { isPrayerCalendarName } from "../../../src/ui/calendar/prayerCalendarName";
 import type { PanelDropTarget } from "../../../src/ui/calendar/usePanelDrag";
@@ -216,6 +220,7 @@ import {
 import {
     defaultDesktopWorkspacePreferences,
     parseDesktopWorkspacePreferences,
+    prayerReminderMinutesFor,
     reconcileWorkspacePreferences,
     sharedWorkspacePreferences,
     deviceWorkspacePreferences,
@@ -1540,11 +1545,20 @@ export default function DesktopCalendar({
         [calendars, hiddenCalendars, preferences.prayerMosques]
     );
 
-    const prayerTimetable = prayerTimetableById(
-        prayerCalendar
-            ? preferences.prayerMosques[prayerCalendar.relativePath]
-            : null
-    );
+    // Mémorisée : la table avec d'autres séances de Jumu'a est une copie, et
+    // une copie neuve à chaque rendu relancerait tout ce qui en dépend.
+    const prayerTimetable = useMemo(() => {
+        if (!prayerCalendar) return null;
+        const base = prayerTimetableById(
+            preferences.prayerMosques[prayerCalendar.relativePath]
+        );
+        return base
+            ? withJumua(
+                  base,
+                  preferences.prayerJumua[prayerCalendar.relativePath]
+              )
+            : null;
+    }, [prayerCalendar, preferences.prayerJumua, preferences.prayerMosques]);
 
     // Le reglage prime, la couleur du calendrier repond a defaut : une entree
     // absente veut dire « celle du calendrier », et non « pas de couleur ».
@@ -3801,14 +3815,33 @@ export default function DesktopCalendar({
             return;
         }
 
+        // Les prières de la mosquée suivie, sur PC seulement : le téléphone
+        // a Mawaqit pour ça, l'ordinateur n'a que ce calendrier.
+        const prayers =
+            prayerTimetable && prayerCalendar
+                ? prayerRemindersFor({
+                      timetable: prayerTimetable,
+                      minutes: prayerReminderMinutesFor(
+                          preferences.prayerReminderMinutes,
+                          prayerCalendar.relativePath
+                      ),
+                      now: new Date(),
+                      timeFormat24h: preferences.timeFormat24h,
+                  })
+                : [];
+        const posted = [...reminders, ...prayers];
+
         // Asked for only once there is something to post, so opening the app
         // on an empty calendar never raises the question.
-        if (reminders.length > 0) void ensureNotificationPermission();
-        reminderSchedulerRef.current?.set(reminders);
+        if (posted.length > 0) void ensureNotificationPermission();
+        reminderSchedulerRef.current?.set(posted);
     }, [
         calendars,
         isAndroid,
+        prayerCalendar,
+        prayerTimetable,
         preferences.calendarReminderMinutes,
+        preferences.prayerReminderMinutes,
         preferences.reminderMinutes,
         preferences.timeFormat24h,
         reminderEpoch,
@@ -4785,6 +4818,45 @@ export default function DesktopCalendar({
                         ? calendarById.get(prayerDialogCalendarId)?.color
                         : undefined) ?? "#4ca8df"
                 }
+                reminderMinutes={prayerReminderMinutesFor(
+                    preferences.prayerReminderMinutes,
+                    (prayerDialogCalendarId
+                        ? calendarById.get(prayerDialogCalendarId)?.relativePath
+                        : undefined) ?? ""
+                )}
+                jumua={
+                    (prayerDialogCalendarId
+                        ? preferences.prayerJumua[
+                              calendarById.get(prayerDialogCalendarId)
+                                  ?.relativePath ?? ""
+                          ]
+                        : undefined) ?? null
+                }
+                onJumuaChange={(times) => {
+                    const path = prayerDialogCalendarId
+                        ? calendarById.get(prayerDialogCalendarId)?.relativePath
+                        : undefined;
+                    if (!path) return;
+                    // Retirer l'entree plutot que d'y recopier les seances de
+                    // la mosquee : elle repond de nouveau, et suivra si sa
+                    // table change.
+                    const next = { ...preferences.prayerJumua };
+                    if (times === null) delete next[path];
+                    else next[path] = times;
+                    void updateWorkspacePreferences({ prayerJumua: next });
+                }}
+                onReminderChange={(minutes) => {
+                    const path = prayerDialogCalendarId
+                        ? calendarById.get(prayerDialogCalendarId)?.relativePath
+                        : undefined;
+                    if (!path) return;
+                    void updateWorkspacePreferences({
+                        prayerReminderMinutes: {
+                            ...preferences.prayerReminderMinutes,
+                            [path]: minutes,
+                        },
+                    });
+                }}
                 onColorChange={(hex) => {
                     const path = prayerDialogCalendarId
                         ? calendarById.get(prayerDialogCalendarId)?.relativePath

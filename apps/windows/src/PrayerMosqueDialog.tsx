@@ -1,8 +1,23 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Clock, RotateCcw, X } from "lucide-react";
+import {
+    Bell,
+    Check,
+    ChevronDown,
+    Clock,
+    RotateCcw,
+    Users,
+    X,
+} from "lucide-react";
 import ColorPicker from "../../../src/ui/calendar/ColorPicker";
-import { PRAYER_TIMETABLES } from "../../../src/ui/calendar/prayerTimetables";
+import ReminderChoiceDialog from "./ReminderChoiceDialog";
+import JumuaChoiceDialog from "./JumuaChoiceDialog";
+import { prayerReminderListLabel } from "../../../src/ui/calendar/reminderDelay";
+import {
+    PRAYER_TIMETABLES,
+    jumuaChoices,
+    prayerTimetableById,
+} from "../../../src/ui/calendar/prayerTimetables";
 import { isAndroidRuntime } from "../../../src/ui/calendar/CalendarUtils";
 import { t } from "../../../src/ui/i18n";
 
@@ -17,11 +32,20 @@ export interface PrayerMosqueDialogProps {
     color: string | null;
     /** Celle du calendrier, qui sert de réponse par défaut et de retour. */
     calendarColor: string;
+    /** Les délais du rappel de chaque prière ; zéro est « à l'heure », vide
+     *  le silence. PC seulement : le téléphone a son application de mosquée. */
+    reminderMinutes: number[];
+    /** Les séances de Jumu'a choisies, ou `null` quand ce sont celles de la
+     *  mosquée suivie. */
+    jumua: string[] | null;
     onClose: () => void;
     onChoose: (mosqueId: string | null) => void;
     /** `null` retire le réglage : les traits se remettent à suivre le
      *  calendrier au lieu de figer une copie de sa couleur du moment. */
     onColorChange: (color: string | null) => void;
+    onReminderChange: (minutes: number[]) => void;
+    /** `null` retire le réglage : la mosquée suivie répond de nouveau. */
+    onJumuaChange: (times: string[] | null) => void;
 }
 
 /**
@@ -42,25 +66,38 @@ export default function PrayerMosqueDialog({
     mosqueId,
     color,
     calendarColor,
+    reminderMinutes,
+    jumua,
     onClose,
     onChoose,
     onColorChange,
+    onReminderChange,
+    onJumuaChange,
 }: PrayerMosqueDialogProps) {
     const swatchRef = React.useRef<HTMLButtonElement>(null);
     const [pickerAnchor, setPickerAnchor] = React.useState<DOMRect | null>(
         null
     );
+    const [reminderOpen, setReminderOpen] = React.useState(false);
+    const [jumuaOpen, setJumuaOpen] = React.useState(false);
+    // Sans mosquée suivie il n'y a pas de vendredi à corriger : la ligne
+    // n'existe pas. Sinon ses séances répondent tant que rien n'est choisi.
+    const mosque = prayerTimetableById(mosqueId);
+    const jumuaShown = jumua ?? mosque?.jumua ?? [];
     // Le calendrier repond tant que rien n'a ete regle : la pastille montre
     // toujours la couleur que les traits ont vraiment, pas un reglage vide.
     const shown = color ?? calendarColor;
     React.useEffect(() => {
         if (!open) return;
+        // Le choix du rappel, ouvert par-dessus, prend Échap pour lui : la
+        // fiche de la mosquée ne doit pas se fermer en même temps.
+        if (reminderOpen || jumuaOpen) return;
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") onClose();
         };
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
-    }, [onClose, open]);
+    }, [jumuaOpen, onClose, open, reminderOpen]);
 
     if (!open) return null;
 
@@ -198,6 +235,88 @@ export default function PrayerMosqueDialog({
                         </button>
                     )}
                 </div>
+
+                {/* Le rappel se regle ici aussi, avec la mosquee et la
+                    couleur : c'est le meme sujet. Pas sur le telephone, qui a
+                    son application de mosquee pour sonner l'adhan. */}
+                {!isAndroidRuntime() && (
+                    <div className="nc-prayer-dialog__colour">
+                        <button
+                            type="button"
+                            className="nc-prayer-dialog__swatch nc-prayer-dialog__reminder"
+                            aria-haspopup="dialog"
+                            aria-expanded={reminderOpen}
+                            onClick={() => setReminderOpen(true)}
+                        >
+                            <span className="nc-prayer-dialog__colour-label">
+                                <Bell size={14} aria-hidden="true" />
+                                {t("Reminder")}
+                            </span>
+                            <span className="nc-prayer-dialog__swatch-value">
+                                <span className="nc-prayer-dialog__reminder-value">
+                                    {prayerReminderListLabel(reminderMinutes)}
+                                </span>
+                                <ChevronDown size={14} aria-hidden="true" />
+                            </span>
+                        </button>
+                    </div>
+                )}
+
+                {/* Ou l'on fait la Jumu'a : parmi les seances des mosquees
+                    enregistrees, jamais en saisie libre. */}
+                {mosque && (
+                    <div className="nc-prayer-dialog__colour">
+                        <button
+                            type="button"
+                            className="nc-prayer-dialog__swatch nc-prayer-dialog__jumua"
+                            aria-haspopup="dialog"
+                            aria-expanded={jumuaOpen}
+                            onClick={() => setJumuaOpen(true)}
+                        >
+                            <span className="nc-prayer-dialog__colour-label">
+                                <Users size={14} aria-hidden="true" />
+                                {t("Jumu'a")}
+                            </span>
+                            <span className="nc-prayer-dialog__swatch-value">
+                                <span className="nc-prayer-dialog__reminder-value">
+                                    {jumuaShown.join(" & ")}
+                                </span>
+                                <ChevronDown size={14} aria-hidden="true" />
+                            </span>
+                        </button>
+                        {jumua !== null && (
+                            <button
+                                type="button"
+                                className="nc-prayer-dialog__reset nc-prayer-dialog__jumua-reset"
+                                data-nc-tooltip={t("Followed mosque")}
+                                aria-label={t("Followed mosque")}
+                                onClick={() => onJumuaChange(null)}
+                            >
+                                <RotateCcw size={14} />
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {jumuaOpen && mosque && (
+                    <JumuaChoiceDialog
+                        choices={jumuaChoices()}
+                        selected={jumuaShown}
+                        inherited={mosque.jumua}
+                        onPick={onJumuaChange}
+                        onClose={() => setJumuaOpen(false)}
+                    />
+                )}
+
+                {reminderOpen && (
+                    <ReminderChoiceDialog
+                        mode="prayer"
+                        title={`${t("Reminder")} — ${t("Prayer times")}`}
+                        minutes={reminderMinutes}
+                        onPick={onReminderChange}
+                        onClose={() => setReminderOpen(false)}
+                    />
+                )}
 
                 {pickerAnchor && (
                     <ColorPicker

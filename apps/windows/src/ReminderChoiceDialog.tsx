@@ -34,9 +34,21 @@ export interface ReminderCalendarProps extends ReminderChoiceDialogBase {
     onPick: (minutes: number[] | null) => void;
 }
 
+/**
+ * Les prières d'un calendrier : zéro y est un délai comme un autre, « à
+ * l'heure », et non le silence — l'adhan sonne à l'heure, pas avant. La liste
+ * n'est jamais `null` : il n'y a pas de réglage d'application à hériter.
+ */
+export interface ReminderPrayerProps extends ReminderChoiceDialogBase {
+    mode: "prayer";
+    minutes: number[];
+    onPick: (minutes: number[]) => void;
+}
+
 export type ReminderChoiceDialogProps =
     | ReminderAppProps
-    | ReminderCalendarProps;
+    | ReminderCalendarProps
+    | ReminderPrayerProps;
 
 /**
  * Le rappel par défaut — celui de l'application, ou ceux d'un calendrier.
@@ -94,10 +106,25 @@ export default function ReminderChoiceDialog(props: ReminderChoiceDialogProps) {
                 ? chosen.filter((value) => value !== minutes)
                 : [...chosen, minutes].sort((a, b) => a - b)
         );
-    const presets = REMINDER_CHOICES.filter((preset) => preset > 0);
+    // Pour une prière, zéro est une ligne qui se coche ; pour un évènement, il
+    // n'a rien à dire que « Aucun rappel » ne dise déjà.
+    const presets = REMINDER_CHOICES.filter(
+        (preset) => preset > 0 || props.mode === "prayer"
+    );
     /* Les délais cochés que la liste ne propose pas : écrits au compteur, ils
        ont leur ligne pour pouvoir être décochés. */
     const extras = chosen.filter((minutes) => !presets.includes(minutes));
+
+    const none = option(
+        "none",
+        t("No reminder"),
+        null,
+        current !== null && current.length === 0,
+        () => {
+            write([]);
+            onClose();
+        }
+    );
 
     return (
         <SettingsDialog title={title} onClose={onClose}>
@@ -117,20 +144,13 @@ export default function ReminderChoiceDialog(props: ReminderChoiceDialogProps) {
                         // revenir.
                         current !== null
                     )}
-                {option(
-                    "none",
-                    t("No reminder"),
-                    null,
-                    current !== null && current.length === 0,
-                    () => {
-                        write([]);
-                        onClose();
-                    }
-                )}
+                {props.mode !== "prayer" && none}
                 {presets.map((preset) =>
                     option(
                         String(preset),
-                        reminderDelayLabel(preset),
+                        preset === 0
+                            ? t("At the prayer")
+                            : reminderDelayLabel(preset),
                         null,
                         chosen.includes(preset),
                         () => toggle(preset)
@@ -145,6 +165,10 @@ export default function ReminderChoiceDialog(props: ReminderChoiceDialogProps) {
                         () => toggle(minutes)
                     )
                 )}
+                {/* Pour une prière, le silence vient après les délais : la
+                    liste s'ouvre sur « à l'heure », ce que presque tout le
+                    monde garde. */}
+                {props.mode === "prayer" && none}
                 {/* La ligne Personnalisé ne se coche pas : c'est le compteur,
                     dessous, qui écrit, et le délai qu'il pose prend sa propre
                     ligne au-dessus. */}

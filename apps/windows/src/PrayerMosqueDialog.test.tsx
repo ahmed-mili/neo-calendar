@@ -34,8 +34,12 @@ describe("PrayerMosqueDialog", () => {
                     open: true,
                     calendarName: "الْإِسْلَامُ",
                     mosqueId,
+                    reminderMinutes: [0],
+                    jumua: null,
                     onClose: () => {},
                     onChoose: (id) => chosen.push(id),
+                    onReminderChange: () => {},
+                    onJumuaChange: () => {},
                 }),
                 host
             );
@@ -141,9 +145,13 @@ describe("the colour of the prayer lines, in the dialog", () => {
                     mosqueId: PRAYER_TIMETABLES[0].id,
                     color,
                     calendarColor: "#045d05",
+                    reminderMinutes: [0],
+                    jumua: null,
                     onClose: () => {},
                     onChoose: () => {},
                     onColorChange: (hex: string | null) => colours.push(hex),
+                    onReminderChange: () => {},
+                    onJumuaChange: () => {},
                 }),
                 host
             );
@@ -190,6 +198,176 @@ describe("the colour of the prayer lines, in the dialog", () => {
         act(() => {
             swatch()?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         });
+        expect(document.querySelector(".nc-prayer-dialog")).not.toBeNull();
+    });
+});
+
+/*
+ * Le rappel des prières se règle là aussi : c'est le même sujet que la
+ * mosquée et la couleur. Il n'existe que sur PC, le téléphone ayant son
+ * application de mosquée pour ça.
+ */
+describe("the prayer reminder, in the dialog", () => {
+    let host: HTMLDivElement;
+    let picked: number[][];
+
+    beforeEach(() => {
+        applyLanguage("fr");
+        picked = [];
+        host = document.createElement("div");
+        document.body.appendChild(host);
+    });
+
+    afterEach(() => {
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
+        host.remove();
+        document
+            .querySelectorAll(".nc-prayer-backdrop, .nc-choice-backdrop")
+            .forEach((node) => node.remove());
+    });
+
+    const render = (reminderMinutes: number[]) => {
+        act(() => {
+            ReactDOM.render(
+                React.createElement(PrayerMosqueDialog, {
+                    open: true,
+                    calendarName: "Islam",
+                    mosqueId: PRAYER_TIMETABLES[0].id,
+                    color: null,
+                    calendarColor: "#045d05",
+                    reminderMinutes,
+                    jumua: null,
+                    onClose: () => {},
+                    onChoose: () => {},
+                    onColorChange: () => {},
+                    onReminderChange: (minutes: number[]) =>
+                        picked.push(minutes),
+                    onJumuaChange: () => {},
+                }),
+                host
+            );
+        });
+    };
+
+    const row = () =>
+        document.querySelector<HTMLButtonElement>(
+            ".nc-prayer-dialog__reminder"
+        );
+
+    it("says what it is set to, in words", () => {
+        render([0]);
+        expect(row()?.textContent).toContain("Rappel");
+        expect(row()?.textContent).toContain("À l'heure de la prière");
+
+        render([0, 10]);
+        expect(row()?.textContent).toContain("À l'heure de la prière");
+        expect(row()?.textContent).toContain("10 minutes avant");
+
+        render([]);
+        expect(row()?.textContent).toContain("Aucun rappel");
+    });
+
+    it("opens the list of delays, and hands the choice back", () => {
+        render([0]);
+        act(() => {
+            row()?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        const choice = Array.from(
+            document.querySelectorAll<HTMLElement>('[role="checkbox"]')
+        ).find((option) => option.textContent?.includes("10 minutes avant"));
+        expect(choice).toBeDefined();
+        act(() => {
+            choice?.click();
+        });
+        expect(picked).toEqual([[0, 10]]);
+        // La fiche de la mosquée reste ouverte derrière le choix.
+        expect(document.querySelector(".nc-prayer-dialog")).not.toBeNull();
+    });
+});
+
+/*
+ * Les séances de Jumu'a se règlent là aussi, mais seulement quand une mosquée
+ * est suivie : sans horaires, il n'y a pas de vendredi à corriger.
+ */
+describe("the Jumu'a sittings, in the dialog", () => {
+    let host: HTMLDivElement;
+    let picked: Array<string[] | null>;
+
+    beforeEach(() => {
+        applyLanguage("fr");
+        picked = [];
+        host = document.createElement("div");
+        document.body.appendChild(host);
+    });
+
+    afterEach(() => {
+        act(() => {
+            ReactDOM.unmountComponentAtNode(host);
+        });
+        host.remove();
+        document
+            .querySelectorAll(".nc-prayer-backdrop, .nc-choice-backdrop")
+            .forEach((node) => node.remove());
+    });
+
+    const render = (mosqueId: string | null, jumua: string[] | null) => {
+        act(() => {
+            ReactDOM.render(
+                React.createElement(PrayerMosqueDialog, {
+                    open: true,
+                    calendarName: "Islam",
+                    mosqueId,
+                    color: null,
+                    calendarColor: "#045d05",
+                    reminderMinutes: [0],
+                    jumua,
+                    onClose: () => {},
+                    onChoose: () => {},
+                    onColorChange: () => {},
+                    onReminderChange: () => {},
+                    onJumuaChange: (times: string[] | null) =>
+                        picked.push(times),
+                }),
+                host
+            );
+        });
+    };
+
+    const row = () =>
+        document.querySelector<HTMLButtonElement>(".nc-prayer-dialog__jumua");
+
+    it("is absent while no mosque is followed", () => {
+        render(null, null);
+        expect(row()).toBeNull();
+    });
+
+    it("shows the followed mosque's sittings until others are chosen", () => {
+        const mosque = PRAYER_TIMETABLES[0];
+        render(mosque.id, null);
+        expect(row()?.textContent).toContain("Jumu'a");
+        expect(row()?.textContent).toContain(mosque.jumua.join(" & "));
+
+        render(mosque.id, ["13:45"]);
+        expect(row()?.textContent).toContain("13:45");
+        expect(row()?.textContent).not.toContain(mosque.jumua.join(" & "));
+    });
+
+    it("opens the sittings of every registered mosque, and hands the choice back", () => {
+        const mosque = PRAYER_TIMETABLES[0];
+        render(mosque.id, null);
+        act(() => {
+            row()?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        const choice = Array.from(
+            document.querySelectorAll<HTMLElement>('[role="checkbox"]')
+        ).find((option) => option.textContent?.includes("13:45"));
+        expect(choice).toBeDefined();
+        act(() => {
+            choice?.click();
+        });
+        expect(picked).toEqual([[...mosque.jumua, "13:45"].sort()]);
         expect(document.querySelector(".nc-prayer-dialog")).not.toBeNull();
     });
 });

@@ -2,6 +2,7 @@ import { normalizeDesktopPreferences } from "./preferences";
 import {
     defaultDesktopWorkspacePreferences,
     parseDesktopWorkspacePreferences,
+    prayerReminderMinutesFor,
     reconcileWorkspacePreferences,
 } from "./desktopWorkspacePreferences";
 
@@ -189,6 +190,128 @@ describe("the colour of a calendar's prayer lines", () => {
             ancien: "#111111",
             commun: "#333333",
             nouveau: "#444444",
+        });
+    });
+});
+
+/*
+ * Le rappel des prières d'un calendrier.
+ *
+ * Rien à voir avec le rappel de ses évènements : ici zéro veut dire « à
+ * l'heure de la prière », qui est le cas ordinaire, et non « aucun ». Une
+ * entrée absente vaut ce défaut-là, pas le silence.
+ */
+describe("a calendar's prayer reminder", () => {
+    it("rings at the prayer itself until someone says otherwise", () => {
+        expect(
+            defaultDesktopWorkspacePreferences().prayerReminderMinutes
+        ).toEqual({});
+        expect(prayerReminderMinutesFor({}, "Islam")).toEqual([0]);
+    });
+
+    it("keeps zero, because it means at the prayer and not nothing", () => {
+        expect(
+            parseDesktopWorkspacePreferences({
+                prayerReminderMinutes: { Islam: [10, 0, 10, 5] },
+            }).prayerReminderMinutes
+        ).toEqual({ Islam: [0, 5, 10] });
+    });
+
+    it("keeps an empty list, which is silence chosen on purpose", () => {
+        const parsed = parseDesktopWorkspacePreferences({
+            prayerReminderMinutes: { Islam: [] },
+        });
+        expect(parsed.prayerReminderMinutes).toEqual({ Islam: [] });
+        expect(
+            prayerReminderMinutesFor(parsed.prayerReminderMinutes, "Islam")
+        ).toEqual([]);
+    });
+
+    it("drops an entry it cannot read rather than silencing the calendar", () => {
+        expect(
+            parseDesktopWorkspacePreferences({
+                prayerReminderMinutes: {
+                    a: "10",
+                    b: [1.5],
+                    c: [-5],
+                    d: { minutes: 10 },
+                    e: [15],
+                },
+            }).prayerReminderMinutes
+        ).toEqual({ e: [15] });
+    });
+
+    it("lets the file win over what was already in hand, calendar by calendar", () => {
+        const merged = reconcileWorkspacePreferences({
+            previous: {
+                ...defaultDesktopWorkspacePreferences(),
+                prayerReminderMinutes: { ancien: [5], commun: [10] },
+            },
+            loaded: {
+                ...defaultDesktopWorkspacePreferences(),
+                prayerReminderMinutes: { commun: [0], nouveau: [15] },
+            },
+            fileExisted: true,
+        });
+
+        expect(merged.prayerReminderMinutes).toEqual({
+            ancien: [5],
+            commun: [0],
+            nouveau: [15],
+        });
+    });
+});
+
+/*
+ * Les séances de Jumu'a d'un calendrier, quand elles ne sont pas celles de la
+ * mosquée suivie. Des heures « HH:MM » et rien d'autre ; l'appartenance à une
+ * mosquée enregistrée se vérifie à l'usage, pas ici.
+ */
+describe("a calendar's own Jumu'a sessions", () => {
+    it("are absent until someone picks some", () => {
+        expect(defaultDesktopWorkspacePreferences().prayerJumua).toEqual({});
+        expect(parseDesktopWorkspacePreferences({}).prayerJumua).toEqual({});
+    });
+
+    it("keeps clock times, sorted and without doubles", () => {
+        expect(
+            parseDesktopWorkspacePreferences({
+                prayerJumua: { Islam: ["14:00", "13:00", "14:00"] },
+            }).prayerJumua
+        ).toEqual({ Islam: ["13:00", "14:00"] });
+    });
+
+    it("drops an entry that is not a list of clock times", () => {
+        expect(
+            parseDesktopWorkspacePreferences({
+                prayerJumua: {
+                    a: "13:00",
+                    b: ["1pm"],
+                    c: [],
+                    d: ["13:00", 14],
+                    e: ["13:45"],
+                },
+            }).prayerJumua
+        ).toEqual({ e: ["13:45"] });
+    });
+
+    it("lets the file win over what was already in hand, calendar by calendar", () => {
+        const merged = reconcileWorkspacePreferences({
+            previous: {
+                ...defaultDesktopWorkspacePreferences(),
+                prayerJumua: { ancien: ["13:00"], commun: ["13:00"] },
+            },
+            loaded: {
+                ...defaultDesktopWorkspacePreferences(),
+                prayerJumua: { commun: ["13:30"], nouveau: ["14:00"] },
+            },
+            fileExisted: true,
+        });
+
+        expect(merged.prayerJumua).toEqual({
+            ancien: ["13:00"],
+            commun: ["13:30"],
+            nouveau: ["14:00"],
         });
     });
 });

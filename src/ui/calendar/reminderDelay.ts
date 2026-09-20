@@ -74,6 +74,17 @@ export function reminderListLabel(minutes: readonly number[]): string {
     );
 }
 
+/** Les délais d'un rappel de prière, où zéro est « à l'heure » et non le
+ *  silence : « À l'heure de la prière, 10 minutes avant ». */
+export function prayerReminderListLabel(minutes: readonly number[]): string {
+    if (minutes.length === 0) return t("No reminder");
+    const before = minutes.filter((value) => value > 0);
+    return [
+        ...(minutes.includes(0) ? [t("At the prayer")] : []),
+        ...(before.length > 0 ? [reminderListLabel(before)] : []),
+    ].join(", ");
+}
+
 /** « 45 minutes avant », « 2 jours avant » — et le silence nommé pour ce
  *  qu'il est, puisqu'un « 0 minute avant » ne dit rien à personne. */
 export function reminderDelayLabel(minutes: number): string {

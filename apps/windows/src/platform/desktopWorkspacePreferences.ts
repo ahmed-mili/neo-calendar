@@ -94,6 +94,23 @@ export interface DesktopWorkspacePreferences {
      * un choix qu'on n'a pas fait pour lui.
      */
     prayerColors: Record<string, string>;
+
+    /**
+     * Par chemin de calendrier, les délais du rappel de ses prières.
+     *
+     * Pas le rappel de ses évènements : ici zéro veut dire « à l'heure de la
+     * prière », qui est le cas ordinaire, et une liste vide le silence choisi.
+     * Une entrée absente vaut `DEFAULT_PRAYER_REMINDER`, pas le silence.
+     */
+    prayerReminderMinutes: Record<string, number[]>;
+
+    /**
+     * Par chemin de calendrier, les séances de Jumu'a quand on la fait
+     * ailleurs que là où l'on suit les horaires. Des heures « HH:MM » prises
+     * parmi celles des mosquées enregistrées ; une entrée absente veut dire
+     * « celles de la mosquée suivie ».
+     */
+    prayerJumua: Record<string, string[]>;
 }
 
 const VIEW_TYPES: ViewType[] = [
@@ -114,6 +131,19 @@ const MOBILE_INITIAL_VIEWS: MobileInitialView[] = ["day", "3days", "list"];
 
 /** Les délais proposés tels quels, avant la durée personnalisée. */
 export const REMINDER_CHOICES: readonly number[] = [0, 5, 10, 15, 30, 60];
+
+/** Ce que vaut un calendrier dont personne n'a réglé le rappel de prière :
+ *  une notification à l'heure même, comme l'adhan. */
+export const DEFAULT_PRAYER_REMINDER: readonly number[] = [0];
+
+/** Les délais du rappel de prière d'un calendrier, ou le défaut s'il n'en a
+ *  pas — une liste vide y est une réponse, pas une absence. */
+export function prayerReminderMinutesFor(
+    settings: Record<string, number[]>,
+    relativePath: string
+): number[] {
+    return settings[relativePath] ?? [...DEFAULT_PRAYER_REMINDER];
+}
 
 /** Quatre semaines : au-delà, le délai a été écrit à la main par erreur — la
     grille des rappels ne regarde de toute façon pas si loin devant elle. */
@@ -170,6 +200,8 @@ export function defaultDesktopWorkspacePreferences(): DesktopWorkspacePreference
         externalCalendars: [],
         prayerMosques: {},
         prayerColors: {},
+        prayerReminderMinutes: {},
+        prayerJumua: {},
     };
 }
 
@@ -314,6 +346,11 @@ export function reconcileWorkspacePreferences({
         // calendriers que les deux connaissent.
         prayerMosques: { ...previous.prayerMosques, ...loaded.prayerMosques },
         prayerColors: { ...previous.prayerColors, ...loaded.prayerColors },
+        prayerReminderMinutes: {
+            ...previous.prayerReminderMinutes,
+            ...loaded.prayerReminderMinutes,
+        },
+        prayerJumua: { ...previous.prayerJumua, ...loaded.prayerJumua },
         calendarReminderMinutes: {
             ...previous.calendarReminderMinutes,
             ...loaded.calendarReminderMinutes,
@@ -446,6 +483,8 @@ export function parseDesktopWorkspacePreferences(
         ],
         prayerMosques: prayerMosquesOf(source.prayerMosques),
         prayerColors: prayerColorsOf(source.prayerColors),
+        prayerReminderMinutes: prayerRemindersOf(source.prayerReminderMinutes),
+        prayerJumua: prayerJumuaOf(source.prayerJumua),
     };
 }
 
@@ -490,6 +529,46 @@ function calendarRemindersOf(source: unknown): Record<string, number[]> {
         .map(([path, value]) => [path, reminderListOf(value)] as const)
         .filter(
             (pair): pair is readonly [string, number[]] => pair[1] !== null
+        );
+    return Object.fromEntries(pairs);
+}
+
+/** Des paires « chemin de calendrier → délais de prière ». Zéro est gardé,
+ *  puisqu'ici il veut dire « à l'heure » ; une entrée illisible est retirée
+ *  pour retomber sur le défaut, et non vidée. */
+function prayerRemindersOf(source: unknown): Record<string, number[]> {
+    if (!source || typeof source !== "object" || Array.isArray(source)) {
+        return {};
+    }
+    const pairs = Object.entries(source as Record<string, unknown>)
+        .filter(
+            (pair): pair is [string, number[]] =>
+                Array.isArray(pair[1]) && pair[1].every(isReminderMinutes)
+        )
+        .map(
+            ([path, list]) =>
+                [path, Array.from(new Set(list)).sort((a, b) => a - b)] as const
+        );
+    return Object.fromEntries(pairs);
+}
+
+/** Des paires « chemin de calendrier → heures "HH:MM" ». Une liste vide n'est
+ *  pas une réponse : sans séance, c'est la mosquée suivie qui répond. */
+function prayerJumuaOf(source: unknown): Record<string, string[]> {
+    if (!source || typeof source !== "object" || Array.isArray(source)) {
+        return {};
+    }
+    const isClock = (value: unknown): value is string =>
+        typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+    const pairs = Object.entries(source as Record<string, unknown>)
+        .filter(
+            (pair): pair is [string, string[]] =>
+                Array.isArray(pair[1]) &&
+                pair[1].length > 0 &&
+                pair[1].every(isClock)
+        )
+        .map(
+            ([path, list]) => [path, Array.from(new Set(list)).sort()] as const
         );
     return Object.fromEntries(pairs);
 }

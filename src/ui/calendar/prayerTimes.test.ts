@@ -3,9 +3,14 @@ import {
     nextPrayer,
     prayerLinesFor,
     prayersOn,
+    withJumua,
     type PrayerTimetable,
 } from "./prayerTimes";
-import { PRAYER_TIMETABLES, prayerTimetableById } from "./prayerTimetables";
+import {
+    PRAYER_TIMETABLES,
+    jumuaChoices,
+    prayerTimetableById,
+} from "./prayerTimetables";
 
 /** Une table minuscule, aux heures rondes, pour que les attentes se lisent. */
 const table: PrayerTimetable = {
@@ -168,6 +173,7 @@ describe("the lines the grid is asked to draw", () => {
                 hours: 13.5,
                 minutes: 13 * 60 + 30,
                 next: true,
+                name: "dhuhr",
             },
         ]);
     });
@@ -272,5 +278,62 @@ describe("the hours P puts on the grid", () => {
         expect(lines.map((line) => line.minutes).sort((a, b) => a - b)).toEqual(
             [6 * 60, 13 * 60 + 30, 17 * 60, 20 * 60, 21 * 60 + 30]
         );
+    });
+});
+
+/*
+ * La Jumu'a peut se faire ailleurs que là où l'on suit les horaires : la
+ * table garde ses cinq heures, seules les séances du vendredi changent.
+ */
+describe("a timetable with other Jumu'a sessions", () => {
+    it("keeps everything but the Friday sittings", () => {
+        const other = withJumua(table, ["13:30"]);
+        expect(other.jumua).toEqual(["13:30"]);
+        expect(other.name).toBe(table.name);
+        expect(
+            prayersOn(other, at("2026-09-04T10:00:00")).map((p) => p.minutes)
+        ).toEqual([6 * 60, 13 * 60 + 30, 17 * 60, 20 * 60, 21 * 60 + 30]);
+    });
+
+    it("is the very same table when nothing changes", () => {
+        // La même référence, pour que rien en aval ne croie à un changement.
+        expect(withJumua(table, undefined)).toBe(table);
+        expect(withJumua(table, ["13:00", "14:00"])).toBe(table);
+    });
+
+    it("names the Jumu'a line so the grid can draw it apart", () => {
+        const lines = prayerLinesFor({
+            timetable: table,
+            now: at("2026-09-04T12:00:00"),
+            showAll: true,
+        });
+        expect(lines.map((line) => line.name)).toEqual([
+            "fajr",
+            "jumua",
+            "jumua",
+            "asr",
+            "maghrib",
+            "isha",
+        ]);
+    });
+});
+
+/*
+ * Les séances de Jumu'a qu'on peut choisir : celles des mosquées enregistrées,
+ * et rien d'autre. Une heure que deux mosquées partagent n'est proposée
+ * qu'une fois, avec les deux noms.
+ */
+describe("the Jumu'a sittings one can choose from", () => {
+    it("lists each clock time once, in order, with the mosques that hold it", () => {
+        const choices = jumuaChoices();
+        const times = choices.map((choice) => choice.time);
+        expect(times).toEqual([...times].sort());
+        expect(new Set(times).size).toBe(times.length);
+        for (const timetable of PRAYER_TIMETABLES) {
+            for (const time of timetable.jumua) {
+                const choice = choices.find((entry) => entry.time === time);
+                expect(choice?.mosques).toContain(timetable.name);
+            }
+        }
     });
 });

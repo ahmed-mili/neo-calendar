@@ -202,4 +202,48 @@ describe("ReminderChoiceDialog", () => {
         expect(picked).toEqual([[45, 120]]);
         expect(closed).toBe(0);
     });
+
+    /*
+     * Le rappel des prières : zéro y est une ligne à part entière, « À
+     * l'heure », puisque c'est le cas ordinaire — l'adhan sonne à l'heure, pas
+     * dix minutes avant. Il se coche avec les autres délais et n'est pas le
+     * silence, qui garde sa ligne.
+     */
+    it("offers the prayer itself as a delay, ticked with the others", () => {
+        render({ mode: "prayer", minutes: [0] });
+
+        const atTime = optionNamed(t("At the prayer"));
+        expect(atTime.getAttribute("aria-checked")).toBe("true");
+        expect(options()[0]).toBe(atTime);
+
+        act(() => {
+            optionNamed("10 minutes avant").click();
+        });
+        expect(picked).toEqual([[0, 10]]);
+        expect(closed).toBe(0);
+    });
+
+    it("unticks the prayer itself without closing", () => {
+        render({ mode: "prayer", minutes: [0, 10] });
+
+        act(() => {
+            optionNamed(t("At the prayer")).click();
+        });
+        expect(picked).toEqual([[10]]);
+        expect(closed).toBe(0);
+    });
+
+    it("keeps the silence apart from ringing at the prayer", () => {
+        render({ mode: "prayer", minutes: [] });
+
+        expect(optionNamed(t("No reminder")).getAttribute("aria-checked")).toBe(
+            "true"
+        );
+        expect(
+            optionNamed(t("At the prayer")).getAttribute("aria-checked")
+        ).toBe("false");
+        expect(
+            options().some((o) => o.textContent?.includes(t("App setting")))
+        ).toBe(false);
+    });
 });

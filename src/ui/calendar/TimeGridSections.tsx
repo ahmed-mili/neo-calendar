@@ -889,6 +889,7 @@ function DayColumn({
                 <div
                     key={`${line.hours}-${line.next}`}
                     className="nc-prayer-line"
+                    data-prayer={line.name}
                     style={
                         {
                             top: scaledPx(line.hours),
