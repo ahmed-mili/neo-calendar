@@ -120,6 +120,20 @@ describe("les gardes", () => {
         expect(event.defaultPrevented).toBe(false);
     });
 
+    it("garde les touches nues mais pas Ctrl + D quand la fiche est ouverte", () => {
+        const next = jest.fn();
+        const duplicate = jest.fn();
+        const commands: DesktopCommands = {
+            next: { enabled: true, run: next },
+            duplicate: { enabled: true, run: duplicate },
+        };
+        const context = { commands, bareKeysBlocked: true };
+        expect(press({ key: "ArrowRight" }, context).handled).toBe(false);
+        expect(next).not.toHaveBeenCalled();
+        expect(press({ key: "d", ctrlKey: true }, context).handled).toBe(true);
+        expect(duplicate).toHaveBeenCalledTimes(1);
+    });
+
     it("ne coupe pas une composition IME", () => {
         const { commands, next } = navigation();
         expect(

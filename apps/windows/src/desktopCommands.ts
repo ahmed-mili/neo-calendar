@@ -48,6 +48,12 @@ export type DesktopCommands = Partial<Record<DesktopCommandId, DesktopCommand>>;
 export interface DesktopShortcutContext {
     commands: DesktopCommands;
     blocked: boolean;
+    /**
+     * Une couche qui garde les touches NUES (fleches, Suppr) sans retenir les
+     * accords Ctrl : la fiche d'un evenement ouvert n'est pas modale, et elle
+     * est justement la cible de Ctrl + D, C, X.
+     */
+    bareKeysBlocked?: boolean;
     onError: (error: unknown) => void;
 }
 
@@ -188,6 +194,7 @@ export function handleDesktopShortcut(
 
     const chord = CHORDS.find((candidate) => matches(event, candidate));
     if (!chord) return false;
+    if (context.bareKeysBlocked && !chord.ctrl) return false;
 
     const command = context.commands[chord.id];
     if (!command) return false;

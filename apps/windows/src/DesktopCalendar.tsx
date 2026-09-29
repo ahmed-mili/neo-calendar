@@ -4107,7 +4107,11 @@ export default function DesktopCalendar({
      * Le menu d'application ouvert en fait partie : ses fleches parcourent ses
      * lignes, elles ne changent pas de periode.
      */
-    const overlayHoldsKeyboard =
+    // La fiche ouverte est la CIBLE de Ctrl + D/C/X (cf. `actionTargetIds`),
+    // pas une couche modale : elle ne retient que les touches nues. La bloquer
+    // aussi pour les accords Ctrl rendait Ctrl + D muet apres un simple clic
+    // sur un evenement.
+    const modalHoldsKeyboard =
         appMenuOpen ||
         settingsOpen ||
         addCalendarOpen ||
@@ -4115,18 +4119,19 @@ export default function DesktopCalendar({
         calendarToDelete !== null ||
         recurringDeleteId !== null ||
         contextMenu !== null ||
-        panelEventId !== null ||
         draftSlot !== null;
+    const overlayHoldsKeyboard = modalHoldsKeyboard || panelEventId !== null;
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
             const calendarShortcutsBlocked =
-                overlayHoldsKeyboard || hasTextSelection();
+                modalHoldsKeyboard || hasTextSelection();
             if (
                 !isAndroid &&
                 handleDesktopShortcut(event, {
                     commands: desktopCommands,
                     blocked: calendarShortcutsBlocked,
+                    bareKeysBlocked: overlayHoldsKeyboard,
                     onError: (reason) => setStorageError(errorMessage(reason)),
                 })
             ) {
@@ -4278,6 +4283,7 @@ export default function DesktopCalendar({
         isAndroid,
         openNewEvent,
         overlayHoldsKeyboard,
+        modalHoldsKeyboard,
         pasteEvent,
         toggleSidebar,
     ]);
