@@ -4107,19 +4107,27 @@ export default function DesktopCalendar({
      * Le menu d'application ouvert en fait partie : ses fleches parcourent ses
      * lignes, elles ne changent pas de periode.
      */
-    const overlayHoldsKeyboard =
+    const modalHoldsKeyboard =
         appMenuOpen ||
         settingsOpen ||
         addCalendarOpen ||
         commandPaletteVisible ||
         calendarToDelete !== null ||
         recurringDeleteId !== null ||
-        contextMenu !== null ||
-        panelEventId !== null ||
-        draftSlot !== null;
+        contextMenu !== null;
+    // La fiche et le brouillon ne sont pas modaux : un clic sur un évènement
+    // ouvre la fiche ET en fait la cible des actions (`actionTargetIds`). Ils
+    // tiennent les touches nues (lettres de vue, flèches), mais pas les accords
+    // Ctrl : les compter comme une couche rendait Ctrl+D, Ctrl+C, Ctrl+X et
+    // Ctrl+V muets pile quand un évènement venait d'être cliqué. Un champ de la
+    // fiche garde de toute façon ses propres accords (`targetKeepsKeys`).
+    const paneHoldsBareKeys = panelEventId !== null || draftSlot !== null;
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
+            const overlayHoldsKeyboard =
+                modalHoldsKeyboard ||
+                (paneHoldsBareKeys && !event.ctrlKey && !event.metaKey);
             const calendarShortcutsBlocked =
                 overlayHoldsKeyboard || hasTextSelection();
             if (
@@ -4277,7 +4285,8 @@ export default function DesktopCalendar({
         goToday,
         isAndroid,
         openNewEvent,
-        overlayHoldsKeyboard,
+        modalHoldsKeyboard,
+        paneHoldsBareKeys,
         pasteEvent,
         toggleSidebar,
     ]);
