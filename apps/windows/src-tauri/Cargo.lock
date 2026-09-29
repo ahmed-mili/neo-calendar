@@ -2170,7 +2170,7 @@ dependencies = [
 
 [[package]]
 name = "neo-calendar-windows"
-version = "1.82.0"
+version = "1.82.1"
 dependencies = [
  "semver",
  "serde",
