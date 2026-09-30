@@ -76,6 +76,9 @@ class GridState(
     val nearestDayEpoch: Long get() = origin + nearestDay(offsetDays.toDouble())
     val firstDayEpoch: Long get() = origin + floor(offsetDays).toLong()
 
+    /** Un élan ou un calage est en cours : un appui posé dessus est un frein, pas une visée. */
+    val isGliding: Boolean get() = horizontalJob?.isActive == true || verticalJob?.isActive == true
+
     fun cancelAnimations() {
         horizontalJob?.cancel()
         verticalJob?.cancel()

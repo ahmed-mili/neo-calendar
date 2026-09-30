@@ -1,6 +1,10 @@
 package com.ahmed.neocalendar.nativeapp.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextDecoration
+import kotlin.math.floor
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -59,6 +63,8 @@ fun AllDayBand(
     collapsed: Boolean,
     onToggleCollapsed: () -> Unit,
     onEventClick: (DisplayEvent) -> Unit,
+    onToggleTask: (DisplayEvent) -> Unit,
+    onCreateAllDay: (java.time.LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val lanes = occurrences.lanes
@@ -102,6 +108,13 @@ fun AllDayBand(
                 .weight(1f)
                 .height(rowHeight * rows.visibleRows)
                 .clipToBounds()
+                .pointerInput(state) {
+                    detectTapGestures { offset ->
+                        if (state.isGliding) return@detectTapGestures
+                        val day = state.origin + floor(state.offsetDays + offset.x / state.columnWidthPx).toLong()
+                        onCreateAllDay(java.time.LocalDate.ofEpochDay(day))
+                    }
+                }
                 .verticalScroll(rememberScrollState(), enabled = rows.contentRows > rows.visibleRows),
         ) {
             Box(Modifier.fillMaxWidth().height(rowHeight * rows.contentRows)) {
@@ -118,7 +131,7 @@ fun AllDayBand(
                         }
                     }
                 }
-                AllDayBars(state, dayCount, occurrences.fromDay, visibleBars, byId, rowHeight.value, onEventClick)
+                AllDayBars(state, dayCount, occurrences.fromDay, visibleBars, byId, rowHeight.value, onEventClick, onToggleTask)
                 if (hiddenByIndex.isNotEmpty()) {
                     DayColumns(state, dayCount, Modifier.fillMaxSize()) { day ->
                         val count = hiddenByIndex[(day - occurrences.fromDay).toInt()]
@@ -152,10 +165,11 @@ private fun AllDayBars(
     byId: Map<String, DisplayEvent>,
     rowHeightDp: Float,
     onEventClick: (DisplayEvent) -> Unit,
+    onToggleTask: (DisplayEvent) -> Unit,
 ) {
     Layout(
         content = {
-            for (bar in bars) key(bar.event.id) { AllDayBarView(byId[bar.event.id], onEventClick) }
+            for (bar in bars) key(bar.event.id) { AllDayBarView(byId[bar.event.id], onEventClick, onToggleTask) }
         },
         modifier = Modifier.fillMaxSize(),
     ) { measurables, c ->
@@ -179,7 +193,7 @@ private fun AllDayBars(
 }
 
 @Composable
-private fun AllDayBarView(display: DisplayEvent?, onEventClick: (DisplayEvent) -> Unit) {
+private fun AllDayBarView(display: DisplayEvent?, onEventClick: (DisplayEvent) -> Unit, onToggleTask: (DisplayEvent) -> Unit) {
     val accent = remember(display?.color) { parseCalendarColor(display?.color ?: "#658ff2") }
     val fill = remember(accent) { accent.copy(alpha = 0.15f).compositeOver(Neo.Surface) }
     val shape = RoundedCornerShape(4.dp)
@@ -193,13 +207,20 @@ private fun AllDayBarView(display: DisplayEvent?, onEventClick: (DisplayEvent) -
             .padding(start = 9.dp, end = 6.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
-        Text(
-            display?.title.orEmpty(),
-            color = Neo.Text,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (display != null && display.isTask) {
+                val done = display.taskStatus == "complete"
+                TaskCheck(done, if (done) Neo.TextSecondary else Neo.Text, display.editable) { onToggleTask(display) }
+            }
+            Text(
+                display?.title.orEmpty(),
+                color = Neo.Text,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textDecoration = if (display?.isTask == true && display.taskStatus == "complete") TextDecoration.LineThrough else null,
+            )
+        }
     }
 }

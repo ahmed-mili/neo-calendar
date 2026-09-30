@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -117,7 +119,8 @@ fun TimeGridArea(
     occurrences: com.ahmed.neocalendar.nativeapp.Occurrences,
     allDayCollapsed: Boolean,
     onToggleAllDayCollapsed: () -> Unit,
-    onEventClick: (DisplayEvent) -> Unit,
+    actions: GridActions,
+    dataVersion: Any,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -125,6 +128,21 @@ fun TimeGridArea(
     val scope = rememberCoroutineScope()
     val decay = rememberSplineBasedDecay<Float>()
     val zone = remember { ZoneId.systemDefault() }
+    val haptic = LocalHapticFeedback.current
+    val ix = remember(state) { GridInteraction(state, zone, scope) }
+    ix.actions = actions
+    ix.currentData = dataVersion
+
+    // Une écriture part : son résultat (déplacement, redimensionnement) reste dessiné jusqu'à ce que le dossier relu l'ait remplacé.
+    LaunchedEffect(occurrences) {
+        if (ix.pendingData != null && ix.pendingData !== dataVersion) ix.clearPending()
+    }
+    LaunchedEffect(ix.hasPending) {
+        if (ix.hasPending) {
+            delay(4_000)
+            ix.clearPending()
+        }
+    }
 
     // La ligne de l'heure actuelle avance à la minute juste.
     LaunchedEffect(state) {
@@ -152,7 +170,9 @@ fun TimeGridArea(
             occurrences = occurrences,
             collapsed = allDayCollapsed,
             onToggleCollapsed = onToggleAllDayCollapsed,
-            onEventClick = onEventClick,
+            onEventClick = actions.onOpen,
+            onToggleTask = actions.onToggleTask,
+            onCreateAllDay = actions.onCreateAllDay,
             modifier = Modifier.gridDrag(state, scope, freeScroll, vertical = false, decay = decay),
         )
         Row(
@@ -163,7 +183,7 @@ fun TimeGridArea(
                 .gridDrag(state, scope, freeScroll, vertical = true, decay = decay),
         ) {
             HourRail(state, timeFormat24h)
-            Box(Modifier.weight(1f).fillMaxHeight()) {
+            Box(Modifier.weight(1f).fillMaxHeight().gridTouch(ix, haptic)) {
                 GridBackground(state, dayCount, zone)
                 DayColumns(
                     state,
@@ -174,9 +194,10 @@ fun TimeGridArea(
                 ) { day ->
                     val events = occurrences.timed[day]
                     if (!events.isNullOrEmpty()) {
-                        DayEvents(day, events, state, timeFormat24h, zone, onEventClick)
+                        DayEvents(day, events, ix, timeFormat24h, zone)
                     }
                 }
+                MoveGhost(ix, dayCount, timeFormat24h)
             }
         }
         LaunchedEffect(state.viewportHeightPx) { state.initialScrollIfNeeded(hourNow(zone)) }
@@ -321,16 +342,36 @@ private fun placeDay(day: Long, events: List<DisplayEvent>, zone: ZoneId): List<
 @Composable
 private fun DayEvents(
     day: Long,
-    events: List<DisplayEvent>,
-    state: GridState,
+    source: List<DisplayEvent>,
+    ix: GridInteraction,
     timeFormat24h: Boolean,
     zone: ZoneId,
-    onEventClick: (DisplayEvent) -> Unit,
 ) {
+    val state = ix.grid
+    // Un redimensionnement en attente remplace les heures de son bloc, le temps de la relecture.
+    val preview = ix.resizePreview
+    val events = remember(source, preview) { if (preview == null) source else source.map { ix.shown(it) } }
     val placed = remember(day, events) { placeDay(day, events, zone) }
+    val movingId = ix.movingId
+    val resizeId = ix.resizeId
+    DisposableEffect(day) { onDispose { ix.rects.remove(day) } }
     Layout(
         content = {
-            for (p in placed) key(p.event.id) { EventBlock(p.event, p.segment, timeFormat24h, zone, onEventClick) }
+            for (p in placed) key(p.event.id) {
+                EventBlock(
+                    event = p.event,
+                    segment = p.segment,
+                    timeFormat24h = timeFormat24h,
+                    zone = zone,
+                    dimmed = p.event.id == movingId,
+                    resizing = p.event.id == resizeId && p.event.editable,
+                    onToggleTask = ix.actions.onToggleTask,
+                    onHandleDrag = { edge, total -> ix.resizeDrag(p.event, day, edge, total) },
+                    onHandleEnd = { edge -> ix.resizeEnd(edge) },
+                    onHandleCancel = ix::resizeCancel,
+                    onOpen = ix.actions.onOpen,
+                )
+            }
         },
         modifier = Modifier.fillMaxSize(),
     ) { measurables, c ->
@@ -346,6 +387,8 @@ private fun DayEvents(
             val height = maxOf(p.segment.durationHours.toFloat() * hourPx - vgap, minHeight)
             arrayOf(p.column * slot + margin, top, width, height)
         }
+        // Les gestes retrouvent le bloc sous le doigt dans ces rectangles.
+        ix.rects[day] = placed.mapIndexed { i, p -> BlockRect(p.event, p.segment, rects[i][0], rects[i][1], rects[i][2], rects[i][3]) }
         val placeables = measurables.mapIndexed { i, m ->
             val r = rects[i]
             m.measure(Constraints.fixed(r[2].roundToInt(), r[3].roundToInt()))
@@ -358,68 +401,3 @@ private fun DayEvents(
 
 fun formatClock(instant: Instant, zone: ZoneId, timeFormat24h: Boolean): String =
     com.ahmed.neocalendar.core.format.formatClock(instant, zone, timeFormat24h)
-
-/** Le bloc d'évènement de l'inventaire §6 : bande de 4 dp, rayon 4, teinte 15 % de la couleur du calendrier. */
-@Composable
-private fun EventBlock(
-    event: DisplayEvent,
-    segment: DaySegment,
-    timeFormat24h: Boolean,
-    zone: ZoneId,
-    onClick: (DisplayEvent) -> Unit,
-) {
-    val accent = remember(event.color) { parseCalendarColor(event.color) }
-    val fill = remember(accent) { accent.copy(alpha = 0.15f).compositeOver(Neo.Surface) }
-    val past = event.end.toEpochMilli() < System.currentTimeMillis()
-    val completed = event.isTask && event.taskStatus == "complete"
-    val shape = RoundedCornerShape(4.dp)
-    val ink = if (past || completed) Neo.TextSecondary else Neo.Text
-    val time = remember(event.start, event.end, timeFormat24h) {
-        "${formatClock(event.start, zone, timeFormat24h)} – ${formatClock(event.end, zone, timeFormat24h)}"
-    }
-    // Une heure vaut 60 minutes sur l'axe : « court » se juge en minutes, pas en pixels (le zoom les change).
-    val short = segment.durationHours * 60 <= 40
-    Box(
-        Modifier
-            .fillMaxSize()
-            .shadow(4.dp, shape, ambientColor = Color.Black.copy(alpha = 0.18f), spotColor = Color.Black.copy(alpha = 0.18f))
-            .background(fill, shape)
-            .clip(shape)
-            .clickable { onClick(event) }
-            .drawBehind {
-                drawRect(accent.copy(alpha = if (past) 0.4f else 1f), size = Size(4.dp.toPx(), size.height))
-            }
-            .padding(start = 11.dp, end = 7.dp, top = if (short) 2.dp else 5.dp, bottom = 2.dp),
-    ) {
-        if (short) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    event.title,
-                    color = ink,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textDecoration = if (completed) TextDecoration.LineThrough else null,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                if (segment.durationHours * 60 > 20) {
-                    Text(" $time", color = Neo.TextSecondary, fontSize = 11.sp, maxLines = 1, softWrap = false)
-                }
-            }
-        } else {
-            Column {
-                Text(
-                    event.title,
-                    color = ink,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 6,
-                    overflow = TextOverflow.Ellipsis,
-                    textDecoration = if (completed) TextDecoration.LineThrough else null,
-                )
-                Text(time, color = Neo.TextSecondary, fontSize = 11.sp, maxLines = 1, softWrap = false)
-            }
-        }
-    }
-}

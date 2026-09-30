@@ -18,6 +18,7 @@ import com.ahmed.neocalendar.core.tasks.TaskItem
 import com.ahmed.neocalendar.core.tasks.buildDesktopTaskGroups
 import com.ahmed.neocalendar.core.tasks.collectTasks
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -155,6 +156,54 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
         if (note != null) sheet = SheetTarget.Existing(note, event.id)
     }
 
+    // Les gestes de la grille qui écrivent : un brouillon sur un créneau vide, un déplacement, un redimensionnement, une case cochée.
+    val noteGone = "Cette note n'existe plus. Rechargez et recommencez."
+    val gridActions = remember(notesById, data) {
+        GridActions(
+            onOpen = openEvent,
+            onCreate = { start, end ->
+                if (data.calendars.none { it.editable }) {
+                    Toast.makeText(context, "Créez d'abord un dossier de calendrier avant d'ajouter des évènements.", Toast.LENGTH_LONG).show()
+                } else {
+                    sheet = SheetTarget.Draft(start, end, allDay = false)
+                }
+            },
+            onCreateAllDay = { date ->
+                if (data.calendars.none { it.editable }) {
+                    Toast.makeText(context, "Créez d'abord un dossier de calendrier avant d'ajouter des évènements.", Toast.LENGTH_LONG).show()
+                } else {
+                    sheet = SheetTarget.Draft(date.atStartOfDay(), date.plusDays(1).atStartOfDay(), allDay = true)
+                }
+            },
+            onReschedule = { event, start, end, resize, onFailed ->
+                val note = resolveStored(notesById, event.id)
+                if (note == null) {
+                    onFailed()
+                    Toast.makeText(context, noteGone, Toast.LENGTH_LONG).show()
+                } else {
+                    scope.launch {
+                        viewModel.rescheduleEvent(note, event.id, start, end, resize)?.let {
+                            onFailed()
+                            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            },
+            onToggleTask = { event ->
+                val note = resolveStored(notesById, event.id)
+                if (note == null) {
+                    Toast.makeText(context, noteGone, Toast.LENGTH_LONG).show()
+                } else {
+                    scope.launch {
+                        viewModel.setTaskDone(note, event.id, event.taskStatus != "complete")?.let {
+                            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            },
+        )
+    }
+
     // Ce que la barre du haut dit de la grille : le jour le plus proche de la tête, recalculé seulement quand il change.
     val nearest by remember { derivedStateOf { grid.nearestDayEpoch } }
     val firstDay by remember { derivedStateOf { grid.firstDayEpoch } }
@@ -195,7 +244,8 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                     occurrences = occurrences,
                     allDayCollapsed = allDayCollapsed,
                     onToggleAllDayCollapsed = { viewModel.setAllDayCollapsed(!allDayCollapsed) },
-                    onEventClick = openEvent,
+                    actions = gridActions,
+                    dataVersion = data,
                 )
                 reloadError?.let {
                     Text(

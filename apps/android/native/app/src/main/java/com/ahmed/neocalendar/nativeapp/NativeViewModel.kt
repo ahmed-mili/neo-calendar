@@ -312,6 +312,14 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun duplicateEvent(stored: StoredEvent, calendarPath: String): String? =
         write { writer, _ -> writer.duplicate(stored, calendarPath) }
 
+    /** Déplacer (`resize` faux) ou redimensionner un évènement horodaté ; un jour de série en sort, la série ne change que par `skipDates`. */
+    suspend fun rescheduleEvent(stored: StoredEvent, displayId: String, start: Instant, end: Instant, resize: Boolean): String? =
+        write { writer, _ -> writer.reschedule(stored, displayId, start, end, resize, zone, ::nowUtcIso) }
+
+    /** La case d'une tâche : faite ou à faire (pour une série, le jour affiché). */
+    suspend fun setTaskDone(stored: StoredEvent, displayId: String, done: Boolean): String? =
+        write { writer, _ -> writer.setTaskDone(stored, displayId, done, ::nowUtcIso) }
+
     /** Pour ouvrir une pièce jointe : le dossier en lecture, sans rien écrire. */
     fun attachmentStorage(): SafWorkspaceStorage? = runCatching { SafWorkspaceStorage(getApplication(), treeUri(write = false)) }.getOrNull()
 
