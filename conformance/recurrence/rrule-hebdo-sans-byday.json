@@ -1,0 +1,79 @@
+{
+  "name": "FREQ=WEEKLY sans BYDAY : le jour de startDate",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Reunion",
+      "type": "rrule",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:30",
+      "startDate": "2026-07-22",
+      "rrule": "RRULE:FREQ=WEEKLY",
+      "skipDates": []
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": [
+    {
+      "id": "42_2026-07-22",
+      "title": "Reunion",
+      "start": "2026-07-22T07:00:00.000Z",
+      "end": "2026-07-22T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": true,
+      "isMultiDay": false,
+      "isSomeday": false
+    },
+    {
+      "id": "42_2026-07-29",
+      "title": "Reunion",
+      "start": "2026-07-29T07:00:00.000Z",
+      "end": "2026-07-29T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    },
+    {
+      "id": "42_2026-08-05",
+      "title": "Reunion",
+      "start": "2026-08-05T07:00:00.000Z",
+      "end": "2026-08-05T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "name": "le 5e mardi : seulement les mois qui en ont un",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Reunion",
+      "type": "rrule",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:30",
+      "startDate": "2026-06-30",
+      "rrule": "RRULE:FREQ=MONTHLY;INTERVAL=1;BYDAY=+5TU",
+      "skipDates": []
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-01T00:00:00+02:00",
+    "rangeEnd": "2026-12-31T23:59:59+01:00"
+  },
+  "expected": [
+    {
+      "id": "42_2026-09-29",
+      "title": "Reunion",
+      "start": "2026-09-29T07:00:00.000Z",
+      "end": "2026-09-29T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    },
+    {
+      "id": "42_2026-12-29",
+      "title": "Reunion",
+      "start": "2026-12-29T08:00:00.000Z",
+      "end": "2026-12-29T09:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

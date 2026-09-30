@@ -1,0 +1,61 @@
+{
+  "name": "fenetre en minuit local (22h UTC) : le jour de debut est perdu, celui de fin aussi",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Reunion",
+      "type": "rrule",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:30",
+      "startDate": "2026-07-20",
+      "rrule": "RRULE:FREQ=DAILY;INTERVAL=1",
+      "skipDates": []
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-22T00:00:00+02:00",
+    "rangeEnd": "2026-07-24T00:00:00+02:00"
+  },
+  "expected": [
+    {
+      "id": "42_2026-07-22",
+      "title": "Reunion",
+      "start": "2026-07-22T07:00:00.000Z",
+      "end": "2026-07-22T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    },
+    {
+      "id": "42_2026-07-23",
+      "title": "Reunion",
+      "start": "2026-07-23T07:00:00.000Z",
+      "end": "2026-07-23T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

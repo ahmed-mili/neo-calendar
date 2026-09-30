@@ -54,3 +54,19 @@ Un cas = un fichier JSON :
 - Jest, à la racine du dépôt : `npx jest conformance`
 - JUnit, dans `apps/android/native`, sous PowerShell :
   `$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot"; .\gradlew.bat :core:test`
+
+## Écarts connus
+
+`lib-recur` (Kotlin) ne reproduit pas `rrule` (TypeScript) sur des formes que
+l'application n'écrit jamais (`recurrenceToRRule` ne produit que `FREQ`,
+`INTERVAL` >= 1, `BYDAY`, `BYMONTHDAY`, `COUNT` >= 1, `UNTIL` en UTC). Aucune
+n'est dans le corpus ; le Kotlin ne force pas la ressemblance :
+
+- `COUNT=0` : `rrule` ne rend rien, `lib-recur` lit une série sans fin.
+- `INTERVAL=0` : `rrule` ne rend rien, `lib-recur` rend des occurrences.
+- règle finissant par `;` (`FREQ=DAILY;COUNT=2;`) : `rrule` la refuse, `lib-recur`
+  l'accepte.
+- `UNTIL` sans heure (`UNTIL=20260722`) : `rrule` le lit, `lib-recur` le refuse
+  avec une date ancrée en UTC ; le Kotlin rend alors aucune occurrence.
+- texte multiligne avec `DTSTART:` : `rrule` en tient compte, le résultat du
+  Kotlin diffère (vu sur un cas `DTSTART` + `RRULE` écrit à la main).

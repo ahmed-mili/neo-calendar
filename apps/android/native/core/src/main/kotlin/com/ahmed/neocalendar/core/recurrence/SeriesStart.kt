@@ -1,6 +1,7 @@
 package com.ahmed.neocalendar.core.recurrence
 
 import com.ahmed.neocalendar.core.notes.NeoEvent
+import java.time.ZoneOffset
 
 private val DAY_ORDER = listOf("U", "M", "T", "W", "R", "F", "S")
 
@@ -9,10 +10,9 @@ private val DAY_ORDER = listOf("U", "M", "T", "W", "R", "F", "S")
  * la série commence à se voir, sa première occurrence non supprimée. Null quand
  * l'évènement ne se répète pas, n'a pas d'ancrage, ou n'a plus rien.
  *
- * Seule la série par jours est portée ici ; la branche `rrule` suit avec
- * l'expansion `rrule`.
  */
 fun seriesStartDate(event: NeoEvent): String? {
+    if (event is NeoEvent.Rrule) return rruleSeriesStart(event)
     if (event !is NeoEvent.Recurring) return null
     val startRecur = event.startRecur
     if (startRecur.isNullOrEmpty()) return null
@@ -32,4 +32,19 @@ fun seriesStartDate(event: NeoEvent): String? {
         day = day.plusDays(1)
     }
     return null
+}
+
+/** Le premier des occurrences de la règle que `skipDates` n'écarte pas. Chaque
+ *  tour en consomme une écartée : une de plus que de dates écartées atteint
+ *  toujours une occurrence ou la fin de la règle. */
+private fun rruleSeriesStart(event: NeoEvent.Rrule): String? {
+    val instants = rruleInstants(event) ?: return null
+    val skip = event.skipDates.toSet()
+    return try {
+        instants.take(skip.size + 1)
+            .map { it.atZone(ZoneOffset.UTC).toLocalDate().toString() }
+            .firstOrNull { it !in skip }
+    } catch (_: Exception) {
+        null
+    }
 }

@@ -1,0 +1,24 @@
+{
+  "name": "serie terminee avant la fenetre",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Reunion",
+      "type": "rrule",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:30",
+      "startDate": "2026-06-01",
+      "rrule": "RRULE:FREQ=DAILY;INTERVAL=1;COUNT=5",
+      "skipDates": []
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": []
+}

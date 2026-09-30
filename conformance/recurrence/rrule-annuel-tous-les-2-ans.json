@@ -1,0 +1,61 @@
+{
+  "name": "tous les 2 ans : 2024 et 2026 oui, 2025 non",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Reunion",
+      "type": "rrule",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:30",
+      "startDate": "2024-07-22",
+      "rrule": "RRULE:FREQ=YEARLY;INTERVAL=2",
+      "skipDates": []
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2024-01-01T00:00:00+01:00",
+    "rangeEnd": "2027-12-31T23:59:59+01:00"
+  },
+  "expected": [
+    {
+      "id": "42_2024-07-22",
+      "title": "Reunion",
+      "start": "2024-07-22T07:00:00.000Z",
+      "end": "2024-07-22T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": true,
+      "isMultiDay": false,
+      "isSomeday": false
+    },
+    {
+      "id": "42_2026-07-22",
+      "title": "Reunion",
+      "start": "2026-07-22T07:00:00.000Z",
+      "end": "2026-07-22T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

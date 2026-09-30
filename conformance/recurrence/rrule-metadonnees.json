@@ -1,0 +1,103 @@
+{
+  "name": "rappels, description, lieu et contexte repris",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Reunion",
+      "type": "rrule",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:30",
+      "startDate": "2026-07-22",
+      "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=WE",
+      "skipDates": [],
+      "reminders": [
+        10,
+        1440
+      ],
+      "description": "Ordre du jour",
+      "location": "Salle B"
+    },
+    "id": "abc",
+    "calendarId": "perso",
+    "calendarName": "Perso",
+    "color": "#ff8800",
+    "editable": false,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": [
+    {
+      "id": "abc_2026-07-22",
+      "title": "Reunion",
+      "start": "2026-07-22T07:00:00.000Z",
+      "end": "2026-07-22T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ff8800",
+      "editable": false,
+      "calendarId": "perso",
+      "calendarName": "Perso",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "reminders": [
+        10,
+        1440
+      ],
+      "isRecurring": true,
+      "isSeriesStart": true,
+      "isMultiDay": false,
+      "isSomeday": false,
+      "description": "Ordre du jour",
+      "location": "Salle B"
+    },
+    {
+      "id": "abc_2026-07-29",
+      "title": "Reunion",
+      "start": "2026-07-29T07:00:00.000Z",
+      "end": "2026-07-29T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ff8800",
+      "editable": false,
+      "calendarId": "perso",
+      "calendarName": "Perso",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "reminders": [
+        10,
+        1440
+      ],
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false,
+      "description": "Ordre du jour",
+      "location": "Salle B"
+    },
+    {
+      "id": "abc_2026-08-05",
+      "title": "Reunion",
+      "start": "2026-08-05T07:00:00.000Z",
+      "end": "2026-08-05T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ff8800",
+      "editable": false,
+      "calendarId": "perso",
+      "calendarName": "Perso",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "reminders": [
+        10,
+        1440
+      ],
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false,
+      "description": "Ordre du jour",
+      "location": "Salle B"
+    }
+  ]
+}

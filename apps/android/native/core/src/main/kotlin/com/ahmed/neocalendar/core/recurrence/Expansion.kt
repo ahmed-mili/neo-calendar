@@ -4,14 +4,14 @@ import com.ahmed.neocalendar.core.notes.NeoEvent
 import com.ahmed.neocalendar.core.notes.jsTrim
 import com.ahmed.neocalendar.core.reminders.t
 import java.time.Instant
+import java.time.ZoneOffset
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 
 /*
  * Port de src/ui/calendar/eventExpansion.ts : un NeoEvent (format de stockage)
- * devient des DisplayEvent (format d'affichage) pour une fenêtre visible. Les
- * séries `rrule` viennent avec la tâche suivante ; ici elles ne donnent rien.
+ * devient des DisplayEvent (format d'affichage) pour une fenêtre visible.
  */
 
 private class ExpandContext(
@@ -142,6 +142,47 @@ private fun expandSingle(event: NeoEvent.Single, ctx: ExpandContext): List<Displ
     )
 }
 
+/** Une occurrence d'une série (par jours ou `rrule`) à la date `dateStr` : la
+ *  série dit si c'est une tâche, `completedDates` quels jours sont faits. */
+private fun seriesOccurrence(
+    event: NeoEvent,
+    ctx: ExpandContext,
+    dateStr: String,
+    seriesIsTask: Boolean,
+    doneDays: Set<String>,
+    startsOn: String?,
+): DisplayEvent? {
+    val times = resolveTimes(
+        dateStr,
+        null,
+        event.allDay,
+        if (event.allDay) null else event.startTime.orElse("00:00"),
+        if (event.allDay) null else event.endTime?.ifEmpty { null },
+    ) ?: return null
+    val done = dateStr in doneDays
+    return DisplayEvent(
+        id = "${ctx.id}_$dateStr",
+        title = displayTitle(event.title),
+        start = times.start,
+        end = times.end,
+        allDay = event.allDay,
+        color = ctx.color,
+        editable = ctx.editable,
+        calendarId = ctx.calendarId,
+        calendarName = ctx.calendarName,
+        isTask = seriesIsTask,
+        taskCompleted = JsonPrimitive(done),
+        taskStatus = if (done) "complete" else "todo",
+        reminders = event.reminders,
+        isRecurring = true,
+        isSeriesStart = dateStr == startsOn,
+        isMultiDay = false,
+        isSomeday = false,
+        description = event.description,
+        location = event.location,
+    )
+}
+
 // ── Séries par jours de la semaine ─────────────────────────
 
 private fun expandRecurring(event: NeoEvent.Recurring, ctx: ExpandContext): List<DisplayEvent> {
@@ -180,45 +221,39 @@ private fun expandRecurring(event: NeoEvent.Recurring, ctx: ExpandContext): List
                 current = addDays(current, 1)
                 continue
             }
-            val times = resolveTimes(
-                dateStr,
-                null,
-                event.allDay,
-                if (event.allDay) null else event.startTime.orElse("00:00"),
-                if (event.allDay) null else event.endTime?.ifEmpty { null },
-            )
-            if (times != null) {
-                val done = dateStr in doneDays
-                results.add(
-                    DisplayEvent(
-                        id = "${ctx.id}_$dateStr",
-                        title = displayTitle(event.title),
-                        start = times.start,
-                        end = times.end,
-                        allDay = event.allDay,
-                        color = ctx.color,
-                        editable = ctx.editable,
-                        calendarId = ctx.calendarId,
-                        calendarName = ctx.calendarName,
-                        // Chaque occurrence répond pour elle-même : la série dit
-                        // si c'est une tâche, `completedDates` quels jours sont faits.
-                        isTask = seriesIsTask,
-                        taskCompleted = JsonPrimitive(done),
-                        taskStatus = if (done) "complete" else "todo",
-                        reminders = event.reminders,
-                        isRecurring = true,
-                        isSeriesStart = dateStr == startsOn,
-                        isMultiDay = false,
-                        isSomeday = false,
-                        description = event.description,
-                        location = event.location,
-                    )
-                )
-            }
+            seriesOccurrence(event, ctx, dateStr, seriesIsTask, doneDays, startsOn)?.let { results.add(it) }
         }
         current = addDays(current, 1)
     }
 
+    return results
+}
+
+// ── Séries `rrule` ─────────────────────────────────────────
+
+private fun expandRrule(event: NeoEvent.Rrule, ctx: ExpandContext): List<DisplayEvent> {
+    // La règle est ancrée à minuit UTC de startDate, et les occurrences sont lues
+    // en UTC : le jour civil ne dépend pas du fuseau de la machine.
+    val instants = rruleInstants(event) ?: return emptyList()
+    val skipSet = event.skipDates.toSet()
+    val seriesIsTask = isTask(event.completed)
+    val doneDays = (event.completedDates ?: emptyList()).toSet()
+    val startsOn = seriesStartDate(event)
+
+    val results = ArrayList<DisplayEvent>()
+    try {
+        // `between(rangeStart, rangeEnd, true)` : bornes incluses, comparées en instants.
+        for (instant in instants) {
+            if (instant > ctx.rangeEnd) break
+            if (instant < ctx.rangeStart) continue
+            val dateStr = instant.atZone(ZoneOffset.UTC).toLocalDate().toString()
+            if (dateStr in skipSet) continue
+            seriesOccurrence(event, ctx, dateStr, seriesIsTask, doneDays, startsOn)?.let { results.add(it) }
+        }
+    } catch (_: Exception) {
+        // `between` a levé : le TypeScript rend une liste vide.
+        return emptyList()
+    }
     return results
 }
 
@@ -238,8 +273,7 @@ fun neoEventToDisplayEvents(
     return when (event) {
         is NeoEvent.Single -> expandSingle(event, ctx)
         is NeoEvent.Recurring -> expandRecurring(event, ctx)
-        // La série `rrule` est portée avec la tâche suivante.
-        is NeoEvent.Rrule -> emptyList()
+        is NeoEvent.Rrule -> expandRrule(event, ctx)
         // « someday » n'est pas étendu ici.
         is NeoEvent.Someday -> emptyList()
     }
