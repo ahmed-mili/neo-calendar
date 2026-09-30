@@ -1,0 +1,15 @@
+{
+  "name": "une recherche : Google Maps absente",
+  "fn": "location.apps",
+  "input": {
+    "destination": {
+      "kind": "search",
+      "value": "Efrei Bat. C C001"
+    },
+    "native": true,
+    "installed": [
+      "waze"
+    ]
+  },
+  "expected": []
+}

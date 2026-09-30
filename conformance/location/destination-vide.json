@@ -1,0 +1,8 @@
+{
+  "name": "lieu vide : rien",
+  "fn": "location.destination",
+  "input": {
+    "location": "   "
+  },
+  "expected": null
+}

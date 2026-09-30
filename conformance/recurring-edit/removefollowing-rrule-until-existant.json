@@ -1,0 +1,27 @@
+{
+  "name": "UNTIL remplace a sa place",
+  "fn": "recurringEdit.removeFollowing",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=MONTHLY;BYDAY=+1MO;UNTIL=20261230T235959Z;INTERVAL=2",
+      "skipDates": []
+    },
+    "dateISO": "2026-10-05"
+  },
+  "expected": {
+    "title": "Essai",
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "rrule",
+    "startDate": "2026-08-03",
+    "rrule": "RRULE:FREQ=MONTHLY;BYDAY=+1MO;UNTIL=20261004T235959Z;INTERVAL=2",
+    "skipDates": []
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "un lien avec espace n'est pas un lien",
+  "fn": "location.destination",
+  "input": {
+    "location": "https://meet.example.com/a b"
+  },
+  "expected": {
+    "kind": "search",
+    "value": "https://meet.example.com/a b"
+  }
+}

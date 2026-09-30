@@ -1,0 +1,25 @@
+{
+  "name": "hebdo les sept jours",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [
+        "U",
+        "M",
+        "T",
+        "W",
+        "R",
+        "F",
+        "S"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-09"
+  },
+  "expected": "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=SU,MO,TU,WE,TH,FR,SA"
+}

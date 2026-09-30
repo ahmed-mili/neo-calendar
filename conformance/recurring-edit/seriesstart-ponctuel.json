@@ -1,0 +1,16 @@
+{
+  "name": "un evenement ponctuel : null",
+  "fn": "recurringEdit.seriesStart",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null
+    }
+  },
+  "expected": null
+}

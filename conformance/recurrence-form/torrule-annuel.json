@@ -1,0 +1,17 @@
+{
+  "name": "annuel",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "yearly",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": "RRULE:FREQ=YEARLY;INTERVAL=1"
+}

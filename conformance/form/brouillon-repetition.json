@@ -1,0 +1,71 @@
+{
+  "name": "ebauche repetee chaque semaine",
+  "fn": "form.payload",
+  "input": {
+    "draft": {
+      "start": "2026-08-28T14:15:00",
+      "end": "2026-08-28T15:15:00",
+      "allDay": false,
+      "defaultAsTask": false
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Islam",
+    "edits": [
+      [
+        "setTitle",
+        "Hebdo"
+      ],
+      [
+        "setIsRecurring",
+        true
+      ]
+    ]
+  },
+  "expected": {
+    "values": {
+      "title": "Hebdo",
+      "description": "",
+      "location": "",
+      "date": "2026-08-28",
+      "startTime": "14:15",
+      "endTime": "15:15",
+      "allDay": false,
+      "isRecurring": true,
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byDay": [
+          "F"
+        ],
+        "monthMode": "dayOfMonth",
+        "end": {
+          "kind": "never"
+        }
+      },
+      "calendarIndex": 0,
+      "taskStatus": null,
+      "due": null
+    },
+    "payload": {
+      "title": "Hebdo",
+      "allDay": false,
+      "startTime": "14:15",
+      "endTime": "15:15",
+      "type": "rrule",
+      "startDate": "2026-08-28",
+      "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=FR",
+      "skipDates": []
+    }
+  }
+}

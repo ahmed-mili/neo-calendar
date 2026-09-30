@@ -1,0 +1,15 @@
+{
+  "name": "Google Maps : adresse a velo",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "address",
+      "value": "12 rue de la Paix",
+      "label": "Salle 4"
+    },
+    "app": "google",
+    "travelMode": "bicycling",
+    "native": false
+  },
+  "expected": "https://www.google.com/maps/dir/?api=1&destination=12%20rue%20de%20la%20Paix&travelmode=bicycling"
+}

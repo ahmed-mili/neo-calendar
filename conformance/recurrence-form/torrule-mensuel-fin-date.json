@@ -1,0 +1,18 @@
+{
+  "name": "mensuel jusqu'a une date",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "monthly",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "until",
+        "date": "2026-12-31"
+      }
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": "RRULE:FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=12;UNTIL=20261231T235959Z"
+}

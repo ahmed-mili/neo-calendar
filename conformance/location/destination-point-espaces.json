@@ -1,0 +1,12 @@
+{
+  "name": "coordonnees avec espaces",
+  "fn": "location.destination",
+  "input": {
+    "location": "",
+    "geo": "48.79 , 2.37"
+  },
+  "expected": {
+    "kind": "point",
+    "value": "48.79,2.37"
+  }
+}

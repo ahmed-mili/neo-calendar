@@ -1,0 +1,82 @@
+{
+  "name": "mensuel le 2e mercredi jusqu'a une date",
+  "fn": "form.payload",
+  "input": {
+    "event": {
+      "title": "Dentiste",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Etudes",
+    "edits": [
+      [
+        "setIsRecurring",
+        true
+      ],
+      [
+        "setRecurrence",
+        {
+          "freq": "monthly",
+          "interval": 1,
+          "byDay": [],
+          "monthMode": "dayOfWeek",
+          "end": {
+            "kind": "until",
+            "date": "2027-01-31"
+          }
+        }
+      ]
+    ]
+  },
+  "expected": {
+    "values": {
+      "title": "Dentiste",
+      "description": "",
+      "location": "",
+      "date": "2026-08-12",
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "allDay": false,
+      "isRecurring": true,
+      "recurrence": {
+        "freq": "monthly",
+        "interval": 1,
+        "byDay": [],
+        "monthMode": "dayOfWeek",
+        "end": {
+          "kind": "until",
+          "date": "2027-01-31"
+        }
+      },
+      "calendarIndex": 1,
+      "taskStatus": null,
+      "due": null
+    },
+    "payload": {
+      "title": "Dentiste",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-12",
+      "rrule": "RRULE:FREQ=MONTHLY;INTERVAL=1;BYDAY=+2WE;UNTIL=20270131T235959Z",
+      "skipDates": []
+    }
+  }
+}

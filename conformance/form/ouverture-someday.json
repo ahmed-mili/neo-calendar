@@ -1,0 +1,46 @@
+{
+  "name": "un evenement sans date",
+  "fn": "form.payload",
+  "input": {
+    "event": {
+      "title": "Ranger",
+      "type": "someday",
+      "allDay": true
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Etudes",
+    "edits": []
+  },
+  "expected": {
+    "values": {
+      "title": "Ranger",
+      "description": "",
+      "location": "",
+      "date": "",
+      "startTime": "",
+      "endTime": "",
+      "allDay": true,
+      "isRecurring": false,
+      "recurrence": "<auj>",
+      "calendarIndex": 1,
+      "taskStatus": null,
+      "due": null
+    },
+    "payload": {
+      "title": "Ranger",
+      "allDay": true,
+      "type": "someday"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "geo illisible : recherche",
+  "fn": "location.destination",
+  "input": {
+    "location": "Salle 4",
+    "geo": "quelque part"
+  },
+  "expected": {
+    "kind": "search",
+    "value": "Salle 4"
+  }
+}

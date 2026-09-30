@@ -94,7 +94,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 
 /** Le pendant Kotlin de conformance/operations.ts : mêmes noms d'opération. */
-val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
+val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf<String, (JsonObject) -> JsonElement>(
     "notes.frontmatter" to { input -> parseFrontmatter(input.getValue("text").jsonPrimitive.content) ?: JsonNull },
     "notes.filename" to { input -> filename(input) },
     "notes.validate" to { input -> validateEvent(input.getValue("raw").jsonObject)?.toRecord() ?: JsonNull },
@@ -325,7 +325,7 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
             )
         )
     },
-)
+) + FORM_OPERATIONS
 
 /** Une date d'entrée : chaîne ISO avec `Z` ou un décalage, comme `new Date(s)`. */
 private fun parseInstant(text: String): Instant = OffsetDateTime.parse(text).toInstant()

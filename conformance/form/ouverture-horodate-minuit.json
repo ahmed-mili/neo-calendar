@@ -1,0 +1,65 @@
+{
+  "name": "horodate qui traverse minuit",
+  "fn": "form.payload",
+  "input": {
+    "event": {
+      "title": "Nuit",
+      "allDay": false,
+      "startTime": "22:00",
+      "endTime": "06:00",
+      "type": "single",
+      "date": "2026-08-28",
+      "endDate": "2026-08-29"
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Etudes",
+    "edits": []
+  },
+  "expected": {
+    "values": {
+      "title": "Nuit",
+      "description": "",
+      "location": "",
+      "date": "2026-08-28",
+      "endDate": "2026-08-29",
+      "startTime": "22:00",
+      "endTime": "06:00",
+      "allDay": false,
+      "isRecurring": false,
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byDay": [
+          "F"
+        ],
+        "monthMode": "dayOfMonth",
+        "end": {
+          "kind": "never"
+        }
+      },
+      "calendarIndex": 1,
+      "taskStatus": null,
+      "due": null
+    },
+    "payload": {
+      "title": "Nuit",
+      "allDay": false,
+      "startTime": "22:00",
+      "endTime": "06:00",
+      "type": "single",
+      "date": "2026-08-28",
+      "endDate": "2026-08-29"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "une occurrence de serie rrule : choix",
+  "fn": "recurringEdit.needsScopeChoice",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=10",
+      "skipDates": []
+    },
+    "eventId": "abc_2026-08-10",
+    "isDraft": false
+  },
+  "expected": true
+}

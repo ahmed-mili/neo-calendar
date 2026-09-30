@@ -1,0 +1,12 @@
+{
+  "name": "des coordonnees dans le lieu ne nomment pas le point",
+  "fn": "location.destination",
+  "input": {
+    "location": "48.79,2.37",
+    "geo": "48.79,2.37"
+  },
+  "expected": {
+    "kind": "point",
+    "value": "48.79,2.37"
+  }
+}

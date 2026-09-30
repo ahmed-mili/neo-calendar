@@ -1,0 +1,17 @@
+{
+  "name": "sans le prefixe RRULE:",
+  "fn": "recurrence.fromRRule",
+  "input": {
+    "rrule": "FREQ=DAILY;INTERVAL=4",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "daily",
+    "interval": 4,
+    "byDay": [],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "never"
+    }
+  }
+}

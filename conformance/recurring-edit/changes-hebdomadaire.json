@@ -1,0 +1,37 @@
+{
+  "name": "serie hebdomadaire : jours changes",
+  "fn": "recurringEdit.changes",
+  "input": {
+    "stable": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "recurring",
+      "daysOfWeek": [
+        "M"
+      ],
+      "startRecur": "2026-08-03"
+    },
+    "payload": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "recurring",
+      "daysOfWeek": [
+        "M",
+        "W"
+      ],
+      "startRecur": "2026-08-03"
+    }
+  },
+  "expected": [
+    {
+      "key": "repeat",
+      "label": "Repeat",
+      "before": "Toutes les semaines le lundi",
+      "after": "Toutes les semaines le lundi, mercredi"
+    }
+  ]
+}

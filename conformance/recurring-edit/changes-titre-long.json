@@ -1,0 +1,34 @@
+{
+  "name": "titre tronque a 72 signes",
+  "fn": "recurringEdit.changes",
+  "input": {
+    "stable": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO",
+      "skipDates": []
+    },
+    "payload": {
+      "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO",
+      "skipDates": []
+    }
+  },
+  "expected": [
+    {
+      "key": "title",
+      "label": "Title",
+      "before": "Essai",
+      "after": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…"
+    }
+  ]
+}

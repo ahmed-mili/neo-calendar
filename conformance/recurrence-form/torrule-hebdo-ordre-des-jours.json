@@ -1,0 +1,20 @@
+{
+  "name": "les jours gardent l'ordre donne",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [
+        "W",
+        "M"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-03"
+  },
+  "expected": "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=WE,MO"
+}

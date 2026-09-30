@@ -1,0 +1,19 @@
+{
+  "name": "hebdo sans BYDAY : le jour de la date de debut",
+  "fn": "recurrence.fromRRule",
+  "input": {
+    "rrule": "RRULE:FREQ=WEEKLY",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "weekly",
+    "interval": 1,
+    "byDay": [
+      "W"
+    ],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "never"
+    }
+  }
+}

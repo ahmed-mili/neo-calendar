@@ -1,0 +1,19 @@
+{
+  "name": "hebdo dimanche",
+  "fn": "recurrence.fromRRule",
+  "input": {
+    "rrule": "RRULE:FREQ=WEEKLY;BYDAY=SU",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "weekly",
+    "interval": 1,
+    "byDay": [
+      "U"
+    ],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "never"
+    }
+  }
+}

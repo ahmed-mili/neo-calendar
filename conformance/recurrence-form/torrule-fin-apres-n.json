@@ -1,0 +1,18 @@
+{
+  "name": "fin apres 5 fois",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "daily",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "count",
+        "count": 5
+      }
+    },
+    "startDate": "2026-08-03"
+  },
+  "expected": "RRULE:FREQ=DAILY;INTERVAL=1;COUNT=5"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "adresse du lien ICS",
+  "fn": "location.destination",
+  "input": {
+    "location": "Salle 4",
+    "linkAddress": "12 rue de la Paix, Paris"
+  },
+  "expected": {
+    "kind": "address",
+    "value": "12 rue de la Paix, Paris",
+    "label": "Salle 4"
+  }
+}

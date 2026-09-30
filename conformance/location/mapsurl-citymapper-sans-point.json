@@ -1,0 +1,15 @@
+{
+  "name": "Citymapper sans point : rien",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "address",
+      "value": "12 rue de la Paix",
+      "label": "Salle 4"
+    },
+    "app": "citymapper",
+    "travelMode": "auto",
+    "native": false
+  },
+  "expected": null
+}

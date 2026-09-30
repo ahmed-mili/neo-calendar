@@ -1,0 +1,18 @@
+{
+  "name": "toutes les semaines le lundi",
+  "fn": "recurrence.summary",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [
+        "M"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    }
+  },
+  "expected": "Toutes les semaines le lundi"
+}

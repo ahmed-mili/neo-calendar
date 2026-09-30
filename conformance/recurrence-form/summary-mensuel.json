@@ -1,0 +1,16 @@
+{
+  "name": "tous les mois",
+  "fn": "recurrence.summary",
+  "input": {
+    "state": {
+      "freq": "monthly",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    }
+  },
+  "expected": "Tous les mois"
+}

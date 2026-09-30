@@ -1,0 +1,13 @@
+{
+  "name": "coordonnees du flux",
+  "fn": "location.destination",
+  "input": {
+    "location": "Efrei Bat. C C001",
+    "geo": "48.7900,2.3700"
+  },
+  "expected": {
+    "kind": "point",
+    "value": "48.7900,2.3700",
+    "label": "Efrei Bat. C C001"
+  }
+}

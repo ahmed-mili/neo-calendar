@@ -1,0 +1,14 @@
+{
+  "name": "Moovit sans point : rien",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "search",
+      "value": "Efrei Bat. C C001"
+    },
+    "app": "moovit",
+    "travelMode": "auto",
+    "native": true
+  },
+  "expected": null
+}

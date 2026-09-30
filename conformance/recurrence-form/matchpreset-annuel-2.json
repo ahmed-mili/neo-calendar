@@ -1,0 +1,17 @@
+{
+  "name": "tous les 2 ans : personnalise",
+  "fn": "recurrence.matchPreset",
+  "input": {
+    "state": {
+      "freq": "yearly",
+      "interval": 2,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": "custom"
+}

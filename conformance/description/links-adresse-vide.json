@@ -1,0 +1,15 @@
+{
+  "name": "adresse vide : pas un lien",
+  "fn": "description.links",
+  "input": {
+    "text": "[a]() puis [b](x)"
+  },
+  "expected": [
+    {
+      "start": 11,
+      "end": 17,
+      "label": "b",
+      "target": "x"
+    }
+  ]
+}

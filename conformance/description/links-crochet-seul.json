@@ -1,0 +1,15 @@
+{
+  "name": "crochet isole puis un vrai lien",
+  "fn": "description.links",
+  "input": {
+    "text": "[ seul puis [b](https://b.fr)"
+  },
+  "expected": [
+    {
+      "start": 0,
+      "end": 29,
+      "label": " seul puis [b",
+      "target": "https://b.fr"
+    }
+  ]
+}

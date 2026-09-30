@@ -1,0 +1,20 @@
+{
+  "name": "hebdo 4 fois",
+  "fn": "recurrence.summary",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [
+        "M",
+        "F"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "count",
+        "count": 4
+      }
+    }
+  },
+  "expected": "Toutes les semaines le lundi, vendredi, 4 fois"
+}

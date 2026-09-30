@@ -1,0 +1,9 @@
+{
+  "name": "decocher une case",
+  "fn": "description.toggle",
+  "input": {
+    "description": "- [x] a\n- [ ] b",
+    "index": 0
+  },
+  "expected": "- [ ] a\n- [ ] b"
+}

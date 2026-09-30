@@ -1,0 +1,28 @@
+{
+  "name": "puces",
+  "fn": "description.checklist",
+  "input": {
+    "description": "- un\n* deux\n+ trois\n-5 degres"
+  },
+  "expected": [
+    {
+      "kind": "bullet",
+      "text": "un",
+      "indent": ""
+    },
+    {
+      "kind": "bullet",
+      "text": "deux",
+      "indent": ""
+    },
+    {
+      "kind": "bullet",
+      "text": "trois",
+      "indent": ""
+    },
+    {
+      "kind": "text",
+      "text": "-5 degres"
+    }
+  ]
+}

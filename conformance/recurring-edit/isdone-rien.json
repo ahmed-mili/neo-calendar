@@ -1,0 +1,9 @@
+{
+  "name": "pas de serie : pas fait",
+  "fn": "recurringEdit.occurrenceIsDone",
+  "input": {
+    "series": null,
+    "dateISO": "2026-08-10"
+  },
+  "expected": false
+}

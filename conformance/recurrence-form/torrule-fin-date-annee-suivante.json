@@ -1,0 +1,18 @@
+{
+  "name": "fin a une date de l'annee suivante",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "daily",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "until",
+        "date": "2027-01-01"
+      }
+    },
+    "startDate": "2026-08-03"
+  },
+  "expected": "RRULE:FREQ=DAILY;INTERVAL=1;UNTIL=20270101T235959Z"
+}

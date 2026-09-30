@@ -1,0 +1,14 @@
+{
+  "name": "Citymapper natif",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "point",
+      "value": "48.79,2.37"
+    },
+    "app": "citymapper",
+    "travelMode": "auto",
+    "native": true
+  },
+  "expected": "citymapper://directions?endcoord=48.79%2C2.37"
+}

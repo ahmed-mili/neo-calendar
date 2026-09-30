@@ -1,0 +1,19 @@
+{
+  "name": "toutes les 2 semaines le lundi, mercredi",
+  "fn": "recurrence.summary",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 2,
+      "byDay": [
+        "W",
+        "M"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    }
+  },
+  "expected": "Toutes les 2 semaines le lundi, mercredi"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "cocher une case",
+  "fn": "description.toggle",
+  "input": {
+    "description": "- [ ] a\n- [ ] b",
+    "index": 1
+  },
+  "expected": "- [ ] a\n- [x] b"
+}

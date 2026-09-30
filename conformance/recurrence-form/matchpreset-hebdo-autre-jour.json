@@ -1,0 +1,19 @@
+{
+  "name": "hebdo un autre jour : personnalise",
+  "fn": "recurrence.matchPreset",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [
+        "M"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": "custom"
+}

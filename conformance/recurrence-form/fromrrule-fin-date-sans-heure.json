@@ -1,0 +1,18 @@
+{
+  "name": "fin a une date sans heure",
+  "fn": "recurrence.fromRRule",
+  "input": {
+    "rrule": "RRULE:FREQ=DAILY;UNTIL=20260830",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "daily",
+    "interval": 1,
+    "byDay": [],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "until",
+      "date": "2026-08-30"
+    }
+  }
+}

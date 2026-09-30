@@ -1,0 +1,69 @@
+{
+  "name": "tache repetee : completed false",
+  "fn": "form.payload",
+  "input": {
+    "event": {
+      "title": "Payer",
+      "allDay": true,
+      "type": "single",
+      "date": "2026-08-20",
+      "endDate": null,
+      "completed": false,
+      "due": "2026-08-25"
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Etudes",
+    "edits": [
+      [
+        "setIsRecurring",
+        true
+      ]
+    ]
+  },
+  "expected": {
+    "values": {
+      "title": "Payer",
+      "description": "",
+      "location": "",
+      "date": "2026-08-20",
+      "startTime": "",
+      "endTime": "",
+      "allDay": true,
+      "isRecurring": true,
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byDay": [
+          "R"
+        ],
+        "monthMode": "dayOfMonth",
+        "end": {
+          "kind": "never"
+        }
+      },
+      "calendarIndex": 1,
+      "taskStatus": "todo",
+      "due": "2026-08-25"
+    },
+    "payload": {
+      "title": "Payer",
+      "allDay": true,
+      "type": "rrule",
+      "startDate": "2026-08-20",
+      "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=TH",
+      "skipDates": [],
+      "completed": false
+    }
+  }
+}

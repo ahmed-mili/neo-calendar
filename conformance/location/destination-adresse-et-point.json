@@ -1,0 +1,15 @@
+{
+  "name": "adresse et point",
+  "fn": "location.destination",
+  "input": {
+    "location": "Salle 4",
+    "geo": "48.85,2.35",
+    "linkAddress": "12 rue de la Paix, Paris"
+  },
+  "expected": {
+    "kind": "address",
+    "value": "12 rue de la Paix, Paris",
+    "point": "48.85,2.35",
+    "label": "Salle 4"
+  }
+}

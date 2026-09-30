@@ -1,0 +1,20 @@
+{
+  "name": "premiere date ecartee : la serie commence plus tard",
+  "fn": "recurringEdit.removeFollowing",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=10",
+      "skipDates": [
+        "2026-08-03"
+      ]
+    },
+    "dateISO": "2026-08-10"
+  },
+  "expected": null
+}

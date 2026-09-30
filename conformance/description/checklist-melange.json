@@ -1,0 +1,32 @@
+{
+  "name": "texte, puces et cases",
+  "fn": "description.checklist",
+  "input": {
+    "description": "Titre\n- puce\n- [ ] case\n\nfin"
+  },
+  "expected": [
+    {
+      "kind": "text",
+      "text": "Titre"
+    },
+    {
+      "kind": "bullet",
+      "text": "puce",
+      "indent": ""
+    },
+    {
+      "kind": "task",
+      "done": false,
+      "title": "case",
+      "indent": ""
+    },
+    {
+      "kind": "text",
+      "text": ""
+    },
+    {
+      "kind": "text",
+      "text": "fin"
+    }
+  ]
+}

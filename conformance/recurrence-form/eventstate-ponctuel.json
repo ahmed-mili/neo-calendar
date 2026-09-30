@@ -1,0 +1,30 @@
+{
+  "name": "un evenement ponctuel n'est pas une serie",
+  "fn": "recurrence.eventState",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "isRecurring": false,
+    "recurrence": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [
+        "W"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    }
+  }
+}

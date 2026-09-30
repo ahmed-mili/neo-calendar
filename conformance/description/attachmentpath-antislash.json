@@ -1,0 +1,9 @@
+{
+  "name": "chemin d'une piece jointe : antislash",
+  "fn": "description.attachmentPath",
+  "input": {
+    "eventRelativePath": "Islam\\x.md",
+    "target": ".attachments\\a.png"
+  },
+  "expected": "Islam/.attachments/a.png"
+}

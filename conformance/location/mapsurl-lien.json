@@ -1,0 +1,14 @@
+{
+  "name": "un lien reste le lien",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "link",
+      "value": "https://meet.example.com/abc"
+    },
+    "app": "google",
+    "travelMode": "auto",
+    "native": false
+  },
+  "expected": "https://meet.example.com/abc"
+}

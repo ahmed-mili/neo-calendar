@@ -1,0 +1,30 @@
+{
+  "name": "une serie hebdomadaire sans jour : le jour de debut",
+  "fn": "recurrence.eventState",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "recurring",
+      "daysOfWeek": [],
+      "startRecur": "2026-08-12"
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "isRecurring": true,
+    "recurrence": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [
+        "W"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    }
+  }
+}

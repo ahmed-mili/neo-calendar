@@ -1,0 +1,11 @@
+{
+  "name": "geo: pour un lien : rien",
+  "fn": "location.geoUrl",
+  "input": {
+    "destination": {
+      "kind": "link",
+      "value": "https://meet.example.com/abc"
+    }
+  },
+  "expected": null
+}

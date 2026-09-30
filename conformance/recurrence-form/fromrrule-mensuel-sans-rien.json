@@ -1,0 +1,17 @@
+{
+  "name": "mensuel sans jour",
+  "fn": "recurrence.fromRRule",
+  "input": {
+    "rrule": "RRULE:FREQ=MONTHLY",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "monthly",
+    "interval": 1,
+    "byDay": [],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "never"
+    }
+  }
+}

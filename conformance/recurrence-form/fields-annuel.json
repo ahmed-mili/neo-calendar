@@ -1,0 +1,22 @@
+{
+  "name": "champs d'evenement d'une repetition annuelle",
+  "fn": "recurrence.fields",
+  "input": {
+    "state": {
+      "freq": "yearly",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "type": "rrule",
+    "startDate": "2026-08-12",
+    "rrule": "RRULE:FREQ=YEARLY;INTERVAL=1",
+    "skipDates": []
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "mensuel le 12",
+  "fn": "recurringEdit.removeFollowing",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-01-12",
+      "rrule": "RRULE:FREQ=MONTHLY;BYMONTHDAY=12",
+      "skipDates": []
+    },
+    "dateISO": "2026-06-12"
+  },
+  "expected": {
+    "title": "Essai",
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "rrule",
+    "startDate": "2026-01-12",
+    "rrule": "RRULE:FREQ=MONTHLY;BYMONTHDAY=12;UNTIL=20260611T235959Z",
+    "skipDates": []
+  }
+}

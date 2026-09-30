@@ -1,0 +1,8 @@
+{
+  "name": "un lien ne franchit pas une fin de ligne",
+  "fn": "description.links",
+  "input": {
+    "text": "[debut\nfin](https://example.com)"
+  },
+  "expected": []
+}

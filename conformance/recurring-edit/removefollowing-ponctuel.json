@@ -1,0 +1,17 @@
+{
+  "name": "un evenement ponctuel : null",
+  "fn": "recurringEdit.removeFollowing",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null
+    },
+    "dateISO": "2026-08-12"
+  },
+  "expected": null
+}

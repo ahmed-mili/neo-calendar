@@ -1,0 +1,8 @@
+{
+  "name": "parenthese non fermee",
+  "fn": "description.links",
+  "input": {
+    "text": "[a](https://example.com"
+  },
+  "expected": []
+}

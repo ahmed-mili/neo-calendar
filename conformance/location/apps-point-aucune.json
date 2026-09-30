@@ -1,0 +1,13 @@
+{
+  "name": "un point : aucune installee",
+  "fn": "location.apps",
+  "input": {
+    "destination": {
+      "kind": "point",
+      "value": "48.79,2.37"
+    },
+    "native": true,
+    "installed": []
+  },
+  "expected": []
+}

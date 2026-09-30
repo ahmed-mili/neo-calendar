@@ -1,0 +1,14 @@
+{
+  "name": "Waze sans point : rien",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "search",
+      "value": "Efrei Bat. C C001"
+    },
+    "app": "waze",
+    "travelMode": "auto",
+    "native": false
+  },
+  "expected": null
+}

@@ -56,6 +56,33 @@ import { prayerRemindersFor } from "../apps/windows/src/platform/prayerReminders
 import { relativeDelayLabel } from "../src/ui/calendar/reminderDelay";
 import { neoEventToDisplayEvents } from "../src/ui/calendar/eventExpansion";
 import { validateEvent } from "../src/types/schema";
+import {
+    defaultRecurrence,
+    eventToRecurrenceState,
+    matchPreset,
+    presetToRecurrence,
+    recurrenceSummary,
+    recurrenceToEventFields,
+    recurrenceToRRule,
+    rruleToRecurrence,
+    dayCodeOf,
+} from "../src/ui/calendar/recurrence";
+import {
+    detachedOccurrence,
+    needsScopeChoice,
+    occurrenceDateOf,
+    occurrenceIsDone,
+    seriesWithoutOccurrence,
+} from "../src/ui/calendar/recurringEdit";
+import { recurringEditChanges } from "../src/ui/calendar/recurringEditChanges";
+import { seriesStartDate, withFollowingRemoved, withOccurrenceRemoved } from "../src/ui/calendar/recurrenceDeletion";
+import { mergeForSave } from "../src/ui/calendar/eventScheduling";
+import { reminderLabelParts } from "../src/ui/calendar/reminderChoices";
+import { reminderMinutesFrom, splitReminderDelay } from "../src/ui/calendar/reminderDelay";
+import { attachmentPathFor } from "../src/ui/calendar/pastedAttachment";
+import { geoUrlFor, locationDestinationFor, mapsAppsFor, mapsUrlFor } from "../src/ui/calendar/locationLink";
+import { readChecklist, toggleLine } from "../src/ui/calendar/descriptionChecklist";
+import { readInlineLinks } from "../src/ui/calendar/descriptionInlineLinks";
 
 /** Reproduit `JSONObject.toString(2)` de l'`org.json` d'Android (libcore,
  *  JSONStringer avec indentation) pour ce que la WebView envoie :
@@ -188,6 +215,39 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
             fileExisted,
         }),
     "recurrence.expand": (input) => expandEntry(input),
+    "recurrence.dayCode": ({ date }) => dayCodeOf(date),
+    "recurrence.default": ({ startDate }) => defaultRecurrence(startDate),
+    "recurrence.toRRule": ({ state, startDate }) => recurrenceToRRule(state, startDate),
+    "recurrence.fromRRule": ({ rrule, startDate }) => rruleToRecurrence(rrule, startDate),
+    "recurrence.eventState": ({ event, startDate }) => eventToRecurrenceState(event as NeoEvent, startDate),
+    "recurrence.fields": ({ state, startDate }) => recurrenceToEventFields(state, startDate),
+    "recurrence.preset": ({ key, startDate }) => presetToRecurrence(key, startDate),
+    "recurrence.matchPreset": ({ state, startDate }) => matchPreset(state, startDate),
+    "recurrence.summary": ({ state }) => recurrenceSummary(state),
+    "recurringEdit.occurrenceDate": ({ displayId }) => occurrenceDateOf(displayId),
+    "recurringEdit.needsScopeChoice": ({ event, eventId, isDraft }) =>
+        needsScopeChoice({ event: event as NeoEvent | null, eventId, isDraft }),
+    "recurringEdit.detach": ({ payload, dateISO, done, now }) =>
+        detachedOccurrence({ payload: payload as NeoEvent, dateISO, done, now: () => now }),
+    "recurringEdit.withoutOccurrence": ({ series, dateISO }) => seriesWithoutOccurrence(series as NeoEvent, dateISO),
+    "recurringEdit.occurrenceIsDone": ({ series, dateISO }) => occurrenceIsDone(series as NeoEvent, dateISO),
+    "recurringEdit.removeOccurrence": ({ event, dateISO }) => withOccurrenceRemoved(validated(event), dateISO),
+    "recurringEdit.removeFollowing": ({ event, dateISO }) => withFollowingRemoved(validated(event), dateISO),
+    "recurringEdit.seriesStart": ({ event }) => seriesStartDate(validated(event)),
+    "recurringEdit.changes": ({ stable, payload, context }) =>
+        recurringEditChanges(stable as NeoEvent, payload as NeoEvent, context ?? {}),
+    "notes.mergeForSave": ({ base, payload }) => mergeForSave(validated(base), payload as NeoEvent),
+    "reminders.splitDelay": ({ minutes }) => splitReminderDelay(minutes),
+    "reminders.minutesFrom": ({ amount, unit }) => reminderMinutesFrom(amount, unit),
+    "description.attachmentPath": ({ eventRelativePath, target }) => attachmentPathFor(eventRelativePath, target),
+    "reminders.choiceLabel": ({ minutes, allDay }) => reminderLabelParts(minutes, allDay),
+    "location.destination": ({ location, geo, linkAddress }) => locationDestinationFor(location, geo, linkAddress),
+    "location.apps": ({ destination, native, installed }) => mapsAppsFor(destination, { native, installed }),
+    "location.mapsUrl": ({ destination, app, travelMode, native }) => mapsUrlFor(destination, app, { travelMode, native }),
+    "location.geoUrl": ({ destination }) => geoUrlFor(destination),
+    "description.checklist": ({ description }) => readChecklist(description),
+    "description.toggle": ({ description, index }) => toggleLine(description, index),
+    "description.links": ({ text }) => readInlineLinks(text),
     "reminders.build": ({ events, now, minutesBefore, minutesByCalendar, timeFormat24h }) =>
         buildReminders({
             events: (events as any[]).flatMap(expandEntry),

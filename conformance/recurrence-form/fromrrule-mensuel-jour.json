@@ -1,0 +1,17 @@
+{
+  "name": "mensuel le 12",
+  "fn": "recurrence.fromRRule",
+  "input": {
+    "rrule": "RRULE:FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=12",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "monthly",
+    "interval": 1,
+    "byDay": [],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "never"
+    }
+  }
+}

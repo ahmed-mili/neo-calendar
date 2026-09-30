@@ -1,0 +1,17 @@
+{
+  "name": "mensuel le rang : personnalise",
+  "fn": "recurrence.matchPreset",
+  "input": {
+    "state": {
+      "freq": "monthly",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfWeek",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": "custom"
+}

@@ -1,0 +1,20 @@
+{
+  "name": "une recherche : Google Maps",
+  "fn": "location.apps",
+  "input": {
+    "destination": {
+      "kind": "search",
+      "value": "Efrei Bat. C C001"
+    },
+    "native": true,
+    "installed": [
+      "google",
+      "citymapper",
+      "moovit",
+      "waze"
+    ]
+  },
+  "expected": [
+    "google"
+  ]
+}

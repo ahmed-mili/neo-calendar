@@ -1,0 +1,38 @@
+{
+  "name": "serie : completedDates et skipDates du payload",
+  "fn": "notes.mergeForSave",
+  "input": {
+    "base": {
+      "title": "S",
+      "allDay": true,
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=DAILY",
+      "skipDates": [
+        "2026-08-05"
+      ],
+      "completedDates": [
+        "2026-08-04"
+      ],
+      "completed": false
+    },
+    "payload": {
+      "title": "S",
+      "allDay": true,
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=DAILY",
+      "skipDates": [],
+      "completed": false
+    }
+  },
+  "expected": {
+    "title": "S",
+    "allDay": true,
+    "type": "rrule",
+    "startDate": "2026-08-03",
+    "rrule": "RRULE:FREQ=DAILY",
+    "skipDates": [],
+    "completed": false
+  }
+}

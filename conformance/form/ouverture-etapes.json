@@ -1,0 +1,73 @@
+{
+  "name": "les etapes de l'ancienne liste rejoignent la description",
+  "fn": "form.payload",
+  "input": {
+    "event": {
+      "title": "Dentiste",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null,
+      "description": "Texte",
+      "subtasks": [
+        "[x] fait",
+        "[ ] a faire",
+        "[/] en cours",
+        "libre",
+        "  "
+      ]
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Etudes",
+    "edits": []
+  },
+  "expected": {
+    "values": {
+      "title": "Dentiste",
+      "description": "Texte\n- [x] fait\n- [ ] a faire\n- [ ] en cours\n- [ ] libre",
+      "location": "",
+      "date": "2026-08-12",
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "allDay": false,
+      "isRecurring": false,
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byDay": [
+          "W"
+        ],
+        "monthMode": "dayOfMonth",
+        "end": {
+          "kind": "never"
+        }
+      },
+      "calendarIndex": 1,
+      "taskStatus": null,
+      "due": null
+    },
+    "payload": {
+      "title": "Dentiste",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null,
+      "description": "Texte\n- [x] fait\n- [ ] a faire\n- [ ] en cours\n- [ ] libre"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Google Maps : recherche",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "search",
+      "value": "Efrei Bat. C C001"
+    },
+    "app": "google",
+    "travelMode": "auto",
+    "native": false
+  },
+  "expected": "https://www.google.com/maps/search/?api=1&query=Efrei%20Bat.%20C%20C001"
+}

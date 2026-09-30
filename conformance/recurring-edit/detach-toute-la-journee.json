@@ -1,0 +1,24 @@
+{
+  "name": "un evenement sur la journee",
+  "fn": "recurringEdit.detach",
+  "input": {
+    "payload": {
+      "title": "Jour",
+      "allDay": true,
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=DAILY",
+      "skipDates": []
+    },
+    "dateISO": "2026-08-04",
+    "done": false,
+    "now": "2026-09-30T10:00:00.000+02:00"
+  },
+  "expected": {
+    "title": "Jour",
+    "allDay": true,
+    "type": "single",
+    "date": "2026-08-04",
+    "endDate": null
+  }
+}

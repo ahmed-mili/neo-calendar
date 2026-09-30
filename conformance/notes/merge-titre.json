@@ -1,0 +1,52 @@
+{
+  "name": "le titre change, le reste de la base reste",
+  "fn": "notes.mergeForSave",
+  "input": {
+    "base": {
+      "title": "Cours",
+      "id": "abc",
+      "location": "Salle 4",
+      "geo": "48.85,2.35",
+      "description": "Texte",
+      "attendees": [
+        "a@b.c"
+      ],
+      "reminders": [
+        10
+      ],
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null
+    },
+    "payload": {
+      "title": "Nouveau",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null
+    }
+  },
+  "expected": {
+    "title": "Nouveau",
+    "id": "abc",
+    "location": "Salle 4",
+    "geo": "48.85,2.35",
+    "attendees": [
+      "a@b.c"
+    ],
+    "reminders": [
+      10
+    ],
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "single",
+    "date": "2026-08-12",
+    "endDate": null
+  }
+}

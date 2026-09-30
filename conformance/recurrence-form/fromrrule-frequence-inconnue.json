@@ -1,0 +1,19 @@
+{
+  "name": "frequence inconnue : hebdo",
+  "fn": "recurrence.fromRRule",
+  "input": {
+    "rrule": "RRULE:FREQ=HOURLY;INTERVAL=2",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "weekly",
+    "interval": 2,
+    "byDay": [
+      "W"
+    ],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "never"
+    }
+  }
+}

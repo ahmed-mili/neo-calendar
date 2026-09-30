@@ -1,0 +1,10 @@
+{
+  "name": "pas d'evenement : pas de choix",
+  "fn": "recurringEdit.needsScopeChoice",
+  "input": {
+    "event": null,
+    "eventId": "abc_2026-08-10",
+    "isDraft": false
+  },
+  "expected": false
+}

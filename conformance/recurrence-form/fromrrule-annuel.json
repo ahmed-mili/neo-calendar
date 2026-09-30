@@ -1,0 +1,17 @@
+{
+  "name": "annuel",
+  "fn": "recurrence.fromRRule",
+  "input": {
+    "rrule": "RRULE:FREQ=YEARLY;INTERVAL=1",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "yearly",
+    "interval": 1,
+    "byDay": [],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "never"
+    }
+  }
+}

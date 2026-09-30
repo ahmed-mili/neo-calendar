@@ -1,0 +1,14 @@
+{
+  "name": "Waze",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "point",
+      "value": "48.79,2.37"
+    },
+    "app": "waze",
+    "travelMode": "auto",
+    "native": false
+  },
+  "expected": "https://waze.com/ul?ll=48.79%2C2.37&navigate=yes"
+}

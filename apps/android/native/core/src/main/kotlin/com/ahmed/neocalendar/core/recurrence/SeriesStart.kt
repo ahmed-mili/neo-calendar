@@ -3,8 +3,6 @@ package com.ahmed.neocalendar.core.recurrence
 import com.ahmed.neocalendar.core.notes.NeoEvent
 import java.time.ZoneOffset
 
-private val DAY_ORDER = listOf("U", "M", "T", "W", "R", "F", "S")
-
 /**
  * Port de `seriesStartDate` (src/ui/calendar/recurrenceDeletion.ts) : la date où
  * la série commence à se voir, sa première occurrence non supprimée. Null quand

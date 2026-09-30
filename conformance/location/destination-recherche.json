@@ -1,0 +1,11 @@
+{
+  "name": "un nom de salle : recherche",
+  "fn": "location.destination",
+  "input": {
+    "location": "Efrei Bat. C C001"
+  },
+  "expected": {
+    "kind": "search",
+    "value": "Efrei Bat. C C001"
+  }
+}

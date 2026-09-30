@@ -1,0 +1,21 @@
+{
+  "name": "case sans titre",
+  "fn": "description.checklist",
+  "input": {
+    "description": "- [ ] \n- [x]"
+  },
+  "expected": [
+    {
+      "kind": "task",
+      "done": false,
+      "title": "",
+      "indent": ""
+    },
+    {
+      "kind": "task",
+      "done": true,
+      "title": "",
+      "indent": ""
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "une ligne de texte ne change pas",
+  "fn": "description.toggle",
+  "input": {
+    "description": "texte\n- [ ] a",
+    "index": 0
+  },
+  "expected": "texte\n- [ ] a"
+}

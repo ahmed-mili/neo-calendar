@@ -1,0 +1,19 @@
+{
+  "name": "pas d'espace apres la case : du texte",
+  "fn": "description.checklist",
+  "input": {
+    "description": "- [x]collee\n-[ ] sans espace"
+  },
+  "expected": [
+    {
+      "kind": "task",
+      "done": true,
+      "title": "collee",
+      "indent": ""
+    },
+    {
+      "kind": "text",
+      "text": "-[ ] sans espace"
+    }
+  ]
+}

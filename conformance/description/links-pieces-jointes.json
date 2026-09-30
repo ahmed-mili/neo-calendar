@@ -1,0 +1,21 @@
+{
+  "name": "pieces jointes",
+  "fn": "description.links",
+  "input": {
+    "text": "[plan.pdf](.attachments/plan%20v2.pdf)\n[note](Cours/x.md)"
+  },
+  "expected": [
+    {
+      "start": 0,
+      "end": 38,
+      "label": "plan.pdf",
+      "target": ".attachments/plan%20v2.pdf"
+    },
+    {
+      "start": 39,
+      "end": 57,
+      "label": "note",
+      "target": "Cours/x.md"
+    }
+  ]
+}

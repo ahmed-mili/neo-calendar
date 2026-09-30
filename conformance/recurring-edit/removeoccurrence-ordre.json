@@ -1,0 +1,32 @@
+{
+  "name": "le jour est ajoute a la fin, sans tri",
+  "fn": "recurringEdit.removeOccurrence",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=10",
+      "skipDates": [
+        "2026-09-01"
+      ]
+    },
+    "dateISO": "2026-08-10"
+  },
+  "expected": {
+    "title": "Essai",
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "rrule",
+    "startDate": "2026-08-03",
+    "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=10",
+    "skipDates": [
+      "2026-09-01",
+      "2026-08-10"
+    ]
+  }
+}

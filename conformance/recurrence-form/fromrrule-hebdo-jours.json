@@ -1,0 +1,20 @@
+{
+  "name": "hebdo lundi et mercredi",
+  "fn": "recurrence.fromRRule",
+  "input": {
+    "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "weekly",
+    "interval": 2,
+    "byDay": [
+      "M",
+      "W"
+    ],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "never"
+    }
+  }
+}

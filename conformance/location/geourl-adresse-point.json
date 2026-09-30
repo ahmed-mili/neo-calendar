@@ -1,0 +1,13 @@
+{
+  "name": "geo: pour une adresse et un point : la rue",
+  "fn": "location.geoUrl",
+  "input": {
+    "destination": {
+      "kind": "address",
+      "value": "12 rue de la Paix",
+      "point": "48.85,2.35",
+      "label": "Salle 4"
+    }
+  },
+  "expected": "geo:48.85,2.35?q=12%20rue%20de%20la%20Paix"
+}

@@ -1,0 +1,20 @@
+{
+  "name": "fin a une date, fin de journee en UTC",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [
+        "M"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "until",
+        "date": "2026-08-30"
+      }
+    },
+    "startDate": "2026-08-03"
+  },
+  "expected": "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;UNTIL=20260830T235959Z"
+}

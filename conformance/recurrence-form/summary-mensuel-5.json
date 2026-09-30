@@ -1,0 +1,17 @@
+{
+  "name": "tous les 5 mois, 2 fois",
+  "fn": "recurrence.summary",
+  "input": {
+    "state": {
+      "freq": "monthly",
+      "interval": 5,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "count",
+        "count": 2
+      }
+    }
+  },
+  "expected": "Tous les 5 mois, 2 fois"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "l'identifiant d'une occurrence finit par sa date",
+  "fn": "recurringEdit.occurrenceDate",
+  "input": {
+    "displayId": "abc_2026-08-16"
+  },
+  "expected": "2026-08-16"
+}

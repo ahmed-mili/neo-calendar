@@ -1,0 +1,9 @@
+{
+  "name": "chemin d'une piece jointe : relatif-bureau",
+  "fn": "description.attachmentPath",
+  "input": {
+    "eventRelativePath": "Islam/2026-08-12 Cours.md",
+    "target": ".attachments/a.png"
+  },
+  "expected": "Islam/.attachments/a.png"
+}

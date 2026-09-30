@@ -1,0 +1,20 @@
+{
+  "name": "toutes les 2 semaines le lundi et le mercredi",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 2,
+      "byDay": [
+        "M",
+        "W"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-03"
+  },
+  "expected": "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE"
+}

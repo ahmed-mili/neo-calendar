@@ -1,0 +1,22 @@
+{
+  "name": "une occurrence de serie hebdo : choix",
+  "fn": "recurringEdit.needsScopeChoice",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "recurring",
+      "daysOfWeek": [
+        "M",
+        "W"
+      ],
+      "startRecur": "2026-08-03",
+      "skipDates": []
+    },
+    "eventId": "abc_2026-08-10",
+    "isDraft": false
+  },
+  "expected": true
+}

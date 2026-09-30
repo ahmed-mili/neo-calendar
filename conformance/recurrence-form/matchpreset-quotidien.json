@@ -1,0 +1,17 @@
+{
+  "name": "quotidien simple : preset quotidien",
+  "fn": "recurrence.matchPreset",
+  "input": {
+    "state": {
+      "freq": "daily",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": "daily"
+}

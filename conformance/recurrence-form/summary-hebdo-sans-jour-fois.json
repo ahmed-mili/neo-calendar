@@ -1,0 +1,17 @@
+{
+  "name": "hebdo sans jour, 4 fois (les deux phrases se suivent sans virgule)",
+  "fn": "recurrence.summary",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "count",
+        "count": 4
+      }
+    }
+  },
+  "expected": "Toutes les semaines 4 fois"
+}

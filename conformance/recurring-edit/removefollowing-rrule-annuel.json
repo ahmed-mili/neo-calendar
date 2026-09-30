@@ -1,0 +1,27 @@
+{
+  "name": "annuel",
+  "fn": "recurringEdit.removeFollowing",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2020-08-12",
+      "rrule": "RRULE:FREQ=YEARLY;INTERVAL=1",
+      "skipDates": []
+    },
+    "dateISO": "2026-08-12"
+  },
+  "expected": {
+    "title": "Essai",
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "rrule",
+    "startDate": "2020-08-12",
+    "rrule": "RRULE:FREQ=YEARLY;INTERVAL=1;UNTIL=20260811T235959Z",
+    "skipDates": []
+  }
+}

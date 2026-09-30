@@ -1,0 +1,17 @@
+{
+  "name": "un intervalle nul vaut 1",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "daily",
+      "interval": 0,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-03"
+  },
+  "expected": "RRULE:FREQ=DAILY;INTERVAL=1"
+}

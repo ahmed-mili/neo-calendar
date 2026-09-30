@@ -1,0 +1,27 @@
+{
+  "name": "regle sans prefixe : le prefixe est ecrit",
+  "fn": "recurringEdit.removeFollowing",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "FREQ=DAILY;INTERVAL=2",
+      "skipDates": []
+    },
+    "dateISO": "2026-08-11"
+  },
+  "expected": {
+    "title": "Essai",
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "rrule",
+    "startDate": "2026-08-03",
+    "rrule": "RRULE:FREQ=DAILY;INTERVAL=2;UNTIL=20260810T235959Z",
+    "skipDates": []
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "name": "sans rappels dans le payload, ceux de la base restent",
+  "fn": "notes.mergeForSave",
+  "input": {
+    "base": {
+      "title": "Cours",
+      "id": "abc",
+      "location": "Salle 4",
+      "geo": "48.85,2.35",
+      "description": "Texte",
+      "attendees": [
+        "a@b.c"
+      ],
+      "reminders": [
+        10
+      ],
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null
+    },
+    "payload": {
+      "title": "Cours",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null
+    }
+  },
+  "expected": {
+    "title": "Cours",
+    "id": "abc",
+    "location": "Salle 4",
+    "geo": "48.85,2.35",
+    "attendees": [
+      "a@b.c"
+    ],
+    "reminders": [
+      10
+    ],
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "single",
+    "date": "2026-08-12",
+    "endDate": null
+  }
+}

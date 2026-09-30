@@ -1,0 +1,14 @@
+{
+  "name": "Google Maps : en transports",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "point",
+      "value": "48.79,2.37"
+    },
+    "app": "google",
+    "travelMode": "transit",
+    "native": false
+  },
+  "expected": "https://www.google.com/maps/dir/?api=1&destination=48.79%2C2.37&travelmode=transit"
+}

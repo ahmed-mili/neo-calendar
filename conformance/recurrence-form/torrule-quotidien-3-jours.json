@@ -1,0 +1,17 @@
+{
+  "name": "tous les 3 jours",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "daily",
+      "interval": 3,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-03"
+  },
+  "expected": "RRULE:FREQ=DAILY;INTERVAL=3"
+}

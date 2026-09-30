@@ -1,0 +1,9 @@
+{
+  "name": "minutes d'un delai saisi : 1 days",
+  "fn": "reminders.minutesFrom",
+  "input": {
+    "amount": 1,
+    "unit": "days"
+  },
+  "expected": 1440
+}

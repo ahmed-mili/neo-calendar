@@ -1,0 +1,14 @@
+{
+  "name": "Google Maps : itineraire vers un point",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "point",
+      "value": "48.79,2.37"
+    },
+    "app": "google",
+    "travelMode": "auto",
+    "native": false
+  },
+  "expected": "https://www.google.com/maps/dir/?api=1&destination=48.79%2C2.37"
+}

@@ -1,0 +1,19 @@
+{
+  "name": "hebdo le jour de debut : preset hebdo",
+  "fn": "recurrence.matchPreset",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [
+        "W"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": "weekly"
+}

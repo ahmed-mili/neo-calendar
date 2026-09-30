@@ -1,0 +1,76 @@
+{
+  "name": "retour aux heures",
+  "fn": "form.payload",
+  "input": {
+    "event": {
+      "title": "Voyage",
+      "allDay": true,
+      "type": "single",
+      "date": "2026-08-28",
+      "endDate": "2026-08-31"
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Etudes",
+    "edits": [
+      [
+        "setAllDay",
+        false
+      ],
+      [
+        "setStartTime",
+        "10:00"
+      ],
+      [
+        "setEndTime",
+        "11:00"
+      ]
+    ]
+  },
+  "expected": {
+    "values": {
+      "title": "Voyage",
+      "description": "",
+      "location": "",
+      "date": "2026-08-28",
+      "endDate": "2026-08-31",
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "allDay": false,
+      "isRecurring": false,
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byDay": [
+          "F"
+        ],
+        "monthMode": "dayOfMonth",
+        "end": {
+          "kind": "never"
+        }
+      },
+      "calendarIndex": 1,
+      "taskStatus": null,
+      "due": null
+    },
+    "payload": {
+      "title": "Voyage",
+      "allDay": false,
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "type": "single",
+      "date": "2026-08-28",
+      "endDate": "2026-08-31"
+    }
+  }
+}

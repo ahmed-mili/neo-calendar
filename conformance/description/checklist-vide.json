@@ -1,0 +1,13 @@
+{
+  "name": "description vide",
+  "fn": "description.checklist",
+  "input": {
+    "description": ""
+  },
+  "expected": [
+    {
+      "kind": "text",
+      "text": ""
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "une marque qui n'est pas x n'est pas faite",
+  "fn": "description.checklist",
+  "input": {
+    "description": "- [/] en cours\n- [-] annule"
+  },
+  "expected": [
+    {
+      "kind": "task",
+      "done": false,
+      "title": "en cours",
+      "indent": ""
+    },
+    {
+      "kind": "task",
+      "done": false,
+      "title": "annule",
+      "indent": ""
+    }
+  ]
+}

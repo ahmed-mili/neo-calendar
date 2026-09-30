@@ -1,0 +1,85 @@
+{
+  "name": "la date d'une serie est celle de depart",
+  "fn": "form.payload",
+  "input": {
+    "event": {
+      "title": "Sport",
+      "allDay": false,
+      "startTime": "18:00",
+      "endTime": "19:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,TH;COUNT=6",
+      "skipDates": [
+        "2026-08-17"
+      ],
+      "completedDates": [
+        "2026-08-03"
+      ],
+      "completed": false
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Etudes",
+    "edits": [
+      [
+        "setDate",
+        "2026-08-10"
+      ]
+    ]
+  },
+  "expected": {
+    "values": {
+      "title": "Sport",
+      "description": "",
+      "location": "",
+      "date": "2026-08-10",
+      "startTime": "18:00",
+      "endTime": "19:00",
+      "allDay": false,
+      "isRecurring": true,
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 2,
+        "byDay": [
+          "M",
+          "R"
+        ],
+        "monthMode": "dayOfMonth",
+        "end": {
+          "kind": "count",
+          "count": 6
+        }
+      },
+      "calendarIndex": 1,
+      "taskStatus": "todo",
+      "due": null
+    },
+    "payload": {
+      "title": "Sport",
+      "allDay": false,
+      "startTime": "18:00",
+      "endTime": "19:00",
+      "type": "rrule",
+      "startDate": "2026-08-10",
+      "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,TH;COUNT=6",
+      "skipDates": [
+        "2026-08-17"
+      ],
+      "completed": false,
+      "completedDates": [
+        "2026-08-03"
+      ]
+    }
+  }
+}

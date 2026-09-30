@@ -1,0 +1,21 @@
+{
+  "name": "retrait conserve",
+  "fn": "description.checklist",
+  "input": {
+    "description": "  - [ ] sous-etape\n\t- [x] tabulation"
+  },
+  "expected": [
+    {
+      "kind": "task",
+      "done": false,
+      "title": "sous-etape",
+      "indent": "  "
+    },
+    {
+      "kind": "task",
+      "done": true,
+      "title": "tabulation",
+      "indent": "\t"
+    }
+  ]
+}

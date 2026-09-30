@@ -1,0 +1,11 @@
+{
+  "name": "geo: pour une recherche : rien",
+  "fn": "location.geoUrl",
+  "input": {
+    "destination": {
+      "kind": "search",
+      "value": "Efrei Bat. C C001"
+    }
+  },
+  "expected": null
+}

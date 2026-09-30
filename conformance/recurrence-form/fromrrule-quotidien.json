@@ -1,0 +1,17 @@
+{
+  "name": "quotidien",
+  "fn": "recurrence.fromRRule",
+  "input": {
+    "rrule": "RRULE:FREQ=DAILY;INTERVAL=1",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "daily",
+    "interval": 1,
+    "byDay": [],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "never"
+    }
+  }
+}

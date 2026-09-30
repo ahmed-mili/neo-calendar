@@ -1,0 +1,12 @@
+{
+  "name": "libelle d'un rappel horodate : 5",
+  "fn": "reminders.choiceLabel",
+  "input": {
+    "minutes": 5,
+    "allDay": false
+  },
+  "expected": {
+    "amount": "5 min",
+    "suffix": "avant"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "HTTP en majuscules",
+  "fn": "location.destination",
+  "input": {
+    "location": "HTTPS://Example.com"
+  },
+  "expected": {
+    "kind": "link",
+    "value": "HTTPS://Example.com"
+  }
+}

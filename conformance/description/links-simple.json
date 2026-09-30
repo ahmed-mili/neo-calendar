@@ -1,0 +1,15 @@
+{
+  "name": "un lien",
+  "fn": "description.links",
+  "input": {
+    "text": "Voir [le site](https://example.com) demain"
+  },
+  "expected": [
+    {
+      "start": 5,
+      "end": 35,
+      "label": "le site",
+      "target": "https://example.com"
+    }
+  ]
+}

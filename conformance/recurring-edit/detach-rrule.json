@@ -1,0 +1,28 @@
+{
+  "name": "une occurrence devient un evenement ponctuel",
+  "fn": "recurringEdit.detach",
+  "input": {
+    "payload": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=10",
+      "skipDates": []
+    },
+    "dateISO": "2026-08-10",
+    "done": false,
+    "now": "2026-09-30T10:00:00.000+02:00"
+  },
+  "expected": {
+    "title": "Essai",
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "single",
+    "date": "2026-08-10",
+    "endDate": null
+  }
+}

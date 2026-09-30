@@ -1,0 +1,69 @@
+{
+  "name": "tache terminee",
+  "fn": "form.payload",
+  "input": {
+    "event": {
+      "title": "Payer",
+      "allDay": true,
+      "type": "single",
+      "date": "2026-08-20",
+      "endDate": null,
+      "completed": false,
+      "due": "2026-08-25"
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Etudes",
+    "edits": [
+      [
+        "setTaskStatus",
+        "complete"
+      ]
+    ]
+  },
+  "expected": {
+    "values": {
+      "title": "Payer",
+      "description": "",
+      "location": "",
+      "date": "2026-08-20",
+      "startTime": "",
+      "endTime": "",
+      "allDay": true,
+      "isRecurring": false,
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byDay": [
+          "R"
+        ],
+        "monthMode": "dayOfMonth",
+        "end": {
+          "kind": "never"
+        }
+      },
+      "calendarIndex": 1,
+      "taskStatus": "complete",
+      "due": "2026-08-25"
+    },
+    "payload": {
+      "title": "Payer",
+      "allDay": true,
+      "type": "single",
+      "date": "2026-08-20",
+      "endDate": null,
+      "completed": "<horodatage>",
+      "due": "2026-08-25"
+    }
+  }
+}

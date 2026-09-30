@@ -1,0 +1,8 @@
+{
+  "name": "un identifiant de chemin n'a pas de date",
+  "fn": "recurringEdit.occurrenceDate",
+  "input": {
+    "displayId": "path:Cal/2026-08-16 x.md"
+  },
+  "expected": null
+}

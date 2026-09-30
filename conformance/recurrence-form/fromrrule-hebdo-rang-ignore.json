@@ -1,0 +1,19 @@
+{
+  "name": "hebdo avec un rang dans BYDAY : le jour seul",
+  "fn": "recurrence.fromRRule",
+  "input": {
+    "rrule": "RRULE:FREQ=WEEKLY;BYDAY=+1MO",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "weekly",
+    "interval": 1,
+    "byDay": [
+      "M"
+    ],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "never"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "cases a cocher",
+  "fn": "description.checklist",
+  "input": {
+    "description": "- [ ] un\n- [x] deux\n- [X] trois\n* [ ] quatre\n+ [ ] cinq"
+  },
+  "expected": [
+    {
+      "kind": "task",
+      "done": false,
+      "title": "un",
+      "indent": ""
+    },
+    {
+      "kind": "task",
+      "done": true,
+      "title": "deux",
+      "indent": ""
+    },
+    {
+      "kind": "task",
+      "done": true,
+      "title": "trois",
+      "indent": ""
+    },
+    {
+      "kind": "task",
+      "done": false,
+      "title": "quatre",
+      "indent": ""
+    },
+    {
+      "kind": "task",
+      "done": false,
+      "title": "cinq",
+      "indent": ""
+    }
+  ]
+}

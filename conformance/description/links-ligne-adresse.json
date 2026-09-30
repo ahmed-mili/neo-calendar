@@ -1,0 +1,8 @@
+{
+  "name": "l'adresse ne franchit pas une fin de ligne",
+  "fn": "description.links",
+  "input": {
+    "text": "[a](https://example.com\nsuite)"
+  },
+  "expected": []
+}

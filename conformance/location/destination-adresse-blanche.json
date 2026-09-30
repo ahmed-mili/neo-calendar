@@ -1,0 +1,12 @@
+{
+  "name": "adresse blanche : ignoree",
+  "fn": "location.destination",
+  "input": {
+    "location": "Salle 4",
+    "linkAddress": "   "
+  },
+  "expected": {
+    "kind": "search",
+    "value": "Salle 4"
+  }
+}

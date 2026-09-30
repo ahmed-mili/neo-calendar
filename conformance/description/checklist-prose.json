@@ -1,0 +1,17 @@
+{
+  "name": "du texte",
+  "fn": "description.checklist",
+  "input": {
+    "description": "Bonjour\nle monde"
+  },
+  "expected": [
+    {
+      "kind": "text",
+      "text": "Bonjour"
+    },
+    {
+      "kind": "text",
+      "text": "le monde"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "crochet echappe dans le nom",
+  "fn": "description.links",
+  "input": {
+    "text": "[a \\] b](https://example.com)"
+  },
+  "expected": [
+    {
+      "start": 0,
+      "end": 29,
+      "label": "a ] b",
+      "target": "https://example.com"
+    }
+  ]
+}

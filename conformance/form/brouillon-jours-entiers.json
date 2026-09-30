@@ -1,0 +1,60 @@
+{
+  "name": "ebauche sur trois jours entiers",
+  "fn": "form.payload",
+  "input": {
+    "draft": {
+      "start": "2026-08-28T00:00:00",
+      "end": "2026-08-31T00:00:00",
+      "allDay": true,
+      "defaultAsTask": false
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Islam",
+    "edits": []
+  },
+  "expected": {
+    "values": {
+      "title": "",
+      "description": "",
+      "location": "",
+      "date": "2026-08-28",
+      "endDate": "2026-08-30",
+      "startTime": "",
+      "endTime": "",
+      "allDay": true,
+      "isRecurring": false,
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byDay": [
+          "F"
+        ],
+        "monthMode": "dayOfMonth",
+        "end": {
+          "kind": "never"
+        }
+      },
+      "calendarIndex": 0,
+      "taskStatus": null,
+      "due": null
+    },
+    "payload": {
+      "title": "",
+      "allDay": true,
+      "type": "single",
+      "date": "2026-08-28",
+      "endDate": "2026-08-30"
+    }
+  }
+}

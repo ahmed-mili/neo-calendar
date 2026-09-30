@@ -1,0 +1,8 @@
+{
+  "name": "rien",
+  "fn": "location.destination",
+  "input": {
+    "location": ""
+  },
+  "expected": null
+}

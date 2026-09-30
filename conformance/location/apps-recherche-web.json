@@ -1,0 +1,14 @@
+{
+  "name": "une recherche sur le web",
+  "fn": "location.apps",
+  "input": {
+    "destination": {
+      "kind": "search",
+      "value": "Efrei Bat. C C001"
+    },
+    "native": false
+  },
+  "expected": [
+    "google"
+  ]
+}

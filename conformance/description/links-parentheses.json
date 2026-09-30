@@ -1,0 +1,15 @@
+{
+  "name": "parentheses dans l'adresse",
+  "fn": "description.links",
+  "input": {
+    "text": "[notes](Cours/(2025-2026)/note.md)"
+  },
+  "expected": [
+    {
+      "start": 0,
+      "end": 34,
+      "label": "notes",
+      "target": "Cours/(2025-2026)/note.md"
+    }
+  ]
+}

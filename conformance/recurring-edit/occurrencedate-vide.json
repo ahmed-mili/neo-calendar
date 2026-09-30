@@ -1,0 +1,8 @@
+{
+  "name": "un identifiant vide devant le suffixe",
+  "fn": "recurringEdit.occurrenceDate",
+  "input": {
+    "displayId": "_2026-08-16"
+  },
+  "expected": "2026-08-16"
+}

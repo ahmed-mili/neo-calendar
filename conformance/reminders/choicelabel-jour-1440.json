@@ -1,0 +1,12 @@
+{
+  "name": "libelle d'un rappel de journee entiere : 1440",
+  "fn": "reminders.choiceLabel",
+  "input": {
+    "minutes": 1440,
+    "allDay": true
+  },
+  "expected": {
+    "amount": "00:00",
+    "suffix": "1 jour avant"
+  }
+}

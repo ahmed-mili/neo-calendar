@@ -1,0 +1,9 @@
+{
+  "name": "chemin d'une piece jointe : sous-dossier",
+  "fn": "description.attachmentPath",
+  "input": {
+    "eventRelativePath": "Islam/Sous/x.md",
+    "target": "Islam/Sous/.attachments/a.png"
+  },
+  "expected": "Islam/Sous/.attachments/a.png"
+}

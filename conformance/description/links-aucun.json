@@ -1,0 +1,8 @@
+{
+  "name": "pas de lien",
+  "fn": "description.links",
+  "input": {
+    "text": "Bonjour le monde"
+  },
+  "expected": []
+}

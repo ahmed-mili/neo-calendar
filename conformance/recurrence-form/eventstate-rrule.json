@@ -1,0 +1,33 @@
+{
+  "name": "une serie rrule est relue",
+  "fn": "recurrence.eventState",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,TH;COUNT=6",
+      "skipDates": []
+    },
+    "startDate": "2026-08-03"
+  },
+  "expected": {
+    "isRecurring": true,
+    "recurrence": {
+      "freq": "weekly",
+      "interval": 2,
+      "byDay": [
+        "M",
+        "R"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "count",
+        "count": 6
+      }
+    }
+  }
+}

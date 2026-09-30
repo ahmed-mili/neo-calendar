@@ -18,7 +18,7 @@ class InvalidEventException : IllegalArgumentException("The event is invalid and
 
 /** `KEYS_DROPPED_WHEN_ABSENT` de src/types/schema.ts : TYPE_DISCRIMINANT_KEYS,
  *  puis `subtasks` et `description`. */
-private val KEYS_DROPPED_WHEN_ABSENT = setOf(
+internal val KEYS_DROPPED_WHEN_ABSENT = setOf(
     "date", "endDate", "completed", "due", "daysOfWeek", "startRecur", "endRecur",
     "rrule", "startDate", "skipDates", "completedDates",
     "subtasks", "description",

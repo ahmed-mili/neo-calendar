@@ -1,0 +1,9 @@
+{
+  "name": "l'espace manquant est ajoute",
+  "fn": "description.toggle",
+  "input": {
+    "description": "- [ ]a",
+    "index": 0
+  },
+  "expected": "- [x] a"
+}

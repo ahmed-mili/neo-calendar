@@ -1,0 +1,13 @@
+{
+  "name": "coordonnees ecrites dans l'adresse",
+  "fn": "location.destination",
+  "input": {
+    "location": "Salle 4",
+    "linkAddress": "48.85, 2.35"
+  },
+  "expected": {
+    "kind": "point",
+    "value": "48.85,2.35",
+    "label": "Salle 4"
+  }
+}

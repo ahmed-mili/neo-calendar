@@ -1,0 +1,12 @@
+{
+  "name": "geo: sans point : rien",
+  "fn": "location.geoUrl",
+  "input": {
+    "destination": {
+      "kind": "address",
+      "value": "12 rue de la Paix",
+      "label": "Salle 4"
+    }
+  },
+  "expected": null
+}

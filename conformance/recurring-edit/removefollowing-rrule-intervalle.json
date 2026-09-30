@@ -1,0 +1,27 @@
+{
+  "name": "l'ordre des parties est garde",
+  "fn": "recurringEdit.removeFollowing",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO;COUNT=10",
+      "skipDates": []
+    },
+    "dateISO": "2026-08-31"
+  },
+  "expected": {
+    "title": "Essai",
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "rrule",
+    "startDate": "2026-08-03",
+    "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO;UNTIL=20260830T235959Z",
+    "skipDates": []
+  }
+}

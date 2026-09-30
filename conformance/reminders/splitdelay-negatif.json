@@ -1,0 +1,11 @@
+{
+  "name": "delai personnalise relu : -5 minutes",
+  "fn": "reminders.splitDelay",
+  "input": {
+    "minutes": -5
+  },
+  "expected": {
+    "amount": 10,
+    "unit": "minutes"
+  }
+}

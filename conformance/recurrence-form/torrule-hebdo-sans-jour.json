@@ -1,0 +1,17 @@
+{
+  "name": "hebdo sans jour : le jour de la date de debut",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=WE"
+}

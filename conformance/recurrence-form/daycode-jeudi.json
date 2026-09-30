@@ -1,0 +1,8 @@
+{
+  "name": "code du jour : jeudi",
+  "fn": "recurrence.dayCode",
+  "input": {
+    "date": "2026-08-13"
+  },
+  "expected": "R"
+}

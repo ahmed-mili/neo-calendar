@@ -1,0 +1,82 @@
+{
+  "name": "une serie hebdomadaire s'ouvre et s'ecrit en rrule",
+  "fn": "form.payload",
+  "input": {
+    "event": {
+      "title": "Cours",
+      "allDay": false,
+      "startTime": "08:00",
+      "endTime": "10:00",
+      "type": "recurring",
+      "daysOfWeek": [
+        "M",
+        "W"
+      ],
+      "startRecur": "2026-08-03",
+      "endRecur": "2026-12-18",
+      "skipDates": [
+        "2026-08-10"
+      ],
+      "completedDates": [
+        "2026-08-05"
+      ]
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Etudes",
+    "edits": []
+  },
+  "expected": {
+    "values": {
+      "title": "Cours",
+      "description": "",
+      "location": "",
+      "date": "2026-08-03",
+      "startTime": "08:00",
+      "endTime": "10:00",
+      "allDay": false,
+      "isRecurring": true,
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byDay": [
+          "M",
+          "W"
+        ],
+        "monthMode": "dayOfMonth",
+        "end": {
+          "kind": "until",
+          "date": "2026-12-18"
+        }
+      },
+      "calendarIndex": 1,
+      "taskStatus": null,
+      "due": null
+    },
+    "payload": {
+      "title": "Cours",
+      "allDay": false,
+      "startTime": "08:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE;UNTIL=20261218T235959Z",
+      "skipDates": [
+        "2026-08-10"
+      ],
+      "completedDates": [
+        "2026-08-05"
+      ]
+    }
+  }
+}

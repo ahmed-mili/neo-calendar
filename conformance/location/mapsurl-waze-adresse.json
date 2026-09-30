@@ -1,0 +1,16 @@
+{
+  "name": "Waze avec adresse et point",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "address",
+      "value": "12 rue de la Paix",
+      "point": "48.85,2.35",
+      "label": "Salle 4"
+    },
+    "app": "waze",
+    "travelMode": "auto",
+    "native": true
+  },
+  "expected": "https://waze.com/ul?ll=48.85%2C2.35&navigate=yes"
+}

@@ -1,0 +1,21 @@
+{
+  "name": "un autre jour n'est pas fait",
+  "fn": "recurringEdit.occurrenceIsDone",
+  "input": {
+    "series": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=10",
+      "skipDates": [],
+      "completedDates": [
+        "2026-08-10"
+      ]
+    },
+    "dateISO": "2026-08-17"
+  },
+  "expected": false
+}

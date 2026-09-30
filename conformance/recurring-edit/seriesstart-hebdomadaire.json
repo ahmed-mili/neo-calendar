@@ -1,0 +1,20 @@
+{
+  "name": "premiere occurrence d'une serie hebdo",
+  "fn": "recurringEdit.seriesStart",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "recurring",
+      "daysOfWeek": [
+        "M",
+        "W"
+      ],
+      "startRecur": "2026-08-03",
+      "skipDates": []
+    }
+  },
+  "expected": "2026-08-03"
+}

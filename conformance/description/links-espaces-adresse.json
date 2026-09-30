@@ -1,0 +1,15 @@
+{
+  "name": "l'adresse est rognee",
+  "fn": "description.links",
+  "input": {
+    "text": "[a](  https://example.com  )"
+  },
+  "expected": [
+    {
+      "start": 0,
+      "end": 28,
+      "label": "a",
+      "target": "https://example.com"
+    }
+  ]
+}

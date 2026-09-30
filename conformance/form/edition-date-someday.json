@@ -1,0 +1,67 @@
+{
+  "name": "donner une date a un evenement sans date",
+  "fn": "form.payload",
+  "input": {
+    "event": {
+      "title": "Ranger",
+      "type": "someday",
+      "allDay": true
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Etudes",
+    "edits": [
+      [
+        "setDate",
+        "2026-09-03"
+      ],
+      [
+        "setAllDay",
+        false
+      ],
+      [
+        "setStartTime",
+        "09:00"
+      ],
+      [
+        "setEndTime",
+        "10:00"
+      ]
+    ]
+  },
+  "expected": {
+    "values": {
+      "title": "Ranger",
+      "description": "",
+      "location": "",
+      "date": "2026-09-03",
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "allDay": false,
+      "isRecurring": false,
+      "recurrence": "<auj>",
+      "calendarIndex": 1,
+      "taskStatus": null,
+      "due": null
+    },
+    "payload": {
+      "title": "Ranger",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-09-03",
+      "endDate": null
+    }
+  }
+}

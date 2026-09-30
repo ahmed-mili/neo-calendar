@@ -1,0 +1,16 @@
+{
+  "name": "Citymapper avec adresse et point",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "address",
+      "value": "12 rue de la Paix",
+      "point": "48.85,2.35",
+      "label": "Salle 4"
+    },
+    "app": "citymapper",
+    "travelMode": "auto",
+    "native": true
+  },
+  "expected": "citymapper://directions?endcoord=48.85%2C2.35&endaddress=12%20rue%20de%20la%20Paix&endname=Salle%204"
+}

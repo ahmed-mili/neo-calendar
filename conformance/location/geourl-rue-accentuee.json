@@ -1,0 +1,12 @@
+{
+  "name": "geo: encode la rue",
+  "fn": "location.geoUrl",
+  "input": {
+    "destination": {
+      "kind": "address",
+      "value": "5 rue de l'Église & co",
+      "point": "48.85,2.35"
+    }
+  },
+  "expected": "geo:48.85,2.35?q=5%20rue%20de%20l'%C3%89glise%20%26%20co"
+}

@@ -1,0 +1,25 @@
+{
+  "name": "champs d'evenement d'une repetition hebdo",
+  "fn": "recurrence.fields",
+  "input": {
+    "state": {
+      "freq": "weekly",
+      "interval": 2,
+      "byDay": [
+        "M",
+        "W"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-03"
+  },
+  "expected": {
+    "type": "rrule",
+    "startDate": "2026-08-03",
+    "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE",
+    "skipDates": []
+  }
+}

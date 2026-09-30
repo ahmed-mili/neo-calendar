@@ -1,0 +1,16 @@
+{
+  "name": "tous les 2 ans",
+  "fn": "recurrence.summary",
+  "input": {
+    "state": {
+      "freq": "yearly",
+      "interval": 2,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    }
+  },
+  "expected": "Tous les 2 ans"
+}

@@ -1,0 +1,35 @@
+{
+  "name": "un jour de serie hebdomadaire",
+  "fn": "recurringEdit.removeOccurrence",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "recurring",
+      "daysOfWeek": [
+        "M",
+        "W"
+      ],
+      "startRecur": "2026-08-03",
+      "skipDates": []
+    },
+    "dateISO": "2026-08-05"
+  },
+  "expected": {
+    "title": "Essai",
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "recurring",
+    "daysOfWeek": [
+      "M",
+      "W"
+    ],
+    "startRecur": "2026-08-03",
+    "skipDates": [
+      "2026-08-05"
+    ]
+  }
+}

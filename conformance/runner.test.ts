@@ -14,7 +14,8 @@ function caseFiles(dir: string): string[] {
         .readdirSync(dir, { withFileTypes: true })
         .flatMap((entry) => {
             const full = path.join(dir, entry.name);
-            if (entry.isDirectory()) return caseFiles(full);
+            // `form/` se rejoue sous jsdom : voir formRunner.test.tsx.
+            if (entry.isDirectory()) return entry.name === "form" ? [] : caseFiles(full);
             return entry.name.endsWith(".json") ? [full] : [];
         })
         .sort();

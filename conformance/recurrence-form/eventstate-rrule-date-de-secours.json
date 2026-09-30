@@ -1,0 +1,31 @@
+{
+  "name": "rrule sans date de debut : la date donnee",
+  "fn": "recurrence.eventState",
+  "input": {
+    "event": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "",
+      "rrule": "RRULE:FREQ=WEEKLY",
+      "skipDates": []
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "isRecurring": true,
+    "recurrence": {
+      "freq": "weekly",
+      "interval": 1,
+      "byDay": [
+        "W"
+      ],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    }
+  }
+}

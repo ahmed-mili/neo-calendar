@@ -1,0 +1,15 @@
+{
+  "name": "Moovit avec nom",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "point",
+      "value": "48.79,2.37",
+      "label": "Efrei Bat. C"
+    },
+    "app": "moovit",
+    "travelMode": "auto",
+    "native": true
+  },
+  "expected": "moovit://directions?dest_lat=48.79&dest_lon=2.37&dest_name=Efrei%20Bat.%20C"
+}

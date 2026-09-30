@@ -1,0 +1,34 @@
+{
+  "name": "repetition changee",
+  "fn": "recurringEdit.changes",
+  "input": {
+    "stable": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO",
+      "skipDates": []
+    },
+    "payload": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE",
+      "skipDates": []
+    }
+  },
+  "expected": [
+    {
+      "key": "repeat",
+      "label": "Repeat",
+      "before": "Toutes les semaines le lundi",
+      "after": "Toutes les 2 semaines le lundi, mercredi"
+    }
+  ]
+}

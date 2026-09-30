@@ -1,0 +1,16 @@
+{
+  "name": "un intervalle nul se lit 1",
+  "fn": "recurrence.summary",
+  "input": {
+    "state": {
+      "freq": "daily",
+      "interval": 0,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    }
+  },
+  "expected": "Tous les jours"
+}

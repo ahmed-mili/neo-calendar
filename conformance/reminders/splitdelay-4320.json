@@ -1,0 +1,11 @@
+{
+  "name": "delai personnalise relu : 4320 minutes",
+  "fn": "reminders.splitDelay",
+  "input": {
+    "minutes": 4320
+  },
+  "expected": {
+    "amount": 3,
+    "unit": "days"
+  }
+}

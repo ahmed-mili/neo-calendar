@@ -10,3 +10,25 @@ interface WorkspaceStorage {
 
     data class Entry(val name: String, val isDirectory: Boolean)
 }
+
+/**
+ * Le même dossier, avec l'écriture. Les chemins sont relatifs à la racine
+ * ("" = racine) ; un chemin rendu est celui du fichier tel qu'il existe
+ * ensuite, à passer aux appels suivants.
+ */
+interface WritableWorkspaceStorage : WorkspaceStorage {
+    /** Remplace tout le contenu d'un fichier existant (UTF-8). */
+    fun writeText(relativePath: String, text: String)
+
+    /** Crée un fichier vide dans un dossier qui existe ; le nom doit être libre. */
+    fun createFile(relativeDir: String, name: String, mimeType: String): String
+
+    /** Crée un sous-dossier ; le nom doit être libre. */
+    fun createDirectory(relativeDir: String, name: String): String
+
+    /** Change le nom d'un fichier ou d'un dossier, dans le même dossier (un renommage ne déplace pas). */
+    fun rename(relativePath: String, newName: String): String
+
+    /** Supprime un fichier ou un dossier. */
+    fun delete(relativePath: String)
+}

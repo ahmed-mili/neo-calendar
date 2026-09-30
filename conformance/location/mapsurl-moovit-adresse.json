@@ -1,0 +1,16 @@
+{
+  "name": "Moovit avec adresse",
+  "fn": "location.mapsUrl",
+  "input": {
+    "destination": {
+      "kind": "address",
+      "value": "12 rue de la Paix",
+      "point": "48.85,2.35",
+      "label": "Salle 4"
+    },
+    "app": "moovit",
+    "travelMode": "auto",
+    "native": true
+  },
+  "expected": "moovit://directions?dest_lat=48.85&dest_lon=2.35&dest_name=Salle%204"
+}

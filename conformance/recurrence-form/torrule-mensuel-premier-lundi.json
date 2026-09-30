@@ -1,0 +1,17 @@
+{
+  "name": "mensuel le 1er lundi, tous les 2 mois",
+  "fn": "recurrence.toRRule",
+  "input": {
+    "state": {
+      "freq": "monthly",
+      "interval": 2,
+      "byDay": [],
+      "monthMode": "dayOfWeek",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-03"
+  },
+  "expected": "RRULE:FREQ=MONTHLY;INTERVAL=2;BYDAY=+1MO"
+}

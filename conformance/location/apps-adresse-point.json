@@ -1,0 +1,25 @@
+{
+  "name": "une adresse et un point : les quatre",
+  "fn": "location.apps",
+  "input": {
+    "destination": {
+      "kind": "address",
+      "value": "12 rue de la Paix",
+      "point": "48.85,2.35",
+      "label": "Salle 4"
+    },
+    "native": true,
+    "installed": [
+      "google",
+      "citymapper",
+      "moovit",
+      "waze"
+    ]
+  },
+  "expected": [
+    "google",
+    "citymapper",
+    "moovit",
+    "waze"
+  ]
+}

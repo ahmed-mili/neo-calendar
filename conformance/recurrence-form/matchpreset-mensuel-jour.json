@@ -1,0 +1,17 @@
+{
+  "name": "mensuel le jour du mois : preset mensuel",
+  "fn": "recurrence.matchPreset",
+  "input": {
+    "state": {
+      "freq": "monthly",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    },
+    "startDate": "2026-08-12"
+  },
+  "expected": "monthly"
+}

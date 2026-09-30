@@ -1,0 +1,89 @@
+{
+  "name": "un lieu efface",
+  "fn": "form.payload",
+  "input": {
+    "event": {
+      "title": "Dentiste",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null,
+      "id": "abc",
+      "location": "Salle 4",
+      "geo": "48.85,2.35",
+      "description": "Texte",
+      "attendees": [
+        "a@b.c"
+      ],
+      "reminders": [
+        10,
+        60
+      ]
+    },
+    "calendars": [
+      {
+        "id": "local::Islam",
+        "name": "Islam",
+        "type": "local"
+      },
+      {
+        "id": "local::Etudes",
+        "name": "Etudes",
+        "type": "local"
+      }
+    ],
+    "currentCalendarId": "local::Etudes",
+    "edits": [
+      [
+        "setLocation",
+        ""
+      ]
+    ]
+  },
+  "expected": {
+    "values": {
+      "title": "Dentiste",
+      "description": "Texte",
+      "location": "",
+      "date": "2026-08-12",
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "allDay": false,
+      "isRecurring": false,
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byDay": [
+          "W"
+        ],
+        "monthMode": "dayOfMonth",
+        "end": {
+          "kind": "never"
+        }
+      },
+      "calendarIndex": 1,
+      "taskStatus": null,
+      "due": null,
+      "reminders": [
+        10,
+        60
+      ]
+    },
+    "payload": {
+      "title": "Dentiste",
+      "reminders": [
+        10,
+        60
+      ],
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null,
+      "description": "Texte"
+    }
+  }
+}

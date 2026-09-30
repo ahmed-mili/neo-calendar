@@ -1,0 +1,32 @@
+{
+  "name": "une serie hebdomadaire aussi",
+  "fn": "recurringEdit.detach",
+  "input": {
+    "payload": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "recurring",
+      "daysOfWeek": [
+        "M",
+        "W"
+      ],
+      "startRecur": "2026-08-03",
+      "skipDates": [],
+      "endRecur": "2026-12-01"
+    },
+    "dateISO": "2026-08-05",
+    "done": false,
+    "now": "2026-09-30T10:00:00.000+02:00"
+  },
+  "expected": {
+    "title": "Essai",
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "single",
+    "date": "2026-08-05",
+    "endDate": null
+  }
+}

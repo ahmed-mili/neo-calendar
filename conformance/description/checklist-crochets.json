@@ -1,0 +1,17 @@
+{
+  "name": "crochets dans une phrase",
+  "fn": "description.checklist",
+  "input": {
+    "description": "voir [ ] ici\n[x] ici"
+  },
+  "expected": [
+    {
+      "kind": "text",
+      "text": "voir [ ] ici"
+    },
+    {
+      "kind": "text",
+      "text": "[x] ici"
+    }
+  ]
+}

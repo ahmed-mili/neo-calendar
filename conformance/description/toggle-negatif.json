@@ -1,0 +1,9 @@
+{
+  "name": "un index negatif ne change rien",
+  "fn": "description.toggle",
+  "input": {
+    "description": "- [ ] a",
+    "index": -1
+  },
+  "expected": "- [ ] a"
+}

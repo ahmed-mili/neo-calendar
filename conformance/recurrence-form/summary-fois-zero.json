@@ -1,0 +1,17 @@
+{
+  "name": "un nombre de fois nul se lit une fois",
+  "fn": "recurrence.summary",
+  "input": {
+    "state": {
+      "freq": "daily",
+      "interval": 1,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "count",
+        "count": 0
+      }
+    }
+  },
+  "expected": "Tous les jours, 1 fois"
+}

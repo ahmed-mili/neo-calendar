@@ -1,0 +1,15 @@
+{
+  "name": "une image",
+  "fn": "description.links",
+  "input": {
+    "text": "![logo](.attachments/logo.png)"
+  },
+  "expected": [
+    {
+      "start": 0,
+      "end": 30,
+      "label": "logo",
+      "target": ".attachments/logo.png"
+    }
+  ]
+}

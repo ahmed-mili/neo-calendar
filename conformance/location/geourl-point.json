@@ -1,0 +1,11 @@
+{
+  "name": "geo: pour un point",
+  "fn": "location.geoUrl",
+  "input": {
+    "destination": {
+      "kind": "point",
+      "value": "48.79,2.37"
+    }
+  },
+  "expected": "geo:48.79,2.37?q=48.79,2.37"
+}

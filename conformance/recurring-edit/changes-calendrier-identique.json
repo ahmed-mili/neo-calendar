@@ -1,0 +1,31 @@
+{
+  "name": "meme calendrier : rien",
+  "fn": "recurringEdit.changes",
+  "input": {
+    "stable": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO",
+      "skipDates": []
+    },
+    "payload": {
+      "title": "Essai",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO",
+      "skipDates": []
+    },
+    "context": {
+      "previousCalendarId": "local::A",
+      "nextCalendarId": "local::A"
+    }
+  },
+  "expected": []
+}

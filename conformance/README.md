@@ -12,8 +12,16 @@ conformance/
 ├── recurrence/*.json        occurrences d'un évènement dans une fenêtre
 ├── reminders/*.json         rappels calculés depuis évènements + préférences
 ├── ics/*.json               flux ICS -> occurrences ; plan de synchro en notes
-└── layout/*.json            chevauchements de la grille, bandes all-day
+├── layout/*.json            chevauchements de la grille, bandes all-day
+├── recurrence-form/*.json   répétition de la fiche : RRULE <-> formulaire, préréglages, résumé
+├── recurring-edit/*.json    modifier ou supprimer un jour d'une série, différences affichées
+├── location/*.json          destination d'un lieu, applications de cartes, adresses
+├── description/*.json       cases à cocher, liens et chemins de pièces jointes d'une description
+└── form/*.json              la fiche rendue pour de bon (jsdom) : valeurs lues, payload écrit
 ```
+
+`notes/merge-*.json` (fusion du formulaire sur la note) et `reminders/choicelabel-*`,
+`splitdelay-*`, `minutesfrom-*` (délais de rappel) complètent les dossiers existants.
 
 ## Format d'un cas
 
@@ -51,11 +59,28 @@ Un cas = un fichier JSON :
 
 ## Lancer
 
-- Jest, à la racine du dépôt : `npx jest conformance`
+- Jest, à la racine du dépôt : `npx jest conformance` (les cas de `form/` se
+  rejouent sous jsdom, dans `formRunner.test.tsx` ; `runner.test.ts` les laisse)
 - JUnit, dans `apps/android/native`, sous PowerShell :
   `$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot"; .\gradlew.bat :core:test`
 
 ## Écarts connus
+
+Dans les cas de la fiche (ce que le TypeScript fait aujourd'hui, repris tel quel) :
+
+- `recurrenceSummary` lit la date de fin avec l'année courante (`formatDateLong`) :
+  les cas du résumé n'ont pas de date de fin ; `EntryKindTest.kt` en porte
+  les attendus avec une année explicite.
+- `dayCodeOf` d'une date illisible rend `undefined` (TypeScript) ; le Kotlin rend « M ».
+- « Same day » (rappel d'une journée entière le jour même) n'existe pas dans le
+  dictionnaire français : il s'affiche en anglais, le noyau fait de même.
+- `mergeForSave` garde le lieu de la note quand le formulaire en envoie un vide :
+  effacer un lieu ne l'efface pas (cas `notes/merge-lieu-vide.json`).
+- `buildPayload` réécrit l'horodatage d'une tâche terminée à chaque enregistrement
+  (`completed` vaut l'instant de l'écriture) : les cas le masquent (`<horodatage>`).
+- `rruleToRecurrence` lit `rrulestr` ; le Kotlin lit le texte des règles que
+  l'application écrit (un `UNTIL` mal formé lève côté TypeScript, pas côté Kotlin).
+- La répétition par défaut d'un évènement sans date part d'aujourd'hui : le cas la masque.
 
 `lib-recur` (Kotlin) ne reproduit pas `rrule` (TypeScript) sur des formes que
 l'application n'écrit jamais (`recurrenceToRRule` ne produit que `FREQ`,

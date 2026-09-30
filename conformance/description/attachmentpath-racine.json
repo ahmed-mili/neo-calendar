@@ -1,0 +1,9 @@
+{
+  "name": "chemin d'une piece jointe : racine",
+  "fn": "description.attachmentPath",
+  "input": {
+    "eventRelativePath": "2026-08-12 Cours.md",
+    "target": ".attachments/a.png"
+  },
+  "expected": ".attachments/a.png"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "decocher un X majuscule",
+  "fn": "description.toggle",
+  "input": {
+    "description": "- [X] a",
+    "index": 0
+  },
+  "expected": "- [ ] a"
+}

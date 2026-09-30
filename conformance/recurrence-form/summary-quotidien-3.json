@@ -1,0 +1,16 @@
+{
+  "name": "tous les 3 jours",
+  "fn": "recurrence.summary",
+  "input": {
+    "state": {
+      "freq": "daily",
+      "interval": 3,
+      "byDay": [],
+      "monthMode": "dayOfMonth",
+      "end": {
+        "kind": "never"
+      }
+    }
+  },
+  "expected": "Tous les 3 jours"
+}

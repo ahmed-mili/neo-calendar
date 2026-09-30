@@ -1,0 +1,8 @@
+{
+  "name": "rien d'ouvert : null",
+  "fn": "recurringEdit.occurrenceDate",
+  "input": {
+    "displayId": null
+  },
+  "expected": null
+}

@@ -1,0 +1,17 @@
+{
+  "name": "prereglage daily un mercredi",
+  "fn": "recurrence.preset",
+  "input": {
+    "key": "daily",
+    "startDate": "2026-08-12"
+  },
+  "expected": {
+    "freq": "daily",
+    "interval": 1,
+    "byDay": [],
+    "monthMode": "dayOfMonth",
+    "end": {
+      "kind": "never"
+    }
+  }
+}
