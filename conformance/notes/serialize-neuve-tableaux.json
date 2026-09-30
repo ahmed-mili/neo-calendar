@@ -1,0 +1,6 @@
+{
+  "name": "tableaux : participants, rappels entiers et décimaux",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":false,"date":"2026-10-02","startTime":"09:30","endTime":"10:15","attendees":["a@b.fr","c, d","e\"f"],"reminders":[60,0,2.5,0.000001,123456789012345680000]}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\nattendees: [\"a@b.fr\",\"c, d\",\"e\\\"f\"]\nreminders: [60,0,2.5,0.000001,123456789012345680000]\nallDay: false\nstartTime: \"09:30\"\nendTime: \"10:15\"\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

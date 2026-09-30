@@ -1,4 +1,4 @@
-import { filenameForEvent, parseFrontmatter, parseStoredEvent } from "../apps/windows/src/platform/desktopEventFormat";
+import { filenameForEvent, parseFrontmatter, parseStoredEvent, serializeEventMarkdown } from "../apps/windows/src/platform/desktopEventFormat";
 import type { NeoEvent } from "../src/types";
 import { validateEvent } from "../src/types/schema";
 
@@ -14,5 +14,12 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
         if (!stored) return null;
         const { contents: _contents, ...rest } = stored;
         return rest;
+    },
+    "notes.serialize": ({ event, previousContents }) => {
+        try {
+            return { text: serializeEventMarkdown(event, previousContents ?? "") };
+        } catch {
+            return { error: "invalid" };
+        }
     },
 };

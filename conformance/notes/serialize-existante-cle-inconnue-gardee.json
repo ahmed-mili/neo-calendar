@@ -1,0 +1,6 @@
+{
+  "name": "note existante : clé inconnue gardée octet pour octet et à sa place",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\ntitle: Ancien\ncouleur:   #ff0000   \ntype: single\nallDay: true\ndate: 2026-09-01\nzeta: [a,  b]\n---\nCorps\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ncouleur:   #ff0000   \ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\nzeta: [a,  b]\nendDate: null\n---\nCorps\n"}
+}

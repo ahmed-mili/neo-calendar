@@ -1,0 +1,6 @@
+{
+  "name": "note neuve : single horodaté, tous les champs, ordre zod",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":false,"date":"2026-10-02","startTime":"09:30","endTime":"10:15","endDate":"2026-10-03","completed":"2026-10-02","due":"2026-10-05","subtasks":["[ ] a"],"reminders":[10],"attendees":["x@y.fr"],"description":"d","geo":"48.85,2.35","location":"Paris","id":"abc"}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\nid: \"abc\"\nlocation: \"Paris\"\ngeo: \"48.85,2.35\"\ndescription: \"d\"\nattendees: [\"x@y.fr\"]\nsubtasks: [\"[ ] a\"]\nreminders: [10]\nallDay: false\nstartTime: \"09:30\"\nendTime: \"10:15\"\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: \"2026-10-03\"\ncompleted: \"2026-10-02\"\ndue: \"2026-10-05\"\n---\n"}
+}

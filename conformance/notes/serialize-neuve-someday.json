@@ -1,0 +1,6 @@
+{
+  "name": "note neuve : someday",
+  "fn": "notes.serialize",
+  "input": {"event":{"type":"someday","title":"Ranger le garage","completed":null,"due":"2026-11-01"}},
+  "expected": {"text":"---\ntitle: \"Ranger le garage\"\nallDay: true\ntype: \"someday\"\ncompleted: null\ndue: \"2026-11-01\"\n---\n"}
+}

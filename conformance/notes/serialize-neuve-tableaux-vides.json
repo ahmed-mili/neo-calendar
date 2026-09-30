@@ -1,0 +1,6 @@
+{
+  "name": "tableaux vides écrits []",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","attendees":[],"subtasks":[],"reminders":[]}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\nattendees: []\nsubtasks: []\nreminders: []\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

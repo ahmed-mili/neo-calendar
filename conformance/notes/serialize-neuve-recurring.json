@@ -1,0 +1,6 @@
+{
+  "name": "note neuve : recurring horodaté",
+  "fn": "notes.serialize",
+  "input": {"event":{"type":"recurring","title":"Sport","allDay":false,"startTime":"18:00","daysOfWeek":["M","W"],"startRecur":"2026-10-01","endRecur":"2026-12-31","skipDates":["2026-10-14"],"completedDates":["2026-10-07"],"completed":false}},
+  "expected": {"text":"---\ntitle: \"Sport\"\nallDay: false\nstartTime: \"18:00\"\nendTime: null\ntype: \"recurring\"\ndaysOfWeek: [\"M\",\"W\"]\ncompleted: false\ncompletedDates: [\"2026-10-07\"]\nstartRecur: \"2026-10-01\"\nendRecur: \"2026-12-31\"\nskipDates: [\"2026-10-14\"]\n---\n"}
+}

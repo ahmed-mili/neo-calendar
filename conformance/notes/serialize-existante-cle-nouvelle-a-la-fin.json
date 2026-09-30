@@ -1,0 +1,6 @@
+{
+  "name": "note existante : clés nouvelles ajoutées à la fin, dans l'ordre zod",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":false,"date":"2026-10-02","startTime":"09:30","endTime":"10:15","location":"Paris","reminders":[10],"endDate":"2026-10-02"},"previousContents":"---\ninconnue: 1\ntitle: Dentiste\ntype: single\n---\nCorps\n"},
+  "expected": {"text":"---\ninconnue: 1\ntitle: \"Dentiste\"\ntype: \"single\"\nlocation: \"Paris\"\nreminders: [10]\nallDay: false\nstartTime: \"09:30\"\nendTime: \"10:15\"\ndate: \"2026-10-02\"\nendDate: \"2026-10-02\"\n---\nCorps\n"}
+}

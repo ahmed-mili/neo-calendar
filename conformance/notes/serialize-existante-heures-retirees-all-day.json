@@ -1,0 +1,6 @@
+{
+  "name": "note existante : startTime et endTime retirés quand l'évènement passe en all-day",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\ntitle: Dentiste\nallDay: false\nstartTime: 09:30\nendTime: 10:15\ntype: single\ndate: 2026-10-02\n---\nCorps\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\nCorps\n"}
+}

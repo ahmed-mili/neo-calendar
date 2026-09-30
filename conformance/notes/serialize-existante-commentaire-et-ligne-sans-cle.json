@@ -1,0 +1,6 @@
+{
+  "name": "note existante : commentaire et ligne sans clé gardés, lignes vides retirées",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\n# mon commentaire\ntitle: Ancien\n\ntexte libre\n: sans clé\n   : blanc\ntype: single\nallDay: true\ndate: 2026-09-01\n---\nCorps\n"},
+  "expected": {"text":"---\n# mon commentaire\ntitle: \"Dentiste\"\ntexte libre\n: sans clé\n   : blanc\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\nendDate: null\n---\nCorps\n"}
+}

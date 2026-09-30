@@ -1,0 +1,6 @@
+{
+  "name": "note existante : Title n'est pas title, reste inconnue et title est ajouté",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\nTitle: Ancien\ntype: single\nallDay: true\ndate: 2026-10-02\n---\nCorps\n"},
+  "expected": {"text":"---\nTitle: Ancien\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\ntitle: \"Dentiste\"\nendDate: null\n---\nCorps\n"}
+}

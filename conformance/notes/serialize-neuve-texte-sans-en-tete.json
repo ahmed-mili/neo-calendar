@@ -1,0 +1,6 @@
+{
+  "name": "texte sans en-tête : devient le corps, une ligne vide entre",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"Juste du texte\nsur deux lignes\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n\nJuste du texte\nsur deux lignes\n"}
+}

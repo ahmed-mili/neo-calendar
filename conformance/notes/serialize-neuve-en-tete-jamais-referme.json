@@ -1,0 +1,6 @@
+{
+  "name": "en-tête jamais refermé : traité comme du texte",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\ntitle: x\nCorps\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n\n---\ntitle: x\nCorps\n"}
+}

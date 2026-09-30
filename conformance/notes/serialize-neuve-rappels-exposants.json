@@ -1,0 +1,6 @@
+{
+  "name": "rappels en notation exponentielle : écrits comme String(nombre) de JS",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","reminders":[1e-7,1e+21,1.5e-9,1.2345e+25]}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\nreminders: [1e-7,1e+21,1.5e-9,1.2345e+25]\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

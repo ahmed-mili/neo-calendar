@@ -1,0 +1,6 @@
+{
+  "name": "évènement invalide : la note existante n'est pas lue",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"X","type":"single","allDay":true},"previousContents":"---\ntitle: A\n---\nCorps\n"},
+  "expected": {"error":"invalid"}
+}

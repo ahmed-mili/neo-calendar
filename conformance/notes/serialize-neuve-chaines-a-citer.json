@@ -1,0 +1,6 @@
+{
+  "name": "chaînes citées : deux-points, dièse, crochet, guillemet, barre oblique inverse",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Réunion: budget # 2026","type":"single","allDay":true,"date":"2026-10-02","location":"[Salle] B","description":"Dit \"oui\" et C:\\temp","id":"a: b"}},
+  "expected": {"text":"---\ntitle: \"Réunion: budget # 2026\"\nid: \"a: b\"\nlocation: \"[Salle] B\"\ndescription: \"Dit \\\"oui\\\" et C:\\\\temp\"\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

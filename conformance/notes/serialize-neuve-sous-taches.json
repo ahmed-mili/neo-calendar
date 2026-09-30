@@ -1,0 +1,6 @@
+{
+  "name": "sous-tâches cochées et décochées",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","subtasks":["[x] Book the van","[ ] Pack, then label"]}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\nsubtasks: [\"[x] Book the van\",\"[ ] Pack, then label\"]\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

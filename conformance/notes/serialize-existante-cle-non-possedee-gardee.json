@@ -1,0 +1,6 @@
+{
+  "name": "note existante : location, geo, attendees, reminders, id absents de l'évènement, lignes gardées",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\ntitle: Dentiste\nid: vieux\nlocation: Lyon\ngeo: 1,2\nattendees: [a]\nreminders: [5]\ntype: single\nallDay: true\ndate: 2026-10-02\n---\nCorps\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\nid: vieux\nlocation: Lyon\ngeo: 1,2\nattendees: [a]\nreminders: [5]\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\nendDate: null\n---\nCorps\n"}
+}

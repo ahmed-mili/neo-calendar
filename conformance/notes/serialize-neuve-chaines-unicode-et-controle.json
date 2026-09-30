@@ -1,0 +1,6 @@
+{
+  "name": "chaînes citées : emoji, accents, contrôles, DEL, U+2028, substitut isolé",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Fête 🎉 é\u0001\u001f  ","type":"single","allDay":true,"date":"2026-10-02","description":"x\ud800y\udc00z"}},
+  "expected": {"text":"---\ntitle: \"Fête 🎉 é\\u0001\\u001f  \"\ndescription: \"x\\ud800y\\udc00z\"\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

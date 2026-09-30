@@ -1,6 +1,8 @@
 package com.ahmed.neocalendar.core
 
 import com.ahmed.neocalendar.core.notes.EventFile
+import com.ahmed.neocalendar.core.notes.InvalidEventException
+import com.ahmed.neocalendar.core.notes.serializeEventMarkdown
 import com.ahmed.neocalendar.core.notes.filenameForEvent
 import com.ahmed.neocalendar.core.notes.parseFrontmatter
 import com.ahmed.neocalendar.core.notes.parseStoredEvent
@@ -20,6 +22,7 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
     "notes.filename" to { input -> JsonPrimitive(filenameForEvent(input.getValue("event").jsonObject)) },
     "notes.validate" to { input -> validateEvent(input.getValue("raw").jsonObject)?.toRecord() ?: JsonNull },
     "notes.parse" to { input -> parseStored(input) },
+    "notes.serialize" to { input -> serialize(input) },
 )
 
 /** StoredEvent sans `contents` (écho inutile), `readOnly` et `icsFeedId` omis
@@ -43,4 +46,11 @@ private fun parseStored(input: JsonObject): JsonElement {
     stored.readOnly?.let { record["readOnly"] = JsonPrimitive(it) }
     stored.icsFeedId?.let { record["icsFeedId"] = JsonPrimitive(it) }
     return JsonObject(record)
+}
+
+private fun serialize(input: JsonObject): JsonElement = try {
+    val previous = input["previousContents"]?.jsonPrimitive?.content ?: ""
+    JsonObject(mapOf("text" to JsonPrimitive(serializeEventMarkdown(input.getValue("event").jsonObject, previous))))
+} catch (_: InvalidEventException) {
+    JsonObject(mapOf("error" to JsonPrimitive("invalid")))
 }

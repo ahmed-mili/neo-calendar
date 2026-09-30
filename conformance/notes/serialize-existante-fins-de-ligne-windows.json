@@ -1,0 +1,6 @@
+{
+  "name": "note existante en CRLF : relue à l'identique, réécrite en LF (corps compris)",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\r\ntitle: Ancien\r\ncouleur: bleu\r\ntype: single\r\nallDay: true\r\ndate: 2026-09-01\r\n---\r\nLigne 1\r\nLigne 2\r\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ncouleur: bleu\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\nendDate: null\n---\nLigne 1\nLigne 2\n"}
+}

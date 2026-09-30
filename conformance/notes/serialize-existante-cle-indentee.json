@@ -1,0 +1,6 @@
+{
+  "name": "note existante : clé possédée indentée, réécrite sans indentation",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\n  title: Ancien\n\ttype: single\nallDay: true\ndate: 2026-10-02\n---\nCorps\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\nendDate: null\n---\nCorps\n"}
+}

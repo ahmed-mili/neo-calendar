@@ -1,0 +1,6 @@
+{
+  "name": "évènement invalide : type inconnu",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"X","type":"weekly","allDay":true}},
+  "expected": {"error":"invalid"}
+}

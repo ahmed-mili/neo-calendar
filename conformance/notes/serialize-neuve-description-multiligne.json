@@ -1,0 +1,6 @@
+{
+  "name": "description multiligne : retours ligne, tabulation et CRLF échappés",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"ligne 1\nligne 2\r\n\tfin\b\f"}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ndescription: \"ligne 1\\nligne 2\\r\\n\\tfin\\b\\f\"\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

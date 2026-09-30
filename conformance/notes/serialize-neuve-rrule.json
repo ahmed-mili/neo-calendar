@@ -1,0 +1,6 @@
+{
+  "name": "note neuve : rrule all-day",
+  "fn": "notes.serialize",
+  "input": {"event":{"type":"rrule","title":"Loyer","allDay":true,"startDate":"2026-10-01","rrule":"FREQ=MONTHLY;BYMONTHDAY=1","skipDates":[],"completedDates":["2026-10-01"],"completed":null}},
+  "expected": {"text":"---\ntitle: \"Loyer\"\nallDay: true\ntype: \"rrule\"\nstartDate: \"2026-10-01\"\nrrule: \"FREQ=MONTHLY;BYMONTHDAY=1\"\nskipDates: []\ncompleted: null\ncompletedDates: [\"2026-10-01\"]\n---\n"}
+}

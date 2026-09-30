@@ -1,0 +1,6 @@
+{
+  "name": "note existante : clé en double, les deux lignes reçoivent la valeur",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\ntitle: A\ntitle: B\ntype: single\nallDay: true\ndate: 2026-10-02\n---\nCorps\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ntitle: \"Dentiste\"\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\nendDate: null\n---\nCorps\n"}
+}

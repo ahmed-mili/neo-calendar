@@ -1,0 +1,6 @@
+{
+  "name": "note existante : corps gardé tel quel, lignes vides, --- et Unicode compris",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\ntitle: Dentiste\ntype: single\nallDay: true\ndate: 2026-10-02\n---\n\n\nTitre\n---\n  indenté  \n🎉\n\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\nendDate: null\n---\n\n\nTitre\n---\n  indenté  \n🎉\n\n"}
+}

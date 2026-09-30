@@ -1,0 +1,6 @@
+{
+  "name": "note existante : single devenu someday, clés du type précédent retirées",
+  "fn": "notes.serialize",
+  "input": {"event":{"type":"someday","title":"Dentiste"},"previousContents":"---\ntitle: Dentiste\ntype: single\nallDay: true\ndate: 2026-10-02\nendDate: null\ncompleted: false\ndue: 2026-10-09\ndaysOfWeek: [M]\nstartRecur: 2026-10-01\nendRecur: 2026-11-01\nrrule: FREQ=DAILY\nstartDate: 2026-10-01\nskipDates: []\ncompletedDates: []\n---\nCorps\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ntype: \"someday\"\nallDay: true\n---\nCorps\n"}
+}

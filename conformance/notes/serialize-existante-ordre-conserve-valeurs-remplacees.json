@@ -1,0 +1,6 @@
+{
+  "name": "note existante : ordre des lignes conservé, valeurs remplacées, forme normalisée",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\ndate: '2026-09-01'\ntype:   single\nallDay:true\ntitle:   \"Ancien\"\n---\nCorps\n"},
+  "expected": {"text":"---\ndate: \"2026-10-02\"\ntype: \"single\"\nallDay: true\ntitle: \"Dentiste\"\nendDate: null\n---\nCorps\n"}
+}
