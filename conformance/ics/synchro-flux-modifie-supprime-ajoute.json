@@ -1,0 +1,194 @@
+{
+  "name": "un flux dont un evenement change, un disparait, un est annule et un apparait",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "a",
+          "uid": "a",
+          "recurrenceId": null,
+          "event": {
+            "title": "Maths",
+            "type": "single",
+            "date": "2026-09-03",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "08:00",
+            "endTime": "10:00"
+          }
+        },
+        {
+          "key": "b",
+          "uid": "b",
+          "recurrenceId": null,
+          "event": {
+            "title": "Physique",
+            "type": "single",
+            "date": "2026-09-04",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "10:30",
+            "endTime": "12:30"
+          }
+        },
+        {
+          "key": "e",
+          "uid": "e",
+          "recurrenceId": null,
+          "event": {
+            "title": "Chimie",
+            "type": "single",
+            "date": "2026-09-21",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "09:00",
+            "endTime": "11:00"
+          }
+        }
+      ],
+      "cancelledKeys": [
+        "c"
+      ],
+      "latestOccurrenceDate": "2026-09-21"
+    },
+    "existingRecords": [
+      {
+        "id": "note::feed-1::a",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-09-03 Maths.md",
+        "fileName": "2026-09-03 Maths.md",
+        "contents": "---\ntitle: \"Maths\"\nid: \"neo-calendar:ics::feed-1::a\"\nallDay: false\nstartTime: \"08:00\"\nendTime: \"10:00\"\ntype: \"single\"\ndate: \"2026-09-03\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"a\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Maths",
+          "allDay": false,
+          "startTime": "08:00",
+          "endTime": "10:00",
+          "type": "single",
+          "date": "2026-09-03",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::a"
+        }
+      },
+      {
+        "id": "note::feed-1::b",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-09-04 Physique.md",
+        "fileName": "2026-09-04 Physique.md",
+        "contents": "---\ntitle: \"Physique\"\nid: \"neo-calendar:ics::feed-1::b\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"12:00\"\ntype: \"single\"\ndate: \"2026-09-04\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"b\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Physique",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "12:00",
+          "type": "single",
+          "date": "2026-09-04",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::b"
+        }
+      },
+      {
+        "id": "note::feed-1::c",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-09-07 Anglais.md",
+        "fileName": "2026-09-07 Anglais.md",
+        "contents": "---\ntitle: \"Anglais\"\nid: \"neo-calendar:ics::feed-1::c\"\nallDay: false\nstartTime: \"14:00\"\nendTime: \"16:00\"\ntype: \"single\"\ndate: \"2026-09-07\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"c\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Anglais",
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "16:00",
+          "type": "single",
+          "date": "2026-09-07",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::c"
+        }
+      },
+      {
+        "id": "note::feed-1::d",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-08-25 Ancien.md",
+        "fileName": "2026-08-25 Ancien.md",
+        "contents": "---\ntitle: \"Ancien\"\nid: \"neo-calendar:ics::feed-1::d\"\nallDay: false\nstartTime: \"14:00\"\nendTime: \"16:00\"\ntype: \"single\"\ndate: \"2026-08-25\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"d\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Ancien",
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "16:00",
+          "type": "single",
+          "date": "2026-08-25",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::d"
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 4,
+      "missingCounts": {
+        "d": 3
+      }
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Physique",
+          "allDay": false,
+          "startTime": "10:30",
+          "endTime": "12:30",
+          "type": "single",
+          "date": "2026-09-04",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::b"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "previousRelativePath": "School/2026-09-04 Physique.md",
+        "previousEventId": "note::feed-1::b",
+        "fileName": "2026-09-04 Physique.md",
+        "contents": "---\ntitle: \"Physique\"\nid: \"neo-calendar:ics::feed-1::b\"\nallDay: false\nstartTime: \"10:30\"\nendTime: \"12:30\"\ntype: \"single\"\ndate: \"2026-09-04\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"b\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      },
+      {
+        "event": {
+          "title": "Chimie",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-21",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::e"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "fileName": "2026-09-21 Chimie.md",
+        "contents": "---\ntitle: \"Chimie\"\nid: \"neo-calendar:ics::feed-1::e\"\nallDay: false\nstartTime: \"09:00\"\nendTime: \"11:00\"\ntype: \"single\"\ndate: \"2026-09-21\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"e\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [
+      {
+        "id": "note::feed-1::c",
+        "relativePath": "School/2026-09-07 Anglais.md"
+      }
+    ],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 3,
+      "missingCounts": {}
+    }
+  }
+}

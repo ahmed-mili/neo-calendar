@@ -1,0 +1,8 @@
+{
+  "name": "la semaine du passage a l'heure d'hiver commence bien le lundi",
+  "fn": "ics.startOfLocalWeek",
+  "input": {
+    "now": "2026-10-28T12:00:00.000Z"
+  },
+  "expected": "2026-10-26"
+}

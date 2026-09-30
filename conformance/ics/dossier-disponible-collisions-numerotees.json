@@ -1,0 +1,12 @@
+{
+  "name": "les collisions suivantes sont numerotees a partir de 2",
+  "fn": "ics.availableDirectoryName",
+  "input": {
+    "preferred": "School",
+    "usedNames": [
+      "school",
+      "school (ics)"
+    ]
+  },
+  "expected": "School (ICS 2)"
+}

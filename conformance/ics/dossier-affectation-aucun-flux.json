@@ -1,0 +1,15 @@
+{
+  "name": "sans source il n'y a rien a faire",
+  "fn": "ics.directoryAssignments",
+  "input": {
+    "sources": [],
+    "existingFolderNames": [
+      "School"
+    ]
+  },
+  "expected": {
+    "sources": [],
+    "directoriesToCreate": [],
+    "changed": false
+  }
+}

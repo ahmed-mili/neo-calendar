@@ -1,0 +1,11 @@
+{
+  "name": "la premiere collision ajoute (ICS)",
+  "fn": "ics.availableDirectoryName",
+  "input": {
+    "preferred": "School",
+    "usedNames": [
+      "school"
+    ]
+  },
+  "expected": "School (ICS)"
+}

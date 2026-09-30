@@ -1,0 +1,8 @@
+{
+  "name": "un nom qui ne fait que commencer par un nom reserve ne l'est pas",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "console"
+  },
+  "expected": "console"
+}

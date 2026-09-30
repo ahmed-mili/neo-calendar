@@ -1,0 +1,8 @@
+{
+  "name": "un nom reduit a un point devient iCalendar",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "."
+  },
+  "expected": "iCalendar"
+}

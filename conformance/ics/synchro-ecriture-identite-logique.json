@@ -1,0 +1,41 @@
+{
+  "name": "l'ecriture garde l'identite logique de l'abonnement et son dossier",
+  "fn": "ics.planNoteSync",
+  "input": {
+    "source": {
+      "type": "ical",
+      "id": "school",
+      "name": "School",
+      "url": "https://example.test/calendar.ics",
+      "color": "#89b4fa",
+      "directory": "School"
+    },
+    "remoteEvents": [
+      {
+        "title": "Course",
+        "type": "single",
+        "date": "2026-08-28",
+        "endDate": null,
+        "allDay": true,
+        "id": "ics::new::2026-08-28::single"
+      }
+    ],
+    "existingRecords": []
+  },
+  "expected": [
+    {
+      "event": {
+        "title": "Course",
+        "id": "ical::school::ics::new::2026-08-28::single",
+        "allDay": true,
+        "type": "single",
+        "date": "2026-08-28",
+        "endDate": null
+      },
+      "calendarId": "ical::school",
+      "calendarPath": "School",
+      "fileName": "2026-08-28 Course.md",
+      "contents": "---\ntitle: \"Course\"\nid: \"ical::school::ics::new::2026-08-28::single\"\nallDay: true\ntype: \"single\"\ndate: \"2026-08-28\"\nendDate: null\n---\n"
+    }
+  ]
+}

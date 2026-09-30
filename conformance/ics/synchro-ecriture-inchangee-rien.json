@@ -1,0 +1,43 @@
+{
+  "name": "un evenement deja materialise et inchange n'est pas reecrit",
+  "fn": "ics.planNoteSync",
+  "input": {
+    "source": {
+      "type": "ical",
+      "id": "school",
+      "name": "School",
+      "url": "https://example.test/calendar.ics",
+      "color": "#89b4fa",
+      "directory": "School"
+    },
+    "remoteEvents": [
+      {
+        "title": "Course",
+        "id": "ical::school::ics::old::2026-08-14::single",
+        "allDay": true,
+        "type": "single",
+        "date": "2026-08-14",
+        "endDate": null
+      }
+    ],
+    "existingRecords": [
+      {
+        "id": "ical::school::ics::old::2026-08-14::single",
+        "calendarId": "ical::school",
+        "calendarPath": "School",
+        "relativePath": "School/2026-08-14 Course.md",
+        "fileName": "2026-08-14 Course.md",
+        "contents": "---\nid: \"ical::school::ics::old::2026-08-14::single\"\ntitle: \"Course\"\ntype: \"single\"\ndate: \"2026-08-14\"\nendDate: null\nallDay: true\n---\nA note body the user may enrich.",
+        "event": {
+          "title": "Course",
+          "id": "ical::school::ics::old::2026-08-14::single",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-08-14",
+          "endDate": null
+        }
+      }
+    ]
+  },
+  "expected": []
+}

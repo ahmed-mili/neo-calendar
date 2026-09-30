@@ -1,0 +1,8 @@
+{
+  "name": "un nom vide devient iCalendar",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "   "
+  },
+  "expected": "iCalendar"
+}

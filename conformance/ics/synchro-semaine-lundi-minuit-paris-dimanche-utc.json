@@ -1,0 +1,8 @@
+{
+  "name": "dimanche 22h30 UTC est lundi 00h30 a Paris",
+  "fn": "ics.startOfLocalWeek",
+  "input": {
+    "now": "2026-08-30T22:30:00.000Z"
+  },
+  "expected": "2026-08-31"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "un nom reserve sous Windows recoit le suffixe Calendar",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "con"
+  },
+  "expected": "con Calendar"
+}

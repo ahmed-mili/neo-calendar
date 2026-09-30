@@ -1,0 +1,51 @@
+{
+  "name": "deux flux ne se partagent jamais un dossier",
+  "fn": "ics.directoryAssignments",
+  "input": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "school",
+        "name": "School",
+        "url": "https://example.test/school.ics",
+        "color": "#89b4fa",
+        "directory": "School"
+      },
+      {
+        "type": "ical",
+        "id": "other",
+        "name": "School",
+        "url": "https://example.test/other.ics",
+        "color": "#89b4fa",
+        "directory": "School"
+      }
+    ],
+    "existingFolderNames": [
+      "School"
+    ]
+  },
+  "expected": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "school",
+        "name": "School",
+        "url": "https://example.test/school.ics",
+        "color": "#89b4fa",
+        "directory": "School"
+      },
+      {
+        "type": "ical",
+        "id": "other",
+        "name": "School",
+        "url": "https://example.test/other.ics",
+        "color": "#89b4fa",
+        "directory": "School (ICS)"
+      }
+    ],
+    "directoriesToCreate": [
+      "School (ICS)"
+    ],
+    "changed": true
+  }
+}

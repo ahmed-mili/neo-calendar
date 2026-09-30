@@ -1,0 +1,48 @@
+{
+  "name": "une source automatique passe sans changement et sans dossier",
+  "fn": "ics.directoryAssignments",
+  "input": {
+    "sources": [
+      {
+        "type": "auto",
+        "id": "FR",
+        "name": "Jours feries",
+        "country": "FR",
+        "color": "#4a9d5f",
+        "rules": []
+      },
+      {
+        "type": "ical",
+        "id": "legacy",
+        "name": "Lectures",
+        "url": "https://example.test/legacy.ics",
+        "color": "#89b4fa"
+      }
+    ],
+    "existingFolderNames": []
+  },
+  "expected": {
+    "sources": [
+      {
+        "type": "auto",
+        "id": "FR",
+        "name": "Jours feries",
+        "country": "FR",
+        "color": "#4a9d5f",
+        "rules": []
+      },
+      {
+        "type": "ical",
+        "id": "legacy",
+        "name": "Lectures",
+        "url": "https://example.test/legacy.ics",
+        "color": "#89b4fa",
+        "directory": "Lectures"
+      }
+    ],
+    "directoriesToCreate": [
+      "Lectures"
+    ],
+    "changed": true
+  }
+}

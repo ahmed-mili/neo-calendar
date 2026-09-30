@@ -1,0 +1,8 @@
+{
+  "name": "un nom reserve apparait apres nettoyage des points finals",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "NUL.."
+  },
+  "expected": "NUL Calendar"
+}

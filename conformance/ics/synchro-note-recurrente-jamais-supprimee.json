@@ -1,0 +1,85 @@
+{
+  "name": "une note geree dont l'evenement n'est pas ponctuel est traitee comme archive",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "other",
+          "uid": "other",
+          "recurrenceId": null,
+          "event": {
+            "title": "Cours",
+            "type": "single",
+            "date": "2026-09-09",
+            "endDate": null,
+            "allDay": true
+          }
+        }
+      ],
+      "cancelledKeys": [
+        "serie"
+      ],
+      "latestOccurrenceDate": "2026-09-09"
+    },
+    "existingRecords": [
+      {
+        "id": "note::feed-1::serie",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/Serie.md",
+        "fileName": "Serie.md",
+        "contents": "---\ntitle: \"Serie\"\nid: \"neo-calendar:ics::feed-1::serie\"\nallDay: true\ntype: \"recurring\"\ndaysOfWeek: [\"M\"]\nskipDates: []\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"serie\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Serie",
+          "allDay": true,
+          "type": "recurring",
+          "daysOfWeek": [
+            "M"
+          ],
+          "skipDates": [],
+          "id": "neo-calendar:ics::feed-1::serie"
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 2,
+      "missingCounts": {
+        "serie": 5
+      }
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Cours",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-09-09",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::other"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "fileName": "2026-09-09 Cours.md",
+        "contents": "---\ntitle: \"Cours\"\nid: \"neo-calendar:ics::feed-1::other\"\nallDay: true\ntype: \"single\"\ndate: \"2026-09-09\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"other\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 1,
+      "missingCounts": {}
+    }
+  }
+}

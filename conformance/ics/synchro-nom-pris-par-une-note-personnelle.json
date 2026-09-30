@@ -1,0 +1,78 @@
+{
+  "name": "une note personnelle du dossier garde son nom : la note du flux est numerotee",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "uid-1",
+          "uid": "uid-1",
+          "recurrenceId": null,
+          "event": {
+            "title": "Cours",
+            "type": "single",
+            "date": "2026-09-10",
+            "endDate": null,
+            "allDay": true
+          }
+        }
+      ],
+      "cancelledKeys": [],
+      "latestOccurrenceDate": "2026-09-10"
+    },
+    "existingRecords": [
+      {
+        "id": "personal",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-09-10 Cours.md",
+        "fileName": "2026-09-10 Cours.md",
+        "contents": "---\ntitle: \"Cours\"\ntype: \"single\"\ndate: \"2026-09-10\"\nendDate: null\nallDay: true\n---\npersonnel",
+        "event": {
+          "title": "Cours",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-09-10",
+          "endDate": null
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 0,
+      "missingCounts": {}
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Cours",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-09-10",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-1"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "fileName": "2026-09-10 Cours (1).md",
+        "contents": "---\ntitle: \"Cours\"\nid: \"neo-calendar:ics::feed-1::uid-1\"\nallDay: true\ntype: \"single\"\ndate: \"2026-09-10\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-1\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 1,
+      "missingCounts": {}
+    }
+  }
+}

@@ -48,6 +48,8 @@ afterAll(() => {
 
 ### Task 1: Dates et mesures de la grille
 
+> Fait : commits 0f8d273..8ed8ccf
+
 Port de `src/ui/calendar/calendarDateUtils.ts` (42 lignes), et dans `src/ui/calendar/CalendarUtils.ts` de `getISOWeek`, `todayBadgeState`, `eventTopHours`, `eventDurationHours`, `isMultiDayTimed`, `needsCompactMonthType` / `LONG_MONTH_NAME` ; dans `calendarConstants.ts` de `clampHourHeight`, `MIN_HOUR_HEIGHT`, `MAX_HOUR_HEIGHT`, `ANDROID_HOUR_HEIGHT`, `ALLDAY_ROW_HEIGHT`, `ALLDAY_MAX_ROWS`, `OVERLAP_COL_GAP`, `EVENT_VGAP`. Ne pas porter ce qui lit le DOM (`isAndroidRuntime`, `allDayRowHeight`, `positionToDate` s'il en dépend).
 
 **Files:**
@@ -60,16 +62,18 @@ Port de `src/ui/calendar/calendarDateUtils.ts` (42 lignes), et dans `src/ui/cale
 - Produces : fonctions Kotlin de mêmes noms, dates en `Instant` ou `LocalDate` selon ce que la fonction TypeScript manipule réellement (jour local → `LocalDate`, instant → `Instant`).
 - Opérations : `layout.<nomDeLaFonction>` avec les arguments de la fonction TypeScript en objet nommé (ex. `layout.getWeekStart` `{date, firstDay}`).
 
-- [ ] **Step 1: Bloc du fuseau dans le runner**, Jest toujours vert.
-- [ ] **Step 2: Cas**, reprendre les tests existants de ces fonctions ; Review Focus ligne 1 couverte.
-- [ ] **Step 3: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 4: Rouge en Kotlin.**
-- [ ] **Step 5: Porter.**
-- [ ] **Step 6: Vert des deux côtés, commit** « Corpus grille : dates et mesures, portées en Kotlin ».
+- [x] **Step 1: Bloc du fuseau dans le runner**, Jest toujours vert.
+- [x] **Step 2: Cas**, reprendre les tests existants de ces fonctions ; Review Focus ligne 1 couverte.
+- [x] **Step 3: Vert en TypeScript, discriminance vue.**
+- [x] **Step 4: Rouge en Kotlin.**
+- [x] **Step 5: Porter.**
+- [x] **Step 6: Vert des deux côtés, commit** « Corpus grille : dates et mesures, portées en Kotlin ».
 
 ---
 
 ### Task 2: Chevauchements et bandes all-day
+
+> Fait : commits 8ed8ccf..d635d1c
 
 Port de `computeOverlapGroups` (`CalendarUtils.ts:138-206`, type `OverlapGroup`) et de `packAllDayLanes`, `visibleLaneCount`, `hiddenBarCountByDay`, `allDayBandRows` (`src/ui/calendar/useAllDayLanes.ts:39-243`, SANS le hook React `useAllDayLanes`).
 
@@ -83,15 +87,17 @@ Port de `computeOverlapGroups` (`CalendarUtils.ts:138-206`, type `OverlapGroup`)
 - Produces : `data class GridEvent(val id: String, val start: Instant, val end: Instant, val allDay: Boolean, val isMultiDay: Boolean, ...)` avec EXACTEMENT les champs de `DisplayEvent` que ces fonctions lisent (les relever dans le code) ; l'autre plan fournira plus tard `DisplayEvent.toGridEvent()`. Fonctions de mêmes noms.
 - Opérations : `layout.overlapGroups` `{events}` ; `layout.packAllDayLanes` `{events, extendedDates, arrival}` où `arrival` est un objet `id → nombre` (l'adaptateur en fait la fonction `arrivalOf`) ; `layout.visibleLaneCount`, `layout.hiddenBarCountByDay`, `layout.allDayBandRows` avec leurs arguments nommés. Dans les deux adaptateurs, un évènement d'entrée ne porte que les champs lus ; les autres champs de `DisplayEvent` reçoivent une valeur neutre fixe.
 
-- [ ] **Step 1: Cas**, reprendre `useAllDayLanes.test.ts` et les tests de `computeOverlapGroups` ; Review Focus lignes 2 et 3 couvertes.
-- [ ] **Step 2: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 3: Rouge en Kotlin.**
-- [ ] **Step 4: Porter.**
-- [ ] **Step 5: Vert des deux côtés, commit** « Corpus grille : chevauchements et bandes all-day, portés en Kotlin ».
+- [x] **Step 1: Cas**, reprendre `useAllDayLanes.test.ts` et les tests de `computeOverlapGroups` ; Review Focus lignes 2 et 3 couvertes.
+- [x] **Step 2: Vert en TypeScript, discriminance vue.**
+- [x] **Step 3: Rouge en Kotlin.**
+- [x] **Step 4: Porter.**
+- [x] **Step 5: Vert des deux côtés, commit** « Corpus grille : chevauchements et bandes all-day, portés en Kotlin ».
 
 ---
 
 ### Task 3: Lire un flux ICS
+
+> Fait : commits d635d1c..3937def
 
 Port de `parseIcsSnapshot`, `occurrenceSignature`, `getEventsFromICS` (`src/calendars/parsing/ics.ts`, 508 lignes, `ical.js` + `luxon`), en Kotlin avec `ical4j`. Réutiliser `NeoEvent` / `validateEvent` de `core/.../notes/NeoEvent.kt`.
 
@@ -104,15 +110,17 @@ Port de `parseIcsSnapshot`, `occurrenceSignature`, `getEventsFromICS` (`src/cale
 - Produces : `fun parseIcsSnapshot(text: String, from: String, to: String): JsonObject` (forme `IcsSnapshot` du TypeScript) ; `fun occurrenceSignature(event: NeoEvent): String?` ; `fun getEventsFromICS(text: String): List<NeoEvent>`.
 - Opérations : `ics.snapshot` `{text, window: {from, to}}` ; `ics.signature` `{event}` ; `ics.events` `{text}`.
 
-- [ ] **Step 1: Cas**, reprendre `ics.test.ts` (28 cas, chaînes ICS en ligne) ; Review Focus ligne 4 couverte ; plus un extrait réaliste de flux universitaire (cours horodatés avec `TZID=Europe/Paris`, `LOCATION`, `DESCRIPTION` multiligne pliée à 75 octets).
-- [ ] **Step 2: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 3: Rouge en Kotlin.**
-- [ ] **Step 4: Porter avec `ical4j`** ; appliquer la règle « écart connu » si besoin. Vérifier que `ical4j` ne cherche pas de fichier de fuseau sur disque ni sur le réseau pendant le test (sinon le configurer pour ses fuseaux embarqués) et le dire dans le rapport.
-- [ ] **Step 5: Vert des deux côtés, commit** « Corpus ICS : lecture d'un flux, portée en Kotlin ».
+- [x] **Step 1: Cas**, reprendre `ics.test.ts` (28 cas, chaînes ICS en ligne) ; Review Focus ligne 4 couverte ; plus un extrait réaliste de flux universitaire (cours horodatés avec `TZID=Europe/Paris`, `LOCATION`, `DESCRIPTION` multiligne pliée à 75 octets).
+- [x] **Step 2: Vert en TypeScript, discriminance vue.**
+- [x] **Step 3: Rouge en Kotlin.**
+- [x] **Step 4: Porter avec `ical4j`** ; appliquer la règle « écart connu » si besoin. Vérifier que `ical4j` ne cherche pas de fichier de fuseau sur disque ni sur le réseau pendant le test (sinon le configurer pour ses fuseaux embarqués) et le dire dans le rapport.
+- [x] **Step 5: Vert des deux côtés, commit** « Corpus ICS : lecture d'un flux, portée en Kotlin ».
 
 ---
 
 ### Task 4: Plan de synchro des notes d'un flux ICS
+
+> Fait : commits 3937def..87f7cad
 
 Port de `apps/windows/src/platform/icalNoteSync.ts` (437 lignes : `preferredIcalDirectoryName`, `availableIcalDirectoryName`, `planIcalDirectoryAssignments`, `scopedIcalEvent`, `planIcalNoteSync`, `startOfLocalWeekIso`, `planIcsNoteSync`) et de `apps/windows/src/platform/mergeRemoteEvents.ts` (35). Réutiliser `serializeManagedEventMarkdown` s'il est déjà porté (`core/.../notes/ManagedNote.kt`), sinon le porter ici depuis `managedEventNote.ts`.
 
@@ -129,8 +137,8 @@ Port de `apps/windows/src/platform/icalNoteSync.ts` (437 lignes : `preferredIcal
 - Produces : fonctions de mêmes noms, entrées et sorties en `JsonObject` quand le TypeScript manipule des objets composés.
 - Opérations : `ics.planSync` avec les arguments de `planIcsNoteSync` (`now` explicite dans l'entrée) ; `ics.directoryName` `{name}` ; `ics.availableDirectoryName` avec ses arguments ; `ics.startOfLocalWeek` `{now}`.
 
-- [ ] **Step 1: Cas**, reprendre `icalNoteSync.test.ts` (856 lignes) ; Review Focus ligne 5 couverte.
-- [ ] **Step 2: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 3: Rouge en Kotlin** (et `SafeNamesTest` rouge avant `SafeNames.kt`).
-- [ ] **Step 4: Porter.**
-- [ ] **Step 5: Vert des deux côtés, commit** « Corpus ICS : plan de synchro des notes, porté en Kotlin ».
+- [x] **Step 1: Cas**, reprendre `icalNoteSync.test.ts` (856 lignes) ; Review Focus ligne 5 couverte.
+- [x] **Step 2: Vert en TypeScript, discriminance vue.**
+- [x] **Step 3: Rouge en Kotlin** (et `SafeNamesTest` rouge avant `SafeNames.kt`).
+- [x] **Step 4: Porter.**
+- [x] **Step 5: Vert des deux côtés, commit** « Corpus ICS : plan de synchro des notes, porté en Kotlin ».

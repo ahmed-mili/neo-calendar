@@ -1,0 +1,11 @@
+{
+  "name": "les accents majuscules se comparent en minuscules",
+  "fn": "ics.availableDirectoryName",
+  "input": {
+    "preferred": "Études",
+    "usedNames": [
+      "études"
+    ]
+  },
+  "expected": "Études (ICS)"
+}
