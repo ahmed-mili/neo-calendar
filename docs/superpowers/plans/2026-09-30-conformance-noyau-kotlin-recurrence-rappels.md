@@ -48,6 +48,8 @@ afterAll(() => {
 
 ### Task 1: Occurrences des évènements ponctuels et récurrents par jours
 
+> Fait : commits 7e3f23a..2ddb37a
+
 Port de `src/ui/calendar/eventExpansion.ts` (388 lignes) SANS la branche `rrule` (Task 2), avec ce qu'elle lit : `calendarDateUtils.ts` (42), `getDisplayTitle` (`CalendarEventsPanel.helpers.ts`), `isTask` / `getTaskStatus` (`src/ui/tasks/index.ts`), `seriesStartDate` (`recurrenceDeletion.ts`), le type `DisplayEvent` (`src/ui/types.ts`). Réutiliser `NeoEvent` / `validateEvent` de `core/.../notes/NeoEvent.kt`.
 
 **Files:**
@@ -60,20 +62,22 @@ Port de `src/ui/calendar/eventExpansion.ts` (388 lignes) SANS la branche `rrule`
 - Produces : `data class DisplayEvent` (mêmes champs que le TypeScript, dates en `Instant`, sans les champs d'état d'interface `selected` et `visibilityState`) avec `fun toJson(): JsonObject` ; `fun neoEventToDisplayEvents(event: NeoEvent, id: String, calendarId: String, calendarName: String, color: String, editable: Boolean, rangeStart: Instant, rangeEnd: Instant): List<DisplayEvent>`.
 - Opération `recurrence.expand` : entrée `{event, id, calendarId, calendarName, color, editable, rangeStart, rangeEnd}` (`event` validé par `validateEvent` des deux côtés) ; sortie : le tableau d'occurrences.
 
-- [ ] **Step 1: Fuseau dans le runner Jest**, `npx jest conformance` toujours vert.
-- [ ] **Step 2: Cas**, reprendre `eventExpansion.test.ts`. Adaptateur TS :
+- [x] **Step 1: Fuseau dans le runner Jest**, `npx jest conformance` toujours vert.
+- [x] **Step 2: Cas**, reprendre `eventExpansion.test.ts`. Adaptateur TS :
 ```ts
 "recurrence.expand": ({ event, id, calendarId, calendarName, color, editable, rangeStart, rangeEnd }) =>
     neoEventToDisplayEvents(validateEvent(event)!, id, calendarId, calendarName, color, editable, new Date(rangeStart), new Date(rangeEnd)),
 ```
-- [ ] **Step 3: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 4: Rouge en Kotlin.**
-- [ ] **Step 5: Porter**, commentaires du POURQUOI repris.
-- [ ] **Step 6: Vert des deux côtés, commit** « Corpus récurrence : occurrences ponctuelles et hebdomadaires, portées en Kotlin ».
+- [x] **Step 3: Vert en TypeScript, discriminance vue.**
+- [x] **Step 4: Rouge en Kotlin.**
+- [x] **Step 5: Porter**, commentaires du POURQUOI repris.
+- [x] **Step 6: Vert des deux côtés, commit** « Corpus récurrence : occurrences ponctuelles et hebdomadaires, portées en Kotlin ».
 
 ---
 
 ### Task 2: Occurrences des règles RRULE
+
+> Fait : commits 2ddb37a..ef235bf
 
 La branche `rrule` de `eventExpansion.ts` (`rrulestr`, `between`, `skipDates`, `completedDates`, `isSeriesStart`), en Kotlin avec `lib-recur`.
 
@@ -85,15 +89,17 @@ La branche `rrule` de `eventExpansion.ts` (`rrulestr`, `between`, `skipDates`, `
 - Consumes : `DisplayEvent`, `neoEventToDisplayEvents` (Task 1).
 - Produces : même fonction, branche `Rrule` complétée. Même opération `recurrence.expand`.
 
-- [ ] **Step 1: Cas**, reprendre `eventExpansion.test.ts` et les formes de `recurrence.test.ts`.
-- [ ] **Step 2: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 3: Rouge en Kotlin.**
-- [ ] **Step 4: Porter avec `lib-recur`** ; appliquer la règle « écart connu » des Global Constraints si besoin.
-- [ ] **Step 5: Vert des deux côtés, commit** « Corpus récurrence : règles RRULE, portées en Kotlin ».
+- [x] **Step 1: Cas**, reprendre `eventExpansion.test.ts` et les formes de `recurrence.test.ts`.
+- [x] **Step 2: Vert en TypeScript, discriminance vue.**
+- [x] **Step 3: Rouge en Kotlin.**
+- [x] **Step 4: Porter avec `lib-recur`** ; appliquer la règle « écart connu » des Global Constraints si besoin.
+- [x] **Step 5: Vert des deux côtés, commit** « Corpus récurrence : règles RRULE, portées en Kotlin ».
 
 ---
 
 ### Task 3: Rappels des évènements
+
+> Fait : commits ef235bf..1bc9fdc
 
 Port de `apps/windows/src/platform/androidReminders.ts` (268 lignes : `buildReminders`, `remindersByCalendarId`, `REMINDER_HORIZON_DAYS` = 30, `ALL_DAY_REMINDER_HOUR` = 20, type `Reminder`) et de ce qu'il lit : `relativeDelayLabel` (`src/ui/calendar/reminderDelay.ts`, 136), `DAYS_SHORT` (`calendarConstants.ts`), les chaînes `fr` de `t()`.
 
@@ -107,15 +113,17 @@ Port de `apps/windows/src/platform/androidReminders.ts` (268 lignes : `buildRemi
 - Produces : `data class Reminder` (mêmes champs que le type TypeScript) ; `fun buildReminders(events: List<DisplayEvent>, now: Instant, minutesBefore: List<Long>, minutesByCalendar: Map<String, List<Long>>, timeFormat24h: Boolean): List<Reminder>` ; `fun relativeDelayLabel(...)` (même signature que le TypeScript).
 - Opérations : `reminders.build` `{events, now, minutesBefore, minutesByCalendar, timeFormat24h}` où `events` est un tableau d'entrées `recurrence.expand` (l'adaptateur les développe d'abord, des deux côtés, puis concatène) ; `reminders.delayLabel` avec les arguments de `relativeDelayLabel`.
 
-- [ ] **Step 1: Cas**, reprendre `androidReminders.test.ts` (44 cas) et `reminderDelay.test.ts` ; chaque ligne « rappels » du Review Focus a son cas ; formats 24 h et 12 h.
-- [ ] **Step 2: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 3: Rouge en Kotlin.**
-- [ ] **Step 4: Porter.**
-- [ ] **Step 5: Vert des deux côtés, commit** « Corpus rappels : rappels des évènements, portés en Kotlin ».
+- [x] **Step 1: Cas**, reprendre `androidReminders.test.ts` (44 cas) et `reminderDelay.test.ts` ; chaque ligne « rappels » du Review Focus a son cas ; formats 24 h et 12 h.
+- [x] **Step 2: Vert en TypeScript, discriminance vue.**
+- [x] **Step 3: Rouge en Kotlin.**
+- [x] **Step 4: Porter.**
+- [x] **Step 5: Vert des deux côtés, commit** « Corpus rappels : rappels des évènements, portés en Kotlin ».
 
 ---
 
 ### Task 4: Rappels de prière
+
+> Fait : commits 1bc9fdc..78d9f52
 
 Port de `apps/windows/src/platform/prayerReminders.ts` (89 lignes : `prayerRemindersFor`) et de `formatTime` (`src/ui/calendar/calendarFormatters.ts`).
 
@@ -129,8 +137,8 @@ Port de `apps/windows/src/platform/prayerReminders.ts` (89 lignes : `prayerRemin
 - Produces : `fun prayerRemindersFor(timetable: JsonElement, minutes: List<Long>, now: Instant, timeFormat24h: Boolean): List<Reminder>` (le `timetable` garde la forme JSON du TypeScript).
 - Opération `reminders.prayer` `{timetable, minutes, now, timeFormat24h}`.
 
-- [ ] **Step 1: Cas**, reprendre `prayerReminders.test.ts` : délai 0 (« à l'heure »), liste vide (silence), plusieurs délais, prière déjà passée, 12 h / 24 h.
-- [ ] **Step 2: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 3: Rouge en Kotlin.**
-- [ ] **Step 4: Porter.**
-- [ ] **Step 5: Vert des deux côtés, commit** « Corpus rappels : rappels de prière, portés en Kotlin ».
+- [x] **Step 1: Cas**, reprendre `prayerReminders.test.ts` : délai 0 (« à l'heure »), liste vide (silence), plusieurs délais, prière déjà passée, 12 h / 24 h.
+- [x] **Step 2: Vert en TypeScript, discriminance vue.**
+- [x] **Step 3: Rouge en Kotlin.**
+- [x] **Step 4: Porter.**
+- [x] **Step 5: Vert des deux côtés, commit** « Corpus rappels : rappels de prière, portés en Kotlin ».
