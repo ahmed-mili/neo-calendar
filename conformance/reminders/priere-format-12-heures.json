@@ -1,0 +1,209 @@
+{
+  "name": "le format 12 h écrit AM et PM",
+  "fn": "reminders.prayer",
+  "input": {
+    "timetable": {
+      "id": "essai",
+      "name": "Mosquée d'essai",
+      "year": 2026,
+      "jumua": [
+        "13:00",
+        "14:00"
+      ],
+      "days": {
+        "09-01": [
+          360,
+          480,
+          810,
+          1020,
+          1200,
+          1290
+        ],
+        "09-02": [
+          360,
+          480,
+          810,
+          1020,
+          1200,
+          1290
+        ],
+        "09-04": [
+          360,
+          480,
+          810,
+          1020,
+          1200,
+          1290
+        ]
+      }
+    },
+    "minutes": [
+      0,
+      5
+    ],
+    "now": "2026-09-01T05:00:00+02:00",
+    "timeFormat24h": false
+  },
+  "expected": [
+    {
+      "id": "prayer:2026-09-01:0:fajr",
+      "key": "prayer:2026-09-01:0:fajr:0",
+      "atMs": 1788235200000,
+      "title": "Fajr",
+      "body": "C'est l'heure · 6:00 AM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-01:0:fajr",
+      "key": "prayer:2026-09-01:0:fajr:5",
+      "atMs": 1788234900000,
+      "title": "Fajr",
+      "body": "Dans 5 min · 6:00 AM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-01:1:dhuhr",
+      "key": "prayer:2026-09-01:1:dhuhr:0",
+      "atMs": 1788262200000,
+      "title": "Dhuhr",
+      "body": "C'est l'heure · 1:30 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-01:1:dhuhr",
+      "key": "prayer:2026-09-01:1:dhuhr:5",
+      "atMs": 1788261900000,
+      "title": "Dhuhr",
+      "body": "Dans 5 min · 1:30 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-01:2:asr",
+      "key": "prayer:2026-09-01:2:asr:0",
+      "atMs": 1788274800000,
+      "title": "Asr",
+      "body": "C'est l'heure · 5:00 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-01:2:asr",
+      "key": "prayer:2026-09-01:2:asr:5",
+      "atMs": 1788274500000,
+      "title": "Asr",
+      "body": "Dans 5 min · 5:00 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-01:3:maghrib",
+      "key": "prayer:2026-09-01:3:maghrib:0",
+      "atMs": 1788285600000,
+      "title": "Maghrib",
+      "body": "C'est l'heure · 8:00 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-01:3:maghrib",
+      "key": "prayer:2026-09-01:3:maghrib:5",
+      "atMs": 1788285300000,
+      "title": "Maghrib",
+      "body": "Dans 5 min · 8:00 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-01:4:isha",
+      "key": "prayer:2026-09-01:4:isha:0",
+      "atMs": 1788291000000,
+      "title": "Isha",
+      "body": "C'est l'heure · 9:30 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-01:4:isha",
+      "key": "prayer:2026-09-01:4:isha:5",
+      "atMs": 1788290700000,
+      "title": "Isha",
+      "body": "Dans 5 min · 9:30 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-02:0:fajr",
+      "key": "prayer:2026-09-02:0:fajr:0",
+      "atMs": 1788321600000,
+      "title": "Fajr",
+      "body": "C'est l'heure · 6:00 AM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-02:0:fajr",
+      "key": "prayer:2026-09-02:0:fajr:5",
+      "atMs": 1788321300000,
+      "title": "Fajr",
+      "body": "Dans 5 min · 6:00 AM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-02:1:dhuhr",
+      "key": "prayer:2026-09-02:1:dhuhr:0",
+      "atMs": 1788348600000,
+      "title": "Dhuhr",
+      "body": "C'est l'heure · 1:30 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-02:1:dhuhr",
+      "key": "prayer:2026-09-02:1:dhuhr:5",
+      "atMs": 1788348300000,
+      "title": "Dhuhr",
+      "body": "Dans 5 min · 1:30 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-02:2:asr",
+      "key": "prayer:2026-09-02:2:asr:0",
+      "atMs": 1788361200000,
+      "title": "Asr",
+      "body": "C'est l'heure · 5:00 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-02:2:asr",
+      "key": "prayer:2026-09-02:2:asr:5",
+      "atMs": 1788360900000,
+      "title": "Asr",
+      "body": "Dans 5 min · 5:00 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-02:3:maghrib",
+      "key": "prayer:2026-09-02:3:maghrib:0",
+      "atMs": 1788372000000,
+      "title": "Maghrib",
+      "body": "C'est l'heure · 8:00 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-02:3:maghrib",
+      "key": "prayer:2026-09-02:3:maghrib:5",
+      "atMs": 1788371700000,
+      "title": "Maghrib",
+      "body": "Dans 5 min · 8:00 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-02:4:isha",
+      "key": "prayer:2026-09-02:4:isha:0",
+      "atMs": 1788377400000,
+      "title": "Isha",
+      "body": "C'est l'heure · 9:30 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    },
+    {
+      "id": "prayer:2026-09-02:4:isha",
+      "key": "prayer:2026-09-02:4:isha:5",
+      "atMs": 1788377100000,
+      "title": "Isha",
+      "body": "Dans 5 min · 9:30 PM · Mosquée d'essai",
+      "details": "Mosquée d'essai"
+    }
+  ]
+}

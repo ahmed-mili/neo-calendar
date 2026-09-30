@@ -15,6 +15,7 @@ import {
 } from "../apps/windows/src/platform/desktopWorkspacePreferences";
 import type { NeoEvent } from "../src/types";
 import { buildReminders } from "../apps/windows/src/platform/androidReminders";
+import { prayerRemindersFor } from "../apps/windows/src/platform/prayerReminders";
 import { relativeDelayLabel } from "../src/ui/calendar/reminderDelay";
 import { neoEventToDisplayEvents } from "../src/ui/calendar/eventExpansion";
 import { validateEvent } from "../src/types/schema";
@@ -78,6 +79,8 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
             minutesByCalendar,
             timeFormat24h,
         }),
+    "reminders.prayer": ({ timetable, minutes, now, timeFormat24h }) =>
+        prayerRemindersFor({ timetable, minutes, now: new Date(now), timeFormat24h }),
     "reminders.delayLabel": ({ minutes }) => relativeDelayLabel(minutes),
     "notes.serialize": ({ event, previousContents }) => {
         try {

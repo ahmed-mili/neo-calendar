@@ -15,6 +15,7 @@ private val FR = mapOf(
     "All-day" to "Toute la journée",
     "Tomorrow, all day" to "Demain, toute la journée",
     "Starting now" to "Ça commence",
+    "It is time" to "C'est l'heure",
 )
 
 /** `t(key)` de l'interface, langue « fr ». Une clé inconnue est une erreur de port. */

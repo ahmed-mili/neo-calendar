@@ -1,0 +1,45 @@
+{
+  "name": "une liste de délais vide ne donne aucun rappel",
+  "fn": "reminders.prayer",
+  "input": {
+    "timetable": {
+      "id": "essai",
+      "name": "Mosquée d'essai",
+      "year": 2026,
+      "jumua": [
+        "13:00",
+        "14:00"
+      ],
+      "days": {
+        "09-01": [
+          360,
+          480,
+          810,
+          1020,
+          1200,
+          1290
+        ],
+        "09-02": [
+          360,
+          480,
+          810,
+          1020,
+          1200,
+          1290
+        ],
+        "09-04": [
+          360,
+          480,
+          810,
+          1020,
+          1200,
+          1290
+        ]
+      }
+    },
+    "minutes": [],
+    "now": "2026-09-01T10:00:00+02:00",
+    "timeFormat24h": true
+  },
+  "expected": []
+}

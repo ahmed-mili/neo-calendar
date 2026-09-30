@@ -27,6 +27,7 @@ import com.ahmed.neocalendar.core.preferences.reminderListOf
 import com.ahmed.neocalendar.core.recurrence.DisplayEvent
 import com.ahmed.neocalendar.core.recurrence.neoEventToDisplayEvents
 import com.ahmed.neocalendar.core.reminders.buildReminders
+import com.ahmed.neocalendar.core.reminders.prayerRemindersFor
 import com.ahmed.neocalendar.core.reminders.relativeDelayLabel
 import java.time.OffsetDateTime
 import kotlinx.serialization.json.JsonArray
@@ -73,6 +74,7 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
     },
     "recurrence.expand" to { input -> expand(input) },
     "reminders.build" to { input -> reminders(input) },
+    "reminders.prayer" to { input -> prayer(input) },
     "reminders.delayLabel" to { input -> JsonPrimitive(relativeDelayLabel(input.getValue("minutes").jsonPrimitive.double)) },
     "preferences.prayerReminder" to { input ->
         JsonArray(
@@ -146,6 +148,16 @@ private fun reminders(input: JsonObject): JsonElement {
         now = OffsetDateTime.parse(input.getValue("now").jsonPrimitive.content).toInstant(),
         minutesBefore = minutes(input.getValue("minutesBefore")),
         minutesByCalendar = input.getValue("minutesByCalendar").jsonObject.mapValues { minutes(it.value) },
+        timeFormat24h = input.getValue("timeFormat24h").jsonPrimitive.boolean,
+    )
+    return JsonArray(built.map { it.toJson() })
+}
+
+private fun prayer(input: JsonObject): JsonElement {
+    val built = prayerRemindersFor(
+        timetable = input.getValue("timetable"),
+        minutes = input.getValue("minutes").jsonArray.map { it.jsonPrimitive.long },
+        now = OffsetDateTime.parse(input.getValue("now").jsonPrimitive.content).toInstant(),
         timeFormat24h = input.getValue("timeFormat24h").jsonPrimitive.boolean,
     )
     return JsonArray(built.map { it.toJson() })

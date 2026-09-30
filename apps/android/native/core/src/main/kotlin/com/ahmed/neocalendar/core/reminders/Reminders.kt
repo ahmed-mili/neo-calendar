@@ -51,7 +51,7 @@ data class Reminder(
 }
 
 /** `formatTime` de calendarFormatters.ts. */
-private fun formatTime(date: Instant, format24h: Boolean): String {
+internal fun formatTime(date: Instant, format24h: Boolean): String {
     val local = date.atZone(localZone())
     val h = local.hour
     val m = local.minute.toString().padStart(2, '0')
