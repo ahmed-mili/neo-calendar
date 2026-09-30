@@ -1,0 +1,9 @@
+{
+  "name": "pas de debut",
+  "fn": "panel.daysBetween",
+  "input": {
+    "start": "",
+    "end": "2026-08-28"
+  },
+  "expected": 0
+}

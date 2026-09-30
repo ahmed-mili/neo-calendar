@@ -1,0 +1,11 @@
+{
+  "name": "pas de date",
+  "fn": "panel.endDate",
+  "input": {
+    "date": "",
+    "allDay": false,
+    "startTime": "22:00",
+    "endTime": "06:00"
+  },
+  "expected": ""
+}

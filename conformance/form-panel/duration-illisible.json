@@ -1,0 +1,9 @@
+{
+  "name": "heure illisible",
+  "fn": "panel.duration",
+  "input": {
+    "start": "xx:00",
+    "end": "10:00"
+  },
+  "expected": ""
+}

@@ -1,0 +1,11 @@
+{
+  "name": "date illisible",
+  "fn": "panel.endDate",
+  "input": {
+    "date": "pas une date",
+    "allDay": false,
+    "startTime": "22:00",
+    "endTime": "06:00"
+  },
+  "expected": ""
+}

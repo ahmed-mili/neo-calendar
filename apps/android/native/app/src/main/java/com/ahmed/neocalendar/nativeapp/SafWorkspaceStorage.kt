@@ -4,11 +4,17 @@ import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import com.ahmed.neocalendar.core.workspace.WorkspaceStorage
+import com.ahmed.neocalendar.core.workspace.WritableWorkspaceStorage
 import java.io.IOException
 import java.util.Locale
 
-/** Lecture seule du dossier de notes par SAF ; mêmes règles que MainActivity.list() / findChild() / readText(). */
-class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : WorkspaceStorage {
+/**
+ * Le dossier de notes par SAF ; mêmes règles que MainActivity.list() / findChild() /
+ * readText() / writeText() / createDocument() / renameDocument() / deleteDocument().
+ * Une instance sert une seule opération : chaque dossier n'est interrogé qu'une
+ * fois, et toute écriture oublie ce qui avait été listé.
+ */
+class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : WritableWorkspaceStorage {
     private val root: Uri =
         DocumentsContract.buildDocumentUriUsingTree(treeUri, DocumentsContract.getTreeDocumentId(treeUri))
 
@@ -27,6 +33,49 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : Workspac
         }
     }
 
+    /** L'URI du fichier, pour l'ouvrir dans une autre application ; null s'il n'existe pas. */
+    fun uriOf(relativePath: String): Uri? = findPath(relativePath)
+
+    override fun writeText(relativePath: String, text: String) {
+        val uri = findPath(relativePath) ?: throw IOException("Ecriture impossible: $relativePath")
+        // « wt » : le fichier est tronqué avant l'écriture, un texte plus court ne laisse pas de reste.
+        context.contentResolver.openOutputStream(uri, "wt").use { out ->
+            if (out == null) throw IOException("Ecriture impossible")
+            out.write(text.toByteArray(Charsets.UTF_8))
+        }
+    }
+
+    override fun createFile(relativeDir: String, name: String, mimeType: String): String {
+        val parent = findPath(relativeDir) ?: throw IOException("Dossier introuvable: $relativeDir")
+        DocumentsContract.createDocument(context.contentResolver, parent, mimeType, name)
+            ?: throw IOException("Creation impossible: $name")
+        listings.clear()
+        return child(relativeDir, name)
+    }
+
+    override fun createDirectory(relativeDir: String, name: String): String {
+        val parent = findPath(relativeDir) ?: throw IOException("Dossier introuvable: $relativeDir")
+        DocumentsContract.createDocument(context.contentResolver, parent, DocumentsContract.Document.MIME_TYPE_DIR, name)
+            ?: throw IOException("Creation du dossier impossible: $name")
+        listings.clear()
+        return child(relativeDir, name)
+    }
+
+    override fun rename(relativePath: String, newName: String): String {
+        val uri = findPath(relativePath) ?: throw IOException("Renommage impossible: $relativePath")
+        DocumentsContract.renameDocument(context.contentResolver, uri, newName) ?: throw IOException("Renommage impossible")
+        listings.clear()
+        return child(relativePath.substringBeforeLast('/', ""), newName)
+    }
+
+    override fun delete(relativePath: String) {
+        val uri = findPath(relativePath) ?: return
+        DocumentsContract.deleteDocument(context.contentResolver, uri)
+        listings.clear()
+    }
+
+    private fun child(dir: String, name: String) = if (dir.isEmpty()) name else "$dir/$name"
+
     private fun findPath(relative: String): Uri? {
         var current = root
         for (part in relative.replace('\\', '/').split("/")) {
@@ -37,7 +86,6 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : Workspac
         return current
     }
 
-    // Une instance sert une seule lecture : chaque dossier n'est interrogé qu'une fois (sinon chaque fichier relit tout le chemin).
     private val listings = HashMap<Uri, List<Doc>>()
 
     private fun children(parent: Uri): List<Doc> = listings.getOrPut(parent) { query(parent) }

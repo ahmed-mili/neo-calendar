@@ -80,6 +80,7 @@ import { mergeForSave } from "../src/ui/calendar/eventScheduling";
 import { reminderLabelParts } from "../src/ui/calendar/reminderChoices";
 import { reminderMinutesFrom, splitReminderDelay } from "../src/ui/calendar/reminderDelay";
 import { attachmentPathFor } from "../src/ui/calendar/pastedAttachment";
+import { computeDuration, daysBetween, panelEndDate } from "../src/ui/calendar/EventPanel.helpers";
 import { geoUrlFor, locationDestinationFor, mapsAppsFor, mapsUrlFor } from "../src/ui/calendar/locationLink";
 import { readChecklist, toggleLine } from "../src/ui/calendar/descriptionChecklist";
 import { readInlineLinks } from "../src/ui/calendar/descriptionInlineLinks";
@@ -239,6 +240,9 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
     "notes.mergeForSave": ({ base, payload }) => mergeForSave(validated(base), payload as NeoEvent),
     "reminders.splitDelay": ({ minutes }) => splitReminderDelay(minutes),
     "reminders.minutesFrom": ({ amount, unit }) => reminderMinutesFrom(amount, unit),
+    "panel.duration": ({ start, end, dayGap }) => computeDuration(start, end, dayGap),
+    "panel.daysBetween": ({ start, end }) => daysBetween(start, end),
+    "panel.endDate": ({ date, endDate, allDay, startTime, endTime }) => panelEndDate(date, endDate, allDay, startTime, endTime),
     "description.attachmentPath": ({ eventRelativePath, target }) => attachmentPathFor(eventRelativePath, target),
     "reminders.choiceLabel": ({ minutes, allDay }) => reminderLabelParts(minutes, allDay),
     "location.destination": ({ location, geo, linkAddress }) => locationDestinationFor(location, geo, linkAddress),

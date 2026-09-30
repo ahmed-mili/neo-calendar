@@ -1,0 +1,9 @@
+{
+  "name": "trois jours",
+  "fn": "panel.daysBetween",
+  "input": {
+    "start": "2026-08-28",
+    "end": "2026-08-31"
+  },
+  "expected": 3
+}

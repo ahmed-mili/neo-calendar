@@ -17,6 +17,7 @@ conformance/
 ├── recurring-edit/*.json    modifier ou supprimer un jour d'une série, différences affichées
 ├── location/*.json          destination d'un lieu, applications de cartes, adresses
 ├── description/*.json       cases à cocher, liens et chemins de pièces jointes d'une description
+├── form-panel/*.json        durée et date de fin affichées par la fiche
 └── form/*.json              la fiche rendue pour de bon (jsdom) : valeurs lues, payload écrit
 ```
 

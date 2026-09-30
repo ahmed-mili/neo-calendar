@@ -1,0 +1,10 @@
+{
+  "name": "un jour d'ecart et une fin avant le debut",
+  "fn": "panel.duration",
+  "input": {
+    "start": "22:00",
+    "end": "06:00",
+    "dayGap": 1
+  },
+  "expected": "8h"
+}

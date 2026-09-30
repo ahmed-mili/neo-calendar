@@ -1,0 +1,9 @@
+{
+  "name": "meme heure : rien",
+  "fn": "panel.duration",
+  "input": {
+    "start": "09:00",
+    "end": "09:00"
+  },
+  "expected": ""
+}

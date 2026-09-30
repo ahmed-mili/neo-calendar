@@ -1,0 +1,11 @@
+{
+  "name": "pas d'heure de fin",
+  "fn": "panel.endDate",
+  "input": {
+    "date": "2026-08-28",
+    "allDay": false,
+    "startTime": "22:00",
+    "endTime": ""
+  },
+  "expected": ""
+}

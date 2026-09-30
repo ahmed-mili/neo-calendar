@@ -1,0 +1,9 @@
+{
+  "name": "pas d'heure de debut",
+  "fn": "panel.duration",
+  "input": {
+    "start": "",
+    "end": "10:00"
+  },
+  "expected": ""
+}

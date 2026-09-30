@@ -1,0 +1,9 @@
+{
+  "name": "a travers le changement d'heure d'octobre",
+  "fn": "panel.daysBetween",
+  "input": {
+    "start": "2026-10-24",
+    "end": "2026-10-26"
+  },
+  "expected": 2
+}

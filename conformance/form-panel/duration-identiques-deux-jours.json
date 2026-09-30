@@ -1,0 +1,10 @@
+{
+  "name": "meme heure, un jour d'ecart : 24 h",
+  "fn": "panel.duration",
+  "input": {
+    "start": "13:00",
+    "end": "13:00",
+    "dayGap": 1
+  },
+  "expected": "24h"
+}

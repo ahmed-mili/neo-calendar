@@ -1,0 +1,12 @@
+{
+  "name": "endDate explicite",
+  "fn": "panel.endDate",
+  "input": {
+    "date": "2026-08-28",
+    "endDate": "2026-08-31",
+    "allDay": false,
+    "startTime": "14:15",
+    "endTime": "15:15"
+  },
+  "expected": "2026-08-31"
+}

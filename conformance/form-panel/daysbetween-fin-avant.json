@@ -1,0 +1,9 @@
+{
+  "name": "fin avant le debut",
+  "fn": "panel.daysBetween",
+  "input": {
+    "start": "2026-08-28",
+    "end": "2026-08-20"
+  },
+  "expected": 0
+}

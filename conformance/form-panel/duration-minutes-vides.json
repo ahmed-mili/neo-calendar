@@ -1,0 +1,9 @@
+{
+  "name": "minutes vides comptent pour 0",
+  "fn": "panel.duration",
+  "input": {
+    "start": "09:",
+    "end": "10:"
+  },
+  "expected": "1h"
+}

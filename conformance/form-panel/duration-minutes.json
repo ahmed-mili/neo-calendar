@@ -1,0 +1,9 @@
+{
+  "name": "45 min",
+  "fn": "panel.duration",
+  "input": {
+    "start": "09:00",
+    "end": "09:45"
+  },
+  "expected": "45 min"
+}

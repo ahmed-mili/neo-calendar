@@ -1,0 +1,9 @@
+{
+  "name": "date illisible",
+  "fn": "panel.daysBetween",
+  "input": {
+    "start": "2026-08-28",
+    "end": "pas une date"
+  },
+  "expected": 0
+}

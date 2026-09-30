@@ -1,0 +1,8 @@
+{
+  "name": "pas de fin",
+  "fn": "panel.daysBetween",
+  "input": {
+    "start": "2026-08-28"
+  },
+  "expected": 0
+}

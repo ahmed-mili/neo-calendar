@@ -1,0 +1,11 @@
+{
+  "name": "passe minuit en fin de mois",
+  "fn": "panel.endDate",
+  "input": {
+    "date": "2026-08-31",
+    "allDay": false,
+    "startTime": "22:00",
+    "endTime": "06:00"
+  },
+  "expected": "2026-09-01"
+}

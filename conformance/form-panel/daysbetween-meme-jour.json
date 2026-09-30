@@ -1,0 +1,9 @@
+{
+  "name": "meme jour",
+  "fn": "panel.daysBetween",
+  "input": {
+    "start": "2026-08-28",
+    "end": "2026-08-28"
+  },
+  "expected": 0
+}

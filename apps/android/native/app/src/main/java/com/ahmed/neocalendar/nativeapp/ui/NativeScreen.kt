@@ -138,7 +138,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
     val hidden by viewModel.hidden.collectAsState()
     val reloadError by viewModel.reloadError.collectAsState()
     var monthOpen by rememberSaveable { mutableStateOf(false) }
-    var selected by remember { mutableStateOf<DisplayEvent?>(null) }
+    var sheet by remember { mutableStateOf<SheetTarget?>(null) }
     var overlayKey by rememberSaveable { mutableStateOf("") }
     val overlay = remember(overlayKey) { decodeOverlay(overlayKey) }
     val calendarsById = remember(data) { data.calendars.associateBy { it.id } }
@@ -146,9 +146,13 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
     // Les tâches se lisent dans les notes brutes (une tâche en retard est hors de la fenêtre de la grille) ; masquer un calendrier les masque aussi.
     val taskGroups = remember(data, hidden) { buildDesktopTaskGroups(collectTasks(data.events, calendarsById, hidden)) }
     val openTask = { task: TaskItem ->
-        val stored = notesById[task.id]
-        val calendar = calendarsById[task.calendarId]
-        if (stored != null && calendar != null) selected = displayEventOfNote(stored, calendar, java.time.Instant.now())
+        val note = notesById[task.id]
+        if (note != null) sheet = SheetTarget.Existing(note, note.id)
+    }
+    // Un appui sur un bloc ou une carte : la note qu'il montre (la série, pour un jour d'une série).
+    val openEvent = { event: DisplayEvent ->
+        val note = resolveStored(notesById, event.id)
+        if (note != null) sheet = SheetTarget.Existing(note, event.id)
     }
 
     // Ce que la barre du haut dit de la grille : le jour le plus proche de la tête, recalculé seulement quand il change.
@@ -191,7 +195,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                     occurrences = occurrences,
                     allDayCollapsed = allDayCollapsed,
                     onToggleAllDayCollapsed = { viewModel.setAllDayCollapsed(!allDayCollapsed) },
-                    onEventClick = { selected = it },
+                    onEventClick = openEvent,
                 )
                 reloadError?.let {
                     Text(
@@ -213,7 +217,11 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                         .clip(RoundedCornerShape(18.dp))
                         .background(Neo.Accent)
                         .clickable {
-                            Toast.makeText(context, "La création d'évènement arrive avec la fiche.", Toast.LENGTH_SHORT).show()
+                            if (data.calendars.none { it.editable }) {
+                                Toast.makeText(context, "Créez d'abord un dossier de calendrier avant d'ajouter des évènements.", Toast.LENGTH_LONG).show()
+                            } else {
+                                sheet = newDraft()
+                            }
                         },
                     contentAlignment = Alignment.Center,
                 ) { Icon(NeoIcons.Plus, "Nouvel évènement", tint = Neo.Background, modifier = Modifier.size(26.dp)) }
@@ -286,7 +294,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                                     calendarPanelEvents(data.events, calendar, zone, java.time.Instant.now())
                                 }
                             }
-                            CalendarEventsList(calendar, events, data.timeFormat24h, { overlayKey = "" }) { selected = it }
+                            CalendarEventsList(calendar, events, data.timeFormat24h, { overlayKey = "" }, openEvent)
                         }
                     }
                     is Overlay.Tasks -> TasksList(
@@ -304,7 +312,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                                 searchCorpus(data.events, calendarsById, anchor, zone, java.time.Instant.now())
                             }
                         }
-                        SearchScreen(corpus, data.timeFormat24h, { overlayKey = "" }) { selected = it }
+                        SearchScreen(corpus, data.timeFormat24h, { overlayKey = "" }, openEvent)
                     }
                     null -> Unit
                 }
@@ -312,5 +320,20 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
         }
     }
 
-    selected?.let { EventReadSheet(it, data.timeFormat24h) { selected = null } }
+    sheet?.let { EventSheet(it, data, viewModel) { sheet = null } }
+}
+
+/** La note d'un évènement affiché : directement, ou la série dont c'est un jour (`<série>_<jour>`). */
+private fun resolveStored(notesById: Map<String, com.ahmed.neocalendar.core.notes.StoredEvent>, displayId: String) =
+    notesById[displayId]
+        ?: com.ahmed.neocalendar.core.recurrence.parseOccurrenceId(displayId)
+            ?.let { notesById[it.first] }
+            // L'identifiant d'une note peut lui-même finir comme une date : seule une série a des jours.
+            ?.takeIf { com.ahmed.neocalendar.core.recurrence.isSeries(it.event) }
+
+/** Le bouton + : la prochaine demi-heure, trente minutes, dans le calendrier par défaut. */
+private fun newDraft(): SheetTarget.Draft {
+    val now = java.time.LocalDateTime.now().withSecond(0).withNano(0)
+    val start = now.withMinute(0).plusMinutes(((now.minute + 29) / 30 * 30).toLong())
+    return SheetTarget.Draft(start, start.plusMinutes(30), allDay = false)
 }

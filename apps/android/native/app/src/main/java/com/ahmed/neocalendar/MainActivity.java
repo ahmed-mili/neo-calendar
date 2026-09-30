@@ -582,11 +582,53 @@ public class MainActivity extends Activity {
   }
 
   private Uri tree(JSONObject args)throws Exception{String raw=args.optString("dataFolder","");if(raw.isEmpty())raw=getSharedPreferences(PREF_FILE,MODE_PRIVATE).getString(PREF_TREE,"");if(raw.isEmpty())throw new Exception("Selectionnez dabord un dossier Android.");Uri u=Uri.parse(raw);boolean granted=false;for(UriPermission p:getContentResolver().getPersistedUriPermissions())if(p.getUri().equals(u)&&p.isReadPermission()){granted=true;break;}if(!granted)throw new Exception("Lautorisation du dossier a ete revoquee. Selectionnez-le a nouveau.");String id=DocumentsContract.getTreeDocumentId(u);return DocumentsContract.buildDocumentUriUsingTree(u,id);}
+  /* Les cartes installees (cas « installed_maps_apps » du pont) : la meme
+     logique, appelable sans WebView depuis l'ecran natif. */
+  public static JSONArray installedMapsApps(Context context)throws Exception{
+    String[][] known={
+      {"google","com.google.android.apps.maps"},
+      {"citymapper","com.citymapper.app.release"},
+      {"moovit","com.tranzmate"},
+      {"waze","com.waze"},
+    };
+    JSONArray installed=new JSONArray();
+    PackageManager packages=context.getPackageManager();
+    Set<String> seen=new HashSet<>();
+    for(String[] app:known){
+      if(packages.getLaunchIntentForPackage(app[1])==null) continue;
+      seen.add(app[1]);
+      JSONObject entry=new JSONObject();
+      entry.put("id",app[0]);
+      entry.put("package",app[1]);
+      String icon=appIcon(packages,app[1]);
+      if(icon!=null) entry.put("icon",icon);
+      installed.put(entry);
+    }
+    /* Et les autres : celles dont on ignore l'adresse d'itineraire mais
+       qu'Android sait capables d'ouvrir un point. On ne tient donc pas de
+       liste — Bonjour RATP et les suivantes se signalent elles-memes — et
+       on ne leur promet qu'une epingle, seule chose qu'une application
+       inconnue sache surement recevoir. */
+    Intent probe=new Intent(Intent.ACTION_VIEW,Uri.parse("geo:0,0?q=0,0"));
+    for(ResolveInfo found:packages.queryIntentActivities(probe,0)){
+      String pkg=found.activityInfo!=null?found.activityInfo.packageName:null;
+      if(pkg==null||pkg.equals(context.getPackageName())||!seen.add(pkg)) continue;
+      CharSequence label=found.loadLabel(packages);
+      if(label==null||label.length()==0) continue;
+      JSONObject entry=new JSONObject();
+      entry.put("package",pkg);
+      entry.put("label",label.toString());
+      String icon=appIcon(packages,pkg);
+      if(icon!=null) entry.put("icon",icon);
+      installed.put(entry);
+    }
+    return installed;
+  }
   /* L'icone d'une application, dessinee puis encodee : une WebView n'a pas acces
      aux fichiers d'une autre application, il n'y a donc rien a pointer et tout a
      porter. 96 px suffisent a la feuille, qui les affiche a 40. Une icone qui ne
      se dessine pas ne coute que son image : l'entree reste au menu. */
-  private String appIcon(PackageManager packages,String pkg){
+  private static String appIcon(PackageManager packages,String pkg){
     try{
       android.graphics.drawable.Drawable icon=packages.getApplicationIcon(pkg);
       int size=96;
@@ -643,46 +685,7 @@ public class MainActivity extends Activity {
          paquet par paquet, et depuis Android 11 la question doit etre declaree
          au manifeste (<queries>), sans quoi le systeme repond « absente » pour
          tout. Les noms courts sont ceux du menu (voir locationLink.ts). */
-      case "installed_maps_apps": {
-        String[][] known={
-          {"google","com.google.android.apps.maps"},
-          {"citymapper","com.citymapper.app.release"},
-          {"moovit","com.tranzmate"},
-          {"waze","com.waze"},
-        };
-        JSONArray installed=new JSONArray();
-        PackageManager packages=getPackageManager();
-        Set<String> seen=new HashSet<>();
-        for(String[] app:known){
-          if(packages.getLaunchIntentForPackage(app[1])==null) continue;
-          seen.add(app[1]);
-          JSONObject entry=new JSONObject();
-          entry.put("id",app[0]);
-          entry.put("package",app[1]);
-          String icon=appIcon(packages,app[1]);
-          if(icon!=null) entry.put("icon",icon);
-          installed.put(entry);
-        }
-        /* Et les autres : celles dont on ignore l'adresse d'itineraire mais
-           qu'Android sait capables d'ouvrir un point. On ne tient donc pas de
-           liste — Bonjour RATP et les suivantes se signalent elles-memes — et
-           on ne leur promet qu'une epingle, seule chose qu'une application
-           inconnue sache surement recevoir. */
-        Intent probe=new Intent(Intent.ACTION_VIEW,Uri.parse("geo:0,0?q=0,0"));
-        for(ResolveInfo found:packages.queryIntentActivities(probe,0)){
-          String pkg=found.activityInfo!=null?found.activityInfo.packageName:null;
-          if(pkg==null||pkg.equals(getPackageName())||!seen.add(pkg)) continue;
-          CharSequence label=found.loadLabel(packages);
-          if(label==null||label.length()==0) continue;
-          JSONObject entry=new JSONObject();
-          entry.put("package",pkg);
-          entry.put("label",label.toString());
-          String icon=appIcon(packages,pkg);
-          if(icon!=null) entry.put("icon",icon);
-          installed.put(entry);
-        }
-        return installed;
-      }
+      case "installed_maps_apps": return installedMapsApps(MainActivity.this);
       case "open_desktop_linked_path": return null;
       case "discover_desktop_obsidian_vaults": return new JSONArray();
       case "search_desktop_vault_notes": return new JSONArray();

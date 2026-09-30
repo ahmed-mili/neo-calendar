@@ -1,0 +1,10 @@
+{
+  "name": "deux jours d'ecart",
+  "fn": "panel.duration",
+  "input": {
+    "start": "13:00",
+    "end": "15:30",
+    "dayGap": 2
+  },
+  "expected": "50h 30 min"
+}

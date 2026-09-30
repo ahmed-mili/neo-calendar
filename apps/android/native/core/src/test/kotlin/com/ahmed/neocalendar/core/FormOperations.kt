@@ -2,6 +2,9 @@ package com.ahmed.neocalendar.core
 
 import com.ahmed.neocalendar.core.description.ChecklistLine
 import com.ahmed.neocalendar.core.form.EventFormValues
+import com.ahmed.neocalendar.core.form.computeDuration
+import com.ahmed.neocalendar.core.form.daysBetween
+import com.ahmed.neocalendar.core.form.panelEndDate
 import com.ahmed.neocalendar.core.form.buildPayload
 import com.ahmed.neocalendar.core.form.formValuesOfDraft
 import com.ahmed.neocalendar.core.form.formValuesOfEvent
@@ -218,6 +221,18 @@ internal val FORM_OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
     },
     "description.attachmentPath" to { input ->
         JsonPrimitive(attachmentPathFor(str(input, "eventRelativePath"), str(input, "target")))
+    },
+    "panel.duration" to { input ->
+        JsonPrimitive(computeDuration(str(input, "start"), str(input, "end"), input["dayGap"]?.takeUnless { it is JsonNull }?.jsonPrimitive?.int ?: 0))
+    },
+    "panel.daysBetween" to { input -> JsonPrimitive(daysBetween(str(input, "start"), optStr(input, "end"))) },
+    "panel.endDate" to { input ->
+        JsonPrimitive(
+            panelEndDate(
+                str(input, "date"), optStr(input, "endDate"), input.getValue("allDay").jsonPrimitive.boolean,
+                str(input, "startTime"), str(input, "endTime"),
+            )
+        )
     },
     "form.payload" to { input -> formPayload(input) },
 )

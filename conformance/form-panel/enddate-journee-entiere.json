@@ -1,0 +1,11 @@
+{
+  "name": "journee entiere",
+  "fn": "panel.endDate",
+  "input": {
+    "date": "2026-08-28",
+    "allDay": true,
+    "startTime": "22:00",
+    "endTime": "06:00"
+  },
+  "expected": ""
+}

@@ -13,6 +13,7 @@ import com.ahmed.neocalendar.core.grid.clampDayCount
 import com.ahmed.neocalendar.core.layout.AllDayLanesResult
 import com.ahmed.neocalendar.core.layout.GridEvent
 import com.ahmed.neocalendar.core.layout.packAllDayLanes
+import com.ahmed.neocalendar.core.form.nowUtcIso
 import com.ahmed.neocalendar.core.notes.EventFile
 import com.ahmed.neocalendar.core.notes.StoredEvent
 import com.ahmed.neocalendar.core.notes.calendarIdFromPath
@@ -20,6 +21,7 @@ import com.ahmed.neocalendar.core.notes.parseStoredEvent
 import com.ahmed.neocalendar.core.preferences.parseWorkspacePreferences
 import com.ahmed.neocalendar.core.recurrence.DisplayEvent
 import com.ahmed.neocalendar.core.recurrence.neoEventToDisplayEvents
+import com.ahmed.neocalendar.core.workspace.EventWriter
 import com.ahmed.neocalendar.core.workspace.loadWorkspace
 import java.time.Instant
 import java.time.LocalDate
@@ -33,7 +35,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -59,6 +64,9 @@ class WorkspaceData(
     val timeFormat24h: Boolean,
     val hiddenCalendarIds: Set<String>,
     val defaultCalendarPath: String?,
+    val defaultEventsAsTasks: Boolean,
+    val mapsApp: String,
+    val mapsTravelMode: String,
 )
 
 sealed interface ScreenState {
@@ -140,7 +148,8 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     /** Relit le dossier ; ignoré s'il y en a une en cours ou si la dernière lecture date de moins de 400 ms. */
     fun reload(force: Boolean = false) {
         val now = SystemClock.elapsedRealtime()
-        if (loading?.isActive == true) return
+        // Après une écriture, la lecture en cours (partie avant elle) est périmée : on la remplace.
+        if (force) loading?.cancel() else if (loading?.isActive == true) return
         if (!force && lastReloadAt != 0L && now - lastReloadAt < MIN_RELOAD_GAP_MS) return
         lastReloadAt = now
         loading = viewModelScope.launch {
@@ -159,6 +168,8 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
                 _reloadError.value = null
                 _screen.value = ScreenState.Ready(data)
                 publish()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 val message = e.message ?: e.toString()
                 if (_screen.value is ScreenState.Ready) _reloadError.value = message
@@ -243,16 +254,71 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         return Occurrences(fromDay, toDay, timed, lanes, allDay)
     }
 
-    /** Lit le dossier : mêmes contrôles que `MainActivity.tree()`, puis le noyau fait le reste. */
-    private fun read(): WorkspaceData {
+    /** Le dossier choisi, avec les mêmes contrôles que `MainActivity.tree()` ; `write` exige aussi l'autorisation d'écrire. */
+    private fun treeUri(write: Boolean): Uri {
         val context = getApplication<Application>()
         val raw = context.getSharedPreferences(TREE_PREFS, Context.MODE_PRIVATE).getString(TREE_KEY, "").orEmpty()
         if (raw.isEmpty()) throw Exception("Sélectionnez d'abord un dossier de notes.")
         val uri = Uri.parse(raw)
-        val granted = context.contentResolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission }
-        if (!granted) throw Exception("L'autorisation du dossier a été révoquée. Sélectionnez-le à nouveau.")
+        val grants = context.contentResolver.persistedUriPermissions.filter { it.uri == uri }
+        if (grants.none { it.isReadPermission }) throw Exception("L'autorisation du dossier a été révoquée. Sélectionnez-le à nouveau.")
+        if (write && grants.none { it.isWritePermission }) {
+            throw Exception("L'autorisation d'écrire dans le dossier a été révoquée. Sélectionnez-le à nouveau.")
+        }
+        return uri
+    }
 
-        val workspace = loadWorkspace(SafWorkspaceStorage(context, uri))
+    /** Les écritures se suivent : une seule à la fois, puis le dossier est relu, qu'elle ait réussi ou non. */
+    private val writeLock = Mutex()
+
+    /** Rend le message de l'erreur, ou null quand l'écriture a réussi. */
+    private suspend fun write(block: (EventWriter, SafWorkspaceStorage) -> Unit): String? {
+        val error = writeLock.withLock {
+            withContext(Dispatchers.IO) {
+                try {
+                    val storage = SafWorkspaceStorage(getApplication(), treeUri(write = true))
+                    block(EventWriter(storage), storage)
+                    null
+                } catch (e: Exception) {
+                    e.message ?: e.toString()
+                }
+            }
+        }
+        reload(force = true)
+        return error
+    }
+
+    suspend fun createEvent(calendarPath: String, payload: JsonObject): String? =
+        write { writer, _ -> writer.create(calendarPath, payload) }
+
+    suspend fun updateEvent(stored: StoredEvent, payload: JsonObject, targetCalendarPath: String): String? =
+        write { writer, _ -> writer.update(stored, payload, targetCalendarPath) }
+
+    suspend fun detachOccurrence(
+        stored: StoredEvent,
+        payload: JsonObject,
+        occurrenceDate: String,
+        date: String,
+        targetCalendarPath: String,
+    ): String? = write { writer, _ ->
+        writer.detachOccurrence(stored, payload, occurrenceDate, date, targetCalendarPath, ::nowUtcIso)
+    }
+
+    suspend fun deleteEvent(stored: StoredEvent): String? = write { writer, _ -> writer.delete(stored) }
+
+    suspend fun deleteOccurrence(stored: StoredEvent, date: String, following: Boolean): String? =
+        write { writer, _ -> writer.deleteOccurrence(stored, date, following) }
+
+    suspend fun duplicateEvent(stored: StoredEvent, calendarPath: String): String? =
+        write { writer, _ -> writer.duplicate(stored, calendarPath) }
+
+    /** Pour ouvrir une pièce jointe : le dossier en lecture, sans rien écrire. */
+    fun attachmentStorage(): SafWorkspaceStorage? = runCatching { SafWorkspaceStorage(getApplication(), treeUri(write = false)) }.getOrNull()
+
+    /** Lit le dossier : mêmes contrôles que `MainActivity.tree()`, puis le noyau fait le reste. */
+    private fun read(): WorkspaceData {
+        val context = getApplication<Application>()
+        val workspace = loadWorkspace(SafWorkspaceStorage(context, treeUri(write = false)))
         // La lecture tolérante du noyau : un fichier étrange ne plante pas, il retombe sur les valeurs lues une à une.
         val preferences = parseWorkspacePreferences(workspace.preferences)
         val calendars = buildCalendarModels(workspace.calendars, preferences, AppLocale.current)
@@ -272,6 +338,9 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
             timeFormat24h = flag("timeFormat24h", true),
             hiddenCalendarIds = hiddenPaths.map { calendarIdFromPath(it) }.toSet(),
             defaultCalendarPath = (preferences["defaultCalendarPath"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
+            defaultEventsAsTasks = flag("defaultEventsAsTasks", false),
+            mapsApp = (preferences["mapsApp"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: "ask",
+            mapsTravelMode = (preferences["mapsTravelMode"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: "auto",
         )
     }
 }

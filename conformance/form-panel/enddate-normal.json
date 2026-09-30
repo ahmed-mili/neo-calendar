@@ -1,0 +1,11 @@
+{
+  "name": "fin apres le debut",
+  "fn": "panel.endDate",
+  "input": {
+    "date": "2026-08-28",
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00"
+  },
+  "expected": ""
+}

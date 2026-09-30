@@ -1,0 +1,9 @@
+{
+  "name": "la fin avant le debut passe minuit",
+  "fn": "panel.duration",
+  "input": {
+    "start": "22:00",
+    "end": "06:00"
+  },
+  "expected": "8h"
+}
