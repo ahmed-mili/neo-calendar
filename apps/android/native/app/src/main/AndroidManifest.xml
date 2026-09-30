@@ -58,6 +58,11 @@
             </intent-filter>
         </activity>
 
+        <!-- Écran Compose : sans filtre d'intention, lancé seulement par l'alias debug. -->
+        <activity
+            android:name=".nativeapp.NativeActivity"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.updates"

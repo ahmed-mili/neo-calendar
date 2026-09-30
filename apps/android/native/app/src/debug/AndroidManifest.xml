@@ -1,0 +1,15 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Debug seulement : la WebView reste l'icône principale jusqu'à la bascule. -->
+        <activity-alias
+            android:name=".nativeapp.NativeLauncher"
+            android:exported="true"
+            android:label="Neo Calendar natif"
+            android:targetActivity=".nativeapp.NativeActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+    </application>
+</manifest>
