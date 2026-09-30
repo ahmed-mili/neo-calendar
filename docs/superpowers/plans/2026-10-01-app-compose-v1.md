@@ -99,7 +99,8 @@
 
 - Charge identique à celle de la WebView, écrite par `WidgetData.write` puis `NeoCalendarWidget.refreshAll` (Java inchangé) à chaque chargement ou modification ; thème = couleurs Catppuccin de l'inventaire.
 - Route `new-event` du « + » du widget et `EXTRA_EVENT_ID` d'une ligne : ouvrent le brouillon ou la fiche dans `NativeActivity`.
-- [ ] Émulateur : ajouter le widget à l'écran d'accueil, capture ; appui sur une ligne et sur « + ». Commit « App native : widget ».
+- **Lieu** (demande d'Ahmed, 2026-10-01) : chaque ligne du widget affiche le lieu de l'évènement sous son titre, sur une ligne, en couleur atténuée, rien s'il n'y en a pas. Champ `location` ajouté aux lignes de la charge (le port du noyau garde les cas au corpus pour les champs existants ; le lieu est un ajout du natif, testé en JUnit) ; `WidgetService.java` et sa mise en page l'affichent.
+- [ ] Émulateur : ajouter le widget à l'écran d'accueil, capture (un évènement avec lieu, un sans) ; appui sur une ligne et sur « + ». Commit « App native : widget ».
 
 ### Task 9 (note 25) : bascule
 
@@ -108,6 +109,16 @@
 - `NativeActivity` devient l'activité `MAIN` / `LAUNCHER` et reçoit les liens profonds, les routes du widget et des notifications ; `MainActivity` perd son filtre `LAUNCHER` mais reste dans l'APK, ouvrable depuis Réglages → « Ancienne interface (WebView) » tant que la v1 n'a pas été éprouvée sur le téléphone. L'alias debug est retiré. `AppUpdater` (mise à jour intégrée) branché dans les Réglages natifs comme dans l'app actuelle (« Rechercher les mises à jour », pastille).
 - Retour arrière : ferme feuille / tiroir / recherche avant de quitter.
 - [ ] APK debug installé par-dessus : l'icône principale ouvre l'app native ; parcours complet de l'inventaire sur l'émulateur (grille, tiroir, listes, fiche, créer / déplacer / supprimer dans `Essai Compose`, réglages, lien ICS, rappel, widget, ancienne interface) avec captures ; manifeste release vérifié. Commit « App native : l'icône principale ouvre l'app Compose ».
+
+---
+
+### Task 10 (note 29) : widget, choisir les calendriers affichés
+
+**Files:** `app/src/main/res/xml/` (fournisseur du widget), `nativeapp/WidgetConfigActivity.kt`, `WidgetService.java`, `NeoCalendarWidget.java`, `core/.../widget/WidgetPayload.kt`.
+
+- Le plus simple possible : à la pose du widget, une activité de configuration (`android:configure`) montre la liste des calendriers à cocher (tous cochés par défaut) et un bouton « Ajouter » ; `widgetFeatures="reconfigurable"` (Android 12+) pour rouvrir la même liste par appui long → « Reconfigurer ». Un choix PAR widget (clé = `appWidgetId`, `SharedPreferences` `neo-calendar-widget-calendars`), supprimé quand le widget est retiré (`onDeleted`).
+- Les lignes de la charge portent l'identifiant du calendrier (`calendarId`) ; `WidgetService` filtre à l'affichage selon le choix du widget.
+- [ ] Émulateur : poser deux widgets, l'un avec « Etudes » seul, l'autre avec tout ; captures ; reconfigurer le premier. Commit « Widget : choix des calendriers affichés ».
 
 ---
 
