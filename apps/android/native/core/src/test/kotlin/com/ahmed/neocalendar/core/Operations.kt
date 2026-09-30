@@ -436,6 +436,7 @@ private fun prayer(input: JsonObject): JsonElement {
         timeFormat24h = input.getValue("timeFormat24h").jsonPrimitive.boolean,
     )
     return JsonArray(built.map { it.toJson() })
+}
 
 /** Une note lue sur le disque : ses champs, plus son évènement brut à valider. */
 private fun storedOf(record: JsonObject): StoredEvent {

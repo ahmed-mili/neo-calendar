@@ -1,5 +1,7 @@
 package com.ahmed.neocalendar.core.reminders
 
+import com.ahmed.neocalendar.core.jsNumber
+
 import com.ahmed.neocalendar.core.notes.jsTrim
 import com.ahmed.neocalendar.core.notes.numberOf
 import com.ahmed.neocalendar.core.recurrence.DisplayEvent
@@ -154,7 +156,7 @@ fun buildReminders(
                     return@flatMap own.map { offset ->
                         Reminder(
                             id = event.id,
-                            key = "${event.id}#day:${reminderJsNumber(offset)}",
+                            key = "${event.id}#day:${jsNumber(offset)}",
                             atMs = allDayReminderAt(event.start, offset),
                             title = title,
                             body = withPlace(t("All-day"), event.location),
@@ -179,7 +181,7 @@ fun buildReminders(
             offsets.map { offset ->
                 Reminder(
                     id = event.id,
-                    key = "${event.id}#${reminderJsNumber(offset)}",
+                    key = "${event.id}#${jsNumber(offset)}",
                     atMs = event.start.toEpochMilli().toDouble() - offset * 60_000,
                     title = title,
                     body = withPlace(bodyFor(offset, event.start, now, timeFormat24h), event.location),
