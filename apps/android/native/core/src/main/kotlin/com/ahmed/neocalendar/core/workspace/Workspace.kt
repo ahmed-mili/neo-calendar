@@ -70,7 +70,7 @@ private fun collectEvents(
 }
 
 /** Fichier absent = premier lancement ; fichier corrompu = erreur, jamais des valeurs par défaut. */
-private fun readPreferences(storage: WorkspaceStorage): JsonObject {
+fun readPreferences(storage: WorkspaceStorage): JsonObject {
     val raw = storage.readText("$METADATA_DIR/$PREFERENCES_FILE_NAME")
         ?: storage.readText(PREFERENCES_FILE_NAME)
         ?: storage.readText(LEGACY_PREFERENCES_FILE_NAME)

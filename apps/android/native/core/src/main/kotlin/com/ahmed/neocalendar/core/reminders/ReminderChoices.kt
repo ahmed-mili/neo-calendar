@@ -94,3 +94,10 @@ fun reminderDelayLabel(minutes: Double): String {
     }
     return "${parts.joinToString(" ")} ${t("before")}"
 }
+
+/** Plusieurs délais en un souffle : « 5 minutes, 1 heure avant ». Vide, c'est le silence. */
+fun reminderListLabel(minutes: List<Double>): String {
+    if (minutes.isEmpty()) return t("No reminder")
+    val before = " ${t("before")}"
+    return minutes.joinToString(", ") { reminderDelayLabel(it).dropLast(before.length) } + before
+}

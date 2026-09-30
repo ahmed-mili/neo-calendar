@@ -48,6 +48,7 @@ import com.ahmed.neocalendar.core.recurrence.withFollowingRemoved
 import com.ahmed.neocalendar.core.recurrence.withOccurrenceRemoved
 import com.ahmed.neocalendar.core.reminders.ReminderUnit
 import com.ahmed.neocalendar.core.reminders.reminderLabelParts
+import com.ahmed.neocalendar.core.reminders.reminderListLabel
 import com.ahmed.neocalendar.core.reminders.reminderMinutesFrom
 import com.ahmed.neocalendar.core.reminders.splitReminderDelay
 import kotlinx.serialization.json.JsonArray
@@ -156,6 +157,9 @@ internal val FORM_OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
     "reminders.splitDelay" to { input ->
         val delay = splitReminderDelay(input.getValue("minutes").jsonPrimitive.int)
         JsonObject(mapOf("amount" to JsonPrimitive(delay.amount), "unit" to JsonPrimitive(delay.unit.key)))
+    },
+    "reminders.listLabel" to { input ->
+        JsonPrimitive(reminderListLabel(input.getValue("minutes").jsonArray.map { it.jsonPrimitive.double }))
     },
     "reminders.minutesFrom" to { input ->
         JsonPrimitive(

@@ -61,6 +61,11 @@ import androidx.compose.ui.unit.sp
 import com.ahmed.neocalendar.core.grid.CalendarModel
 import com.ahmed.neocalendar.core.grid.MAX_DAY_COUNT
 import com.ahmed.neocalendar.core.grid.MIN_DAY_COUNT
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.zIndex
+import com.ahmed.neocalendar.nativeapp.ui.fields.NeoMenu
+import com.ahmed.neocalendar.nativeapp.ui.fields.NeoMenuItem
 import java.time.LocalDate
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
@@ -145,7 +150,19 @@ fun NeoDrawer(
     }
 }
 
-/** Le contenu du tiroir : version, nombre de jours, mini-calendrier, calendriers, tâches. */
+/** Ce que le tiroir demande sur un calendrier (menu de sa ligne, pastille, ordre) et sur les Réglages. */
+class DrawerActions(
+    val onSettings: () -> Unit,
+    val onAddCalendar: () -> Unit,
+    val onSetDefault: (CalendarModel) -> Unit,
+    val onColor: (CalendarModel) -> Unit,
+    val onRename: (CalendarModel) -> Unit,
+    val onReminder: (CalendarModel) -> Unit,
+    val onDelete: (CalendarModel) -> Unit,
+    val onReorder: (List<String>) -> Unit,
+)
+
+/** Le contenu du tiroir : version, réglages, nombre de jours, mini-calendrier, calendriers, tâches. */
 @Composable
 fun DrawerContent(
     version: String,
@@ -162,6 +179,7 @@ fun DrawerContent(
     todoCount: Int,
     completeCount: Int,
     onOpenTasks: (complete: Boolean) -> Unit,
+    actions: DrawerActions,
 ) {
     Column(
         Modifier
@@ -175,25 +193,19 @@ fun DrawerContent(
         Row(Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Neo Calendar", color = Neo.Text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
             Text("v$version", color = Neo.TextFaint, fontSize = 12.sp)
+            Box(Modifier.size(Neo.TouchTarget).clickable(onClick = actions.onSettings), contentAlignment = Alignment.Center) {
+                Icon(NeoIcons.Settings, "Réglages", tint = Neo.TextSecondary, modifier = Modifier.size(20.dp))
+            }
         }
         DaySwitcher(dayCount, onDayCount)
         MiniCalendar(anchor, firstDay, onSelectDate, Modifier.padding(horizontal = 12.dp, vertical = 8.dp), cellHeight = 34.dp)
-        Text(
-            "Calendriers",
-            color = Neo.TextSecondary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
-        )
-        for (calendar in calendars) {
-            CalendarRow(
-                calendar,
-                hidden = calendar.id in hiddenIds,
-                isDefault = calendar.relativePath == defaultCalendarPath,
-                onToggle = { onToggleCalendar(calendar.id) },
-                onOpen = { onOpenCalendar(calendar) },
-            )
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Calendriers", color = Neo.TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Box(Modifier.size(Neo.TouchTarget).clickable(onClick = actions.onAddCalendar), contentAlignment = Alignment.Center) {
+                Icon(NeoIcons.Plus, "Ajouter un calendrier", tint = Neo.TextSecondary, modifier = Modifier.size(20.dp))
+            }
         }
+        CalendarList(calendars, hiddenIds, defaultCalendarPath, onToggleCalendar, onOpenCalendar, actions)
         Text(
             "Tâches",
             color = Neo.TextSecondary,
@@ -315,27 +327,99 @@ private fun DayOption(count: Int, active: Boolean, modifier: Modifier, onClick: 
     }
 }
 
+/**
+ * Les calendriers. Un appui long sur une ligne la prend : on la glisse vers le haut ou le bas, l'ordre
+ * est écrit au lâcher (`order`). Pendant le glissé la liste suit le doigt ; elle ne revient à celle du
+ * fichier que quand la relecture apporte un nouvel ordre.
+ */
 @Composable
-private fun CalendarRow(calendar: CalendarModel, hidden: Boolean, isDefault: Boolean, onToggle: () -> Unit, onOpen: () -> Unit) {
+private fun CalendarList(
+    calendars: List<CalendarModel>,
+    hiddenIds: Set<String>,
+    defaultCalendarPath: String?,
+    onToggle: (String) -> Unit,
+    onOpen: (CalendarModel) -> Unit,
+    actions: DrawerActions,
+) {
+    var working by remember(calendars) { mutableStateOf(calendars) }
+    var draggedId by remember { mutableStateOf<String?>(null) }
+    var offset by remember { mutableFloatStateOf(0f) }
+    val rowPx = with(androidx.compose.ui.platform.LocalDensity.current) { Neo.TouchTarget.toPx() }
+    for (calendar in working) {
+        androidx.compose.runtime.key(calendar.id) {
+            val dragging = draggedId == calendar.id
+            CalendarRow(
+                calendar,
+                hidden = calendar.id in hiddenIds,
+                isDefault = calendar.relativePath == defaultCalendarPath,
+                onToggle = { onToggle(calendar.id) },
+                onOpen = { onOpen(calendar) },
+                actions = actions,
+                modifier = Modifier
+                    .zIndex(if (dragging) 1f else 0f)
+                    .graphicsLayer { translationY = if (dragging) offset else 0f }
+                    .then(if (dragging) Modifier.background(Neo.Hover) else Modifier)
+                    .pointerInput(calendar.id) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { draggedId = calendar.id; offset = 0f },
+                            onDrag = { change, amount ->
+                                change.consume()
+                                offset += amount.y
+                                val from = working.indexOfFirst { it.id == calendar.id }
+                                val to = (from + (offset / rowPx).roundToInt()).coerceIn(0, working.lastIndex)
+                                if (to != from) {
+                                    working = working.toMutableList().also { list -> list.add(to, list.removeAt(from)) }
+                                    offset -= (to - from) * rowPx
+                                }
+                            },
+                            onDragEnd = {
+                                draggedId = null
+                                offset = 0f
+                                if (working.map { it.id } != calendars.map { it.id }) actions.onReorder(working.map { it.relativePath })
+                            },
+                            onDragCancel = { draggedId = null; offset = 0f; working = calendars },
+                        )
+                    },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CalendarRow(
+    calendar: CalendarModel,
+    hidden: Boolean,
+    isDefault: Boolean,
+    onToggle: () -> Unit,
+    onOpen: () -> Unit,
+    actions: DrawerActions,
+    modifier: Modifier = Modifier,
+) {
     val color = parseCalendarColor(calendar.color)
+    var menu by remember { mutableStateOf(false) }
     Row(
-        Modifier.fillMaxWidth().height(Neo.TouchTarget).clickable(onClick = onOpen).padding(start = 16.dp),
+        modifier.fillMaxWidth().height(Neo.TouchTarget).clickable(onClick = onOpen).padding(start = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // La pastille est pleine quand le calendrier se voit, un anneau quand il est masqué.
+        // La pastille est pleine quand le calendrier se voit, un anneau quand il est masqué ; un appui en fait le calendrier par défaut.
         Box(
-            Modifier
-                .size(14.dp)
-                .clip(CircleShape)
-                .then(if (hidden) Modifier.border(2.dp, color, CircleShape) else Modifier.background(color)),
-        )
+            Modifier.size(40.dp).clickable(enabled = calendar.editable) { actions.onSetDefault(calendar) },
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                Modifier
+                    .size(14.dp)
+                    .clip(CircleShape)
+                    .then(if (hidden) Modifier.border(2.dp, color, CircleShape) else Modifier.background(color)),
+            )
+        }
         Text(
             calendar.name,
             color = if (hidden) Neo.TextFaint else Neo.Text,
             fontSize = 14.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 12.dp).weight(1f),
+            modifier = Modifier.padding(start = 4.dp).weight(1f),
         )
         if (isDefault) {
             Text("Par défaut", color = Neo.TextFaint, fontSize = 11.sp, modifier = Modifier.padding(start = 8.dp))
@@ -350,6 +434,18 @@ private fun CalendarRow(calendar: CalendarModel, hidden: Boolean, isDefault: Boo
                 tint = if (hidden) Neo.TextFaint else Neo.TextSecondary,
                 modifier = Modifier.size(20.dp),
             )
+        }
+        Box {
+            Box(Modifier.size(Neo.TouchTarget).clickable { menu = true }, contentAlignment = Alignment.Center) {
+                Icon(NeoIcons.EllipsisVertical, "Menu de ${calendar.name}", tint = Neo.TextSecondary, modifier = Modifier.size(20.dp))
+            }
+            NeoMenu(menu, { menu = false }) {
+                NeoMenuItem("Couleur") { menu = false; actions.onColor(calendar) }
+                NeoMenuItem("Renommer") { menu = false; actions.onRename(calendar) }
+                NeoMenuItem("Rappel") { menu = false; actions.onReminder(calendar) }
+                if (!isDefault) NeoMenuItem("Calendrier par défaut") { menu = false; actions.onSetDefault(calendar) }
+                NeoMenuItem("Supprimer") { menu = false; actions.onDelete(calendar) }
+            }
         }
     }
 }

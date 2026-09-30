@@ -72,6 +72,7 @@ private sealed interface Overlay {
     data class Calendar(val id: String) : Overlay
     data class Tasks(val complete: Boolean) : Overlay
     data object Search : Overlay
+    data object Settings : Overlay
 }
 
 private fun Overlay?.encode(): String = when (this) {
@@ -79,6 +80,7 @@ private fun Overlay?.encode(): String = when (this) {
     is Overlay.Calendar -> "cal:$id"
     is Overlay.Tasks -> if (complete) "tasks:complete" else "tasks:todo"
     Overlay.Search -> "search"
+    Overlay.Settings -> "settings"
 }
 
 private fun decodeOverlay(key: String): Overlay? = when {
@@ -86,7 +88,32 @@ private fun decodeOverlay(key: String): Overlay? = when {
     key == "tasks:todo" -> Overlay.Tasks(false)
     key == "tasks:complete" -> Overlay.Tasks(true)
     key == "search" -> Overlay.Search
+    key == "settings" -> Overlay.Settings
     else -> null
+}
+
+/** Un dialogue sur un calendrier (ou sur le rappel général), ouvert depuis le tiroir ou les Réglages. */
+private sealed interface CalendarDialog {
+    data object Add : CalendarDialog
+    data object AppReminder : CalendarDialog
+    data class Color(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
+    data class Rename(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
+    data class Reminder(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
+    data class Delete(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
+}
+
+/** Le sélecteur de dossier : la même demande que `pickDirectory` de la WebView (lecture, écriture, permission durable). */
+private class PickTree : androidx.activity.result.contract.ActivityResultContract<Unit, android.content.Intent?>() {
+    override fun createIntent(context: android.content.Context, input: Unit) =
+        android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(
+            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_PREFIX_URI_PERMISSION,
+        )
+
+    override fun parseResult(resultCode: Int, intent: android.content.Intent?) =
+        if (resultCode == android.app.Activity.RESULT_OK) intent else null
 }
 
 /** L'écran de l'application : l'état du dossier, puis la grille quand il est lu. */
@@ -140,6 +167,13 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
     val hidden by viewModel.hidden.collectAsState()
     val reloadError by viewModel.reloadError.collectAsState()
     var monthOpen by rememberSaveable { mutableStateOf(false) }
+    var calendarDialog by remember { mutableStateOf<CalendarDialog?>(null) }
+    val pickTree = androidx.activity.compose.rememberLauncherForActivityResult(PickTree()) { result ->
+        if (result != null) viewModel.onTreePicked(result)
+    }
+    LaunchedEffect(Unit) { viewModel.notices.collect { Toast.makeText(context, it, Toast.LENGTH_LONG).show() } }
+    // Une écriture qui échoue le dit ; une écriture ignorée (une autre était en cours) ne dit rien.
+    val report = { error: String? -> if (error != null && error != WRITE_IGNORED) Toast.makeText(context, error, Toast.LENGTH_LONG).show() }
     var sheet by remember { mutableStateOf<SheetTarget?>(null) }
     var overlayKey by rememberSaveable { mutableStateOf("") }
     val overlay = remember(overlayKey) { decodeOverlay(overlayKey) }
@@ -317,6 +351,16 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                 todoCount = taskGroups.todo.size,
                 completeCount = taskGroups.complete.size,
                 onOpenTasks = { overlayKey = Overlay.Tasks(it).encode() },
+                actions = DrawerActions(
+                    onSettings = { overlayKey = Overlay.Settings.encode() },
+                    onAddCalendar = { calendarDialog = CalendarDialog.Add },
+                    onSetDefault = { viewModel.setDefaultCalendar(it.relativePath) },
+                    onColor = { calendarDialog = CalendarDialog.Color(it) },
+                    onRename = { calendarDialog = CalendarDialog.Rename(it) },
+                    onReminder = { calendarDialog = CalendarDialog.Reminder(it) },
+                    onDelete = { calendarDialog = CalendarDialog.Delete(it) },
+                    onReorder = viewModel::setCalendarOrder,
+                ),
             )
         }
 
@@ -365,10 +409,61 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                         }
                         SearchScreen(corpus, data.timeFormat24h, { overlayKey = "" }, openEvent)
                     }
+                    Overlay.Settings -> SettingsScreen(
+                        version = BuildConfig.VERSION_NAME,
+                        data = data,
+                        actions = SettingsActions(
+                            onSetting = viewModel::setPreference,
+                            onAppReminder = { calendarDialog = CalendarDialog.AppReminder },
+                            onCalendarReminder = { calendarDialog = CalendarDialog.Reminder(it) },
+                            onAddCalendar = { calendarDialog = CalendarDialog.Add },
+                            onPickFolder = { pickTree.launch(Unit) },
+                            folderName = viewModel.treeName(),
+                        ),
+                        onBack = { overlayKey = "" },
+                    )
                     null -> Unit
                 }
             }
         }
+    }
+
+    when (val dialog = calendarDialog) {
+        null -> Unit
+        CalendarDialog.Add -> CalendarNameDialog(
+            "Nouveau calendrier", "", "Créer", data.calendars.map { it.name }.toSet(),
+            { name -> calendarDialog = null; scope.launch { report(viewModel.createCalendar(name)) } },
+            { calendarDialog = null },
+        )
+        is CalendarDialog.Rename -> CalendarNameDialog(
+            "Renommer le calendrier", dialog.calendar.name, "Renommer", data.calendars.map { it.name }.toSet() - dialog.calendar.name,
+            { name -> calendarDialog = null; scope.launch { report(viewModel.renameCalendar(dialog.calendar.relativePath, name)) } },
+            { calendarDialog = null },
+        )
+        is CalendarDialog.Color -> CalendarColorDialog(
+            dialog.calendar.color,
+            { hex -> calendarDialog = null; viewModel.setCalendarColor(dialog.calendar.relativePath, hex) },
+            { calendarDialog = null },
+        )
+        is CalendarDialog.Delete -> ConfirmDeleteCalendarDialog(
+            dialog.calendar.name,
+            { calendarDialog = null; scope.launch { report(viewModel.deleteCalendar(dialog.calendar.relativePath)) } },
+            { calendarDialog = null },
+        )
+        is CalendarDialog.Reminder -> ReminderDialog(
+            "Rappel : ${dialog.calendar.name}",
+            data.calendarReminderMinutes[dialog.calendar.relativePath],
+            data.reminderMinutes,
+            { viewModel.setCalendarReminder(dialog.calendar.relativePath, it) },
+            { calendarDialog = null },
+        )
+        CalendarDialog.AppReminder -> ReminderDialog(
+            "Rappel",
+            data.reminderMinutes,
+            null,
+            { viewModel.setReminders(it.orEmpty()) },
+            { calendarDialog = null },
+        )
     }
 
     sheet?.let { EventSheet(it, data, viewModel) { sheet = null } }

@@ -1,0 +1,8 @@
+{
+  "name": "liste de rappels vide : le silence",
+  "fn": "reminders.listLabel",
+  "input": {
+    "minutes": []
+  },
+  "expected": "Aucun rappel"
+}

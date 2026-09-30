@@ -69,5 +69,25 @@ object NeoIcons {
     val ListChecks: ImageVector by lazy { lucide("list-checks", "M13 5h8", "M13 12h8", "M13 19h8", "m3 17 2 2 4-4", "m3 7 2 2 4-4") }
     val Navigation: ImageVector by lazy { lucide("navigation", "M3 11L22 2L13 21L11 13L3 11z") }
     val RotateCcw: ImageVector by lazy { lucide("rotate-ccw", "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", "M3 3v5h5") }
+    val Settings: ImageVector by lazy {
+        lucide(
+            "settings",
+            "M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915",
+            "M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
+        )
+    }
+    val Pencil: ImageVector by lazy {
+        lucide(
+            "pencil",
+            "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
+            "m15 5 4 4",
+        )
+    }
+    val FolderOpen: ImageVector by lazy {
+        lucide(
+            "folder-open",
+            "m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2",
+        )
+    }
     val Circle: ImageVector by lazy { lucide("circle", "M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0") }
 }

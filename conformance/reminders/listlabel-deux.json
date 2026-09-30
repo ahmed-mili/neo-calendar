@@ -1,0 +1,11 @@
+{
+  "name": "liste de rappels : 5 minutes et 1 heure",
+  "fn": "reminders.listLabel",
+  "input": {
+    "minutes": [
+      5,
+      60
+    ]
+  },
+  "expected": "5 minutes, 1 heure avant"
+}

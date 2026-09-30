@@ -1,0 +1,12 @@
+{
+  "name": "liste de rappels : delais composes",
+  "fn": "reminders.listLabel",
+  "input": {
+    "minutes": [
+      90,
+      1440,
+      1470
+    ]
+  },
+  "expected": "1 heure 30 minutes, 1 jour, 1 jour 30 minutes avant"
+}

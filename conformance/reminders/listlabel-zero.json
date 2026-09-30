@@ -1,0 +1,10 @@
+{
+  "name": "liste de rappels : zero dans une liste donne « Aucun  avant » (bug TypeScript repris, la fiche ne passe jamais 0)",
+  "fn": "reminders.listLabel",
+  "input": {
+    "minutes": [
+      0
+    ]
+  },
+  "expected": "Aucun  avant"
+}
