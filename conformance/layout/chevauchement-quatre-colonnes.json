@@ -1,0 +1,54 @@
+{
+  "name": "quatre evenements empiles sur quatre colonnes",
+  "fn": "layout.overlapGroups",
+  "input": {
+    "events": [
+      {
+        "id": "a",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T10:00:00.000Z"
+      },
+      {
+        "id": "b",
+        "start": "2026-08-10T07:15:00.000Z",
+        "end": "2026-08-10T10:00:00.000Z"
+      },
+      {
+        "id": "c",
+        "start": "2026-08-10T07:30:00.000Z",
+        "end": "2026-08-10T10:00:00.000Z"
+      },
+      {
+        "id": "d",
+        "start": "2026-08-10T07:45:00.000Z",
+        "end": "2026-08-10T10:00:00.000Z"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "events": [
+        {
+          "id": "a",
+          "column": 0,
+          "totalColumns": 4
+        },
+        {
+          "id": "b",
+          "column": 1,
+          "totalColumns": 4
+        },
+        {
+          "id": "c",
+          "column": 2,
+          "totalColumns": 4
+        },
+        {
+          "id": "d",
+          "column": 3,
+          "totalColumns": 4
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "deux barres visibles : la plus haute lane decide, quel que soit l'ordre",
+  "fn": "layout.visibleLaneCount",
+  "input": {
+    "bars": [
+      {
+        "startIdx": 4,
+        "span": 1,
+        "lane": 1
+      },
+      {
+        "startIdx": 5,
+        "span": 1,
+        "lane": 0
+      }
+    ],
+    "firstVisibleIdx": 3,
+    "lastVisibleIdx": 9
+  },
+  "expected": 2
+}

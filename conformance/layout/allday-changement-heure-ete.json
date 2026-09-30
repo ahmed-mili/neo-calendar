@@ -1,0 +1,47 @@
+{
+  "name": "la fenetre traverse le passage a l'heure d'ete (journee de 23 h)",
+  "fn": "layout.packAllDayLanes",
+  "input": {
+    "events": [
+      {
+        "id": "ete",
+        "start": "2026-03-27T23:00:00.000Z",
+        "end": "2026-03-30T22:00:00.000Z"
+      },
+      {
+        "id": "dimanche",
+        "start": "2026-03-28T23:00:00.000Z",
+        "end": "2026-03-29T22:00:00.000Z"
+      }
+    ],
+    "extendedDates": [
+      "2026-03-26T23:00:00.000Z",
+      "2026-03-27T23:00:00.000Z",
+      "2026-03-28T23:00:00.000Z",
+      "2026-03-29T22:00:00.000Z",
+      "2026-03-30T22:00:00.000Z",
+      "2026-03-31T22:00:00.000Z"
+    ],
+    "arrival": {
+      "ete": 0,
+      "dimanche": 1
+    }
+  },
+  "expected": {
+    "bars": [
+      {
+        "id": "ete",
+        "startIdx": 1,
+        "span": 3,
+        "lane": 0
+      },
+      {
+        "id": "dimanche",
+        "startIdx": 2,
+        "span": 1,
+        "lane": 1
+      }
+    ],
+    "laneCount": 2
+  }
+}

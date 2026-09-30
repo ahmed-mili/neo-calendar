@@ -1,0 +1,82 @@
+{
+  "name": "barres pluri-jours qui debordent de la semaine et s'empilent sur cinq lanes",
+  "fn": "layout.packAllDayLanes",
+  "input": {
+    "events": [
+      {
+        "id": "l0",
+        "start": "2026-08-05T22:00:00.000Z",
+        "end": "2026-08-15T22:00:00.000Z"
+      },
+      {
+        "id": "l1",
+        "start": "2026-08-08T22:00:00.000Z",
+        "end": "2026-08-11T22:00:00.000Z"
+      },
+      {
+        "id": "l2",
+        "start": "2026-08-10T22:00:00.000Z",
+        "end": "2026-08-13T22:00:00.000Z"
+      },
+      {
+        "id": "l3",
+        "start": "2026-08-09T22:00:00.000Z",
+        "end": "2026-08-10T22:00:00.000Z"
+      },
+      {
+        "id": "l4",
+        "start": "2026-08-11T22:00:00.000Z",
+        "end": "2026-08-12T22:00:00.000Z"
+      }
+    ],
+    "extendedDates": [
+      "2026-08-09T22:00:00.000Z",
+      "2026-08-10T22:00:00.000Z",
+      "2026-08-11T22:00:00.000Z",
+      "2026-08-12T22:00:00.000Z",
+      "2026-08-13T22:00:00.000Z"
+    ],
+    "arrival": {
+      "l0": 0,
+      "l1": 1,
+      "l2": 2,
+      "l3": 3,
+      "l4": 4
+    }
+  },
+  "expected": {
+    "bars": [
+      {
+        "id": "l0",
+        "startIdx": 0,
+        "span": 5,
+        "lane": 0
+      },
+      {
+        "id": "l1",
+        "startIdx": 0,
+        "span": 2,
+        "lane": 1
+      },
+      {
+        "id": "l2",
+        "startIdx": 1,
+        "span": 3,
+        "lane": 2
+      },
+      {
+        "id": "l3",
+        "startIdx": 0,
+        "span": 1,
+        "lane": 2
+      },
+      {
+        "id": "l4",
+        "startIdx": 2,
+        "span": 1,
+        "lane": 1
+      }
+    ],
+    "laneCount": 3
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "repliee : une seule rangee, quoi qu'elle tienne",
+  "fn": "layout.allDayBandRows",
+  "input": {
+    "laneCount": 3,
+    "draftLane": null,
+    "collapsed": true,
+    "maxRows": 4
+  },
+  "expected": {
+    "contentRows": 4,
+    "visibleRows": 1
+  }
+}

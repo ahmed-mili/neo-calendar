@@ -1,0 +1,16 @@
+{
+  "name": "une barre qui finit juste avant la premiere colonne visible ne compte pas",
+  "fn": "layout.visibleLaneCount",
+  "input": {
+    "bars": [
+      {
+        "startIdx": 1,
+        "span": 2,
+        "lane": 5
+      }
+    ],
+    "firstVisibleIdx": 3,
+    "lastVisibleIdx": 9
+  },
+  "expected": 0
+}

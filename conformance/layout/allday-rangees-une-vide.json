@@ -1,0 +1,14 @@
+{
+  "name": "une rangee vide de plus que les lanes",
+  "fn": "layout.allDayBandRows",
+  "input": {
+    "laneCount": 3,
+    "draftLane": null,
+    "collapsed": false,
+    "maxRows": 4
+  },
+  "expected": {
+    "contentRows": 4,
+    "visibleRows": 4
+  }
+}

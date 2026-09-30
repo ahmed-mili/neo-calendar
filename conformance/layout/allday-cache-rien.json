@@ -1,0 +1,22 @@
+{
+  "name": "tout tient dans la rangee visible : rien de cache",
+  "fn": "layout.hiddenBarCountByDay",
+  "input": {
+    "bars": [
+      {
+        "startIdx": 1,
+        "span": 1,
+        "lane": 0
+      },
+      {
+        "startIdx": 3,
+        "span": 1,
+        "lane": 0
+      }
+    ],
+    "firstVisibleIdx": 0,
+    "lastVisibleIdx": 4,
+    "visibleRows": 1
+  },
+  "expected": {}
+}

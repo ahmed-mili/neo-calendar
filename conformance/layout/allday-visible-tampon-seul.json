@@ -1,0 +1,16 @@
+{
+  "name": "une barre uniquement dans le tampon ne compte pas",
+  "fn": "layout.visibleLaneCount",
+  "input": {
+    "bars": [
+      {
+        "startIdx": 0,
+        "span": 1,
+        "lane": 0
+      }
+    ],
+    "firstVisibleIdx": 3,
+    "lastVisibleIdx": 9
+  },
+  "expected": 0
+}

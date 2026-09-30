@@ -1,0 +1,16 @@
+{
+  "name": "une barre du tampon qui entre dans la fenetre compte",
+  "fn": "layout.visibleLaneCount",
+  "input": {
+    "bars": [
+      {
+        "startIdx": 0,
+        "span": 4,
+        "lane": 1
+      }
+    ],
+    "firstVisibleIdx": 3,
+    "lastVisibleIdx": 9
+  },
+  "expected": 2
+}

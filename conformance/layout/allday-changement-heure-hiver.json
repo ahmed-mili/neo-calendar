@@ -1,0 +1,47 @@
+{
+  "name": "la fenetre traverse le passage a l'heure d'hiver (journee de 25 h)",
+  "fn": "layout.packAllDayLanes",
+  "input": {
+    "events": [
+      {
+        "id": "nuit",
+        "start": "2026-10-23T22:00:00.000Z",
+        "end": "2026-10-26T23:00:00.000Z"
+      },
+      {
+        "id": "dimanche",
+        "start": "2026-10-24T22:00:00.000Z",
+        "end": "2026-10-25T23:00:00.000Z"
+      }
+    ],
+    "extendedDates": [
+      "2026-10-22T22:00:00.000Z",
+      "2026-10-23T22:00:00.000Z",
+      "2026-10-24T22:00:00.000Z",
+      "2026-10-25T23:00:00.000Z",
+      "2026-10-26T23:00:00.000Z",
+      "2026-10-27T23:00:00.000Z"
+    ],
+    "arrival": {
+      "nuit": 0,
+      "dimanche": 1
+    }
+  },
+  "expected": {
+    "bars": [
+      {
+        "id": "nuit",
+        "startIdx": 1,
+        "span": 3,
+        "lane": 0
+      },
+      {
+        "id": "dimanche",
+        "startIdx": 2,
+        "span": 1,
+        "lane": 1
+      }
+    ],
+    "laneCount": 2
+  }
+}

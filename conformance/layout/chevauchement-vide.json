@@ -1,0 +1,8 @@
+{
+  "name": "aucun evenement, aucun groupe",
+  "fn": "layout.overlapGroups",
+  "input": {
+    "events": []
+  },
+  "expected": []
+}

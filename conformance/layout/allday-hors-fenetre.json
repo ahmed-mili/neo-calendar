@@ -1,0 +1,46 @@
+{
+  "name": "un evenement entierement hors fenetre est ignore (avant, apres, fin exclusive a minuit)",
+  "fn": "layout.packAllDayLanes",
+  "input": {
+    "events": [
+      {
+        "id": "passe",
+        "start": "2026-07-31T22:00:00.000Z",
+        "end": "2026-08-09T22:00:00.000Z"
+      },
+      {
+        "id": "futur",
+        "start": "2026-08-14T22:00:00.000Z",
+        "end": "2026-08-15T22:00:00.000Z"
+      },
+      {
+        "id": "dedans",
+        "start": "2026-08-10T22:00:00.000Z",
+        "end": "2026-08-11T22:00:00.000Z"
+      }
+    ],
+    "extendedDates": [
+      "2026-08-09T22:00:00.000Z",
+      "2026-08-10T22:00:00.000Z",
+      "2026-08-11T22:00:00.000Z",
+      "2026-08-12T22:00:00.000Z",
+      "2026-08-13T22:00:00.000Z"
+    ],
+    "arrival": {
+      "passe": 0,
+      "futur": 1,
+      "dedans": 2
+    }
+  },
+  "expected": {
+    "bars": [
+      {
+        "id": "dedans",
+        "startIdx": 1,
+        "span": 1,
+        "lane": 0
+      }
+    ],
+    "laneCount": 1
+  }
+}

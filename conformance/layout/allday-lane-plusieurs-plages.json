@@ -1,0 +1,58 @@
+{
+  "name": "une rangee garde toutes ses plages : z evite x meme si y la termine",
+  "fn": "layout.packAllDayLanes",
+  "input": {
+    "events": [
+      {
+        "id": "x",
+        "start": "2026-08-09T22:00:00.000Z",
+        "end": "2026-08-10T22:00:00.000Z"
+      },
+      {
+        "id": "y",
+        "start": "2026-08-12T22:00:00.000Z",
+        "end": "2026-08-13T22:00:00.000Z"
+      },
+      {
+        "id": "z",
+        "start": "2026-08-09T22:00:00.000Z",
+        "end": "2026-08-10T22:00:00.000Z"
+      }
+    ],
+    "extendedDates": [
+      "2026-08-09T22:00:00.000Z",
+      "2026-08-10T22:00:00.000Z",
+      "2026-08-11T22:00:00.000Z",
+      "2026-08-12T22:00:00.000Z",
+      "2026-08-13T22:00:00.000Z"
+    ],
+    "arrival": {
+      "x": 0,
+      "y": 1,
+      "z": 2
+    }
+  },
+  "expected": {
+    "bars": [
+      {
+        "id": "x",
+        "startIdx": 0,
+        "span": 1,
+        "lane": 0
+      },
+      {
+        "id": "y",
+        "startIdx": 3,
+        "span": 1,
+        "lane": 0
+      },
+      {
+        "id": "z",
+        "startIdx": 0,
+        "span": 1,
+        "lane": 1
+      }
+    ],
+    "laneCount": 2
+  }
+}

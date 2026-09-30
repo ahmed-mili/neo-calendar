@@ -1,0 +1,43 @@
+{
+  "name": "meme arrivee : le plus tot (startIdx) passe d'abord",
+  "fn": "layout.packAllDayLanes",
+  "input": {
+    "events": [
+      {
+        "id": "tard",
+        "start": "2026-08-11T22:00:00.000Z",
+        "end": "2026-08-12T22:00:00.000Z"
+      },
+      {
+        "id": "tot",
+        "start": "2026-08-10T22:00:00.000Z",
+        "end": "2026-08-12T22:00:00.000Z"
+      }
+    ],
+    "extendedDates": [
+      "2026-08-09T22:00:00.000Z",
+      "2026-08-10T22:00:00.000Z",
+      "2026-08-11T22:00:00.000Z",
+      "2026-08-12T22:00:00.000Z",
+      "2026-08-13T22:00:00.000Z"
+    ],
+    "arrival": {}
+  },
+  "expected": {
+    "bars": [
+      {
+        "id": "tot",
+        "startIdx": 1,
+        "span": 2,
+        "lane": 0
+      },
+      {
+        "id": "tard",
+        "startIdx": 2,
+        "span": 1,
+        "lane": 1
+      }
+    ],
+    "laneCount": 2
+  }
+}

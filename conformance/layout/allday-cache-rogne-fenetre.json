@@ -1,0 +1,21 @@
+{
+  "name": "une barre cachee qui deborde la fenetre n'est comptee que dans la fenetre",
+  "fn": "layout.hiddenBarCountByDay",
+  "input": {
+    "bars": [
+      {
+        "startIdx": 0,
+        "span": 10,
+        "lane": 1
+      }
+    ],
+    "firstVisibleIdx": 1,
+    "lastVisibleIdx": 3,
+    "visibleRows": 1
+  },
+  "expected": {
+    "1": 1,
+    "2": 1,
+    "3": 1
+  }
+}

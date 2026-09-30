@@ -1,0 +1,29 @@
+{
+  "name": "deux rangees visibles : le jour a trois barres annonce trois",
+  "fn": "layout.hiddenBarCountByDay",
+  "input": {
+    "bars": [
+      {
+        "startIdx": 1,
+        "span": 1,
+        "lane": 0
+      },
+      {
+        "startIdx": 1,
+        "span": 1,
+        "lane": 1
+      },
+      {
+        "startIdx": 1,
+        "span": 1,
+        "lane": 2
+      }
+    ],
+    "firstVisibleIdx": 0,
+    "lastVisibleIdx": 4,
+    "visibleRows": 2
+  },
+  "expected": {
+    "1": 3
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "les jours hors fenetre visible sont exclus",
+  "fn": "layout.hiddenBarCountByDay",
+  "input": {
+    "bars": [
+      {
+        "startIdx": 0,
+        "span": 1,
+        "lane": 0
+      },
+      {
+        "startIdx": 0,
+        "span": 1,
+        "lane": 1
+      }
+    ],
+    "firstVisibleIdx": 1,
+    "lastVisibleIdx": 4,
+    "visibleRows": 1
+  },
+  "expected": {}
+}

@@ -8,7 +8,14 @@ import com.ahmed.neocalendar.core.layout.LONG_MONTH_NAME
 import com.ahmed.neocalendar.core.layout.MAX_HOUR_HEIGHT
 import com.ahmed.neocalendar.core.layout.MIN_HOUR_HEIGHT
 import com.ahmed.neocalendar.core.layout.OVERLAP_COL_GAP
+import com.ahmed.neocalendar.core.layout.AllDayLaneBar
+import com.ahmed.neocalendar.core.layout.GridEvent
 import com.ahmed.neocalendar.core.layout.addDays
+import com.ahmed.neocalendar.core.layout.allDayBandRows
+import com.ahmed.neocalendar.core.layout.computeOverlapGroups
+import com.ahmed.neocalendar.core.layout.hiddenBarCountByDay
+import com.ahmed.neocalendar.core.layout.packAllDayLanes
+import com.ahmed.neocalendar.core.layout.visibleLaneCount
 import com.ahmed.neocalendar.core.layout.clampHourHeight
 import com.ahmed.neocalendar.core.layout.endOfDay
 import com.ahmed.neocalendar.core.layout.eventDurationHours
@@ -124,6 +131,80 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
         JsonPrimitive(needsCompactMonthType(input.getValue("monthName").jsonPrimitive.content))
     },
     "layout.clampHourHeight" to { input -> number(clampHourHeight(input.getValue("px").jsonPrimitive.double)) },
+    "layout.overlapGroups" to { input ->
+        JsonArray(
+            computeOverlapGroups(gridEvents(input.getValue("events").jsonArray)).map { group ->
+                JsonObject(
+                    mapOf(
+                        "events" to JsonArray(
+                            group.events.map {
+                                JsonObject(
+                                    mapOf(
+                                        "id" to JsonPrimitive(it.event.id),
+                                        "column" to JsonPrimitive(it.column.toLong()),
+                                        "totalColumns" to JsonPrimitive(it.totalColumns.toLong()),
+                                    )
+                                )
+                            }
+                        )
+                    )
+                )
+            }
+        )
+    },
+    "layout.packAllDayLanes" to { input ->
+        val arrival = input.getValue("arrival").jsonObject
+        val result = packAllDayLanes(
+            input["events"]?.takeUnless { it is JsonNull }?.let { gridEvents(it.jsonArray) },
+            input.getValue("extendedDates").jsonArray.map { parseInstant(it.jsonPrimitive.content) },
+            { event -> arrival[event.id]?.jsonPrimitive?.long ?: 0L },
+        )
+        JsonObject(
+            mapOf(
+                "bars" to JsonArray(
+                    result.bars.map {
+                        JsonObject(
+                            mapOf(
+                                "id" to JsonPrimitive(it.event.id),
+                                "startIdx" to JsonPrimitive(it.startIdx.toLong()),
+                                "span" to JsonPrimitive(it.span.toLong()),
+                                "lane" to JsonPrimitive(it.lane.toLong()),
+                            )
+                        )
+                    }
+                ),
+                "laneCount" to JsonPrimitive(result.laneCount.toLong()),
+            )
+        )
+    },
+    "layout.visibleLaneCount" to { input ->
+        JsonPrimitive(
+            visibleLaneCount(laneBars(input), input.getValue("firstVisibleIdx").jsonPrimitive.int, input.getValue("lastVisibleIdx").jsonPrimitive.int).toLong()
+        )
+    },
+    "layout.hiddenBarCountByDay" to { input ->
+        val counts = hiddenBarCountByDay(
+            laneBars(input),
+            input.getValue("firstVisibleIdx").jsonPrimitive.int,
+            input.getValue("lastVisibleIdx").jsonPrimitive.int,
+            input.getValue("visibleRows").jsonPrimitive.int,
+        )
+        JsonObject(counts.entries.associate { (idx, count) -> idx.toString() to JsonPrimitive(count.toLong()) })
+    },
+    "layout.allDayBandRows" to { input ->
+        val rows = allDayBandRows(
+            laneCount = input.getValue("laneCount").jsonPrimitive.int,
+            draftLane = input["draftLane"]?.takeUnless { it is JsonNull }?.jsonPrimitive?.int,
+            collapsed = input["collapsed"]?.jsonPrimitive?.boolean ?: false,
+            maxRows = input.getValue("maxRows").jsonPrimitive.int,
+        )
+        JsonObject(
+            mapOf(
+                "contentRows" to JsonPrimitive(rows.contentRows.toLong()),
+                "visibleRows" to JsonPrimitive(rows.visibleRows.toLong()),
+            )
+        )
+    },
     "layout.constants" to { _ ->
         JsonObject(
             mapOf(
@@ -144,6 +225,27 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
 private fun parseInstant(text: String): Instant = OffsetDateTime.parse(text).toInstant()
 
 private fun instant(input: JsonObject, key: String): Instant = parseInstant(input.getValue(key).jsonPrimitive.content)
+
+/** Un évènement d'entrée ne porte que id, début et fin : les champs que lit la grille. */
+private fun gridEvents(events: JsonArray): List<GridEvent> = events.map {
+    val e = it.jsonObject
+    GridEvent(
+        e.getValue("id").jsonPrimitive.content,
+        parseInstant(e.getValue("start").jsonPrimitive.content),
+        parseInstant(e.getValue("end").jsonPrimitive.content),
+    )
+}
+
+/** Les barres d'entrée ne portent que startIdx, span et lane ; leur évènement est neutre. */
+private fun laneBars(input: JsonObject): List<AllDayLaneBar> = input.getValue("bars").jsonArray.map {
+    val b = it.jsonObject
+    AllDayLaneBar(
+        GridEvent("", Instant.EPOCH, Instant.EPOCH),
+        b.getValue("startIdx").jsonPrimitive.int,
+        b.getValue("span").jsonPrimitive.int,
+        b.getValue("lane").jsonPrimitive.int,
+    )
+}
 
 private val ISO_MILLIS: DateTimeFormatter =
     DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC)

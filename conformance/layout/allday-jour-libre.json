@@ -1,0 +1,46 @@
+{
+  "name": "un jour sans rien garde la rangee du haut",
+  "fn": "layout.packAllDayLanes",
+  "input": {
+    "events": [
+      {
+        "id": "monday",
+        "start": "2026-08-09T22:00:00.000Z",
+        "end": "2026-08-10T22:00:00.000Z"
+      },
+      {
+        "id": "wednesday",
+        "start": "2026-08-11T22:00:00.000Z",
+        "end": "2026-08-12T22:00:00.000Z"
+      }
+    ],
+    "extendedDates": [
+      "2026-08-09T22:00:00.000Z",
+      "2026-08-10T22:00:00.000Z",
+      "2026-08-11T22:00:00.000Z",
+      "2026-08-12T22:00:00.000Z",
+      "2026-08-13T22:00:00.000Z"
+    ],
+    "arrival": {
+      "monday": 0,
+      "wednesday": 1
+    }
+  },
+  "expected": {
+    "bars": [
+      {
+        "id": "monday",
+        "startIdx": 0,
+        "span": 1,
+        "lane": 0
+      },
+      {
+        "id": "wednesday",
+        "startIdx": 2,
+        "span": 1,
+        "lane": 0
+      }
+    ],
+    "laneCount": 1
+  }
+}

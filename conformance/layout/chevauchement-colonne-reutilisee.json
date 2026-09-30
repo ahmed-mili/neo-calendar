@@ -1,0 +1,44 @@
+{
+  "name": "une colonne libre est reprise par un evenement plus tardif",
+  "fn": "layout.overlapGroups",
+  "input": {
+    "events": [
+      {
+        "id": "long",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T11:00:00.000Z"
+      },
+      {
+        "id": "court",
+        "start": "2026-08-10T07:30:00.000Z",
+        "end": "2026-08-10T08:00:00.000Z"
+      },
+      {
+        "id": "tard",
+        "start": "2026-08-10T08:30:00.000Z",
+        "end": "2026-08-10T09:00:00.000Z"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "events": [
+        {
+          "id": "long",
+          "column": 0,
+          "totalColumns": 2
+        },
+        {
+          "id": "court",
+          "column": 1,
+          "totalColumns": 2
+        },
+        {
+          "id": "tard",
+          "column": 1,
+          "totalColumns": 2
+        }
+      ]
+    }
+  ]
+}

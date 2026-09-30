@@ -1,0 +1,68 @@
+{
+  "name": "deux groupes separes, le second de trois",
+  "fn": "layout.overlapGroups",
+  "input": {
+    "events": [
+      {
+        "id": "a",
+        "start": "2026-08-10T06:00:00.000Z",
+        "end": "2026-08-10T07:00:00.000Z"
+      },
+      {
+        "id": "b",
+        "start": "2026-08-10T06:30:00.000Z",
+        "end": "2026-08-10T07:30:00.000Z"
+      },
+      {
+        "id": "x",
+        "start": "2026-08-10T12:00:00.000Z",
+        "end": "2026-08-10T14:00:00.000Z"
+      },
+      {
+        "id": "y",
+        "start": "2026-08-10T12:30:00.000Z",
+        "end": "2026-08-10T13:00:00.000Z"
+      },
+      {
+        "id": "z",
+        "start": "2026-08-10T13:00:00.000Z",
+        "end": "2026-08-10T15:00:00.000Z"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "events": [
+        {
+          "id": "a",
+          "column": 0,
+          "totalColumns": 2
+        },
+        {
+          "id": "b",
+          "column": 1,
+          "totalColumns": 2
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "id": "x",
+          "column": 0,
+          "totalColumns": 2
+        },
+        {
+          "id": "y",
+          "column": 1,
+          "totalColumns": 2
+        },
+        {
+          "id": "z",
+          "column": 1,
+          "totalColumns": 2
+        }
+      ]
+    }
+  ]
+}
