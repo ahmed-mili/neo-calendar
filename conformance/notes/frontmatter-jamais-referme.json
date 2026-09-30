@@ -1,0 +1,8 @@
+{
+  "name": "un --- jamais refermé rend null",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\ntitle: Dentiste\nallDay: true\n"
+  },
+  "expected": null
+}

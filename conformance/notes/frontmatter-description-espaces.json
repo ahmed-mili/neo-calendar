@@ -1,0 +1,10 @@
+{
+  "name": "description garde ses espaces sauf le premier",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\ndescription:   deux espaces  \n---\n"
+  },
+  "expected": {
+    "description": "  deux espaces  "
+  }
+}

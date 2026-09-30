@@ -1,0 +1,10 @@
+{
+  "name": "une clé indentée perd ses blancs",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\n  title:   Indenté\n---\n"
+  },
+  "expected": {
+    "title": "Indenté"
+  }
+}

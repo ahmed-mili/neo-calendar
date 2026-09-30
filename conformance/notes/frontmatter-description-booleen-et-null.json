@@ -1,0 +1,10 @@
+{
+  "name": "description true, null et [x] restent du texte",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\ndescription: true\n---\n"
+  },
+  "expected": {
+    "description": "true"
+  }
+}

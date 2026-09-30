@@ -1,0 +1,22 @@
+{
+  "name": "tableaux [a, b], vide, typé",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\na: [a, b]\nb: []\nc: [ ]\nd: [1, true, null, 2.5, x]\n---\n"
+  },
+  "expected": {
+    "a": [
+      "a",
+      "b"
+    ],
+    "b": [],
+    "c": [],
+    "d": [
+      1,
+      true,
+      null,
+      2.5,
+      "x"
+    ]
+  }
+}

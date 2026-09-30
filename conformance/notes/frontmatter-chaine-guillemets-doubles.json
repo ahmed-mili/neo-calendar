@@ -1,0 +1,13 @@
+{
+  "name": "guillemets doubles avec échappements",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\na: \"dit \\\"oui\\\"\"\nb: \"ligne\\nsuivante\"\nc: \"é\\u00e9\\\\\"\nd: \"\"\n---\n"
+  },
+  "expected": {
+    "a": "dit \"oui\"",
+    "b": "ligne\nsuivante",
+    "c": "éé\\",
+    "d": ""
+  }
+}

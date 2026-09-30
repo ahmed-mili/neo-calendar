@@ -1,0 +1,10 @@
+{
+  "name": "description qui ressemble à un tableau reste du texte",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\ndescription: [a, b]\n---\n"
+  },
+  "expected": {
+    "description": "[a, b]"
+  }
+}

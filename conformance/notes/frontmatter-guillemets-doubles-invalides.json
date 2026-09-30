@@ -1,0 +1,12 @@
+{
+  "name": "échappement invalide ou guillemet seul : repli sans les guillemets",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\na: \"x\\qy\"\nb: \"\nc: \"a\" \"b\"\n---\n"
+  },
+  "expected": {
+    "a": "x\\qy",
+    "b": "",
+    "c": "a\" \"b"
+  }
+}

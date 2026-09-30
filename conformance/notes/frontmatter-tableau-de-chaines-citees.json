@@ -1,0 +1,13 @@
+{
+  "name": "sous-tâches citées contenant , et [",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\nsubtasks: [\"[x] Book the van\",\"[ ] Pack, then label\"]\n---\n"
+  },
+  "expected": {
+    "subtasks": [
+      "[x] Book the van",
+      "[ ] Pack, then label"
+    ]
+  }
+}

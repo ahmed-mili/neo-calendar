@@ -1,0 +1,12 @@
+{
+  "name": "une heure garde ses deux-points",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\ntitle: TD\nallDay: false\nstartTime: 09:30\n---\n"
+  },
+  "expected": {
+    "title": "TD",
+    "allDay": false,
+    "startTime": "09:30"
+  }
+}

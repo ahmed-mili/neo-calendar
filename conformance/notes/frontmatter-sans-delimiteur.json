@@ -1,0 +1,8 @@
+{
+  "name": "une note sans en-tête rend null",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "title: Dentiste\n---\nallDay: true\n"
+  },
+  "expected": null
+}

@@ -1,0 +1,17 @@
+{
+  "name": "entier, négatif, décimal, et ce qui reste du texte",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\na: 10\nb: -5\nc: 1.5\nd: 007\ne: 1.\nf: .5\ng: 1e3\nh: 12abc\n---\n"
+  },
+  "expected": {
+    "a": 10,
+    "b": -5,
+    "c": 1.5,
+    "d": 7,
+    "e": "1.",
+    "f": ".5",
+    "g": "1e3",
+    "h": "12abc"
+  }
+}

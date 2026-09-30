@@ -1,0 +1,12 @@
+{
+  "name": "les blancs de trim() JavaScript sont retirés, pas les autres",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\na: true \nb:﻿false\nc:\u001f7\u001f\n---\n"
+  },
+  "expected": {
+    "a": true,
+    "b": false,
+    "c": "\u001f7\u001f"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "description citée est décodée, pas rognée",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\ndescription: \"Salle 4\\nÉtage 2\"\n---\n"
+  },
+  "expected": {
+    "description": "Salle 4\nÉtage 2"
+  }
+}

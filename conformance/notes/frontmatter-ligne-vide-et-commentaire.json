@@ -1,0 +1,11 @@
+{
+  "name": "lignes vides et commentaires # ignorés",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\n\n# note: un commentaire\ntitle: A\n   \n  # indenté: oui\nb: 2\n---\n"
+  },
+  "expected": {
+    "title": "A",
+    "b": 2
+  }
+}

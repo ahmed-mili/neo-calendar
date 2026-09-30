@@ -1,0 +1,10 @@
+{
+  "name": "description entre ' décodée",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\ndescription: 'l''heure'\n---\n"
+  },
+  "expected": {
+    "description": "l'heure"
+  }
+}

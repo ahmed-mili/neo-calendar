@@ -1,0 +1,10 @@
+{
+  "name": "la dernière clé en double gagne",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\ntitle: Premier\ntitle: Dernier\n---\n"
+  },
+  "expected": {
+    "title": "Dernier"
+  }
+}

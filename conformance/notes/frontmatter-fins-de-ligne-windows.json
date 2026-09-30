@@ -1,0 +1,12 @@
+{
+  "name": "une note Windows en \r\n se lit comme en \n",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\r\ntitle: TD\r\nallDay: false\r\nstartTime: 09:30\r\n---\r\nCorps\r\n"
+  },
+  "expected": {
+    "title": "TD",
+    "allDay": false,
+    "startTime": "09:30"
+  }
+}

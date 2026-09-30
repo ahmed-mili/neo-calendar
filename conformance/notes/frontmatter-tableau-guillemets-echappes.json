@@ -1,0 +1,25 @@
+{
+  "name": "guillemet échappé et virgule dans un tableau",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\na: [\"a\\\",b\", c]\nb: ['it''s, ok', 'x']\nc: [a,,b]\nd: [a, ]\n---\n"
+  },
+  "expected": {
+    "a": [
+      "a\",b",
+      "c"
+    ],
+    "b": [
+      "it's, ok",
+      "x"
+    ],
+    "c": [
+      "a",
+      "",
+      "b"
+    ],
+    "d": [
+      "a"
+    ]
+  }
+}

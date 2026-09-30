@@ -1,0 +1,14 @@
+{
+  "name": "null, ~ et valeur vide",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\na: null\nb: ~\nc:\nd:    \ne: 'null'\n---\n"
+  },
+  "expected": {
+    "a": null,
+    "b": null,
+    "c": "",
+    "d": "",
+    "e": "null"
+  }
+}

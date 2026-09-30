@@ -1,0 +1,13 @@
+{
+  "name": "true et false deviennent des booléens, pas True ni \"true\"",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\na: true\nb: false\nc: True\nd: \"true\"\n---\n"
+  },
+  "expected": {
+    "a": true,
+    "b": false,
+    "c": "True",
+    "d": "true"
+  }
+}

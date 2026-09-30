@@ -1,0 +1,11 @@
+{
+  "name": "la clé Description suit la même règle",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\nDESCRIPTION: null\nother: null\n---\n"
+  },
+  "expected": {
+    "DESCRIPTION": "null",
+    "other": null
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "seul le premier : sépare clé et valeur",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\nlink: https://exemple.fr/a?b=c:d\n---\n"
+  },
+  "expected": {
+    "link": "https://exemple.fr/a?b=c:d"
+  }
+}

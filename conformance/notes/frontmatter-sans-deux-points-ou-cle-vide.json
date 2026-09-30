@@ -1,0 +1,10 @@
+{
+  "name": "ligne sans : ou clé vide ignorée",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\nsansdeuxpoints\n: valeur\n   : autre\ntitle: A\n---\n"
+  },
+  "expected": {
+    "title": "A"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "la fermeture tolère des espaces autour du ---",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\na: 1\n  ---  \nb: 2\n"
+  },
+  "expected": {
+    "a": 1
+  }
+}

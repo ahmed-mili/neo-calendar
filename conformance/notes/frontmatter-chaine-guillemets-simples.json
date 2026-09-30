@@ -1,0 +1,13 @@
+{
+  "name": "guillemets simples, '' devient '",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\na: 'l''heure'\nb: ''\nc: 'a\\nb'\nd: '\n---\n"
+  },
+  "expected": {
+    "a": "l'heure",
+    "b": "",
+    "c": "a\\nb",
+    "d": ""
+  }
+}

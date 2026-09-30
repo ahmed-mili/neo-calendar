@@ -1,0 +1,11 @@
+{
+  "name": "description reste du texte même si elle ressemble à un nombre ou true",
+  "fn": "notes.frontmatter",
+  "input": {
+    "text": "---\ndescription: 123\nb: 123\n---\n"
+  },
+  "expected": {
+    "description": "123",
+    "b": 123
+  }
+}
