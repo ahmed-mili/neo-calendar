@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ahmed.neocalendar.core.format.weekdayShort
 import com.ahmed.neocalendar.core.grid.DaySegment
 import com.ahmed.neocalendar.core.grid.segmentForDay
 import com.ahmed.neocalendar.core.layout.EVENT_VGAP
@@ -57,9 +58,7 @@ import com.ahmed.neocalendar.core.recurrence.DisplayEvent
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle as JavaTextStyle
-import java.util.Locale
+import com.ahmed.neocalendar.nativeapp.AppLocale
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -194,7 +193,7 @@ private fun DayHeader(day: Long, state: GridState) {
     val date = LocalDate.ofEpochDay(day)
     val today = LocalDate.now()
     val isToday = date == today
-    val weekday = remember(day) { date.dayOfWeek.getDisplayName(JavaTextStyle.SHORT, Locale.getDefault()) }
+    val weekday = remember(day) { weekdayShort(date) }
     Column(
         Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -227,7 +226,7 @@ private fun DayHeader(day: Long, state: GridState) {
 
 /** Le format d'heure de l'axe : « 09:00 » en 24 h, « 9 AM » sinon. */
 private fun hourLabel(hour: Int, timeFormat24h: Boolean): String =
-    if (timeFormat24h) "%02d:00".format(hour)
+    if (timeFormat24h) "%02d:00".format(AppLocale.current, hour)
     else when {
         hour == 0 -> "12 AM"
         hour < 12 -> "$hour AM"
@@ -357,11 +356,8 @@ private fun DayEvents(
     }
 }
 
-private val timeShort = DateTimeFormatter.ofPattern("HH:mm")
-private val timeAmPm = DateTimeFormatter.ofPattern("h:mm a")
-
 fun formatClock(instant: Instant, zone: ZoneId, timeFormat24h: Boolean): String =
-    instant.atZone(zone).format(if (timeFormat24h) timeShort else timeAmPm)
+    com.ahmed.neocalendar.core.format.formatClock(instant, zone, timeFormat24h)
 
 /** Le bloc d'évènement de l'inventaire §6 : bande de 4 dp, rayon 4, teinte 15 % de la couleur du calendrier. */
 @Composable

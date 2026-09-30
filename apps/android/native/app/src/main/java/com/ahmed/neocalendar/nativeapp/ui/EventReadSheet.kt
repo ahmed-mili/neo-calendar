@@ -25,10 +25,12 @@ import androidx.compose.ui.unit.sp
 import com.ahmed.neocalendar.core.recurrence.DisplayEvent
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.ahmed.neocalendar.core.format.formatDatedDay
+import com.ahmed.neocalendar.nativeapp.AppLocale
 
-private val dayFormat: DateTimeFormatter get() = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.getDefault())
-private val dayShortFormat: DateTimeFormatter get() = DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault())
+private val dayFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM", AppLocale.current)
+private fun java.time.ZonedDateTime.short(): String = formatDatedDay(toLocalDate())
+private fun java.time.LocalDate.short(): String = formatDatedDay(this)
 
 /** L'horaire en une ligne : « jeudi 1 octobre · 09:00 – 10:00 », ou la plage de jours. */
 fun scheduleText(event: DisplayEvent, timeFormat24h: Boolean, zone: ZoneId = ZoneId.systemDefault()): String {
@@ -38,13 +40,13 @@ fun scheduleText(event: DisplayEvent, timeFormat24h: Boolean, zone: ZoneId = Zon
         val lastDay = event.end.minusMillis(1).atZone(zone).toLocalDate()
         val first = start.toLocalDate()
         return if (lastDay <= first) "${start.format(dayFormat)} · Toute la journée"
-        else "${start.format(dayShortFormat)} – ${lastDay.format(dayShortFormat)} · Toute la journée"
+        else "${start.short()} – ${lastDay.short()} · Toute la journée"
     }
     val end = event.end.atZone(zone)
     val from = formatClock(event.start, zone, timeFormat24h)
     val to = formatClock(event.end, zone, timeFormat24h)
     return if (start.toLocalDate() == end.toLocalDate()) "${start.format(dayFormat)} · $from – $to"
-    else "${start.format(dayShortFormat)} $from – ${end.format(dayShortFormat)} $to"
+    else "${start.short()} $from – ${end.short()} $to"
 }
 
 /** La lecture minimale d'un évènement : titre, horaire, calendrier. La fiche complète est une autre étape. */

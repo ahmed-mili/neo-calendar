@@ -145,7 +145,7 @@ fun NeoDrawer(
     }
 }
 
-/** Le contenu du tiroir : version, nombre de jours, mini-calendrier, calendriers. */
+/** Le contenu du tiroir : version, nombre de jours, mini-calendrier, calendriers, tâches. */
 @Composable
 fun DrawerContent(
     version: String,
@@ -158,6 +158,10 @@ fun DrawerContent(
     hiddenIds: Set<String>,
     defaultCalendarPath: String?,
     onToggleCalendar: (String) -> Unit,
+    onOpenCalendar: (CalendarModel) -> Unit,
+    todoCount: Int,
+    completeCount: Int,
+    onOpenTasks: (complete: Boolean) -> Unit,
 ) {
     Column(
         Modifier
@@ -187,8 +191,30 @@ fun DrawerContent(
                 hidden = calendar.id in hiddenIds,
                 isDefault = calendar.relativePath == defaultCalendarPath,
                 onToggle = { onToggleCalendar(calendar.id) },
+                onOpen = { onOpenCalendar(calendar) },
             )
         }
+        Text(
+            "Tâches",
+            color = Neo.TextSecondary,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
+        )
+        TaskGroupRow("À faire", todoCount, done = false) { onOpenTasks(false) }
+        TaskGroupRow("Terminé", completeCount, done = true) { onOpenTasks(true) }
+    }
+}
+
+@Composable
+private fun TaskGroupRow(label: String, count: Int, done: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().height(Neo.TouchTarget).clickable(onClick = onClick).padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TaskCheck(done, Neo.Accent, size = 18.dp)
+        Text(label, color = Neo.Text, fontSize = 14.sp, modifier = Modifier.padding(start = 12.dp).weight(1f))
+        Text(count.toString(), color = Neo.TextSecondary, fontSize = 13.sp)
     }
 }
 
@@ -290,10 +316,10 @@ private fun DayOption(count: Int, active: Boolean, modifier: Modifier, onClick: 
 }
 
 @Composable
-private fun CalendarRow(calendar: CalendarModel, hidden: Boolean, isDefault: Boolean, onToggle: () -> Unit) {
+private fun CalendarRow(calendar: CalendarModel, hidden: Boolean, isDefault: Boolean, onToggle: () -> Unit, onOpen: () -> Unit) {
     val color = parseCalendarColor(calendar.color)
     Row(
-        Modifier.fillMaxWidth().height(Neo.TouchTarget).padding(start = 16.dp),
+        Modifier.fillMaxWidth().height(Neo.TouchTarget).clickable(onClick = onOpen).padding(start = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // La pastille est pleine quand le calendrier se voit, un anneau quand il est masqué.

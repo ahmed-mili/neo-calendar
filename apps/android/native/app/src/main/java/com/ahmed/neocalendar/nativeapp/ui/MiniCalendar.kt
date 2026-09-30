@@ -34,14 +34,14 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
-import java.util.Locale
+import com.ahmed.neocalendar.nativeapp.AppLocale
 
 /** `firstDay` compte comme `Date.getDay()` : 0 dimanche, 1 lundi ... 6 samedi. */
 fun firstDayOfWeek(firstDay: Int): DayOfWeek = DayOfWeek.of(if (firstDay == 0) 7 else firstDay.coerceIn(1, 6))
 
 fun monthTitle(month: YearMonth): String =
-    month.month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault())
-        .replaceFirstChar { it.titlecase(Locale.getDefault()) } + " " + month.year
+    month.month.getDisplayName(TextStyle.FULL_STANDALONE, AppLocale.current)
+        .replaceFirstChar { it.titlecase(AppLocale.current) } + " " + month.year
 
 /**
  * Sept colonnes, six semaines. Un appui saute à la date ; un glissé horizontal
@@ -101,7 +101,7 @@ fun MiniCalendar(
         Row(Modifier.fillMaxWidth()) {
             for (i in 0 until 7) {
                 Text(
-                    weekStartDay.plus(i.toLong()).getDisplayName(TextStyle.NARROW, Locale.getDefault()).uppercase(Locale.getDefault()),
+                    weekStartDay.plus(i.toLong()).getDisplayName(TextStyle.NARROW, AppLocale.current).uppercase(AppLocale.current),
                     color = Neo.TextSecondary,
                     fontSize = 11.sp,
                     textAlign = TextAlign.Center,

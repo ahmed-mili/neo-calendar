@@ -48,4 +48,5 @@ object NeoIcons {
         )
     }
     val Check: ImageVector by lazy { lucide("check", "M20 6L9 17l-5-5") }
+    val Flag: ImageVector by lazy { lucide("flag", "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z", "M4 22v-7") }
 }

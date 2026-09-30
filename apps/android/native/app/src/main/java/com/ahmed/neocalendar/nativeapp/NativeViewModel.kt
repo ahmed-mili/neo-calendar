@@ -255,7 +255,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         val workspace = loadWorkspace(SafWorkspaceStorage(context, uri))
         // La lecture tolérante du noyau : un fichier étrange ne plante pas, il retombe sur les valeurs lues une à une.
         val preferences = parseWorkspacePreferences(workspace.preferences)
-        val calendars = buildCalendarModels(workspace.calendars, preferences)
+        val calendars = buildCalendarModels(workspace.calendars, preferences, AppLocale.current)
         val known = workspace.calendars.map { calendarIdFromPath(it.relativePath) }.toSet()
         val events = workspace.eventFiles.mapNotNull {
             parseStoredEvent(EventFile(it.relativePath, it.calendarPath, it.fileName, it.contents), known)

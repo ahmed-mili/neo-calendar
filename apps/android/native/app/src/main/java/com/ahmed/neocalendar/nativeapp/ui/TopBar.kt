@@ -28,7 +28,7 @@ import com.ahmed.neocalendar.core.layout.needsCompactMonthType
 
 /**
  * La barre du haut de l'inventaire §1 : menu, mois (qui ouvre la feuille),
- * numéro de semaine, et la pastille du jour, qui ramène à aujourd'hui et passe
+ * numéro de semaine, loupe (la recherche), et la pastille du jour, qui ramène à aujourd'hui et passe
  * au rouge quand aujourd'hui n'est plus à l'écran.
  */
 @Composable
@@ -40,6 +40,7 @@ fun TopBar(
     badge: TodayBadgeState,
     onMenu: () -> Unit,
     onMonth: () -> Unit,
+    onSearch: () -> Unit,
     onToday: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -83,9 +84,12 @@ fun TopBar(
             fontSize = 13.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 8.dp).weight(1f, fill = false),
+            modifier = Modifier.padding(start = 8.dp).weight(1f),
         )
-        Spacer(Modifier.weight(1f))
+        Box(
+            Modifier.size(Neo.TouchTarget).clip(RoundedCornerShape(14.dp)).clickable(onClick = onSearch),
+            contentAlignment = Alignment.Center,
+        ) { Icon(NeoIcons.Search, "Rechercher", tint = Neo.Text, modifier = Modifier.size(22.dp)) }
         Box(
             Modifier.size(Neo.TouchTarget).clickable(onClick = onToday, indication = null, interactionSource = null),
             contentAlignment = Alignment.Center,

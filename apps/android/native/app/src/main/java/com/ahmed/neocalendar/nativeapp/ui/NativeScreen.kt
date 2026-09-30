@@ -2,6 +2,23 @@ package com.ahmed.neocalendar.nativeapp.ui
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.input.pointer.pointerInput
+import com.ahmed.neocalendar.core.lists.calendarPanelEvents
+import com.ahmed.neocalendar.core.lists.displayEventOfNote
+import com.ahmed.neocalendar.core.lists.searchCorpus
+import com.ahmed.neocalendar.core.tasks.TaskItem
+import com.ahmed.neocalendar.core.tasks.buildDesktopTaskGroups
+import com.ahmed.neocalendar.core.tasks.collectTasks
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -46,7 +63,29 @@ import com.ahmed.neocalendar.nativeapp.WorkspaceData
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.TextStyle
-import java.util.Locale
+import com.ahmed.neocalendar.nativeapp.AppLocale
+
+/** Un écran plein écran posé sur la grille et le tiroir : liste d'un calendrier, tâches, recherche. */
+private sealed interface Overlay {
+    data class Calendar(val id: String) : Overlay
+    data class Tasks(val complete: Boolean) : Overlay
+    data object Search : Overlay
+}
+
+private fun Overlay?.encode(): String = when (this) {
+    null -> ""
+    is Overlay.Calendar -> "cal:$id"
+    is Overlay.Tasks -> if (complete) "tasks:complete" else "tasks:todo"
+    Overlay.Search -> "search"
+}
+
+private fun decodeOverlay(key: String): Overlay? = when {
+    key.startsWith("cal:") -> Overlay.Calendar(key.removePrefix("cal:"))
+    key == "tasks:todo" -> Overlay.Tasks(false)
+    key == "tasks:complete" -> Overlay.Tasks(true)
+    key == "search" -> Overlay.Search
+    else -> null
+}
 
 /** L'écran de l'application : l'état du dossier, puis la grille quand il est lu. */
 @Composable
@@ -100,6 +139,17 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
     val reloadError by viewModel.reloadError.collectAsState()
     var monthOpen by rememberSaveable { mutableStateOf(false) }
     var selected by remember { mutableStateOf<DisplayEvent?>(null) }
+    var overlayKey by rememberSaveable { mutableStateOf("") }
+    val overlay = remember(overlayKey) { decodeOverlay(overlayKey) }
+    val calendarsById = remember(data) { data.calendars.associateBy { it.id } }
+    val notesById = remember(data) { data.events.associateBy { it.id } }
+    // Les tâches se lisent dans les notes brutes (une tâche en retard est hors de la fenêtre de la grille) ; masquer un calendrier les masque aussi.
+    val taskGroups = remember(data, hidden) { buildDesktopTaskGroups(collectTasks(data.events, calendarsById, hidden)) }
+    val openTask = { task: TaskItem ->
+        val stored = notesById[task.id]
+        val calendar = calendarsById[task.calendarId]
+        if (stored != null && calendar != null) selected = displayEventOfNote(stored, calendar, java.time.Instant.now())
+    }
 
     // Ce que la barre du haut dit de la grille : le jour le plus proche de la tête, recalculé seulement quand il change.
     val nearest by remember { derivedStateOf { grid.nearestDayEpoch } }
@@ -112,6 +162,8 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
     BackHandler(enabled = drawer.isOpen || monthOpen) {
         if (drawer.isOpen) drawer.close(scope) else monthOpen = false
     }
+    // Déclaré après : le plus récent passe en premier, la liste se ferme avant le tiroir qu'elle recouvre.
+    BackHandler(enabled = overlay != null) { overlayKey = "" }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
@@ -119,13 +171,15 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                 (0 until dayCount).map { LocalDate.ofEpochDay(nearest + it).atStartOfDay(zone).toInstant() }
             }
             TopBar(
-                monthName = anchor.month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault()),
+                monthName = anchor.month.getDisplayName(TextStyle.FULL_STANDALONE, AppLocale.current)
+                    .replaceFirstChar { it.titlecase(AppLocale.current) },
                 weekNumber = getISOWeek(anchor.atStartOfDay(zone).toInstant(), zone),
                 monthOpen = monthOpen,
                 todayNumber = today.dayOfMonth,
                 badge = todayBadgeState(visible, java.time.Instant.now(), zone),
                 onMenu = { drawer.open(scope) },
                 onMonth = { monthOpen = !monthOpen },
+                onSearch = { monthOpen = false; overlayKey = Overlay.Search.encode() },
                 onToday = { grid.goTo(scope, LocalDate.now()) },
             )
             Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -200,7 +254,61 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                 hiddenIds = hidden,
                 defaultCalendarPath = data.defaultCalendarPath,
                 onToggleCalendar = viewModel::toggleCalendar,
+                onOpenCalendar = { overlayKey = Overlay.Calendar(it.id).encode() },
+                todoCount = taskGroups.todo.size,
+                completeCount = taskGroups.complete.size,
+                onOpenTasks = { overlayKey = Overlay.Tasks(it).encode() },
             )
+        }
+
+        // Garde la dernière liste ouverte le temps de sa sortie : sans elle l'écran se viderait avant de glisser.
+        val lastOverlay = remember { arrayOfNulls<Overlay>(1) }
+        if (overlay != null) lastOverlay[0] = overlay
+        AnimatedVisibility(
+            visible = overlay != null,
+            enter = slideInHorizontally(tween(260)) { it / 5 } + fadeIn(tween(260)),
+            exit = slideOutHorizontally(tween(220)) { it / 5 } + fadeOut(tween(220)),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Neo.Background)
+                    .pointerInput(Unit) { detectTapGestures { } }
+                    .windowInsetsPadding(WindowInsets.safeDrawing),
+            ) {
+                when (val shown = overlay ?: lastOverlay[0]) {
+                    is Overlay.Calendar -> {
+                        val calendar = calendarsById[shown.id]
+                        if (calendar == null) LaunchedEffect(shown, data) { overlayKey = "" }
+                        else {
+                            val events by produceState<List<DisplayEvent>?>(null, data, calendar) {
+                                value = withContext(Dispatchers.Default) {
+                                    calendarPanelEvents(data.events, calendar, zone, java.time.Instant.now())
+                                }
+                            }
+                            CalendarEventsList(calendar, events, data.timeFormat24h, { overlayKey = "" }) { selected = it }
+                        }
+                    }
+                    is Overlay.Tasks -> TasksList(
+                        complete = shown.complete,
+                        tasks = if (shown.complete) taskGroups.complete else taskGroups.todo,
+                        today = today,
+                        onBack = { overlayKey = "" },
+                        onTaskClick = openTask,
+                    )
+                    Overlay.Search -> {
+                        val searching = overlay == Overlay.Search
+                        val corpus by produceState<List<DisplayEvent>?>(null, data, searching) {
+                            value = if (!searching) null
+                            else withContext(Dispatchers.Default) {
+                                searchCorpus(data.events, calendarsById, anchor, zone, java.time.Instant.now())
+                            }
+                        }
+                        SearchScreen(corpus, data.timeFormat24h, { overlayKey = "" }) { selected = it }
+                    }
+                    null -> Unit
+                }
+            }
         }
     }
 
