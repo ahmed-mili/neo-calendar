@@ -58,7 +58,9 @@ import com.ahmed.neocalendar.core.preferences.defaultWorkspacePreferences
 import com.ahmed.neocalendar.core.preferences.deviceWorkspacePreferences
 import com.ahmed.neocalendar.core.preferences.isReminderMinutes
 import com.ahmed.neocalendar.core.preferences.parseDeviceWorkspacePreferences
+import com.ahmed.neocalendar.core.preferences.preferencesFileText
 import com.ahmed.neocalendar.core.preferences.reconcileWorkspacePreferences
+import com.ahmed.neocalendar.core.preferences.sharedPreferencesToWrite
 import com.ahmed.neocalendar.core.preferences.sharedWorkspacePreferences
 import com.ahmed.neocalendar.core.preferences.withDeviceWorkspacePreferences
 import kotlinx.serialization.json.boolean
@@ -110,6 +112,15 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
     },
     "preferences.isReminderMinutes" to { input -> JsonPrimitive(isReminderMinutes(input["value"])) },
     "preferences.shared" to { input -> sharedWorkspacePreferences(parseWorkspacePreferences(input["preferences"])) },
+    "preferences.write" to { input ->
+        JsonObject(
+            mapOf(
+                "text" to JsonPrimitive(
+                    preferencesFileText(sharedPreferencesToWrite(parseWorkspacePreferences(input["preferences"])))
+                )
+            )
+        )
+    },
     "preferences.device" to { input -> deviceWorkspacePreferences(parseWorkspacePreferences(input["preferences"])) },
     "preferences.deviceParse" to { input -> parseDeviceWorkspacePreferences(input["value"]) },
     "preferences.withDevice" to { input ->

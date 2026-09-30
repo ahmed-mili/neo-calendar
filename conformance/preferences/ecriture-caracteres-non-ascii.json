@@ -1,0 +1,21 @@
+{
+  "name": "accents, emoji, U+2028 et U+007F restent tels quels",
+  "fn": "preferences.write",
+  "input": {
+    "preferences": {
+      "colors": {
+        "sep ar": "",
+        "Café ☕": "x",
+        "日本語": "y",
+        "🙂": "z"
+      },
+      "order": [
+        "é",
+        " "
+      ]
+    }
+  },
+  "expected": {
+    "text": "{\n  \"version\": 5,\n  \"colors\": {\n    \"sep ar\": \"\",\n    \"Café ☕\": \"x\",\n    \"日本語\": \"y\",\n    \"🙂\": \"z\"\n  },\n  \"order\": [\n    \"é\",\n    \" \"\n  ],\n  \"hiddenCalendarPaths\": [],\n  \"showWeekNumbers\": false,\n  \"secondaryTimezones\": [],\n  \"initialView\": {\n    \"desktop\": \"week\",\n    \"mobile\": \"3days\"\n  },\n  \"firstDay\": 1,\n  \"timeFormat24h\": true,\n  \"clickToCreateEventFromMonthView\": true,\n  \"freeScroll\": false,\n  \"defaultEventsAsTasks\": false,\n  \"reminderMinutes\": [\n    10\n  ],\n  \"calendarReminderMinutes\": {},\n  \"mapsTravelMode\": \"auto\",\n  \"mapsApp\": \"ask\",\n  \"icsDefaultRefreshMinutes\": 60,\n  \"icsFeeds\": [],\n  \"externalCalendars\": [],\n  \"prayerMosques\": {},\n  \"prayerColors\": {},\n  \"prayerReminderMinutes\": {},\n  \"prayerJumua\": {}\n}\n"
+  }
+}

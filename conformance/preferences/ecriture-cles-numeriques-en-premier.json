@@ -1,0 +1,19 @@
+{
+  "name": "les cles entieres passent avant les autres, comme JSON.stringify",
+  "fn": "preferences.write",
+  "input": {
+    "preferences": {
+      "colors": {
+        "9": "5",
+        "10": "3",
+        "2024": "2",
+        "b": "1",
+        "a": "4",
+        "007": "6"
+      }
+    }
+  },
+  "expected": {
+    "text": "{\n  \"version\": 5,\n  \"colors\": {\n    \"9\": \"5\",\n    \"10\": \"3\",\n    \"2024\": \"2\",\n    \"b\": \"1\",\n    \"a\": \"4\",\n    \"007\": \"6\"\n  },\n  \"order\": [],\n  \"hiddenCalendarPaths\": [],\n  \"showWeekNumbers\": false,\n  \"secondaryTimezones\": [],\n  \"initialView\": {\n    \"desktop\": \"week\",\n    \"mobile\": \"3days\"\n  },\n  \"firstDay\": 1,\n  \"timeFormat24h\": true,\n  \"clickToCreateEventFromMonthView\": true,\n  \"freeScroll\": false,\n  \"defaultEventsAsTasks\": false,\n  \"reminderMinutes\": [\n    10\n  ],\n  \"calendarReminderMinutes\": {},\n  \"mapsTravelMode\": \"auto\",\n  \"mapsApp\": \"ask\",\n  \"icsDefaultRefreshMinutes\": 60,\n  \"icsFeeds\": [],\n  \"externalCalendars\": [],\n  \"prayerMosques\": {},\n  \"prayerColors\": {},\n  \"prayerReminderMinutes\": {},\n  \"prayerJumua\": {}\n}\n"
+  }
+}

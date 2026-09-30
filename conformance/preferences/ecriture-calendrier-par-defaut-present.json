@@ -1,0 +1,15 @@
+{
+  "name": "le calendrier par defaut garde sa place apres hiddenCalendarPaths",
+  "fn": "preferences.write",
+  "input": {
+    "preferences": {
+      "defaultCalendarPath": "Perso",
+      "hiddenCalendarPaths": [
+        "X"
+      ]
+    }
+  },
+  "expected": {
+    "text": "{\n  \"version\": 5,\n  \"colors\": {},\n  \"order\": [],\n  \"defaultCalendarPath\": \"Perso\",\n  \"hiddenCalendarPaths\": [\n    \"X\"\n  ],\n  \"showWeekNumbers\": false,\n  \"secondaryTimezones\": [],\n  \"initialView\": {\n    \"desktop\": \"week\",\n    \"mobile\": \"3days\"\n  },\n  \"firstDay\": 1,\n  \"timeFormat24h\": true,\n  \"clickToCreateEventFromMonthView\": true,\n  \"freeScroll\": false,\n  \"defaultEventsAsTasks\": false,\n  \"reminderMinutes\": [\n    10\n  ],\n  \"calendarReminderMinutes\": {},\n  \"mapsTravelMode\": \"auto\",\n  \"mapsApp\": \"ask\",\n  \"icsDefaultRefreshMinutes\": 60,\n  \"icsFeeds\": [],\n  \"externalCalendars\": [],\n  \"prayerMosques\": {},\n  \"prayerColors\": {},\n  \"prayerReminderMinutes\": {},\n  \"prayerJumua\": {}\n}\n"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "delais de rappel triés, par calendrier et de priere",
+  "fn": "preferences.write",
+  "input": {
+    "preferences": {
+      "reminderMinutes": [
+        30,
+        5,
+        60,
+        5
+      ],
+      "calendarReminderMinutes": {
+        "Études": [
+          15,
+          0
+        ],
+        "Sport": 10,
+        "Vide": 0
+      },
+      "prayerReminderMinutes": {
+        "Prière/Mosquée": [
+          10,
+          0,
+          10
+        ],
+        "Autre": []
+      }
+    }
+  },
+  "expected": {
+    "text": "{\n  \"version\": 5,\n  \"colors\": {},\n  \"order\": [],\n  \"hiddenCalendarPaths\": [],\n  \"showWeekNumbers\": false,\n  \"secondaryTimezones\": [],\n  \"initialView\": {\n    \"desktop\": \"week\",\n    \"mobile\": \"3days\"\n  },\n  \"firstDay\": 1,\n  \"timeFormat24h\": true,\n  \"clickToCreateEventFromMonthView\": true,\n  \"freeScroll\": false,\n  \"defaultEventsAsTasks\": false,\n  \"reminderMinutes\": [\n    5,\n    30,\n    60\n  ],\n  \"calendarReminderMinutes\": {\n    \"Études\": [\n      15\n    ],\n    \"Sport\": [\n      10\n    ],\n    \"Vide\": []\n  },\n  \"mapsTravelMode\": \"auto\",\n  \"mapsApp\": \"ask\",\n  \"icsDefaultRefreshMinutes\": 60,\n  \"icsFeeds\": [],\n  \"externalCalendars\": [],\n  \"prayerMosques\": {},\n  \"prayerColors\": {},\n  \"prayerReminderMinutes\": {\n    \"Prière\\/Mosquée\": [\n      0,\n      10\n    ],\n    \"Autre\": []\n  },\n  \"prayerJumua\": {}\n}\n"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "les entiers s'ecrivent sans decimale",
+  "fn": "preferences.write",
+  "input": {
+    "preferences": {
+      "firstDay": 0,
+      "icsDefaultRefreshMinutes": 60,
+      "reminderMinutes": [
+        0,
+        40320
+      ],
+      "dayCount": 9
+    }
+  },
+  "expected": {
+    "text": "{\n  \"version\": 5,\n  \"colors\": {},\n  \"order\": [],\n  \"hiddenCalendarPaths\": [],\n  \"showWeekNumbers\": false,\n  \"secondaryTimezones\": [],\n  \"initialView\": {\n    \"desktop\": \"week\",\n    \"mobile\": \"3days\"\n  },\n  \"firstDay\": 0,\n  \"timeFormat24h\": true,\n  \"clickToCreateEventFromMonthView\": true,\n  \"freeScroll\": false,\n  \"defaultEventsAsTasks\": false,\n  \"reminderMinutes\": [\n    40320\n  ],\n  \"calendarReminderMinutes\": {},\n  \"mapsTravelMode\": \"auto\",\n  \"mapsApp\": \"ask\",\n  \"icsDefaultRefreshMinutes\": 60,\n  \"icsFeeds\": [],\n  \"externalCalendars\": [],\n  \"prayerMosques\": {},\n  \"prayerColors\": {},\n  \"prayerReminderMinutes\": {},\n  \"prayerJumua\": {}\n}\n"
+  }
+}

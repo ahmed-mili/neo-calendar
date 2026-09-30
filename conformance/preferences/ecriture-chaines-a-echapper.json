@@ -1,0 +1,23 @@
+{
+  "name": "guillemet, barre inverse, barre oblique, retour a la ligne et controle",
+  "fn": "preferences.write",
+  "input": {
+    "preferences": {
+      "colors": {
+        "a\"b": "c\\d",
+        "e/f": "g/h",
+        "ligne\nsuivante": "tab\tici\r\n",
+        "ctl": "\u0001\u001f\b\f"
+      },
+      "order": [
+        "x\"y",
+        "z\\w",
+        "u/v",
+        "l1\nl2"
+      ]
+    }
+  },
+  "expected": {
+    "text": "{\n  \"version\": 5,\n  \"colors\": {\n    \"a\\\"b\": \"c\\\\d\",\n    \"e\\/f\": \"g\\/h\",\n    \"ligne\\nsuivante\": \"tab\\tici\\r\\n\",\n    \"ctl\": \"\\u0001\\u001f\\b\\f\"\n  },\n  \"order\": [\n    \"x\\\"y\",\n    \"z\\\\w\",\n    \"u\\/v\",\n    \"l1\\nl2\"\n  ],\n  \"hiddenCalendarPaths\": [],\n  \"showWeekNumbers\": false,\n  \"secondaryTimezones\": [],\n  \"initialView\": {\n    \"desktop\": \"week\",\n    \"mobile\": \"3days\"\n  },\n  \"firstDay\": 1,\n  \"timeFormat24h\": true,\n  \"clickToCreateEventFromMonthView\": true,\n  \"freeScroll\": false,\n  \"defaultEventsAsTasks\": false,\n  \"reminderMinutes\": [\n    10\n  ],\n  \"calendarReminderMinutes\": {},\n  \"mapsTravelMode\": \"auto\",\n  \"mapsApp\": \"ask\",\n  \"icsDefaultRefreshMinutes\": 60,\n  \"icsFeeds\": [],\n  \"externalCalendars\": [],\n  \"prayerMosques\": {},\n  \"prayerColors\": {},\n  \"prayerReminderMinutes\": {},\n  \"prayerJumua\": {}\n}\n"
+  }
+}
