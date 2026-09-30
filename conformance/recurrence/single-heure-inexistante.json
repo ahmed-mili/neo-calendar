@@ -1,0 +1,41 @@
+{
+  "name": "02h30 le jour du passage a l heure d ete n existe pas : decale a 03h30, ce qui egale l heure de fin, donc fin repoussee au lendemain",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Reunion",
+      "type": "single",
+      "allDay": false,
+      "startTime": "02:30",
+      "endTime": "03:30",
+      "date": "2026-03-29"
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": [
+    {
+      "id": "42",
+      "title": "Reunion",
+      "start": "2026-03-29T01:30:00.000Z",
+      "end": "2026-03-30T01:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": null,
+      "isRecurring": false,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "name": "nuit de 23h a 6h a travers le retour a l'heure d'hiver",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Nuit",
+      "type": "single",
+      "allDay": false,
+      "startTime": "23:00",
+      "endTime": "06:00",
+      "date": "2026-10-24"
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": [
+    {
+      "id": "42",
+      "title": "Nuit",
+      "start": "2026-10-24T21:00:00.000Z",
+      "end": "2026-10-25T05:00:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": null,
+      "isRecurring": false,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

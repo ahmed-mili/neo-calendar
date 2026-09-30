@@ -1,0 +1,101 @@
+{
+  "name": "serie all-day au passage a l'heure d'ete : minuit local",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Poubelles",
+      "type": "recurring",
+      "allDay": true,
+      "daysOfWeek": [
+        "U",
+        "M",
+        "T",
+        "W",
+        "R",
+        "F",
+        "S"
+      ]
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-03-27T00:00:00+01:00",
+    "rangeEnd": "2026-03-30T23:59:59+02:00"
+  },
+  "expected": [
+    {
+      "id": "42_2026-03-27",
+      "title": "Poubelles",
+      "start": "2026-03-26T23:00:00.000Z",
+      "end": "2026-03-27T23:00:00.000Z",
+      "allDay": true,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    },
+    {
+      "id": "42_2026-03-28",
+      "title": "Poubelles",
+      "start": "2026-03-27T23:00:00.000Z",
+      "end": "2026-03-28T23:00:00.000Z",
+      "allDay": true,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    },
+    {
+      "id": "42_2026-03-29",
+      "title": "Poubelles",
+      "start": "2026-03-28T23:00:00.000Z",
+      "end": "2026-03-29T22:00:00.000Z",
+      "allDay": true,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    },
+    {
+      "id": "42_2026-03-30",
+      "title": "Poubelles",
+      "start": "2026-03-29T22:00:00.000Z",
+      "end": "2026-03-30T22:00:00.000Z",
+      "allDay": true,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

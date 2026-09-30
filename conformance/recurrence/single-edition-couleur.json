@@ -1,0 +1,41 @@
+{
+  "name": "couleur, calendrier et droit d'edition repris du contexte",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Reunion",
+      "type": "single",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:30",
+      "date": "2026-07-22"
+    },
+    "id": "abc",
+    "calendarId": "perso",
+    "calendarName": "Perso",
+    "color": "#ff8800",
+    "editable": false,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": [
+    {
+      "id": "abc",
+      "title": "Reunion",
+      "start": "2026-07-22T07:00:00.000Z",
+      "end": "2026-07-22T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ff8800",
+      "editable": false,
+      "calendarId": "perso",
+      "calendarName": "Perso",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": null,
+      "isRecurring": false,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

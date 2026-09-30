@@ -1,0 +1,41 @@
+{
+  "name": "02h30 le jour du retour a l'heure d'hiver : premiere occurrence",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Reunion",
+      "type": "single",
+      "allDay": false,
+      "startTime": "02:30",
+      "endTime": "03:30",
+      "date": "2026-10-25"
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": [
+    {
+      "id": "42",
+      "title": "Reunion",
+      "start": "2026-10-25T00:30:00.000Z",
+      "end": "2026-10-25T02:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": null,
+      "isRecurring": false,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

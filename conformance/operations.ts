@@ -14,6 +14,7 @@ import {
     withDeviceWorkspacePreferences,
 } from "../apps/windows/src/platform/desktopWorkspacePreferences";
 import type { NeoEvent } from "../src/types";
+import { neoEventToDisplayEvents } from "../src/ui/calendar/eventExpansion";
 import { validateEvent } from "../src/types/schema";
 
 /** Relie chaque opération du corpus au code TypeScript qui fait foi.
@@ -53,6 +54,17 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
             loaded: parseDesktopWorkspacePreferences(loaded),
             fileExisted,
         }),
+    "recurrence.expand": ({ event, id, calendarId, calendarName, color, editable, rangeStart, rangeEnd }) =>
+        neoEventToDisplayEvents(
+            validateEvent(event)!,
+            id,
+            calendarId,
+            calendarName,
+            color,
+            editable,
+            new Date(rangeStart),
+            new Date(rangeEnd)
+        ),
     "notes.serialize": ({ event, previousContents }) => {
         try {
             return { text: serializeEventMarkdown(event, previousContents ?? "") };

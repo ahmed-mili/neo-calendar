@@ -1,0 +1,77 @@
+{
+  "name": "serie all-day : journee entiere",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Poubelles",
+      "type": "recurring",
+      "allDay": true,
+      "daysOfWeek": [
+        "T"
+      ]
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": [
+    {
+      "id": "42_2026-07-21",
+      "title": "Poubelles",
+      "start": "2026-07-20T22:00:00.000Z",
+      "end": "2026-07-21T22:00:00.000Z",
+      "allDay": true,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    },
+    {
+      "id": "42_2026-07-28",
+      "title": "Poubelles",
+      "start": "2026-07-27T22:00:00.000Z",
+      "end": "2026-07-28T22:00:00.000Z",
+      "allDay": true,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    },
+    {
+      "id": "42_2026-08-04",
+      "title": "Poubelles",
+      "start": "2026-08-03T22:00:00.000Z",
+      "end": "2026-08-04T22:00:00.000Z",
+      "allDay": true,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

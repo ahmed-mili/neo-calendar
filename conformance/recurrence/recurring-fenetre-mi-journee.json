@@ -1,0 +1,61 @@
+{
+  "name": "fenetre coupant une journee : occurrence du jour de debut gardee, celle du jour de fin aussi",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Standup",
+      "type": "recurring",
+      "allDay": false,
+      "startTime": "08:00",
+      "endTime": "08:30",
+      "daysOfWeek": [
+        "W"
+      ]
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-22T15:00:00+02:00",
+    "rangeEnd": "2026-07-29T07:00:00+02:00"
+  },
+  "expected": [
+    {
+      "id": "42_2026-07-22",
+      "title": "Standup",
+      "start": "2026-07-22T06:00:00.000Z",
+      "end": "2026-07-22T06:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    },
+    {
+      "id": "42_2026-07-29",
+      "title": "Standup",
+      "start": "2026-07-29T06:00:00.000Z",
+      "end": "2026-07-29T06:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": "todo",
+      "isRecurring": true,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

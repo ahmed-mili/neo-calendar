@@ -1,0 +1,21 @@
+{
+  "name": "heure de debut invalide : aucune occurrence",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Reunion",
+      "type": "single",
+      "allDay": false,
+      "startTime": "25:00",
+      "date": "2026-07-22"
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": []
+}

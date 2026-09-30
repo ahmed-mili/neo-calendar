@@ -24,6 +24,8 @@ import com.ahmed.neocalendar.core.preferences.parseIcsFeeds
 import com.ahmed.neocalendar.core.preferences.parseWorkspacePreferences
 import com.ahmed.neocalendar.core.preferences.prayerReminderMinutesFor
 import com.ahmed.neocalendar.core.preferences.reminderListOf
+import com.ahmed.neocalendar.core.recurrence.neoEventToDisplayEvents
+import java.time.OffsetDateTime
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -64,6 +66,7 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
             fileExisted = input.getValue("fileExisted").jsonPrimitive.boolean,
         )
     },
+    "recurrence.expand" to { input -> expand(input) },
     "preferences.prayerReminder" to { input ->
         JsonArray(
             prayerReminderMinutesFor(input.getValue("settings").jsonObject, input.getValue("relativePath").jsonPrimitive.content)
@@ -107,4 +110,21 @@ private fun serialize(input: JsonObject): JsonElement = try {
     JsonObject(mapOf("text" to JsonPrimitive(serializeEventMarkdown(input.getValue("event").jsonObject, previous))))
 } catch (_: InvalidEventException) {
     JsonObject(mapOf("error" to JsonPrimitive("invalid")))
+}
+
+/** Les bornes du corpus sont des chaînes ISO avec décalage, lues comme `new Date(s)`. */
+private fun expand(input: JsonObject): JsonElement {
+    fun text(key: String) = input.getValue(key).jsonPrimitive.content
+    val event = validateEvent(input.getValue("event").jsonObject) ?: error("évènement invalide dans un cas recurrence.expand")
+    val occurrences = neoEventToDisplayEvents(
+        event,
+        text("id"),
+        text("calendarId"),
+        text("calendarName"),
+        text("color"),
+        input.getValue("editable").jsonPrimitive.boolean,
+        OffsetDateTime.parse(text("rangeStart")).toInstant(),
+        OffsetDateTime.parse(text("rangeEnd")).toInstant(),
+    )
+    return JsonArray(occurrences.map { it.toJson() })
 }

@@ -36,7 +36,8 @@ Un cas = un fichier JSON :
   `fn` à son implémentation, entrée JSON, sortie JSON. Renommer une fonction
   ne touche pas au corpus.
 - Tout ce qui varie est dans l'entrée : `now`, la langue (`"fr"` par défaut),
-  le fuseau (`Europe/Paris`, fixé dans la tâche Gradle par `-Duser.timezone`).
+  le fuseau (`Europe/Paris`, fixé dans la tâche Gradle par `-Duser.timezone` et
+  dans `runner.test.ts` par `process.env.TZ`, restauré après les tests).
 - Comparaison JSON profonde, ordre des clés ignoré ; les dates sont des
   chaînes ISO. Une clé absente vaut une clé absente.
 - Un entier s'écrit `10`, jamais `10.0` (côté Kotlin, `JsonPrimitive(Long)`).

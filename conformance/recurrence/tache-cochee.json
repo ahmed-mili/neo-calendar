@@ -1,0 +1,42 @@
+{
+  "name": "tache terminee : completed date, statut complete",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Payer",
+      "type": "single",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:30",
+      "date": "2026-07-22",
+      "completed": "2026-07-21T10:00:00.000+02:00"
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": [
+    {
+      "id": "42",
+      "title": "Payer",
+      "start": "2026-07-22T07:00:00.000Z",
+      "end": "2026-07-22T08:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": true,
+      "taskCompleted": "2026-07-21T10:00:00.000+02:00",
+      "taskStatus": "complete",
+      "isRecurring": false,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}

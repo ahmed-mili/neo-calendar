@@ -1,0 +1,42 @@
+{
+  "name": "ponctuel de nuit avec endDate : multi-jours",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Nuit",
+      "type": "single",
+      "allDay": false,
+      "startTime": "23:00",
+      "endTime": "01:45",
+      "date": "2026-07-22",
+      "endDate": "2026-07-23"
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": [
+    {
+      "id": "42",
+      "title": "Nuit",
+      "start": "2026-07-22T21:00:00.000Z",
+      "end": "2026-07-22T23:45:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": null,
+      "isRecurring": false,
+      "isSeriesStart": false,
+      "isMultiDay": true,
+      "isSomeday": false
+    }
+  ]
+}

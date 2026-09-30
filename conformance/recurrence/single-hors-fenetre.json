@@ -1,0 +1,41 @@
+{
+  "name": "la fenetre n'est pas consultee pour un ponctuel",
+  "fn": "recurrence.expand",
+  "input": {
+    "event": {
+      "title": "Reunion",
+      "type": "single",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:30",
+      "date": "2027-01-05"
+    },
+    "id": "42",
+    "calendarId": "cal",
+    "calendarName": "Cal",
+    "color": "#ffffff",
+    "editable": true,
+    "rangeStart": "2026-07-20T00:00:00+02:00",
+    "rangeEnd": "2026-08-10T23:59:59+02:00"
+  },
+  "expected": [
+    {
+      "id": "42",
+      "title": "Reunion",
+      "start": "2027-01-05T08:00:00.000Z",
+      "end": "2027-01-05T09:30:00.000Z",
+      "allDay": false,
+      "color": "#ffffff",
+      "editable": true,
+      "calendarId": "cal",
+      "calendarName": "Cal",
+      "isTask": false,
+      "taskCompleted": false,
+      "taskStatus": null,
+      "isRecurring": false,
+      "isSeriesStart": false,
+      "isMultiDay": false,
+      "isSomeday": false
+    }
+  ]
+}
