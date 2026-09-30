@@ -10,7 +10,7 @@ java {
 kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation("org.dmfs:lib-recur:0.17.1")
     testImplementation("junit:junit:4.13.2")
 }

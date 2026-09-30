@@ -164,10 +164,10 @@ jobs:
             # Le runner expose son SDK par ANDROID_HOME, dont Gradle se contente
             # en l'absence de local.properties. Reste à garantir la plateforme
             # que compile le module.
-            - name: Assurer la plateforme Android 35
+            - name: Assurer la plateforme Android 37
               run: |
                   yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
-                  "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+                  "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;36.0.0"
 
             - name: Restaurer la clé de signature Android
               shell: bash
