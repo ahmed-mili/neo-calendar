@@ -1,0 +1,6 @@
+{
+  "name": "rrule : quotidien jusqu'en avril",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=DAILY;INTERVAL=1;UNTIL=20260415T235959Z","skipDates":[]} },
+  "expected": "(every day until April 15, 2026) Titre.md"
+}

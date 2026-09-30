@@ -1,0 +1,6 @@
+{
+  "name": "rrule : tous les 2 ans",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=YEARLY;INTERVAL=2","skipDates":[]} },
+  "expected": "(every 2 years) Titre.md"
+}

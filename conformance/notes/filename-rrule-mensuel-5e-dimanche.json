@@ -1,0 +1,6 @@
+{
+  "name": "rrule : mensuel, 5e dimanche",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=MONTHLY;INTERVAL=1;BYDAY=+5SU","skipDates":[]} },
+  "expected": "(every month on the 5th Sunday) Titre.md"
+}

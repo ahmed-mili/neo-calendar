@@ -1,0 +1,6 @@
+{
+  "name": "rrule : mensuel avec COUNT",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=15;COUNT=6","skipDates":[]} },
+  "expected": "(every month on the 15th for 6 times) Titre.md"
+}

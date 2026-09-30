@@ -1,0 +1,6 @@
+{
+  "name": "rrule : les sept jours",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=SU,MO,TU,WE,TH,FR,SA","skipDates":[]} },
+  "expected": "(every day) Titre.md"
+}

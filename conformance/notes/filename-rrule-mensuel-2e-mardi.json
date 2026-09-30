@@ -1,0 +1,6 @@
+{
+  "name": "rrule : mensuel, 2e mardi",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=MONTHLY;INTERVAL=1;BYDAY=+2TU","skipDates":[]} },
+  "expected": "(every month on the 2nd Tuesday) Titre.md"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "rrule malformée : repli sur Recurring",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"pas une regle","skipDates":[]} },
+  "expected": "(Recurring) Titre.md"
+}

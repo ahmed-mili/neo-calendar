@@ -1,0 +1,6 @@
+{
+  "name": "points et espaces finaux retirés, ceux du milieu gardés",
+  "fn": "notes.filename",
+  "input": { "event": {"title":"Fin. . v1.2 . . ","allDay":true,"type":"single","date":"2026-10-02","endDate":null} },
+  "expected": "2026-10-02 Fin. . v1.2.md"
+}

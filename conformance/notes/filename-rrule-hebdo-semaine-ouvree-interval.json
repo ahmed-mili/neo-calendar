@@ -1,0 +1,6 @@
+{
+  "name": "rrule : jours ouvrés toutes les 2 semaines",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,TU,WE,TH,FR","skipDates":[]} },
+  "expected": "(every 2 weeks on weekdays) Titre.md"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "rrule : toutes les 3 semaines, dimanche en dernier",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=WEEKLY;INTERVAL=3;BYDAY=SU,MO,SA","skipDates":[]} },
+  "expected": "(every 3 weeks on Monday, Saturday, Sunday) Titre.md"
+}

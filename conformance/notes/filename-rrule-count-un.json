@@ -1,0 +1,6 @@
+{
+  "name": "rrule : COUNT=1 reste au singulier",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=DAILY;INTERVAL=1;COUNT=1","skipDates":[]} },
+  "expected": "(every day for 1 time) Titre.md"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "rrule : mensuel, le 23 (23rd)",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=23","skipDates":[]} },
+  "expected": "(every month on the 23rd) Titre.md"
+}

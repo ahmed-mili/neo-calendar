@@ -1,0 +1,6 @@
+{
+  "name": "rrule : annuel avec COUNT",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=YEARLY;INTERVAL=1;COUNT=10","skipDates":[]} },
+  "expected": "(every year for 10 times) Titre.md"
+}

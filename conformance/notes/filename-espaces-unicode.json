@@ -1,0 +1,6 @@
+{
+  "name": "espaces insécables et idéographiques comptent comme des espaces",
+  "fn": "notes.filename",
+  "input": { "event": {"title":"Un\u00a0\u00a0deux\u3000\u2003trois","allDay":true,"type":"single","date":"2026-10-02","endDate":null} },
+  "expected": "2026-10-02 Un deux trois.md"
+}

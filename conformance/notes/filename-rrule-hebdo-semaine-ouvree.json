@@ -1,0 +1,6 @@
+{
+  "name": "rrule : du lundi au vendredi",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,TU,WE,TH,FR","skipDates":[]} },
+  "expected": "(every weekday) Titre.md"
+}

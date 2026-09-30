@@ -1,0 +1,6 @@
+{
+  "name": "U+0085 n'est pas une espace pour JavaScript et reste dans le nom",
+  "fn": "notes.filename",
+  "input": { "event": {"title":"a\u0085\u0085b","allDay":true,"type":"single","date":"2026-10-02","endDate":null} },
+  "expected": "2026-10-02 a\u0085\u0085b.md"
+}

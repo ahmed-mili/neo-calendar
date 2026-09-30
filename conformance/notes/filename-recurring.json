@@ -1,0 +1,6 @@
+{
+  "name": "hebdomadaire : jours dans l'ordre de la note",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"recurring","title":"Sport","allDay":true,"daysOfWeek":["M","W","F"],"skipDates":[]} },
+  "expected": "(Every M,W,F) Sport.md"
+}

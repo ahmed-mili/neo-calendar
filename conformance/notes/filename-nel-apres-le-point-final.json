@@ -1,0 +1,6 @@
+{
+  "name": "un point suivi de U+0085 n'est pas final : le $ de JavaScript ne vaut qu'en fin de texte",
+  "fn": "notes.filename",
+  "input": { "event": {"title":"Fin.\u0085","allDay":true,"type":"single","date":"2026-10-02","endDate":null} },
+  "expected": "2026-10-02 Fin.\u0085.md"
+}

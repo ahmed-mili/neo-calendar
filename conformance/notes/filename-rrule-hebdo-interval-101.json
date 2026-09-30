@@ -1,0 +1,6 @@
+{
+  "name": "rrule : toutes les 101 semaines, un jour (singulier, comme la bibliothèque)",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=WEEKLY;INTERVAL=101;BYDAY=TU","skipDates":[]} },
+  "expected": "(every 101 week on Tuesday) Titre.md"
+}

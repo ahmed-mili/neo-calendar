@@ -1,0 +1,6 @@
+{
+  "name": "rrule : du mardi au vendredi n'est pas les jours ouvrés",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=TU,WE,TH,FR","skipDates":[]} },
+  "expected": "(every week on Tuesday, Wednesday, Thursday, Friday) Titre.md"
+}

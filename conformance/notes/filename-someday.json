@@ -1,0 +1,6 @@
+{
+  "name": "sans date",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"someday","title":"Apprendre le piano"} },
+  "expected": "(Someday) Apprendre le piano.md"
+}

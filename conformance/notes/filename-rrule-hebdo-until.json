@@ -1,0 +1,6 @@
+{
+  "name": "rrule : hebdomadaire avec UNTIL, date lue en UTC",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE;UNTIL=20270301T235959Z","skipDates":[]} },
+  "expected": "(every week on Monday, Wednesday until March 1, 2027) Titre.md"
+}

@@ -19,7 +19,7 @@ import kotlinx.serialization.json.jsonPrimitive
 /** Le pendant Kotlin de conformance/operations.ts : mêmes noms d'opération. */
 val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
     "notes.frontmatter" to { input -> parseFrontmatter(input.getValue("text").jsonPrimitive.content) ?: JsonNull },
-    "notes.filename" to { input -> JsonPrimitive(filenameForEvent(input.getValue("event").jsonObject)) },
+    "notes.filename" to { input -> filename(input) },
     "notes.validate" to { input -> validateEvent(input.getValue("raw").jsonObject)?.toRecord() ?: JsonNull },
     "notes.parse" to { input -> parseStored(input) },
     "notes.serialize" to { input -> serialize(input) },
@@ -46,6 +46,13 @@ private fun parseStored(input: JsonObject): JsonElement {
     stored.readOnly?.let { record["readOnly"] = JsonPrimitive(it) }
     stored.icsFeedId?.let { record["icsFeedId"] = JsonPrimitive(it) }
     return JsonObject(record)
+}
+
+/** Le corpus ne donne que des évènements valides : on les passe par validateEvent
+ *  comme le fait l'application avant de nommer un fichier. */
+private fun filename(input: JsonObject): JsonElement {
+    val event = validateEvent(input.getValue("event").jsonObject) ?: error("évènement invalide dans un cas notes.filename")
+    return JsonPrimitive(filenameForEvent(event))
 }
 
 private fun serialize(input: JsonObject): JsonElement = try {

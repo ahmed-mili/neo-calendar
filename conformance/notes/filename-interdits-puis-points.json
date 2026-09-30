@@ -1,0 +1,6 @@
+{
+  "name": "un caractère interdit final devient un tiret et reste",
+  "fn": "notes.filename",
+  "input": { "event": {"title":"Fin?.","allDay":true,"type":"single","date":"2026-10-02","endDate":null} },
+  "expected": "2026-10-02 Fin-.md"
+}

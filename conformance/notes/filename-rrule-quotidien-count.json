@@ -1,0 +1,6 @@
+{
+  "name": "rrule : quotidien avec COUNT",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=DAILY;INTERVAL=3;COUNT=13","skipDates":[]} },
+  "expected": "(every 3 days for 13 times) Titre.md"
+}

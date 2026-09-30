@@ -1,0 +1,6 @@
+{
+  "name": "rrule : tous les 3 jours",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=DAILY;INTERVAL=3","skipDates":[]} },
+  "expected": "(every 3 days) Titre.md"
+}

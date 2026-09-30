@@ -1,0 +1,6 @@
+{
+  "name": "espaces et tabulations consécutifs réduits à une espace",
+  "fn": "notes.filename",
+  "input": { "event": {"title":"Rendez \t  vous\n  médecin","allDay":true,"type":"single","date":"2026-10-02","endDate":null} },
+  "expected": "2026-10-02 Rendez vous médecin.md"
+}

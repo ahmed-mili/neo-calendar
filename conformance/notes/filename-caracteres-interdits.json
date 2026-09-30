@@ -1,0 +1,6 @@
+{
+  "name": "caractères interdits sous Windows remplacés par un tiret",
+  "fn": "notes.filename",
+  "input": { "event": {"title":"a\\b/c:d*e?f\"g<h>i|j","allDay":true,"type":"single","date":"2026-10-02","endDate":null} },
+  "expected": "2026-10-02 a-b-c-d-e-f-g-h-i-j.md"
+}

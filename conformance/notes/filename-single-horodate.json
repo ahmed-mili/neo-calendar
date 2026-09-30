@@ -1,0 +1,6 @@
+{
+  "name": "évènement ponctuel horodaté : le nom ne porte que la date",
+  "fn": "notes.filename",
+  "input": { "event": {"title":"Réunion","allDay":false,"type":"single","date":"2026-10-02","endDate":null,"startTime":"09:30","endTime":"10:00"} },
+  "expected": "2026-10-02 Réunion.md"
+}

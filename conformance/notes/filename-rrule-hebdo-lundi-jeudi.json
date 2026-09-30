@@ -1,0 +1,6 @@
+{
+  "name": "rrule : du lundi au jeudi n'est pas les jours ouvrés",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,TU,WE,TH","skipDates":[]} },
+  "expected": "(every week on Monday, Tuesday, Wednesday, Thursday) Titre.md"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "rrule : tous les 2 mois, le 22 (22nd)",
+  "fn": "notes.filename",
+  "input": { "event": {"type":"rrule","title":"Titre","allDay":true,"startDate":"2026-06-02","rrule":"RRULE:FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=22","skipDates":[]} },
+  "expected": "(every 2 months on the 22nd) Titre.md"
+}
