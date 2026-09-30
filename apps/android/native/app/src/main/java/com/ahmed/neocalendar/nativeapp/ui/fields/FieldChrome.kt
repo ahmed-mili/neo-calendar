@@ -129,8 +129,9 @@ fun NeoMenu(expanded: Boolean, onDismiss: () -> Unit, content: @Composable () ->
 }
 
 @Composable
-fun NeoMenuItem(text: String, selected: Boolean = false, onClick: () -> Unit) {
+fun NeoMenuItem(text: String, selected: Boolean = false, enabled: Boolean = true, onClick: () -> Unit) {
     DropdownMenuItem(
+        enabled = enabled,
         text = { Text(text, color = if (selected) Neo.Accent else Neo.Text, fontSize = 14.sp) },
         trailingIcon = if (selected) ({ Icon(NeoIcons.Check, null, tint = Neo.Accent, modifier = Modifier.size(16.dp)) }) else null,
         onClick = onClick,

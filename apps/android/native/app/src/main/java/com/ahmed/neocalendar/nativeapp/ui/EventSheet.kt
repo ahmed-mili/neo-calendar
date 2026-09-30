@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +61,7 @@ import com.ahmed.neocalendar.core.recurrence.recurringEditChanges
 import com.ahmed.neocalendar.core.tasks.isTask
 import com.ahmed.neocalendar.nativeapp.ExternalOpen
 import com.ahmed.neocalendar.nativeapp.NativeViewModel
+import com.ahmed.neocalendar.nativeapp.WRITE_IGNORED
 import com.ahmed.neocalendar.nativeapp.WorkspaceData
 import com.ahmed.neocalendar.nativeapp.ui.fields.CalendarField
 import com.ahmed.neocalendar.nativeapp.ui.fields.DescriptionField
@@ -127,6 +129,9 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
     var birthdayReturn by remember(target) { mutableStateOf<BirthdayReturn?>(null) }
     var error by remember(target) { mutableStateOf<String?>(null) }
     var busy by remember(target) { mutableStateOf(false) }
+    // Une écriture en cours (même lancée depuis la grille) verrouille Enregistrer, Supprimer et Dupliquer.
+    val writing by viewModel.writing.collectAsState()
+    val blocked = busy || writing
     var kindMenu by remember { mutableStateOf(false) }
     var overflowMenu by remember { mutableStateOf(false) }
     var dialog by remember(target) { mutableStateOf<SheetDialog?>(null) }
@@ -149,6 +154,7 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
 
     fun finish(message: String?, success: String? = null) {
         busy = false
+        if (message == WRITE_IGNORED) return
         if (message == null) {
             if (success != null) Toast.makeText(context, success, Toast.LENGTH_SHORT).show()
             onDismiss()
@@ -158,7 +164,7 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
     }
 
     fun save(scopeChoice: RecurringEditScope?) {
-        if (busy) return
+        if (blocked) return
         if (isDraft && values.title.isBlank()) {
             error = "Donnez un titre à l'évènement."
             return
@@ -227,20 +233,21 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
                 }
                 Box(Modifier.weight(1f))
                 if (editable && (dirty || isDraft)) {
-                    TextAction(if (busy) "Enregistrement…" else "Enregistrer", enabled = !busy) { onSave() }
+                    TextAction(if (busy) "Enregistrement…" else "Enregistrer", enabled = !blocked) { onSave() }
                 }
                 if (editable && stored != null) {
                     Box {
                         IconTarget(NeoIcons.EllipsisVertical, "Plus d'actions") { overflowMenu = true }
                         NeoMenu(overflowMenu, { overflowMenu = false }) {
-                            NeoMenuItem("Dupliquer") {
+                            NeoMenuItem("Dupliquer", enabled = !blocked) {
                                 overflowMenu = false
+                                if (blocked) return@NeoMenuItem
                                 busy = true
                                 scope.launch {
                                     finish(viewModel.duplicateEvent(stored, stored.calendarPath), "Évènement dupliqué")
                                 }
                             }
-                            NeoMenuItem("Supprimer") {
+                            NeoMenuItem("Supprimer", enabled = !blocked) {
                                 overflowMenu = false
                                 dialog = if (series && occurrenceDate != null && needsOccurrenceChoice(stored.event, existing?.displayId.orEmpty())) {
                                     SheetDialog.DeleteOccurrence(isTask(stored.event))
@@ -352,6 +359,7 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
             confirm = "Supprimer",
             onConfirm = {
                 dialog = null
+                if (blocked) return@ConfirmDialog
                 busy = true
                 scope.launch { finish(viewModel.deleteEvent(stored!!), null) }
             },
@@ -361,6 +369,7 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
             isTask = shown.isTask,
             onChoose = { following ->
                 dialog = null
+                if (blocked) return@DeleteOccurrenceDialog
                 busy = true
                 scope.launch { finish(viewModel.deleteOccurrence(stored!!, occurrenceDate.orEmpty(), following), null) }
             },

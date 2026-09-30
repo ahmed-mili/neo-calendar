@@ -213,8 +213,9 @@ class EventWriterMoveTest {
     }
 
     @Test fun deletingANoteEditedElsewhereStillRemovesIt() {
-        val note = stored(dentistPath, DENTIST)
-        val tree = MemoryTree().file(dentistPath, DENTIST + "ligne du PC\n")
+        val withId = DENTIST.replace("title: \"Dentiste\"\n", "title: \"Dentiste\"\nid: \"abc\"\n")
+        val note = stored(dentistPath, withId)
+        val tree = MemoryTree().file(dentistPath, withId + "ligne du PC\n")
         EventWriter(tree).delete(note)
         assertTrue(tree.files.isEmpty())
     }

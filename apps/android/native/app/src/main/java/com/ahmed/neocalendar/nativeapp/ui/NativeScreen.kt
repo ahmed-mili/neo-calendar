@@ -60,6 +60,7 @@ import com.ahmed.neocalendar.core.layout.todayBadgeState
 import com.ahmed.neocalendar.core.recurrence.DisplayEvent
 import com.ahmed.neocalendar.nativeapp.NativeViewModel
 import com.ahmed.neocalendar.nativeapp.ScreenState
+import com.ahmed.neocalendar.nativeapp.WRITE_IGNORED
 import com.ahmed.neocalendar.nativeapp.WorkspaceData
 import java.time.LocalDate
 import java.time.ZoneId
@@ -184,7 +185,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                     scope.launch {
                         viewModel.rescheduleEvent(note, event.id, start, end, resize)?.let {
                             onFailed()
-                            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                            if (it != WRITE_IGNORED) Toast.makeText(context, it, Toast.LENGTH_LONG).show()
                         }
                     }
                 }
@@ -196,7 +197,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                 } else {
                     scope.launch {
                         viewModel.setTaskDone(note, event.id, event.taskStatus != "complete")?.let {
-                            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                            if (it != WRITE_IGNORED) Toast.makeText(context, it, Toast.LENGTH_LONG).show()
                         }
                     }
                 }
