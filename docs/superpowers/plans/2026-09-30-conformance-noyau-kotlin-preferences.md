@@ -38,6 +38,8 @@
 
 ### Task 1: Liens ICS et calendriers externes dans les préférences
 
+> Fait : commits 718cf27..59c3e06
+
 Port de `apps/windows/src/platform/icsFeedPreferences.ts` (163 lignes : `normalizeIcsUrl`, `parseIcsFeeds`, `migrateLegacyIcalSources`, `ICS_REFRESH_MINUTES`, `MAX_ICS_FEEDS_PER_CALENDAR`) et de `parseExternalCalendarSources` (`apps/windows/src/platform/desktopExternalCalendars.ts:98-182`, avec `FRANCE_HOLIDAY_SOURCE`, `cloneFranceHolidaySource`). Ne PAS porter `buildAutoCalendarEvents` ni `parseIcalCalendarEvents` (domaines récurrence et ICS).
 
 **Files:**
@@ -51,15 +53,17 @@ Port de `apps/windows/src/platform/icsFeedPreferences.ts` (163 lignes : `normali
 - Les types restent en `JsonElement` à ce stade : l'écran Compose les typera quand il les lira. Un type ajouté maintenant ne servirait à personne.
 - Opérations : `preferences.icsUrl` `{value}` ; `preferences.icsFeeds` `{value}` ; `preferences.icsMigrate` `{value}` ; `preferences.externalSources` `{value}`.
 
-- [ ] **Step 1: Cas.** Reprendre les données de `icsFeedPreferences.test.ts`. Couvrir : URL `webcal://` et `webcals://`, espaces, casse du schéma, URL déjà normalisée ; flux sans URL, URL en double, fréquence hors `ICS_REFRESH_MINUTES`, plus de `MAX_ICS_FEEDS_PER_CALENDAR` flux dans un calendrier, entrée non-objet dans le tableau, valeur non-tableau ; migration d'anciennes sources iCal (avec et sans flux déjà présents) ; sources externes : jours fériés France présents, absents, source iCal valide, invalide.
-- [ ] **Step 2: Vert en TypeScript, discriminance vue.** Adaptateurs TS : `"preferences.icsUrl": ({ value }) => normalizeIcsUrl(value)`, `"preferences.icsFeeds": ({ value }) => parseIcsFeeds(value)`, `"preferences.icsMigrate": ({ value }) => migrateLegacyIcalSources(value)`, `"preferences.externalSources": ({ value }) => parseExternalCalendarSources(value)`.
-- [ ] **Step 3: Rouge en Kotlin** (les quatre opérations dans `Operations.kt`).
-- [ ] **Step 4: Porter** `IcsFeeds.kt` et `ExternalCalendars.kt`, fonction pour fonction, commentaires du POURQUOI repris.
-- [ ] **Step 5: Vert des deux côtés, commit** « Corpus préférences : liens ICS et calendriers externes, portés en Kotlin ».
+- [x] **Step 1: Cas.** Reprendre les données de `icsFeedPreferences.test.ts`. Couvrir : URL `webcal://` et `webcals://`, espaces, casse du schéma, URL déjà normalisée ; flux sans URL, URL en double, fréquence hors `ICS_REFRESH_MINUTES`, plus de `MAX_ICS_FEEDS_PER_CALENDAR` flux dans un calendrier, entrée non-objet dans le tableau, valeur non-tableau ; migration d'anciennes sources iCal (avec et sans flux déjà présents) ; sources externes : jours fériés France présents, absents, source iCal valide, invalide.
+- [x] **Step 2: Vert en TypeScript, discriminance vue.** Adaptateurs TS : `"preferences.icsUrl": ({ value }) => normalizeIcsUrl(value)`, `"preferences.icsFeeds": ({ value }) => parseIcsFeeds(value)`, `"preferences.icsMigrate": ({ value }) => migrateLegacyIcalSources(value)`, `"preferences.externalSources": ({ value }) => parseExternalCalendarSources(value)`.
+- [x] **Step 3: Rouge en Kotlin** (les quatre opérations dans `Operations.kt`).
+- [x] **Step 4: Porter** `IcsFeeds.kt` et `ExternalCalendars.kt`, fonction pour fonction, commentaires du POURQUOI repris.
+- [x] **Step 5: Vert des deux côtés, commit** « Corpus préférences : liens ICS et calendriers externes, portés en Kotlin ».
 
 ---
 
 ### Task 2: Défauts et lecture tolérante de `.neo-calendar.json`
+
+> Fait : commits 59c3e06..85cb614
 
 Port de `apps/windows/src/platform/desktopWorkspacePreferences.ts:20-216` et `371-585` : `defaultDesktopWorkspacePreferences`, `parseDesktopWorkspacePreferences`, `reminderListOf`, `isReminderMinutes`, `REMINDER_CHOICES`, `MAX_REMINDER_MINUTES`, `DEFAULT_PRAYER_REMINDER`, `prayerReminderMinutesFor`, et les constantes qu'elles lisent dans `src/ui/calendar/locationLink.ts` (`MAPS_TRAVEL_MODES`, `MAPS_APPS`) et `src/ui/types.ts` (liste des `ViewType`).
 
@@ -73,15 +77,17 @@ Port de `apps/windows/src/platform/desktopWorkspacePreferences.ts:20-216` et `37
 - Produces : `fun defaultWorkspacePreferences(): JsonObject` ; `fun parseWorkspacePreferences(value: JsonElement?): JsonObject` (même objet que le TypeScript, clés absentes omises) ; `fun reminderListOf(value: JsonElement?): List<Long>?` ; `fun isReminderMinutes(value: JsonElement?): Boolean` ; `fun prayerReminderMinutesFor(settings: JsonObject, relativePath: String): List<Long>` ; constantes `REMINDER_CHOICES`, `MAX_REMINDER_MINUTES = 40320`, `DEFAULT_PRAYER_REMINDER`.
 - Opérations : `preferences.defaults` `{}` ; `preferences.parse` `{value}` ; `preferences.reminderList` `{value}` (sortie : tableau ou `null`) ; `preferences.isReminderMinutes` `{value}` ; `preferences.prayerReminder` `{settings, relativePath}`.
 
-- [ ] **Step 1: Cas.** Reprendre `preferences.test.ts` et `reminderChoices.test.ts`. Chaque ligne du Review Focus a au moins un cas : valeurs racine `null`, tableau, chaîne, nombre ; chaque champ du type `DesktopWorkspacePreferences` au mauvais type, un par cas ou groupés par famille ; `dayCount` hors bornes ; `firstDay` hors 0-6 ; `reminderMinutes` ancien nombre unique, tableau avec doublons, négatif, décimal, au-delà de 40320, vide ; `calendarReminderMinutes` avec entrée invalide ; `initialView` partiel ; version ancienne avec sources iCal à migrer ; un fichier complet réel (prendre la forme de `defaultDesktopWorkspacePreferences` et changer chaque valeur).
-- [ ] **Step 2: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 3: Rouge en Kotlin.**
-- [ ] **Step 4: Porter `WorkspacePreferences.kt`.**
-- [ ] **Step 5: Vert des deux côtés, commit** « Corpus préférences : défauts et lecture tolérante, portés en Kotlin ».
+- [x] **Step 1: Cas.** Reprendre `preferences.test.ts` et `reminderChoices.test.ts`. Chaque ligne du Review Focus a au moins un cas : valeurs racine `null`, tableau, chaîne, nombre ; chaque champ du type `DesktopWorkspacePreferences` au mauvais type, un par cas ou groupés par famille ; `dayCount` hors bornes ; `firstDay` hors 0-6 ; `reminderMinutes` ancien nombre unique, tableau avec doublons, négatif, décimal, au-delà de 40320, vide ; `calendarReminderMinutes` avec entrée invalide ; `initialView` partiel ; version ancienne avec sources iCal à migrer ; un fichier complet réel (prendre la forme de `defaultDesktopWorkspacePreferences` et changer chaque valeur).
+- [x] **Step 2: Vert en TypeScript, discriminance vue.**
+- [x] **Step 3: Rouge en Kotlin.**
+- [x] **Step 4: Porter `WorkspacePreferences.kt`.**
+- [x] **Step 5: Vert des deux côtés, commit** « Corpus préférences : défauts et lecture tolérante, portés en Kotlin ».
 
 ---
 
 ### Task 3: Appareil, partagé et réconciliation
+
+> Fait : commits 85cb614..80bb5a7
 
 Port de `desktopWorkspacePreferences.ts:217-370` : `DEVICE_KEYS`, `sharedWorkspacePreferences`, `deviceWorkspacePreferences`, `parseDeviceWorkspacePreferences`, `withDeviceWorkspacePreferences`, `reconcileWorkspacePreferences`.
 
@@ -95,11 +101,11 @@ Port de `desktopWorkspacePreferences.ts:217-370` : `DEVICE_KEYS`, `sharedWorkspa
 - Produces : `fun sharedWorkspacePreferences(preferences: JsonObject): JsonObject` ; `fun deviceWorkspacePreferences(preferences: JsonObject): JsonObject` ; `fun parseDeviceWorkspacePreferences(value: JsonElement?): JsonObject` ; `fun withDeviceWorkspacePreferences(preferences: JsonObject, device: JsonObject): JsonObject` ; `fun reconcileWorkspacePreferences(previous: JsonObject?, loaded: JsonObject, fileExisted: Boolean): JsonObject`.
 - Opérations : `preferences.shared` `{preferences}` ; `preferences.device` `{preferences}` ; `preferences.deviceParse` `{value}` ; `preferences.withDevice` `{preferences, device}` ; `preferences.reconcile` `{previous, loaded, fileExisted}`. Les entrées `preferences`/`loaded`/`previous` passent d'abord par `preferences.parse` dans les DEUX adaptateurs, pour que le cas n'ait pas à écrire un objet complet.
 
-- [ ] **Step 1: Cas.** Reprendre `deviceWorkspacePreferences.test.ts` et `reconcileWorkspacePreferences.test.ts`. `dayCount` décimal arrondi, au-delà de 60 plafonné, 0 écarté ; `viewType` inconnu écarté ; appareil vide qui ne change rien ; appareil qui l'emporte sur le partagé ; séparation puis fusion qui rend l'original ; réconciliation sans `previous`, fichier absent, fichier présent, et chaque règle de `reconcileWorkspacePreferences` lue ligne à ligne.
-- [ ] **Step 2: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 3: Rouge en Kotlin.**
-- [ ] **Step 4: Porter `DevicePreferences.kt`.**
-- [ ] **Step 5: Vert des deux côtés, commit** « Corpus préférences : appareil et réconciliation, portés en Kotlin ».
+- [x] **Step 1: Cas.** Reprendre `deviceWorkspacePreferences.test.ts` et `reconcileWorkspacePreferences.test.ts`. `dayCount` décimal arrondi, au-delà de 60 plafonné, 0 écarté ; `viewType` inconnu écarté ; appareil vide qui ne change rien ; appareil qui l'emporte sur le partagé ; séparation puis fusion qui rend l'original ; réconciliation sans `previous`, fichier absent, fichier présent, et chaque règle de `reconcileWorkspacePreferences` lue ligne à ligne.
+- [x] **Step 2: Vert en TypeScript, discriminance vue.**
+- [x] **Step 3: Rouge en Kotlin.**
+- [x] **Step 4: Porter `DevicePreferences.kt`.**
+- [x] **Step 5: Vert des deux côtés, commit** « Corpus préférences : appareil et réconciliation, portés en Kotlin ».
 
 ---
 
