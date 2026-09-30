@@ -170,4 +170,75 @@ class EventWriterTest {
         assertFalse(tree.files.getValue(copy.relativePath).contains("id:"))
         assertEquals(withId, tree.files["Essai/2026-08-12 Dentiste.md"])
     }
+
+    private fun dentistPayload(title: String) =
+        json("""{"title":"$title","allDay":false,"startTime":"09:00","endTime":"10:00","type":"single","date":"2026-08-12","endDate":null}""")
+
+    // Correctif 1 : la note a disparu pendant que la fiche était ouverte : erreur claire, aucun fichier recréé.
+    @Test fun updatingANoteDeletedElsewhereWritesNothing() {
+        val tree = MemoryTree().dir("Essai")
+        val note = stored("Essai/2026-08-12 Dentiste.md", DENTIST)
+        try {
+            EventWriter(tree).update(note, dentistPayload("Dentiste 2"), "Essai")
+            fail()
+        } catch (e: NoteMovedException) {
+            assertEquals("Cette note a été déplacée ou supprimée ailleurs. Rechargez et recommencez.", e.message)
+        }
+        assertTrue(tree.files.isEmpty())
+        assertTrue(tree.log.isEmpty())
+    }
+
+    @Test fun detachingFromASeriesDeletedElsewhereWritesNothing() {
+        val tree = MemoryTree().dir("Essai")
+        val note = stored(SERIES_PATH, SERIES)
+        try {
+            EventWriter(tree).detachOccurrence(note, dentistPayload("Sport"), "2026-08-10", "2026-08-10", "Essai", now)
+            fail()
+        } catch (_: NoteMovedException) {
+        }
+        assertTrue(tree.files.isEmpty())
+    }
+
+    // Correctif 2 : le PC a modifié le corps pendant que la fiche était ouverte ; les deux modifications survivent.
+    @Test fun aBodyEditedOnThePcSurvivesTheFormSave() {
+        val tree = MemoryTree().file("Essai/2026-08-12 Dentiste.md", DENTIST)
+        val note = stored("Essai/2026-08-12 Dentiste.md", DENTIST)
+        tree.files["Essai/2026-08-12 Dentiste.md"] = DENTIST + "ligne du PC\n"
+        val written = EventWriter(tree).update(note, dentistPayload("Dentiste 2"), "Essai")
+        val text = tree.files.getValue(written.relativePath)
+        assertTrue(text.contains("title: \"Dentiste 2\""))
+        assertTrue(text.endsWith("Corps de la note\nligne du PC\n"))
+        assertTrue(text.contains("maCle: garde"))
+    }
+
+    // Correctif 2 : un champ que la fiche n'a pas touché (l'heure) garde la valeur du PC ; le titre de la fiche passe.
+    @Test fun anUntouchedFieldChangedOnThePcKeepsTheFileValue() {
+        val tree = MemoryTree().file("Essai/2026-08-12 Dentiste.md", DENTIST)
+        val note = stored("Essai/2026-08-12 Dentiste.md", DENTIST)
+        tree.files["Essai/2026-08-12 Dentiste.md"] = DENTIST.replace("startTime: \"09:00\"", "startTime: \"11:00\"").replace("endTime: \"10:00\"", "endTime: \"12:00\"")
+        val written = EventWriter(tree).update(note, dentistPayload("Dentiste 2"), "Essai")
+        val text = tree.files.getValue(written.relativePath)
+        assertTrue(text.contains("title: \"Dentiste 2\""))
+        assertTrue(text.contains("startTime: \"11:00\""))
+        assertTrue(text.contains("endTime: \"12:00\""))
+    }
+
+    // Correctif 2 : un champ touché dans la fiche l'emporte sur celui du PC.
+    @Test fun aFieldTouchedInTheFormWinsOverThePc() {
+        val tree = MemoryTree().file("Essai/2026-08-12 Dentiste.md", DENTIST)
+        val note = stored("Essai/2026-08-12 Dentiste.md", DENTIST)
+        tree.files["Essai/2026-08-12 Dentiste.md"] = DENTIST.replace("startTime: \"09:00\"", "startTime: \"11:00\"")
+        val payload = json("""{"title":"Dentiste","allDay":false,"startTime":"14:30","endTime":"15:30","type":"single","date":"2026-08-12","endDate":null}""")
+        val written = EventWriter(tree).update(note, payload, "Essai")
+        assertTrue(tree.files.getValue(written.relativePath).contains("startTime: \"14:30\""))
+    }
+
+    // Correctif 3 : la modification d'une note d'un sous-dossier la laisse dans ce sous-dossier.
+    @Test fun updatingANoteInASubfolderKeepsItThere() {
+        val tree = MemoryTree().file("Essai/Archives/2026-08-12 Dentiste.md", DENTIST)
+        val note = stored("Essai/Archives/2026-08-12 Dentiste.md", DENTIST).copy(calendarPath = "Essai")
+        val written = EventWriter(tree).update(note, dentistPayload("Dentiste 2"), "Essai")
+        assertEquals("Essai/Archives/2026-08-12 Dentiste 2.md", written.relativePath)
+        assertEquals(setOf("Essai/Archives/2026-08-12 Dentiste 2.md"), tree.files.keys)
+    }
 }

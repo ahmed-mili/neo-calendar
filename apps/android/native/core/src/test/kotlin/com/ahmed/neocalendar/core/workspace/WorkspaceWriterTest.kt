@@ -148,13 +148,6 @@ class WorkspaceWriterTest {
         assertFalse("B/n.md" in tree.files)
     }
 
-    // Un ancien chemin qui n'existe plus : c'est une création.
-    @Test fun aMissingPreviousPathIsACreation() {
-        val tree = MemoryTree().dir("Cal")
-        assertEquals("Cal/n.md", writeEvent(tree, "Cal", "n.md", "Cal/disparu.md", "neuf"))
-        assertEquals("neuf", tree.files["Cal/n.md"])
-    }
-
     @Test fun unknownCalendarIsAnError() {
         val tree = MemoryTree().dir("Cal")
         try {
@@ -224,5 +217,59 @@ class WorkspaceWriterTest {
         assertFalse(".neo-calendar-desktop.json" in tree.files)
         savePreferences(tree, "{\"a\": 1}\n")
         assertEquals("{\"a\": 1}\n", tree.files[".neo-calendar/.neo-calendar.json"])
+    }
+
+    // Correctif 1 : la note précédente a disparu (Syncthing) : rien n'est écrit, rien n'est recréé.
+    @Test fun aMissingPreviousNoteIsNeverRecreated() {
+        val tree = MemoryTree().dir("Cal")
+        try {
+            writeEvent(tree, "Cal", "b.md", "Cal/a.md", "neuf")
+            fail()
+        } catch (e: NoteMovedException) {
+            assertEquals("Cette note a été déplacée ou supprimée ailleurs. Rechargez et recommencez.", e.message)
+        }
+        assertTrue(tree.files.isEmpty())
+        assertTrue(tree.log.isEmpty())
+    }
+
+    // Correctif 1 : le nouveau nom est celui d'une autre note (la note renommée sur le PC) : elle n'est pas écrasée.
+    @Test fun aMissingPreviousNoteDoesNotOverwriteAnotherNote() {
+        val tree = MemoryTree().file("Cal/b.md", "celle du PC")
+        try {
+            writeEvent(tree, "Cal", "b.md", "Cal/a.md", "neuf")
+            fail()
+        } catch (_: NoteMovedException) {
+        }
+        assertEquals("celle du PC", tree.files["Cal/b.md"])
+        assertEquals(1, tree.files.size)
+    }
+
+    // Correctif 3 : une note rangée dans un sous-dossier du calendrier y reste, même renommée.
+    @Test fun aNoteInASubfolderStaysThere() {
+        val tree = MemoryTree().file("Perso/Archives/x.md", "ancien")
+        assertEquals("Perso/Archives/x.md", writeEvent(tree, "Perso", "x.md", "Perso/Archives/x.md", "neuf"))
+        assertEquals("neuf", tree.files["Perso/Archives/x.md"])
+        assertEquals("Perso/Archives/y.md", writeEvent(tree, "Perso", "y.md", "Perso/Archives/x.md", "neuf2"))
+        assertEquals(setOf("Perso/Archives/y.md"), tree.files.keys)
+    }
+
+    // Correctif 3 : seul un changement de calendrier la déplace, à la racine du nouveau.
+    @Test fun aNoteInASubfolderMovesToTheRootOfAnotherCalendar() {
+        val tree = MemoryTree().file("Perso/Archives/x.md", "ancien").dir("Travail")
+        assertEquals("Travail/x.md", writeEvent(tree, "Travail", "x.md", "Perso/Archives/x.md", "neuf"))
+        assertEquals(setOf("Travail/x.md"), tree.files.keys)
+    }
+
+    // Correctif 4 : l'écriture échoue après la création : pas de fichier vide laissé, l'ancienne note reste.
+    @Test fun aFailedWriteRemovesTheEmptyFileItCreated() {
+        val tree = MemoryTree().file("A/n.md", "ancien").dir("B")
+        tree.failWritesTo = "B/n.md"
+        try {
+            writeEvent(tree, "B", "n.md", "A/n.md", "neuf")
+            fail()
+        } catch (_: java.io.IOException) {
+        }
+        assertEquals(setOf("A/n.md"), tree.files.keys)
+        assertEquals("ancien", tree.files["A/n.md"])
     }
 }

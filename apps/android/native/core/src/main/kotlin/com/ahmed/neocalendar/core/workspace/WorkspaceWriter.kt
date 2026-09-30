@@ -69,11 +69,18 @@ fun findOrCreate(
 ): String = find(storage, dir, name)
     ?: if (directory) storage.createDirectory(dir, name) else storage.createFile(dir, name, mimeType)
 
+/** La note qu'on modifie n'est plus là où la fiche l'a lue : Syncthing l'a renommée ou supprimée. Rien n'est écrit. */
+class NoteMovedException : IllegalStateException("Cette note a été déplacée ou supprimée ailleurs. Rechargez et recommencez.")
+
 /**
  * Écrit une note, en la déplaçant quand son calendrier change.
  *
  * Un renommage ne passe pas d'un dossier à un autre : un changement de
  * calendrier écrit le nouveau fichier d'abord et supprime l'ancien après.
+ * Une note rangée dans un sous-dossier de son calendrier y reste ; seul un
+ * autre calendrier la déplace (à la racine du nouveau).
+ * Une note précédente donnée mais absente du dossier n'est jamais recréée :
+ * NoteMovedException, rien n'est écrit.
  * Rend le chemin relatif du fichier écrit.
  */
 fun writeEvent(
@@ -83,16 +90,20 @@ fun writeEvent(
     previousRelativePath: String,
     contents: String,
 ): String {
-    val dir = if (calendarPath.isEmpty()) "" else findPath(storage, calendarPath)
-        ?: throw IllegalStateException("Calendrier introuvable: $calendarPath")
     var name = validName(fileName, true)
-    val old = if (previousRelativePath.isEmpty()) null else findPath(storage, previousRelativePath)
+    val old = if (previousRelativePath.isEmpty()) null else findPath(storage, previousRelativePath) ?: throw NoteMovedException()
     val previousCalendar =
         if (previousRelativePath.contains("/")) previousRelativePath.substring(0, previousRelativePath.lastIndexOf('/')) else ""
+    val sameCalendar = old != null &&
+        (previousCalendar == calendarPath || (calendarPath.isNotEmpty() && previousRelativePath.startsWith("$calendarPath/")))
+    // Même calendrier : le dossier réel de la note (un sous-dossier compris) ; sinon la racine du calendrier cible.
+    val dir = if (sameCalendar) old!!.substringBeforeLast('/', "")
+    else if (calendarPath.isEmpty()) "" else findPath(storage, calendarPath)
+        ?: throw IllegalStateException("Calendrier introuvable: $calendarPath")
     val target = find(storage, dir, name)
-    fun written() = if (calendarPath.isEmpty()) name else "$calendarPath/$name"
+    fun written() = child(dir, name)
 
-    if (old != null && previousCalendar == calendarPath) {
+    if (old != null && sameCalendar) {
         if (target != null && target == old) {
             storage.writeText(old, contents)
             return written()
@@ -109,7 +120,13 @@ fun writeEvent(
     }
     if (target != null) name = uniqueName(storage, dir, name)
     val created = storage.createFile(dir, name, MARKDOWN_MIME)
-    storage.writeText(created, contents)
+    try {
+        storage.writeText(created, contents)
+    } catch (e: Exception) {
+        // Pas de note vide laissée à Syncthing ; la note précédente n'a pas été touchée.
+        runCatching { storage.delete(created) }
+        throw e
+    }
     if (old != null) storage.delete(old)
     return written()
 }

@@ -1,10 +1,13 @@
 package com.ahmed.neocalendar.core.workspace
 
+import com.ahmed.neocalendar.core.notes.EventFile
 import com.ahmed.neocalendar.core.notes.InvalidEventException
 import com.ahmed.neocalendar.core.notes.NeoEvent
 import com.ahmed.neocalendar.core.notes.StoredEvent
+import com.ahmed.neocalendar.core.notes.calendarIdFromPath
 import com.ahmed.neocalendar.core.notes.filenameForEvent
 import com.ahmed.neocalendar.core.notes.mergeForSave
+import com.ahmed.neocalendar.core.notes.parseStoredEvent
 import com.ahmed.neocalendar.core.notes.serializeEventMarkdown
 import com.ahmed.neocalendar.core.notes.toRecord
 import com.ahmed.neocalendar.core.notes.validateEvent
@@ -14,6 +17,7 @@ import com.ahmed.neocalendar.core.recurrence.occurrenceIsDone
 import com.ahmed.neocalendar.core.recurrence.seriesWithoutOccurrence
 import com.ahmed.neocalendar.core.recurrence.withFollowingRemoved
 import com.ahmed.neocalendar.core.recurrence.withOccurrenceRemoved
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
 /** Une note écrite : où elle est, ce qu'elle contient, et l'évènement tel que la validation l'a normalisé. */
@@ -42,7 +46,16 @@ class EventWriter(private val storage: WritableWorkspaceStorage) {
     }
 
     private fun persist(event: NeoEvent, calendarPath: String, previous: StoredEvent?, neverOverwrite: Boolean): WrittenEvent {
-        val contents = serializeEventMarkdown(event, previous?.contents.orEmpty())
+        // Le fichier tel qu'il est MAINTENANT (le PC l'a peut-être modifié depuis l'ouverture de la fiche) :
+        // corps et clés inconnues en viennent, et les champs que la fiche n'a pas touchés gardent sa valeur.
+        var current = ""
+        var effective = event
+        if (previous != null) {
+            val path = findPath(storage, previous.relativePath) ?: throw NoteMovedException()
+            current = storage.readText(path) ?: throw NoteMovedException()
+            if (current != previous.contents) effective = keepUntouchedFromFile(event, previous, current)
+        }
+        val contents = serializeEventMarkdown(effective, current)
         var fileName = filenameForEvent(event)
         // Une nouvelle note n'en écrase pas une autre qui porte le même nom : elle prend « nom (1).md ».
         // (Le Java et le TypeScript écrivent par-dessus ; ici une note d'Ahmed ne se perd pas en silence.)
@@ -53,6 +66,23 @@ class EventWriter(private val storage: WritableWorkspaceStorage) {
         }
         val path = writeEvent(storage, calendarPath, fileName, previous?.relativePath.orEmpty(), contents)
         return WrittenEvent(path, calendarPath, contents, event)
+    }
+
+    /** Les champs identiques à l'instantané (non touchés par la fiche) prennent la valeur du fichier actuel. */
+    private fun keepUntouchedFromFile(event: NeoEvent, snapshot: StoredEvent, current: String): NeoEvent {
+        val file = parseStoredEvent(
+            EventFile(snapshot.relativePath, snapshot.calendarPath, snapshot.fileName, current),
+            setOf(calendarIdFromPath(snapshot.calendarPath)),
+        ) ?: return event
+        val form = event.toRecord()
+        val old = snapshot.event.toRecord()
+        val now = file.event.toRecord()
+        val merged = LinkedHashMap<String, JsonElement>()
+        for (key in (now.keys + form.keys)) {
+            val value = if (form[key] == old[key]) now[key] else form[key]
+            if (value != null) merged[key] = value
+        }
+        return validateEvent(JsonObject(merged)) ?: throw InvalidEventException()
     }
 
     private fun requireWritable(stored: StoredEvent) {
@@ -98,6 +128,8 @@ class EventWriter(private val storage: WritableWorkspaceStorage) {
         now: () -> String,
     ): WrittenEvent {
         requireWritable(stored)
+        // La série doit encore exister avant d'écrire la copie (sinon une copie sans série à mettre à jour).
+        if (findPath(storage, stored.relativePath) == null) throw NoteMovedException()
         val done = occurrenceIsDone(stored.event.toRecord(), occurrenceDate)
         val single = detachedOccurrence(payload, date, done, now)
         val copy = create(targetCalendarPath, single)
