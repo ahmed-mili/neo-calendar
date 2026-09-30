@@ -22,7 +22,7 @@ if (releaseRequested && missingSigningValues.isNotEmpty()) {
 
 android {
  namespace = "com.ahmed.neocalendar"
- compileSdk = 35
+ compileSdk = 37
  defaultConfig {
   applicationId = "com.ahmed.neocalendar"
   minSdk = 26
