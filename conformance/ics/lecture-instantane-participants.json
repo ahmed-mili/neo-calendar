@@ -1,0 +1,35 @@
+{
+  "name": "les participants perdent leur mailto: et les valeurs vides tombent",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:people\nDTSTART:20260902T060000Z\nDTEND:20260902T070000Z\nSUMMARY:Reunion\nATTENDEE;CN=Prof:mailto:prof@example.com\nATTENDEE;CN=Eleve:MAILTO:eleve@example.com\nATTENDEE:mailto:\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2028-08-31"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "people",
+        "uid": "people",
+        "recurrenceId": null,
+        "event": {
+          "title": "Reunion",
+          "attendees": [
+            "prof@example.com",
+            "eleve@example.com"
+          ],
+          "allDay": false,
+          "startTime": "08:00",
+          "endTime": "09:00",
+          "type": "single",
+          "date": "2026-09-02",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-09-02"
+  }
+}

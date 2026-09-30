@@ -1,0 +1,19 @@
+{
+  "name": "un TZID inconnu, sans VTIMEZONE, se lit comme une heure flottante",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:unknown-zone\nDTSTART;TZID=Nulle/Part:20240408T110000\nDTEND;TZID=Nulle/Part:20240408T120000\nSUMMARY:Zone inconnue\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Zone inconnue",
+      "id": "ics::unknown-zone::2024-04-08::single",
+      "allDay": false,
+      "startTime": "11:00",
+      "endTime": "12:00",
+      "type": "single",
+      "date": "2024-04-08",
+      "endDate": null
+    }
+  ]
+}

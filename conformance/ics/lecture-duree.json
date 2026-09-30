@@ -1,0 +1,19 @@
+{
+  "name": "une DURATION fixe la fin",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:duration\nDTSTART:20240310T083000Z\nDURATION:PT1H30M\nSUMMARY:Avec duree\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Avec duree",
+      "id": "ics::duration::2024-03-10::single",
+      "allDay": false,
+      "startTime": "09:30",
+      "endTime": "11:00",
+      "type": "single",
+      "date": "2024-03-10",
+      "endDate": null
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "name": "une serie de journees entieres avec EXDATE date et une exception",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:ads\nDTSTART;VALUE=DATE:20260907\nRRULE:FREQ=WEEKLY;COUNT=5\nEXDATE;VALUE=DATE:20260914\nSUMMARY:Astreinte\nEND:VEVENT\nBEGIN:VEVENT\nUID:ads\nRECURRENCE-ID;VALUE=DATE:20260921\nDTSTART;VALUE=DATE:20260922\nSUMMARY:Astreinte decalee\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2026-10-31"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "ads::2026-09-06T22:00:00Z",
+        "uid": "ads",
+        "recurrenceId": "2026-09-06T22:00:00Z",
+        "event": {
+          "title": "Astreinte",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-09-07",
+          "endDate": "2026-09-08"
+        }
+      },
+      {
+        "key": "ads::2026-09-20T22:00:00Z",
+        "uid": "ads",
+        "recurrenceId": "2026-09-20T22:00:00Z",
+        "event": {
+          "title": "Astreinte decalee",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-09-22",
+          "endDate": "2026-09-23"
+        }
+      },
+      {
+        "key": "ads::2026-09-27T22:00:00Z",
+        "uid": "ads",
+        "recurrenceId": "2026-09-27T22:00:00Z",
+        "event": {
+          "title": "Astreinte",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-09-28",
+          "endDate": "2026-09-29"
+        }
+      },
+      {
+        "key": "ads::2026-10-04T22:00:00Z",
+        "uid": "ads",
+        "recurrenceId": "2026-10-04T22:00:00Z",
+        "event": {
+          "title": "Astreinte",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-10-05",
+          "endDate": "2026-10-06"
+        }
+      }
+    ],
+    "cancelledKeys": [
+      "ads::2026-09-13T22:00:00Z"
+    ],
+    "latestOccurrenceDate": "2026-10-05"
+  }
+}

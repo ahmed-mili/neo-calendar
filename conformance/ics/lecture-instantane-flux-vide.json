@@ -1,0 +1,16 @@
+{
+  "name": "un flux vide donne un instantane vide",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2028-08-31"
+    }
+  },
+  "expected": {
+    "events": [],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": null
+  }
+}

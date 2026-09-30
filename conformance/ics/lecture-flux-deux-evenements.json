@@ -1,0 +1,25 @@
+{
+  "name": "un evenement par VEVENT, dans l'ordre du flux",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:first\nDTSTART;VALUE=DATE:20240101\nSUMMARY:First\nEND:VEVENT\nBEGIN:VEVENT\nUID:second\nDTSTART;VALUE=DATE:20240102\nSUMMARY:Second\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "First",
+      "id": "ics::first::2024-01-01::single",
+      "allDay": true,
+      "type": "single",
+      "date": "2024-01-01",
+      "endDate": null
+    },
+    {
+      "title": "Second",
+      "id": "ics::second::2024-01-02::single",
+      "allDay": true,
+      "type": "single",
+      "date": "2024-01-02",
+      "endDate": null
+    }
+  ]
+}

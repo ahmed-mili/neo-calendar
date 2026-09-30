@@ -1,0 +1,29 @@
+{
+  "name": "une journee entiere avec DTEND garde sa date de fin",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:ad2\nDTSTART;VALUE=DATE:20260903\nDTEND;VALUE=DATE:20260906\nSUMMARY:Stage\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2026-09-30"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "ad2",
+        "uid": "ad2",
+        "recurrenceId": null,
+        "event": {
+          "title": "Stage",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-09-03",
+          "endDate": "2026-09-06"
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-09-03"
+  }
+}

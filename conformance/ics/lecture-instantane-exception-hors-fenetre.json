@@ -1,0 +1,101 @@
+{
+  "name": "une instance detachee hors de la fenetre de sa serie reste un evenement a part",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:far\nDTSTART:20260901T080000Z\nDTEND:20260901T090000Z\nRRULE:FREQ=WEEKLY;COUNT=10\nSUMMARY:Serie\nEND:VEVENT\nBEGIN:VEVENT\nUID:far\nRECURRENCE-ID:20261103T080000Z\nDTSTART:20261103T100000Z\nDTEND:20261103T110000Z\nSUMMARY:Serie (decalee)\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2026-09-30"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "far::2026-09-01T08:00:00Z",
+        "uid": "far",
+        "recurrenceId": "2026-09-01T08:00:00Z",
+        "event": {
+          "title": "Serie",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-01",
+          "endDate": null
+        }
+      },
+      {
+        "key": "far::2026-09-08T08:00:00Z",
+        "uid": "far",
+        "recurrenceId": "2026-09-08T08:00:00Z",
+        "event": {
+          "title": "Serie",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-08",
+          "endDate": null
+        }
+      },
+      {
+        "key": "far::2026-09-15T08:00:00Z",
+        "uid": "far",
+        "recurrenceId": "2026-09-15T08:00:00Z",
+        "event": {
+          "title": "Serie",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-15",
+          "endDate": null
+        }
+      },
+      {
+        "key": "far::2026-09-22T08:00:00Z",
+        "uid": "far",
+        "recurrenceId": "2026-09-22T08:00:00Z",
+        "event": {
+          "title": "Serie",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-22",
+          "endDate": null
+        }
+      },
+      {
+        "key": "far::2026-09-29T08:00:00Z",
+        "uid": "far",
+        "recurrenceId": "2026-09-29T08:00:00Z",
+        "event": {
+          "title": "Serie",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-29",
+          "endDate": null
+        }
+      },
+      {
+        "key": "far::2026-11-03T08:00:00Z",
+        "uid": "far",
+        "recurrenceId": "2026-11-03T08:00:00Z",
+        "event": {
+          "title": "Serie (decalee)",
+          "allDay": false,
+          "startTime": "11:00",
+          "endTime": "12:00",
+          "type": "single",
+          "date": "2026-11-03",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-11-03"
+  }
+}

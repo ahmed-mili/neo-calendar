@@ -1,0 +1,20 @@
+{
+  "name": "la regle est reecrite : FREQ, COUNT, INTERVAL, parties BY dans l'ordre d'arrivee, puis WKST",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:order\nDTSTART:20240408T090000Z\nDTEND:20240408T100000Z\nRRULE:BYDAY=MO,TU;INTERVAL=2;COUNT=10;BYMONTH=+4,5;FREQ=WEEKLY;WKST=MO;X-UNKNOWN=1\nSUMMARY:Ordre\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Ordre",
+      "id": "ics::order::2024-04-08::recurring",
+      "allDay": false,
+      "startTime": "11:00",
+      "endTime": "12:00",
+      "type": "rrule",
+      "startDate": "2024-04-08",
+      "rrule": "RRULE:FREQ=WEEKLY;COUNT=10;INTERVAL=2;BYDAY=MO,TU;BYMONTH=4,5",
+      "skipDates": []
+    }
+  ]
+}

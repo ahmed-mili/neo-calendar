@@ -11,6 +11,7 @@ kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    implementation("org.mnode.ical4j:ical4j:4.3.0")
     testImplementation("junit:junit:4.13.2")
 }
 

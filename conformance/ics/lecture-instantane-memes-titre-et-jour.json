@@ -1,0 +1,45 @@
+{
+  "name": "deux creneaux du meme jour et du meme titre restent deux occurrences",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:morning\nDTSTART:20261116T083000Z\nDTEND:20261116T113000Z\nSUMMARY:Semaine LXP B2 PEx\nEND:VEVENT\nBEGIN:VEVENT\nUID:afternoon\nDTSTART:20261116T123000Z\nDTEND:20261116T163000Z\nSUMMARY:Semaine LXP B2 PEx\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2028-08-31"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "morning",
+        "uid": "morning",
+        "recurrenceId": null,
+        "event": {
+          "title": "Semaine LXP B2 PEx",
+          "allDay": false,
+          "startTime": "09:30",
+          "endTime": "12:30",
+          "type": "single",
+          "date": "2026-11-16",
+          "endDate": null
+        }
+      },
+      {
+        "key": "afternoon",
+        "uid": "afternoon",
+        "recurrenceId": null,
+        "event": {
+          "title": "Semaine LXP B2 PEx",
+          "allDay": false,
+          "startTime": "13:30",
+          "endTime": "17:30",
+          "type": "single",
+          "date": "2026-11-16",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-11-16"
+  }
+}

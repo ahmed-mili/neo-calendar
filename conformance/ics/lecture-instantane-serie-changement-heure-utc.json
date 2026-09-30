@@ -1,0 +1,73 @@
+{
+  "name": "une serie en UTC garde son instant et change d'heure murale au passage a l'heure d'ete",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:utc-weekly\nDTSTART:20260316T080000Z\nDTEND:20260316T093000Z\nRRULE:FREQ=WEEKLY;COUNT=4\nSUMMARY:Cours en UTC\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-03-16",
+      "to": "2026-04-12"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "utc-weekly::2026-03-16T08:00:00Z",
+        "uid": "utc-weekly",
+        "recurrenceId": "2026-03-16T08:00:00Z",
+        "event": {
+          "title": "Cours en UTC",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-03-16",
+          "endDate": null
+        }
+      },
+      {
+        "key": "utc-weekly::2026-03-23T08:00:00Z",
+        "uid": "utc-weekly",
+        "recurrenceId": "2026-03-23T08:00:00Z",
+        "event": {
+          "title": "Cours en UTC",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-03-23",
+          "endDate": null
+        }
+      },
+      {
+        "key": "utc-weekly::2026-03-30T08:00:00Z",
+        "uid": "utc-weekly",
+        "recurrenceId": "2026-03-30T08:00:00Z",
+        "event": {
+          "title": "Cours en UTC",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:30",
+          "type": "single",
+          "date": "2026-03-30",
+          "endDate": null
+        }
+      },
+      {
+        "key": "utc-weekly::2026-04-06T08:00:00Z",
+        "uid": "utc-weekly",
+        "recurrenceId": "2026-04-06T08:00:00Z",
+        "event": {
+          "title": "Cours en UTC",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:30",
+          "type": "single",
+          "date": "2026-04-06",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-04-06"
+  }
+}

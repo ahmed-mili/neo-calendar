@@ -1,0 +1,87 @@
+{
+  "name": "une occurrence le dernier jour de la fenetre est gardee",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:uid-1\nDTSTART:20260901T080000Z\nDTEND:20260901T090000Z\nRRULE:FREQ=WEEKLY;BYDAY=TU\nEXDATE:20260908T080000Z\nSUMMARY:Cours de maths\nDESCRIPTION:Chapitre 2\nLOCATION:Salle B12\nEND:VEVENT\nBEGIN:VEVENT\nUID:uid-1\nRECURRENCE-ID:20260915T080000Z\nDTSTART:20260915T100000Z\nDTEND:20260915T110000Z\nSUMMARY:Cours de maths (rattrapage)\nDESCRIPTION:Chapitre 3\nLOCATION:Salle A01\nEND:VEVENT\nBEGIN:VEVENT\nUID:uid-2\nDTSTART:20260902T140000Z\nDTEND:20260902T150000Z\nSTATUS:CANCELLED\nSUMMARY:Reunion annulee\nEND:VEVENT\nBEGIN:VEVENT\nUID:uid-3\nDTSTART:20260903T090000Z\nDTEND:20260903T093000Z\nSUMMARY:Rendez-vous\nDESCRIPTION:Point rapide\nLOCATION:Bureau 4\nATTENDEE:mailto:prof@example.com\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-09-01",
+      "to": "2026-09-22"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "uid-1::2026-09-01T08:00:00Z",
+        "uid": "uid-1",
+        "recurrenceId": "2026-09-01T08:00:00Z",
+        "event": {
+          "title": "Cours de maths",
+          "location": "Salle B12",
+          "description": "Chapitre 2",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-01",
+          "endDate": null
+        }
+      },
+      {
+        "key": "uid-3",
+        "uid": "uid-3",
+        "recurrenceId": null,
+        "event": {
+          "title": "Rendez-vous",
+          "location": "Bureau 4",
+          "description": "Point rapide",
+          "attendees": [
+            "prof@example.com"
+          ],
+          "allDay": false,
+          "startTime": "11:00",
+          "endTime": "11:30",
+          "type": "single",
+          "date": "2026-09-03",
+          "endDate": null
+        }
+      },
+      {
+        "key": "uid-1::2026-09-15T08:00:00Z",
+        "uid": "uid-1",
+        "recurrenceId": "2026-09-15T08:00:00Z",
+        "event": {
+          "title": "Cours de maths (rattrapage)",
+          "location": "Salle A01",
+          "description": "Chapitre 3",
+          "allDay": false,
+          "startTime": "12:00",
+          "endTime": "13:00",
+          "type": "single",
+          "date": "2026-09-15",
+          "endDate": null
+        }
+      },
+      {
+        "key": "uid-1::2026-09-22T08:00:00Z",
+        "uid": "uid-1",
+        "recurrenceId": "2026-09-22T08:00:00Z",
+        "event": {
+          "title": "Cours de maths",
+          "location": "Salle B12",
+          "description": "Chapitre 2",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-22",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [
+      "uid-1::2026-09-08T08:00:00Z",
+      "uid-2"
+    ],
+    "latestOccurrenceDate": "2026-09-22"
+  }
+}

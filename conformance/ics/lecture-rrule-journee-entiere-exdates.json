@@ -1,0 +1,21 @@
+{
+  "name": "un EXDATE a plusieurs valeurs donne plusieurs dates sautees",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:allday-series\nDTSTART;VALUE=DATE:20240102\nRRULE:FREQ=DAILY;UNTIL=20240110\nEXDATE;VALUE=DATE:20240104,20240106\nSUMMARY:Serie\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Serie",
+      "id": "ics::allday-series::2024-01-02::recurring",
+      "allDay": true,
+      "type": "rrule",
+      "startDate": "2024-01-02",
+      "rrule": "RRULE:FREQ=DAILY;UNTIL=20240110",
+      "skipDates": [
+        "2024-01-04",
+        "2024-01-06"
+      ]
+    }
+  ]
+}

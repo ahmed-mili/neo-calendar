@@ -1,0 +1,14 @@
+{
+  "name": "la signature d'une journee entiere dit allday",
+  "fn": "ics.signature",
+  "input": {
+    "event": {
+      "title": "Ferie",
+      "type": "single",
+      "allDay": true,
+      "date": "2026-09-01",
+      "endDate": null
+    }
+  },
+  "expected": "Ferie::2026-09-01::allday"
+}

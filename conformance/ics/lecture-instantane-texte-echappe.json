@@ -1,0 +1,32 @@
+{
+  "name": "les echappements du texte reviennent : virgule, point-virgule, barre, retour a la ligne",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:escaped\nDTSTART:20260902T060000Z\nDTEND:20260902T070000Z\nSUMMARY:A\\, B\\; C\\\\ D\nDESCRIPTION:ligne 1\\nligne 2\\Nligne 3\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2028-08-31"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "escaped",
+        "uid": "escaped",
+        "recurrenceId": null,
+        "event": {
+          "title": "A, B; C\\ D",
+          "description": "ligne 1\nligne 2\nligne 3",
+          "allDay": false,
+          "startTime": "08:00",
+          "endTime": "09:00",
+          "type": "single",
+          "date": "2026-09-02",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-09-02"
+  }
+}

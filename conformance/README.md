@@ -53,3 +53,22 @@ Un cas = un fichier JSON :
 - Jest, à la racine du dépôt : `npx jest conformance`
 - JUnit, dans `apps/android/native`, sous PowerShell :
   `$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot"; .\gradlew.bat :core:test`
+
+## Écarts connus
+
+Aucun cas du corpus ne sépare le Kotlin (`ical4j`) du TypeScript (`ical.js`).
+Ce que le port Kotlin de `ics.ts` ne reprend pas, faute de cas dans le corpus :
+
+- `RANGE=THISANDFUTURE` sur un `RECURRENCE-ID` : ical.js décale toute la suite
+  de la série, le Kotlin n'applique que l'instance nommée.
+- Un `RDATE` de forme `PERIOD` (`début/fin`) est ignoré ; les `RDATE` date et
+  date-heure sont fusionnés aux occurrences de la règle.
+- Un VEVENT sans `DTSTART` : ical.js lève une exception et perd tout le flux,
+  le Kotlin saute ce VEVENT.
+- Un flux mal formé (`FREQ` ou `BYDAY` invalide, date illisible) lève une
+  exception des deux côtés, sans message commun.
+- ical.js garde ses fuseaux dans un registre global d'un appel à l'autre (un
+  TZID enregistré par un flux reste connu du suivant) ; le Kotlin repart à zéro
+  à chaque appel. Les cas ne redéfinissent donc jamais un TZID.
+- Un VTIMEZONE que `ical4j` refuse retombe sur le fuseau IANA du même nom,
+  puis sur l'heure flottante.

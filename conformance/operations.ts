@@ -26,6 +26,7 @@ import {
 import { addDays, endOfDay, getWeekDays, getWeekStart, isSameDay, startOfDay } from "../src/ui/calendar/calendarDateUtils";
 import { allDayBandRows, hiddenBarCountByDay, packAllDayLanes, visibleLaneCount } from "../src/ui/calendar/useAllDayLanes";
 import type { AllDayLaneBar } from "../src/ui/calendar/useAllDayLanes";
+import { getEventsFromICS, occurrenceSignature, parseIcsSnapshot } from "../src/calendars/parsing/ics";
 import type { DisplayEvent } from "../src/ui/types";
 import {
     LONG_MONTH_NAME,
@@ -136,6 +137,17 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
         Object.fromEntries(hiddenBarCountByDay(gridBars(bars), firstVisibleIdx, lastVisibleIdx, visibleRows)),
     "layout.allDayBandRows": ({ laneCount, draftLane, collapsed, maxRows }) =>
         allDayBandRows({ laneCount, draftLane, collapsed, maxRows }),
+    // ICS : les dates sortent en chaînes ; l'ensemble des clés annulées, trié, en tableau.
+    "ics.snapshot": ({ text, window }) => {
+        const snapshot = parseIcsSnapshot(text, window);
+        return {
+            events: snapshot.events,
+            cancelledKeys: [...snapshot.cancelledKeys].sort(),
+            latestOccurrenceDate: snapshot.latestOccurrenceDate,
+        };
+    },
+    "ics.signature": ({ event }) => occurrenceSignature(event as NeoEvent),
+    "ics.events": ({ text }) => getEventsFromICS(text),
     "notes.serialize": ({ event, previousContents }) => {
         try {
             return { text: serializeEventMarkdown(event, previousContents ?? "") };

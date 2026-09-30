@@ -1,0 +1,437 @@
+{
+  "name": "une regle quotidienne commencee des annees avant la fenetre donne quand meme ses occurrences",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:daily-old\nDTSTART:20130101T080000Z\nDTEND:20130101T083000Z\nRRULE:FREQ=DAILY\nSUMMARY:Point quotidien\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-09-07",
+      "to": "2026-10-06"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "daily-old::2026-09-07T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-07T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-07",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-08T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-08T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-08",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-09T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-09T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-09",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-10T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-10T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-10",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-11T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-11T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-11",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-12T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-12T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-12",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-13T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-13T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-13",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-14T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-14T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-14",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-15T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-15T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-15",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-16T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-16T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-16",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-17T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-17T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-17",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-18T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-18T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-18",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-19T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-19T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-19",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-20T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-20T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-20",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-21T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-21T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-21",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-22T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-22T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-22",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-23T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-23T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-23",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-24T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-24T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-24",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-25T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-25T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-25",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-26T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-26T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-26",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-27T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-27T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-27",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-28T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-28T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-28",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-29T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-29T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-29",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-09-30T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-09-30T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-09-30",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-10-01T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-10-01T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-10-01",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-10-02T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-10-02T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-10-02",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-10-03T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-10-03T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-10-03",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-10-04T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-10-04T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-10-04",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-10-05T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-10-05T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-10-05",
+          "endDate": null
+        }
+      },
+      {
+        "key": "daily-old::2026-10-06T08:00:00Z",
+        "uid": "daily-old",
+        "recurrenceId": "2026-10-06T08:00:00Z",
+        "event": {
+          "title": "Point quotidien",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "10:30",
+          "type": "single",
+          "date": "2026-10-06",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-10-06"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "le premier UID reste quel que soit l'ordre des copies",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:uid-b\nDTSTART:20261203T090000Z\nDTEND:20261203T160000Z\nSUMMARY:Efrei For Good Xperience\nLOCATION:Salles multiples\nEND:VEVENT\nBEGIN:VEVENT\nUID:uid-a\nDTSTART:20261203T090000Z\nDTEND:20261203T160000Z\nSUMMARY:Efrei For Good Xperience\nLOCATION:Salles multiples\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2028-08-31"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "uid-b",
+        "uid": "uid-b",
+        "recurrenceId": null,
+        "event": {
+          "title": "Efrei For Good Xperience",
+          "location": "Salles multiples",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "type": "single",
+          "date": "2026-12-03",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-12-03"
+  }
+}

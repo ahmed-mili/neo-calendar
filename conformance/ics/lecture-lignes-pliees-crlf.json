@@ -1,0 +1,19 @@
+{
+  "name": "les lignes pliees se rejoignent, avec des fins de ligne CRLF",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:folded\r\nDTSTART:20240310T083000Z\r\nDTEND:20240310T093000Z\r\nSUMMARY:Un titre tres long qui est plie sur plusieurs lignes\r\n pour tenir dans la limite de soixante-quinze octets\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+  },
+  "expected": [
+    {
+      "title": "Un titre tres long qui est plie sur plusieurs lignespour tenir dans la limite de soixante-quinze octets",
+      "id": "ics::folded::2024-03-10::single",
+      "allDay": false,
+      "startTime": "09:30",
+      "endTime": "10:30",
+      "type": "single",
+      "date": "2024-03-10",
+      "endDate": null
+    }
+  ]
+}

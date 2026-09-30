@@ -1,5 +1,8 @@
 package com.ahmed.neocalendar.core
 
+import com.ahmed.neocalendar.core.ics.getEventsFromICS
+import com.ahmed.neocalendar.core.ics.occurrenceSignature
+import com.ahmed.neocalendar.core.ics.parseIcsSnapshot
 import com.ahmed.neocalendar.core.layout.ALLDAY_MAX_ROWS
 import com.ahmed.neocalendar.core.layout.ALLDAY_ROW_HEIGHT
 import com.ahmed.neocalendar.core.layout.ANDROID_HOUR_HEIGHT
@@ -204,6 +207,21 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
                 "visibleRows" to JsonPrimitive(rows.visibleRows.toLong()),
             )
         )
+    },
+    "ics.snapshot" to { input ->
+        val window = input.getValue("window").jsonObject
+        parseIcsSnapshot(
+            input.getValue("text").jsonPrimitive.content,
+            window.getValue("from").jsonPrimitive.content,
+            window.getValue("to").jsonPrimitive.content,
+        )
+    },
+    "ics.signature" to { input ->
+        val event = validateEvent(input.getValue("event").jsonObject) ?: error("évènement invalide dans un cas ics.signature")
+        occurrenceSignature(event)?.let { JsonPrimitive(it) } ?: JsonNull
+    },
+    "ics.events" to { input ->
+        JsonArray(getEventsFromICS(input.getValue("text").jsonPrimitive.content).map { it.toRecord() })
     },
     "layout.constants" to { _ ->
         JsonObject(
