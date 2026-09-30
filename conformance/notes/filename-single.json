@@ -1,0 +1,6 @@
+{
+  "name": "évènement ponctuel : date puis titre",
+  "fn": "notes.filename",
+  "input": { "event": { "title": "Dentiste", "allDay": true, "type": "single", "date": "2026-10-02", "endDate": null } },
+  "expected": "2026-10-02 Dentiste.md"
+}
