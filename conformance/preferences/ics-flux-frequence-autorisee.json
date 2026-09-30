@@ -1,0 +1,100 @@
+{
+  "name": "ics flux frequence autorisee",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      {
+        "id": "m5",
+        "calendarPath": "C5",
+        "name": "Cours",
+        "url": "https://x.test/5.ics",
+        "refreshMinutes": 5
+      },
+      {
+        "id": "m15",
+        "calendarPath": "C15",
+        "name": "Cours",
+        "url": "https://x.test/15.ics",
+        "refreshMinutes": 15
+      },
+      {
+        "id": "m30",
+        "calendarPath": "C30",
+        "name": "Cours",
+        "url": "https://x.test/30.ics",
+        "refreshMinutes": 30
+      },
+      {
+        "id": "m60",
+        "calendarPath": "C60",
+        "name": "Cours",
+        "url": "https://x.test/60.ics",
+        "refreshMinutes": 60
+      },
+      {
+        "id": "m180",
+        "calendarPath": "C180",
+        "name": "Cours",
+        "url": "https://x.test/180.ics",
+        "refreshMinutes": 180
+      },
+      {
+        "id": "m360",
+        "calendarPath": "C360",
+        "name": "Cours",
+        "url": "https://x.test/360.ics",
+        "refreshMinutes": 360
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "m5",
+      "calendarPath": "C5",
+      "name": "Cours",
+      "url": "https://x.test/5.ics",
+      "refreshMinutes": 5,
+      "active": true
+    },
+    {
+      "id": "m15",
+      "calendarPath": "C15",
+      "name": "Cours",
+      "url": "https://x.test/15.ics",
+      "refreshMinutes": 15,
+      "active": true
+    },
+    {
+      "id": "m30",
+      "calendarPath": "C30",
+      "name": "Cours",
+      "url": "https://x.test/30.ics",
+      "refreshMinutes": 30,
+      "active": true
+    },
+    {
+      "id": "m60",
+      "calendarPath": "C60",
+      "name": "Cours",
+      "url": "https://x.test/60.ics",
+      "refreshMinutes": 60,
+      "active": true
+    },
+    {
+      "id": "m180",
+      "calendarPath": "C180",
+      "name": "Cours",
+      "url": "https://x.test/180.ics",
+      "refreshMinutes": 180,
+      "active": true
+    },
+    {
+      "id": "m360",
+      "calendarPath": "C360",
+      "name": "Cours",
+      "url": "https://x.test/360.ics",
+      "refreshMinutes": 360,
+      "active": true
+    }
+  ]
+}

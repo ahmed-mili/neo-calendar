@@ -1,0 +1,39 @@
+{
+  "name": "externes auto sans aucune regle valide",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "auto",
+        "id": "a",
+        "name": "A",
+        "rules": []
+      },
+      {
+        "type": "auto",
+        "id": "b",
+        "name": "B",
+        "rules": [
+          {
+            "n": "x",
+            "k": "f",
+            "m": 13,
+            "d": 1
+          }
+        ]
+      },
+      {
+        "type": "auto",
+        "id": "c",
+        "name": "C",
+        "rules": "f"
+      },
+      {
+        "type": "auto",
+        "id": "d",
+        "name": "D"
+      }
+    ]
+  },
+  "expected": []
+}

@@ -1,0 +1,13 @@
+{
+  "name": "ics flux valeur objet",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": {
+      "id": "f1",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/a.ics"
+    }
+  },
+  "expected": []
+}

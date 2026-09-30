@@ -1,0 +1,8 @@
+{
+  "name": "ics url sans chemin",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test"
+  },
+  "expected": "https://x.test/"
+}

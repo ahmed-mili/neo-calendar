@@ -1,0 +1,29 @@
+{
+  "name": "ics flux id en double",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      {
+        "id": "f1",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/a.ics"
+      },
+      {
+        "id": "f1",
+        "calendarPath": "Perso",
+        "name": "Cours",
+        "url": "https://x.test/autre.ics"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "f1",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "active": true
+    }
+  ]
+}

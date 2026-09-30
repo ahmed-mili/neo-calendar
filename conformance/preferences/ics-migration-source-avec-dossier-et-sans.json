@@ -1,0 +1,43 @@
+{
+  "name": "ics migration source avec dossier et sans",
+  "fn": "preferences.icsMigrate",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": "Études"
+      },
+      {
+        "type": "ical",
+        "id": "unresolved",
+        "name": "Sans dossier",
+        "url": "https://x.test/b.ics",
+        "color": "#fff"
+      }
+    ]
+  },
+  "expected": {
+    "feeds": [
+      {
+        "id": "old",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "active": true
+      }
+    ],
+    "unresolved": [
+      {
+        "type": "ical",
+        "id": "unresolved",
+        "name": "Sans dossier",
+        "url": "https://x.test/b.ics",
+        "color": "#fff"
+      }
+    ]
+  }
+}

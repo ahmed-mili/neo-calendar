@@ -1,0 +1,129 @@
+{
+  "name": "externes constante jours feries france",
+  "fn": "preferences.franceHolidaySource",
+  "input": {},
+  "expected": {
+    "type": "auto",
+    "country": "FR",
+    "color": "#4a9d5f",
+    "id": "FR",
+    "name": "Jours fériés et autres fêtes en France",
+    "icon": "flag",
+    "rules": [
+      {
+        "n": "Jour de l'an",
+        "k": "f",
+        "m": 1,
+        "d": 1
+      },
+      {
+        "n": "Heure d'été",
+        "k": "n",
+        "m": 3,
+        "w": 0,
+        "i": -1
+      },
+      {
+        "n": "Pâques",
+        "k": "e",
+        "o": 0
+      },
+      {
+        "n": "Le lundi de Pâques",
+        "k": "e",
+        "o": 1
+      },
+      {
+        "n": "La fête du Travail",
+        "k": "f",
+        "m": 5,
+        "d": 1
+      },
+      {
+        "n": "Fête de la Victoire 1945",
+        "k": "f",
+        "m": 5,
+        "d": 8
+      },
+      {
+        "n": "L'Ascension",
+        "k": "e",
+        "o": 39
+      },
+      {
+        "n": "Pentecôte",
+        "k": "e",
+        "o": 49
+      },
+      {
+        "n": "Le lundi de Pentecôte",
+        "k": "e",
+        "o": 50
+      },
+      {
+        "n": "Fête des Mères",
+        "k": "n",
+        "m": 5,
+        "w": 0,
+        "i": -1,
+        "a": 49
+      },
+      {
+        "n": "Fête des Pères",
+        "k": "n",
+        "m": 6,
+        "w": 0,
+        "i": 3
+      },
+      {
+        "n": "La fête nationale",
+        "k": "f",
+        "m": 7,
+        "d": 14
+      },
+      {
+        "n": "L'Assomption",
+        "k": "f",
+        "m": 8,
+        "d": 15
+      },
+      {
+        "n": "Heure d'hiver",
+        "k": "n",
+        "m": 10,
+        "w": 0,
+        "i": -1
+      },
+      {
+        "n": "La Toussaint",
+        "k": "f",
+        "m": 11,
+        "d": 1
+      },
+      {
+        "n": "L'Armistice",
+        "k": "f",
+        "m": 11,
+        "d": 11
+      },
+      {
+        "n": "La veille de Noël",
+        "k": "f",
+        "m": 12,
+        "d": 24
+      },
+      {
+        "n": "Noël",
+        "k": "f",
+        "m": 12,
+        "d": 25
+      },
+      {
+        "n": "la Saint-Sylvestre",
+        "k": "f",
+        "m": 12,
+        "d": 31
+      }
+    ]
+  }
+}

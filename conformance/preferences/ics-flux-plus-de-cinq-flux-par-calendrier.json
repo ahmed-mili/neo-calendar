@@ -1,0 +1,81 @@
+{
+  "name": "ics flux plus de cinq flux par calendrier",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      {
+        "id": "f0",
+        "calendarPath": "Études",
+        "name": "n0",
+        "url": "https://x.test/0.ics"
+      },
+      {
+        "id": "f1",
+        "calendarPath": "Études",
+        "name": "n1",
+        "url": "https://x.test/1.ics"
+      },
+      {
+        "id": "f2",
+        "calendarPath": "Études",
+        "name": "n2",
+        "url": "https://x.test/2.ics"
+      },
+      {
+        "id": "f3",
+        "calendarPath": "Études",
+        "name": "n3",
+        "url": "https://x.test/3.ics"
+      },
+      {
+        "id": "f4",
+        "calendarPath": "Études",
+        "name": "n4",
+        "url": "https://x.test/4.ics"
+      },
+      {
+        "id": "f5",
+        "calendarPath": "Études",
+        "name": "n5",
+        "url": "https://x.test/5.ics"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "f0",
+      "calendarPath": "Études",
+      "name": "n0",
+      "url": "https://x.test/0.ics",
+      "active": true
+    },
+    {
+      "id": "f1",
+      "calendarPath": "Études",
+      "name": "n1",
+      "url": "https://x.test/1.ics",
+      "active": true
+    },
+    {
+      "id": "f2",
+      "calendarPath": "Études",
+      "name": "n2",
+      "url": "https://x.test/2.ics",
+      "active": true
+    },
+    {
+      "id": "f3",
+      "calendarPath": "Études",
+      "name": "n3",
+      "url": "https://x.test/3.ics",
+      "active": true
+    },
+    {
+      "id": "f4",
+      "calendarPath": "Études",
+      "name": "n4",
+      "url": "https://x.test/4.ics",
+      "active": true
+    }
+  ]
+}

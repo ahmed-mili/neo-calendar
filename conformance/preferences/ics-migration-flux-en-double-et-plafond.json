@@ -1,0 +1,119 @@
+{
+  "name": "ics migration flux en double et plafond",
+  "fn": "preferences.icsMigrate",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "id": "o0",
+        "name": "Cours",
+        "url": "https://x.test/0.ics",
+        "color": "#fff",
+        "directory": "Études"
+      },
+      {
+        "type": "ical",
+        "id": "o1",
+        "name": "Cours",
+        "url": "https://x.test/1.ics",
+        "color": "#fff",
+        "directory": "Études"
+      },
+      {
+        "type": "ical",
+        "id": "o2",
+        "name": "Cours",
+        "url": "https://x.test/2.ics",
+        "color": "#fff",
+        "directory": "Études"
+      },
+      {
+        "type": "ical",
+        "id": "o3",
+        "name": "Cours",
+        "url": "https://x.test/3.ics",
+        "color": "#fff",
+        "directory": "Études"
+      },
+      {
+        "type": "ical",
+        "id": "o4",
+        "name": "Cours",
+        "url": "https://x.test/4.ics",
+        "color": "#fff",
+        "directory": "Études"
+      },
+      {
+        "type": "ical",
+        "id": "o5",
+        "name": "Cours",
+        "url": "https://x.test/5.ics",
+        "color": "#fff",
+        "directory": "Études"
+      },
+      {
+        "type": "ical",
+        "id": "dup",
+        "name": "Cours",
+        "url": "https://x.test/0.ics",
+        "color": "#fff",
+        "directory": "Perso"
+      },
+      {
+        "type": "ical",
+        "id": "dup2",
+        "name": "Cours",
+        "url": "https://x.test/0.ics",
+        "color": "#fff",
+        "directory": "Perso"
+      }
+    ]
+  },
+  "expected": {
+    "feeds": [
+      {
+        "id": "o0",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/0.ics",
+        "active": true
+      },
+      {
+        "id": "o1",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/1.ics",
+        "active": true
+      },
+      {
+        "id": "o2",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/2.ics",
+        "active": true
+      },
+      {
+        "id": "o3",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/3.ics",
+        "active": true
+      },
+      {
+        "id": "o4",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/4.ics",
+        "active": true
+      },
+      {
+        "id": "dup",
+        "calendarPath": "Perso",
+        "name": "Cours",
+        "url": "https://x.test/0.ics",
+        "active": true
+      }
+    ],
+    "unresolved": []
+  }
+}

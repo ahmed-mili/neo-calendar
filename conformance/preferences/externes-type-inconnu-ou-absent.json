@@ -1,0 +1,21 @@
+{
+  "name": "externes type inconnu ou absent",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "id": "x",
+        "name": "x",
+        "url": "https://x.test/a.ics"
+      },
+      {
+        "type": "ICAL",
+        "url": "https://x.test/a.ics"
+      },
+      {
+        "type": 4
+      }
+    ]
+  },
+  "expected": []
+}

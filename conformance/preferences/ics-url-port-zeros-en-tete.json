@@ -1,0 +1,8 @@
+{
+  "name": "ics url port zeros en tete",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test:0080/a"
+  },
+  "expected": "https://x.test:80/a"
+}

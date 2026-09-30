@@ -1,0 +1,8 @@
+{
+  "name": "externes valeur null",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": null
+  },
+  "expected": []
+}

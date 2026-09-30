@@ -1,0 +1,94 @@
+{
+  "name": "externes jours feries france absents",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "auto",
+        "country": "BE",
+        "color": "#4a9d5f",
+        "id": "BE",
+        "name": "Jours fériés belges",
+        "icon": "flag",
+        "rules": [
+          {
+            "n": "Jour de l'an",
+            "k": "f",
+            "m": 1,
+            "d": 1
+          },
+          {
+            "n": "Heure d'été",
+            "k": "n",
+            "m": 3,
+            "w": 0,
+            "i": -1
+          },
+          {
+            "n": "Pâques",
+            "k": "e",
+            "o": 0
+          },
+          {
+            "n": "Fête des Mères",
+            "k": "n",
+            "m": 5,
+            "w": 0,
+            "i": -1,
+            "a": 49
+          },
+          {
+            "n": "Noël",
+            "k": "f",
+            "m": 12,
+            "d": 25
+          }
+        ]
+      }
+    ]
+  },
+  "expected": [
+    {
+      "type": "auto",
+      "id": "BE",
+      "country": "BE",
+      "name": "Jours fériés belges",
+      "icon": "flag",
+      "color": "#4a9d5f",
+      "rules": [
+        {
+          "n": "Jour de l'an",
+          "k": "f",
+          "m": 1,
+          "d": 1
+        },
+        {
+          "n": "Heure d'été",
+          "k": "n",
+          "m": 3,
+          "w": 0,
+          "i": -1
+        },
+        {
+          "n": "Pâques",
+          "k": "e",
+          "o": 0
+        },
+        {
+          "n": "Fête des Mères",
+          "k": "n",
+          "m": 5,
+          "w": 0,
+          "i": -1,
+          "a": 49
+        },
+        {
+          "n": "Noël",
+          "k": "f",
+          "m": 12,
+          "d": 25
+        }
+      ]
+    }
+  ]
+}

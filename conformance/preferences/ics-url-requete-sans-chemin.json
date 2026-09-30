@@ -1,0 +1,8 @@
+{
+  "name": "ics url requete sans chemin",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test?q=1"
+  },
+  "expected": "https://x.test/?q=1"
+}

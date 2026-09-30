@@ -1,0 +1,8 @@
+{
+  "name": "ics url accolades chemin seul",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test/{a}?{}#{}"
+  },
+  "expected": "https://x.test/%7Ba%7D?{}#{}"
+}

@@ -1,0 +1,162 @@
+{
+  "name": "externes ical dossier dangereux",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": "a/b"
+      },
+      {
+        "type": "ical",
+        "id": "b",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": "nul"
+      },
+      {
+        "type": "ical",
+        "id": "c",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": " Études "
+      },
+      {
+        "type": "ical",
+        "id": "d",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": "Études."
+      },
+      {
+        "type": "ical",
+        "id": "e",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": "Études "
+      },
+      {
+        "type": "ical",
+        "id": "f",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": ".."
+      },
+      {
+        "type": "ical",
+        "id": "g",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": "."
+      },
+      {
+        "type": "ical",
+        "id": "h",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": "a?b"
+      },
+      {
+        "type": "ical",
+        "id": "i",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": "LPT3.txt"
+      },
+      {
+        "type": "ical",
+        "id": "j",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": 5
+      }
+    ]
+  },
+  "expected": [
+    {
+      "type": "ical",
+      "id": "old",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff"
+    },
+    {
+      "type": "ical",
+      "id": "b",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff"
+    },
+    {
+      "type": "ical",
+      "id": "c",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff",
+      "directory": "Études"
+    },
+    {
+      "type": "ical",
+      "id": "d",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff"
+    },
+    {
+      "type": "ical",
+      "id": "e",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff",
+      "directory": "Études"
+    },
+    {
+      "type": "ical",
+      "id": "f",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff"
+    },
+    {
+      "type": "ical",
+      "id": "g",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff"
+    },
+    {
+      "type": "ical",
+      "id": "h",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff"
+    },
+    {
+      "type": "ical",
+      "id": "i",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff"
+    },
+    {
+      "type": "ical",
+      "id": "j",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff"
+    }
+  ]
+}

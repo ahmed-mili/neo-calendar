@@ -1,0 +1,8 @@
+{
+  "name": "ics url pas une url",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "pas une url"
+  },
+  "expected": ""
+}

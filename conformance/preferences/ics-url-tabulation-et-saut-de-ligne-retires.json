@@ -1,0 +1,8 @@
+{
+  "name": "ics url tabulation et saut de ligne retires",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test/a\tb\nc"
+  },
+  "expected": "https://x.test/abc"
+}

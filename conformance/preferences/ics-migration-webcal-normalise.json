@@ -1,0 +1,28 @@
+{
+  "name": "ics migration webcal normalise",
+  "fn": "preferences.icsMigrate",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Cours",
+        "url": "webcal://x.test/a.ics",
+        "color": "#fff",
+        "directory": "Études"
+      }
+    ]
+  },
+  "expected": {
+    "feeds": [
+      {
+        "id": "old",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "active": true
+      }
+    ],
+    "unresolved": []
+  }
+}

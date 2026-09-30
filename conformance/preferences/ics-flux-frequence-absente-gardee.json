@@ -1,0 +1,23 @@
+{
+  "name": "ics flux frequence absente gardee",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      {
+        "id": "f1",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/a.ics"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "f1",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "active": true
+    }
+  ]
+}

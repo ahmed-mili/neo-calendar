@@ -1,0 +1,31 @@
+{
+  "name": "externes ical id en double",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff"
+      },
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Autre",
+        "url": "https://x.test/b.ics",
+        "color": "#fff"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "type": "ical",
+      "id": "old",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff"
+    }
+  ]
+}

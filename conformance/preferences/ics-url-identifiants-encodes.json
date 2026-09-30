@@ -1,0 +1,8 @@
+{
+  "name": "ics url identifiants encodes",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://us er:p@ss@x.test/a"
+  },
+  "expected": "https://us%20er:p%40ss@x.test/a"
+}

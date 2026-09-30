@@ -1,0 +1,8 @@
+{
+  "name": "ics flux valeur texte",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": "https://x.test/a.ics"
+  },
+  "expected": []
+}

@@ -1,0 +1,53 @@
+{
+  "name": "ics flux adresse",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      {
+        "id": "f1",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "address": "  Efrei, 30-32 avenue de la République, Villejuif "
+      },
+      {
+        "id": "f2",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/2.ics",
+        "address": "   "
+      },
+      {
+        "id": "f3",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/3.ics",
+        "address": 42
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "f1",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "active": true,
+      "address": "Efrei, 30-32 avenue de la République, Villejuif"
+    },
+    {
+      "id": "f2",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/2.ics",
+      "active": true
+    },
+    {
+      "id": "f3",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/3.ics",
+      "active": true
+    }
+  ]
+}

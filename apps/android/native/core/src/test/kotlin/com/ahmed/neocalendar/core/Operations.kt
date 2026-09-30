@@ -8,6 +8,11 @@ import com.ahmed.neocalendar.core.notes.parseFrontmatter
 import com.ahmed.neocalendar.core.notes.parseStoredEvent
 import com.ahmed.neocalendar.core.notes.toRecord
 import com.ahmed.neocalendar.core.notes.validateEvent
+import com.ahmed.neocalendar.core.preferences.cloneFranceHolidaySource
+import com.ahmed.neocalendar.core.preferences.migrateLegacyIcalSources
+import com.ahmed.neocalendar.core.preferences.normalizeIcsUrl
+import com.ahmed.neocalendar.core.preferences.parseExternalCalendarSources
+import com.ahmed.neocalendar.core.preferences.parseIcsFeeds
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -23,6 +28,11 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
     "notes.validate" to { input -> validateEvent(input.getValue("raw").jsonObject)?.toRecord() ?: JsonNull },
     "notes.parse" to { input -> parseStored(input) },
     "notes.serialize" to { input -> serialize(input) },
+    "preferences.icsUrl" to { input -> JsonPrimitive(normalizeIcsUrl(input.getValue("value").jsonPrimitive.content)) },
+    "preferences.icsFeeds" to { input -> parseIcsFeeds(input["value"]) },
+    "preferences.icsMigrate" to { input -> migrateLegacyIcalSources(input["value"]) },
+    "preferences.externalSources" to { input -> parseExternalCalendarSources(input["value"]) },
+    "preferences.franceHolidaySource" to { _ -> cloneFranceHolidaySource() },
 )
 
 /** StoredEvent sans `contents` (écho inutile), `readOnly` et `icsFeedId` omis

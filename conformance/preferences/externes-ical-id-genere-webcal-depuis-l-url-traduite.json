@@ -1,0 +1,23 @@
+{
+  "name": "externes ical id genere webcal depuis l url traduite",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "name": "Cours",
+        "url": "webcal://x.test/a.ics",
+        "color": "#fff"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "type": "ical",
+      "id": "ical-8czadw",
+      "name": "Cours",
+      "url": "webcal://x.test/a.ics",
+      "color": "#fff"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "externes ical https majuscules accepte",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Cours",
+        "url": "HTTPS://X.TEST/a.ics",
+        "color": "#fff"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "type": "ical",
+      "id": "old",
+      "name": "Cours",
+      "url": "HTTPS://X.TEST/a.ics",
+      "color": "#fff"
+    }
+  ]
+}

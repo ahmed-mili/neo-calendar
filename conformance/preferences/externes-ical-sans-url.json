@@ -1,0 +1,22 @@
+{
+  "name": "externes ical sans url",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Cours",
+        "color": "#fff"
+      },
+      {
+        "type": "ical",
+        "id": "b",
+        "name": "Cours",
+        "url": "  ",
+        "color": "#fff"
+      }
+    ]
+  },
+  "expected": []
+}

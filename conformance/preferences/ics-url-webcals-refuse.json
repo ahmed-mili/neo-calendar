@@ -1,0 +1,8 @@
+{
+  "name": "ics url webcals refuse",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "webcals://x.test/a.ics"
+  },
+  "expected": ""
+}

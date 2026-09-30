@@ -1,0 +1,213 @@
+{
+  "name": "externes auto regles invalides ecartees",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "auto",
+        "id": "bad",
+        "name": "Mixte",
+        "rules": [
+          {
+            "n": "ok",
+            "k": "f",
+            "m": 1,
+            "d": 1
+          },
+          {
+            "n": "mois 13",
+            "k": "f",
+            "m": 13,
+            "d": 1
+          },
+          {
+            "n": "jour 0",
+            "k": "f",
+            "m": 1,
+            "d": 0
+          },
+          {
+            "n": "décimal",
+            "k": "f",
+            "m": 1.5,
+            "d": 1
+          },
+          {
+            "n": "genre inconnu",
+            "k": "z"
+          },
+          {
+            "k": "f",
+            "m": 1,
+            "d": 1
+          },
+          {
+            "n": "a nul",
+            "k": "n",
+            "m": 1,
+            "w": 0,
+            "i": 1,
+            "a": null
+          },
+          {
+            "n": "i 6",
+            "k": "n",
+            "m": 1,
+            "w": 0,
+            "i": 6
+          },
+          {
+            "n": "date",
+            "k": "x",
+            "d": [
+              "2026-3-1"
+            ]
+          },
+          {
+            "n": "o texte",
+            "k": "e",
+            "o": "1"
+          },
+          {
+            "n": "w 7",
+            "k": "w",
+            "w": 7
+          },
+          null,
+          4,
+          "règle",
+          [],
+          {
+            "n": "clé en trop",
+            "k": "e",
+            "o": 1,
+            "zzz": true
+          },
+          {
+            "n": "ln nul",
+            "k": "hm",
+            "hd": 3,
+            "ln": null
+          },
+          {
+            "n": "mois 0",
+            "k": "f",
+            "m": 0,
+            "d": 1
+          },
+          {
+            "n": "jour 32",
+            "k": "f",
+            "m": 1,
+            "d": 32
+          },
+          {
+            "n": "paques décimal",
+            "k": "e",
+            "o": 1.5
+          },
+          {
+            "n": "i -2",
+            "k": "n",
+            "m": 1,
+            "w": 0,
+            "i": -2
+          },
+          {
+            "n": "w 7 n-ième",
+            "k": "n",
+            "m": 1,
+            "w": 7,
+            "i": 1
+          },
+          {
+            "n": "hijri mois 13",
+            "k": "h",
+            "hm": 13,
+            "hd": 1
+          },
+          {
+            "n": "hijri jour 31",
+            "k": "h",
+            "hm": 1,
+            "hd": 31
+          },
+          {
+            "n": "hijri ln décimal",
+            "k": "h",
+            "hm": 1,
+            "hd": 1,
+            "ln": 1.5
+          },
+          {
+            "n": "mensuel jour 31",
+            "k": "hm",
+            "hd": 31
+          },
+          {
+            "n": "date préfixée",
+            "k": "x",
+            "d": [
+              "x2026-01-01"
+            ]
+          },
+          {
+            "n": "date suffixée",
+            "k": "x",
+            "d": [
+              "2026-01-011"
+            ]
+          },
+          {
+            "n": "i zéro",
+            "k": "n",
+            "m": 1,
+            "w": 0,
+            "i": 0
+          },
+          {
+            "n": "bornes hautes",
+            "k": "hm",
+            "hd": 30,
+            "ln": 0
+          }
+        ]
+      }
+    ]
+  },
+  "expected": [
+    {
+      "type": "auto",
+      "id": "bad",
+      "name": "Mixte",
+      "icon": "flag",
+      "color": "#89b4fa",
+      "rules": [
+        {
+          "n": "ok",
+          "k": "f",
+          "m": 1,
+          "d": 1
+        },
+        {
+          "n": "clé en trop",
+          "k": "e",
+          "o": 1
+        },
+        {
+          "n": "i zéro",
+          "k": "n",
+          "m": 1,
+          "w": 0,
+          "i": 0
+        },
+        {
+          "n": "bornes hautes",
+          "k": "hm",
+          "hd": 30,
+          "ln": 0
+        }
+      ]
+    }
+  ]
+}

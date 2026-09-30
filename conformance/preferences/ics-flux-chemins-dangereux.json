@@ -1,0 +1,84 @@
+{
+  "name": "ics flux chemins dangereux",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      {
+        "id": "a",
+        "calendarPath": "../Études",
+        "name": "Cours",
+        "url": "https://x.test/1.ics"
+      },
+      {
+        "id": "b",
+        "calendarPath": "..",
+        "name": "Cours",
+        "url": "https://x.test/2.ics"
+      },
+      {
+        "id": "c",
+        "calendarPath": "a/b",
+        "name": "Cours",
+        "url": "https://x.test/3.ics"
+      },
+      {
+        "id": "d",
+        "calendarPath": "CON",
+        "name": "Cours",
+        "url": "https://x.test/4.ics"
+      },
+      {
+        "id": "e",
+        "calendarPath": "nul.txt",
+        "name": "Cours",
+        "url": "https://x.test/5.ics"
+      },
+      {
+        "id": "f",
+        "calendarPath": "Études.",
+        "name": "Cours",
+        "url": "https://x.test/6.ics"
+      },
+      {
+        "id": "g",
+        "calendarPath": "Études ",
+        "name": "Cours",
+        "url": "https://x.test/7.ics"
+      },
+      {
+        "id": "h",
+        "calendarPath": "a:b",
+        "name": "Cours",
+        "url": "https://x.test/8.ics"
+      },
+      {
+        "id": "i",
+        "calendarPath": "com1",
+        "name": "Cours",
+        "url": "https://x.test/9.ics"
+      },
+      {
+        "id": "j",
+        "calendarPath": "console",
+        "name": "Cours",
+        "url": "https://x.test/10.ics"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "g",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/7.ics",
+      "active": true
+    },
+    {
+      "id": "j",
+      "calendarPath": "console",
+      "name": "Cours",
+      "url": "https://x.test/10.ics",
+      "active": true
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "name": "ics flux dossier du lien",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      {
+        "id": "f1",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "directory": "Études/EFREI"
+      },
+      {
+        "id": "f2",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/2.ics",
+        "directory": "Études"
+      },
+      {
+        "id": "f3",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/3.ics",
+        "directory": "a/b/c"
+      },
+      {
+        "id": "f4",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/4.ics",
+        "directory": "Études/.."
+      },
+      {
+        "id": "f5",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/5.ics",
+        "directory": " A / B "
+      },
+      {
+        "id": "f6",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/6.ics",
+        "directory": 7
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "f1",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "active": true,
+      "directory": "Études/EFREI"
+    },
+    {
+      "id": "f2",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/2.ics",
+      "active": true
+    },
+    {
+      "id": "f3",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/3.ics",
+      "active": true
+    },
+    {
+      "id": "f4",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/4.ics",
+      "active": true
+    },
+    {
+      "id": "f5",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/5.ics",
+      "active": true,
+      "directory": "A/B"
+    }
+  ]
+}

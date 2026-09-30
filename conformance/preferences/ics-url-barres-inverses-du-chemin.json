@@ -1,0 +1,8 @@
+{
+  "name": "ics url barres inverses du chemin",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test/a\bc"
+  },
+  "expected": "https://x.test/a%08c"
+}

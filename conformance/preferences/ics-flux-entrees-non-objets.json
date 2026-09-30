@@ -1,0 +1,36 @@
+{
+  "name": "ics flux entrees non objets",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      null,
+      3,
+      "texte",
+      true,
+      [],
+      [
+        {
+          "id": "f1",
+          "calendarPath": "Études",
+          "name": "Cours",
+          "url": "https://x.test/a.ics"
+        }
+      ],
+      {
+        "id": "f1",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/a.ics"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "f1",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "active": true
+    }
+  ]
+}

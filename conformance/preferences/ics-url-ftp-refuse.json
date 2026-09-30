@@ -1,0 +1,8 @@
+{
+  "name": "ics url ftp refuse",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "ftp://x.test/a.ics"
+  },
+  "expected": ""
+}

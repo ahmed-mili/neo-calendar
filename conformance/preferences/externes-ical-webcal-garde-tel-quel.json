@@ -1,0 +1,24 @@
+{
+  "name": "externes ical webcal garde tel quel",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Cours",
+        "url": "webcal://x.test/a.ics",
+        "color": "#fff"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "type": "ical",
+      "id": "old",
+      "name": "Cours",
+      "url": "webcal://x.test/a.ics",
+      "color": "#fff"
+    }
+  ]
+}

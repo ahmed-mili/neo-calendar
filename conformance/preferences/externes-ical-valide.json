@@ -1,0 +1,26 @@
+{
+  "name": "externes ical valide",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": "Études"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "type": "ical",
+      "id": "old",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "color": "#fff",
+      "directory": "Études"
+    }
+  ]
+}

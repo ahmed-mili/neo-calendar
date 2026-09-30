@@ -1,0 +1,54 @@
+{
+  "name": "ics migration sources auto ignorees",
+  "fn": "preferences.icsMigrate",
+  "input": {
+    "value": [
+      {
+        "type": "auto",
+        "country": "FR",
+        "color": "#4a9d5f",
+        "id": "FR",
+        "name": "Jours fériés et autres fêtes en France",
+        "icon": "flag",
+        "rules": [
+          {
+            "n": "Jour de l'an",
+            "k": "f",
+            "m": 1,
+            "d": 1
+          },
+          {
+            "n": "Heure d'été",
+            "k": "n",
+            "m": 3,
+            "w": 0,
+            "i": -1
+          },
+          {
+            "n": "Pâques",
+            "k": "e",
+            "o": 0
+          },
+          {
+            "n": "Fête des Mères",
+            "k": "n",
+            "m": 5,
+            "w": 0,
+            "i": -1,
+            "a": 49
+          },
+          {
+            "n": "Noël",
+            "k": "f",
+            "m": 12,
+            "d": 25
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "feeds": [],
+    "unresolved": []
+  }
+}

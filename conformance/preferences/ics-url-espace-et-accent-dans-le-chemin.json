@@ -1,0 +1,8 @@
+{
+  "name": "ics url espace et accent dans le chemin",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test/mon cours/é.ics"
+  },
+  "expected": "https://x.test/mon%20cours/%C3%A9.ics"
+}

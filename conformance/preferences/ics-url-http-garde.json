@@ -1,0 +1,8 @@
+{
+  "name": "ics url http garde",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "http://x.test/a.ics"
+  },
+  "expected": "http://x.test/a.ics"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "ics url identifiants gardes",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://user:pw@x.test/a.ics"
+  },
+  "expected": "https://user:pw@x.test/a.ics"
+}

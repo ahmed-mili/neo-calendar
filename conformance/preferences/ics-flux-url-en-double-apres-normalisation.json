@@ -1,0 +1,29 @@
+{
+  "name": "ics flux url en double apres normalisation",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      {
+        "id": "f1",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/a.ics"
+      },
+      {
+        "id": "f2",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "HTTPS://X.TEST:443/a.ics"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "f1",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "active": true
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "ics url requete et fragment",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test/a.ics?token=A B&x=1#frag"
+  },
+  "expected": "https://x.test/a.ics?token=A%20B&x=1#frag"
+}

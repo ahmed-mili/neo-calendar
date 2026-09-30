@@ -1,0 +1,8 @@
+{
+  "name": "ics flux valeur null",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": null
+  },
+  "expected": []
+}

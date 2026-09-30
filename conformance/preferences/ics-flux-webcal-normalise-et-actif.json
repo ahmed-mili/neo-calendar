@@ -1,0 +1,25 @@
+{
+  "name": "ics flux webcal normalise et actif",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      {
+        "id": "f1",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "webcal://x.test/a.ics",
+        "refreshMinutes": 15
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "f1",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "refreshMinutes": 15,
+      "active": true
+    }
+  ]
+}

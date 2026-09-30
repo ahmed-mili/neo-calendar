@@ -1,4 +1,6 @@
 import { filenameForEvent, parseFrontmatter, parseStoredEvent, serializeEventMarkdown } from "../apps/windows/src/platform/desktopEventFormat";
+import { cloneFranceHolidaySource, parseExternalCalendarSources } from "../apps/windows/src/platform/desktopExternalCalendars";
+import { migrateLegacyIcalSources, normalizeIcsUrl, parseIcsFeeds } from "../apps/windows/src/platform/icsFeedPreferences";
 import type { NeoEvent } from "../src/types";
 import { validateEvent } from "../src/types/schema";
 
@@ -15,6 +17,11 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
         const { contents: _contents, ...rest } = stored;
         return rest;
     },
+    "preferences.icsUrl": ({ value }) => normalizeIcsUrl(value),
+    "preferences.icsFeeds": ({ value }) => parseIcsFeeds(value),
+    "preferences.icsMigrate": ({ value }) => migrateLegacyIcalSources(value),
+    "preferences.externalSources": ({ value }) => parseExternalCalendarSources(value),
+    "preferences.franceHolidaySource": () => cloneFranceHolidaySource(),
     "notes.serialize": ({ event, previousContents }) => {
         try {
             return { text: serializeEventMarkdown(event, previousContents ?? "") };

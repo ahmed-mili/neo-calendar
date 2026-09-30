@@ -1,0 +1,16 @@
+{
+  "name": "externes ical webcal majuscules refuse",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Cours",
+        "url": "WEBCAL://x.test/a.ics",
+        "color": "#fff"
+      }
+    ]
+  },
+  "expected": []
+}

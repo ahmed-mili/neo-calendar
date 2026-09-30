@@ -1,0 +1,26 @@
+{
+  "name": "ics flux sans id nom ou dossier",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      {
+        "id": "",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/a.ics"
+      },
+      {
+        "id": "f2",
+        "calendarPath": "Études",
+        "name": null,
+        "url": "https://x.test/a.ics"
+      },
+      {
+        "id": "f3",
+        "name": "Cours",
+        "url": "https://x.test/a.ics"
+      }
+    ]
+  },
+  "expected": []
+}

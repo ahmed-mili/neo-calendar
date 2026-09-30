@@ -1,0 +1,8 @@
+{
+  "name": "ics url deja normalisee",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test/a.ics"
+  },
+  "expected": "https://x.test/a.ics"
+}

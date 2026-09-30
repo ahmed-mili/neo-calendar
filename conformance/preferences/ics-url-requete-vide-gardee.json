@@ -1,0 +1,8 @@
+{
+  "name": "ics url requete vide gardee",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test/a?"
+  },
+  "expected": "https://x.test/a?"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "ics url requete fragment espaces apostrophe",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test/a b?q=a'b c#f g"
+  },
+  "expected": "https://x.test/a%20b?q=a%27b%20c#f%20g"
+}

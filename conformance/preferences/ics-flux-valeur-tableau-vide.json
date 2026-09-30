@@ -1,0 +1,8 @@
+{
+  "name": "ics flux valeur tableau vide",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": []
+  },
+  "expected": []
+}

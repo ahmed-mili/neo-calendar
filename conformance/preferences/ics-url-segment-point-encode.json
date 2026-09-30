@@ -1,0 +1,8 @@
+{
+  "name": "ics url segment point encode",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test/%2e%2E/b"
+  },
+  "expected": "https://x.test/b"
+}

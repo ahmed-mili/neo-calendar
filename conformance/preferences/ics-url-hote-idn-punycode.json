@@ -1,0 +1,8 @@
+{
+  "name": "ics url hote idn punycode",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://bücher.example/a"
+  },
+  "expected": "https://xn--bcher-kva.example/a"
+}

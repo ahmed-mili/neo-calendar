@@ -1,0 +1,21 @@
+{
+  "name": "externes ical id et nom par defaut",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "url": "  https://x.test/a.ics "
+      }
+    ]
+  },
+  "expected": [
+    {
+      "type": "ical",
+      "id": "ical-8czadw",
+      "name": "https://x.test/a.ics",
+      "url": "https://x.test/a.ics",
+      "color": "#89b4fa"
+    }
+  ]
+}

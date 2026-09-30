@@ -1,0 +1,11 @@
+{
+  "name": "ics migration tableau vide",
+  "fn": "preferences.icsMigrate",
+  "input": {
+    "value": []
+  },
+  "expected": {
+    "feeds": [],
+    "unresolved": []
+  }
+}

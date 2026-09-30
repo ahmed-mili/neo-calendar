@@ -1,0 +1,8 @@
+{
+  "name": "externes valeur tableau vide",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": []
+  },
+  "expected": []
+}

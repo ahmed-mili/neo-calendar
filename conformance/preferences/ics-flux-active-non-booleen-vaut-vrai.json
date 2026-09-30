@@ -1,0 +1,38 @@
+{
+  "name": "ics flux active non booleen vaut vrai",
+  "fn": "preferences.icsFeeds",
+  "input": {
+    "value": [
+      {
+        "id": "f1",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "active": "non"
+      },
+      {
+        "id": "f2",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/b.ics",
+        "active": 0
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "f1",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/a.ics",
+      "active": true
+    },
+    {
+      "id": "f2",
+      "calendarPath": "Études",
+      "name": "Cours",
+      "url": "https://x.test/b.ics",
+      "active": true
+    }
+  ]
+}

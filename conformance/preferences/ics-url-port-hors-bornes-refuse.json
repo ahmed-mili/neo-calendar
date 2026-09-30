@@ -1,0 +1,8 @@
+{
+  "name": "ics url port hors bornes refuse",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test:65536/a"
+  },
+  "expected": ""
+}

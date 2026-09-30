@@ -1,0 +1,43 @@
+{
+  "name": "ics migration dossier dangereux non resolu",
+  "fn": "preferences.icsMigrate",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff",
+        "directory": "../Études"
+      },
+      {
+        "type": "ical",
+        "id": "b",
+        "name": "Cours",
+        "url": "https://x.test/b.ics",
+        "color": "#fff",
+        "directory": "CON"
+      }
+    ]
+  },
+  "expected": {
+    "feeds": [],
+    "unresolved": [
+      {
+        "type": "ical",
+        "id": "old",
+        "name": "Cours",
+        "url": "https://x.test/a.ics",
+        "color": "#fff"
+      },
+      {
+        "type": "ical",
+        "id": "b",
+        "name": "Cours",
+        "url": "https://x.test/b.ics",
+        "color": "#fff"
+      }
+    ]
+  }
+}

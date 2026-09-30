@@ -1,0 +1,8 @@
+{
+  "name": "ics url port specifique garde",
+  "fn": "preferences.icsUrl",
+  "input": {
+    "value": "https://x.test:8443/a.ics"
+  },
+  "expected": "https://x.test:8443/a.ics"
+}

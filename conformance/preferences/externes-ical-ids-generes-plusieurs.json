@@ -1,0 +1,87 @@
+{
+  "name": "externes ical ids generes plusieurs",
+  "fn": "preferences.externalSources",
+  "input": {
+    "value": [
+      {
+        "type": "ical",
+        "name": "Cours",
+        "url": "a",
+        "color": "#fff"
+      },
+      {
+        "type": "ical",
+        "name": "Cours",
+        "url": "bb",
+        "color": "#fff"
+      },
+      {
+        "type": "ical",
+        "name": "Cours",
+        "url": "https://x.test/1.ics",
+        "color": "#fff"
+      },
+      {
+        "type": "ical",
+        "name": "Cours",
+        "url": "https://x.test/2.ics",
+        "color": "#fff"
+      },
+      {
+        "type": "ical",
+        "name": "Cours",
+        "url": "https://x.test/planning/cours.ics",
+        "color": "#fff"
+      },
+      {
+        "type": "ical",
+        "name": "Cours",
+        "url": "webcal://x.test/a.ics",
+        "color": "#fff"
+      },
+      {
+        "type": "ical",
+        "name": "Cours",
+        "url": "https://calendrier.exemple.fr/ical/etudiant-12345/basic.ics",
+        "color": "#fff"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "type": "ical",
+      "id": "ical-7ml5wk",
+      "name": "Cours",
+      "url": "https://x.test/1.ics",
+      "color": "#fff"
+    },
+    {
+      "type": "ical",
+      "id": "ical-7n4yhx",
+      "name": "Cours",
+      "url": "https://x.test/2.ics",
+      "color": "#fff"
+    },
+    {
+      "type": "ical",
+      "id": "ical-kld3qz",
+      "name": "Cours",
+      "url": "https://x.test/planning/cours.ics",
+      "color": "#fff"
+    },
+    {
+      "type": "ical",
+      "id": "ical-8czadw",
+      "name": "Cours",
+      "url": "webcal://x.test/a.ics",
+      "color": "#fff"
+    },
+    {
+      "type": "ical",
+      "id": "ical-ost51b",
+      "name": "Cours",
+      "url": "https://calendrier.exemple.fr/ical/etudiant-12345/basic.ics",
+      "color": "#fff"
+    }
+  ]
+}
