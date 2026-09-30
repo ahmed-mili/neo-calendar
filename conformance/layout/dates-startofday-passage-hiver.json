@@ -1,0 +1,8 @@
+{
+  "name": "debut de journee le jour du retour a l'heure d'hiver",
+  "fn": "layout.startOfDay",
+  "input": {
+    "date": "2026-10-25T12:00:00.000Z"
+  },
+  "expected": "2026-10-24T22:00:00.000Z"
+}

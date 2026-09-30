@@ -1,0 +1,8 @@
+{
+  "name": "dimanche 1er janvier 2023 est en semaine 52 de 2022",
+  "fn": "layout.getISOWeek",
+  "input": {
+    "date": "2023-01-01T12:00:00.000Z"
+  },
+  "expected": 52
+}

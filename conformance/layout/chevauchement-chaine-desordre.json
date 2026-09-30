@@ -1,0 +1,44 @@
+{
+  "name": "la chaine A-B-C donnee dans le desordre",
+  "fn": "layout.overlapGroups",
+  "input": {
+    "events": [
+      {
+        "id": "c",
+        "start": "2026-08-10T09:00:00.000Z",
+        "end": "2026-08-10T10:00:00.000Z"
+      },
+      {
+        "id": "a",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T08:30:00.000Z"
+      },
+      {
+        "id": "b",
+        "start": "2026-08-10T08:00:00.000Z",
+        "end": "2026-08-10T09:30:00.000Z"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "events": [
+        {
+          "id": "a",
+          "column": 0,
+          "totalColumns": 2
+        },
+        {
+          "id": "b",
+          "column": 1,
+          "totalColumns": 2
+        },
+        {
+          "id": "c",
+          "column": 0,
+          "totalColumns": 2
+        }
+      ]
+    }
+  ]
+}

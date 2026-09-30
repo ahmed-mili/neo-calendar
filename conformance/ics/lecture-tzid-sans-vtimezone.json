@@ -1,0 +1,19 @@
+{
+  "name": "un TZID IANA sans VTIMEZONE se resout quand meme",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:no-vtimezone\nDTSTART;TZID=America/Chicago:20240408T110000\nDTEND;TZID=America/Chicago:20240408T120000\nSUMMARY:Orphan zone\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Orphan zone",
+      "id": "ics::no-vtimezone::2024-04-08::single",
+      "allDay": false,
+      "startTime": "18:00",
+      "endTime": "19:00",
+      "type": "single",
+      "date": "2024-04-08",
+      "endDate": null
+    }
+  ]
+}

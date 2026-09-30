@@ -1,0 +1,19 @@
+{
+  "name": "un evenement qui passe minuit dans le fuseau du lecteur recoit une date de fin",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:late-session\nDTSTART:20240315T220000Z\nDTEND:20240316T000000Z\nSUMMARY:Late session\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Late session",
+      "id": "ics::late-session::2024-03-15::single",
+      "allDay": false,
+      "startTime": "23:00",
+      "endTime": "01:00",
+      "type": "single",
+      "date": "2024-03-15",
+      "endDate": "2024-03-16"
+    }
+  ]
+}

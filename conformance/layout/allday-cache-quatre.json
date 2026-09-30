@@ -1,0 +1,34 @@
+{
+  "name": "quatre evenements un meme jour, une seule rangee visible",
+  "fn": "layout.hiddenBarCountByDay",
+  "input": {
+    "bars": [
+      {
+        "startIdx": 2,
+        "span": 1,
+        "lane": 0
+      },
+      {
+        "startIdx": 2,
+        "span": 1,
+        "lane": 1
+      },
+      {
+        "startIdx": 2,
+        "span": 1,
+        "lane": 2
+      },
+      {
+        "startIdx": 2,
+        "span": 1,
+        "lane": 3
+      }
+    ],
+    "firstVisibleIdx": 0,
+    "lastVisibleIdx": 4,
+    "visibleRows": 1
+  },
+  "expected": {
+    "2": 4
+  }
+}

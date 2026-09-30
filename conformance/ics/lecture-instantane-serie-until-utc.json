@@ -1,0 +1,59 @@
+{
+  "name": "UNTIL en UTC borne la serie, inclus",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:until\nDTSTART:20260901T080000Z\nDTEND:20260901T090000Z\nRRULE:FREQ=WEEKLY;UNTIL=20260915T080000Z\nSUMMARY:Jusqu'a\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2026-12-31"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "until::2026-09-01T08:00:00Z",
+        "uid": "until",
+        "recurrenceId": "2026-09-01T08:00:00Z",
+        "event": {
+          "title": "Jusqu'a",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-01",
+          "endDate": null
+        }
+      },
+      {
+        "key": "until::2026-09-08T08:00:00Z",
+        "uid": "until",
+        "recurrenceId": "2026-09-08T08:00:00Z",
+        "event": {
+          "title": "Jusqu'a",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-08",
+          "endDate": null
+        }
+      },
+      {
+        "key": "until::2026-09-15T08:00:00Z",
+        "uid": "until",
+        "recurrenceId": "2026-09-15T08:00:00Z",
+        "event": {
+          "title": "Jusqu'a",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-15",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-09-15"
+  }
+}

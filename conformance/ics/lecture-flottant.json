@@ -1,0 +1,19 @@
+{
+  "name": "une heure sans fuseau se lit comme l'horloge du lecteur",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:floating\nDTSTART:20240310T083000\nDTEND:20240310T093000\nSUMMARY:Floating\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Floating",
+      "id": "ics::floating::2024-03-10::single",
+      "allDay": false,
+      "startTime": "08:30",
+      "endTime": "09:30",
+      "type": "single",
+      "date": "2024-03-10",
+      "endDate": null
+    }
+  ]
+}

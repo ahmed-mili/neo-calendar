@@ -1,0 +1,15 @@
+{
+  "name": "constantes de mesure de la grille",
+  "fn": "layout.constants",
+  "input": {},
+  "expected": {
+    "MIN_HOUR_HEIGHT": 32,
+    "MAX_HOUR_HEIGHT": 320,
+    "ANDROID_HOUR_HEIGHT": 72,
+    "ALLDAY_ROW_HEIGHT": 24,
+    "ALLDAY_MAX_ROWS": 4,
+    "OVERLAP_COL_GAP": 16,
+    "EVENT_VGAP": 4,
+    "LONG_MONTH_NAME": 8
+  }
+}

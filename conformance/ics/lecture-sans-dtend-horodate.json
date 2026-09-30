@@ -1,0 +1,19 @@
+{
+  "name": "sans DTEND ni DURATION la fin est le debut",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:no-end\nDTSTART:20240310T083000Z\nSUMMARY:Sans fin\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Sans fin",
+      "id": "ics::no-end::2024-03-10::single",
+      "allDay": false,
+      "startTime": "09:30",
+      "endTime": "09:30",
+      "type": "single",
+      "date": "2024-03-10",
+      "endDate": null
+    }
+  ]
+}

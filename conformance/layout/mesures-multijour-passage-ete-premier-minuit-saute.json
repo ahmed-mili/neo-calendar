@@ -1,0 +1,10 @@
+{
+  "name": "23h30 la veille du passage a l'heure d'ete : le premier minuit est saute",
+  "fn": "layout.isMultiDayTimed",
+  "input": {
+    "start": "2026-03-28T22:30:00.000Z",
+    "end": "2026-03-30T10:00:00.000Z",
+    "allDay": false
+  },
+  "expected": false
+}

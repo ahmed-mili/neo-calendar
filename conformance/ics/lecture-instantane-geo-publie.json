@@ -1,0 +1,33 @@
+{
+  "name": "les coordonnees du flux se gardent en latitude,longitude",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:uid-geo\nDTSTART:20260902T060000Z\nDTEND:20260902T070000Z\nSUMMARY:Présentation outils informatiques\nLOCATION:Efrei Bat. C C001\nGEO:48.7887337;2.3637327\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2028-08-31"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "uid-geo",
+        "uid": "uid-geo",
+        "recurrenceId": null,
+        "event": {
+          "title": "Présentation outils informatiques",
+          "location": "Efrei Bat. C C001",
+          "geo": "48.7887337,2.3637327",
+          "allDay": false,
+          "startTime": "08:00",
+          "endTime": "09:00",
+          "type": "single",
+          "date": "2026-09-02",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-09-02"
+  }
+}

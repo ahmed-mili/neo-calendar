@@ -1,0 +1,8 @@
+{
+  "name": "400 descend a 320",
+  "fn": "layout.clampHourHeight",
+  "input": {
+    "px": 400
+  },
+  "expected": 320
+}

@@ -1,0 +1,79 @@
+{
+  "name": "une serie TZID avec EXDATE et exception en TZID",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VTIMEZONE\nTZID:Europe/Paris\nBEGIN:DAYLIGHT\nTZOFFSETFROM:+0100\nTZOFFSETTO:+0200\nTZNAME:CEST\nDTSTART:19700329T020000\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\nEND:DAYLIGHT\nBEGIN:STANDARD\nTZOFFSETFROM:+0200\nTZOFFSETTO:+0100\nTZNAME:CET\nDTSTART:19701025T030000\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\nEND:STANDARD\nEND:VTIMEZONE\nBEGIN:VEVENT\nUID:paris-series\nDTSTART;TZID=Europe/Paris:20260901T140000\nDTEND;TZID=Europe/Paris:20260901T160000\nRRULE:FREQ=WEEKLY;COUNT=5\nEXDATE;TZID=Europe/Paris:20260908T140000\nSUMMARY:TD\nLOCATION:Salle 12\nEND:VEVENT\nBEGIN:VEVENT\nUID:paris-series\nRECURRENCE-ID;TZID=Europe/Paris:20260915T140000\nDTSTART;TZID=Europe/Paris:20260916T100000\nDTEND;TZID=Europe/Paris:20260916T113000\nSUMMARY:TD (deplace)\nLOCATION:Salle 14\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2026-10-31"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "paris-series::2026-09-01T12:00:00Z",
+        "uid": "paris-series",
+        "recurrenceId": "2026-09-01T12:00:00Z",
+        "event": {
+          "title": "TD",
+          "location": "Salle 12",
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "16:00",
+          "type": "single",
+          "date": "2026-09-01",
+          "endDate": null
+        }
+      },
+      {
+        "key": "paris-series::2026-09-15T12:00:00Z",
+        "uid": "paris-series",
+        "recurrenceId": "2026-09-15T12:00:00Z",
+        "event": {
+          "title": "TD (deplace)",
+          "location": "Salle 14",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:30",
+          "type": "single",
+          "date": "2026-09-16",
+          "endDate": null
+        }
+      },
+      {
+        "key": "paris-series::2026-09-22T12:00:00Z",
+        "uid": "paris-series",
+        "recurrenceId": "2026-09-22T12:00:00Z",
+        "event": {
+          "title": "TD",
+          "location": "Salle 12",
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "16:00",
+          "type": "single",
+          "date": "2026-09-22",
+          "endDate": null
+        }
+      },
+      {
+        "key": "paris-series::2026-09-29T12:00:00Z",
+        "uid": "paris-series",
+        "recurrenceId": "2026-09-29T12:00:00Z",
+        "event": {
+          "title": "TD",
+          "location": "Salle 12",
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "16:00",
+          "type": "single",
+          "date": "2026-09-29",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [
+      "paris-series::2026-09-08T12:00:00Z"
+    ],
+    "latestOccurrenceDate": "2026-09-29"
+  }
+}

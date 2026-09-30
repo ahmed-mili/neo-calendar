@@ -1,0 +1,111 @@
+{
+  "name": "un extrait de planning d'ecole sur deux semaines puis un cours publie deux fois",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VTIMEZONE\nTZID:Europe/Paris\nBEGIN:DAYLIGHT\nTZOFFSETFROM:+0100\nTZOFFSETTO:+0200\nTZNAME:CEST\nDTSTART:19700329T020000\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\nEND:DAYLIGHT\nBEGIN:STANDARD\nTZOFFSETFROM:+0200\nTZOFFSETTO:+0100\nTZNAME:CET\nDTSTART:19701025T030000\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\nEND:STANDARD\nEND:VTIMEZONE\nX-WR-CALNAME:Planning Efrei B2\nBEGIN:VEVENT\nUID:efrei-0001\nDTSTAMP:20260831T120000Z\nDTSTART;TZID=Europe/Paris:20260902T083000\nDTEND;TZID=Europe/Paris:20260902T120000\nSUMMARY:Présentation outils informatiques\nLOCATION:Efrei Bat. C C001\nGEO:48.7887337;2.3637327\nDESCRIPTION:Intervenant : M. Dupont\\nGroupe : B2 Cyber 1\\nObjectifs : déco\n uvrir les outils numériques de l'école, l'environnement de travail, la m\n essagerie et le cloud\\, puis configurer son poste.\nEND:VEVENT\nBEGIN:VEVENT\nUID:efrei-0002\nDTSTAMP:20260831T120000Z\nDTSTART;TZID=Europe/Paris:20260902T133000\nDTEND;TZID=Europe/Paris:20260902T170000\nSUMMARY:Anglais - Groupe B\nLOCATION:Efrei Bat. A A214\nGEO:48.7887337;2.3637327\nDESCRIPTION:Prévoir un casque pour l'épreuve d'écoute.\\nSalle réservée\n  jusqu'à 17h00 ; ne pas quitter la salle avant la fin de la séance, mêm\n e en cas de retard du groupe précédent.\nEND:VEVENT\nBEGIN:VEVENT\nUID:efrei-0003-a\nDTSTART;TZID=Europe/Paris:20261125T090000\nDTEND;TZID=Europe/Paris:20261125T120000\nSUMMARY:Projet transverse\nLOCATION:Salles multiples\nEND:VEVENT\nBEGIN:VEVENT\nUID:efrei-0003-b\nDTSTART;TZID=Europe/Paris:20261125T090000\nDTEND;TZID=Europe/Paris:20261125T120000\nSUMMARY:Projet transverse\nLOCATION:Salles multiples\nEND:VEVENT\nBEGIN:VEVENT\nUID:efrei-0004\nDTSTART;TZID=Europe/Paris:20261130T140000\nDTEND;TZID=Europe/Paris:20261130T173000\nRRULE:FREQ=WEEKLY;COUNT=3;BYDAY=MO\nSUMMARY:Mathématiques appliquées\nLOCATION:Efrei Bat. B B105\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2026-12-31"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "efrei-0001",
+        "uid": "efrei-0001",
+        "recurrenceId": null,
+        "event": {
+          "title": "Présentation outils informatiques",
+          "location": "Efrei Bat. C C001",
+          "geo": "48.7887337,2.3637327",
+          "description": "Intervenant : M. Dupont\nGroupe : B2 Cyber 1\nObjectifs : découvrir les outils numériques de l'école, l'environnement de travail, la messagerie et le cloud, puis configurer son poste.",
+          "allDay": false,
+          "startTime": "08:30",
+          "endTime": "12:00",
+          "type": "single",
+          "date": "2026-09-02",
+          "endDate": null
+        }
+      },
+      {
+        "key": "efrei-0002",
+        "uid": "efrei-0002",
+        "recurrenceId": null,
+        "event": {
+          "title": "Anglais - Groupe B",
+          "location": "Efrei Bat. A A214",
+          "geo": "48.7887337,2.3637327",
+          "description": "Prévoir un casque pour l'épreuve d'écoute.\nSalle réservée jusqu'à 17h00 ; ne pas quitter la salle avant la fin de la séance, même en cas de retard du groupe précédent.",
+          "allDay": false,
+          "startTime": "13:30",
+          "endTime": "17:00",
+          "type": "single",
+          "date": "2026-09-02",
+          "endDate": null
+        }
+      },
+      {
+        "key": "efrei-0003-a",
+        "uid": "efrei-0003-a",
+        "recurrenceId": null,
+        "event": {
+          "title": "Projet transverse",
+          "location": "Salles multiples",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "12:00",
+          "type": "single",
+          "date": "2026-11-25",
+          "endDate": null
+        }
+      },
+      {
+        "key": "efrei-0004::2026-11-30T13:00:00Z",
+        "uid": "efrei-0004",
+        "recurrenceId": "2026-11-30T13:00:00Z",
+        "event": {
+          "title": "Mathématiques appliquées",
+          "location": "Efrei Bat. B B105",
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "17:30",
+          "type": "single",
+          "date": "2026-11-30",
+          "endDate": null
+        }
+      },
+      {
+        "key": "efrei-0004::2026-12-07T13:00:00Z",
+        "uid": "efrei-0004",
+        "recurrenceId": "2026-12-07T13:00:00Z",
+        "event": {
+          "title": "Mathématiques appliquées",
+          "location": "Efrei Bat. B B105",
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "17:30",
+          "type": "single",
+          "date": "2026-12-07",
+          "endDate": null
+        }
+      },
+      {
+        "key": "efrei-0004::2026-12-14T13:00:00Z",
+        "uid": "efrei-0004",
+        "recurrenceId": "2026-12-14T13:00:00Z",
+        "event": {
+          "title": "Mathématiques appliquées",
+          "location": "Efrei Bat. B B105",
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "17:30",
+          "type": "single",
+          "date": "2026-12-14",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-12-14"
+  }
+}

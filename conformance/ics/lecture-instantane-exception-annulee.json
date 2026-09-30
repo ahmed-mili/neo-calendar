@@ -1,0 +1,47 @@
+{
+  "name": "une instance detachee STATUS:CANCELLED est une annulation, pas une occurrence",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:c1\nDTSTART:20260901T080000Z\nDTEND:20260901T090000Z\nRRULE:FREQ=WEEKLY;COUNT=3\nSUMMARY:Serie\nEND:VEVENT\nBEGIN:VEVENT\nUID:c1\nRECURRENCE-ID:20260908T080000Z\nDTSTART:20260908T080000Z\nDTEND:20260908T090000Z\nSTATUS:CANCELLED\nSUMMARY:Serie\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2026-09-30"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "c1::2026-09-01T08:00:00Z",
+        "uid": "c1",
+        "recurrenceId": "2026-09-01T08:00:00Z",
+        "event": {
+          "title": "Serie",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-01",
+          "endDate": null
+        }
+      },
+      {
+        "key": "c1::2026-09-15T08:00:00Z",
+        "uid": "c1",
+        "recurrenceId": "2026-09-15T08:00:00Z",
+        "event": {
+          "title": "Serie",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-15",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [
+      "c1::2026-09-08T08:00:00Z"
+    ],
+    "latestOccurrenceDate": "2026-09-15"
+  }
+}

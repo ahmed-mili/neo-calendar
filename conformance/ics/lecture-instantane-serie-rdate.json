@@ -1,0 +1,59 @@
+{
+  "name": "un RDATE s'ajoute aux occurrences de la regle",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:rdate\nDTSTART:20260901T080000Z\nDTEND:20260901T090000Z\nRRULE:FREQ=WEEKLY;COUNT=2\nRDATE:20260904T080000Z\nSUMMARY:Avec RDATE\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2026-09-30"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "rdate::2026-09-01T08:00:00Z",
+        "uid": "rdate",
+        "recurrenceId": "2026-09-01T08:00:00Z",
+        "event": {
+          "title": "Avec RDATE",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-01",
+          "endDate": null
+        }
+      },
+      {
+        "key": "rdate::2026-09-04T08:00:00Z",
+        "uid": "rdate",
+        "recurrenceId": "2026-09-04T08:00:00Z",
+        "event": {
+          "title": "Avec RDATE",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-04",
+          "endDate": null
+        }
+      },
+      {
+        "key": "rdate::2026-09-08T08:00:00Z",
+        "uid": "rdate",
+        "recurrenceId": "2026-09-08T08:00:00Z",
+        "event": {
+          "title": "Avec RDATE",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-08",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-09-08"
+  }
+}

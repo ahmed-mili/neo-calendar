@@ -1,0 +1,8 @@
+{
+  "name": "la longueur compte des unites UTF-16",
+  "fn": "layout.needsCompactMonthType",
+  "input": {
+    "monthName": "🌙🌙🌙🌙"
+  },
+  "expected": true
+}

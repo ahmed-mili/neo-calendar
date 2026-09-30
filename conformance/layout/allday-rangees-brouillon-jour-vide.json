@@ -1,0 +1,14 @@
+{
+  "name": "un brouillon sur un jour vide laisse une rangee dessous",
+  "fn": "layout.allDayBandRows",
+  "input": {
+    "laneCount": 0,
+    "draftLane": 0,
+    "collapsed": false,
+    "maxRows": 4
+  },
+  "expected": {
+    "contentRows": 2,
+    "visibleRows": 2
+  }
+}

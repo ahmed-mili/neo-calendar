@@ -1,0 +1,19 @@
+{
+  "name": "un TZID se resout avec le VTIMEZONE du flux en hiver",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VTIMEZONE\nTZID:America/New_York\nBEGIN:DAYLIGHT\nTZOFFSETFROM:-0500\nTZOFFSETTO:-0400\nTZNAME:EDT\nDTSTART:19700308T020000\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU\nEND:DAYLIGHT\nBEGIN:STANDARD\nTZOFFSETFROM:-0400\nTZOFFSETTO:-0500\nTZNAME:EST\nDTSTART:19701101T020000\nRRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU\nEND:STANDARD\nEND:VTIMEZONE\nBEGIN:VEVENT\nUID:winter\nDTSTART;TZID=America/New_York:20220301T110000\nDTEND;TZID=America/New_York:20220301T120000\nSUMMARY:Winter meeting\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Winter meeting",
+      "id": "ics::winter::2022-03-01::single",
+      "allDay": false,
+      "startTime": "17:00",
+      "endTime": "18:00",
+      "type": "single",
+      "date": "2022-03-01",
+      "endDate": null
+    }
+  ]
+}

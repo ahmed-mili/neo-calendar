@@ -1,0 +1,14 @@
+{
+  "name": "un brouillon plus bas que les lanes les depasse",
+  "fn": "layout.allDayBandRows",
+  "input": {
+    "laneCount": 2,
+    "draftLane": 0,
+    "collapsed": false,
+    "maxRows": 4
+  },
+  "expected": {
+    "contentRows": 3,
+    "visibleRows": 3
+  }
+}

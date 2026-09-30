@@ -1,0 +1,19 @@
+{
+  "name": "un TZID au nom Windows n'est compris que par le VTIMEZONE du flux",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VTIMEZONE\nTZID:Eastern Standard Time\nBEGIN:STANDARD\nDTSTART:16011104T020000\nRRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=1SU;BYMONTH=11\nTZOFFSETFROM:-0400\nTZOFFSETTO:-0500\nEND:STANDARD\nBEGIN:DAYLIGHT\nDTSTART:16010311T020000\nRRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=2SU;BYMONTH=3\nTZOFFSETFROM:-0500\nTZOFFSETTO:-0400\nEND:DAYLIGHT\nEND:VTIMEZONE\nBEGIN:VEVENT\nUID:eastern\nDTSTART;TZID=Eastern Standard Time:20260715T090000\nDTEND;TZID=Eastern Standard Time:20260715T103000\nSUMMARY:Reunion d'ete\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Reunion d'ete",
+      "id": "ics::eastern::2026-07-15::single",
+      "allDay": false,
+      "startTime": "15:00",
+      "endTime": "16:30",
+      "type": "single",
+      "date": "2026-07-15",
+      "endDate": null
+    }
+  ]
+}

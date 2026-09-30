@@ -1,0 +1,14 @@
+{
+  "name": "un brouillon sur la lane 1 garde une rangee dessous",
+  "fn": "layout.allDayBandRows",
+  "input": {
+    "laneCount": 1,
+    "draftLane": 1,
+    "collapsed": false,
+    "maxRows": 4
+  },
+  "expected": {
+    "contentRows": 3,
+    "visibleRows": 3
+  }
+}

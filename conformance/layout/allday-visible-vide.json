@@ -1,0 +1,10 @@
+{
+  "name": "aucune barre : zero rangee",
+  "fn": "layout.visibleLaneCount",
+  "input": {
+    "bars": [],
+    "firstVisibleIdx": 3,
+    "lastVisibleIdx": 9
+  },
+  "expected": 0
+}

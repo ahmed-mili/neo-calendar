@@ -1,0 +1,13 @@
+{
+  "name": "collapsed absent vaut faux",
+  "fn": "layout.allDayBandRows",
+  "input": {
+    "laneCount": 2,
+    "draftLane": null,
+    "maxRows": 4
+  },
+  "expected": {
+    "contentRows": 3,
+    "visibleRows": 3
+  }
+}

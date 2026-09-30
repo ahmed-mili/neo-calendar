@@ -1,0 +1,14 @@
+{
+  "name": "maxRows 2 plafonne plus bas",
+  "fn": "layout.allDayBandRows",
+  "input": {
+    "laneCount": 3,
+    "draftLane": null,
+    "collapsed": false,
+    "maxRows": 2
+  },
+  "expected": {
+    "contentRows": 4,
+    "visibleRows": 2
+  }
+}

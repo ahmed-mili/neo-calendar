@@ -1,0 +1,11 @@
+{
+  "name": "mois suivant : back",
+  "fn": "layout.todayBadgeState",
+  "input": {
+    "visibleDates": [
+      "2026-07-01T10:00:00.000Z"
+    ],
+    "now": "2026-06-30T12:00:00.000Z"
+  },
+  "expected": "back"
+}

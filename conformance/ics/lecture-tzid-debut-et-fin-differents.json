@@ -1,0 +1,19 @@
+{
+  "name": "le debut et la fin portent chacun leur TZID",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:two-zones\nDTSTART;TZID=America/Chicago:20240408T080000\nDTEND;TZID=Asia/Tokyo:20240409T030000\nSUMMARY:Deux fuseaux\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Deux fuseaux",
+      "id": "ics::two-zones::2024-04-08::single",
+      "allDay": false,
+      "startTime": "15:00",
+      "endTime": "20:00",
+      "type": "single",
+      "date": "2024-04-08",
+      "endDate": null
+    }
+  ]
+}

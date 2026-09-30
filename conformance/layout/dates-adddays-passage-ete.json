@@ -1,0 +1,9 @@
+{
+  "name": "ajouter un jour a travers le passage a l'heure d'ete garde l'heure murale",
+  "fn": "layout.addDays",
+  "input": {
+    "date": "2026-03-28T09:00:00.000Z",
+    "days": 1
+  },
+  "expected": "2026-03-29T08:00:00.000Z"
+}

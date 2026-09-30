@@ -1,0 +1,44 @@
+{
+  "name": "trois evenements au meme instant : trois colonnes, ordre d'arrivee",
+  "fn": "layout.overlapGroups",
+  "input": {
+    "events": [
+      {
+        "id": "a",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T08:00:00.000Z"
+      },
+      {
+        "id": "b",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T08:00:00.000Z"
+      },
+      {
+        "id": "c",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T08:00:00.000Z"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "events": [
+        {
+          "id": "a",
+          "column": 0,
+          "totalColumns": 3
+        },
+        {
+          "id": "b",
+          "column": 1,
+          "totalColumns": 3
+        },
+        {
+          "id": "c",
+          "column": 2,
+          "totalColumns": 3
+        }
+      ]
+    }
+  ]
+}

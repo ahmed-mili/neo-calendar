@@ -1,0 +1,17 @@
+{
+  "name": "une journee entiere prend sa date telle qu'ecrite et n'a pas de fin sans DTEND",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:holiday\nDTSTART;VALUE=DATE:20240115\nSUMMARY:Public holiday\nDESCRIPTION:Not mapped\nLOCATION:Not mapped either\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Public holiday",
+      "id": "ics::holiday::2024-01-15::single",
+      "allDay": true,
+      "type": "single",
+      "date": "2024-01-15",
+      "endDate": null
+    }
+  ]
+}

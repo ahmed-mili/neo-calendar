@@ -1,0 +1,16 @@
+{
+  "name": "la signature d'un evenement horodate : titre, jour, creneau",
+  "fn": "ics.signature",
+  "input": {
+    "event": {
+      "title": "Cours",
+      "type": "single",
+      "allDay": false,
+      "date": "2026-09-01",
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "endDate": null
+    }
+  },
+  "expected": "Cours::2026-09-01::10:00-11:00"
+}

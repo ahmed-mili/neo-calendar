@@ -1,0 +1,9 @@
+{
+  "name": "un lundi avec firstDay 1 est son propre debut de semaine",
+  "fn": "layout.getWeekStart",
+  "input": {
+    "date": "2026-09-28T15:45:00.000Z",
+    "firstDay": 1
+  },
+  "expected": "2026-09-27T22:00:00.000Z"
+}

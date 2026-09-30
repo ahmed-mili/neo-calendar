@@ -1,0 +1,26 @@
+{
+  "name": "une barre pluri-jours cachee compte sur chacun de ses jours",
+  "fn": "layout.hiddenBarCountByDay",
+  "input": {
+    "bars": [
+      {
+        "startIdx": 1,
+        "span": 4,
+        "lane": 0
+      },
+      {
+        "startIdx": 1,
+        "span": 3,
+        "lane": 1
+      }
+    ],
+    "firstVisibleIdx": 0,
+    "lastVisibleIdx": 4,
+    "visibleRows": 1
+  },
+  "expected": {
+    "1": 2,
+    "2": 2,
+    "3": 2
+  }
+}

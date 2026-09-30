@@ -13,6 +13,31 @@ import {
     sharedWorkspacePreferences,
     withDeviceWorkspacePreferences,
 } from "../apps/windows/src/platform/desktopWorkspacePreferences";
+import {
+    ALLDAY_MAX_ROWS,
+    ALLDAY_ROW_HEIGHT,
+    ANDROID_HOUR_HEIGHT,
+    EVENT_VGAP,
+    MAX_HOUR_HEIGHT,
+    MIN_HOUR_HEIGHT,
+    OVERLAP_COL_GAP,
+    clampHourHeight,
+} from "../src/ui/calendar/calendarConstants";
+import { addDays, endOfDay, getWeekDays, getWeekStart, isSameDay, startOfDay } from "../src/ui/calendar/calendarDateUtils";
+import { allDayBandRows, hiddenBarCountByDay, packAllDayLanes, visibleLaneCount } from "../src/ui/calendar/useAllDayLanes";
+import type { AllDayLaneBar } from "../src/ui/calendar/useAllDayLanes";
+import { getEventsFromICS, occurrenceSignature, parseIcsSnapshot } from "../src/calendars/parsing/ics";
+import type { DisplayEvent } from "../src/ui/types";
+import {
+    LONG_MONTH_NAME,
+    computeOverlapGroups,
+    eventDurationHours,
+    eventTopHours,
+    getISOWeek,
+    isMultiDayTimed,
+    needsCompactMonthType,
+    todayBadgeState,
+} from "../src/ui/calendar/CalendarUtils";
 import type { NeoEvent } from "../src/types";
 import { buildReminders } from "../apps/windows/src/platform/androidReminders";
 import { prayerRemindersFor } from "../apps/windows/src/platform/prayerReminders";
@@ -32,6 +57,13 @@ const expandEntry = ({ event, id, calendarId, calendarName, color, editable, ran
         new Date(rangeStart),
         new Date(rangeEnd)
     );
+/** Un évènement d'entrée ne porte que les champs que la grille lit (id, début,
+ *  fin) ; les autres champs de DisplayEvent reçoivent une valeur neutre fixe. */
+const gridEvent = (e: { id: string; start: string; end: string }): DisplayEvent =>
+    ({ id: e.id, title: "", start: new Date(e.start), end: new Date(e.end), allDay: true, color: "#888" }) as DisplayEvent;
+
+const gridBars = (bars: { startIdx: number; span: number; lane: number }[]): AllDayLaneBar[] =>
+    bars.map((b) => ({ event: gridEvent({ id: "", start: "1970-01-01T00:00:00.000Z", end: "1970-01-01T00:00:00.000Z" }), ...b }));
 
 /** Relie chaque opération du corpus au code TypeScript qui fait foi.
  *  Le corpus nomme des opérations, pas des fonctions : renommer une
@@ -82,6 +114,68 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
     "reminders.prayer": ({ timetable, minutes, now, timeFormat24h }) =>
         prayerRemindersFor({ timetable, minutes, now: new Date(now), timeFormat24h }),
     "reminders.delayLabel": ({ minutes }) => relativeDelayLabel(minutes),
+    // Grille : les dates entrent en chaînes ISO et sortent en ISO UTC (toISOString).
+    "layout.startOfDay": ({ date }) => startOfDay(new Date(date)),
+    "layout.endOfDay": ({ date }) => endOfDay(new Date(date)),
+    "layout.addDays": ({ date, days }) => addDays(new Date(date), days),
+    "layout.isSameDay": ({ a, b }) => isSameDay(new Date(a), new Date(b)),
+    "layout.getWeekStart": ({ date, firstDay }) => getWeekStart(new Date(date), firstDay),
+    "layout.getWeekDays": ({ weekStart }) => getWeekDays(new Date(weekStart)),
+    "layout.getISOWeek": ({ date }) => getISOWeek(new Date(date)),
+    "layout.todayBadgeState": ({ visibleDates, now }) =>
+        todayBadgeState((visibleDates as string[]).map((d) => new Date(d)), new Date(now)),
+    "layout.eventTopHours": ({ start, dayStart }) => eventTopHours(new Date(start), new Date(dayStart)),
+    "layout.eventDurationHours": ({ start, end }) => eventDurationHours(new Date(start), new Date(end)),
+    "layout.isMultiDayTimed": ({ start, end, allDay }) =>
+        isMultiDayTimed({ start: new Date(start), end: new Date(end), allDay }),
+    "layout.needsCompactMonthType": ({ monthName }) => needsCompactMonthType(monthName),
+    "layout.clampHourHeight": ({ px }) => clampHourHeight(px),
+    "layout.constants": () => ({
+        MIN_HOUR_HEIGHT,
+        MAX_HOUR_HEIGHT,
+        ANDROID_HOUR_HEIGHT,
+        ALLDAY_ROW_HEIGHT,
+        ALLDAY_MAX_ROWS,
+        OVERLAP_COL_GAP,
+        EVENT_VGAP,
+        LONG_MONTH_NAME,
+    }),
+    "layout.overlapGroups": ({ events }) =>
+        computeOverlapGroups((events as any[]).map(gridEvent)).map((group) => ({
+            events: group.events.map((item) => ({
+                id: item.event.id,
+                column: item.column,
+                totalColumns: item.totalColumns,
+            })),
+        })),
+    "layout.packAllDayLanes": ({ events, extendedDates, arrival }) => {
+        const result = packAllDayLanes(
+            events === null || events === undefined ? undefined : (events as any[]).map(gridEvent),
+            (extendedDates as string[]).map((d) => new Date(d)),
+            (event) => (arrival as Record<string, number>)[event.id] ?? 0
+        );
+        return {
+            bars: result.bars.map((b) => ({ id: b.event.id, startIdx: b.startIdx, span: b.span, lane: b.lane })),
+            laneCount: result.laneCount,
+        };
+    },
+    "layout.visibleLaneCount": ({ bars, firstVisibleIdx, lastVisibleIdx }) =>
+        visibleLaneCount(gridBars(bars), firstVisibleIdx, lastVisibleIdx),
+    "layout.hiddenBarCountByDay": ({ bars, firstVisibleIdx, lastVisibleIdx, visibleRows }) =>
+        Object.fromEntries(hiddenBarCountByDay(gridBars(bars), firstVisibleIdx, lastVisibleIdx, visibleRows)),
+    "layout.allDayBandRows": ({ laneCount, draftLane, collapsed, maxRows }) =>
+        allDayBandRows({ laneCount, draftLane, collapsed, maxRows }),
+    // ICS : les dates sortent en chaînes ; l'ensemble des clés annulées, trié, en tableau.
+    "ics.snapshot": ({ text, window }) => {
+        const snapshot = parseIcsSnapshot(text, window);
+        return {
+            events: snapshot.events,
+            cancelledKeys: [...snapshot.cancelledKeys].sort(),
+            latestOccurrenceDate: snapshot.latestOccurrenceDate,
+        };
+    },
+    "ics.signature": ({ event }) => occurrenceSignature(event as NeoEvent),
+    "ics.events": ({ text }) => getEventsFromICS(text),
     "notes.serialize": ({ event, previousContents }) => {
         try {
             return { text: serializeEventMarkdown(event, previousContents ?? "") };

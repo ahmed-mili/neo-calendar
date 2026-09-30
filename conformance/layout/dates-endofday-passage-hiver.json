@@ -1,0 +1,8 @@
+{
+  "name": "fin de journee le jour du retour a l'heure d'hiver",
+  "fn": "layout.endOfDay",
+  "input": {
+    "date": "2026-10-25T12:00:00.000Z"
+  },
+  "expected": "2026-10-25T22:59:59.999Z"
+}

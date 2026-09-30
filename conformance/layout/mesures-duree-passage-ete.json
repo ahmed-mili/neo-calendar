@@ -1,0 +1,9 @@
+{
+  "name": "le jour du passage a l'heure d'ete dure 23 heures",
+  "fn": "layout.eventDurationHours",
+  "input": {
+    "start": "2026-03-28T23:00:00.000Z",
+    "end": "2026-03-29T22:00:00.000Z"
+  },
+  "expected": 23
+}

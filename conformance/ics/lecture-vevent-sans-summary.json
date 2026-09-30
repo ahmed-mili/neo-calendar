@@ -1,0 +1,17 @@
+{
+  "name": "un VEVENT sans SUMMARY est ecarte par la validation",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:untitled\nDTSTART;VALUE=DATE:20240101\nEND:VEVENT\nBEGIN:VEVENT\nUID:titled\nDTSTART;VALUE=DATE:20240102\nSUMMARY:Titre\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Titre",
+      "id": "ics::titled::2024-01-02::single",
+      "allDay": true,
+      "type": "single",
+      "date": "2024-01-02",
+      "endDate": null
+    }
+  ]
+}

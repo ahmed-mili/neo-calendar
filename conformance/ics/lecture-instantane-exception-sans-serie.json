@@ -1,0 +1,33 @@
+{
+  "name": "une instance detachee sans sa serie vaut par elle-meme",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:orphan\nRECURRENCE-ID:20260908T080000Z\nDTSTART:20260908T120000Z\nDTEND:20260908T130000Z\nSUMMARY:Orpheline\nEND:VEVENT\nBEGIN:VEVENT\nUID:orphan2\nRECURRENCE-ID:20260909T080000Z\nDTSTART:20260909T080000Z\nSTATUS:CANCELLED\nSUMMARY:Orpheline annulee\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2026-09-30"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "orphan::2026-09-08T08:00:00Z",
+        "uid": "orphan",
+        "recurrenceId": "2026-09-08T08:00:00Z",
+        "event": {
+          "title": "Orpheline",
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "15:00",
+          "type": "single",
+          "date": "2026-09-08",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [
+      "orphan2::2026-09-09T08:00:00Z"
+    ],
+    "latestOccurrenceDate": "2026-09-08"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "un evenement all-day n'est jamais multi-jour horodate",
+  "fn": "layout.isMultiDayTimed",
+  "input": {
+    "start": "2026-01-14T23:00:00.000Z",
+    "end": "2026-01-17T23:00:00.000Z",
+    "allDay": true
+  },
+  "expected": false
+}

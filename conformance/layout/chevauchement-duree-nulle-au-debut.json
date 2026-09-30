@@ -1,0 +1,38 @@
+{
+  "name": "un evenement sans duree au debut d'un autre n'y est pas rattache",
+  "fn": "layout.overlapGroups",
+  "input": {
+    "events": [
+      {
+        "id": "a",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T08:00:00.000Z"
+      },
+      {
+        "id": "point",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T07:00:00.000Z"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "events": [
+        {
+          "id": "a",
+          "column": 0,
+          "totalColumns": 1
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "id": "point",
+          "column": 0,
+          "totalColumns": 1
+        }
+      ]
+    }
+  ]
+}

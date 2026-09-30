@@ -1,0 +1,17 @@
+{
+  "name": "un DTEND explicite devient la date de fin d'une journee entiere",
+  "fn": "ics.events",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:conference\nDTSTART;VALUE=DATE:20240201\nDTEND;VALUE=DATE:20240204\nSUMMARY:Conference\nEND:VEVENT\nEND:VCALENDAR"
+  },
+  "expected": [
+    {
+      "title": "Conference",
+      "id": "ics::conference::2024-02-01::single",
+      "allDay": true,
+      "type": "single",
+      "date": "2024-02-01",
+      "endDate": "2024-02-04"
+    }
+  ]
+}

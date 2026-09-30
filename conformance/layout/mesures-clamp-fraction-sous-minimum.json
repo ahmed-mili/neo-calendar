@@ -1,0 +1,8 @@
+{
+  "name": "31,5 monte a 32",
+  "fn": "layout.clampHourHeight",
+  "input": {
+    "px": 31.5
+  },
+  "expected": 32
+}

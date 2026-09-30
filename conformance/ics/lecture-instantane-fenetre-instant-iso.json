@@ -1,0 +1,59 @@
+{
+  "name": "la fenetre accepte des instants ISO et se cale sur le jour local",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:tuesdays\nDTSTART:20260901T080000Z\nDTEND:20260901T090000Z\nRRULE:FREQ=WEEKLY;BYDAY=TU;COUNT=6\nSUMMARY:Le mardi\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-09-08T23:30:00.000Z",
+      "to": "2026-09-22T22:30:00.000Z"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "tuesdays::2026-09-08T08:00:00Z",
+        "uid": "tuesdays",
+        "recurrenceId": "2026-09-08T08:00:00Z",
+        "event": {
+          "title": "Le mardi",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-08",
+          "endDate": null
+        }
+      },
+      {
+        "key": "tuesdays::2026-09-15T08:00:00Z",
+        "uid": "tuesdays",
+        "recurrenceId": "2026-09-15T08:00:00Z",
+        "event": {
+          "title": "Le mardi",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-15",
+          "endDate": null
+        }
+      },
+      {
+        "key": "tuesdays::2026-09-22T08:00:00Z",
+        "uid": "tuesdays",
+        "recurrenceId": "2026-09-22T08:00:00Z",
+        "event": {
+          "title": "Le mardi",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-22",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-09-22"
+  }
+}

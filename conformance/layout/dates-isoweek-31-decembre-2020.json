@@ -1,0 +1,8 @@
+{
+  "name": "31 decembre 2020 est en semaine 53",
+  "fn": "layout.getISOWeek",
+  "input": {
+    "date": "2020-12-31T12:00:00.000Z"
+  },
+  "expected": 53
+}

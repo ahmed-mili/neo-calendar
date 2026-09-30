@@ -1,0 +1,43 @@
+{
+  "name": "meme arrivee, meme jour, autre heure : l'heure de debut decide",
+  "fn": "layout.packAllDayLanes",
+  "input": {
+    "events": [
+      {
+        "id": "apres-midi",
+        "start": "2026-08-11T12:00:00.000Z",
+        "end": "2026-08-11T13:00:00.000Z"
+      },
+      {
+        "id": "matin",
+        "start": "2026-08-11T06:00:00.000Z",
+        "end": "2026-08-11T07:00:00.000Z"
+      }
+    ],
+    "extendedDates": [
+      "2026-08-09T22:00:00.000Z",
+      "2026-08-10T22:00:00.000Z",
+      "2026-08-11T22:00:00.000Z",
+      "2026-08-12T22:00:00.000Z",
+      "2026-08-13T22:00:00.000Z"
+    ],
+    "arrival": {}
+  },
+  "expected": {
+    "bars": [
+      {
+        "id": "matin",
+        "startIdx": 1,
+        "span": 1,
+        "lane": 0
+      },
+      {
+        "id": "apres-midi",
+        "startIdx": 1,
+        "span": 1,
+        "lane": 1
+      }
+    ],
+    "laneCount": 2
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "de 10h au surlendemain 23h59m59,999 : le jour entier est couvert",
+  "fn": "layout.isMultiDayTimed",
+  "input": {
+    "start": "2026-01-15T09:00:00.000Z",
+    "end": "2026-01-17T22:59:59.999Z",
+    "allDay": false
+  },
+  "expected": true
+}

@@ -1,0 +1,9 @@
+{
+  "name": "retirer un jour a travers le retour a l'heure d'hiver garde l'heure murale",
+  "fn": "layout.addDays",
+  "input": {
+    "date": "2026-10-26T09:00:00.000Z",
+    "days": -1
+  },
+  "expected": "2026-10-25T09:00:00.000Z"
+}

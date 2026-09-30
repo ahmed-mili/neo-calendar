@@ -1,0 +1,31 @@
+{
+  "name": "deux VEVENT de meme UID sans RECURRENCE-ID : le dernier l'emporte",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:same\nDTSTART:20260902T060000Z\nDTEND:20260902T070000Z\nSUMMARY:Premier\nEND:VEVENT\nBEGIN:VEVENT\nUID:same\nDTSTART:20260903T060000Z\nDTEND:20260903T070000Z\nSUMMARY:Dernier\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2026-09-30"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "same",
+        "uid": "same",
+        "recurrenceId": null,
+        "event": {
+          "title": "Dernier",
+          "allDay": false,
+          "startTime": "08:00",
+          "endTime": "09:00",
+          "type": "single",
+          "date": "2026-09-03",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-09-03"
+  }
+}

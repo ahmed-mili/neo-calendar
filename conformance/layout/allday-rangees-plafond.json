@@ -1,0 +1,14 @@
+{
+  "name": "au-dela de maxRows la bande defile",
+  "fn": "layout.allDayBandRows",
+  "input": {
+    "laneCount": 5,
+    "draftLane": null,
+    "collapsed": false,
+    "maxRows": 4
+  },
+  "expected": {
+    "contentRows": 6,
+    "visibleRows": 4
+  }
+}

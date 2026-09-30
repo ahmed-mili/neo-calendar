@@ -1,0 +1,9 @@
+{
+  "name": "ajouter 30 jours deborde sur le mois suivant",
+  "fn": "layout.addDays",
+  "input": {
+    "date": "2026-01-31T10:00:00.000Z",
+    "days": 30
+  },
+  "expected": "2026-03-02T10:00:00.000Z"
+}

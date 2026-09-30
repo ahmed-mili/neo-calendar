@@ -1,0 +1,46 @@
+{
+  "name": "l'ordre d'arrivee decide, pas le nom",
+  "fn": "layout.packAllDayLanes",
+  "input": {
+    "events": [
+      {
+        "id": "b-was-here",
+        "start": "2026-08-10T22:00:00.000Z",
+        "end": "2026-08-11T22:00:00.000Z"
+      },
+      {
+        "id": "a-is-new",
+        "start": "2026-08-10T22:00:00.000Z",
+        "end": "2026-08-11T22:00:00.000Z"
+      }
+    ],
+    "extendedDates": [
+      "2026-08-09T22:00:00.000Z",
+      "2026-08-10T22:00:00.000Z",
+      "2026-08-11T22:00:00.000Z",
+      "2026-08-12T22:00:00.000Z",
+      "2026-08-13T22:00:00.000Z"
+    ],
+    "arrival": {
+      "b-was-here": 0,
+      "a-is-new": 1
+    }
+  },
+  "expected": {
+    "bars": [
+      {
+        "id": "b-was-here",
+        "startIdx": 1,
+        "span": 1,
+        "lane": 0
+      },
+      {
+        "id": "a-is-new",
+        "startIdx": 1,
+        "span": 1,
+        "lane": 1
+      }
+    ],
+    "laneCount": 2
+  }
+}

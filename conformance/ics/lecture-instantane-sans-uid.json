@@ -1,0 +1,31 @@
+{
+  "name": "un VEVENT sans UID n'entre pas dans l'instantane",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nDTSTART:20260902T060000Z\nDTEND:20260902T070000Z\nSUMMARY:Sans UID\nEND:VEVENT\nBEGIN:VEVENT\nUID:has-uid\nDTSTART:20260903T060000Z\nDTEND:20260903T070000Z\nSUMMARY:Avec UID\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2026-09-30"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "has-uid",
+        "uid": "has-uid",
+        "recurrenceId": null,
+        "event": {
+          "title": "Avec UID",
+          "allDay": false,
+          "startTime": "08:00",
+          "endTime": "09:00",
+          "type": "single",
+          "date": "2026-09-03",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-09-03"
+  }
+}

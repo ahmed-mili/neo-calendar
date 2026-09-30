@@ -1,0 +1,44 @@
+{
+  "name": "meme debut : le plus long passe en premier",
+  "fn": "layout.overlapGroups",
+  "input": {
+    "events": [
+      {
+        "id": "court",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T08:00:00.000Z"
+      },
+      {
+        "id": "long",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T10:00:00.000Z"
+      },
+      {
+        "id": "moyen",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T09:00:00.000Z"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "events": [
+        {
+          "id": "long",
+          "column": 0,
+          "totalColumns": 3
+        },
+        {
+          "id": "moyen",
+          "column": 1,
+          "totalColumns": 3
+        },
+        {
+          "id": "court",
+          "column": 2,
+          "totalColumns": 3
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "samedi 1er janvier 2022 est en semaine 52 de 2021",
+  "fn": "layout.getISOWeek",
+  "input": {
+    "date": "2022-01-01T12:00:00.000Z"
+  },
+  "expected": 52
+}

@@ -1,0 +1,9 @@
+{
+  "name": "ajouter 365 jours passe l'annee",
+  "fn": "layout.addDays",
+  "input": {
+    "date": "2026-12-31T10:00:00.000Z",
+    "days": 365
+  },
+  "expected": "2027-12-31T10:00:00.000Z"
+}

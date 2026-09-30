@@ -1,0 +1,9 @@
+{
+  "name": "meme jour et mois d'une autre annee",
+  "fn": "layout.isSameDay",
+  "input": {
+    "a": "2025-06-10T12:00:00.000Z",
+    "b": "2026-06-10T12:00:00.000Z"
+  },
+  "expected": false
+}

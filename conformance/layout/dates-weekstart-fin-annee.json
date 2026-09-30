@@ -1,0 +1,9 @@
+{
+  "name": "la semaine du 1er janvier commence en decembre",
+  "fn": "layout.getWeekStart",
+  "input": {
+    "date": "2026-01-01T12:00:00.000Z",
+    "firstDay": 1
+  },
+  "expected": "2025-12-28T23:00:00.000Z"
+}

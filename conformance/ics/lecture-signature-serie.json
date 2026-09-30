@@ -1,0 +1,17 @@
+{
+  "name": "un evenement qui n'est pas unique n'a pas de signature",
+  "fn": "ics.signature",
+  "input": {
+    "event": {
+      "title": "Serie",
+      "type": "rrule",
+      "allDay": false,
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "startDate": "2026-09-01",
+      "rrule": "RRULE:FREQ=DAILY",
+      "skipDates": []
+    }
+  },
+  "expected": null
+}

@@ -12,6 +12,7 @@ kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
 dependencies {
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation("org.dmfs:lib-recur:0.17.1")
+    implementation("org.mnode.ical4j:ical4j:4.3.0")
     testImplementation("junit:junit:4.13.2")
 }
 

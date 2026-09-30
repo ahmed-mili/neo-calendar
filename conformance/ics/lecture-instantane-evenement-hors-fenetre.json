@@ -1,0 +1,31 @@
+{
+  "name": "un evenement simple ancien reste meme hors fenetre",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:old-one\nDTSTART:20200110T080000Z\nDTEND:20200110T090000Z\nSUMMARY:Vieux rendez-vous\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2028-08-31"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "old-one",
+        "uid": "old-one",
+        "recurrenceId": null,
+        "event": {
+          "title": "Vieux rendez-vous",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "10:00",
+          "type": "single",
+          "date": "2020-01-10",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2020-01-10"
+  }
+}

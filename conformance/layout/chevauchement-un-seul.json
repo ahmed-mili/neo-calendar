@@ -1,0 +1,24 @@
+{
+  "name": "un seul evenement : une colonne sur une",
+  "fn": "layout.overlapGroups",
+  "input": {
+    "events": [
+      {
+        "id": "a",
+        "start": "2026-08-10T07:00:00.000Z",
+        "end": "2026-08-10T08:00:00.000Z"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "events": [
+        {
+          "id": "a",
+          "column": 0,
+          "totalColumns": 1
+        }
+      ]
+    }
+  ]
+}

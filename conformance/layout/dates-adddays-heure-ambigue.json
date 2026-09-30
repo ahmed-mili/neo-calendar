@@ -1,0 +1,9 @@
+{
+  "name": "l'heure murale ambigue du retour a l'heure d'hiver prend la premiere occurrence",
+  "fn": "layout.addDays",
+  "input": {
+    "date": "2026-10-24T00:30:00.000Z",
+    "days": 1
+  },
+  "expected": "2026-10-25T00:30:00.000Z"
+}

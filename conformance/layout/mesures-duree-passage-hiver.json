@@ -1,0 +1,9 @@
+{
+  "name": "le jour du retour a l'heure d'hiver dure 25 heures",
+  "fn": "layout.eventDurationHours",
+  "input": {
+    "start": "2026-10-24T22:00:00.000Z",
+    "end": "2026-10-25T23:00:00.000Z"
+  },
+  "expected": 25
+}

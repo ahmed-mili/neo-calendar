@@ -1,0 +1,73 @@
+{
+  "name": "un deuxieme mardi par mois",
+  "fn": "ics.snapshot",
+  "input": {
+    "text": "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Neo Calendar//Test//EN\nBEGIN:VEVENT\nUID:monthly\nDTSTART:20260908T080000Z\nDTEND:20260908T090000Z\nRRULE:FREQ=MONTHLY;BYDAY=2TU;COUNT=4\nSUMMARY:Conseil\nEND:VEVENT\nEND:VCALENDAR",
+    "window": {
+      "from": "2026-08-31",
+      "to": "2027-03-31"
+    }
+  },
+  "expected": {
+    "events": [
+      {
+        "key": "monthly::2026-09-08T08:00:00Z",
+        "uid": "monthly",
+        "recurrenceId": "2026-09-08T08:00:00Z",
+        "event": {
+          "title": "Conseil",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-09-08",
+          "endDate": null
+        }
+      },
+      {
+        "key": "monthly::2026-10-13T08:00:00Z",
+        "uid": "monthly",
+        "recurrenceId": "2026-10-13T08:00:00Z",
+        "event": {
+          "title": "Conseil",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-10-13",
+          "endDate": null
+        }
+      },
+      {
+        "key": "monthly::2026-11-10T08:00:00Z",
+        "uid": "monthly",
+        "recurrenceId": "2026-11-10T08:00:00Z",
+        "event": {
+          "title": "Conseil",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "10:00",
+          "type": "single",
+          "date": "2026-11-10",
+          "endDate": null
+        }
+      },
+      {
+        "key": "monthly::2026-12-08T08:00:00Z",
+        "uid": "monthly",
+        "recurrenceId": "2026-12-08T08:00:00Z",
+        "event": {
+          "title": "Conseil",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "10:00",
+          "type": "single",
+          "date": "2026-12-08",
+          "endDate": null
+        }
+      }
+    ],
+    "cancelledKeys": [],
+    "latestOccurrenceDate": "2026-12-08"
+  }
+}

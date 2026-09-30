@@ -1,0 +1,8 @@
+{
+  "name": "lundi 4 janvier 2021 ouvre la semaine 1",
+  "fn": "layout.getISOWeek",
+  "input": {
+    "date": "2021-01-04T12:00:00.000Z"
+  },
+  "expected": 1
+}

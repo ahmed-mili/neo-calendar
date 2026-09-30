@@ -1,0 +1,8 @@
+{
+  "name": "dimanche 3 janvier 2027 est en semaine 53 de 2026",
+  "fn": "layout.getISOWeek",
+  "input": {
+    "date": "2027-01-03T12:00:00.000Z"
+  },
+  "expected": 53
+}
