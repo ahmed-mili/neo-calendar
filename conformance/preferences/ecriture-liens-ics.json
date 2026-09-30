@@ -1,0 +1,29 @@
+{
+  "name": "liens ICS ecrits avec leur adresse et leur frequence",
+  "fn": "preferences.write",
+  "input": {
+    "preferences": {
+      "icsDefaultRefreshMinutes": 30,
+      "icsFeeds": [
+        {
+          "id": "f1",
+          "calendarPath": "Études",
+          "name": "Cours",
+          "url": "https://x.test/f1.ics",
+          "address": "Efrei, Villejuif",
+          "refreshMinutes": 15
+        },
+        {
+          "id": "f2",
+          "calendarPath": "Études",
+          "name": "Cours",
+          "url": "webcal://x.test/b.ics",
+          "active": false
+        }
+      ]
+    }
+  },
+  "expected": {
+    "text": "{\n  \"version\": 5,\n  \"colors\": {},\n  \"order\": [],\n  \"hiddenCalendarPaths\": [],\n  \"showWeekNumbers\": false,\n  \"secondaryTimezones\": [],\n  \"initialView\": {\n    \"desktop\": \"week\",\n    \"mobile\": \"3days\"\n  },\n  \"firstDay\": 1,\n  \"timeFormat24h\": true,\n  \"clickToCreateEventFromMonthView\": true,\n  \"freeScroll\": false,\n  \"defaultEventsAsTasks\": false,\n  \"reminderMinutes\": [\n    10\n  ],\n  \"calendarReminderMinutes\": {},\n  \"mapsTravelMode\": \"auto\",\n  \"mapsApp\": \"ask\",\n  \"icsDefaultRefreshMinutes\": 30,\n  \"icsFeeds\": [\n    {\n      \"id\": \"f1\",\n      \"calendarPath\": \"Études\",\n      \"name\": \"Cours\",\n      \"url\": \"https:\\/\\/x.test\\/f1.ics\",\n      \"refreshMinutes\": 15,\n      \"active\": true,\n      \"address\": \"Efrei, Villejuif\"\n    },\n    {\n      \"id\": \"f2\",\n      \"calendarPath\": \"Études\",\n      \"name\": \"Cours\",\n      \"url\": \"https:\\/\\/x.test\\/b.ics\",\n      \"active\": false\n    }\n  ],\n  \"externalCalendars\": [],\n  \"prayerMosques\": {},\n  \"prayerColors\": {},\n  \"prayerReminderMinutes\": {},\n  \"prayerJumua\": {}\n}\n"
+  }
+}

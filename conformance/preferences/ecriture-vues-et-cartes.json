@@ -1,0 +1,26 @@
+{
+  "name": "vue initiale, mode de trajet et application de cartes",
+  "fn": "preferences.write",
+  "input": {
+    "preferences": {
+      "initialView": {
+        "desktop": "month",
+        "mobile": "list"
+      },
+      "mapsTravelMode": "transit",
+      "mapsApp": "waze",
+      "showWeekNumbers": true,
+      "timeFormat24h": false,
+      "freeScroll": true,
+      "defaultEventsAsTasks": true,
+      "clickToCreateEventFromMonthView": false,
+      "secondaryTimezones": [
+        "America/New_York",
+        "Asia/Tokyo"
+      ]
+    }
+  },
+  "expected": {
+    "text": "{\n  \"version\": 5,\n  \"colors\": {},\n  \"order\": [],\n  \"hiddenCalendarPaths\": [],\n  \"showWeekNumbers\": true,\n  \"secondaryTimezones\": [\n    \"America\\/New_York\",\n    \"Asia\\/Tokyo\"\n  ],\n  \"initialView\": {\n    \"desktop\": \"month\",\n    \"mobile\": \"list\"\n  },\n  \"firstDay\": 1,\n  \"timeFormat24h\": false,\n  \"clickToCreateEventFromMonthView\": false,\n  \"freeScroll\": true,\n  \"defaultEventsAsTasks\": true,\n  \"reminderMinutes\": [\n    10\n  ],\n  \"calendarReminderMinutes\": {},\n  \"mapsTravelMode\": \"transit\",\n  \"mapsApp\": \"waze\",\n  \"icsDefaultRefreshMinutes\": 60,\n  \"icsFeeds\": [],\n  \"externalCalendars\": [],\n  \"prayerMosques\": {},\n  \"prayerColors\": {},\n  \"prayerReminderMinutes\": {},\n  \"prayerJumua\": {}\n}\n"
+  }
+}

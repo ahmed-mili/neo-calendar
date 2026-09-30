@@ -94,3 +94,9 @@ en exécutant le Rust sous Windows. Le port lit les composants comme Windows
 (`/` et `\`, lecteur `C:`) sur tous les systèmes, et refuse un lecteur au milieu
 d'un chemin (`a/C:/b`), que le Rust laisse sortir de la racine : `PathBuf::push`
 d'un composant à préfixe remplace le chemin entier, la fonction rend `C:b`.
+
+`preferences.write` (cas `preferences/ecriture-*.json`) fige le texte que le
+téléphone écrit dans `.neo-calendar.json` (`org.json` d'Android, `toString(2)`).
+Le PC écrit autrement (Rust, `serde_json::to_string_pretty` : clés triées par
+ordre alphabétique, `/` non échappé, couleurs d'un fichier déjà présent
+fusionnées) ; l'écart est un fait relevé, pas corrigé.

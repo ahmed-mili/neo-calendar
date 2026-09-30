@@ -57,6 +57,66 @@ import { relativeDelayLabel } from "../src/ui/calendar/reminderDelay";
 import { neoEventToDisplayEvents } from "../src/ui/calendar/eventExpansion";
 import { validateEvent } from "../src/types/schema";
 
+/** Reproduit `JSONObject.toString(2)` de l'`org.json` d'Android (libcore,
+ *  JSONStringer avec indentation) pour ce que la WebView envoie :
+ *  `JSON.stringify(args)` passe par le pont (`bridge.ts`), `new JSONObject(args)`
+ *  le relit (LinkedHashMap : l'ordre du texte JS, clés entières d'abord),
+ *  puis `toString(2)`. Règles reprises de JSONStringer.java :
+ *  - indentation de 2 espaces, `": "` après une clé, virgule en fin de ligne ;
+ *  - un objet ou un tableau vide s'écrit `{}` / `[]`, sans saut de ligne ;
+ *  - `string()` échappe `"`, `\` et `/` (en `\/`), `\t \b \n \r \f`, et tout
+ *    autre caractère <= 0x1F en `\uXXXX` minuscule ; le reste (accents, U+007F,
+ *    U+2028) reste tel quel ;
+ *  - `numberToString` : un nombre égal à son `long` s'écrit en entier.
+ *  Aucun décimal ne sort d'une préférence lue (tous les nombres sont des
+ *  entiers) : ici il lève, plutôt qu'une mise en forme devinée. */
+const javaJsonString = (text: string): string => {
+    let out = '"';
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        const code = text.charCodeAt(i);
+        if (c === '"' || c === "\\" || c === "/") out += "\\" + c;
+        else if (c === "\t") out += "\\t";
+        else if (c === "\b") out += "\\b";
+        else if (c === "\n") out += "\\n";
+        else if (c === "\r") out += "\\r";
+        else if (c === "\f") out += "\\f";
+        else if (code <= 0x1f) out += "\\u" + code.toString(16).padStart(4, "0");
+        else out += c;
+    }
+    return out + '"';
+};
+
+const javaJsonValue = (value: unknown, depth: number): string => {
+    if (value === null) return "null";
+    if (typeof value === "boolean") return String(value);
+    if (typeof value === "number") {
+        if (!Number.isInteger(value)) throw new Error("nombre non entier : mise en forme non reproduite");
+        return String(value);
+    }
+    if (typeof value === "string") return javaJsonString(value);
+    const pad = (n: number) => "  ".repeat(n);
+    if (Array.isArray(value)) {
+        if (value.length === 0) return "[]";
+        const items = value.map((item) => pad(depth + 1) + javaJsonValue(item, depth + 1));
+        return "[\n" + items.join(",\n") + "\n" + pad(depth) + "]";
+    }
+    // Object.keys suit l'ordre de JSON.stringify : clés entières d'abord, puis
+    // l'insertion ; JSON.stringify écarte les valeurs `undefined`.
+    const keys = Object.keys(value as object).filter((key) => (value as any)[key] !== undefined);
+    if (keys.length === 0) return "{}";
+    const members = keys.map(
+        (key) => pad(depth + 1) + javaJsonString(key) + ": " + javaJsonValue((value as any)[key], depth + 1)
+    );
+    return "{\n" + members.join(",\n") + "\n" + pad(depth) + "}";
+};
+
+/** Le texte que l'app Android écrit dans `.neo-calendar.json` : la moitié
+ *  partagée (`sharedWorkspacePreferences`, seule envoyée à
+ *  `save_desktop_preferences`), mise en forme par `toString(2)`, plus `\n`. */
+const preferencesFileText = (preferences: unknown): string =>
+    javaJsonValue(sharedWorkspacePreferences(parseDesktopWorkspacePreferences(preferences)), 0) + "\n";
+
 /** Une entrée du corpus de récurrence, développée en occurrences. */
 const expandEntry = ({ event, id, calendarId, calendarName, color, editable, rangeStart, rangeEnd }: any) =>
     neoEventToDisplayEvents(
@@ -115,6 +175,7 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
         prayerReminderMinutesFor(settings, relativePath),
     "preferences.shared": ({ preferences }) =>
         sharedWorkspacePreferences(parseDesktopWorkspacePreferences(preferences)),
+    "preferences.write": ({ preferences }) => ({ text: preferencesFileText(preferences) }),
     "preferences.device": ({ preferences }) =>
         deviceWorkspacePreferences(parseDesktopWorkspacePreferences(preferences)),
     "preferences.deviceParse": ({ value }) => parseDeviceWorkspacePreferences(value),
