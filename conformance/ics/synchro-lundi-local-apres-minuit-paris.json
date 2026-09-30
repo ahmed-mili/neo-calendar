@@ -1,0 +1,103 @@
+{
+  "name": "le lundi se lit en heure locale : dimanche 22h30 UTC est deja lundi a Paris",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "live",
+          "uid": "live",
+          "recurrenceId": null,
+          "event": {
+            "title": "Cours",
+            "type": "single",
+            "date": "2026-09-09",
+            "endDate": null,
+            "allDay": true
+          }
+        }
+      ],
+      "cancelledKeys": [
+        "lundi",
+        "dimanche"
+      ],
+      "latestOccurrenceDate": "2026-09-09"
+    },
+    "existingRecords": [
+      {
+        "id": "note::feed-1::lundi",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-08-31 Cours lundi.md",
+        "fileName": "2026-08-31 Cours lundi.md",
+        "contents": "---\ntitle: \"Cours lundi\"\nid: \"neo-calendar:ics::feed-1::lundi\"\nallDay: true\ntype: \"single\"\ndate: \"2026-08-31\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"lundi\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Cours lundi",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-08-31",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::lundi"
+        }
+      },
+      {
+        "id": "note::feed-1::dimanche",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-08-30 Cours dimanche.md",
+        "fileName": "2026-08-30 Cours dimanche.md",
+        "contents": "---\ntitle: \"Cours dimanche\"\nid: \"neo-calendar:ics::feed-1::dimanche\"\nallDay: true\ntype: \"single\"\ndate: \"2026-08-30\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"dimanche\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Cours dimanche",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-08-30",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::dimanche"
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 3,
+      "missingCounts": {}
+    },
+    "now": "2026-08-30T22:30:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Cours",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-09-09",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::live"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "fileName": "2026-09-09 Cours.md",
+        "contents": "---\ntitle: \"Cours\"\nid: \"neo-calendar:ics::feed-1::live\"\nallDay: true\ntype: \"single\"\ndate: \"2026-09-09\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"live\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [
+      {
+        "id": "note::feed-1::lundi",
+        "relativePath": "School/2026-08-31 Cours lundi.md"
+      }
+    ],
+    "nextState": {
+      "lastAttemptAt": "2026-08-30T22:30:00.000Z",
+      "lastSuccessAt": "2026-08-30T22:30:00.000Z",
+      "knownEventCount": 1,
+      "missingCounts": {}
+    }
+  }
+}

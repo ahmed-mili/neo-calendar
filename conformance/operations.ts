@@ -38,6 +38,18 @@ import {
     needsCompactMonthType,
     todayBadgeState,
 } from "../src/ui/calendar/CalendarUtils";
+import {
+    availableIcalDirectoryName,
+    planIcalDirectoryAssignments,
+    planIcalNoteSync,
+    planIcsNoteSync,
+    preferredIcalDirectoryName,
+    scopedIcalEvent,
+    startOfLocalWeekIso,
+} from "../apps/windows/src/platform/icalNoteSync";
+import type { IcalNoteWrite } from "../apps/windows/src/platform/icalNoteSync";
+import type { DesktopStoredEvent } from "../apps/windows/src/platform/desktopEventFormat";
+import { mergeRemoteEvents } from "../apps/windows/src/platform/mergeRemoteEvents";
 import type { NeoEvent } from "../src/types";
 import { validateEvent } from "../src/types/schema";
 
@@ -48,6 +60,18 @@ const gridEvent = (e: { id: string; start: string; end: string }): DisplayEvent 
 
 const gridBars = (bars: { startIdx: number; span: number; lane: number }[]): AllDayLaneBar[] =>
     bars.map((b) => ({ event: gridEvent({ id: "", start: "1970-01-01T00:00:00.000Z", end: "1970-01-01T00:00:00.000Z" }), ...b }));
+
+/** Un évènement d'entrée passe par la validation, comme l'application le fait avant de l'écrire. */
+const validated = (raw: unknown): NeoEvent => {
+    const event = validateEvent(raw);
+    if (!event) throw new Error("évènement invalide dans un cas du corpus");
+    return event;
+};
+
+/** Une note lue sur le disque : ses champs, plus son évènement brut à valider. */
+const storedOf = (raw: any): DesktopStoredEvent => ({ ...raw, event: validated(raw.event) });
+
+const writeJson = (write: IcalNoteWrite) => write;
 
 /** Relie chaque opération du corpus au code TypeScript qui fait foi.
  *  Le corpus nomme des opérations, pas des fonctions : renommer une
@@ -155,4 +179,53 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
             return { error: "invalid" };
         }
     },
+    // Plan de synchro : les dates entrent en chaînes ISO, les ensembles en tableaux,
+    // une exception devient { error } (le message n'est pas comparé).
+    "ics.directoryName": ({ name }) => preferredIcalDirectoryName(name),
+    "ics.availableDirectoryName": ({ preferred, usedNames }) =>
+        availableIcalDirectoryName(preferred, new Set<string>(usedNames)),
+    "ics.directoryAssignments": ({ sources, existingFolderNames }) =>
+        planIcalDirectoryAssignments(sources, existingFolderNames),
+    "ics.scopedEvent": ({ source, event, index }) => scopedIcalEvent(source, validated(event), index),
+    "ics.planNoteSync": ({ source, remoteEvents, existingRecords }) =>
+        planIcalNoteSync(
+            source,
+            (remoteEvents as unknown[]).map(validated),
+            (existingRecords as unknown[]).map(storedOf)
+        ).map(writeJson),
+    "ics.startOfLocalWeek": ({ now }) => {
+        try {
+            return startOfLocalWeekIso(new Date(now));
+        } catch {
+            return { error: "invalid-now" };
+        }
+    },
+    "ics.planSync": ({ feed, snapshot, existingRecords, previousState, now }) => {
+        try {
+            const plan = planIcsNoteSync({
+                feed,
+                snapshot: {
+                    events: (snapshot.events as any[]).map((occurrence) => ({
+                        ...occurrence,
+                        event: validated(occurrence.event),
+                    })),
+                    cancelledKeys: new Set<string>(snapshot.cancelledKeys),
+                    latestOccurrenceDate: snapshot.latestOccurrenceDate,
+                },
+                existingRecords: (existingRecords as unknown[]).map(storedOf),
+                previousState,
+                now: new Date(now),
+            });
+            return {
+                writes: plan.writes,
+                deletes: plan.deletes.map((record) => ({ id: record.id, relativePath: record.relativePath })),
+                nextState: plan.nextState,
+            };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "";
+            return { error: message.startsWith("The ICS snapshot is unexpectedly empty") ? "empty-snapshot" : "invalid-now" };
+        }
+    },
+    "ics.mergeRemote": ({ current, refreshedCalendarIds, arrived }) =>
+        mergeRemoteEvents(current, refreshedCalendarIds, arrived),
 };

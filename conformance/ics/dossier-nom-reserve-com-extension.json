@@ -1,0 +1,8 @@
+{
+  "name": "un nom reserve suivi d'une extension est reserve aussi",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "Com1.txt"
+  },
+  "expected": "Com1.txt Calendar"
+}

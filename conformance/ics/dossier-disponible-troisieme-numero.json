@@ -1,0 +1,14 @@
+{
+  "name": "la numerotation continue tant que le nom est pris",
+  "fn": "ics.availableDirectoryName",
+  "input": {
+    "preferred": "School",
+    "usedNames": [
+      "school",
+      "school (ics)",
+      "school (ics 2)",
+      "school (ics 3)"
+    ]
+  },
+  "expected": "School (ICS 4)"
+}

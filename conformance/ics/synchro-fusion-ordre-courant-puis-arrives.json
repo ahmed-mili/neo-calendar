@@ -1,0 +1,47 @@
+{
+  "name": "les evenements restants precedent les arrivants, dans leur ordre",
+  "fn": "ics.mergeRemote",
+  "input": {
+    "current": [
+      {
+        "id": "b",
+        "calendarId": "x"
+      },
+      {
+        "id": "a",
+        "calendarId": "y"
+      },
+      {
+        "id": "c",
+        "calendarId": "x"
+      }
+    ],
+    "refreshedCalendarIds": [
+      "x"
+    ],
+    "arrived": [
+      {
+        "id": "z",
+        "calendarId": "x"
+      },
+      {
+        "id": "y",
+        "calendarId": "x"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "a",
+      "calendarId": "y"
+    },
+    {
+      "id": "z",
+      "calendarId": "x"
+    },
+    {
+      "id": "y",
+      "calendarId": "x"
+    }
+  ]
+}

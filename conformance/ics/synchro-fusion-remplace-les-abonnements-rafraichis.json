@@ -1,0 +1,47 @@
+{
+  "name": "la fusion remplace les evenements des abonnements rafraichis et laisse les locaux",
+  "fn": "ics.mergeRemote",
+  "input": {
+    "current": [
+      {
+        "id": "l1",
+        "calendarId": "local::Perso"
+      },
+      {
+        "id": "r1",
+        "calendarId": "ical::school"
+      },
+      {
+        "id": "r2",
+        "calendarId": "ical::school"
+      },
+      {
+        "id": "h1",
+        "calendarId": "auto::FR"
+      }
+    ],
+    "refreshedCalendarIds": [
+      "ical::school"
+    ],
+    "arrived": [
+      {
+        "id": "r3",
+        "calendarId": "ical::school"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "l1",
+      "calendarId": "local::Perso"
+    },
+    {
+      "id": "h1",
+      "calendarId": "auto::FR"
+    },
+    {
+      "id": "r3",
+      "calendarId": "ical::school"
+    }
+  ]
+}

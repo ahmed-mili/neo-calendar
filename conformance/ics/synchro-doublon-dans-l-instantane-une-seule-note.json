@@ -1,0 +1,117 @@
+{
+  "name": "deux occurrences identiques de l'instantane ne visent jamais la meme note",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "uid-b",
+          "uid": "uid-b",
+          "recurrenceId": null,
+          "event": {
+            "title": "Efrei For Good Xperience",
+            "type": "single",
+            "date": "2026-12-03",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "10:00",
+            "endTime": "17:00"
+          }
+        },
+        {
+          "key": "uid-c",
+          "uid": "uid-c",
+          "recurrenceId": null,
+          "event": {
+            "title": "Efrei For Good Xperience",
+            "type": "single",
+            "date": "2026-12-03",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "10:00",
+            "endTime": "17:00"
+          }
+        }
+      ],
+      "cancelledKeys": [],
+      "latestOccurrenceDate": "2026-12-03"
+    },
+    "existingRecords": [
+      {
+        "id": "note::feed-1::uid-a",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-12-03 Efrei For Good Xperience.md",
+        "fileName": "2026-12-03 Efrei For Good Xperience.md",
+        "contents": "---\ntitle: \"Efrei For Good Xperience\"\nid: \"neo-calendar:ics::feed-1::uid-a\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"17:00\"\ntype: \"single\"\ndate: \"2026-12-03\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-a\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Efrei For Good Xperience",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "type": "single",
+          "date": "2026-12-03",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-a"
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 1,
+      "missingCounts": {}
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Efrei For Good Xperience",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "type": "single",
+          "date": "2026-12-03",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-b"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "previousRelativePath": "School/2026-12-03 Efrei For Good Xperience.md",
+        "previousEventId": "note::feed-1::uid-a",
+        "fileName": "2026-12-03 Efrei For Good Xperience.md",
+        "contents": "---\ntitle: \"Efrei For Good Xperience\"\nid: \"neo-calendar:ics::feed-1::uid-b\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"17:00\"\ntype: \"single\"\ndate: \"2026-12-03\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-b\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      },
+      {
+        "event": {
+          "title": "Efrei For Good Xperience",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "type": "single",
+          "date": "2026-12-03",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-c"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "fileName": "2026-12-03 Efrei For Good Xperience (1).md",
+        "contents": "---\ntitle: \"Efrei For Good Xperience\"\nid: \"neo-calendar:ics::feed-1::uid-c\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"17:00\"\ntype: \"single\"\ndate: \"2026-12-03\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-c\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 2,
+      "missingCounts": {}
+    }
+  }
+}

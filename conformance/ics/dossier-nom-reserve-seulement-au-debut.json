@@ -1,0 +1,8 @@
+{
+  "name": "un nom reserve en fin de nom n'est pas reserve",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "Mon con"
+  },
+  "expected": "Mon con"
+}

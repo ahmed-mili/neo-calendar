@@ -1,6 +1,19 @@
 package com.ahmed.neocalendar.core
 
+import com.ahmed.neocalendar.core.ics.EmptySnapshotException
+import com.ahmed.neocalendar.core.ics.IcalNoteWrite
+import com.ahmed.neocalendar.core.ics.IcsFeed
+import com.ahmed.neocalendar.core.ics.IcsSyncState
+import com.ahmed.neocalendar.core.ics.InvalidNowException
+import com.ahmed.neocalendar.core.ics.availableIcalDirectoryName
 import com.ahmed.neocalendar.core.ics.getEventsFromICS
+import com.ahmed.neocalendar.core.ics.mergeRemoteEvents
+import com.ahmed.neocalendar.core.ics.planIcalDirectoryAssignments
+import com.ahmed.neocalendar.core.ics.planIcalNoteSync
+import com.ahmed.neocalendar.core.ics.planIcsNoteSync
+import com.ahmed.neocalendar.core.ics.preferredIcalDirectoryName
+import com.ahmed.neocalendar.core.ics.scopedIcalEvent
+import com.ahmed.neocalendar.core.ics.startOfLocalWeekIso
 import com.ahmed.neocalendar.core.ics.occurrenceSignature
 import com.ahmed.neocalendar.core.ics.parseIcsSnapshot
 import com.ahmed.neocalendar.core.layout.ALLDAY_MAX_ROWS
@@ -32,6 +45,7 @@ import com.ahmed.neocalendar.core.layout.needsCompactMonthType
 import com.ahmed.neocalendar.core.layout.startOfDay
 import com.ahmed.neocalendar.core.layout.todayBadgeState
 import com.ahmed.neocalendar.core.notes.EventFile
+import com.ahmed.neocalendar.core.notes.StoredEvent
 import com.ahmed.neocalendar.core.notes.InvalidEventException
 import com.ahmed.neocalendar.core.notes.serializeEventMarkdown
 import com.ahmed.neocalendar.core.notes.filenameForEvent
@@ -223,6 +237,59 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
     "ics.events" to { input ->
         JsonArray(getEventsFromICS(input.getValue("text").jsonPrimitive.content).map { it.toRecord() })
     },
+    "ics.directoryName" to { input -> JsonPrimitive(preferredIcalDirectoryName(input.getValue("name").jsonPrimitive.content)) },
+    "ics.availableDirectoryName" to { input ->
+        JsonPrimitive(
+            availableIcalDirectoryName(
+                input.getValue("preferred").jsonPrimitive.content,
+                input.getValue("usedNames").jsonArray.map { it.jsonPrimitive.content }.toSet(),
+            )
+        )
+    },
+    "ics.directoryAssignments" to { input ->
+        val plan = planIcalDirectoryAssignments(
+            input.getValue("sources").jsonArray.map { it.jsonObject },
+            input.getValue("existingFolderNames").jsonArray.map { it.jsonPrimitive.content },
+        )
+        JsonObject(
+            mapOf(
+                "sources" to JsonArray(plan.sources),
+                "directoriesToCreate" to JsonArray(plan.directoriesToCreate.map { JsonPrimitive(it) }),
+                "changed" to JsonPrimitive(plan.changed),
+            )
+        )
+    },
+    "ics.scopedEvent" to { input ->
+        val source = input.getValue("source").jsonObject
+        val event = validateEvent(input.getValue("event").jsonObject) ?: error("évènement invalide dans un cas ics.scopedEvent")
+        scopedIcalEvent(source.getValue("id").jsonPrimitive.content, event, input.getValue("index").jsonPrimitive.int).toRecord()
+    },
+    "ics.planNoteSync" to { input ->
+        val source = input.getValue("source").jsonObject
+        val writes = planIcalNoteSync(
+            source.getValue("id").jsonPrimitive.content,
+            source.getValue("directory").jsonPrimitive.content,
+            input.getValue("remoteEvents").jsonArray.map {
+                validateEvent(it.jsonObject) ?: error("évènement invalide dans un cas ics.planNoteSync")
+            },
+            input.getValue("existingRecords").jsonArray.map { storedOf(it.jsonObject) },
+        )
+        JsonArray(writes.map { writeJson(it) })
+    },
+    "ics.startOfLocalWeek" to { input ->
+        val now = parseInstantOrNull(input.getValue("now").jsonPrimitive.content)
+        if (now == null) JsonObject(mapOf("error" to JsonPrimitive("invalid-now"))) else JsonPrimitive(startOfLocalWeekIso(now))
+    },
+    "ics.planSync" to { input -> planSync(input) },
+    "ics.mergeRemote" to { input ->
+        JsonArray(
+            mergeRemoteEvents(
+                input.getValue("current").jsonArray.map { it.jsonObject },
+                input.getValue("refreshedCalendarIds").jsonArray.map { it.jsonPrimitive.content },
+                input.getValue("arrived").jsonArray.map { it.jsonObject },
+            ) { it.getValue("calendarId").jsonPrimitive.content }
+        )
+    },
     "layout.constants" to { _ ->
         JsonObject(
             mapOf(
@@ -241,6 +308,13 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
 
 /** Une date d'entrée : chaîne ISO avec `Z` ou un décalage, comme `new Date(s)`. */
 private fun parseInstant(text: String): Instant = OffsetDateTime.parse(text).toInstant()
+
+/** `new Date(s)` qui échoue donne `Invalid Date` côté JS : ici, null. */
+private fun parseInstantOrNull(text: String): Instant? = try {
+    parseInstant(text)
+} catch (_: java.time.DateTimeException) {
+    null
+}
 
 private fun instant(input: JsonObject, key: String): Instant = parseInstant(input.getValue(key).jsonPrimitive.content)
 
@@ -310,4 +384,76 @@ private fun serialize(input: JsonObject): JsonElement = try {
     JsonObject(mapOf("text" to JsonPrimitive(serializeEventMarkdown(input.getValue("event").jsonObject, previous))))
 } catch (_: InvalidEventException) {
     JsonObject(mapOf("error" to JsonPrimitive("invalid")))
+}
+
+/** Une note lue sur le disque : ses champs, plus son évènement brut à valider. */
+private fun storedOf(record: JsonObject): StoredEvent {
+    fun field(name: String) = record.getValue(name).jsonPrimitive.content
+    return StoredEvent(
+        id = field("id"),
+        calendarId = field("calendarId"),
+        calendarPath = field("calendarPath"),
+        relativePath = field("relativePath"),
+        fileName = field("fileName"),
+        contents = field("contents"),
+        event = validateEvent(record.getValue("event").jsonObject) ?: error("évènement invalide dans une note du corpus"),
+    )
+}
+
+private fun writeJson(write: IcalNoteWrite): JsonObject {
+    val record = LinkedHashMap<String, JsonElement>()
+    record["event"] = write.event.toRecord()
+    record["calendarId"] = JsonPrimitive(write.calendarId)
+    record["calendarPath"] = JsonPrimitive(write.calendarPath)
+    write.previousRelativePath?.let { record["previousRelativePath"] = JsonPrimitive(it) }
+    write.previousEventId?.let { record["previousEventId"] = JsonPrimitive(it) }
+    record["fileName"] = JsonPrimitive(write.fileName)
+    record["contents"] = JsonPrimitive(write.contents)
+    return JsonObject(record)
+}
+
+/** Une exception du planificateur devient { error } : le message n'est pas comparé. */
+private fun planSync(input: JsonObject): JsonElement {
+    val feed = input.getValue("feed").jsonObject
+    val state = input.getValue("previousState").jsonObject
+    return try {
+        val plan = planIcsNoteSync(
+            IcsFeed(
+                id = feed.getValue("id").jsonPrimitive.content,
+                calendarPath = feed.getValue("calendarPath").jsonPrimitive.content,
+                directory = feed["directory"]?.takeUnless { it is JsonNull }?.jsonPrimitive?.content,
+            ),
+            input.getValue("snapshot").jsonObject,
+            input.getValue("existingRecords").jsonArray.map { storedOf(it.jsonObject) },
+            IcsSyncState(
+                lastAttemptAt = null,
+                lastSuccessAt = null,
+                knownEventCount = state.getValue("knownEventCount").jsonPrimitive.long,
+                missingCounts = state.getValue("missingCounts").jsonObject.mapValues { it.value.jsonPrimitive.long },
+            ),
+            parseInstantOrNull(input.getValue("now").jsonPrimitive.content),
+        )
+        JsonObject(
+            mapOf(
+                "writes" to JsonArray(plan.writes.map { writeJson(it) }),
+                "deletes" to JsonArray(
+                    plan.deletes.map {
+                        JsonObject(mapOf("id" to JsonPrimitive(it.id), "relativePath" to JsonPrimitive(it.relativePath)))
+                    }
+                ),
+                "nextState" to JsonObject(
+                    mapOf(
+                        "lastAttemptAt" to JsonPrimitive(plan.nextState.lastAttemptAt),
+                        "lastSuccessAt" to JsonPrimitive(plan.nextState.lastSuccessAt),
+                        "knownEventCount" to JsonPrimitive(plan.nextState.knownEventCount),
+                        "missingCounts" to JsonObject(plan.nextState.missingCounts.mapValues { JsonPrimitive(it.value) }),
+                    )
+                ),
+            )
+        )
+    } catch (_: EmptySnapshotException) {
+        JsonObject(mapOf("error" to JsonPrimitive("empty-snapshot")))
+    } catch (_: InvalidNowException) {
+        JsonObject(mapOf("error" to JsonPrimitive("invalid-now")))
+    }
 }

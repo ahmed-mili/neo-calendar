@@ -1,0 +1,100 @@
+{
+  "name": "une seance neuve ne prend pas le nom que garde une note existante du flux",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "Études",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true,
+      "directory": "Études/EFREI"
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "uid-morning",
+          "uid": "uid-morning",
+          "recurrenceId": null,
+          "event": {
+            "title": "Semaine LXP B2 PEx",
+            "type": "single",
+            "date": "2026-11-16",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "09:30",
+            "endTime": "12:30"
+          }
+        },
+        {
+          "key": "uid-afternoon",
+          "uid": "uid-afternoon",
+          "recurrenceId": null,
+          "event": {
+            "title": "Semaine LXP B2 PEx",
+            "type": "single",
+            "date": "2026-11-16",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "13:30",
+            "endTime": "17:30"
+          }
+        }
+      ],
+      "cancelledKeys": [],
+      "latestOccurrenceDate": "2026-11-16"
+    },
+    "existingRecords": [
+      {
+        "id": "note::feed-1::uid-afternoon",
+        "calendarId": "local::School",
+        "calendarPath": "Études/EFREI",
+        "relativePath": "Études/EFREI/2026-11-16 Semaine LXP B2 PEx.md",
+        "fileName": "2026-11-16 Semaine LXP B2 PEx.md",
+        "contents": "---\ntitle: \"Semaine LXP B2 PEx\"\nid: \"neo-calendar:ics::feed-1::uid-afternoon\"\nallDay: false\nstartTime: \"13:30\"\nendTime: \"17:30\"\ntype: \"single\"\ndate: \"2026-11-16\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-afternoon\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Semaine LXP B2 PEx",
+          "allDay": false,
+          "startTime": "13:30",
+          "endTime": "17:30",
+          "type": "single",
+          "date": "2026-11-16",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-afternoon"
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 1,
+      "missingCounts": {}
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Semaine LXP B2 PEx",
+          "allDay": false,
+          "startTime": "09:30",
+          "endTime": "12:30",
+          "type": "single",
+          "date": "2026-11-16",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-morning"
+        },
+        "calendarId": "local::Études",
+        "calendarPath": "Études/EFREI",
+        "fileName": "2026-11-16 Semaine LXP B2 PEx (1).md",
+        "contents": "---\ntitle: \"Semaine LXP B2 PEx\"\nid: \"neo-calendar:ics::feed-1::uid-morning\"\nallDay: false\nstartTime: \"09:30\"\nendTime: \"12:30\"\ntype: \"single\"\ndate: \"2026-11-16\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-morning\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 2,
+      "missingCounts": {}
+    }
+  }
+}

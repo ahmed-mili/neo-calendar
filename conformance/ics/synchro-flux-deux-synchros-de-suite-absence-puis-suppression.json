@@ -1,0 +1,120 @@
+{
+  "name": "la meme note absente deux synchros de suite : comptee, puis supprimee",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "b",
+          "uid": "b",
+          "recurrenceId": null,
+          "event": {
+            "title": "Physique",
+            "type": "single",
+            "date": "2026-09-04",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "10:00",
+            "endTime": "12:00"
+          }
+        },
+        {
+          "key": "z",
+          "uid": "z",
+          "recurrenceId": null,
+          "event": {
+            "title": "Tard",
+            "type": "single",
+            "date": "2026-10-05",
+            "endDate": null,
+            "allDay": true
+          }
+        }
+      ],
+      "cancelledKeys": [],
+      "latestOccurrenceDate": "2026-10-05"
+    },
+    "existingRecords": [
+      {
+        "id": "note::feed-1::a",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-09-03 Maths.md",
+        "fileName": "2026-09-03 Maths.md",
+        "contents": "---\ntitle: \"Maths\"\nid: \"neo-calendar:ics::feed-1::a\"\nallDay: false\nstartTime: \"08:00\"\nendTime: \"10:00\"\ntype: \"single\"\ndate: \"2026-09-03\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"a\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Maths",
+          "allDay": false,
+          "startTime": "08:00",
+          "endTime": "10:00",
+          "type": "single",
+          "date": "2026-09-03",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::a"
+        }
+      },
+      {
+        "id": "note::feed-1::b",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-09-04 Physique.md",
+        "fileName": "2026-09-04 Physique.md",
+        "contents": "---\ntitle: \"Physique\"\nid: \"neo-calendar:ics::feed-1::b\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"12:00\"\ntype: \"single\"\ndate: \"2026-09-04\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"b\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Physique",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "12:00",
+          "type": "single",
+          "date": "2026-09-04",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::b"
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 2,
+      "missingCounts": {
+        "a": 1
+      }
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Tard",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-10-05",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::z"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "fileName": "2026-10-05 Tard.md",
+        "contents": "---\ntitle: \"Tard\"\nid: \"neo-calendar:ics::feed-1::z\"\nallDay: true\ntype: \"single\"\ndate: \"2026-10-05\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"z\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [
+      {
+        "id": "note::feed-1::a",
+        "relativePath": "School/2026-09-03 Maths.md"
+      }
+    ],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 2,
+      "missingCounts": {}
+    }
+  }
+}

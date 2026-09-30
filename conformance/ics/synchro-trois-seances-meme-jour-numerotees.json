@@ -1,0 +1,126 @@
+{
+  "name": "trois seances de meme nom sont numerotees (1) puis (2)",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "a",
+          "uid": "a",
+          "recurrenceId": null,
+          "event": {
+            "title": "Atelier",
+            "type": "single",
+            "date": "2026-11-16",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "08:00",
+            "endTime": "09:00"
+          }
+        },
+        {
+          "key": "b",
+          "uid": "b",
+          "recurrenceId": null,
+          "event": {
+            "title": "Atelier",
+            "type": "single",
+            "date": "2026-11-16",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "10:00",
+            "endTime": "11:00"
+          }
+        },
+        {
+          "key": "c",
+          "uid": "c",
+          "recurrenceId": null,
+          "event": {
+            "title": "Atelier",
+            "type": "single",
+            "date": "2026-11-16",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "14:00",
+            "endTime": "15:00"
+          }
+        }
+      ],
+      "cancelledKeys": [],
+      "latestOccurrenceDate": "2026-11-16"
+    },
+    "existingRecords": [],
+    "previousState": {
+      "knownEventCount": 0,
+      "missingCounts": {}
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Atelier",
+          "allDay": false,
+          "startTime": "08:00",
+          "endTime": "09:00",
+          "type": "single",
+          "date": "2026-11-16",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::a"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "fileName": "2026-11-16 Atelier.md",
+        "contents": "---\ntitle: \"Atelier\"\nid: \"neo-calendar:ics::feed-1::a\"\nallDay: false\nstartTime: \"08:00\"\nendTime: \"09:00\"\ntype: \"single\"\ndate: \"2026-11-16\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"a\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      },
+      {
+        "event": {
+          "title": "Atelier",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "11:00",
+          "type": "single",
+          "date": "2026-11-16",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::b"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "fileName": "2026-11-16 Atelier (1).md",
+        "contents": "---\ntitle: \"Atelier\"\nid: \"neo-calendar:ics::feed-1::b\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"11:00\"\ntype: \"single\"\ndate: \"2026-11-16\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"b\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      },
+      {
+        "event": {
+          "title": "Atelier",
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "15:00",
+          "type": "single",
+          "date": "2026-11-16",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::c"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "fileName": "2026-11-16 Atelier (2).md",
+        "contents": "---\ntitle: \"Atelier\"\nid: \"neo-calendar:ics::feed-1::c\"\nallDay: false\nstartTime: \"14:00\"\nendTime: \"15:00\"\ntype: \"single\"\ndate: \"2026-11-16\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"c\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 3,
+      "missingCounts": {}
+    }
+  }
+}

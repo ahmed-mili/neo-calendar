@@ -1,0 +1,35 @@
+{
+  "name": "un abonnement qui n'a rien rapporte reste en place",
+  "fn": "ics.mergeRemote",
+  "input": {
+    "current": [
+      {
+        "id": "r1",
+        "calendarId": "ical::school"
+      },
+      {
+        "id": "h1",
+        "calendarId": "auto::FR"
+      }
+    ],
+    "refreshedCalendarIds": [
+      "auto::FR"
+    ],
+    "arrived": [
+      {
+        "id": "h2",
+        "calendarId": "auto::FR"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "r1",
+      "calendarId": "ical::school"
+    },
+    {
+      "id": "h2",
+      "calendarId": "auto::FR"
+    }
+  ]
+}

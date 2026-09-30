@@ -1,0 +1,8 @@
+{
+  "name": "la semaine du 1er janvier peut commencer l'annee d'avant",
+  "fn": "ics.startOfLocalWeek",
+  "input": {
+    "now": "2027-01-01T12:00:00.000Z"
+  },
+  "expected": "2026-12-28"
+}

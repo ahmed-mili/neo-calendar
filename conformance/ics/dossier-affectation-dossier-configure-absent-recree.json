@@ -1,0 +1,35 @@
+{
+  "name": "un dossier configure mais absent du disque est a recreer, sans changement",
+  "fn": "ics.directoryAssignments",
+  "input": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "school",
+        "name": "School",
+        "url": "https://example.test/school.ics",
+        "color": "#89b4fa",
+        "directory": "School"
+      }
+    ],
+    "existingFolderNames": [
+      "Personal"
+    ]
+  },
+  "expected": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "school",
+        "name": "School",
+        "url": "https://example.test/school.ics",
+        "color": "#89b4fa",
+        "directory": "School"
+      }
+    ],
+    "directoriesToCreate": [
+      "School"
+    ],
+    "changed": false
+  }
+}

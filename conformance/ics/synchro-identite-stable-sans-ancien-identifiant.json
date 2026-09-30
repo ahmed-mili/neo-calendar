@@ -1,0 +1,87 @@
+{
+  "name": "une note qui garde son identite n'a pas d'identifiant precedent",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "Études",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true,
+      "directory": "Études/EFREI"
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "uid-1",
+          "uid": "uid-1",
+          "recurrenceId": null,
+          "event": {
+            "title": "Efrei For Good Xperience",
+            "type": "single",
+            "date": "2026-12-03",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "11:00",
+            "endTime": "17:00"
+          }
+        }
+      ],
+      "cancelledKeys": [],
+      "latestOccurrenceDate": "2026-12-03"
+    },
+    "existingRecords": [
+      {
+        "id": "neo-calendar:ics::feed-1::uid-1",
+        "calendarId": "local::School",
+        "calendarPath": "Études/EFREI",
+        "relativePath": "Études/EFREI/2026-12-03 Efrei For Good Xperience.md",
+        "fileName": "2026-12-03 Efrei For Good Xperience.md",
+        "contents": "---\ntitle: \"Efrei For Good Xperience\"\nid: \"neo-calendar:ics::feed-1::uid-1\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"17:00\"\ntype: \"single\"\ndate: \"2026-12-03\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-1\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Efrei For Good Xperience",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "type": "single",
+          "date": "2026-12-03",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-1"
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 1,
+      "missingCounts": {}
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Efrei For Good Xperience",
+          "allDay": false,
+          "startTime": "11:00",
+          "endTime": "17:00",
+          "type": "single",
+          "date": "2026-12-03",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-1"
+        },
+        "calendarId": "local::Études",
+        "calendarPath": "Études/EFREI",
+        "previousRelativePath": "Études/EFREI/2026-12-03 Efrei For Good Xperience.md",
+        "fileName": "2026-12-03 Efrei For Good Xperience.md",
+        "contents": "---\ntitle: \"Efrei For Good Xperience\"\nid: \"neo-calendar:ics::feed-1::uid-1\"\nallDay: false\nstartTime: \"11:00\"\nendTime: \"17:00\"\ntype: \"single\"\ndate: \"2026-12-03\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-1\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 1,
+      "missingCounts": {}
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "les points et espaces en fin de nom sont retires",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "Cours . . "
+  },
+  "expected": "Cours"
+}

@@ -1,0 +1,34 @@
+{
+  "name": "un instantane vide est accepte la premiere fois qu'un flux est vu",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [],
+      "cancelledKeys": [],
+      "latestOccurrenceDate": null
+    },
+    "existingRecords": [],
+    "previousState": {
+      "knownEventCount": 0,
+      "missingCounts": {}
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 0,
+      "missingCounts": {}
+    }
+  }
+}

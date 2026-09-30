@@ -1,0 +1,8 @@
+{
+  "name": "un mercredi donne le lundi de sa semaine",
+  "fn": "ics.startOfLocalWeek",
+  "input": {
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": "2026-08-31"
+}

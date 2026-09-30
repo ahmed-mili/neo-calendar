@@ -1,0 +1,8 @@
+{
+  "name": "les suites d'espaces se replient en un seul, les bords sont rognes",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "  Mon   Cours   du 　 soir  "
+  },
+  "expected": "Mon Cours du soir"
+}

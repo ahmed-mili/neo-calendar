@@ -1,0 +1,34 @@
+{
+  "name": "le nom d'un dossier existant non lie n'est pas reprise : suffixe ICS",
+  "fn": "ics.directoryAssignments",
+  "input": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "legacy",
+        "name": "Personal",
+        "url": "https://example.test/legacy.ics",
+        "color": "#89b4fa"
+      }
+    ],
+    "existingFolderNames": [
+      "Personal"
+    ]
+  },
+  "expected": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "legacy",
+        "name": "Personal",
+        "url": "https://example.test/legacy.ics",
+        "color": "#89b4fa",
+        "directory": "Personal (ICS)"
+      }
+    ],
+    "directoriesToCreate": [
+      "Personal (ICS)"
+    ],
+    "changed": true
+  }
+}

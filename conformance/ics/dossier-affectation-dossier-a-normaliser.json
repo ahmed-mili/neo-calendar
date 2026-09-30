@@ -1,0 +1,33 @@
+{
+  "name": "un dossier configure est nettoye : la source change",
+  "fn": "ics.directoryAssignments",
+  "input": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "school",
+        "name": "School",
+        "url": "https://example.test/school.ics",
+        "color": "#89b4fa",
+        "directory": "Sch:ool "
+      }
+    ],
+    "existingFolderNames": [
+      "Sch-ool"
+    ]
+  },
+  "expected": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "school",
+        "name": "School",
+        "url": "https://example.test/school.ics",
+        "color": "#89b4fa",
+        "directory": "Sch-ool"
+      }
+    ],
+    "directoriesToCreate": [],
+    "changed": true
+  }
+}

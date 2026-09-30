@@ -1,0 +1,31 @@
+{
+  "name": "l'identifiant ne depend pas de l'URL du flux (autre URL)",
+  "fn": "ics.scopedEvent",
+  "input": {
+    "source": {
+      "type": "ical",
+      "id": "school",
+      "name": "School",
+      "url": "https://other.test/calendar.ics",
+      "color": "#89b4fa",
+      "directory": "School"
+    },
+    "event": {
+      "title": "Cours",
+      "type": "single",
+      "date": "2026-08-28",
+      "endDate": null,
+      "allDay": true,
+      "id": "ics::same::2026-08-28::single"
+    },
+    "index": 0
+  },
+  "expected": {
+    "title": "Cours",
+    "id": "ical::school::ics::same::2026-08-28::single",
+    "allDay": true,
+    "type": "single",
+    "date": "2026-08-28",
+    "endDate": null
+  }
+}

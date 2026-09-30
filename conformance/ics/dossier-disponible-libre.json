@@ -1,0 +1,11 @@
+{
+  "name": "un nom libre est garde",
+  "fn": "ics.availableDirectoryName",
+  "input": {
+    "preferred": "School",
+    "usedNames": [
+      "personal"
+    ]
+  },
+  "expected": "School"
+}

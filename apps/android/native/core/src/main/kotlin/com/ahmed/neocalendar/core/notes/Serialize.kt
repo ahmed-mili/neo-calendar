@@ -26,7 +26,7 @@ private val KEYS_DROPPED_WHEN_ABSENT = setOf(
 
 /** JSON.stringify d'une chaîne : mêmes échappements, hexadécimal en minuscules,
  *  substituts isolés échappés (JSON bien formé), le reste écrit tel quel. */
-private fun jsonQuote(value: String): String {
+internal fun jsonQuote(value: String): String {
     val out = StringBuilder("\"")
     var index = 0
     while (index < value.length) {

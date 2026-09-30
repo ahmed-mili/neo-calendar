@@ -1,0 +1,11 @@
+{
+  "name": "un nom reserve est d'abord suffixe Calendar puis compare",
+  "fn": "ics.availableDirectoryName",
+  "input": {
+    "preferred": "aux",
+    "usedNames": [
+      "aux calendar"
+    ]
+  },
+  "expected": "aux Calendar (ICS)"
+}
