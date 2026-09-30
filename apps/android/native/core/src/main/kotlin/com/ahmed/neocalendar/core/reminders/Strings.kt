@@ -8,7 +8,20 @@ package com.ahmed.neocalendar.core.reminders
  */
 private val FR = mapOf(
     "Untitled" to "Sans titre",
+    "Tomorrow" to "Demain",
+    "In" to "Dans",
+    "h" to "h",
+    "j" to "j",
+    "All-day" to "Toute la journée",
+    "Tomorrow, all day" to "Demain, toute la journée",
+    "Starting now" to "Ça commence",
 )
 
 /** `t(key)` de l'interface, langue « fr ». Une clé inconnue est une erreur de port. */
 internal fun t(key: String): String = FR[key] ?: error("Chaîne absente de Strings.kt : $key")
+
+/** `DAYS_SHORT` (`days.short`), dimanche en premier comme `Date.getDay()`. */
+internal val DAYS_SHORT = listOf("dim", "lun", "mar", "mer", "jeu", "ven", "sam")
+
+/** `MONTHS_SHORT` (`months.short`). */
+internal val MONTHS_SHORT = listOf("janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc")

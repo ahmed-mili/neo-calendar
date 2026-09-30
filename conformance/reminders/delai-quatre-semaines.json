@@ -1,0 +1,8 @@
+{
+  "name": "la borne des preferences : 28 j",
+  "fn": "reminders.delayLabel",
+  "input": {
+    "minutes": 40320
+  },
+  "expected": "28 j"
+}

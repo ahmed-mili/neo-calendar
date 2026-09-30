@@ -1,0 +1,44 @@
+{
+  "name": "demain se compte en jours civils, meme a vingt minutes",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "a",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-09-17",
+          "startTime": "00:10",
+          "endTime": "01:00",
+          "reminders": [
+            20
+          ]
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-09-16T23:49:59+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "a",
+      "key": "a#20",
+      "atMs": 1789595400000,
+      "title": "a",
+      "body": "Dans 20 min · Demain 00:10",
+      "details": "00:10 – 01:00\nCal"
+    }
+  ]
+}

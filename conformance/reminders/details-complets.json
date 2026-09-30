@@ -1,0 +1,43 @@
+{
+  "name": "le volet deplie : horaire, lieu, calendrier, note",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "a",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "14:00",
+          "endTime": "15:00",
+          "location": "Amphi B",
+          "description": "Apporter la carte etudiante"
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "a",
+      "key": "a#10",
+      "atMs": 1786103400000,
+      "title": "a",
+      "body": "Dans 10 min · 14:00 · Amphi B",
+      "details": "14:00 – 15:00\nAmphi B\nCal\nApporter la carte etudiante"
+    }
+  ]
+}

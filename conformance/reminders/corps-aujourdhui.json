@@ -1,0 +1,44 @@
+{
+  "name": "le jour meme, l'heure seule",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "a",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-09-16",
+          "startTime": "09:15",
+          "endTime": "10:00",
+          "reminders": [
+            45
+          ]
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-09-16T08:29:59+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "a",
+      "key": "a#45",
+      "atMs": 1789540200000,
+      "title": "a",
+      "body": "Dans 45 min · 09:15",
+      "details": "09:15 – 10:00\nCal"
+    }
+  ]
+}

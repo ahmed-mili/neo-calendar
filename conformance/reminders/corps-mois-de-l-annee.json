@@ -1,0 +1,41 @@
+{
+  "name": "les abreviations des mois d'un bout a l'autre de l'annee",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "jan",
+          "type": "single",
+          "allDay": false,
+          "date": "2027-01-05",
+          "startTime": "08:00",
+          "endTime": "09:00"
+        },
+        "id": "jan",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-01-01T00:00:00+01:00",
+        "rangeEnd": "2027-03-01T00:00:00+01:00"
+      }
+    ],
+    "now": "2026-12-20T09:00:00+01:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "jan",
+      "key": "jan#10",
+      "atMs": 1799131800000,
+      "title": "jan",
+      "body": "Dans 10 min · mar 5 janv 08:00",
+      "details": "08:00 – 09:00\nCal"
+    }
+  ]
+}

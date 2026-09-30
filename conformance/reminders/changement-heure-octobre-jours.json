@@ -1,0 +1,44 @@
+{
+  "name": "la journee de 25 h ne fait pas gagner un jour",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "a",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-10-26",
+          "startTime": "00:10",
+          "endTime": "01:00",
+          "reminders": [
+            20
+          ]
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-01-01T00:00:00+01:00",
+        "rangeEnd": "2027-03-01T00:00:00+01:00"
+      }
+    ],
+    "now": "2026-10-24T23:30:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "a",
+      "key": "a#20",
+      "atMs": 1792968600000,
+      "title": "a",
+      "body": "Dans 20 min · lun 00:10",
+      "details": "00:10 – 01:00\nCal"
+    }
+  ]
+}

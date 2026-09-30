@@ -1,0 +1,49 @@
+{
+  "name": "une serie de journees entieres rappelle la veille a 20 h de chaque occurrence",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "Ferie",
+          "type": "rrule",
+          "allDay": true,
+          "startDate": "2026-08-10",
+          "rrule": "RRULE:FREQ=DAILY;COUNT=2",
+          "skipDates": []
+        },
+        "id": "r",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "r_2026-08-10",
+      "key": "r_2026-08-10#day",
+      "atMs": 1786298400000,
+      "title": "Ferie",
+      "body": "Demain, toute la journée",
+      "details": "Toute la journée\nCal"
+    },
+    {
+      "id": "r_2026-08-11",
+      "key": "r_2026-08-11#day",
+      "atMs": 1786384800000,
+      "title": "Ferie",
+      "body": "Demain, toute la journée",
+      "details": "Toute la journée\nCal"
+    }
+  ]
+}

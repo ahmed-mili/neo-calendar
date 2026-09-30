@@ -1,0 +1,8 @@
+{
+  "name": "2880 minutes : 2 j",
+  "fn": "reminders.delayLabel",
+  "input": {
+    "minutes": 2880
+  },
+  "expected": "2 j"
+}

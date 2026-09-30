@@ -1,0 +1,156 @@
+{
+  "name": "plusieurs entrees sont developpees puis concatenees avant le tri",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "a",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-08",
+          "startTime": "10:00",
+          "endTime": "11:00"
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      },
+      {
+        "event": {
+          "title": "Serie",
+          "type": "recurring",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "10:00",
+          "daysOfWeek": [
+            "F",
+            "S"
+          ]
+        },
+        "id": "s",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      },
+      {
+        "event": {
+          "title": "j",
+          "type": "single",
+          "allDay": true,
+          "date": "2026-08-09"
+        },
+        "id": "j",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "s_2026-08-08",
+      "key": "s_2026-08-08#10",
+      "atMs": 1786171800000,
+      "title": "Serie",
+      "body": "Dans 10 min · Demain 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "a",
+      "key": "a#10",
+      "atMs": 1786175400000,
+      "title": "a",
+      "body": "Dans 10 min · Demain 10:00",
+      "details": "10:00 – 11:00\nCal"
+    },
+    {
+      "id": "j",
+      "key": "j#day",
+      "atMs": 1786212000000,
+      "title": "j",
+      "body": "Demain, toute la journée",
+      "details": "Toute la journée\nCal"
+    },
+    {
+      "id": "s_2026-08-14",
+      "key": "s_2026-08-14#10",
+      "atMs": 1786690200000,
+      "title": "Serie",
+      "body": "Dans 10 min · ven 14 août 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-08-15",
+      "key": "s_2026-08-15#10",
+      "atMs": 1786776600000,
+      "title": "Serie",
+      "body": "Dans 10 min · sam 15 août 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-08-21",
+      "key": "s_2026-08-21#10",
+      "atMs": 1787295000000,
+      "title": "Serie",
+      "body": "Dans 10 min · ven 21 août 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-08-22",
+      "key": "s_2026-08-22#10",
+      "atMs": 1787381400000,
+      "title": "Serie",
+      "body": "Dans 10 min · sam 22 août 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-08-28",
+      "key": "s_2026-08-28#10",
+      "atMs": 1787899800000,
+      "title": "Serie",
+      "body": "Dans 10 min · ven 28 août 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-08-29",
+      "key": "s_2026-08-29#10",
+      "atMs": 1787986200000,
+      "title": "Serie",
+      "body": "Dans 10 min · sam 29 août 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-09-04",
+      "key": "s_2026-09-04#10",
+      "atMs": 1788504600000,
+      "title": "Serie",
+      "body": "Dans 10 min · ven 4 sept 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-09-05",
+      "key": "s_2026-09-05#10",
+      "atMs": 1788591000000,
+      "title": "Serie",
+      "body": "Dans 10 min · sam 5 sept 09:00",
+      "details": "09:00 – 10:00\nCal"
+    }
+  ]
+}

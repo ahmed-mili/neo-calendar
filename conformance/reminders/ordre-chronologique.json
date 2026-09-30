@@ -1,0 +1,66 @@
+{
+  "name": "les rappels sortent dans l'ordre ou ils partent",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "tard",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-08",
+          "startTime": "18:00",
+          "endTime": "19:00"
+        },
+        "id": "tard",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      },
+      {
+        "event": {
+          "title": "tot",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "14:00",
+          "endTime": "15:00"
+        },
+        "id": "tot",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "tot",
+      "key": "tot#10",
+      "atMs": 1786103400000,
+      "title": "tot",
+      "body": "Dans 10 min · 14:00",
+      "details": "14:00 – 15:00\nCal"
+    },
+    {
+      "id": "tard",
+      "key": "tard#10",
+      "atMs": 1786204200000,
+      "title": "tard",
+      "body": "Dans 10 min · Demain 18:00",
+      "details": "18:00 – 19:00\nCal"
+    }
+  ]
+}

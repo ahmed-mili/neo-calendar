@@ -1,0 +1,58 @@
+{
+  "name": "l'horizon se compte en jours civils : 30 jours apres le 2026-10-01 midi passe le retour a l'heure d'hiver",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "dedans",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-10-31",
+          "startTime": "11:59",
+          "endTime": "13:00"
+        },
+        "id": "dedans",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-01-01T00:00:00+01:00",
+        "rangeEnd": "2027-03-01T00:00:00+01:00"
+      },
+      {
+        "event": {
+          "title": "dehors",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-10-31",
+          "startTime": "12:00",
+          "endTime": "13:00"
+        },
+        "id": "dehors",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-01-01T00:00:00+01:00",
+        "rangeEnd": "2027-03-01T00:00:00+01:00"
+      }
+    ],
+    "now": "2026-10-01T12:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "dedans",
+      "key": "dedans#10",
+      "atMs": 1793443740000,
+      "title": "dedans",
+      "body": "Dans 10 min · sam 31 oct 11:59",
+      "details": "11:59 – 13:00\nCal"
+    }
+  ]
+}

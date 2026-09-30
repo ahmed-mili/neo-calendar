@@ -1,0 +1,41 @@
+{
+  "name": "format 12 h : 2:00 PM dans le corps et dans le detail",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "a",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "14:00",
+          "endTime": "15:30"
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": false
+  },
+  "expected": [
+    {
+      "id": "a",
+      "key": "a#10",
+      "atMs": 1786103400000,
+      "title": "a",
+      "body": "Dans 10 min · 2:00 PM",
+      "details": "2:00 PM – 3:30 PM\nCal"
+    }
+  ]
+}

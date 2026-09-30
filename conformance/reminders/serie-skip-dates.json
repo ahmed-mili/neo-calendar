@@ -1,0 +1,53 @@
+{
+  "name": "une occurrence retiree (skipDates) n'a pas de rappel",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "Point",
+          "type": "rrule",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "09:30",
+          "startDate": "2026-08-10",
+          "rrule": "RRULE:FREQ=DAILY;COUNT=3",
+          "skipDates": [
+            "2026-08-11"
+          ]
+        },
+        "id": "r",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      15
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "r_2026-08-10",
+      "key": "r_2026-08-10#15",
+      "atMs": 1786344300000,
+      "title": "Point",
+      "body": "Dans 15 min · lun 09:00",
+      "details": "09:00 – 09:30\nCal"
+    },
+    {
+      "id": "r_2026-08-12",
+      "key": "r_2026-08-12#15",
+      "atMs": 1786517100000,
+      "title": "Point",
+      "body": "Dans 15 min · mer 09:00",
+      "details": "09:00 – 09:30\nCal"
+    }
+  ]
+}

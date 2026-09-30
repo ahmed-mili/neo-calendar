@@ -1,0 +1,44 @@
+{
+  "name": "au-dela de la semaine, jour, date et mois",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "a",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-09-28",
+          "startTime": "08:00",
+          "endTime": "09:00",
+          "reminders": [
+            1440
+          ]
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-09-16T09:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "a",
+      "key": "a#1440",
+      "atMs": 1790488800000,
+      "title": "a",
+      "body": "Dans 1 j · lun 28 sept 08:00",
+      "details": "08:00 – 09:00\nCal"
+    }
+  ]
+}

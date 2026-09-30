@@ -14,8 +14,23 @@ import {
     withDeviceWorkspacePreferences,
 } from "../apps/windows/src/platform/desktopWorkspacePreferences";
 import type { NeoEvent } from "../src/types";
+import { buildReminders } from "../apps/windows/src/platform/androidReminders";
+import { relativeDelayLabel } from "../src/ui/calendar/reminderDelay";
 import { neoEventToDisplayEvents } from "../src/ui/calendar/eventExpansion";
 import { validateEvent } from "../src/types/schema";
+
+/** Une entrée du corpus de récurrence, développée en occurrences. */
+const expandEntry = ({ event, id, calendarId, calendarName, color, editable, rangeStart, rangeEnd }: any) =>
+    neoEventToDisplayEvents(
+        validateEvent(event)!,
+        id,
+        calendarId,
+        calendarName,
+        color,
+        editable,
+        new Date(rangeStart),
+        new Date(rangeEnd)
+    );
 
 /** Relie chaque opération du corpus au code TypeScript qui fait foi.
  *  Le corpus nomme des opérations, pas des fonctions : renommer une
@@ -54,17 +69,16 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
             loaded: parseDesktopWorkspacePreferences(loaded),
             fileExisted,
         }),
-    "recurrence.expand": ({ event, id, calendarId, calendarName, color, editable, rangeStart, rangeEnd }) =>
-        neoEventToDisplayEvents(
-            validateEvent(event)!,
-            id,
-            calendarId,
-            calendarName,
-            color,
-            editable,
-            new Date(rangeStart),
-            new Date(rangeEnd)
-        ),
+    "recurrence.expand": (input) => expandEntry(input),
+    "reminders.build": ({ events, now, minutesBefore, minutesByCalendar, timeFormat24h }) =>
+        buildReminders({
+            events: (events as any[]).flatMap(expandEntry),
+            now: new Date(now),
+            minutesBefore,
+            minutesByCalendar,
+            timeFormat24h,
+        }),
+    "reminders.delayLabel": ({ minutes }) => relativeDelayLabel(minutes),
     "notes.serialize": ({ event, previousContents }) => {
         try {
             return { text: serializeEventMarkdown(event, previousContents ?? "") };

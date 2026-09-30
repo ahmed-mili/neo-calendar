@@ -1,0 +1,39 @@
+{
+  "name": "une journee entiere sans rappel propre : la veille a 20 h",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "whole",
+          "type": "single",
+          "allDay": true,
+          "date": "2026-08-09"
+        },
+        "id": "whole",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "whole",
+      "key": "whole#day",
+      "atMs": 1786212000000,
+      "title": "whole",
+      "body": "Demain, toute la journée",
+      "details": "Toute la journée\nCal"
+    }
+  ]
+}

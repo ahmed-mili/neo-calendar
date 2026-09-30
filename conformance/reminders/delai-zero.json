@@ -1,0 +1,8 @@
+{
+  "name": "zero dit que ca commence",
+  "fn": "reminders.delayLabel",
+  "input": {
+    "minutes": 0
+  },
+  "expected": "Ça commence"
+}

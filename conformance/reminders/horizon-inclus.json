@@ -1,0 +1,41 @@
+{
+  "name": "un evenement une minute avant l'horizon est garde",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "limite",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-09-06",
+          "startTime": "11:59",
+          "endTime": "13:00"
+        },
+        "id": "limite",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "limite",
+      "key": "limite#10",
+      "atMs": 1788688140000,
+      "title": "limite",
+      "body": "Dans 10 min · dim 6 sept 11:59",
+      "details": "11:59 – 13:00\nCal"
+    }
+  ]
+}

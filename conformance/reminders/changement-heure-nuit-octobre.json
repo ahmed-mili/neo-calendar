@@ -1,0 +1,41 @@
+{
+  "name": "un evenement de nuit a travers le retour a l'heure d'hiver",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "nuit2",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-10-24",
+          "startTime": "23:00",
+          "endTime": "04:30"
+        },
+        "id": "nuit2",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-10-20T00:00:00+02:00",
+        "rangeEnd": "2026-11-05T00:00:00+01:00"
+      }
+    ],
+    "now": "2026-10-20T12:00:00+02:00",
+    "minutesBefore": [
+      30
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "nuit2",
+      "key": "nuit2#30",
+      "atMs": 1792873800000,
+      "title": "nuit2",
+      "body": "Dans 30 min · sam 23:00",
+      "details": "23:00 – 04:30\nCal"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "name": "un lieu fait d'espaces est ignore, un lieu entoure d'espaces est rogne dans le detail",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "vide",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "14:00",
+          "endTime": "15:00",
+          "location": "   "
+        },
+        "id": "vide",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      },
+      {
+        "event": {
+          "title": "rogne",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "15:00",
+          "endTime": "16:00",
+          "location": "  Amphi B  "
+        },
+        "id": "rogne",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "vide",
+      "key": "vide#10",
+      "atMs": 1786103400000,
+      "title": "vide",
+      "body": "Dans 10 min · 14:00",
+      "details": "14:00 – 15:00\nCal"
+    },
+    {
+      "id": "rogne",
+      "key": "rogne#10",
+      "atMs": 1786107000000,
+      "title": "rogne",
+      "body": "Dans 10 min · 15:00 · Amphi B",
+      "details": "15:00 – 16:00\nAmphi B\nCal"
+    }
+  ]
+}

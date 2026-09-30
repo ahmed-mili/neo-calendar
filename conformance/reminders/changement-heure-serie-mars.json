@@ -1,0 +1,68 @@
+{
+  "name": "une serie a 9 h reste a 9 h locale de part et d'autre du changement de mars",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "Cours",
+          "type": "recurring",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "10:00",
+          "daysOfWeek": [
+            "U",
+            "M"
+          ]
+        },
+        "id": "s",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-03-22T00:00:00+01:00",
+        "rangeEnd": "2026-04-05T00:00:00+02:00"
+      }
+    ],
+    "now": "2026-03-22T12:00:00+01:00",
+    "minutesBefore": [
+      60
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "s_2026-03-23",
+      "key": "s_2026-03-23#60",
+      "atMs": 1774249200000,
+      "title": "Cours",
+      "body": "Dans 1 h · Demain 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-03-29",
+      "key": "s_2026-03-29#60",
+      "atMs": 1774764000000,
+      "title": "Cours",
+      "body": "Dans 1 h · dim 29 mars 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-03-30",
+      "key": "s_2026-03-30#60",
+      "atMs": 1774850400000,
+      "title": "Cours",
+      "body": "Dans 1 h · lun 30 mars 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-04-05",
+      "key": "s_2026-04-05#60",
+      "atMs": 1775368800000,
+      "title": "Cours",
+      "body": "Dans 1 h · dim 5 avr 09:00",
+      "details": "09:00 – 10:00\nCal"
+    }
+  ]
+}

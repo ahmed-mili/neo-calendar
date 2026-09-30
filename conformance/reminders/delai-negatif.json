@@ -1,0 +1,8 @@
+{
+  "name": "un delai negatif dit aussi que ca commence",
+  "fn": "reminders.delayLabel",
+  "input": {
+    "minutes": -10
+  },
+  "expected": "Ça commence"
+}

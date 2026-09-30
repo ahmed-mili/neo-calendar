@@ -1,0 +1,91 @@
+{
+  "name": "deux rappels au meme instant gardent l'ordre d'entree",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "premier",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "14:00",
+          "endTime": "15:00"
+        },
+        "id": "premier",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      },
+      {
+        "event": {
+          "title": "second",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "14:00",
+          "endTime": "15:00"
+        },
+        "id": "second",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      },
+      {
+        "event": {
+          "title": "avant",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "13:00",
+          "endTime": "14:00"
+        },
+        "id": "avant",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "avant",
+      "key": "avant#10",
+      "atMs": 1786099800000,
+      "title": "avant",
+      "body": "Dans 10 min · 13:00",
+      "details": "13:00 – 14:00\nCal"
+    },
+    {
+      "id": "premier",
+      "key": "premier#10",
+      "atMs": 1786103400000,
+      "title": "premier",
+      "body": "Dans 10 min · 14:00",
+      "details": "14:00 – 15:00\nCal"
+    },
+    {
+      "id": "second",
+      "key": "second#10",
+      "atMs": 1786103400000,
+      "title": "second",
+      "body": "Dans 10 min · 14:00",
+      "details": "14:00 – 15:00\nCal"
+    }
+  ]
+}

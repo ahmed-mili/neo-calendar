@@ -1,0 +1,68 @@
+{
+  "name": "une serie a 9 h reste a 9 h locale de part et d'autre du changement d'octobre",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "Cours",
+          "type": "recurring",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "10:00",
+          "daysOfWeek": [
+            "U",
+            "M"
+          ]
+        },
+        "id": "s",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-10-20T00:00:00+02:00",
+        "rangeEnd": "2026-11-05T00:00:00+01:00"
+      }
+    ],
+    "now": "2026-10-20T12:00:00+02:00",
+    "minutesBefore": [
+      60
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "s_2026-10-25",
+      "key": "s_2026-10-25#60",
+      "atMs": 1792911600000,
+      "title": "Cours",
+      "body": "Dans 1 h · dim 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-10-26",
+      "key": "s_2026-10-26#60",
+      "atMs": 1792998000000,
+      "title": "Cours",
+      "body": "Dans 1 h · lun 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-11-01",
+      "key": "s_2026-11-01#60",
+      "atMs": 1793516400000,
+      "title": "Cours",
+      "body": "Dans 1 h · dim 1 nov 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-11-02",
+      "key": "s_2026-11-02#60",
+      "atMs": 1793602800000,
+      "title": "Cours",
+      "body": "Dans 1 h · lun 2 nov 09:00",
+      "details": "09:00 – 10:00\nCal"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "name": "les rappels de la serie se repetent sur chaque occurrence",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "Cours",
+          "type": "recurring",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "10:00",
+          "daysOfWeek": [
+            "W"
+          ],
+          "reminders": [
+            5,
+            1440
+          ]
+        },
+        "id": "s",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "s_2026-08-12",
+      "key": "s_2026-08-12#1440",
+      "atMs": 1786431600000,
+      "title": "Cours",
+      "body": "Dans 1 j · mer 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-08-12",
+      "key": "s_2026-08-12#5",
+      "atMs": 1786517700000,
+      "title": "Cours",
+      "body": "Dans 5 min · mer 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-08-19",
+      "key": "s_2026-08-19#1440",
+      "atMs": 1787036400000,
+      "title": "Cours",
+      "body": "Dans 1 j · mer 19 août 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-08-19",
+      "key": "s_2026-08-19#5",
+      "atMs": 1787122500000,
+      "title": "Cours",
+      "body": "Dans 5 min · mer 19 août 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-08-26",
+      "key": "s_2026-08-26#1440",
+      "atMs": 1787641200000,
+      "title": "Cours",
+      "body": "Dans 1 j · mer 26 août 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-08-26",
+      "key": "s_2026-08-26#5",
+      "atMs": 1787727300000,
+      "title": "Cours",
+      "body": "Dans 5 min · mer 26 août 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-09-02",
+      "key": "s_2026-09-02#1440",
+      "atMs": 1788246000000,
+      "title": "Cours",
+      "body": "Dans 1 j · mer 2 sept 09:00",
+      "details": "09:00 – 10:00\nCal"
+    },
+    {
+      "id": "s_2026-09-02",
+      "key": "s_2026-09-02#5",
+      "atMs": 1788332100000,
+      "title": "Cours",
+      "body": "Dans 5 min · mer 2 sept 09:00",
+      "details": "09:00 – 10:00\nCal"
+    }
+  ]
+}

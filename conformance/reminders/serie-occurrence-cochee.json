@@ -1,0 +1,78 @@
+{
+  "name": "une occurrence cochee (completedDates) a quand meme son rappel",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "Tache",
+          "type": "recurring",
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "15:00",
+          "daysOfWeek": [
+            "F"
+          ],
+          "completedDates": [
+            "2026-08-07"
+          ]
+        },
+        "id": "t",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T08:00:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "t_2026-08-07",
+      "key": "t_2026-08-07#10",
+      "atMs": 1786103400000,
+      "title": "Tache",
+      "body": "Dans 10 min · 14:00",
+      "details": "14:00 – 15:00\nCal"
+    },
+    {
+      "id": "t_2026-08-14",
+      "key": "t_2026-08-14#10",
+      "atMs": 1786708200000,
+      "title": "Tache",
+      "body": "Dans 10 min · ven 14 août 14:00",
+      "details": "14:00 – 15:00\nCal"
+    },
+    {
+      "id": "t_2026-08-21",
+      "key": "t_2026-08-21#10",
+      "atMs": 1787313000000,
+      "title": "Tache",
+      "body": "Dans 10 min · ven 21 août 14:00",
+      "details": "14:00 – 15:00\nCal"
+    },
+    {
+      "id": "t_2026-08-28",
+      "key": "t_2026-08-28#10",
+      "atMs": 1787917800000,
+      "title": "Tache",
+      "body": "Dans 10 min · ven 28 août 14:00",
+      "details": "14:00 – 15:00\nCal"
+    },
+    {
+      "id": "t_2026-09-04",
+      "key": "t_2026-09-04#10",
+      "atMs": 1788522600000,
+      "title": "Tache",
+      "body": "Dans 10 min · ven 4 sept 14:00",
+      "details": "14:00 – 15:00\nCal"
+    }
+  ]
+}

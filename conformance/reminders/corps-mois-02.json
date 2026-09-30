@@ -1,0 +1,41 @@
+{
+  "name": "le mois de fevrier s'abrege dans la date du corps",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "m",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-02-15",
+          "startTime": "08:00",
+          "endTime": "09:00"
+        },
+        "id": "m",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-01-01T00:00:00+01:00",
+        "rangeEnd": "2027-03-01T00:00:00+01:00"
+      }
+    ],
+    "now": "2026-02-01T09:00:00+01:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "m",
+      "key": "m#10",
+      "atMs": 1771138200000,
+      "title": "m",
+      "body": "Dans 10 min · dim 15 févr 08:00",
+      "details": "08:00 – 09:00\nCal"
+    }
+  ]
+}

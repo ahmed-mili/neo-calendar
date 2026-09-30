@@ -1,0 +1,91 @@
+{
+  "name": "format 12 h : 12:05 PM, 12:10 AM et 9:07 AM",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "midi",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "12:30",
+          "endTime": "12:45"
+        },
+        "id": "midi",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      },
+      {
+        "event": {
+          "title": "minuit",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-08",
+          "startTime": "00:10",
+          "endTime": "00:40"
+        },
+        "id": "minuit",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      },
+      {
+        "event": {
+          "title": "matin",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-09",
+          "startTime": "09:07",
+          "endTime": "11:00"
+        },
+        "id": "matin",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "minutesBefore": [
+      5
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": false
+  },
+  "expected": [
+    {
+      "id": "midi",
+      "key": "midi#5",
+      "atMs": 1786098300000,
+      "title": "midi",
+      "body": "Dans 5 min · 12:30 PM",
+      "details": "12:30 PM – 12:45 PM\nCal"
+    },
+    {
+      "id": "minuit",
+      "key": "minuit#5",
+      "atMs": 1786140300000,
+      "title": "minuit",
+      "body": "Dans 5 min · Demain 12:10 AM",
+      "details": "12:10 AM – 12:40 AM\nCal"
+    },
+    {
+      "id": "matin",
+      "key": "matin#5",
+      "atMs": 1786258920000,
+      "title": "matin",
+      "body": "Dans 5 min · dim 9:07 AM",
+      "details": "9:07 AM – 11:00 AM\nCal"
+    }
+  ]
+}

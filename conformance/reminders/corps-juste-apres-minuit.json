@@ -1,0 +1,44 @@
+{
+  "name": "a 00:30 locale (22:30 UTC la veille), l'evenement du matin est aujourd'hui",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "a",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-08",
+          "startTime": "08:00",
+          "endTime": "09:00",
+          "reminders": [
+            60
+          ]
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-08-08T00:30:00+02:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "a",
+      "key": "a#60",
+      "atMs": 1786165200000,
+      "title": "a",
+      "body": "Dans 1 h · 08:00",
+      "details": "08:00 – 09:00\nCal"
+    }
+  ]
+}

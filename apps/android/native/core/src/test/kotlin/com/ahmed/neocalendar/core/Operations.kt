@@ -24,7 +24,10 @@ import com.ahmed.neocalendar.core.preferences.parseIcsFeeds
 import com.ahmed.neocalendar.core.preferences.parseWorkspacePreferences
 import com.ahmed.neocalendar.core.preferences.prayerReminderMinutesFor
 import com.ahmed.neocalendar.core.preferences.reminderListOf
+import com.ahmed.neocalendar.core.recurrence.DisplayEvent
 import com.ahmed.neocalendar.core.recurrence.neoEventToDisplayEvents
+import com.ahmed.neocalendar.core.reminders.buildReminders
+import com.ahmed.neocalendar.core.reminders.relativeDelayLabel
 import java.time.OffsetDateTime
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -33,7 +36,9 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 
 /** Le pendant Kotlin de conformance/operations.ts : mêmes noms d'opération. */
 val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
@@ -67,6 +72,8 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
         )
     },
     "recurrence.expand" to { input -> expand(input) },
+    "reminders.build" to { input -> reminders(input) },
+    "reminders.delayLabel" to { input -> JsonPrimitive(relativeDelayLabel(input.getValue("minutes").jsonPrimitive.double)) },
     "preferences.prayerReminder" to { input ->
         JsonArray(
             prayerReminderMinutesFor(input.getValue("settings").jsonObject, input.getValue("relativePath").jsonPrimitive.content)
@@ -113,10 +120,10 @@ private fun serialize(input: JsonObject): JsonElement = try {
 }
 
 /** Les bornes du corpus sont des chaînes ISO avec décalage, lues comme `new Date(s)`. */
-private fun expand(input: JsonObject): JsonElement {
+private fun expandEntry(input: JsonObject): List<DisplayEvent> {
     fun text(key: String) = input.getValue(key).jsonPrimitive.content
     val event = validateEvent(input.getValue("event").jsonObject) ?: error("évènement invalide dans un cas recurrence.expand")
-    val occurrences = neoEventToDisplayEvents(
+    return neoEventToDisplayEvents(
         event,
         text("id"),
         text("calendarId"),
@@ -126,5 +133,20 @@ private fun expand(input: JsonObject): JsonElement {
         OffsetDateTime.parse(text("rangeStart")).toInstant(),
         OffsetDateTime.parse(text("rangeEnd")).toInstant(),
     )
-    return JsonArray(occurrences.map { it.toJson() })
+}
+
+private fun expand(input: JsonObject): JsonElement = JsonArray(expandEntry(input).map { it.toJson() })
+
+/** Les entrées de `events` sont des entrées `recurrence.expand` : développées puis concaténées. */
+private fun reminders(input: JsonObject): JsonElement {
+    fun minutes(list: JsonElement) = list.jsonArray.map { it.jsonPrimitive.long }
+    val events = input.getValue("events").jsonArray.flatMap { expandEntry(it.jsonObject) }
+    val built = buildReminders(
+        events = events,
+        now = OffsetDateTime.parse(input.getValue("now").jsonPrimitive.content).toInstant(),
+        minutesBefore = minutes(input.getValue("minutesBefore")),
+        minutesByCalendar = input.getValue("minutesByCalendar").jsonObject.mapValues { minutes(it.value) },
+        timeFormat24h = input.getValue("timeFormat24h").jsonPrimitive.boolean,
+    )
+    return JsonArray(built.map { it.toJson() })
 }

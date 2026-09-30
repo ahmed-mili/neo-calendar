@@ -1,0 +1,74 @@
+{
+  "name": "rappels de journee entiere autour du passage a l'heure d'ete",
+  "fn": "reminders.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "nuit",
+          "type": "single",
+          "allDay": true,
+          "date": "2026-03-29",
+          "reminders": [
+            -540,
+            900
+          ]
+        },
+        "id": "nuit",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      },
+      {
+        "event": {
+          "title": "lendemain",
+          "type": "single",
+          "allDay": true,
+          "date": "2026-03-30"
+        },
+        "id": "lendemain",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#ffffff",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-10-15T23:59:59+02:00"
+      }
+    ],
+    "now": "2026-03-20T12:00:00+01:00",
+    "minutesBefore": [
+      10
+    ],
+    "minutesByCalendar": {},
+    "timeFormat24h": true
+  },
+  "expected": [
+    {
+      "id": "nuit",
+      "key": "nuit#day:900",
+      "atMs": 1774684800000,
+      "title": "nuit",
+      "body": "Toute la journée",
+      "details": "Toute la journée\nCal"
+    },
+    {
+      "id": "nuit",
+      "key": "nuit#day:-540",
+      "atMs": 1774767600000,
+      "title": "nuit",
+      "body": "Toute la journée",
+      "details": "Toute la journée\nCal"
+    },
+    {
+      "id": "lendemain",
+      "key": "lendemain#day",
+      "atMs": 1774807200000,
+      "title": "lendemain",
+      "body": "Demain, toute la journée",
+      "details": "Toute la journée\nCal"
+    }
+  ]
+}

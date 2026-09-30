@@ -1,0 +1,8 @@
+{
+  "name": "90,5 minutes : le reste garde sa decimale",
+  "fn": "reminders.delayLabel",
+  "input": {
+    "minutes": 90.5
+  },
+  "expected": "1 h 30.5"
+}

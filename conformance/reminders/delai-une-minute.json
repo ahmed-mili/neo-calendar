@@ -1,0 +1,8 @@
+{
+  "name": "une minute",
+  "fn": "reminders.delayLabel",
+  "input": {
+    "minutes": 1
+  },
+  "expected": "1 min"
+}
