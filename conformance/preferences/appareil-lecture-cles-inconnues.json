@@ -1,0 +1,16 @@
+{
+  "name": "les cles qui ne sont pas d'appareil sont ignorees",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "colors": {
+        "A": "#111111"
+      },
+      "firstDay": 0,
+      "dayCount": 3
+    }
+  },
+  "expected": {
+    "dayCount": 3
+  }
+}

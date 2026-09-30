@@ -3,10 +3,15 @@ import { cloneFranceHolidaySource, parseExternalCalendarSources } from "../apps/
 import { migrateLegacyIcalSources, normalizeIcsUrl, parseIcsFeeds } from "../apps/windows/src/platform/icsFeedPreferences";
 import {
     defaultDesktopWorkspacePreferences,
+    deviceWorkspacePreferences,
     isReminderMinutes,
     parseDesktopWorkspacePreferences,
+    parseDeviceWorkspacePreferences,
     prayerReminderMinutesFor,
+    reconcileWorkspacePreferences,
     reminderListOf,
+    sharedWorkspacePreferences,
+    withDeviceWorkspacePreferences,
 } from "../apps/windows/src/platform/desktopWorkspacePreferences";
 import type { NeoEvent } from "../src/types";
 import { validateEvent } from "../src/types/schema";
@@ -35,6 +40,19 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
     "preferences.isReminderMinutes": ({ value }) => isReminderMinutes(value),
     "preferences.prayerReminder": ({ settings, relativePath }) =>
         prayerReminderMinutesFor(settings, relativePath),
+    "preferences.shared": ({ preferences }) =>
+        sharedWorkspacePreferences(parseDesktopWorkspacePreferences(preferences)),
+    "preferences.device": ({ preferences }) =>
+        deviceWorkspacePreferences(parseDesktopWorkspacePreferences(preferences)),
+    "preferences.deviceParse": ({ value }) => parseDeviceWorkspacePreferences(value),
+    "preferences.withDevice": ({ preferences, device }) =>
+        withDeviceWorkspacePreferences(parseDesktopWorkspacePreferences(preferences), device),
+    "preferences.reconcile": ({ previous, loaded, fileExisted }) =>
+        reconcileWorkspacePreferences({
+            previous: previous === null ? null : parseDesktopWorkspacePreferences(previous),
+            loaded: parseDesktopWorkspacePreferences(loaded),
+            fileExisted,
+        }),
     "notes.serialize": ({ event, previousContents }) => {
         try {
             return { text: serializeEventMarkdown(event, previousContents ?? "") };

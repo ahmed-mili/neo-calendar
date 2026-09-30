@@ -1,0 +1,47 @@
+{
+  "name": "le partage ne garde aucun des quatre reglages d'appareil",
+  "fn": "preferences.shared",
+  "input": {
+    "preferences": {
+      "viewType": "month",
+      "dayCount": 9,
+      "sidebarVisible": false,
+      "allDayCollapsed": true,
+      "colors": {
+        "A": "#111111"
+      }
+    }
+  },
+  "expected": {
+    "version": 5,
+    "colors": {
+      "A": "#111111"
+    },
+    "order": [],
+    "hiddenCalendarPaths": [],
+    "showWeekNumbers": false,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "month",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "name": "fichier vide: les tables du precedent survivent, le reste retombe sur les defauts",
+  "fn": "preferences.reconcile",
+  "input": {
+    "previous": {
+      "colors": {
+        "A": "#111111"
+      },
+      "order": [
+        "A"
+      ],
+      "prayerColors": {
+        "A": "#222222"
+      },
+      "firstDay": 0
+    },
+    "loaded": {},
+    "fileExisted": true
+  },
+  "expected": {
+    "version": 5,
+    "colors": {
+      "A": "#111111"
+    },
+    "order": [
+      "A"
+    ],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {
+      "A": "#222222"
+    },
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

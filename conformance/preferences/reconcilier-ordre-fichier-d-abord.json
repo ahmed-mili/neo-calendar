@@ -1,0 +1,58 @@
+{
+  "name": "l'ordre du fichier passe d'abord",
+  "fn": "preferences.reconcile",
+  "input": {
+    "previous": {
+      "order": [
+        "A",
+        "B",
+        "C"
+      ]
+    },
+    "loaded": {
+      "order": [
+        "C",
+        "A"
+      ]
+    },
+    "fileExisted": true
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [
+      "C",
+      "A",
+      "B"
+    ],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

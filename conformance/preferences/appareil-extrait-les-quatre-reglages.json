@@ -1,0 +1,21 @@
+{
+  "name": "l'appareil extrait exactement les quatre reglages",
+  "fn": "preferences.device",
+  "input": {
+    "preferences": {
+      "viewType": "month",
+      "dayCount": 9,
+      "sidebarVisible": false,
+      "allDayCollapsed": true,
+      "colors": {
+        "A": "#111111"
+      }
+    }
+  },
+  "expected": {
+    "viewType": "month",
+    "dayCount": 9,
+    "sidebarVisible": false,
+    "allDayCollapsed": true
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "un nombre de jours en chaine est ecarte",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "dayCount": "5"
+    }
+  },
+  "expected": {}
+}

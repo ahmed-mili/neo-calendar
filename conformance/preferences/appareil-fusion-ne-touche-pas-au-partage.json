@@ -1,0 +1,64 @@
+{
+  "name": "l'appareil ne touche jamais la partie partagee",
+  "fn": "preferences.withDevice",
+  "input": {
+    "preferences": {
+      "colors": {
+        "A": "#111111"
+      },
+      "order": [
+        "A"
+      ],
+      "firstDay": 0,
+      "reminderMinutes": [
+        5,
+        30
+      ]
+    },
+    "device": {
+      "viewType": "month",
+      "dayCount": 9,
+      "sidebarVisible": false,
+      "allDayCollapsed": true
+    }
+  },
+  "expected": {
+    "version": 5,
+    "colors": {
+      "A": "#111111"
+    },
+    "order": [
+      "A"
+    ],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": true,
+    "showWeekNumbers": false,
+    "sidebarVisible": false,
+    "viewType": "month",
+    "dayCount": 9,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 0,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      5,
+      30
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

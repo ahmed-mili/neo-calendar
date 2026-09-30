@@ -1,0 +1,8 @@
+{
+  "name": "un fichier d'appareil chaine se lit vide",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": "week"
+  },
+  "expected": {}
+}

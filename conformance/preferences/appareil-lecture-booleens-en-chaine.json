@@ -1,0 +1,11 @@
+{
+  "name": "des booleens en chaine sont ecartes",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "sidebarVisible": "false",
+      "allDayCollapsed": "true"
+    }
+  },
+  "expected": {}
+}

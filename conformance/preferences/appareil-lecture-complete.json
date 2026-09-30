@@ -1,0 +1,18 @@
+{
+  "name": "un appareil complet se lit tel quel",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "viewType": "month",
+      "dayCount": 9,
+      "sidebarVisible": false,
+      "allDayCollapsed": true
+    }
+  },
+  "expected": {
+    "viewType": "month",
+    "dayCount": 9,
+    "sidebarVisible": false,
+    "allDayCollapsed": true
+  }
+}

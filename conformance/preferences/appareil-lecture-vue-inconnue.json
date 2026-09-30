@@ -1,0 +1,13 @@
+{
+  "name": "une vue inconnue est ecartee",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "viewType": "year",
+      "dayCount": 3
+    }
+  },
+  "expected": {
+    "dayCount": 3
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "des booleens en nombre sont ecartes",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "sidebarVisible": 0,
+      "allDayCollapsed": 1
+    }
+  },
+  "expected": {}
+}

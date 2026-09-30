@@ -1,0 +1,10 @@
+{
+  "name": "une vue d'une autre casse est ecartee",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "viewType": "Week"
+    }
+  },
+  "expected": {}
+}

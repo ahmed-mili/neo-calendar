@@ -1,0 +1,60 @@
+{
+  "name": "le reste des reglages vient du fichier",
+  "fn": "preferences.reconcile",
+  "input": {
+    "previous": {
+      "firstDay": 0,
+      "timeFormat24h": false,
+      "reminderMinutes": [
+        5
+      ],
+      "mapsApp": "waze",
+      "defaultCalendarPath": "Ancien",
+      "viewType": "month",
+      "dayCount": 9
+    },
+    "loaded": {
+      "firstDay": 3,
+      "reminderMinutes": [
+        30
+      ],
+      "viewType": "list",
+      "dayCount": 2
+    },
+    "fileExisted": true
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "list",
+    "dayCount": 2,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "list",
+      "mobile": "3days"
+    },
+    "firstDay": 3,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      30
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "name": "couleur inconnue du fichier: gardee",
+  "fn": "preferences.reconcile",
+  "input": {
+    "previous": {
+      "colors": {
+        "One Piece": "#58b2e8",
+        "Valorant": "#710000"
+      }
+    },
+    "loaded": {
+      "colors": {
+        "Valorant": "#710000"
+      }
+    },
+    "fileExisted": true
+  },
+  "expected": {
+    "version": 5,
+    "colors": {
+      "One Piece": "#58b2e8",
+      "Valorant": "#710000"
+    },
+    "order": [],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

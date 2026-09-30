@@ -1,0 +1,12 @@
+{
+  "name": "au-dela de 60 jours est plafonne",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "dayCount": 500
+    }
+  },
+  "expected": {
+    "dayCount": 60
+  }
+}

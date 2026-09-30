@@ -1,0 +1,12 @@
+{
+  "name": "un fichier d'appareil tableau se lit vide",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": [
+      {
+        "dayCount": 3
+      }
+    ]
+  },
+  "expected": {}
+}

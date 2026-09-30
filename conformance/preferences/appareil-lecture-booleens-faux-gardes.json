@@ -1,0 +1,14 @@
+{
+  "name": "sidebarVisible et allDayCollapsed faux sont gardes",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "sidebarVisible": false,
+      "allDayCollapsed": false
+    }
+  },
+  "expected": {
+    "sidebarVisible": false,
+    "allDayCollapsed": false
+  }
+}

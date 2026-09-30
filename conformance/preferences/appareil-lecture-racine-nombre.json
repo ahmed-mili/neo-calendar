@@ -1,0 +1,8 @@
+{
+  "name": "un fichier d'appareil nombre se lit vide",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": 7
+  },
+  "expected": {}
+}

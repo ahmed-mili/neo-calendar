@@ -1,0 +1,8 @@
+{
+  "name": "un appareil vide se lit vide",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {}
+  },
+  "expected": {}
+}

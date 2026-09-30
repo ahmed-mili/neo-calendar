@@ -1,0 +1,12 @@
+{
+  "name": "un jour est garde",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "dayCount": 1
+    }
+  },
+  "expected": {
+    "dayCount": 1
+  }
+}

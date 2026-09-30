@@ -1,0 +1,12 @@
+{
+  "name": "un nombre de jours decimal est arrondi (haut)",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "dayCount": 2.5
+    }
+  },
+  "expected": {
+    "dayCount": 3
+  }
+}

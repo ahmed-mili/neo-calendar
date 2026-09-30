@@ -1,0 +1,12 @@
+{
+  "name": "60,4 jours est arrondi puis plafonne a 60",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "dayCount": 60.4
+    }
+  },
+  "expected": {
+    "dayCount": 60
+  }
+}

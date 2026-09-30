@@ -1,0 +1,57 @@
+{
+  "name": "une entree d'ordre perdue est gardee a la fin",
+  "fn": "preferences.reconcile",
+  "input": {
+    "previous": {
+      "order": [
+        "Études",
+        "One Piece",
+        "Autre"
+      ]
+    },
+    "loaded": {
+      "order": [
+        "Études"
+      ]
+    },
+    "fileExisted": true
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [
+      "Études",
+      "One Piece",
+      "Autre"
+    ],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

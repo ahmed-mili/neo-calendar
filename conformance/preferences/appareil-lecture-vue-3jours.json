@@ -1,0 +1,12 @@
+{
+  "name": "la vue 3days est gardee",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "viewType": "3days"
+    }
+  },
+  "expected": {
+    "viewType": "3days"
+  }
+}

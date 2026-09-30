@@ -1,0 +1,10 @@
+{
+  "name": "une vue qui n'est pas une chaine est ecartee",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "viewType": 3
+    }
+  },
+  "expected": {}
+}

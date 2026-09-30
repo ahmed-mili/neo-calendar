@@ -10,7 +10,13 @@ import com.ahmed.neocalendar.core.notes.toRecord
 import com.ahmed.neocalendar.core.notes.validateEvent
 import com.ahmed.neocalendar.core.preferences.cloneFranceHolidaySource
 import com.ahmed.neocalendar.core.preferences.defaultWorkspacePreferences
+import com.ahmed.neocalendar.core.preferences.deviceWorkspacePreferences
 import com.ahmed.neocalendar.core.preferences.isReminderMinutes
+import com.ahmed.neocalendar.core.preferences.parseDeviceWorkspacePreferences
+import com.ahmed.neocalendar.core.preferences.reconcileWorkspacePreferences
+import com.ahmed.neocalendar.core.preferences.sharedWorkspacePreferences
+import com.ahmed.neocalendar.core.preferences.withDeviceWorkspacePreferences
+import kotlinx.serialization.json.boolean
 import com.ahmed.neocalendar.core.preferences.migrateLegacyIcalSources
 import com.ahmed.neocalendar.core.preferences.normalizeIcsUrl
 import com.ahmed.neocalendar.core.preferences.parseExternalCalendarSources
@@ -45,6 +51,19 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
         reminderListOf(input["value"])?.let { list -> JsonArray(list.map { JsonPrimitive(it) }) } ?: JsonNull
     },
     "preferences.isReminderMinutes" to { input -> JsonPrimitive(isReminderMinutes(input["value"])) },
+    "preferences.shared" to { input -> sharedWorkspacePreferences(parseWorkspacePreferences(input["preferences"])) },
+    "preferences.device" to { input -> deviceWorkspacePreferences(parseWorkspacePreferences(input["preferences"])) },
+    "preferences.deviceParse" to { input -> parseDeviceWorkspacePreferences(input["value"]) },
+    "preferences.withDevice" to { input ->
+        withDeviceWorkspacePreferences(parseWorkspacePreferences(input["preferences"]), input.getValue("device").jsonObject)
+    },
+    "preferences.reconcile" to { input ->
+        reconcileWorkspacePreferences(
+            previous = input["previous"]?.takeUnless { it is JsonNull }?.let { parseWorkspacePreferences(it) },
+            loaded = parseWorkspacePreferences(input["loaded"]),
+            fileExisted = input.getValue("fileExisted").jsonPrimitive.boolean,
+        )
+    },
     "preferences.prayerReminder" to { input ->
         JsonArray(
             prayerReminderMinutesFor(input.getValue("settings").jsonObject, input.getValue("relativePath").jsonPrimitive.content)

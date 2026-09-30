@@ -1,0 +1,10 @@
+{
+  "name": "un nombre de jours negatif est ecarte",
+  "fn": "preferences.deviceParse",
+  "input": {
+    "value": {
+      "dayCount": -3
+    }
+  },
+  "expected": {}
+}

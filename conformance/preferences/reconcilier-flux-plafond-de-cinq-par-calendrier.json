@@ -1,0 +1,121 @@
+{
+  "name": "le plafond de cinq flux par calendrier tient apres fusion",
+  "fn": "preferences.reconcile",
+  "input": {
+    "previous": {
+      "icsFeeds": [
+        {
+          "id": "p1",
+          "calendarPath": "Études",
+          "name": "Cours",
+          "url": "https://x.test/p1.ics"
+        },
+        {
+          "id": "p2",
+          "calendarPath": "Études",
+          "name": "Cours",
+          "url": "https://x.test/p2.ics"
+        },
+        {
+          "id": "p3",
+          "calendarPath": "Études",
+          "name": "Cours",
+          "url": "https://x.test/p3.ics"
+        }
+      ]
+    },
+    "loaded": {
+      "icsFeeds": [
+        {
+          "id": "l1",
+          "calendarPath": "Études",
+          "name": "Cours",
+          "url": "https://x.test/l1.ics"
+        },
+        {
+          "id": "l2",
+          "calendarPath": "Études",
+          "name": "Cours",
+          "url": "https://x.test/l2.ics"
+        },
+        {
+          "id": "l3",
+          "calendarPath": "Études",
+          "name": "Cours",
+          "url": "https://x.test/l3.ics"
+        }
+      ]
+    },
+    "fileExisted": true
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [
+      {
+        "id": "l1",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/l1.ics",
+        "active": true
+      },
+      {
+        "id": "l2",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/l2.ics",
+        "active": true
+      },
+      {
+        "id": "l3",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/l3.ics",
+        "active": true
+      },
+      {
+        "id": "p1",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/p1.ics",
+        "active": true
+      },
+      {
+        "id": "p2",
+        "calendarPath": "Études",
+        "name": "Cours",
+        "url": "https://x.test/p2.ics",
+        "active": true
+      }
+    ],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

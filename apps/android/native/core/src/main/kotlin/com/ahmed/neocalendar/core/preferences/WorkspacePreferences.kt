@@ -27,7 +27,7 @@ val DEFAULT_PRAYER_REMINDER: List<Long> = listOf(0)
 /** Quatre semaines : au-delà, le délai a été écrit à la main par erreur. */
 const val MAX_REMINDER_MINUTES = 40320
 
-private val VIEW_TYPES = listOf("day", "week", "month", "list", "3days", "days")
+internal val VIEW_TYPES = listOf("day", "week", "month", "list", "3days", "days")
 private val DESKTOP_INITIAL_VIEWS = listOf("day", "week", "month", "list")
 private val MOBILE_INITIAL_VIEWS = listOf("day", "3days", "list")
 private val MAPS_TRAVEL_MODES = listOf("auto", "transit", "driving", "walking", "bicycling")
@@ -75,14 +75,14 @@ fun defaultWorkspacePreferences(): JsonObject = JsonObject(
 )
 
 /** Un nombre JSON (jamais une chaîne, un booléen ou null : JS n'y voit pas un number). */
-private fun numberOf(value: JsonElement?): Double? {
+internal fun numberOf(value: JsonElement?): Double? {
     if (value !is JsonPrimitive || value is JsonNull || value.isString) return null
     return value.content.toDoubleOrNull()?.takeIf { it.isFinite() }
 }
 
 private fun wholeNumber(value: Double) = value == floor(value)
 
-private fun stringOf(value: JsonElement?): String? =
+internal fun stringOf(value: JsonElement?): String? =
     if (value is JsonPrimitive && value.isString) value.content else null
 
 private fun boolOf(value: JsonElement?, fallback: Boolean): Boolean {
@@ -164,7 +164,7 @@ private fun colorsOf(value: JsonElement?): JsonObject {
 }
 
 /** Math.round de JS : l'entier le plus proche, les demis vers le haut. */
-private fun jsRound(value: Double) = floor(value + 0.5)
+internal fun jsRound(value: Double) = floor(value + 0.5)
 
 fun parseWorkspacePreferences(value: JsonElement?): JsonObject {
     // Un tableau passe la garde du TypeScript et n'a aucun des champs lus.
