@@ -1,0 +1,34 @@
+{
+  "name": "un ancien flux sans dossier en recoit un, a creer",
+  "fn": "ics.directoryAssignments",
+  "input": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "legacy",
+        "name": "Lectures",
+        "url": "https://example.test/legacy.ics",
+        "color": "#89b4fa"
+      }
+    ],
+    "existingFolderNames": [
+      "Personal"
+    ]
+  },
+  "expected": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "legacy",
+        "name": "Lectures",
+        "url": "https://example.test/legacy.ics",
+        "color": "#89b4fa",
+        "directory": "Lectures"
+      }
+    ],
+    "directoriesToCreate": [
+      "Lectures"
+    ],
+    "changed": true
+  }
+}

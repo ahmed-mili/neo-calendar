@@ -44,3 +44,39 @@ fun managedMetadataFromMarkdown(contents: String): JsonObject? {
         )
     )
 }
+
+/** `MANAGED_KEYS` de managedEventNote.ts : les clés que ce module possède, pour les deux gestionnaires. */
+private val MANAGED_KEYS = setOf(
+    "neoManagedBy", "neoManagedVersion", "neoIcsFeedId", "neoIcsUid", "neoIcsRecurrenceId", "neoIcsStatus",
+    "neoIslamicId", "neoIslamicCategory", "neoIslamicTraditions",
+)
+
+/**
+ * Port de serializeManagedEventMarkdown pour le gestionnaire `neo-calendar:ics` :
+ * l'en-tête de l'évènement tel que l'écrit serializeEventMarkdown, puis les
+ * marqueurs `neo*` ajoutés à la fin, toute copie précédente retirée d'abord.
+ */
+fun serializeManagedEventMarkdown(
+    event: NeoEvent,
+    feedId: String,
+    uid: String,
+    recurrenceId: String?,
+    previousContents: String = "",
+): String {
+    val document = extractFrontmatter(serializeEventMarkdown(event, previousContents))
+        ?: error("The serialized event note has no frontmatter.")
+
+    val kept = document.lines.filter { line ->
+        val colon = line.indexOf(':')
+        colon <= 0 || line.substring(0, colon).jsTrim() !in MANAGED_KEYS
+    }
+    val lines = kept + listOf(
+        "neoManagedBy: ${jsonQuote("neo-calendar:ics")}",
+        "neoManagedVersion: 1",
+        "neoIcsFeedId: ${jsonQuote(feedId)}",
+        "neoIcsUid: ${jsonQuote(uid)}",
+        "neoIcsRecurrenceId: ${if (recurrenceId == null) "null" else jsonQuote(recurrenceId)}",
+        "neoIcsStatus: ${jsonQuote("confirmed")}",
+    )
+    return "---\n${lines.joinToString("\n")}\n---\n${document.body}"
+}

@@ -1,0 +1,35 @@
+{
+  "name": "un dossier configure blanc est traite comme absent",
+  "fn": "ics.directoryAssignments",
+  "input": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "school",
+        "name": "School",
+        "url": "https://example.test/school.ics",
+        "color": "#89b4fa",
+        "directory": "   "
+      }
+    ],
+    "existingFolderNames": [
+      "School"
+    ]
+  },
+  "expected": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "school",
+        "name": "School",
+        "url": "https://example.test/school.ics",
+        "color": "#89b4fa",
+        "directory": "School (ICS)"
+      }
+    ],
+    "directoriesToCreate": [
+      "School (ICS)"
+    ],
+    "changed": true
+  }
+}

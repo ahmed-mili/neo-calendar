@@ -1,0 +1,8 @@
+{
+  "name": "les accents et l'unicode sont gardes",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "Études / Été"
+  },
+  "expected": "Études - Été"
+}

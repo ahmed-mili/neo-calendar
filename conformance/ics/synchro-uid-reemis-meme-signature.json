@@ -1,0 +1,87 @@
+{
+  "name": "un UID reemis pour la meme seance reprend la note et nomme l'ancien enregistrement",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "uid-fetch-2",
+          "uid": "uid-fetch-2",
+          "recurrenceId": null,
+          "event": {
+            "title": "Xperience",
+            "type": "single",
+            "date": "2027-04-22",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "10:00",
+            "endTime": "17:00"
+          }
+        }
+      ],
+      "cancelledKeys": [],
+      "latestOccurrenceDate": "2027-04-22"
+    },
+    "existingRecords": [
+      {
+        "id": "note::feed-1::uid-fetch-1",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2027-04-22 Xperience.md",
+        "fileName": "2027-04-22 Xperience.md",
+        "contents": "---\ntitle: \"Xperience\"\nid: \"neo-calendar:ics::feed-1::uid-fetch-1\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"17:00\"\ntype: \"single\"\ndate: \"2027-04-22\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-fetch-1\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Xperience",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "type": "single",
+          "date": "2027-04-22",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-fetch-1"
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 1,
+      "missingCounts": {}
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Xperience",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "type": "single",
+          "date": "2027-04-22",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-fetch-2"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "previousRelativePath": "School/2027-04-22 Xperience.md",
+        "previousEventId": "note::feed-1::uid-fetch-1",
+        "fileName": "2027-04-22 Xperience.md",
+        "contents": "---\ntitle: \"Xperience\"\nid: \"neo-calendar:ics::feed-1::uid-fetch-2\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"17:00\"\ntype: \"single\"\ndate: \"2027-04-22\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-fetch-2\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 1,
+      "missingCounts": {}
+    }
+  }
+}

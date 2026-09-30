@@ -1,0 +1,63 @@
+{
+  "name": "le dossier du lien change l'endroit, pas l'identite du calendrier",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "Études",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true,
+      "directory": "Études/EFREI"
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "mon",
+          "uid": "mon",
+          "recurrenceId": null,
+          "event": {
+            "title": "Cours",
+            "type": "single",
+            "date": "2026-09-02",
+            "endDate": null,
+            "allDay": true
+          }
+        }
+      ],
+      "cancelledKeys": [],
+      "latestOccurrenceDate": "2026-09-02"
+    },
+    "existingRecords": [],
+    "previousState": {
+      "knownEventCount": 0,
+      "missingCounts": {}
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Cours",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-09-02",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::mon"
+        },
+        "calendarId": "local::Études",
+        "calendarPath": "Études/EFREI",
+        "fileName": "2026-09-02 Cours.md",
+        "contents": "---\ntitle: \"Cours\"\nid: \"neo-calendar:ics::feed-1::mon\"\nallDay: true\ntype: \"single\"\ndate: \"2026-09-02\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"mon\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 1,
+      "missingCounts": {}
+    }
+  }
+}

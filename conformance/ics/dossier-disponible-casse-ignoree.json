@@ -1,0 +1,11 @@
+{
+  "name": "la comparaison ignore la casse du nom choisi",
+  "fn": "ics.availableDirectoryName",
+  "input": {
+    "preferred": "SCHOOL",
+    "usedNames": [
+      "school"
+    ]
+  },
+  "expected": "SCHOOL (ICS)"
+}

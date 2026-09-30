@@ -87,3 +87,10 @@ Ce que le port Kotlin de `ics.ts` ne reprend pas, faute de cas dans le corpus :
   à chaque appel. Les cas ne redéfinissent donc jamais un TZID.
 - Un VTIMEZONE que `ical4j` refuse retombe sur le fuseau IANA du même nom,
   puis sur l'heure flottante.
+
+`safe_join` et `validate_single_name` (Rust, `apps/windows/src-tauri/src/lib.rs`)
+ne passent pas par le corpus : `SafeNamesTest.kt` en porte les attendus, relevés
+en exécutant le Rust sous Windows. Le port lit les composants comme Windows
+(`/` et `\`, lecteur `C:`) sur tous les systèmes, et refuse un lecteur au milieu
+d'un chemin (`a/C:/b`), que le Rust laisse sortir de la racine : `PathBuf::push`
+d'un composant à préfixe remplace le chemin entier, la fonction rend `C:b`.

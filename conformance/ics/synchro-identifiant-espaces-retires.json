@@ -1,0 +1,31 @@
+{
+  "name": "un identifiant est rogne avant d'etre prefixe",
+  "fn": "ics.scopedEvent",
+  "input": {
+    "source": {
+      "type": "ical",
+      "id": "school",
+      "name": "School",
+      "url": "https://example.test/calendar.ics",
+      "color": "#89b4fa",
+      "directory": "School"
+    },
+    "event": {
+      "title": "Cours",
+      "type": "single",
+      "date": "2026-08-28",
+      "endDate": null,
+      "allDay": true,
+      "id": "  abc  "
+    },
+    "index": 0
+  },
+  "expected": {
+    "title": "Cours",
+    "id": "ical::school::abc",
+    "allDay": true,
+    "type": "single",
+    "date": "2026-08-28",
+    "endDate": null
+  }
+}

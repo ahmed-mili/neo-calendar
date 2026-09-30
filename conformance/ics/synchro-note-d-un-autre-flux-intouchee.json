@@ -1,0 +1,53 @@
+{
+  "name": "une note gouvernee par un autre flux n'est jamais touchee",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [],
+      "cancelledKeys": [
+        "mon"
+      ],
+      "latestOccurrenceDate": null
+    },
+    "existingRecords": [
+      {
+        "id": "note::feed-2::mon",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-09-02 Cours.md",
+        "fileName": "2026-09-02 Cours.md",
+        "contents": "---\ntitle: \"Cours\"\nid: \"neo-calendar:ics::feed-2::mon\"\nallDay: true\ntype: \"single\"\ndate: \"2026-09-02\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-2\"\nneoIcsUid: \"mon\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Cours",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-09-02",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-2::mon"
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 2,
+      "missingCounts": {}
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 0,
+      "missingCounts": {}
+    }
+  }
+}

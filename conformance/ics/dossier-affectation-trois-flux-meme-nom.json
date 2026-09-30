@@ -1,0 +1,64 @@
+{
+  "name": "trois flux de meme nom sont numerotes (ICS) puis (ICS 2)",
+  "fn": "ics.directoryAssignments",
+  "input": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "a",
+        "name": "School",
+        "url": "https://example.test/a.ics",
+        "color": "#89b4fa"
+      },
+      {
+        "type": "ical",
+        "id": "b",
+        "name": "School",
+        "url": "https://example.test/b.ics",
+        "color": "#89b4fa"
+      },
+      {
+        "type": "ical",
+        "id": "c",
+        "name": "School",
+        "url": "https://example.test/c.ics",
+        "color": "#89b4fa"
+      }
+    ],
+    "existingFolderNames": []
+  },
+  "expected": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "a",
+        "name": "School",
+        "url": "https://example.test/a.ics",
+        "color": "#89b4fa",
+        "directory": "School"
+      },
+      {
+        "type": "ical",
+        "id": "b",
+        "name": "School",
+        "url": "https://example.test/b.ics",
+        "color": "#89b4fa",
+        "directory": "School (ICS)"
+      },
+      {
+        "type": "ical",
+        "id": "c",
+        "name": "School",
+        "url": "https://example.test/c.ics",
+        "color": "#89b4fa",
+        "directory": "School (ICS 2)"
+      }
+    ],
+    "directoriesToCreate": [
+      "School",
+      "School (ICS)",
+      "School (ICS 2)"
+    ],
+    "changed": true
+  }
+}

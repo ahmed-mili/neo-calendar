@@ -1,0 +1,61 @@
+{
+  "name": "un evenement sans identifiant recoit event-<rang> dans l'espace de l'abonnement",
+  "fn": "ics.planNoteSync",
+  "input": {
+    "source": {
+      "type": "ical",
+      "id": "school",
+      "name": "School",
+      "url": "https://example.test/calendar.ics",
+      "color": "#89b4fa",
+      "directory": "School"
+    },
+    "remoteEvents": [
+      {
+        "title": "Un",
+        "type": "single",
+        "date": "2026-08-28",
+        "endDate": null,
+        "allDay": true
+      },
+      {
+        "title": "Deux",
+        "type": "single",
+        "date": "2026-08-29",
+        "endDate": null,
+        "allDay": true
+      }
+    ],
+    "existingRecords": []
+  },
+  "expected": [
+    {
+      "event": {
+        "title": "Un",
+        "allDay": true,
+        "type": "single",
+        "date": "2026-08-28",
+        "endDate": null,
+        "id": "ical::school::event-0"
+      },
+      "calendarId": "ical::school",
+      "calendarPath": "School",
+      "fileName": "2026-08-28 Un.md",
+      "contents": "---\ntitle: \"Un\"\nid: \"ical::school::event-0\"\nallDay: true\ntype: \"single\"\ndate: \"2026-08-28\"\nendDate: null\n---\n"
+    },
+    {
+      "event": {
+        "title": "Deux",
+        "allDay": true,
+        "type": "single",
+        "date": "2026-08-29",
+        "endDate": null,
+        "id": "ical::school::event-1"
+      },
+      "calendarId": "ical::school",
+      "calendarPath": "School",
+      "fileName": "2026-08-29 Deux.md",
+      "contents": "---\ntitle: \"Deux\"\nid: \"ical::school::event-1\"\nallDay: true\ntype: \"single\"\ndate: \"2026-08-29\"\nendDate: null\n---\n"
+    }
+  ]
+}

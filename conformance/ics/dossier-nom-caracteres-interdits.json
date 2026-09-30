@@ -1,0 +1,8 @@
+{
+  "name": "les caracteres interdits sous Windows deviennent des tirets",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "A<B>C:D\"E/F\\G|H?I*J"
+  },
+  "expected": "A-B-C-D-E-F-G-H-I-J"
+}

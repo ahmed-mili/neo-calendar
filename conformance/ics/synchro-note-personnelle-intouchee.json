@@ -1,0 +1,52 @@
+{
+  "name": "une note personnelle n'est jamais touchee, meme portant la cle annulee",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [],
+      "cancelledKeys": [
+        "personal"
+      ],
+      "latestOccurrenceDate": null
+    },
+    "existingRecords": [
+      {
+        "id": "personal",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/2026-09-02 Dentist.md",
+        "fileName": "2026-09-02 Dentist.md",
+        "contents": "---\ntitle: \"Dentist\"\ntype: \"single\"\ndate: \"2026-09-02\"\nendDate: null\nallDay: true\n---\npersonnel",
+        "event": {
+          "title": "Dentist",
+          "allDay": true,
+          "type": "single",
+          "date": "2026-09-02",
+          "endDate": null
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 2,
+      "missingCounts": {}
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 0,
+      "missingCounts": {}
+    }
+  }
+}

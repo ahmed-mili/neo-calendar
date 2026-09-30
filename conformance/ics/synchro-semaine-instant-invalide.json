@@ -1,0 +1,10 @@
+{
+  "name": "un instant invalide echoue au lieu de rendre une borne permissive",
+  "fn": "ics.startOfLocalWeek",
+  "input": {
+    "now": "pas une date"
+  },
+  "expected": {
+    "error": "invalid-now"
+  }
+}

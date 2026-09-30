@@ -1,0 +1,29 @@
+{
+  "name": "sans abonnement rafraichi, seuls les arrivants s'ajoutent",
+  "fn": "ics.mergeRemote",
+  "input": {
+    "current": [
+      {
+        "id": "a",
+        "calendarId": "x"
+      }
+    ],
+    "refreshedCalendarIds": [],
+    "arrived": [
+      {
+        "id": "n",
+        "calendarId": "z"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "id": "a",
+      "calendarId": "x"
+    },
+    {
+      "id": "n",
+      "calendarId": "z"
+    }
+  ]
+}

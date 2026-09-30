@@ -1,0 +1,34 @@
+{
+  "name": "la casse des dossiers du disque est ignoree",
+  "fn": "ics.directoryAssignments",
+  "input": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "legacy",
+        "name": "School",
+        "url": "https://example.test/legacy.ics",
+        "color": "#89b4fa"
+      }
+    ],
+    "existingFolderNames": [
+      "SCHOOL"
+    ]
+  },
+  "expected": {
+    "sources": [
+      {
+        "type": "ical",
+        "id": "legacy",
+        "name": "School",
+        "url": "https://example.test/legacy.ics",
+        "color": "#89b4fa",
+        "directory": "School (ICS)"
+      }
+    ],
+    "directoriesToCreate": [
+      "School (ICS)"
+    ],
+    "changed": true
+  }
+}

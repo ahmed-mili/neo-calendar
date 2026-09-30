@@ -1,0 +1,30 @@
+{
+  "name": "un evenement sans identifiant prend event-<rang>",
+  "fn": "ics.scopedEvent",
+  "input": {
+    "source": {
+      "type": "ical",
+      "id": "school",
+      "name": "School",
+      "url": "https://example.test/calendar.ics",
+      "color": "#89b4fa",
+      "directory": "School"
+    },
+    "event": {
+      "title": "Cours",
+      "type": "single",
+      "date": "2026-08-28",
+      "endDate": null,
+      "allDay": true
+    },
+    "index": 3
+  },
+  "expected": {
+    "title": "Cours",
+    "allDay": true,
+    "type": "single",
+    "date": "2026-08-28",
+    "endDate": null,
+    "id": "ical::school::event-3"
+  }
+}

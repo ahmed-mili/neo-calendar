@@ -1,0 +1,107 @@
+{
+  "name": "deux notes de meme signature : c'est la derniere lue qui est reprise",
+  "fn": "ics.planSync",
+  "input": {
+    "feed": {
+      "id": "feed-1",
+      "calendarPath": "School",
+      "name": "School",
+      "url": "https://example.test/school.ics",
+      "active": true
+    },
+    "snapshot": {
+      "events": [
+        {
+          "key": "uid-new",
+          "uid": "uid-new",
+          "recurrenceId": null,
+          "event": {
+            "title": "Cours",
+            "type": "single",
+            "date": "2026-12-03",
+            "endDate": null,
+            "allDay": false,
+            "startTime": "10:00",
+            "endTime": "12:00"
+          }
+        }
+      ],
+      "cancelledKeys": [],
+      "latestOccurrenceDate": "2026-12-03"
+    },
+    "existingRecords": [
+      {
+        "id": "note::feed-1::uid-x",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/premiere.md",
+        "fileName": "premiere.md",
+        "contents": "---\ntitle: \"Cours\"\nid: \"neo-calendar:ics::feed-1::uid-x\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"12:00\"\ntype: \"single\"\ndate: \"2026-12-03\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-x\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Cours",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "12:00",
+          "type": "single",
+          "date": "2026-12-03",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-x"
+        }
+      },
+      {
+        "id": "note::feed-1::uid-y",
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "relativePath": "School/seconde.md",
+        "fileName": "seconde.md",
+        "contents": "---\ntitle: \"Cours\"\nid: \"neo-calendar:ics::feed-1::uid-y\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"12:00\"\ntype: \"single\"\ndate: \"2026-12-03\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-y\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n",
+        "event": {
+          "title": "Cours",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "12:00",
+          "type": "single",
+          "date": "2026-12-03",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-y"
+        }
+      }
+    ],
+    "previousState": {
+      "knownEventCount": 1,
+      "missingCounts": {}
+    },
+    "now": "2026-09-02T07:00:00.000Z"
+  },
+  "expected": {
+    "writes": [
+      {
+        "event": {
+          "title": "Cours",
+          "allDay": false,
+          "startTime": "10:00",
+          "endTime": "12:00",
+          "type": "single",
+          "date": "2026-12-03",
+          "endDate": null,
+          "id": "neo-calendar:ics::feed-1::uid-new"
+        },
+        "calendarId": "local::School",
+        "calendarPath": "School",
+        "previousRelativePath": "School/seconde.md",
+        "previousEventId": "note::feed-1::uid-y",
+        "fileName": "seconde.md",
+        "contents": "---\ntitle: \"Cours\"\nid: \"neo-calendar:ics::feed-1::uid-new\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"12:00\"\ntype: \"single\"\ndate: \"2026-12-03\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"feed-1\"\nneoIcsUid: \"uid-new\"\nneoIcsRecurrenceId: null\nneoIcsStatus: \"confirmed\"\n---\n"
+      }
+    ],
+    "deletes": [],
+    "nextState": {
+      "lastAttemptAt": "2026-09-02T07:00:00.000Z",
+      "lastSuccessAt": "2026-09-02T07:00:00.000Z",
+      "knownEventCount": 1,
+      "missingCounts": {
+        "uid-x": 1
+      }
+    }
+  }
+}

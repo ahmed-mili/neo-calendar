@@ -1,0 +1,8 @@
+{
+  "name": "la casse ne protege pas d'un nom reserve",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "LPT9"
+  },
+  "expected": "LPT9 Calendar"
+}

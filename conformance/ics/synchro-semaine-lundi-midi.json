@@ -1,0 +1,8 @@
+{
+  "name": "un lundi midi donne ce lundi",
+  "fn": "ics.startOfLocalWeek",
+  "input": {
+    "now": "2026-08-31T10:00:00.000Z"
+  },
+  "expected": "2026-08-31"
+}

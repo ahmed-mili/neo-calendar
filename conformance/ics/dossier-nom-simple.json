@@ -1,0 +1,8 @@
+{
+  "name": "un nom sans difficulte reste tel quel",
+  "fn": "ics.directoryName",
+  "input": {
+    "name": "Planning Efrei"
+  },
+  "expected": "Planning Efrei"
+}
