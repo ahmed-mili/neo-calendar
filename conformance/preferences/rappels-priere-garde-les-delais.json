@@ -1,0 +1,17 @@
+{
+  "name": "prayerReminderMinutesFor garde-les-delais",
+  "fn": "preferences.prayerReminder",
+  "input": {
+    "settings": {
+      "Prieres": [
+        10,
+        0
+      ]
+    },
+    "relativePath": "Prieres"
+  },
+  "expected": [
+    10,
+    0
+  ]
+}

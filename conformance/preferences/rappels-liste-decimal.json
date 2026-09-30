@@ -1,0 +1,8 @@
+{
+  "name": "reminderListOf decimal",
+  "fn": "preferences.reminderList",
+  "input": {
+    "value": 1.5
+  },
+  "expected": null
+}

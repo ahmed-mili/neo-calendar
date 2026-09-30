@@ -1,0 +1,12 @@
+{
+  "name": "reminderListOf tableau-de-tableaux",
+  "fn": "preferences.reminderList",
+  "input": {
+    "value": [
+      [
+        5
+      ]
+    ]
+  },
+  "expected": null
+}

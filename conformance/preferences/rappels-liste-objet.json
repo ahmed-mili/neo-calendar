@@ -1,0 +1,8 @@
+{
+  "name": "reminderListOf objet",
+  "fn": "preferences.reminderList",
+  "input": {
+    "value": {}
+  },
+  "expected": null
+}

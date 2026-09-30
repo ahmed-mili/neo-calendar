@@ -1,0 +1,8 @@
+{
+  "name": "isReminderMinutes limite-haute",
+  "fn": "preferences.isReminderMinutes",
+  "input": {
+    "value": 40320
+  },
+  "expected": true
+}

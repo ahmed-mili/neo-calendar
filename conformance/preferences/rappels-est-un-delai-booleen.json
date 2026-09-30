@@ -1,0 +1,8 @@
+{
+  "name": "isReminderMinutes booleen",
+  "fn": "preferences.isReminderMinutes",
+  "input": {
+    "value": true
+  },
+  "expected": false
+}

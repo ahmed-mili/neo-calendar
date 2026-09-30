@@ -1,0 +1,10 @@
+{
+  "name": "reminderListOf limite-haute",
+  "fn": "preferences.reminderList",
+  "input": {
+    "value": 40320
+  },
+  "expected": [
+    40320
+  ]
+}

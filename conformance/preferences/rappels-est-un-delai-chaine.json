@@ -1,0 +1,8 @@
+{
+  "name": "isReminderMinutes chaine",
+  "fn": "preferences.isReminderMinutes",
+  "input": {
+    "value": "10"
+  },
+  "expected": false
+}

@@ -1,0 +1,80 @@
+{
+  "name": "lecture prayerJumua horaires tries sans doublon",
+  "fn": "preferences.parse",
+  "input": {
+    "value": {
+      "prayerJumua": {
+        "A": [
+          "13:30",
+          "12:45",
+          "13:30"
+        ],
+        "B": [],
+        "C": [
+          "25:00"
+        ],
+        "D": [
+          "12:60"
+        ],
+        "E": [
+          "9:00"
+        ],
+        "F": [
+          "12:00",
+          1
+        ],
+        "G": "13:00",
+        "H": [
+          "00:00",
+          "23:59"
+        ],
+        "I": [
+          "24:00"
+        ]
+      }
+    }
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {
+      "A": [
+        "12:45",
+        "13:30"
+      ],
+      "H": [
+        "00:00",
+        "23:59"
+      ]
+    }
+  }
+}

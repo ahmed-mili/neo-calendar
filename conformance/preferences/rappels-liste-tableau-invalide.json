@@ -1,0 +1,11 @@
+{
+  "name": "reminderListOf tableau-invalide",
+  "fn": "preferences.reminderList",
+  "input": {
+    "value": [
+      5,
+      "x"
+    ]
+  },
+  "expected": null
+}

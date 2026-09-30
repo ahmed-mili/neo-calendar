@@ -1,0 +1,44 @@
+{
+  "name": "lecture firstDay null",
+  "fn": "preferences.parse",
+  "input": {
+    "value": {
+      "firstDay": null,
+      "dayCount": 3
+    }
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 3,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

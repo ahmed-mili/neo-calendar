@@ -1,0 +1,98 @@
+{
+  "name": "lecture icsFeeds et sources iCal migrees fusionnes, doublons d id ecartes",
+  "fn": "preferences.parse",
+  "input": {
+    "value": {
+      "icsFeeds": [
+        {
+          "id": "cours",
+          "calendarPath": "Etudes",
+          "name": "Cours",
+          "url": "https://x.test/autre.ics"
+        },
+        {
+          "id": "garde",
+          "calendarPath": "Perso",
+          "name": "Garde",
+          "url": "https://x.test/garde.ics",
+          "refreshMinutes": 5
+        }
+      ],
+      "calendarSources": [
+        {
+          "type": "ical",
+          "id": "cours",
+          "name": "Cal cours",
+          "url": "https://x.test/cours.ics",
+          "color": "#fff",
+          "directory": "Etudes"
+        },
+        {
+          "type": "ical",
+          "id": "nouveau",
+          "name": "Cal nouveau",
+          "url": "https://x.test/nouveau.ics",
+          "color": "#fff",
+          "directory": "Perso"
+        }
+      ]
+    }
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [
+      {
+        "id": "cours",
+        "calendarPath": "Etudes",
+        "name": "Cours",
+        "url": "https://x.test/autre.ics",
+        "active": true
+      },
+      {
+        "id": "garde",
+        "calendarPath": "Perso",
+        "name": "Garde",
+        "url": "https://x.test/garde.ics",
+        "refreshMinutes": 5,
+        "active": true
+      },
+      {
+        "id": "nouveau",
+        "calendarPath": "Perso",
+        "name": "Cal nouveau",
+        "url": "https://x.test/nouveau.ics",
+        "active": true
+      }
+    ],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

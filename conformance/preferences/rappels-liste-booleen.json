@@ -1,0 +1,8 @@
+{
+  "name": "reminderListOf booleen",
+  "fn": "preferences.reminderList",
+  "input": {
+    "value": true
+  },
+  "expected": null
+}

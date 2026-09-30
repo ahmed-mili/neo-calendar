@@ -1,0 +1,86 @@
+{
+  "name": "lecture calendarReminderMinutes",
+  "fn": "preferences.parse",
+  "input": {
+    "value": {
+      "calendarReminderMinutes": {
+        "A": [
+          15,
+          5,
+          15
+        ],
+        "B": 10,
+        "C": 0,
+        "D": [],
+        "E": [
+          -5
+        ],
+        "F": [
+          2.5
+        ],
+        "G": "10",
+        "H": [
+          0,
+          10
+        ],
+        "I": null,
+        "J": [
+          40321
+        ],
+        "K": [
+          40320
+        ]
+      }
+    }
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {
+      "A": [
+        5,
+        15
+      ],
+      "B": [
+        10
+      ],
+      "C": [],
+      "D": [],
+      "H": [
+        10
+      ],
+      "K": [
+        40320
+      ]
+    },
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

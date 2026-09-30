@@ -1,0 +1,8 @@
+{
+  "name": "reminderListOf chaine",
+  "fn": "preferences.reminderList",
+  "input": {
+    "value": "5"
+  },
+  "expected": null
+}

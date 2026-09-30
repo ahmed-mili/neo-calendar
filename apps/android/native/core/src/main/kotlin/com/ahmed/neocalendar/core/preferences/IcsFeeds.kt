@@ -21,7 +21,7 @@ val ICS_REFRESH_MINUTES: List<Int> = listOf(5, 15, 30, 60, 180, 360)
 const val MAX_ICS_FEEDS_PER_CALENDAR = 5
 
 /** Un nombre JSON qui est l'une des fréquences (15.0 vaut 15 en JS). */
-private fun refreshMinutes(value: JsonElement?): Int? {
+internal fun refreshMinutes(value: JsonElement?): Int? {
     if (value !is JsonPrimitive || value is JsonNull || value.isString) return null
     val number = value.content.toDoubleOrNull() ?: return null
     return ICS_REFRESH_MINUTES.firstOrNull { it.toDouble() == number }

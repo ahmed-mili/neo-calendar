@@ -1,0 +1,11 @@
+{
+  "name": "prayerReminderMinutesFor garde-la-liste-vide",
+  "fn": "preferences.prayerReminder",
+  "input": {
+    "settings": {
+      "Prieres": []
+    },
+    "relativePath": "Prieres"
+  },
+  "expected": []
+}

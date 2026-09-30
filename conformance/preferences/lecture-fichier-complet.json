@@ -1,0 +1,190 @@
+{
+  "name": "lecture fichier complet dont chaque valeur change",
+  "fn": "preferences.parse",
+  "input": {
+    "value": {
+      "version": 3,
+      "colors": {
+        "Perso": "#ff0000",
+        "Travail": "#00ff00"
+      },
+      "order": [
+        "Travail",
+        "Perso"
+      ],
+      "defaultCalendarPath": "Perso",
+      "hiddenCalendarPaths": [
+        "Travail"
+      ],
+      "allDayCollapsed": true,
+      "showWeekNumbers": true,
+      "sidebarVisible": false,
+      "viewType": "month",
+      "dayCount": 7,
+      "secondaryTimezones": [
+        "America/New_York",
+        "Asia/Tokyo"
+      ],
+      "initialView": {
+        "desktop": "list",
+        "mobile": "day"
+      },
+      "firstDay": 0,
+      "timeFormat24h": false,
+      "clickToCreateEventFromMonthView": false,
+      "freeScroll": true,
+      "defaultEventsAsTasks": true,
+      "reminderMinutes": [
+        30,
+        5,
+        30
+      ],
+      "calendarReminderMinutes": {
+        "Perso": [
+          15,
+          60
+        ],
+        "Travail": []
+      },
+      "mapsTravelMode": "transit",
+      "mapsApp": "waze",
+      "icsDefaultRefreshMinutes": 15,
+      "icsFeeds": [
+        {
+          "id": "flux-cours",
+          "calendarPath": "Perso",
+          "name": "Cours",
+          "url": "https://x.test/cours.ics",
+          "refreshMinutes": 30,
+          "active": false
+        }
+      ],
+      "externalCalendars": [
+        {
+          "type": "auto",
+          "id": "fetes",
+          "name": "Fetes",
+          "rules": [
+            {
+              "n": "Noel",
+              "k": "f",
+              "m": 12,
+              "d": 25
+            }
+          ]
+        }
+      ],
+      "prayerMosques": {
+        "Perso": "mosquee-x"
+      },
+      "prayerColors": {
+        "Perso": "#0a1b2c"
+      },
+      "prayerReminderMinutes": {
+        "Perso": [
+          10,
+          0,
+          10
+        ]
+      },
+      "prayerJumua": {
+        "Perso": [
+          "13:30",
+          "12:45"
+        ]
+      }
+    }
+  },
+  "expected": {
+    "version": 5,
+    "colors": {
+      "Perso": "#ff0000",
+      "Travail": "#00ff00"
+    },
+    "order": [
+      "Travail",
+      "Perso"
+    ],
+    "defaultCalendarPath": "Perso",
+    "hiddenCalendarPaths": [
+      "Travail"
+    ],
+    "allDayCollapsed": true,
+    "showWeekNumbers": true,
+    "sidebarVisible": false,
+    "viewType": "month",
+    "dayCount": 7,
+    "secondaryTimezones": [
+      "America/New_York",
+      "Asia/Tokyo"
+    ],
+    "initialView": {
+      "desktop": "list",
+      "mobile": "day"
+    },
+    "firstDay": 0,
+    "timeFormat24h": false,
+    "clickToCreateEventFromMonthView": false,
+    "freeScroll": true,
+    "defaultEventsAsTasks": true,
+    "reminderMinutes": [
+      5,
+      30
+    ],
+    "calendarReminderMinutes": {
+      "Perso": [
+        15,
+        60
+      ],
+      "Travail": []
+    },
+    "mapsTravelMode": "transit",
+    "mapsApp": "waze",
+    "icsDefaultRefreshMinutes": 15,
+    "icsFeeds": [
+      {
+        "id": "flux-cours",
+        "calendarPath": "Perso",
+        "name": "Cours",
+        "url": "https://x.test/cours.ics",
+        "refreshMinutes": 30,
+        "active": false
+      }
+    ],
+    "externalCalendars": [
+      {
+        "type": "auto",
+        "id": "fetes",
+        "name": "Fetes",
+        "icon": "flag",
+        "color": "#89b4fa",
+        "rules": [
+          {
+            "n": "Noel",
+            "k": "f",
+            "m": 12,
+            "d": 25
+          }
+        ]
+      }
+    ],
+    "prayerMosques": {
+      "Perso": "mosquee-x"
+    },
+    "prayerColors": {
+      "Perso": "#0a1b2c"
+    },
+    "prayerReminderMinutes": {
+      "Perso": [
+        0,
+        10
+      ]
+    },
+    "prayerJumua": {
+      "Perso": [
+        "12:45",
+        "13:30"
+      ]
+    }
+  }
+}

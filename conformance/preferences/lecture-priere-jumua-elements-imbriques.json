@@ -1,0 +1,56 @@
+{
+  "name": "lecture prayerJumua ecarte un element tableau meme si son texte est une heure",
+  "fn": "preferences.parse",
+  "input": {
+    "value": {
+      "prayerJumua": {
+        "A": [
+          [
+            "12:00"
+          ]
+        ],
+        "B": [
+          "12:00"
+        ]
+      }
+    }
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {
+      "B": [
+        "12:00"
+      ]
+    }
+  }
+}

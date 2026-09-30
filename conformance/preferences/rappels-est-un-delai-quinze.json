@@ -1,0 +1,8 @@
+{
+  "name": "isReminderMinutes quinze",
+  "fn": "preferences.isReminderMinutes",
+  "input": {
+    "value": 15
+  },
+  "expected": true
+}

@@ -1,0 +1,17 @@
+{
+  "name": "reminderListOf tableau-trie-dedoublonne-sans-zero",
+  "fn": "preferences.reminderList",
+  "input": {
+    "value": [
+      60,
+      0,
+      5,
+      60,
+      5
+    ]
+  },
+  "expected": [
+    5,
+    60
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "reminderListOf nombre",
+  "fn": "preferences.reminderList",
+  "input": {
+    "value": 15
+  },
+  "expected": [
+    15
+  ]
+}

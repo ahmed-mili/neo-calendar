@@ -1,0 +1,8 @@
+{
+  "name": "isReminderMinutes null",
+  "fn": "preferences.isReminderMinutes",
+  "input": {
+    "value": null
+  },
+  "expected": false
+}

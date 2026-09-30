@@ -1,0 +1,10 @@
+{
+  "name": "isReminderMinutes tableau",
+  "fn": "preferences.isReminderMinutes",
+  "input": {
+    "value": [
+      10
+    ]
+  },
+  "expected": false
+}

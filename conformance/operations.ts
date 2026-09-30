@@ -1,6 +1,13 @@
 import { filenameForEvent, parseFrontmatter, parseStoredEvent, serializeEventMarkdown } from "../apps/windows/src/platform/desktopEventFormat";
 import { cloneFranceHolidaySource, parseExternalCalendarSources } from "../apps/windows/src/platform/desktopExternalCalendars";
 import { migrateLegacyIcalSources, normalizeIcsUrl, parseIcsFeeds } from "../apps/windows/src/platform/icsFeedPreferences";
+import {
+    defaultDesktopWorkspacePreferences,
+    isReminderMinutes,
+    parseDesktopWorkspacePreferences,
+    prayerReminderMinutesFor,
+    reminderListOf,
+} from "../apps/windows/src/platform/desktopWorkspacePreferences";
 import type { NeoEvent } from "../src/types";
 import { validateEvent } from "../src/types/schema";
 
@@ -22,6 +29,12 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
     "preferences.icsMigrate": ({ value }) => migrateLegacyIcalSources(value),
     "preferences.externalSources": ({ value }) => parseExternalCalendarSources(value),
     "preferences.franceHolidaySource": () => cloneFranceHolidaySource(),
+    "preferences.defaults": () => defaultDesktopWorkspacePreferences(),
+    "preferences.parse": ({ value }) => parseDesktopWorkspacePreferences(value),
+    "preferences.reminderList": ({ value }) => reminderListOf(value),
+    "preferences.isReminderMinutes": ({ value }) => isReminderMinutes(value),
+    "preferences.prayerReminder": ({ settings, relativePath }) =>
+        prayerReminderMinutesFor(settings, relativePath),
     "notes.serialize": ({ event, previousContents }) => {
         try {
             return { text: serializeEventMarkdown(event, previousContents ?? "") };

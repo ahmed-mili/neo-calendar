@@ -1,0 +1,15 @@
+{
+  "name": "prayerReminderMinutesFor defaut-quand-autre-calendrier",
+  "fn": "preferences.prayerReminder",
+  "input": {
+    "settings": {
+      "Autre": [
+        10
+      ]
+    },
+    "relativePath": "Prieres"
+  },
+  "expected": [
+    0
+  ]
+}

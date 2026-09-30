@@ -1,0 +1,94 @@
+{
+  "name": "lecture sources auto gardees, iCal migrees, inconnues ecartees",
+  "fn": "preferences.parse",
+  "input": {
+    "value": {
+      "calendarSources": [
+        {
+          "type": "auto",
+          "id": "fr",
+          "name": "Fetes",
+          "rules": [
+            {
+              "n": "Noel",
+              "k": "f",
+              "m": 12,
+              "d": 25
+            }
+          ]
+        },
+        {
+          "type": "ical",
+          "id": "cours",
+          "name": "Cal cours",
+          "url": "https://x.test/cours.ics",
+          "color": "#fff",
+          "directory": "Etudes"
+        },
+        {
+          "type": "autre",
+          "id": "x",
+          "name": "X"
+        }
+      ]
+    }
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [
+      {
+        "id": "cours",
+        "calendarPath": "Etudes",
+        "name": "Cal cours",
+        "url": "https://x.test/cours.ics",
+        "active": true
+      }
+    ],
+    "externalCalendars": [
+      {
+        "type": "auto",
+        "id": "fr",
+        "name": "Fetes",
+        "icon": "flag",
+        "color": "#89b4fa",
+        "rules": [
+          {
+            "n": "Noel",
+            "k": "f",
+            "m": 12,
+            "d": 25
+          }
+        ]
+      }
+    ],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

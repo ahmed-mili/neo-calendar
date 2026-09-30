@@ -1,0 +1,8 @@
+{
+  "name": "isReminderMinutes au-dela",
+  "fn": "preferences.isReminderMinutes",
+  "input": {
+    "value": 40321
+  },
+  "expected": false
+}

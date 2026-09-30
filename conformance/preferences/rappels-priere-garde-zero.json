@@ -1,0 +1,15 @@
+{
+  "name": "prayerReminderMinutesFor garde-zero",
+  "fn": "preferences.prayerReminder",
+  "input": {
+    "settings": {
+      "Prieres": [
+        0
+      ]
+    },
+    "relativePath": "Prieres"
+  },
+  "expected": [
+    0
+  ]
+}

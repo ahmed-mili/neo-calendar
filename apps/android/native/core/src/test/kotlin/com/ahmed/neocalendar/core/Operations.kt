@@ -9,10 +9,16 @@ import com.ahmed.neocalendar.core.notes.parseStoredEvent
 import com.ahmed.neocalendar.core.notes.toRecord
 import com.ahmed.neocalendar.core.notes.validateEvent
 import com.ahmed.neocalendar.core.preferences.cloneFranceHolidaySource
+import com.ahmed.neocalendar.core.preferences.defaultWorkspacePreferences
+import com.ahmed.neocalendar.core.preferences.isReminderMinutes
 import com.ahmed.neocalendar.core.preferences.migrateLegacyIcalSources
 import com.ahmed.neocalendar.core.preferences.normalizeIcsUrl
 import com.ahmed.neocalendar.core.preferences.parseExternalCalendarSources
 import com.ahmed.neocalendar.core.preferences.parseIcsFeeds
+import com.ahmed.neocalendar.core.preferences.parseWorkspacePreferences
+import com.ahmed.neocalendar.core.preferences.prayerReminderMinutesFor
+import com.ahmed.neocalendar.core.preferences.reminderListOf
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -33,6 +39,18 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf(
     "preferences.icsMigrate" to { input -> migrateLegacyIcalSources(input["value"]) },
     "preferences.externalSources" to { input -> parseExternalCalendarSources(input["value"]) },
     "preferences.franceHolidaySource" to { _ -> cloneFranceHolidaySource() },
+    "preferences.defaults" to { _ -> defaultWorkspacePreferences() },
+    "preferences.parse" to { input -> parseWorkspacePreferences(input["value"]) },
+    "preferences.reminderList" to { input ->
+        reminderListOf(input["value"])?.let { list -> JsonArray(list.map { JsonPrimitive(it) }) } ?: JsonNull
+    },
+    "preferences.isReminderMinutes" to { input -> JsonPrimitive(isReminderMinutes(input["value"])) },
+    "preferences.prayerReminder" to { input ->
+        JsonArray(
+            prayerReminderMinutesFor(input.getValue("settings").jsonObject, input.getValue("relativePath").jsonPrimitive.content)
+                .map { JsonPrimitive(it) }
+        )
+    },
 )
 
 /** StoredEvent sans `contents` (écho inutile), `readOnly` et `icsFeedId` omis

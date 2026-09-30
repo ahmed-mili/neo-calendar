@@ -1,0 +1,70 @@
+{
+  "name": "lecture externalCalendars l emporte sur calendarSources",
+  "fn": "preferences.parse",
+  "input": {
+    "value": {
+      "externalCalendars": [
+        {
+          "type": "ical",
+          "id": "nouveau",
+          "name": "Cal nouveau",
+          "url": "https://x.test/nouveau.ics",
+          "color": "#fff",
+          "directory": "Nouveau"
+        }
+      ],
+      "calendarSources": [
+        {
+          "type": "ical",
+          "id": "ancien",
+          "name": "Cal ancien",
+          "url": "https://x.test/ancien.ics",
+          "color": "#fff",
+          "directory": "Ancien"
+        }
+      ]
+    }
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [],
+    "hiddenCalendarPaths": [],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [
+      {
+        "id": "nouveau",
+        "calendarPath": "Nouveau",
+        "name": "Cal nouveau",
+        "url": "https://x.test/nouveau.ics",
+        "active": true
+      }
+    ],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

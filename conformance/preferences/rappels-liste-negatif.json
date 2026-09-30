@@ -1,0 +1,8 @@
+{
+  "name": "reminderListOf negatif",
+  "fn": "preferences.reminderList",
+  "input": {
+    "value": -1
+  },
+  "expected": null
+}

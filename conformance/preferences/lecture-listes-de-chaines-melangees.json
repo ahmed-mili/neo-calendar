@@ -1,0 +1,71 @@
+{
+  "name": "lecture listes de chaines ecartent les elements non chaines",
+  "fn": "preferences.parse",
+  "input": {
+    "value": {
+      "order": [
+        "A",
+        1,
+        null,
+        "B",
+        [
+          "C"
+        ],
+        {},
+        "A"
+      ],
+      "hiddenCalendarPaths": [
+        true,
+        "Cache",
+        2
+      ],
+      "secondaryTimezones": [
+        "Europe/London",
+        null,
+        3
+      ]
+    }
+  },
+  "expected": {
+    "version": 5,
+    "colors": {},
+    "order": [
+      "A",
+      "B",
+      "A"
+    ],
+    "hiddenCalendarPaths": [
+      "Cache"
+    ],
+    "allDayCollapsed": false,
+    "showWeekNumbers": false,
+    "sidebarVisible": true,
+    "viewType": "week",
+    "dayCount": 4,
+    "secondaryTimezones": [
+      "Europe/London"
+    ],
+    "initialView": {
+      "desktop": "week",
+      "mobile": "3days"
+    },
+    "firstDay": 1,
+    "timeFormat24h": true,
+    "clickToCreateEventFromMonthView": true,
+    "freeScroll": false,
+    "defaultEventsAsTasks": false,
+    "reminderMinutes": [
+      10
+    ],
+    "calendarReminderMinutes": {},
+    "mapsTravelMode": "auto",
+    "mapsApp": "ask",
+    "icsDefaultRefreshMinutes": 60,
+    "icsFeeds": [],
+    "externalCalendars": [],
+    "prayerMosques": {},
+    "prayerColors": {},
+    "prayerReminderMinutes": {},
+    "prayerJumua": {}
+  }
+}

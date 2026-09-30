@@ -1,0 +1,8 @@
+{
+  "name": "isReminderMinutes decimal",
+  "fn": "preferences.isReminderMinutes",
+  "input": {
+    "value": 0.5
+  },
+  "expected": false
+}

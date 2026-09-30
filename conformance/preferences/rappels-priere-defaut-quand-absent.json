@@ -1,0 +1,11 @@
+{
+  "name": "prayerReminderMinutesFor defaut-quand-absent",
+  "fn": "preferences.prayerReminder",
+  "input": {
+    "settings": {},
+    "relativePath": "Prieres"
+  },
+  "expected": [
+    0
+  ]
+}
