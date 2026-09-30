@@ -70,9 +70,9 @@
 
 ### Task 5 (notes 13 et 22) : préférences écrites, réglages, calendriers
 
-**Files:** `core/.../preferences/PreferencesWriter.kt` (+ tests), `ui/Settings*.kt`, `ui/Drawer.kt`.
+**Files:** `ui/Settings*.kt`, `ui/Drawer.kt`.
 
-- Écriture de `.neo-calendar/.neo-calendar.json` : même contenu et même forme que ce qu'écrit la WebView aujourd'hui (`savePreferences` en Java, qui reçoit l'objet du TypeScript) ; relever le format exact (indentation, ordre des clés) en le lisant dans le Java et le TypeScript (`workspacePreferenceWriter.ts`), le figer par des tests JUnit ; ne jamais écrire si la lecture a échoué (fichier corrompu).
+- Écriture de `.neo-calendar/.neo-calendar.json` : **déjà faite dans le noyau** (tâche 13 de la note, `core/.../preferences/PreferencesWriter.kt` : `sharedPreferencesToWrite` puis `preferencesFileText`, format du téléphone figé au corpus `preferences.write`) ; l'appeler, ne rien réécrire. Écrire à l'emplacement et avec la même suppression des anciens noms que `savePreferences` du Java ; ne jamais écrire si la lecture a échoué (fichier corrompu).
 - Tiroir : œil (masquer), couleur, calendrier par défaut, ordre, ajout / renommage / suppression de calendrier (dossier), comme l'inventaire §1.
 - Réglages : page racine de l'inventaire §3 (sans les réglages PC) ; dossier de données (sélecteur SAF `ACTION_OPEN_DOCUMENT_TREE`, même clé `tree_uri`) ; rappel général et par calendrier.
 - [ ] Émulateur : changer « Premier jour » et « Format 24 h », vérifier la grille ; masquer un calendrier ; captures. Commit « App native : réglages et calendriers ».
@@ -125,3 +125,7 @@
 ## Écarts de la v1
 
 (tenu par le contrôleur au fil des tâches)
+
+- **Grille (T1)** : le pincement à deux doigts n'a pas pu être simulé sur l'émulateur (adb sans multitouch) ; le zoom lui-même est vérifié. Le glissé depuis le bord gauche ouvre le retour système de l'émulateur ; le bouton menu ouvre le tiroir.
+- **Listes (T2)** : la liste d'un calendrier n'a que la recherche (pas les filtres statut / période / liens ICS, ni les totaux, ni le menu « … ») ; la recherche porte sur le titre seul, sans casse ni accents ; les évènements sans date vont dans un groupe « Sans date » en fin de liste (le PC les range sous aujourd'hui).
+- **Langue** : français fixe (`AppLocale.current`), pas encore de réglage de langue.
