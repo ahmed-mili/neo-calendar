@@ -1,0 +1,6 @@
+{
+  "name": "attendees non chaînes : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","attendees":["Ada",3],"type":"single","allDay":true,"date":"2026-10-02"}},
+  "expected": null
+}

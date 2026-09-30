@@ -1,0 +1,6 @@
+{
+  "name": "allDay absent : évènement horodaté",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","date":"2026-10-02","startTime":"09:00","endTime":"10:00","endDate":"2026-10-03"}},
+  "expected": {"title":"Dentiste","allDay":false,"startTime":"09:00","endTime":"10:00","type":"single","date":"2026-10-02","endDate":"2026-10-03"}
+}

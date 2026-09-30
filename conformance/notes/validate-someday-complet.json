@@ -1,0 +1,6 @@
+{
+  "name": "someday : completed et due",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"someday","completed":null,"due":"2026-11-01"}},
+  "expected": {"title":"Dentiste","allDay":true,"type":"someday","completed":null,"due":"2026-11-01"}
+}

@@ -1,0 +1,6 @@
+{
+  "name": "note gérée par un flux ICS : lecture seule et flux",
+  "fn": "notes.parse",
+  "input": {"file":{"relativePath":"Perso/Dentiste.md","calendarPath":"Perso","fileName":"Dentiste.md","contents":"---\ntitle: \"Cours de maths\"\nallDay: false\nstartTime: \"10:00\"\nendTime: \"11:00\"\ntype: \"single\"\ndate: \"2026-09-01\"\nendDate: null\nneoManagedBy: \"neo-calendar:ics\"\nneoManagedVersion: 1\nneoIcsFeedId: \"school\"\nneoIcsUid: \"uid-1\"\nneoIcsRecurrenceId: \"2026-09-01T08:00:00Z\"\nneoIcsStatus: \"confirmed\"\n---\n"},"knownCalendarIds":["local::Perso"]},
+  "expected": {"id":"path:Perso/Dentiste.md","calendarId":"local::Perso","calendarPath":"Perso","relativePath":"Perso/Dentiste.md","fileName":"Dentiste.md","event":{"title":"Cours de maths","allDay":false,"startTime":"10:00","endTime":"11:00","type":"single","date":"2026-09-01","endDate":null},"readOnly":true,"icsFeedId":"school"}
+}

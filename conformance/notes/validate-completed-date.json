@@ -1,0 +1,6 @@
+{
+  "name": "completed : date",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","completed":"2026-10-02T10:00:00.000Z","due":"2026-10-05"}},
+  "expected": {"title":"Dentiste","allDay":true,"type":"single","date":"2026-10-02","endDate":null,"completed":"2026-10-02T10:00:00.000Z","due":"2026-10-05"}
+}

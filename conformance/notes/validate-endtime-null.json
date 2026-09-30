@@ -1,0 +1,6 @@
+{
+  "name": "endTime null explicite : null",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":false,"date":"2026-10-02","startTime":"09:00","endTime":null,"endDate":null}},
+  "expected": {"title":"Dentiste","allDay":false,"startTime":"09:00","endTime":null,"type":"single","date":"2026-10-02","endDate":null}
+}

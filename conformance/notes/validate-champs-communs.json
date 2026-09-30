@@ -1,0 +1,6 @@
+{
+  "name": "champs communs conservés",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Réunion","id":"abc","location":"Salle 2","geo":"48.85,2.35","description":"Ordre du jour","attendees":["Ada","Bob"],"subtasks":["[x] Salle","[ ] Café"],"type":"single","allDay":true,"date":"2026-10-02"}},
+  "expected": {"title":"Réunion","id":"abc","location":"Salle 2","geo":"48.85,2.35","description":"Ordre du jour","attendees":["Ada","Bob"],"subtasks":["[x] Salle","[ ] Café"],"allDay":true,"type":"single","date":"2026-10-02","endDate":null}
+}

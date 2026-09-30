@@ -1,0 +1,6 @@
+{
+  "name": "completed : null",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","completed":null,"due":null}},
+  "expected": {"title":"Dentiste","allDay":true,"type":"single","date":"2026-10-02","endDate":null,"completed":null,"due":null}
+}

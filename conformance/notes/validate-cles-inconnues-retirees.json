@@ -1,0 +1,6 @@
+{
+  "name": "clés inconnues retirées de la sortie",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","couleur":"rouge","neoManagedBy":"x"}},
+  "expected": {"title":"Dentiste","allDay":true,"type":"single","date":"2026-10-02","endDate":null}
+}

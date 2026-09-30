@@ -1,0 +1,6 @@
+{
+  "name": "single sans date : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":true}},
+  "expected": null
+}

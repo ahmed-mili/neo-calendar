@@ -1,0 +1,6 @@
+{
+  "name": "calendrier inconnu : null",
+  "fn": "notes.parse",
+  "input": {"file":{"relativePath":"Perso/Dentiste.md","calendarPath":"Perso","fileName":"Dentiste.md","contents":"---\ntitle: Dentiste\ntype: single\nallDay: true\ndate: 2026-10-02\n---\nCorps"},"knownCalendarIds":["local::Autre"]},
+  "expected": null
+}

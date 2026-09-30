@@ -1,0 +1,6 @@
+{
+  "name": "titre vide : nom de fichier sans .md",
+  "fn": "notes.parse",
+  "input": {"file":{"relativePath":"Perso/Rendez-vous.MD","calendarPath":"Perso","fileName":"Rendez-vous.MD","contents":"---\ntitle:\ntype: single\nallDay: true\ndate: 2026-10-02\n---\n"},"knownCalendarIds":["local::Perso"]},
+  "expected": {"id":"path:Perso/Rendez-vous.MD","calendarId":"local::Perso","calendarPath":"Perso","relativePath":"Perso/Rendez-vous.MD","fileName":"Rendez-vous.MD","event":{"title":"Rendez-vous","allDay":true,"type":"single","date":"2026-10-02","endDate":null}}
+}

@@ -1,0 +1,6 @@
+{
+  "name": "allDay false sans startTime : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":false,"date":"2026-10-02"}},
+  "expected": null
+}

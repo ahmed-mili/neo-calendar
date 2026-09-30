@@ -1,0 +1,6 @@
+{
+  "name": "rrule sans règle : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"rrule","allDay":true,"startDate":"2026-09-01","skipDates":[]}},
+  "expected": null
+}

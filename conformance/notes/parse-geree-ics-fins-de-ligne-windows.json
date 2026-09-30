@@ -1,0 +1,6 @@
+{
+  "name": "note gérée avec fins de ligne Windows",
+  "fn": "notes.parse",
+  "input": {"file":{"relativePath":"Perso/Dentiste.md","calendarPath":"Perso","fileName":"Dentiste.md","contents":"---\r\ntitle: \"Cours de maths\"\r\nallDay: false\r\nstartTime: \"10:00\"\r\nendTime: \"11:00\"\r\ntype: \"single\"\r\ndate: \"2026-09-01\"\r\nendDate: null\r\nneoManagedBy: \"neo-calendar:ics\"\r\nneoManagedVersion: 1\r\nneoIcsFeedId: \"school\"\r\nneoIcsUid: \"uid-1\"\r\nneoIcsRecurrenceId: \"2026-09-01T08:00:00Z\"\r\nneoIcsStatus: \"confirmed\"\r\n---\r\n"},"knownCalendarIds":["local::Perso"]},
+  "expected": {"id":"path:Perso/Dentiste.md","calendarId":"local::Perso","calendarPath":"Perso","relativePath":"Perso/Dentiste.md","fileName":"Dentiste.md","event":{"title":"Cours de maths","allDay":false,"startTime":"10:00","endTime":"11:00","type":"single","date":"2026-09-01","endDate":null},"readOnly":true,"icsFeedId":"school"}
+}

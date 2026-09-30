@@ -1,0 +1,6 @@
+{
+  "name": "type inconnu : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"weekly","allDay":true}},
+  "expected": null
+}

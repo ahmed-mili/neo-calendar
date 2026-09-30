@@ -1,0 +1,6 @@
+{
+  "name": "recurring sans skipDates : liste vide",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"recurring","allDay":true,"daysOfWeek":["M","W"]}},
+  "expected": {"title":"Dentiste","allDay":true,"type":"recurring","daysOfWeek":["M","W"],"skipDates":[]}
+}

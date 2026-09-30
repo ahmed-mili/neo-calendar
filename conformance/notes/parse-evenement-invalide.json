@@ -1,0 +1,6 @@
+{
+  "name": "en-tête sans titre : null",
+  "fn": "notes.parse",
+  "input": {"file":{"relativePath":"Perso/Dentiste.md","calendarPath":"Perso","fileName":"Dentiste.md","contents":"---\ntype: single\nallDay: true\ndate: 2026-10-02\n---\n"},"knownCalendarIds":["local::Perso"]},
+  "expected": null
+}

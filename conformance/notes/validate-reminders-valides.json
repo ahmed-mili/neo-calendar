@@ -1,0 +1,6 @@
+{
+  "name": "reminders : entiers et décimal",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","reminders":[60,0,2.5]}},
+  "expected": {"title":"Dentiste","reminders":[60,0,2.5],"allDay":true,"type":"single","date":"2026-10-02","endDate":null}
+}

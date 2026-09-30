@@ -1,0 +1,6 @@
+{
+  "name": "recurring sans daysOfWeek : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"recurring","allDay":true}},
+  "expected": null
+}

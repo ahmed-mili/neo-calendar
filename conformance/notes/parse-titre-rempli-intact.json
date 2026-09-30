@@ -1,0 +1,6 @@
+{
+  "name": "titre non vide jamais remplacé",
+  "fn": "notes.parse",
+  "input": {"file":{"relativePath":"Perso/Dentiste.md","calendarPath":"Perso","fileName":"Autre.md","contents":"---\ntitle: Dentiste\ntype: single\nallDay: true\ndate: 2026-10-02\n---\nCorps"},"knownCalendarIds":["local::Perso"]},
+  "expected": {"id":"path:Perso/Dentiste.md","calendarId":"local::Perso","calendarPath":"Perso","relativePath":"Perso/Dentiste.md","fileName":"Autre.md","event":{"title":"Dentiste","allDay":true,"type":"single","date":"2026-10-02","endDate":null}}
+}

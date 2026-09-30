@@ -1,0 +1,6 @@
+{
+  "name": "recurring : tous les champs propres",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"recurring","allDay":false,"startTime":"08:00","endTime":"09:00","daysOfWeek":["U","M"],"startRecur":"2026-09-01","endRecur":"2026-12-31","skipDates":["2026-10-05"],"completed":"in-progress","completedDates":["2026-09-07"]}},
+  "expected": {"title":"Dentiste","allDay":false,"startTime":"08:00","endTime":"09:00","type":"recurring","daysOfWeek":["U","M"],"completed":"in-progress","completedDates":["2026-09-07"],"startRecur":"2026-09-01","endRecur":"2026-12-31","skipDates":["2026-10-05"]}
+}

@@ -1,0 +1,6 @@
+{
+  "name": "type absent : évènement ponctuel",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","allDay":true,"date":"2026-10-02","endDate":"2026-10-03"}},
+  "expected": {"title":"Dentiste","allDay":true,"type":"single","date":"2026-10-02","endDate":"2026-10-03"}
+}

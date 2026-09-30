@@ -1,0 +1,6 @@
+{
+  "name": "dossier racine : local::.",
+  "fn": "notes.parse",
+  "input": {"file":{"relativePath":"Dentiste.md","calendarPath":"","fileName":"Dentiste.md","contents":"---\ntitle: Dentiste\ntype: single\nallDay: true\ndate: 2026-10-02\n---\nCorps"},"knownCalendarIds":["local::."]},
+  "expected": {"id":"path:Dentiste.md","calendarId":"local::.","calendarPath":"","relativePath":"Dentiste.md","fileName":"Dentiste.md","event":{"title":"Dentiste","allDay":true,"type":"single","date":"2026-10-02","endDate":null}}
+}

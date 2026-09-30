@@ -1,0 +1,6 @@
+{
+  "name": "reminders booléen : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","reminders":[true]}},
+  "expected": null
+}

@@ -1,0 +1,6 @@
+{
+  "name": "id blanc : identifiant de chemin",
+  "fn": "notes.parse",
+  "input": {"file":{"relativePath":"Perso/Dentiste.md","calendarPath":"Perso","fileName":"Dentiste.md","contents":"---\nid: \"   \"\ntitle: Dentiste\ntype: single\nallDay: true\ndate: 2026-10-02\n---\nCorps"},"knownCalendarIds":["local::Perso"]},
+  "expected": {"id":"path:Perso/Dentiste.md","calendarId":"local::Perso","calendarPath":"Perso","relativePath":"Perso/Dentiste.md","fileName":"Dentiste.md","event":{"title":"Dentiste","id":"   ","allDay":true,"type":"single","date":"2026-10-02","endDate":null}}
+}

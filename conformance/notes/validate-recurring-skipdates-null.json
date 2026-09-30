@@ -1,0 +1,6 @@
+{
+  "name": "recurring skipDates null : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"recurring","allDay":true,"daysOfWeek":["M"],"skipDates":null}},
+  "expected": null
+}

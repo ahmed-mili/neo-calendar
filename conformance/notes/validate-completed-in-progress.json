@@ -1,0 +1,6 @@
+{
+  "name": "completed : in-progress",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","completed":"in-progress"}},
+  "expected": {"title":"Dentiste","allDay":true,"type":"single","date":"2026-10-02","endDate":null,"completed":"in-progress"}
+}

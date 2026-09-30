@@ -1,0 +1,6 @@
+{
+  "name": "title absent : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"type":"single","allDay":true,"date":"2026-10-02"}},
+  "expected": null
+}

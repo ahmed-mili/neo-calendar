@@ -1,0 +1,6 @@
+{
+  "name": "reminders non numérique : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","reminders":[10,"5"]}},
+  "expected": null
+}

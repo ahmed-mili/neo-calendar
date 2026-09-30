@@ -24,7 +24,7 @@ private fun isJsSpace(c: Char): Boolean = when (c) {
     else -> c in ' '..' '
 }
 
-private fun String.jsTrim(): String = trim(::isJsSpace)
+internal fun String.jsTrim(): String = trim(::isJsSpace)
 
 /** JS `slice(1, -1)` se cale sur la chaîne ; `substring` de Kotlin lève. */
 private fun String.sliceInner(): String = if (length < 2) "" else substring(1, length - 1)
@@ -103,8 +103,9 @@ private val NUMBER = Regex("""-?\d+(?:\.\d+)?""")
 
 /** `Number(...)` de JS ne distingue pas 2 de 2.0 et l'écrit `2` : un nombre
  *  entier sort donc en Long, le JSON produit ici restant celui du TypeScript. */
-private fun numberOf(text: String): JsonPrimitive {
-    val number = text.toDouble()
+internal fun numberOf(text: String): JsonPrimitive = numberOf(text.toDouble())
+
+internal fun numberOf(number: Double): JsonPrimitive {
     return if (number == Math.rint(number) && abs(number) < 9.007199254740992E15) {
         JsonPrimitive(number.toLong())
     } else {

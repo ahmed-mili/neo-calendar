@@ -1,0 +1,6 @@
+{
+  "name": "reminders vide conservé",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","reminders":[]}},
+  "expected": {"title":"Dentiste","reminders":[],"allDay":true,"type":"single","date":"2026-10-02","endDate":null}
+}

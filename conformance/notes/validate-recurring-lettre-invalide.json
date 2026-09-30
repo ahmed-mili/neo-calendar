@@ -1,0 +1,6 @@
+{
+  "name": "daysOfWeek avec une lettre hors UMTWRFS : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"recurring","allDay":true,"daysOfWeek":["M","X"]}},
+  "expected": null
+}

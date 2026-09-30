@@ -1,0 +1,6 @@
+{
+  "name": "type numérique : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":3,"allDay":true,"date":"2026-10-02"}},
+  "expected": null
+}

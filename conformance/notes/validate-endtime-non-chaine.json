@@ -1,0 +1,6 @@
+{
+  "name": "endTime numérique : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":false,"date":"2026-10-02","startTime":"09:00","endTime":10}},
+  "expected": null
+}

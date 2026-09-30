@@ -1,0 +1,6 @@
+{
+  "name": "allDay true : startTime et endTime retirés",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","startTime":"09:00","endTime":"10:00"}},
+  "expected": {"title":"Dentiste","allDay":true,"type":"single","date":"2026-10-02","endDate":null}
+}

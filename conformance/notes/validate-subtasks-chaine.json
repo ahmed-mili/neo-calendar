@@ -1,0 +1,6 @@
+{
+  "name": "subtasks chaîne seule : rejet",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","subtasks":"[x] a","type":"single","allDay":true,"date":"2026-10-02"}},
+  "expected": null
+}

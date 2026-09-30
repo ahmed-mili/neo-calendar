@@ -1,0 +1,6 @@
+{
+  "name": "completed : true est rejeté",
+  "fn": "notes.validate",
+  "input": {"raw":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","completed":true}},
+  "expected": null
+}
