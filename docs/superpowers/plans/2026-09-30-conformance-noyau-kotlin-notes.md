@@ -39,6 +39,8 @@
 
 ### Task 1: Fondation : runners et module `core`
 
+> Fait : commits 25357c0..a62cde6
+
 **Files:**
 - Create: `conformance/README.md`
 - Create: `conformance/runner.test.ts`
@@ -56,7 +58,7 @@
 - Produces (TS) : `OPERATIONS: Record<string, (input: any) => unknown>` dans `conformance/operations.ts`.
 - Produces (Kotlin) : `val OPERATIONS: Map<String, (JsonObject) -> JsonElement>` dans `Operations.kt` (paquet `com.ahmed.neocalendar.core`, source set test) ; `fun filenameForEvent(event: JsonObject): String` dans `core/notes/Filename.kt` (sera retypé en Task 5).
 
-- [ ] **Step 1: Écrire le cas trivial**
+- [x] **Step 1: Écrire le cas trivial**
 
 `conformance/notes/filename-single.json` :
 ```json
@@ -68,7 +70,7 @@
 }
 ```
 
-- [ ] **Step 2: Runner Jest**
+- [x] **Step 2: Runner Jest**
 
 `conformance/operations.ts` :
 ```ts
@@ -131,14 +133,14 @@ describe("corpus de conformité", () => {
 });
 ```
 
-- [ ] **Step 3: Vérifier le runner Jest**
+- [x] **Step 3: Vérifier le runner Jest**
 
 Run: `npx jest conformance`
 Expected: PASS, 2 tests (le cas et le garde-fou « contient au moins un cas »).
 
 Discriminance : dans `desktopEventFormat.ts`, `baseNameForEvent`, remplacer temporairement `${event.date} ${event.title}` par `${event.title}` ; relancer : FAIL sur `notes/filename-single.json` ; restaurer ; PASS.
 
-- [ ] **Step 4: Module Gradle `core`**
+- [x] **Step 4: Module Gradle `core`**
 
 `apps/android/native/settings.gradle.kts` : ajouter `include(":core")` après `include(":app")`.
 
@@ -176,7 +178,7 @@ tasks.test {
 }
 ```
 
-- [ ] **Step 5: Runner JUnit (échoue : `filenameForEvent` n'existe pas)**
+- [x] **Step 5: Runner JUnit (échoue : `filenameForEvent` n'existe pas)**
 
 `core/src/test/kotlin/com/ahmed/neocalendar/core/Operations.kt` :
 ```kotlin
@@ -239,7 +241,7 @@ class ConformanceTest(private val label: String, private val file: File) {
 Run (PowerShell, `apps/android/native`) : `.\gradlew.bat :core:test`
 Expected: FAIL à la compilation, `Unresolved reference 'filenameForEvent'`.
 
-- [ ] **Step 6: Implémentation minimale**
+- [x] **Step 6: Implémentation minimale**
 
 `core/src/main/kotlin/com/ahmed/neocalendar/core/notes/Filename.kt` :
 ```kotlin
@@ -258,7 +260,7 @@ fun filenameForEvent(event: JsonObject): String {
 
 Run: `.\gradlew.bat :core:test` → PASS (1 cas). Et `.\gradlew.bat assembleDebug` → BUILD SUCCESSFUL (le module ne casse pas `:app`).
 
-- [ ] **Step 7: README du corpus et CI**
+- [x] **Step 7: README du corpus et CI**
 
 `conformance/README.md` : reprendre de la spec, section « Le corpus », le format d'un cas, les règles (le TypeScript fait foi, discriminance, entrée qui porte tout ce qui varie, entier sans `.0`), et les deux commandes de la contrainte globale.
 
@@ -271,7 +273,7 @@ Run: `.\gradlew.bat :core:test` → PASS (1 cas). Et `.\gradlew.bat assembleDebu
               run: ./gradlew --no-daemon :core:test
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add conformance apps/android/native/settings.gradle.kts apps/android/native/build.gradle.kts apps/android/native/core .github/workflows/release.yml
@@ -281,6 +283,8 @@ git commit -m "Corpus de conformité : runners Jest et JUnit, module Kotlin core
 ---
 
 ### Task 2: `notes.frontmatter` : lire l'en-tête YAML maison
+
+> Fait : commits a62cde6..79b377b
 
 Port de `extractFrontmatter`, `parseFrontmatter`, `unquote`, `splitYamlArray`, `parseTextScalar`, `parseYamlValue` (`apps/windows/src/platform/desktopEventFormat.ts:31-170`). Pas de bibliothèque YAML : le TypeScript n'en a pas, et le corpus fige SA grammaire.
 
@@ -293,7 +297,7 @@ Port de `extractFrontmatter`, `parseFrontmatter`, `unquote`, `splitYamlArray`, `
 - Produces : `data class FrontmatterDocument(val lines: List<String>, val body: String)` ; `fun extractFrontmatter(contents: String): FrontmatterDocument?` ; `fun parseFrontmatter(contents: String): JsonObject?` (valeurs : `JsonPrimitive` chaîne/booléen/entier/décimal, `JsonNull`, `JsonArray`) ; `internal fun parseYamlValue(raw: String): JsonElement` ; `internal fun parseTextScalar(raw: String): String`.
 - Opération : `notes.frontmatter`, entrée `{ "text": string }`, sortie `parseFrontmatter(text)` (objet ou `null`).
 
-- [ ] **Step 1: Écrire les cas**
+- [x] **Step 1: Écrire les cas**
 
 Un fichier par cas. Couvrir, en lisant `parseYamlValue`/`unquote`/`splitYamlArray` ligne à ligne et en reprenant les données de `desktopEventFormat.test.ts` : note sans `---` → `null` ; `---` jamais refermé → `null` ; note en `\r\n` ; ligne vide et commentaire `#` ignorés ; ligne sans `:` ou clé vide ignorée ; valeur contenant `:` (`startTime: 09:30`) ; `true`/`false` ; `null` et valeur vide ; entier, décimal ; chaîne entre `"` avec échappements ; entre `'` ; tableau `[a, b]` et tableau de chaînes citées contenant `,` et `[` (le cas des sous-tâches `["[x] Book the van","[ ] Pack, then label"]`) ; `description` qui reste texte même si elle ressemble à un nombre ou à `true` ; clé en double (la dernière gagne).
 
@@ -309,20 +313,20 @@ Exemple `conformance/notes/frontmatter-heure-avec-deux-points.json` :
 
 Adaptateur TS : `"notes.frontmatter": ({ text }) => parseFrontmatter(text),` (import depuis `desktopEventFormat`).
 
-- [ ] **Step 2: Vert en TypeScript, discriminance vue**
+- [x] **Step 2: Vert en TypeScript, discriminance vue**
 
 Run: `npx jest conformance` → PASS. Pour chaque cas, casser la règle qu'il garde (ex. retirer `.replace(/\r\n/g, "\n")`), voir le cas rougir, restaurer. Un cas qui ne rougit sous aucune casse est retiré. Si la sortie attendue ne se devine pas, l'obtenir en exécutant la fonction TypeScript (script `npx ts-node` jetable ou `console.log` dans un test temporaire), jamais en la supposant.
 
-- [ ] **Step 3: Rouge en Kotlin**
+- [x] **Step 3: Rouge en Kotlin**
 
 Ajouter à `Operations.kt` : `"notes.frontmatter" to { input -> parseFrontmatter(input.getValue("text").jsonPrimitive.content) ?: JsonNull },`
 Run: `.\gradlew.bat :core:test` → FAIL (référence non résolue).
 
-- [ ] **Step 4: Porter `Frontmatter.kt`**
+- [x] **Step 4: Porter `Frontmatter.kt`**
 
 Traduction fidèle des lignes 31-170, fonction pour fonction, mêmes noms, commentaires du POURQUOI repris. Pièges : `String.split("\n")` Kotlin garde les chaînes vides finales comme JS ; `trim()` Kotlin retire aussi les espaces Unicode comme JS `trim()` — vérifier sur le cas `\r\n` ; `toLocaleLowerCase("en-US")` → `lowercase(Locale.US)` ; un entier YAML → `JsonPrimitive(Long)`, un décimal → `JsonPrimitive(Double)` ; reproduire exactement la regex numérique de `parseYamlValue`.
 
-- [ ] **Step 5: Vert des deux côtés, commit**
+- [x] **Step 5: Vert des deux côtés, commit**
 
 Run: `npx jest conformance` et `.\gradlew.bat :core:test` → PASS tous les deux.
 ```bash
@@ -333,6 +337,8 @@ git commit -m "Corpus notes : en-tête YAML, porté en Kotlin"
 ---
 
 ### Task 3: `notes.validate` et `notes.parse` : de l'en-tête à l'évènement
+
+> Fait : commits 79b377b..4178f2e
 
 Port de `parseEvent`/`validateEvent` (`src/types/schema.ts`, zod), `calendarIdFromPath`, `parseStoredEvent` (`desktopEventFormat.ts:171-236`) et `managedMetadataFromMarkdown` (`apps/windows/src/platform/managedEventNote.ts:117-150`).
 
@@ -356,13 +362,13 @@ Port de `parseEvent`/`validateEvent` (`src/types/schema.ts`, zod), `calendarIdFr
   - `notes.validate` : entrée `{ "raw": objet }`, sortie `validateEvent(raw)` en record ordonné, ou `null`. Le runner compare sans ordre ; l'ORDRE est vérifié en Task 4 par le texte écrit.
   - `notes.parse` : entrée `{ "file": EventFile, "knownCalendarIds": [..] }`, sortie `StoredEvent` sans `contents` (écho inutile), `event` en record, ou `null`.
 
-- [ ] **Step 1: Cas `notes.validate`**
+- [x] **Step 1: Cas `notes.validate`**
 
 Couvrir chaque branche de `parseEvent` : `type` absent → `single` ; `allDay` absent → `false` ; `someday` force `allDay: true` ; `endTime` absent → `null` ; `endDate` absent → `null` ; `skipDates` absent : `[]` pour `recurring`, rejet pour `rrule` ; `daysOfWeek` avec lettre hors `UMTWRFS` → `null` ; `completed` : date, `false`, `"in-progress"`, `null`, et `true` → rejet ; `reminders` non numérique → rejet ; `title` absent → rejet ; clés inconnues retirées de la sortie ; `allDay: true` avec `startTime` → `startTime` retiré.
 
 Adaptateur TS : `"notes.validate": ({ raw }) => validateEvent(raw),`
 
-- [ ] **Step 2: Cas `notes.parse`**
+- [x] **Step 2: Cas `notes.parse`**
 
 Titre vide → nom de fichier sans `.md` ; `id` absent → `path:<relativePath>` ; `id` blanc → `path:` ; calendrier inconnu → `null` ; frontmatter invalide → `null` ; note gérée par un flux ICS (marqueurs de `serializeManagedEventMarkdown`, en prendre un vrai depuis `managedEventNote.test.ts`) → `readOnly: true` et `icsFeedId`.
 
@@ -376,13 +382,13 @@ Adaptateur TS :
 },
 ```
 
-- [ ] **Step 3: Vert en TypeScript, discriminance vue** (même méthode que Task 2, Step 2).
+- [x] **Step 3: Vert en TypeScript, discriminance vue** (même méthode que Task 2, Step 2).
 
-- [ ] **Step 4: Rouge en Kotlin** : ajouter les deux opérations à `Operations.kt` (entrée JSON → `EventFile`/`Set`, sortie → `JsonObject` via `toRecord()` et les champs de `StoredEvent`, `readOnly`/`icsFeedId` omis quand null). `.\gradlew.bat :core:test` → FAIL.
+- [x] **Step 4: Rouge en Kotlin** : ajouter les deux opérations à `Operations.kt` (entrée JSON → `EventFile`/`Set`, sortie → `JsonObject` via `toRecord()` et les champs de `StoredEvent`, `readOnly`/`icsFeedId` omis quand null). `.\gradlew.bat :core:test` → FAIL.
 
-- [ ] **Step 5: Porter** `NeoEvent.kt` (validation explicite, champ par champ, dans l'ordre du schéma ; pas de bibliothèque de validation), `StoredEvent.kt`, `ManagedNote.kt`.
+- [x] **Step 5: Porter** `NeoEvent.kt` (validation explicite, champ par champ, dans l'ordre du schéma ; pas de bibliothèque de validation), `StoredEvent.kt`, `ManagedNote.kt`.
 
-- [ ] **Step 6: Vert des deux côtés, commit**
+- [x] **Step 6: Vert des deux côtés, commit**
 ```bash
 git add conformance apps/android/native/core
 git commit -m "Corpus notes : validation et lecture d'un évènement, portées en Kotlin"
@@ -391,6 +397,8 @@ git commit -m "Corpus notes : validation et lecture d'un évènement, portées e
 ---
 
 ### Task 4: `notes.serialize` : écrire un évènement dans une note
+
+> Fait : commits 4178f2e..7c3371d
 
 Port de `serializeEventMarkdown`, `stringifyYamlAtom`, `stringifyYamlLine`, `lineKey` (`desktopEventFormat.ts:251-341`) et de `KEYS_DROPPED_WHEN_ABSENT` (`src/types/schema.ts`).
 
@@ -404,7 +412,7 @@ Port de `serializeEventMarkdown`, `stringifyYamlAtom`, `stringifyYamlLine`, `lin
 - Produces : `class InvalidEventException : IllegalArgumentException` ; `fun serializeEventMarkdown(event: NeoEvent, previousContents: String = ""): String` ; `fun serializeEventMarkdown(raw: JsonObject, previousContents: String = ""): String` (valide d'abord, lève `InvalidEventException` si invalide).
 - Opération `notes.serialize` : entrée `{ "event": objet, "previousContents"?: string }`, sortie `{ "text": string }` ou `{ "error": "invalid" }`.
 
-- [ ] **Step 1: Cas**
+- [x] **Step 1: Cas**
 
 Note neuve : ordre des clés (un `single` horodaté, un `recurring`, un `rrule`, un `someday`, chacun avec `title` écrit en premier) ; chaînes à citer (deux-points, `#`, crochet initial, guillemet) ; tableaux ; sous-tâches `["[x] Book the van","[ ] Pack, then label"]` ; `description` multiligne si le TS la gère. Note existante : clé inconnue gardée octet pour octet et à sa place ; commentaire gardé ; clé de `KEYS_DROPPED_WHEN_ABSENT` absente → ligne retirée ; `startTime` retiré quand l'évènement passe en all-day ; clé nouvelle ajoutée à la fin ; corps de la note intact, `\r\n` compris ; évènement invalide → `{ "error": "invalid" }`.
 
@@ -419,11 +427,11 @@ Adaptateur TS :
 },
 ```
 
-- [ ] **Step 2: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 3: Rouge en Kotlin** (opération ajoutée, `InvalidEventException` → `{"error":"invalid"}`).
-- [ ] **Step 4: Porter `Serialize.kt`.**
-- [ ] **Step 5: Aller-retour** : ajouter à `core/src/test/kotlin/com/ahmed/neocalendar/core/notes/RoundTripTest.kt` un test JUnit qui, pour chaque cas `serialize-*` sans erreur, vérifie `validateEvent(parseFrontmatter(text)!!)` égal à `validateEvent(event)`.
-- [ ] **Step 6: Vert des deux côtés, commit**
+- [x] **Step 2: Vert en TypeScript, discriminance vue.**
+- [x] **Step 3: Rouge en Kotlin** (opération ajoutée, `InvalidEventException` → `{"error":"invalid"}`).
+- [x] **Step 4: Porter `Serialize.kt`.**
+- [x] **Step 5: Aller-retour** : ajouter à `core/src/test/kotlin/com/ahmed/neocalendar/core/notes/RoundTripTest.kt` un test JUnit qui, pour chaque cas `serialize-*` sans erreur, vérifie `validateEvent(parseFrontmatter(text)!!)` égal à `validateEvent(event)`.
+- [x] **Step 6: Vert des deux côtés, commit**
 ```bash
 git add conformance apps/android/native/core
 git commit -m "Corpus notes : écriture d'un évènement, portée en Kotlin"
@@ -432,6 +440,8 @@ git commit -m "Corpus notes : écriture d'un évènement, portée en Kotlin"
 ---
 
 ### Task 5: `notes.filename` complet, y compris le texte d'une règle rrule
+
+> Fait : commits 7c3371d..5b01746
 
 Port de `sanitizeForFilename`, `baseNameForEvent`, `filenameForEvent` (`desktopEventFormat.ts:343-377`). La branche `rrule` appelle `rrulestr(rule).toText()` de la bibliothèque `rrule` (anglais) : le Kotlin réimplémente ce texte pour les SEULES règles que l'application écrit, relevées dans `recurrenceToRRule` (`src/ui/calendar/recurrence.ts`), et retombe sur `"Recurring"` pour une règle qu'il ne sait pas lire, comme le `catch` TypeScript.
 
@@ -445,11 +455,11 @@ Port de `sanitizeForFilename`, `baseNameForEvent`, `filenameForEvent` (`desktopE
 - Consumes : `NeoEvent`, `validateEvent` (Task 3).
 - Produces : `fun filenameForEvent(event: NeoEvent): String` ; `internal fun sanitizeForFilename(name: String): String` ; `internal fun rruleToText(rule: String): String?` (null = forme non reconnue).
 
-- [ ] **Step 1: Cas** : caractères `\/:*?"<>|` → `-` ; espaces multiples ; points et espaces finaux ; titre réduit à rien → `Untitled.md` ; `recurring` (`(Every M,W) Titre.md`) ; `someday` ; et pour `rrule` chaque forme produite par `recurrenceToRRule` (quotidien, tous les N jours, hebdo sur un et plusieurs jours, mensuel par jour du mois, mensuel « 2e mardi », annuel, avec `COUNT`, avec `UNTIL`) plus une règle malformée → `(Recurring) Titre.md`. Le texte attendu s'obtient en EXÉCUTANT `rrulestr(...).toText()`, jamais de mémoire.
-- [ ] **Step 2: Vert en TypeScript, discriminance vue.**
-- [ ] **Step 3: Rouge en Kotlin.**
-- [ ] **Step 4: Porter `Filename.kt` et `RruleText.kt`** (lire le `toText` de `node_modules/rrule/dist/es5/rrule.js` pour les formes couvertes ; ne rien inventer au-delà des cas).
-- [ ] **Step 5: Vert des deux côtés, commit**
+- [x] **Step 1: Cas** : caractères `\/:*?"<>|` → `-` ; espaces multiples ; points et espaces finaux ; titre réduit à rien → `Untitled.md` ; `recurring` (`(Every M,W) Titre.md`) ; `someday` ; et pour `rrule` chaque forme produite par `recurrenceToRRule` (quotidien, tous les N jours, hebdo sur un et plusieurs jours, mensuel par jour du mois, mensuel « 2e mardi », annuel, avec `COUNT`, avec `UNTIL`) plus une règle malformée → `(Recurring) Titre.md`. Le texte attendu s'obtient en EXÉCUTANT `rrulestr(...).toText()`, jamais de mémoire.
+- [x] **Step 2: Vert en TypeScript, discriminance vue.**
+- [x] **Step 3: Rouge en Kotlin.**
+- [x] **Step 4: Porter `Filename.kt` et `RruleText.kt`** (lire le `toText` de `node_modules/rrule/dist/es5/rrule.js` pour les formes couvertes ; ne rien inventer au-delà des cas).
+- [x] **Step 5: Vert des deux côtés, commit**
 ```bash
 git add conformance apps/android/native/core
 git commit -m "Corpus notes : nom de fichier d'un évènement, porté en Kotlin"
