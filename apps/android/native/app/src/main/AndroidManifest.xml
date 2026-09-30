@@ -61,6 +61,7 @@
         <!-- Écran Compose : sans filtre d'intention, lancé seulement par l'alias debug. -->
         <activity
             android:name=".nativeapp.NativeActivity"
+            android:enableOnBackInvokedCallback="true"
             android:exported="false" />
 
         <provider
