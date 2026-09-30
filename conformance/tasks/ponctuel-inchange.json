@@ -1,0 +1,28 @@
+{
+  "name": "un ponctuel n'a pas de jours : rien ne change",
+  "fn": "tasks.setOccurrenceStatus",
+  "input": {
+    "event": {
+      "title": "Dentiste",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null,
+      "completed": false
+    },
+    "day": "2026-08-12",
+    "complete": true
+  },
+  "expected": {
+    "title": "Dentiste",
+    "allDay": false,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "type": "single",
+    "date": "2026-08-12",
+    "endDate": null,
+    "completed": false
+  }
+}

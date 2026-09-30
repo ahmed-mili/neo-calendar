@@ -1,0 +1,10 @@
+{
+  "name": "un appui a 09:08 se cale sur 09:15",
+  "fn": "grid.positionToDate",
+  "input": {
+    "y": 657.6,
+    "date": "2026-08-11T22:00:00.000Z",
+    "hourHeight": 72
+  },
+  "expected": "2026-08-12T07:15:00.000Z"
+}

@@ -18,8 +18,12 @@ conformance/
 ├── location/*.json          destination d'un lieu, applications de cartes, adresses
 ├── description/*.json       cases à cocher, liens et chemins de pièces jointes d'une description
 ├── form-panel/*.json        durée et date de fin affichées par la fiche
-└── form/*.json              la fiche rendue pour de bon (jsdom) : valeurs lues, payload écrit
+├── form/*.json              la fiche rendue pour de bon (jsdom) : valeurs lues, payload écrit
+├── drag/*.json              gestes de la grille : appui calé au quart d'heure, jours déplacés, écriture d'un déplacement ou d'un redimensionnement
+└── tasks/*.json             cocher un jour d'une série
 ```
+
+Les opérations `grid.dragSingle` et `grid.resizeSingle` sont asynchrones (le runner Jest les attend) ; la série déplacée (copie ponctuelle) n'y figure pas : le Kotlin garde toute la fiche de la série là où le TypeScript n'en recopie que le titre et la description (`EventWriterMoveTest`). `computeSnapped` (redimensionnement) vit dans un hook : `EventMoveTest` seul le garde.
 
 `notes/merge-*.json` (fusion du formulaire sur la note) et `reminders/choicelabel-*`,
 `splitdelay-*`, `minutesfrom-*` (délais de rappel) complètent les dossiers existants.

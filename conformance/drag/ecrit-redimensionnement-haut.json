@@ -1,0 +1,35 @@
+{
+  "name": "le haut tire : seule l'heure de debut change",
+  "fn": "grid.resizeSingle",
+  "input": {
+    "event": {
+      "title": "Dentiste",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null
+    },
+    "eventId": "abc",
+    "start": "2026-08-12T06:15:00.000Z",
+    "end": "2026-08-12T08:00:00.000Z"
+  },
+  "expected": {
+    "ok": true,
+    "updates": [
+      {
+        "id": "abc",
+        "event": {
+          "title": "Dentiste",
+          "allDay": false,
+          "startTime": "08:15",
+          "endTime": "10:00",
+          "type": "single",
+          "date": "2026-08-12",
+          "endDate": null
+        }
+      }
+    ]
+  }
+}

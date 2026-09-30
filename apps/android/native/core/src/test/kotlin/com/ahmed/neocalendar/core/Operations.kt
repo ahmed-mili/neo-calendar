@@ -325,7 +325,7 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf<String, (JsonOb
             )
         )
     },
-) + FORM_OPERATIONS
+) + FORM_OPERATIONS + MOVE_OPERATIONS
 
 /** Une date d'entrée : chaîne ISO avec `Z` ou un décalage, comme `new Date(s)`. */
 private fun parseInstant(text: String): Instant = OffsetDateTime.parse(text).toInstant()

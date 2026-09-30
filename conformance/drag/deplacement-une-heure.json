@@ -1,0 +1,16 @@
+{
+  "name": "une heure vers le bas",
+  "fn": "grid.projectMove",
+  "input": {
+    "start": "2026-08-12T07:00:00.000Z",
+    "end": "2026-08-12T08:30:00.000Z",
+    "deltaY": 72,
+    "dayShift": 0,
+    "hourHeight": 72
+  },
+  "expected": {
+    "start": "2026-08-12T08:00:00.000Z",
+    "end": "2026-08-12T09:30:00.000Z",
+    "allDay": false
+  }
+}

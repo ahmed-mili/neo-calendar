@@ -1,0 +1,35 @@
+{
+  "name": "une fin le meme jour efface la date de fin",
+  "fn": "grid.dragSingle",
+  "input": {
+    "event": {
+      "title": "Dentiste",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": "2026-08-13"
+    },
+    "eventId": "abc",
+    "start": "2026-08-12T09:00:00.000Z",
+    "end": "2026-08-12T10:00:00.000Z"
+  },
+  "expected": {
+    "ok": true,
+    "updates": [
+      {
+        "id": "abc",
+        "event": {
+          "title": "Dentiste",
+          "allDay": false,
+          "startTime": "11:00",
+          "endTime": "12:00",
+          "type": "single",
+          "date": "2026-08-12",
+          "endDate": null
+        }
+      }
+    ]
+  }
+}

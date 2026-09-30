@@ -1,0 +1,35 @@
+{
+  "name": "le bas tire : seule l'heure de fin change",
+  "fn": "grid.resizeSingle",
+  "input": {
+    "event": {
+      "title": "Dentiste",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null
+    },
+    "eventId": "abc",
+    "start": "2026-08-12T07:00:00.000Z",
+    "end": "2026-08-12T09:30:00.000Z"
+  },
+  "expected": {
+    "ok": true,
+    "updates": [
+      {
+        "id": "abc",
+        "event": {
+          "title": "Dentiste",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "11:30",
+          "type": "single",
+          "date": "2026-08-12",
+          "endDate": null
+        }
+      }
+    ]
+  }
+}

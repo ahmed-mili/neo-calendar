@@ -1,0 +1,37 @@
+{
+  "name": "decocher retire seulement ce jour",
+  "fn": "tasks.setOccurrenceStatus",
+  "input": {
+    "event": {
+      "title": "Sport",
+      "allDay": false,
+      "startTime": "18:00",
+      "endTime": "19:00",
+      "type": "rrule",
+      "startDate": "2026-08-03",
+      "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO",
+      "skipDates": [],
+      "completed": false,
+      "completedDates": [
+        "2026-08-03",
+        "2026-08-10"
+      ]
+    },
+    "day": "2026-08-10",
+    "complete": false
+  },
+  "expected": {
+    "title": "Sport",
+    "allDay": false,
+    "startTime": "18:00",
+    "endTime": "19:00",
+    "type": "rrule",
+    "startDate": "2026-08-03",
+    "rrule": "RRULE:FREQ=WEEKLY;BYDAY=MO",
+    "skipDates": [],
+    "completed": false,
+    "completedDates": [
+      "2026-08-03"
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "un appui au-dessus de la grille vaut minuit",
+  "fn": "grid.positionToDate",
+  "input": {
+    "y": -20,
+    "date": "2026-08-11T22:00:00.000Z",
+    "hourHeight": 72
+  },
+  "expected": "2026-08-11T22:00:00.000Z"
+}

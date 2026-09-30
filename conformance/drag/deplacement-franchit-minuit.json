@@ -1,0 +1,16 @@
+{
+  "name": "une fin apres minuit garde la duree",
+  "fn": "grid.projectMove",
+  "input": {
+    "start": "2026-08-12T20:00:00.000Z",
+    "end": "2026-08-12T21:30:00.000Z",
+    "deltaY": 144,
+    "dayShift": 0,
+    "hourHeight": 72
+  },
+  "expected": {
+    "start": "2026-08-12T22:00:00.000Z",
+    "end": "2026-08-12T23:30:00.000Z",
+    "allDay": false
+  }
+}

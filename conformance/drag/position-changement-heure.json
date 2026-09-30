@@ -1,0 +1,10 @@
+{
+  "name": "02:30 n'existe pas le jour du passage a l'heure d'ete",
+  "fn": "grid.positionToDate",
+  "input": {
+    "y": 180,
+    "date": "2026-03-28T23:00:00.000Z",
+    "hourHeight": 72
+  },
+  "expected": "2026-03-29T01:30:00.000Z"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "un jour plus tard et une demi-heure plus tot",
+  "fn": "grid.projectMove",
+  "input": {
+    "start": "2026-08-12T07:00:00.000Z",
+    "end": "2026-08-12T08:30:00.000Z",
+    "deltaY": -36,
+    "dayShift": 1,
+    "hourHeight": 72
+  },
+  "expected": {
+    "start": "2026-08-13T06:30:00.000Z",
+    "end": "2026-08-13T08:00:00.000Z",
+    "allDay": false
+  }
+}

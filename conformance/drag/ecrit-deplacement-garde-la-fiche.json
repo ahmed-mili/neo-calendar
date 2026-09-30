@@ -1,0 +1,47 @@
+{
+  "name": "lieu, description, rappels et tache restent",
+  "fn": "grid.dragSingle",
+  "input": {
+    "event": {
+      "title": "Dentiste",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null,
+      "location": "Cabinet",
+      "description": "a apporter",
+      "reminders": [
+        10
+      ],
+      "completed": false
+    },
+    "eventId": "abc",
+    "start": "2026-08-12T12:00:00.000Z",
+    "end": "2026-08-12T13:00:00.000Z"
+  },
+  "expected": {
+    "ok": true,
+    "updates": [
+      {
+        "id": "abc",
+        "event": {
+          "title": "Dentiste",
+          "location": "Cabinet",
+          "description": "a apporter",
+          "reminders": [
+            10
+          ],
+          "allDay": false,
+          "startTime": "14:00",
+          "endTime": "15:00",
+          "type": "single",
+          "date": "2026-08-12",
+          "endDate": null,
+          "completed": false
+        }
+      }
+    ]
+  }
+}

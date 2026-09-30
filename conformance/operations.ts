@@ -54,6 +54,11 @@ import type { NeoEvent } from "../src/types";
 import { buildReminders } from "../apps/windows/src/platform/androidReminders";
 import { prayerRemindersFor } from "../apps/windows/src/platform/prayerReminders";
 import { relativeDelayLabel } from "../src/ui/calendar/reminderDelay";
+import { dayShiftFromAnchor, projectGridDrag } from "../src/ui/calendar/dragProjection";
+import { applyEventDrag, applyEventResize } from "../src/ui/calendar/useEventDragResize";
+import { positionToDate } from "../src/ui/calendar/CalendarUtils";
+import { setHourHeight } from "../src/ui/calendar/calendarConstants";
+import { setOccurrenceStatus } from "../src/ui/tasks";
 import { neoEventToDisplayEvents } from "../src/ui/calendar/eventExpansion";
 import { validateEvent } from "../src/types/schema";
 import {
@@ -172,6 +177,24 @@ const validated = (raw: unknown): NeoEvent => {
     return event;
 };
 
+/** Un cache réduit à un évènement : il enregistre les écritures que le geste demande. */
+const recordingCache = (event: NeoEvent) => {
+    const updates: { id: string; event: unknown }[] = [];
+    return {
+        updates,
+        cache: {
+            getEventById: () => event,
+            getInfoForEditableEvent: () => ({ calendar: { id: "cal" } }),
+            updateEventWithId: async (id: string, updated: unknown) => {
+                updates.push({ id, event: updated });
+                return true;
+            },
+            addEvent: async () => "new-id",
+            processEvent: async () => true,
+        },
+    };
+};
+
 /** Une note lue sur le disque : ses champs, plus son évènement brut à valider. */
 const storedOf = (raw: any): DesktopStoredEvent => ({ ...raw, event: validated(raw.event) });
 
@@ -180,7 +203,7 @@ const writeJson = (write: IcalNoteWrite) => write;
 /** Relie chaque opération du corpus au code TypeScript qui fait foi.
  *  Le corpus nomme des opérations, pas des fonctions : renommer une
  *  fonction ne touche qu'ici. */
-export const OPERATIONS: Record<string, (input: any) => unknown> = {
+export const OPERATIONS: Record<string, (input: any) => unknown | Promise<unknown>> = {
     "notes.frontmatter": ({ text }) => parseFrontmatter(text),
     "notes.filename": ({ event }) => filenameForEvent(event as NeoEvent),
     "notes.validate": ({ raw }) => validateEvent(raw),
@@ -323,6 +346,38 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
             latestOccurrenceDate: snapshot.latestOccurrenceDate,
         };
     },
+    // Gestes de la grille : positions d'appui, jours déplacés, écriture d'un déplacement ou d'un redimensionnement.
+    "grid.positionToDate": ({ y, date, hourHeight, snap }) =>
+        positionToDate(y, new Date(date), snap ?? 15, hourHeight),
+    "grid.dayShift": ({ anchor, current }) =>
+        dayShiftFromAnchor(
+            { date: new Date(anchor.date), fraction: anchor.fraction },
+            { date: new Date(current.date), fraction: current.fraction }
+        ),
+    "grid.projectMove": ({ start, end, deltaY, dayShift, hourHeight }) => {
+        setHourHeight(hourHeight);
+        const slot = projectGridDrag(
+            { daysRowTop: null, allDayBand: null, columns: [], viewport: null, panel: null },
+            { start: new Date(start), end: new Date(end), allDay: false },
+            { x: 0, y: deltaY },
+            null,
+            null,
+            { dayShift }
+        );
+        return slot;
+    },
+    "grid.dragSingle": async ({ event, eventId, start, end }) => {
+        const { cache, updates } = recordingCache(validated(event));
+        const ok = await applyEventDrag(cache, eventId, new Date(start), new Date(end));
+        return { ok, updates };
+    },
+    "grid.resizeSingle": async ({ event, eventId, start, end }) => {
+        const { cache, updates } = recordingCache(validated(event));
+        const ok = await applyEventResize(cache, eventId, new Date(start), new Date(end));
+        return { ok, updates };
+    },
+    "tasks.setOccurrenceStatus": ({ event, day, complete }) =>
+        setOccurrenceStatus(validated(event), day, complete ? "complete" : "todo"),
     "ics.signature": ({ event }) => occurrenceSignature(event as NeoEvent),
     "ics.events": ({ text }) => getEventsFromICS(text),
     "notes.serialize": ({ event, previousContents }) => {

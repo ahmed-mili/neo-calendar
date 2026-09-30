@@ -1,0 +1,37 @@
+{
+  "name": "une serie par jours de semaine se coche aussi",
+  "fn": "tasks.setOccurrenceStatus",
+  "input": {
+    "event": {
+      "title": "Sport",
+      "allDay": false,
+      "startTime": "18:00",
+      "endTime": "19:00",
+      "type": "recurring",
+      "daysOfWeek": [
+        "M",
+        "W"
+      ],
+      "skipDates": [],
+      "completed": false
+    },
+    "day": "2026-08-10",
+    "complete": true
+  },
+  "expected": {
+    "title": "Sport",
+    "allDay": false,
+    "startTime": "18:00",
+    "endTime": "19:00",
+    "type": "recurring",
+    "daysOfWeek": [
+      "M",
+      "W"
+    ],
+    "completed": false,
+    "skipDates": [],
+    "completedDates": [
+      "2026-08-10"
+    ]
+  }
+}

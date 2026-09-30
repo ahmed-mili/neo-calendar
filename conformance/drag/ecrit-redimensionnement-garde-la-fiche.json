@@ -1,0 +1,39 @@
+{
+  "name": "lieu et tache restent",
+  "fn": "grid.resizeSingle",
+  "input": {
+    "event": {
+      "title": "Dentiste",
+      "allDay": false,
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "type": "single",
+      "date": "2026-08-12",
+      "endDate": null,
+      "location": "Cabinet",
+      "completed": false
+    },
+    "eventId": "abc",
+    "start": "2026-08-12T07:00:00.000Z",
+    "end": "2026-08-12T08:15:00.000Z"
+  },
+  "expected": {
+    "ok": true,
+    "updates": [
+      {
+        "id": "abc",
+        "event": {
+          "title": "Dentiste",
+          "location": "Cabinet",
+          "allDay": false,
+          "startTime": "09:00",
+          "endTime": "10:15",
+          "type": "single",
+          "date": "2026-08-12",
+          "endDate": null,
+          "completed": false
+        }
+      }
+    ]
+  }
+}

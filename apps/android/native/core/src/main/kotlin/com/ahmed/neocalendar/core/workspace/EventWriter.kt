@@ -11,6 +11,11 @@ import com.ahmed.neocalendar.core.notes.parseStoredEvent
 import com.ahmed.neocalendar.core.notes.serializeEventMarkdown
 import com.ahmed.neocalendar.core.notes.toRecord
 import com.ahmed.neocalendar.core.notes.validateEvent
+import com.ahmed.neocalendar.core.grid.resizedRecord
+import com.ahmed.neocalendar.core.grid.rescheduledRecord
+import com.ahmed.neocalendar.core.grid.seriesOccurrenceRecord
+import com.ahmed.neocalendar.core.tasks.isTask
+import com.ahmed.neocalendar.core.tasks.setOccurrenceStatus
 import com.ahmed.neocalendar.core.recurrence.detachedOccurrence
 import com.ahmed.neocalendar.core.recurrence.isSeries
 import com.ahmed.neocalendar.core.recurrence.occurrenceIsDone
@@ -137,10 +142,27 @@ class EventWriter(private val storage: WritableWorkspaceStorage) {
         return copy
     }
 
-    /** Supprimer toute la note. */
+    /**
+     * Supprimer toute la note. Elle doit encore être là, et être la même : si
+     * Syncthing l'a déplacée ou si un autre fichier a pris sa place, rien n'est
+     * supprimé (NoteMovedException). Une note seulement modifiée ailleurs part.
+     */
     fun delete(stored: StoredEvent) {
         requireWritable(stored)
+        val path = findPath(storage, stored.relativePath) ?: throw NoteMovedException()
+        val current = storage.readText(path) ?: throw NoteMovedException()
+        if (current != stored.contents && !sameNote(stored, current)) throw NoteMovedException()
         deleteEvent(storage, stored.relativePath)
+    }
+
+    /** Le fichier actuel est-il encore la note de l'instantané ? Même identifiant s'il en a un, sinon même titre. */
+    private fun sameNote(snapshot: StoredEvent, current: String): Boolean {
+        val file = parseStoredEvent(
+            EventFile(snapshot.relativePath, snapshot.calendarPath, snapshot.fileName, current),
+            setOf(calendarIdFromPath(snapshot.calendarPath)),
+        ) ?: return false
+        val wanted = snapshot.event.id
+        return if (!wanted.isNullOrBlank()) file.event.id == wanted else file.event.title == snapshot.event.title
     }
 
     /** Supprimer un jour d'une série (`following` : ce jour et les suivants) ; rien ne reste = la note part. */
@@ -158,9 +180,59 @@ class EventWriter(private val storage: WritableWorkspaceStorage) {
         persist(next, stored.calendarPath, stored, neverOverwrite = false)
     }
 
-    /** `duplicateEvent` : une copie sans identifiant, dans le même calendrier. */
+    /** `duplicateEvent` : une copie sans identifiant, dans le même calendrier. La note copiée doit encore exister. */
     fun duplicate(stored: StoredEvent, calendarPath: String): WrittenEvent {
+        if (findPath(storage, stored.relativePath) == null) throw NoteMovedException()
         val record = stored.event.toRecord()
         return create(calendarPath, JsonObject(record.filterKeys { it != "id" }))
+    }
+
+    /**
+     * Déplacer ou redimensionner un évènement horodaté (`applyEventDrag`,
+     * `applyEventResize`). Un évènement ponctuel est réécrit à ses nouvelles
+     * heures ; un jour de série sort de la série (copie ponctuelle écrite
+     * d'abord, puis le jour rejoint `skipDates`) : le reste de la série ne change pas.
+     * [displayId] : l'identifiant affiché, celui d'un jour pour une série.
+     */
+    fun reschedule(
+        stored: StoredEvent,
+        displayId: String,
+        start: java.time.Instant,
+        end: java.time.Instant,
+        resize: Boolean,
+        zone: java.time.ZoneId,
+        now: () -> String,
+    ): WrittenEvent {
+        requireWritable(stored)
+        if (isSeries(stored.event)) {
+            val day = com.ahmed.neocalendar.core.recurrence.occurrenceDateOf(displayId)
+                ?: throw IllegalArgumentException("Ce jour de la série est introuvable.")
+            val newDate = if (resize) day else start.atZone(zone).toLocalDate().toString()
+            return detachOccurrence(stored, seriesOccurrenceRecord(stored.event, start, end, zone), day, newDate, stored.calendarPath, now)
+        }
+        val record = stored.event.toRecord()
+        val next = if (resize) resizedRecord(record, start, end, zone) else rescheduledRecord(record, start, end, zone)
+        val written = persist(next, stored.calendarPath, stored, neverOverwrite = false)
+        return written
+    }
+
+    /**
+     * La case d'une tâche (`toggleTask`) : une tâche ponctuelle reçoit l'instant de
+     * fin ou `false` ; une série coche ou décoche le jour affiché. Ce qui n'est pas
+     * une tâche n'en devient pas une.
+     */
+    fun setTaskDone(stored: StoredEvent, displayId: String, done: Boolean, now: () -> String): WrittenEvent {
+        requireWritable(stored)
+        if (!isTask(stored.event)) throw IllegalArgumentException("Ce n'est pas une tâche.")
+        val next: JsonObject = if (isSeries(stored.event)) {
+            val day = com.ahmed.neocalendar.core.recurrence.occurrenceDateOf(displayId)
+                ?: throw IllegalArgumentException("Ce jour de la série est introuvable.")
+            setOccurrenceStatus(stored.event, day, done).toRecord()
+        } else {
+            val record = LinkedHashMap<String, JsonElement>(stored.event.toRecord())
+            record["completed"] = if (done) kotlinx.serialization.json.JsonPrimitive(now()) else kotlinx.serialization.json.JsonPrimitive(false)
+            JsonObject(record)
+        }
+        return persist(next, stored.calendarPath, stored, neverOverwrite = false)
     }
 }

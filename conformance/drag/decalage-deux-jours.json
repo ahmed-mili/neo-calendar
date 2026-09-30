@@ -1,0 +1,15 @@
+{
+  "name": "deux colonnes plus loin : deux jours",
+  "fn": "grid.dayShift",
+  "input": {
+    "anchor": {
+      "date": "2026-08-11T22:00:00.000Z",
+      "fraction": 0.2
+    },
+    "current": {
+      "date": "2026-08-13T22:00:00.000Z",
+      "fraction": 0.2
+    }
+  },
+  "expected": 2
+}

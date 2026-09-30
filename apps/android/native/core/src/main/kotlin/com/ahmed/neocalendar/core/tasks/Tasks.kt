@@ -154,3 +154,22 @@ fun matchesTaskQuery(task: TaskItem, query: String): Boolean {
     val haystack = normalizeForSearch("${task.title} ${task.calendarName}")
     return terms.all { it in haystack }
 }
+
+/**
+ * `setOccurrenceStatus` : la série avec un jour coché ou décoché. Seule l'entrée de ce jour
+ * bouge ; la liste reste triée pour que la note ne change pas d'ordre à chaque édition.
+ */
+fun setOccurrenceStatus(event: NeoEvent, day: String, complete: Boolean): NeoEvent {
+    val current = when (event) {
+        is NeoEvent.Recurring -> event.completedDates
+        is NeoEvent.Rrule -> event.completedDates
+        else -> return event
+    }.orEmpty().toMutableSet()
+    if (complete) current += day else current -= day
+    val sorted = current.sorted()
+    return when (event) {
+        is NeoEvent.Recurring -> event.copy(completedDates = sorted)
+        is NeoEvent.Rrule -> event.copy(completedDates = sorted)
+        else -> event
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "a 120 px par heure",
+  "fn": "grid.projectMove",
+  "input": {
+    "start": "2026-08-12T07:00:00.000Z",
+    "end": "2026-08-12T08:30:00.000Z",
+    "deltaY": 31,
+    "dayShift": 0,
+    "hourHeight": 120
+  },
+  "expected": {
+    "start": "2026-08-12T07:15:00.000Z",
+    "end": "2026-08-12T08:45:00.000Z",
+    "allDay": false
+  }
+}
