@@ -1,0 +1,12 @@
+{
+  "name": "decembre precedent est avant janvier : forward",
+  "fn": "layout.todayBadgeState",
+  "input": {
+    "visibleDates": [
+      "2025-12-29T10:00:00.000Z",
+      "2025-12-30T10:00:00.000Z"
+    ],
+    "now": "2026-01-02T12:00:00.000Z"
+  },
+  "expected": "forward"
+}

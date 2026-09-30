@@ -1,0 +1,8 @@
+{
+  "name": "dimanche 28 decembre 2025 est en semaine 52",
+  "fn": "layout.getISOWeek",
+  "input": {
+    "date": "2025-12-28T12:00:00.000Z"
+  },
+  "expected": 52
+}

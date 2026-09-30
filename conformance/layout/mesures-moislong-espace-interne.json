@@ -1,0 +1,8 @@
+{
+  "name": "un espace interieur compte dans la longueur",
+  "fn": "layout.needsCompactMonthType",
+  "input": {
+    "monthName": "mai juin"
+  },
+  "expected": true
+}

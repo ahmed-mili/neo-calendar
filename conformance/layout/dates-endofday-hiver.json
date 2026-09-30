@@ -1,0 +1,8 @@
+{
+  "name": "fin de journee locale en hiver",
+  "fn": "layout.endOfDay",
+  "input": {
+    "date": "2026-01-15T14:20:30.123Z"
+  },
+  "expected": "2026-01-15T22:59:59.999Z"
+}

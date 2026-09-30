@@ -13,6 +13,26 @@ import {
     sharedWorkspacePreferences,
     withDeviceWorkspacePreferences,
 } from "../apps/windows/src/platform/desktopWorkspacePreferences";
+import {
+    ALLDAY_MAX_ROWS,
+    ALLDAY_ROW_HEIGHT,
+    ANDROID_HOUR_HEIGHT,
+    EVENT_VGAP,
+    MAX_HOUR_HEIGHT,
+    MIN_HOUR_HEIGHT,
+    OVERLAP_COL_GAP,
+    clampHourHeight,
+} from "../src/ui/calendar/calendarConstants";
+import { addDays, endOfDay, getWeekDays, getWeekStart, isSameDay, startOfDay } from "../src/ui/calendar/calendarDateUtils";
+import {
+    LONG_MONTH_NAME,
+    eventDurationHours,
+    eventTopHours,
+    getISOWeek,
+    isMultiDayTimed,
+    needsCompactMonthType,
+    todayBadgeState,
+} from "../src/ui/calendar/CalendarUtils";
 import type { NeoEvent } from "../src/types";
 import { validateEvent } from "../src/types/schema";
 
@@ -53,6 +73,32 @@ export const OPERATIONS: Record<string, (input: any) => unknown> = {
             loaded: parseDesktopWorkspacePreferences(loaded),
             fileExisted,
         }),
+    // Grille : les dates entrent en chaînes ISO et sortent en ISO UTC (toISOString).
+    "layout.startOfDay": ({ date }) => startOfDay(new Date(date)),
+    "layout.endOfDay": ({ date }) => endOfDay(new Date(date)),
+    "layout.addDays": ({ date, days }) => addDays(new Date(date), days),
+    "layout.isSameDay": ({ a, b }) => isSameDay(new Date(a), new Date(b)),
+    "layout.getWeekStart": ({ date, firstDay }) => getWeekStart(new Date(date), firstDay),
+    "layout.getWeekDays": ({ weekStart }) => getWeekDays(new Date(weekStart)),
+    "layout.getISOWeek": ({ date }) => getISOWeek(new Date(date)),
+    "layout.todayBadgeState": ({ visibleDates, now }) =>
+        todayBadgeState((visibleDates as string[]).map((d) => new Date(d)), new Date(now)),
+    "layout.eventTopHours": ({ start, dayStart }) => eventTopHours(new Date(start), new Date(dayStart)),
+    "layout.eventDurationHours": ({ start, end }) => eventDurationHours(new Date(start), new Date(end)),
+    "layout.isMultiDayTimed": ({ start, end, allDay }) =>
+        isMultiDayTimed({ start: new Date(start), end: new Date(end), allDay }),
+    "layout.needsCompactMonthType": ({ monthName }) => needsCompactMonthType(monthName),
+    "layout.clampHourHeight": ({ px }) => clampHourHeight(px),
+    "layout.constants": () => ({
+        MIN_HOUR_HEIGHT,
+        MAX_HOUR_HEIGHT,
+        ANDROID_HOUR_HEIGHT,
+        ALLDAY_ROW_HEIGHT,
+        ALLDAY_MAX_ROWS,
+        OVERLAP_COL_GAP,
+        EVENT_VGAP,
+        LONG_MONTH_NAME,
+    }),
     "notes.serialize": ({ event, previousContents }) => {
         try {
             return { text: serializeEventMarkdown(event, previousContents ?? "") };

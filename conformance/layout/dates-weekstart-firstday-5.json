@@ -1,0 +1,9 @@
+{
+  "name": "debut de semaine un mercredi avec firstDay 5",
+  "fn": "layout.getWeekStart",
+  "input": {
+    "date": "2026-09-30T10:00:00.000Z",
+    "firstDay": 5
+  },
+  "expected": "2026-09-24T22:00:00.000Z"
+}

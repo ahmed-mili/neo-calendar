@@ -1,0 +1,8 @@
+{
+  "name": "les espaces insecables sont retires",
+  "fn": "layout.needsCompactMonthType",
+  "input": {
+    "monthName": "  juillet "
+  },
+  "expected": false
+}

@@ -1,0 +1,8 @@
+{
+  "name": "chaine vide : normal",
+  "fn": "layout.needsCompactMonthType",
+  "input": {
+    "monthName": ""
+  },
+  "expected": false
+}

@@ -1,0 +1,9 @@
+{
+  "name": "un dimanche avec firstDay 1 remonte de six jours",
+  "fn": "layout.getWeekStart",
+  "input": {
+    "date": "2026-10-04T15:45:00.000Z",
+    "firstDay": 1
+  },
+  "expected": "2026-09-27T22:00:00.000Z"
+}

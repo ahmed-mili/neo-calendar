@@ -1,0 +1,8 @@
+{
+  "name": "fevrier (7 lettres) : normal",
+  "fn": "layout.needsCompactMonthType",
+  "input": {
+    "monthName": "février"
+  },
+  "expected": false
+}

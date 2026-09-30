@@ -1,0 +1,8 @@
+{
+  "name": "fin de journee le jour du passage a l'heure d'ete",
+  "fn": "layout.endOfDay",
+  "input": {
+    "date": "2026-03-29T10:00:00.000Z"
+  },
+  "expected": "2026-03-29T21:59:59.999Z"
+}

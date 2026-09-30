@@ -1,0 +1,8 @@
+{
+  "name": "le jour est celui du fuseau local, pas celui de l'UTC",
+  "fn": "layout.getISOWeek",
+  "input": {
+    "date": "2022-01-02T23:30:00.000Z"
+  },
+  "expected": 1
+}

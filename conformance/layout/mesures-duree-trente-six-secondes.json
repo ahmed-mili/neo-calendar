@@ -1,0 +1,9 @@
+{
+  "name": "36 secondes : 0,01",
+  "fn": "layout.eventDurationHours",
+  "input": {
+    "start": "2026-01-15T09:00:00.000Z",
+    "end": "2026-01-15T09:00:36.000Z"
+  },
+  "expected": 0.01
+}

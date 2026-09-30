@@ -1,0 +1,8 @@
+{
+  "name": "NEL U+0085 n'est pas un espace pour JavaScript",
+  "fn": "layout.needsCompactMonthType",
+  "input": {
+    "monthName": "juillet"
+  },
+  "expected": true
+}

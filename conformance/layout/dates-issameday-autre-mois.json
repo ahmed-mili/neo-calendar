@@ -1,0 +1,9 @@
+{
+  "name": "meme quantieme d'un autre mois",
+  "fn": "layout.isSameDay",
+  "input": {
+    "a": "2026-05-10T12:00:00.000Z",
+    "b": "2026-06-10T12:00:00.000Z"
+  },
+  "expected": false
+}

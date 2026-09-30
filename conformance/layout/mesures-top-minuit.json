@@ -1,0 +1,9 @@
+{
+  "name": "a minuit : 0",
+  "fn": "layout.eventTopHours",
+  "input": {
+    "start": "2026-01-14T23:00:00.000Z",
+    "dayStart": "2026-01-14T23:00:00.000Z"
+  },
+  "expected": 0
+}

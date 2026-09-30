@@ -1,0 +1,8 @@
+{
+  "name": "espaces autour de juillet retires",
+  "fn": "layout.needsCompactMonthType",
+  "input": {
+    "monthName": "   juillet   "
+  },
+  "expected": false
+}

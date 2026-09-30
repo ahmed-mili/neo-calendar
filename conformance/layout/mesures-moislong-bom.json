@@ -1,0 +1,8 @@
+{
+  "name": "l'octet d'ordre BOM est retire",
+  "fn": "layout.needsCompactMonthType",
+  "input": {
+    "monthName": "﻿juillet"
+  },
+  "expected": false
+}

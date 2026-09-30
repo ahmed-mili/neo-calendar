@@ -1,0 +1,10 @@
+{
+  "name": "de minuit a 23h59m59,999 : pas un jour entier",
+  "fn": "layout.isMultiDayTimed",
+  "input": {
+    "start": "2026-01-14T23:00:00.000Z",
+    "end": "2026-01-15T22:59:59.999Z",
+    "allDay": false
+  },
+  "expected": false
+}

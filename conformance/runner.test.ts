@@ -27,6 +27,16 @@ const asJson = (value: unknown) =>
 
 const files = caseFiles(__dirname);
 
+let previousTz: string | undefined;
+beforeAll(() => {
+    previousTz = process.env.TZ;
+    process.env.TZ = "Europe/Paris";
+});
+afterAll(() => {
+    if (previousTz === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTz;
+});
+
 describe("corpus de conformité", () => {
     it("contient au moins un cas", () => {
         expect(files.length).toBeGreaterThan(0);

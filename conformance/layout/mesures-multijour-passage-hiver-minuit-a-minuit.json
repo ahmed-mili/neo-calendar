@@ -1,0 +1,10 @@
+{
+  "name": "minuit a minuit le jour du retour a l'heure d'hiver",
+  "fn": "layout.isMultiDayTimed",
+  "input": {
+    "start": "2026-10-24T22:00:00.000Z",
+    "end": "2026-10-25T23:00:00.000Z",
+    "allDay": false
+  },
+  "expected": true
+}

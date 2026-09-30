@@ -1,0 +1,9 @@
+{
+  "name": "zero jour sur la seconde occurrence d'une heure ambigue retombe sur la premiere",
+  "fn": "layout.addDays",
+  "input": {
+    "date": "2026-10-25T01:30:00.000Z",
+    "days": 0
+  },
+  "expected": "2026-10-25T00:30:00.000Z"
+}

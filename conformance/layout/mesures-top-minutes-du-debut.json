@@ -1,0 +1,9 @@
+{
+  "name": "les minutes du debut de jour se soustraient",
+  "fn": "layout.eventTopHours",
+  "input": {
+    "start": "2026-01-15T08:45:00.000Z",
+    "dayStart": "2026-01-15T07:15:00.000Z"
+  },
+  "expected": 1.5
+}

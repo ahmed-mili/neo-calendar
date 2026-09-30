@@ -1,0 +1,8 @@
+{
+  "name": "100,5 reste 100,5",
+  "fn": "layout.clampHourHeight",
+  "input": {
+    "px": 100.5
+  },
+  "expected": 100.5
+}

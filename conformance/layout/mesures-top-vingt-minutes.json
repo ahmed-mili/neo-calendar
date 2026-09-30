@@ -1,0 +1,9 @@
+{
+  "name": "0h20 : un tiers",
+  "fn": "layout.eventTopHours",
+  "input": {
+    "start": "2026-01-14T23:20:00.000Z",
+    "dayStart": "2026-01-14T23:00:00.000Z"
+  },
+  "expected": 0.3333333333333333
+}

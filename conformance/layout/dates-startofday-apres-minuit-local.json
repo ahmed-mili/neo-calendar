@@ -1,0 +1,8 @@
+{
+  "name": "30 minutes apres minuit local, la veille en UTC",
+  "fn": "layout.startOfDay",
+  "input": {
+    "date": "2026-01-15T23:30:00.000Z"
+  },
+  "expected": "2026-01-15T23:00:00.000Z"
+}

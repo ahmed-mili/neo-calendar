@@ -1,0 +1,8 @@
+{
+  "name": "lundi 29 decembre 2025 est deja en semaine 1 de 2026",
+  "fn": "layout.getISOWeek",
+  "input": {
+    "date": "2025-12-29T12:00:00.000Z"
+  },
+  "expected": 1
+}

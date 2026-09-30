@@ -1,0 +1,8 @@
+{
+  "name": "le separateur U+001C n'est pas un espace pour JavaScript",
+  "fn": "layout.needsCompactMonthType",
+  "input": {
+    "monthName": "\u001cjuillet\u001c"
+  },
+  "expected": true
+}
