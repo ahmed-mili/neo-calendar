@@ -83,6 +83,34 @@ class PrivateStorageTest {
         assertFalse(privateStorageInUse(finalRoot()))
     }
 
+    @Test fun `le marqueur de dossier du moteur ne rend pas le stockage occupe`() {
+        put(finalRoot(), ".stfolder/syncthing-folder-abc.txt", "marqueur")
+        initNewWorkspace(FileWorkspaceStorage(finalRoot()))
+        assertFalse(privateStorageInUse(finalRoot()))
+    }
+
+    @Test fun `le refus parle de donnees, pas seulement de notes`() {
+        assertTrue(PrivateStorageInUse().message!!.contains("contient déjà des données"))
+    }
+
+    @Test fun `le marqueur du moteur est recree quand il manque`() {
+        val root = finalRoot()
+        root.mkdirs()
+        ensureFolderMarker(root)
+        assertTrue(File(root, ".stfolder").isDirectory)
+    }
+
+    @Test fun `un marqueur existant n'est pas touche`() {
+        put(finalRoot(), ".stfolder/syncthing-folder-abc.txt", "marqueur")
+        ensureFolderMarker(finalRoot())
+        assertEquals("marqueur", File(finalRoot(), ".stfolder/syncthing-folder-abc.txt").readText())
+    }
+
+    @Test fun `sans dossier de notes, aucun marqueur n'est cree`() {
+        ensureFolderMarker(finalRoot())
+        assertFalse(finalRoot().exists())
+    }
+
     /** Une source dont un fichier change entre la copie et la relecture, comme si Syncthing y écrivait. */
     private class Moving(private val inner: BinaryWorkspaceStorage, private val path: String) : BinaryWorkspaceStorage by inner {
         private var opens = 0

@@ -1,5 +1,6 @@
 package com.ahmed.neocalendar.core.sync
 
+import com.ahmed.neocalendar.core.workspace.ensureFolderMarker
 import java.security.SecureRandom
 
 /** Ce que l'app fait d'un dossier que le PC (ou un autre appareil accepté) propose. */
@@ -44,6 +45,9 @@ class SyncSetup(
         const val FOLDER_LABEL = "Neo Calendar"
     }
 
+    /** Le moteur refuse un dossier sans `.stfolder` : une copie fraîche (bascule après « Vider ») ne l'emporte pas. */
+    private fun ensureMarker() = ensureFolderMarker(java.io.File(folderPath))
+
     /** Premier démarrage : options du moteur (port d'écoute, découvertes, pas de statistiques). */
     fun applyOptions(port: Int) = api.patchOptions(EngineConfig.options(port))
 
@@ -87,6 +91,7 @@ class SyncSetup(
             ProposalDecision.ShareExisting -> api.setFolderDevices(proposal.id, (local!!.deviceIds + proposal.offeredBy))
             ProposalDecision.Adopt, is ProposalDecision.Replace -> {
                 val devices = (local?.deviceIds.orEmpty() + me + proposal.offeredBy).distinct()
+                ensureMarker()
                 val folder = EngineConfig.folder(proposal.id, proposal.label.ifBlank { FOLDER_LABEL }, folderPath, devices)
                 if (decision is ProposalDecision.Replace) {
                     api.removeFolder(decision.oldId)
@@ -120,6 +125,7 @@ class SyncSetup(
     private fun shareFolderWith(me: String, deviceId: String) {
         val folder = api.folders().firstOrNull()
         if (folder == null) {
+            ensureMarker()
             api.putFolder(EngineConfig.folder(EngineConfig.newFolderId(random), FOLDER_LABEL, folderPath, listOf(me, deviceId)))
         } else if (deviceId !in folder.deviceIds) {
             api.setFolderDevices(folder.id, folder.deviceIds + deviceId)

@@ -48,6 +48,31 @@ class SyncSetupTest {
         assertTrue(fake.sent("PUT", "/rest/config/devices/$pc")!!.contains("\"name\":\"PC d'Ahmed\""))
     }
 
+    @get:org.junit.Rule val tmp = org.junit.rules.TemporaryFolder()
+
+    @Test fun `le dossier est pose avec son marqueur, meme apres un stockage vide puis recopie`() {
+        val notes = tmp.newFolder("Neo Calendar")
+        val withMarker = SyncSetup(SyncthingApi(fake), notes.absolutePath, retryDelayMs = 0)
+        fake.answer("GET /rest/system/status", """{"myID":"$me"}""")
+        noFolders()
+        fake.answer("PUT /rest/config/devices/$pc", "")
+        fake.answer("PUT /rest/config/folders/neo-*", "")
+        assertTrue(!java.io.File(notes, ".stfolder").exists())
+        withMarker.addDevice(pc, "PC")
+        assertTrue("le moteur refuse un dossier sans .stfolder", java.io.File(notes, ".stfolder").isDirectory)
+    }
+
+    @Test fun `adopter un dossier propose recree aussi le marqueur`() {
+        val notes = tmp.newFolder("Neo Calendar")
+        val withMarker = SyncSetup(SyncthingApi(fake), notes.absolutePath, retryDelayMs = 0)
+        fake.answer("GET /rest/system/status", """{"myID":"$me"}""")
+        noFolders()
+        fake.answer("PUT /rest/config/folders/f1", "")
+        fake.answer("DELETE /rest/cluster/pending/folders*", "")
+        withMarker.adopt(PendingFolder("f1", "Neo Calendar", pc))
+        assertTrue(java.io.File(notes, ".stfolder").isDirectory)
+    }
+
     @Test fun `un appareil de plus rejoint le dossier existant sans le recreer`() {
         fake.answer("GET /rest/system/status", """{"myID":"$me"}""")
         folder("neo-1", me, pc)

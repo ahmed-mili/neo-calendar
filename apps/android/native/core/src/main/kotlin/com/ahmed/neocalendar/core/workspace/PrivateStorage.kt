@@ -5,9 +5,9 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
-/** Le stockage privé contient déjà des notes : rien n'est écrasé, ni mélangé. */
+/** Le stockage privé contient déjà des données : rien n'est écrasé, ni mélangé. */
 class PrivateStorageInUse : IOException(
-    "Le stockage privé contient déjà des notes (d'un passage précédent). Videz-le d'abord (Réglages, Synchronisation, « Vider le stockage privé ») pour éviter de les mélanger.",
+    "Le stockage privé contient déjà des données (notes d'un passage précédent, réglages ou pièces jointes). Videz-le d'abord (Réglages, Synchronisation, « Vider le stockage privé ») pour éviter de les mélanger.",
 )
 
 /**
@@ -18,7 +18,19 @@ fun privateStorageInUse(root: File): Boolean {
     if (!root.exists()) return false
     if (!root.isDirectory) return true
     if (workspaceHasNotes(FileWorkspaceStorage(root))) return true
-    return root.walkTopDown().any { it.isFile && !(it.parentFile == root && it.name == ".stignore") }
+    // Le marqueur du moteur (`.stfolder`) et `.stignore` ne sont pas des données de l'utilisateur.
+    return root.walkTopDown().onEnter { !(it.parentFile == root && it.name == ".stfolder") }
+        .any { it.isFile && !(it.parentFile == root && it.name == ".stignore") }
+}
+
+/**
+ * Le moteur exige le marqueur `.stfolder` à la racine du dossier de notes : une copie fraîche (bascule après « Vider ») ne
+ * l'emporte pas. Le recrée s'il manque ; sans effet quand le dossier de notes n'existe pas (rien n'est créé de force).
+ */
+fun ensureFolderMarker(root: File) {
+    if (!root.isDirectory) return
+    val marker = File(root, ".stfolder")
+    if (!marker.exists() && !marker.mkdir()) throw IOException("Le marqueur .stfolder ne peut pas être créé dans ${root.name}.")
 }
 
 /**
@@ -41,9 +53,18 @@ fun copyToPrivateAtomically(source: BinaryWorkspaceStorage, finalRoot: File): Co
         if (privateStorageInUse(finalRoot)) throw PrivateStorageInUse()
         if (finalRoot.exists() && !finalRoot.deleteRecursively()) throw IOException("Le dossier privé vide ne peut pas être remplacé.")
         Files.move(staging.toPath(), finalRoot.toPath(), StandardCopyOption.ATOMIC_MOVE)
+        syncDirectory(finalRoot.parentFile)
         return report
     } catch (e: Throwable) {
         if (staging.exists() && !staging.deleteRecursively()) e.addSuppressed(IOException("Le dossier temporaire ${staging.name} n'a pas pu être supprimé."))
         throw e
+    }
+}
+
+/** Rend le renommage durable : `fsync` du dossier parent. Au mieux (certains systèmes refusent d'ouvrir un dossier) : la copie est déjà complète. */
+private fun syncDirectory(dir: File) {
+    try {
+        java.nio.channels.FileChannel.open(dir.toPath(), java.nio.file.StandardOpenOption.READ).use { it.force(true) }
+    } catch (_: Exception) {
     }
 }
