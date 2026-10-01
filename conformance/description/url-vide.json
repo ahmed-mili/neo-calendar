@@ -1,0 +1,8 @@
+{
+  "name": "url vide",
+  "fn": "description.urlMarkdown",
+  "input": {
+    "value": "   "
+  },
+  "expected": null
+}

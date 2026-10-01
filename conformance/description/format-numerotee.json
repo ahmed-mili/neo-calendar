@@ -1,0 +1,15 @@
+{
+  "name": "format numerotee",
+  "fn": "description.format",
+  "input": {
+    "text": "a\nb\nc",
+    "start": 0,
+    "end": 5,
+    "command": "ordered-list"
+  },
+  "expected": {
+    "text": "1. a\n2. b\n3. c",
+    "selectionStart": 0,
+    "selectionEnd": 14
+  }
+}

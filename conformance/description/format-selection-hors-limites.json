@@ -1,0 +1,15 @@
+{
+  "name": "format selection hors limites",
+  "fn": "description.format",
+  "input": {
+    "text": "abc",
+    "start": 10,
+    "end": 20,
+    "command": "bold"
+  },
+  "expected": {
+    "text": "abc****",
+    "selectionStart": 5,
+    "selectionEnd": 5
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "url nu",
+  "fn": "description.urlMarkdown",
+  "input": {
+    "value": "youtube.com/watch?v=abc"
+  },
+  "expected": "[youtube.com/watch?v=abc](https://youtube.com/watch?v=abc)"
+}

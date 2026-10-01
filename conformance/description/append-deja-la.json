@@ -1,0 +1,9 @@
+{
+  "name": "append deja la",
+  "fn": "description.append",
+  "input": {
+    "description": "x\n[a](b)\n",
+    "markdown": "[a](b)"
+  },
+  "expected": "x\n[a](b)\n"
+}

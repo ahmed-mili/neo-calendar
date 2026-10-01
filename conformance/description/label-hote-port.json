@@ -1,0 +1,8 @@
+{
+  "name": "label hote port",
+  "fn": "description.labelFor",
+  "input": {
+    "target": "https://www.exemple.fr:8080/a/?q=1"
+  },
+  "expected": "exemple.fr:8080/a/?q=1"
+}

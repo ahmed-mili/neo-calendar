@@ -1,0 +1,15 @@
+{
+  "name": "format cases indent",
+  "fn": "description.format",
+  "input": {
+    "text": "  - a",
+    "start": 2,
+    "end": 2,
+    "command": "checklist"
+  },
+  "expected": {
+    "text": "  - [ ] a",
+    "selectionStart": 0,
+    "selectionEnd": 9
+  }
+}

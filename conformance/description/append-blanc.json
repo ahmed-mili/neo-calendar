@@ -1,0 +1,9 @@
+{
+  "name": "append blanc",
+  "fn": "description.append",
+  "input": {
+    "description": "x",
+    "markdown": "  "
+  },
+  "expected": "x"
+}

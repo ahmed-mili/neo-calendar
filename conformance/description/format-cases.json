@@ -1,0 +1,15 @@
+{
+  "name": "format cases",
+  "fn": "description.format",
+  "input": {
+    "text": "a\n- b\n3. c",
+    "start": 0,
+    "end": 10,
+    "command": "checklist"
+  },
+  "expected": {
+    "text": "- [ ] a\n- [ ] b\n- [ ] c",
+    "selectionStart": 0,
+    "selectionEnd": 23
+  }
+}

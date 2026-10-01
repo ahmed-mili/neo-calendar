@@ -1,0 +1,9 @@
+{
+  "name": "meme cible chemin note",
+  "fn": "description.sameTarget",
+  "input": {
+    "a": "Notes/a.md/",
+    "b": "Notes/a.md"
+  },
+  "expected": true
+}

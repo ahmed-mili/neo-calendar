@@ -1,0 +1,9 @@
+{
+  "name": "append vide",
+  "fn": "description.append",
+  "input": {
+    "description": "",
+    "markdown": "[a](b)"
+  },
+  "expected": "[a](b)"
+}

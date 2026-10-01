@@ -1,0 +1,15 @@
+{
+  "name": "format souligne accents",
+  "fn": "description.format",
+  "input": {
+    "text": "été 😀 fini",
+    "start": 0,
+    "end": 3,
+    "command": "underline"
+  },
+  "expected": {
+    "text": "<u>été</u> 😀 fini",
+    "selectionStart": 3,
+    "selectionEnd": 6
+  }
+}

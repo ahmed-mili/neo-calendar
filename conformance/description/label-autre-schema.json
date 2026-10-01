@@ -1,0 +1,8 @@
+{
+  "name": "label autre schema",
+  "fn": "description.labelFor",
+  "input": {
+    "target": "obsidian://open?vault=x"
+  },
+  "expected": "obsidian://open?vault=x"
+}

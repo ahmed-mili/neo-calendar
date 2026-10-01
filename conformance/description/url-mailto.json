@@ -1,0 +1,8 @@
+{
+  "name": "url mailto",
+  "fn": "description.urlMarkdown",
+  "input": {
+    "value": "mailto:a@b.fr"
+  },
+  "expected": "[a@b.fr](mailto:a@b.fr)"
+}

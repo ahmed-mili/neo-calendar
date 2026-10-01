@@ -1,0 +1,8 @@
+{
+  "name": "url parentheses",
+  "fn": "description.urlMarkdown",
+  "input": {
+    "value": "https://fr.wikipedia.org/wiki/Foo_(bar)"
+  },
+  "expected": "[fr.wikipedia.org/wiki/Foo_(bar)](https://fr.wikipedia.org/wiki/Foo_(bar))"
+}

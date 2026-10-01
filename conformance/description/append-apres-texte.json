@@ -1,0 +1,9 @@
+{
+  "name": "append apres texte",
+  "fn": "description.append",
+  "input": {
+    "description": "un texte\n",
+    "markdown": "[a](b)"
+  },
+  "expected": "un texte\n[a](b)"
+}

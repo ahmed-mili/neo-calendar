@@ -1,0 +1,8 @@
+{
+  "name": "url https",
+  "fn": "description.urlMarkdown",
+  "input": {
+    "value": "https://www.example.com/a/b?x=1#h"
+  },
+  "expected": "[example.com/a/b?x=1#h](https://www.example.com/a/b?x=1#h)"
+}

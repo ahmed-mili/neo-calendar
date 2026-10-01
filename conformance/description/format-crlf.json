@@ -1,0 +1,15 @@
+{
+  "name": "format crlf",
+  "fn": "description.format",
+  "input": {
+    "text": "a\r\nb",
+    "start": 0,
+    "end": 4,
+    "command": "bullet-list"
+  },
+  "expected": {
+    "text": "- a\r\n- b",
+    "selectionStart": 0,
+    "selectionEnd": 8
+  }
+}

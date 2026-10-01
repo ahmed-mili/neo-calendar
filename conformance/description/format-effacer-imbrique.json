@@ -1,0 +1,15 @@
+{
+  "name": "format effacer imbrique",
+  "fn": "description.format",
+  "input": {
+    "text": "- **_x_**",
+    "start": 0,
+    "end": 9,
+    "command": "clear"
+  },
+  "expected": {
+    "text": "x",
+    "selectionStart": 0,
+    "selectionEnd": 1
+  }
+}

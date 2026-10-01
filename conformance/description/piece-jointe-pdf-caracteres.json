@@ -1,0 +1,9 @@
+{
+  "name": "piece jointe pdf caracteres",
+  "fn": "description.attachmentLink",
+  "input": {
+    "fileName": "cours (v2).pdf",
+    "markdownPath": "Etudes\\.attachments\\cours (v2)'é*.pdf"
+  },
+  "expected": "[cours (v2).pdf](Etudes/.attachments/cours%20%28v2%29%27%C3%A9%2A.pdf)"
+}

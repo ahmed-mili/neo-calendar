@@ -1,0 +1,8 @@
+{
+  "name": "url dangereux",
+  "fn": "description.urlMarkdown",
+  "input": {
+    "value": "javascript:alert(1)"
+  },
+  "expected": null
+}

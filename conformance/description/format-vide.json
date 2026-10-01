@@ -1,0 +1,15 @@
+{
+  "name": "format vide",
+  "fn": "description.format",
+  "input": {
+    "text": "",
+    "start": 0,
+    "end": 0,
+    "command": "checklist"
+  },
+  "expected": {
+    "text": "- [ ] ",
+    "selectionStart": 0,
+    "selectionEnd": 6
+  }
+}

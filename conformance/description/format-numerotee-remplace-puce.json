@@ -1,0 +1,15 @@
+{
+  "name": "format numerotee remplace puce",
+  "fn": "description.format",
+  "input": {
+    "text": "- a\n- b",
+    "start": 0,
+    "end": 7,
+    "command": "ordered-list"
+  },
+  "expected": {
+    "text": "1. a\n2. b",
+    "selectionStart": 0,
+    "selectionEnd": 9
+  }
+}

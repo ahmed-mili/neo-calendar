@@ -1,0 +1,15 @@
+{
+  "name": "format puces lignes",
+  "fn": "description.format",
+  "input": {
+    "text": "a\nb\nc",
+    "start": 0,
+    "end": 5,
+    "command": "bullet-list"
+  },
+  "expected": {
+    "text": "- a\n- b\n- c",
+    "selectionStart": 0,
+    "selectionEnd": 11
+  }
+}

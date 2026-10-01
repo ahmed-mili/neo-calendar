@@ -1,0 +1,9 @@
+{
+  "name": "meme cible slash",
+  "fn": "description.sameTarget",
+  "input": {
+    "a": "TikTok.com/a",
+    "b": "https://tiktok.com/a/"
+  },
+  "expected": false
+}

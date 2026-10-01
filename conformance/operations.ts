@@ -92,6 +92,16 @@ import { computeDuration, daysBetween, panelEndDate } from "../src/ui/calendar/E
 import { geoUrlFor, locationDestinationFor, mapsAppsFor, mapsUrlFor } from "../src/ui/calendar/locationLink";
 import { readChecklist, toggleLine } from "../src/ui/calendar/descriptionChecklist";
 import { readInlineLinks } from "../src/ui/calendar/descriptionInlineLinks";
+import { applyDescriptionFormat } from "../src/ui/calendar/descriptionFormatting";
+import { labelFor, sameTarget, urlMarkdown } from "../src/ui/calendar/linkInput";
+import { appendMarkdownToEventBody, markdownLinkForAttachment } from "../apps/windows/src/platform/desktopEventFormat";
+import { isPrayerCalendarName } from "../src/ui/calendar/prayerCalendarName";
+import { jumuaChoices } from "../src/ui/calendar/prayerTimetables";
+import { nextPrayer, prayerLinesFor, prayersOn, withJumua, type PrayerTimetable } from "../src/ui/calendar/prayerTimes";
+
+/** Le jour local d'une date, « AAAA-MM-JJ ». */
+const localDate = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 /** Reproduit `JSONObject.toString(2)` de l'`org.json` d'Android (libcore,
  *  JSONStringer avec indentation) pour ce que la WebView envoie :
@@ -279,6 +289,32 @@ export const OPERATIONS: Record<string, (input: any) => unknown | Promise<unknow
     "description.checklist": ({ description }) => readChecklist(description),
     "description.toggle": ({ description, index }) => toggleLine(description, index),
     "description.links": ({ text }) => readInlineLinks(text),
+    "description.format": ({ text, start, end, command }) => applyDescriptionFormat(text, start, end, command),
+    "description.urlMarkdown": ({ value }) => urlMarkdown(value),
+    "description.labelFor": ({ target }) => labelFor(target),
+    "description.sameTarget": ({ a, b }) => sameTarget(a, b),
+    "description.attachmentLink": ({ fileName, markdownPath }) => markdownLinkForAttachment({ fileName, markdownPath }),
+    // Sans frontmatter, le TypeScript termine le corps par un saut de ligne que la description du natif ne garde pas.
+    "description.append": ({ description, markdown }) => {
+        const next = appendMarkdownToEventBody(description, markdown);
+        return next === description ? next : next.replace(/\n$/, "");
+    },
+    "prayer.calendarName": ({ name }) => isPrayerCalendarName(name),
+    "prayer.on": ({ timetable, date, jumua }) =>
+        prayersOn(withJumua(timetable as PrayerTimetable, jumua), new Date(`${date}T10:00:00`)).map(({ name, minutes }) => ({ name, minutes })),
+    "prayer.next": ({ timetable, now }) => {
+        const next = nextPrayer(timetable as PrayerTimetable, new Date(now));
+        return next ? { name: next.name, minutes: next.minutes, date: localDate(next.date) } : null;
+    },
+    "prayer.lines": ({ timetable, now, showAll }) =>
+        prayerLinesFor({ timetable: timetable as PrayerTimetable, now: new Date(now), showAll }).map(({ date, hours, minutes, next, name }) => ({
+            date: localDate(date), hours, minutes, next, name,
+        })),
+    "prayer.jumuaChoices": ({ timetables }) => {
+        const byTime = new Map<string, string[]>();
+        for (const table of timetables as PrayerTimetable[]) for (const time of table.jumua) byTime.set(time, [...(byTime.get(time) ?? []), table.name]);
+        return [...byTime.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([time, mosques]) => ({ time, mosques }));
+    },
     "reminders.build": ({ events, now, minutesBefore, minutesByCalendar, timeFormat24h }) =>
         buildReminders({
             events: (events as any[]).flatMap(expandEntry),

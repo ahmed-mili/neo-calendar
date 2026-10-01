@@ -1,0 +1,8 @@
+{
+  "name": "url deja markdown",
+  "fn": "description.urlMarkdown",
+  "input": {
+    "value": "[nom](https://x.fr)"
+  },
+  "expected": "[nom](https://x.fr)"
+}

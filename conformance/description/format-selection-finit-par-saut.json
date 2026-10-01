@@ -1,0 +1,15 @@
+{
+  "name": "format selection finit par saut",
+  "fn": "description.format",
+  "input": {
+    "text": "a\nb\nc",
+    "start": 0,
+    "end": 2,
+    "command": "bullet-list"
+  },
+  "expected": {
+    "text": "- a\nb\nc",
+    "selectionStart": 0,
+    "selectionEnd": 3
+  }
+}

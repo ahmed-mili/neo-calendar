@@ -1,0 +1,9 @@
+{
+  "name": "piece jointe image",
+  "fn": "description.attachmentLink",
+  "input": {
+    "fileName": "photo 1.PNG",
+    "markdownPath": "Etudes/.attachments/photo 1.PNG"
+  },
+  "expected": "![photo 1.PNG](Etudes/.attachments/photo%201.PNG)"
+}

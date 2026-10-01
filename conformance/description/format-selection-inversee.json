@@ -1,0 +1,15 @@
+{
+  "name": "format selection inversee",
+  "fn": "description.format",
+  "input": {
+    "text": "abcdef",
+    "start": 4,
+    "end": 2,
+    "command": "bold"
+  },
+  "expected": {
+    "text": "abcd****ef",
+    "selectionStart": 6,
+    "selectionEnd": 6
+  }
+}

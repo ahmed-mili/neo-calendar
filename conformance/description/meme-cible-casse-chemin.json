@@ -1,0 +1,9 @@
+{
+  "name": "meme cible casse chemin",
+  "fn": "description.sameTarget",
+  "input": {
+    "a": "https://x.fr/A",
+    "b": "https://x.fr/a"
+  },
+  "expected": false
+}

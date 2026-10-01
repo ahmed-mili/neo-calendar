@@ -1,0 +1,8 @@
+{
+  "name": "name islam",
+  "fn": "prayer.calendarName",
+  "input": {
+    "name": "Islam"
+  },
+  "expected": true
+}

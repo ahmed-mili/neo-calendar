@@ -1,0 +1,15 @@
+{
+  "name": "format effacer",
+  "fn": "description.format",
+  "input": {
+    "text": "**gras** et _ital_ et <u>sou</u>",
+    "start": 0,
+    "end": 31,
+    "command": "clear"
+  },
+  "expected": {
+    "text": "gras et ital et sou",
+    "selectionStart": 0,
+    "selectionEnd": 19
+  }
+}

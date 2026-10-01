@@ -1,0 +1,15 @@
+{
+  "name": "format puces ligne du milieu",
+  "fn": "description.format",
+  "input": {
+    "text": "a\nb\nc",
+    "start": 2,
+    "end": 2,
+    "command": "bullet-list"
+  },
+  "expected": {
+    "text": "a\n- b\nc",
+    "selectionStart": 2,
+    "selectionEnd": 5
+  }
+}

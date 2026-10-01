@@ -1,0 +1,8 @@
+{
+  "name": "label tel",
+  "fn": "description.labelFor",
+  "input": {
+    "target": "tel:+33123"
+  },
+  "expected": "+33123"
+}

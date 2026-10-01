@@ -1,0 +1,8 @@
+{
+  "name": "name autre",
+  "fn": "prayer.calendarName",
+  "input": {
+    "name": "Etudes"
+  },
+  "expected": false
+}

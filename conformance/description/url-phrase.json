@@ -1,0 +1,8 @@
+{
+  "name": "url phrase",
+  "fn": "description.urlMarkdown",
+  "input": {
+    "value": "Regarde ça https://vm.tiktok.com/ZN88abc/ ."
+  },
+  "expected": "[vm.tiktok.com/ZN88abc](https://vm.tiktok.com/ZN88abc/)"
+}

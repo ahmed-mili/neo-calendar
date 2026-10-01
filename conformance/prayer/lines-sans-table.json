@@ -1,0 +1,10 @@
+{
+  "name": "lines sans table",
+  "fn": "prayer.lines",
+  "input": {
+    "timetable": null,
+    "now": "2026-09-01T12:00:00",
+    "showAll": true
+  },
+  "expected": []
+}

@@ -1,0 +1,15 @@
+{
+  "name": "format gras selection",
+  "fn": "description.format",
+  "input": {
+    "text": "un deux trois",
+    "start": 3,
+    "end": 7,
+    "command": "bold"
+  },
+  "expected": {
+    "text": "un **deux** trois",
+    "selectionStart": 5,
+    "selectionEnd": 9
+  }
+}

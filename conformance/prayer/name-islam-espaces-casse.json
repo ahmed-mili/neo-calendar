@@ -1,0 +1,8 @@
+{
+  "name": "name islam espaces casse",
+  "fn": "prayer.calendarName",
+  "input": {
+    "name": "  ISLAM "
+  },
+  "expected": true
+}
