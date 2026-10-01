@@ -69,6 +69,7 @@ class SyncController private constructor(context: Context) {
 
     init {
         engine.beforeLaunch = { ensureListenPort() }
+        engine.listenPort = { settings.value.listenPort }
         engine.onReady = { api -> SyncSetup(api, WorkspaceLocation.privateRoot(app).absolutePath).applyOptions(settings.value.listenPort) }
         monitor.start()
         scope.launch { settings.settings.collect { reconcile() } }

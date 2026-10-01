@@ -2,12 +2,16 @@ package com.ahmed.neocalendar.nativeapp.sync
 
 import android.content.Context
 import android.os.SystemClock
+import android.os.Process as AndroidProcess
 import android.system.Os
 import android.util.Log
 import com.ahmed.neocalendar.core.sync.EngineState
+import com.ahmed.neocalendar.core.sync.ProcInfo
 import com.ahmed.neocalendar.core.sync.RestartPolicy
 import com.ahmed.neocalendar.core.sync.RotatingLog
 import com.ahmed.neocalendar.core.sync.SyncthingApi
+import com.ahmed.neocalendar.core.sync.applyEngineOptions
+import com.ahmed.neocalendar.core.sync.staleEngines
 import java.io.File
 import java.security.SecureRandom
 import java.util.concurrent.TimeUnit
@@ -59,6 +63,14 @@ class SyncEngine(private val context: Context, private val scope: CoroutineScope
 
     /** Appelé avant chaque lancement du processus (premier ou relance) : l'appelant vérifie, par exemple, que le port d'écoute est libre. */
     @Volatile var beforeLaunch: (() -> Unit)? = null
+
+    /** Le port d'écoute choisi (après `beforeLaunch`) : posé dans la configuration d'un moteur neuf AVANT son premier `serve`. 0 = inconnu. */
+    @Volatile var listenPort: () -> Int = { 0 }
+
+    private val configFile = File(home, "config.xml")
+
+    /** Présent entre la génération de la configuration et la pose des options : une coupure au milieu reprend au lancement suivant. */
+    private val pendingConfig = File(home, ".neo-config-pending")
 
     private var job: Job? = null
 
@@ -183,17 +195,18 @@ class SyncEngine(private val context: Context, private val scope: CoroutineScope
         home.mkdirs()
         lockDown(home)
         File(home, "tmp").mkdirs()
+        stopStaleEngines()
+        prepareFirstConfig(binary)
         // Un socket resté d'un lancement tué net ferait croire au moteur que l'adresse est prise.
         socket.delete()
         val key = ByteArray(32).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
         val builder = ProcessBuilder(binary.absolutePath, "serve", "--home=${home.absolutePath}", "--no-browser", "--no-upgrade")
         builder.environment().apply {
+            baseEnvironment()
             put("STGUIADDRESS", "unix://${socket.absolutePath}")
             put("STGUIAPIKEY", key)
             put("STNORESTART", "1")
             put("STNOUPGRADE", "1")
-            put("HOME", home.absolutePath)
-            put("TMPDIR", File(home, "tmp").absolutePath)
         }
         builder.redirectErrorStream(true)
         val p = builder.start()
@@ -254,6 +267,82 @@ class SyncEngine(private val context: Context, private val scope: CoroutineScope
                 process = null
                 reader?.join(2_000)
             }
+        }
+    }
+
+    private fun MutableMap<String, String>.baseEnvironment() {
+        put("HOME", home.absolutePath)
+        put("TMPDIR", File(home, "tmp").absolutePath)
+    }
+
+    /**
+     * Les processus moteur restés d'un lancement précédent (même uid, même `--home`) sont arrêtés avant d'en lancer un neuf :
+     * Android tue d'ordinaire tout le groupe de processus de l'app avec elle, mais un survivant tiendrait le verrou
+     * `syncthing.lock` et le port d'écoute. Jamais un autre uid (la sélection est testée, et `killProcess` ne le pourrait pas).
+     */
+    private fun stopStaleEngines() {
+        val processes = File("/proc").listFiles().orEmpty().mapNotNull { readProc(it) }
+        val stale = staleEngines(processes, Os.getuid(), AndroidProcess.myPid(), home.absolutePath)
+        if (stale.isEmpty()) return
+        note("Nettoyage : ${stale.size} processus moteur resté d'un lancement précédent (${stale.joinToString()}), arrêtés avant le lancement")
+        stale.forEach { AndroidProcess.killProcess(it) }
+        val deadline = SystemClock.elapsedRealtime() + 3_000
+        while (stale.any { File("/proc/$it").exists() } && SystemClock.elapsedRealtime() < deadline) Thread.sleep(50)
+        stale.filter { File("/proc/$it").exists() }.takeIf { it.isNotEmpty() }?.let { note("Nettoyage : encore présents après 3 s : ${it.joinToString()}") }
+    }
+
+    /** Un processus de `/proc`, ou null s'il a disparu ou n'est pas lisible (autre uid, `hidepid`). */
+    private fun readProc(dir: File): ProcInfo? {
+        val pid = dir.name.toIntOrNull() ?: return null
+        return try {
+            val uid = File(dir, "status").readLines().firstOrNull { it.startsWith("Uid:") }
+                ?.split(Regex("[ \t]+"))?.getOrNull(1)?.toIntOrNull() ?: return null
+            val cmdline = File(dir, "cmdline").readBytes().toString(Charsets.UTF_8).split('\u0000').dropLastWhile { it.isEmpty() }
+            ProcInfo(pid, uid, cmdline)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Moteur neuf : la configuration est générée hors service (`generate`), puis les options de sécurité et de cohabitation
+     * (port choisi, pas de découverte locale, pas de mise à jour ni de statistiques) y sont posées par un analyseur XML, AVANT
+     * le premier `serve` : le moteur n'écoute jamais sur le port 22000 ni sur la découverte locale. Ensuite l'API REST reste
+     * la source de vérité. Un échec n'empêche pas le lancement (l'API réglera les options, avec l'écoute provisoire).
+     */
+    private fun prepareFirstConfig(binary: File) {
+        if (configFile.exists() && !pendingConfig.exists()) return
+        val port = listenPort()
+        if (port == 0) return
+        try {
+            if (!configFile.exists()) {
+                pendingConfig.writeText("")
+                generateConfig(binary)
+            }
+            val patched = applyEngineOptions(configFile.readText(Charsets.UTF_8), port)
+            val temp = File(home, ".config.xml.neo-tmp")
+            java.io.FileOutputStream(temp).use { out -> out.write(patched.toByteArray(Charsets.UTF_8)); out.fd.sync() }
+            Os.chmod(temp.absolutePath, 0x180) // 0600
+            Os.rename(temp.absolutePath, configFile.absolutePath)
+            pendingConfig.delete()
+        } catch (e: Exception) {
+            note("Préparation de la configuration impossible : ${e.message}")
+        }
+    }
+
+    private fun generateConfig(binary: File) {
+        val builder = ProcessBuilder(binary.absolutePath, "--home=${home.absolutePath}", "generate", "--no-port-probing")
+        builder.environment().baseEnvironment()
+        builder.redirectErrorStream(true)
+        val p = builder.start()
+        try {
+            // `generate` se termine seul et sa sortie tient dans le tuyau : on attend la fin, puis on lit.
+            if (!p.waitFor(30, TimeUnit.SECONDS)) throw java.io.IOException("generate ne se termine pas")
+            val output = p.inputStream.readBytes()
+            log.write(output, output.size)
+            if (p.exitValue() != 0) throw java.io.IOException("generate a échoué (code ${p.exitValue()})")
+        } finally {
+            if (p.isAlive) { p.destroyForcibly(); p.waitFor() }
         }
     }
 
