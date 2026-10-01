@@ -133,3 +133,5 @@
 - **Créer / déplacer (T4)** : pas d'aperçu du brouillon sur la grille ; pas de glisser depuis ou vers la bande « journée entière » ; un jour de série déplacé garde toute la fiche de la série (la WebView n'en recopiait que le titre et la description).
 - **Réglages (T5)** : pas encore d'Apparence (thème, mode, fond d'écran), de fuseaux horaires ni de vue initiale ; menu de ligne sans Solo ni Horaires de prière ; préférences écrites clé par clé (la WebView réécrivait tout le fichier) ; messages d'erreur de dossier repris du Java.
 - **Liens ICS (T6)** : pas de « Afficher seulement ce lien », pas de lien à la création d'un calendrier, pas de fréquence par défaut dans les Réglages ; la minuterie ne tourne que quand l'app est à l'écran ; une note dont le nom est déjà pris dans le dossier du lien reçoit « (1) » au lieu d'écraser (la WebView écrasait).
+- **Rappels (T7)** : recalculés à chaque lecture du dossier, pas toutes les heures (le texte « Dans 1 h » peut vieillir jusqu'à la réouverture ; les heures d'alarme sont justes).
+- **Widget (T8)** : lieu affiché sous l'heure ; fenêtre = le mois à venir de tous les calendriers visibles.
