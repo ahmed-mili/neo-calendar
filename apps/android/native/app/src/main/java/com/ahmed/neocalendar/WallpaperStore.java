@@ -161,6 +161,31 @@ public final class WallpaperStore {
     return names;
   }
 
+  /** Les fonds deja presents avec leur date de modification (ms) : {nom, date, nom, date...}. Sert a reprendre le dernier telecharge. */
+  public List<Object> installedWithDates() {
+    List<Object> out = new ArrayList<>();
+    Uri folder = folder(false);
+    if (folder == null) return out;
+    Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(
+      folder, DocumentsContract.getDocumentId(folder));
+    try (Cursor cursor = context.getContentResolver().query(
+        children,
+        new String[] {
+          DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+          DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+        },
+        null, null, null)) {
+      if (cursor == null) return out;
+      while (cursor.moveToNext()) {
+        out.add(cursor.getString(0));
+        out.add(cursor.isNull(1) ? 0L : cursor.getLong(1));
+      }
+    } catch (Exception error) {
+      Log.w(TAG, "Listage impossible", error);
+    }
+    return out;
+  }
+
   // ── Telechargement ────────────────────────────────────────
 
   /**

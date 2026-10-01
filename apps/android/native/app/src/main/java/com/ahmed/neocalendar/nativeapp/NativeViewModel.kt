@@ -103,6 +103,11 @@ data class WorkspaceData(
     val icsDefaultMinutes: Int = 60,
     /** Les jours des calendriers de jours fériés (lecture seule, calculés sur l'appareil), de cinq ans avant à dix ans après. */
     val holidays: List<DisplayEvent> = emptyList(),
+    /** Vue initiale (`initialView`), clic sur un jour du mois et fuseaux ajoutés : lus et écrits dans le fichier partagé. */
+    val initialDesktop: String = "week",
+    val initialMobile: String = "3days",
+    val clickToCreateFromMonth: Boolean = true,
+    val secondaryTimezones: List<String> = emptyList(),
 )
 
 /** Où une notification ou le widget veut aller : la fiche d'un évènement, ou un brouillon. */
@@ -246,10 +251,20 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
                 "defaultEventsAsTasks" -> d.copy(defaultEventsAsTasks = value.booleanOrNull ?: d.defaultEventsAsTasks)
                 "mapsTravelMode" -> d.copy(mapsTravelMode = value.content)
                 "mapsApp" -> d.copy(mapsApp = value.content)
+                "clickToCreateEventFromMonthView" -> d.copy(clickToCreateFromMonth = value.booleanOrNull ?: d.clickToCreateFromMonth)
                 else -> d
             }
         }
         changePreferences { withSetting(it, key, value) }
+    }
+
+    /** La vue initiale (`initialView.desktop` ou `.mobile`) : l'objet est réécrit en gardant l'autre clé. */
+    fun setInitialView(which: String, value: String) {
+        patchData { if (which == "desktop") it.copy(initialDesktop = value) else it.copy(initialMobile = value) }
+        changePreferences { prefs ->
+            val current = (prefs["initialView"] as? JsonObject).orEmpty()
+            withSetting(prefs, "initialView", JsonObject(current + (which to JsonPrimitive(value))))
+        }
     }
 
     /** Le rappel de toute l'application. */
@@ -740,6 +755,10 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
             icsLinks = icsLinksOf(preferences["icsFeeds"]),
             icsDefaultMinutes = (preferences["icsDefaultRefreshMinutes"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 60,
             holidays = holidaySources.flatMap { holidayDisplayEvents(it, LocalDate.now().year, zone) },
+            initialDesktop = ((preferences["initialView"] as? JsonObject)?.get("desktop") as? JsonPrimitive)?.content ?: "week",
+            initialMobile = ((preferences["initialView"] as? JsonObject)?.get("mobile") as? JsonPrimitive)?.content ?: "3days",
+            clickToCreateFromMonth = flag("clickToCreateEventFromMonthView", true),
+            secondaryTimezones = (preferences["secondaryTimezones"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.content },
         )
     }
 }

@@ -222,7 +222,9 @@ fun DrawerContent(
         ) {
             // La mise à jour prête (ou en route) tient à gauche de la version, là où l'ancienne pose sa pastille bleue.
             UpdatePill(updates)
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(4.dp))
+            UpdateCheckButton(updates)
+            Spacer(Modifier.width(4.dp))
             Text(
                 "v$version",
                 color = Neo.TextSecondary,

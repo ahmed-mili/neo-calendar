@@ -90,24 +90,3 @@ internal fun TextInput(value: String, onChange: (String) -> Unit, placeholder: S
     }
 }
 
-/** Une liste de choix où un seul est pris (premier jour, mode de trajet, application de cartes). */
-@Composable
-fun ChoiceDialog(title: String, options: List<Pair<String, String>>, selected: String, onPick: (String) -> Unit, onDismiss: () -> Unit) {
-    NeoDialog(title, onDismiss) {
-        for ((value, label) in options) ChoiceLine(label, null, value == selected) { onPick(value) }
-    }
-}
-
-@Composable
-private fun ChoiceLine(label: String, note: String?, checked: Boolean, muted: Boolean = false, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(label, color = if (muted) Neo.TextFaint else if (checked) Neo.Accent else Neo.Text, fontSize = 15.sp)
-            if (note != null) Text(note, color = Neo.TextFaint, fontSize = 12.sp)
-        }
-        if (checked) Icon(NeoIcons.Check, null, tint = Neo.Accent, modifier = Modifier.size(18.dp))
-    }
-}

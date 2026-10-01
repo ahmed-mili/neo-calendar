@@ -7,6 +7,11 @@ import android.webkit.WebViewClient
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import android.os.Handler
+import android.os.Looper
+import com.ahmed.neocalendar.WallpaperStore
+import com.ahmed.neocalendar.core.appearance.WallpaperFile
+import com.ahmed.neocalendar.core.appearance.recoveredWallpaperId
 import org.json.JSONObject
 
 /** `WallpaperEffects` de `wallpaperEffects.ts` : mêmes bornes, mêmes défauts. */
@@ -56,6 +61,44 @@ object NeoAppearance {
             prefs.getFloat("container_opacity", 0.4f),
         ).normalized()
         if (!prefs.getBoolean("migrated", false)) migrateFromWebView(context.applicationContext)
+        else if (wallpaperId == null) recoverWallpaper(context.applicationContext)
+    }
+
+    /**
+     * Aucun fond mémorisé (ni dans la WebView, ni ici) mais des images dans `.neo-calendar/wallpapers/` : la plus récente
+     * est le dernier fond téléchargé, donc choisi. Elle devient le choix, aux deux endroits ; un choix existant n'est jamais touché.
+     */
+    private fun recoverWallpaper(context: Context) {
+        Thread {
+            val listing = try { WallpaperStore(context).installedWithDates() } catch (_: Exception) { return@Thread }
+            val files = listing.chunked(2).map { WallpaperFile(it[0] as String, it[1] as Long) }
+            val id = recoveredWallpaperId(null, files) ?: return@Thread
+            Handler(Looper.getMainLooper()).post {
+                if (wallpaperId != null) return@post
+                wallpaperId = id
+                save(context)
+                rememberInWebView(context, id)
+            }
+        }.start()
+    }
+
+    /** Écrit le choix dans le `localStorage` de la WebView (sans rien écraser), pour que l'ancienne interface soit d'accord. */
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun rememberInWebView(context: Context, id: String) {
+        val web = try { WebView(context) } catch (_: Exception) { return }
+        web.settings.javaScriptEnabled = true
+        web.settings.domStorageEnabled = true
+        web.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String?) {
+                val theme = JSONObject.quote(CatppuccinMocha.id)
+                view.evaluateJavascript(
+                    "(function(){try{var k='$APPEARANCE_KEY';var a=JSON.parse(localStorage.getItem(k)||'{}')||{};" +
+                        "a.themeOverrides=a.themeOverrides||{};var o=a.themeOverrides[$theme]=a.themeOverrides[$theme]||{};" +
+                        "if(!o.wallpaperId){o.wallpaperId=${JSONObject.quote(id)};localStorage.setItem(k,JSON.stringify(a));}return 1}catch(x){return 0}})()",
+                ) { view.destroy() }
+            }
+        }
+        web.loadDataWithBaseURL(ORIGIN, "<html></html>", "text/html", "utf-8", null)
     }
 
     /** Pour la page Apparence des Réglages. */
@@ -105,6 +148,7 @@ object NeoAppearance {
             ?.takeIf { it.isNotEmpty() }
         val fx = stored.optString("e").takeIf { it.isNotEmpty() && it != "null" }?.let { JSONObject(it) }
         wallpaperId = id
+        if (id == null) recoverWallpaper(context)
         effects = WallpaperEffects(
             fx?.optDouble("backgroundBrightness", 0.7)?.toFloat() ?: 0.7f,
             fx?.optDouble("backgroundBlur", 5.0)?.toFloat() ?: 5f,

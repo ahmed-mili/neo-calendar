@@ -49,8 +49,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.border
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -149,9 +154,8 @@ fun NativeApp(viewModel: NativeViewModel, updates: NativeUpdates) {
             WallpaperLayer(reloadKey = screen::class)
             when (val s = screen) {
                 ScreenState.NeedsFolder -> WelcomeScreen { pickTree.launch(Unit) }
-                ScreenState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Neo.Accent)
-                }
+                // Pas de spinner : le splash système tient jusqu'à la lecture du dossier (`holdSplashUntilReady`), puis la grille arrive remplie.
+                ScreenState.Loading -> Unit
                 is ScreenState.Failed -> FailedScreen(s.message, onPick = { pickTree.launch(Unit) }) { viewModel.reload(force = true) }
                 is ScreenState.Ready -> MainScreen(viewModel, s.data, updates)
             }
@@ -160,30 +164,63 @@ fun NativeApp(viewModel: NativeViewModel, updates: NativeUpdates) {
     }
 }
 
-/** Premier lancement sous ce nom : l'autorisation du dossier ne passe pas d'une app à l'autre, il faut le rechoisir une fois. */
+/** Premier lancement sans dossier : la carte `nc-welcome` de l'ancienne (repère, titre, phrase, « Choisir le dossier »). */
 @Composable
 private fun WelcomeScreen(onPick: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
-    ) {
-        Text("Bienvenue dans la nouvelle version de Neo Calendar", color = Neo.Text, fontSize = 20.sp, textAlign = TextAlign.Center)
-        Text(
-            "Android demande de rechoisir une fois le dossier de notes : vos calendriers et vos réglages seront retrouvés tels quels.",
-            color = Neo.TextSecondary,
-            fontSize = 15.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp),
-        )
-        Box(
+    val context = LocalContext.current
+    val icon = remember {
+        runCatching {
+            val drawable = context.packageManager.getApplicationIcon(context.packageName)
+            val bitmap = android.graphics.Bitmap.createBitmap(186, 186, android.graphics.Bitmap.Config.ARGB_8888)
+            drawable.setBounds(0, 0, 186, 186)
+            drawable.draw(android.graphics.Canvas(bitmap))
+            bitmap.asImageBitmap()
+        }.getOrNull()
+    }
+    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp), contentAlignment = Alignment.Center) {
+        val shape = RoundedCornerShape(Neo.CardRadius)
+        val shadow = Neo.Shadow
+        Column(
             Modifier
-                .padding(top = 28.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(Neo.Accent)
-                .clickable(onClick = onPick)
-                .padding(horizontal = 24.dp, vertical = 14.dp),
-        ) { Text("Choisir le dossier de notes", color = Neo.OnAccent, fontSize = 14.sp) }
+                .widthIn(max = 440.dp)
+                .fillMaxWidth()
+                .cssShadow(shadow.offsetY, shadow.blur, shadow.color, Neo.CardRadius)
+                .background(Neo.Surface, shape)
+                .border(1.dp, Neo.Border, shape)
+                .padding(24.dp),
+        ) {
+            if (icon != null) androidx.compose.foundation.Image(icon, null, Modifier.size(62.dp))
+            Text(
+                "Neo Calendar",
+                color = Neo.Text,
+                fontSize = 32.sp,
+                lineHeight = 33.6.sp,
+                fontWeight = FontWeight(690),
+                letterSpacing = (-1.28).sp,
+                modifier = Modifier.padding(top = 22.dp),
+            )
+            Text(
+                "Choisissez le dossier de données de Neo Calendar.",
+                color = Neo.TextSecondary,
+                fontSize = 15.sp,
+                lineHeight = 23.25.sp,
+                modifier = Modifier.padding(top = 14.dp, bottom = 22.dp),
+            )
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 52.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Neo.Accent)
+                    .clickable(onClick = onPick)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(NeoIcons.FolderOpen, null, tint = Neo.OnAccent, modifier = Modifier.size(18.dp))
+                Text("Choisir le dossier", color = Neo.OnAccent, fontSize = 15.sp, fontWeight = FontWeight(650))
+            }
+        }
     }
 }
 
@@ -224,7 +261,7 @@ private fun FailedScreen(message: String, onPick: () -> Unit, onRetry: () -> Uni
                 .background(Neo.Hover)
                 .clickable(onClick = onPick)
                 .padding(horizontal = 24.dp, vertical = 14.dp),
-        ) { Text("Choisir le dossier de notes", color = Neo.Text, fontSize = 14.sp) }
+        ) { Text("Choisir le dossier", color = Neo.Text, fontSize = 14.sp) }
     }
 }
 
@@ -605,16 +642,16 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(Neo.Background)
+                    .background(Neo.Mantle)
                     .pointerInput(Unit) { detectTapGestures { } }
                     .windowInsetsPadding(WindowInsets.safeDrawing),
             ) {
                 SettingsScreen(
                     version = BuildConfig.VERSION_NAME,
-                    updates = updates,
                     data = data,
                     actions = SettingsActions(
                         onSetting = viewModel::setPreference,
+                        onInitialView = viewModel::setInitialView,
                         onAppReminder = { calendarDialog = CalendarDialog.AppReminder },
                         onCalendarReminder = { calendarDialog = CalendarDialog.Reminder(it) },
                         onAddCalendar = { calendarDialog = CalendarDialog.Add },

@@ -155,4 +155,57 @@ object NeoIcons {
             "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2",
         )
     }
+
+    val CalendarRange: ImageVector by lazy {
+        lucide(
+            "calendar-range", "M16 2v4", "M3 10h18", "M8 2v4", "M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+            "M17 14h-6", "M13 18H7", "M7 14h.01", "M17 18h-.01",
+        )
+    }
+    val Timer: ImageVector by lazy { lucide("timer", "M10 2h4", "M12 14l3-3", "M12 6a8 8 0 1 0 0 16 8 8 0 0 0 0-16z") }
+    val CalendarClock: ImageVector by lazy {
+        lucide(
+            "calendar-clock", "M16 14v2.2l1.6 1", "M16 2v4", "M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5",
+            "M3 10h5", "M8 2v4", "M16 10a6 6 0 1 0 0 12 6 6 0 0 0 0-12z",
+        )
+    }
+    val Columns2: ImageVector by lazy { lucide("columns-2", "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z", "M12 3v18") }
+    val Route: ImageVector by lazy {
+        lucide(
+            "route", "M6 16a3 3 0 1 0 0 6 3 3 0 0 0 0-6z", "M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15",
+            "M18 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+        )
+    }
+    val Map: ImageVector by lazy {
+        lucide(
+            "map",
+            "M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z",
+            "M15 5.764v15", "M9 3.236v15",
+        )
+    }
+    val Monitor: ImageVector by lazy { lucide("monitor", "M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z", "M8 21h8", "M12 17v4") }
+    val Smartphone: ImageVector by lazy { lucide("smartphone", "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z", "M12 18h.01") }
+    val Palette: ImageVector by lazy {
+        lucide(
+            "palette", "M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z",
+            "M13.5 6.5h.01", "M17.5 10.5h.01", "M6.5 12.5h.01", "M8.5 7.5h.01",
+        )
+    }
+    val Moon: ImageVector by lazy {
+        lucide("moon", "M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401")
+    }
+    val Languages: ImageVector by lazy { lucide("languages", "m5 8 6 6", "m4 14 6-6 2-3", "M2 5h12", "M7 2h1", "m22 22-5-10-5 10", "M14 18h6") }
+    val CalendarDays: ImageVector by lazy {
+        lucide(
+            "calendar-days", "M8 2v4", "M16 2v4", "M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z", "M3 10h18",
+            "M8 14h.01", "M12 14h.01", "M16 14h.01", "M8 18h.01", "M12 18h.01", "M16 18h.01",
+        )
+    }
+    val Globe: ImageVector by lazy {
+        lucide("globe", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z", "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20", "M2 12h20")
+    }
+    val Library: ImageVector by lazy { lucide("library", "m16 6 4 14", "M12 6v14", "M8 8v12", "M4 4v16") }
+    val ArrowLeft: ImageVector by lazy { lucide("arrow-left", "m12 19-7-7 7-7", "M19 12H5") }
+    val Columns3: ImageVector by lazy { lucide("columns-3", "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z", "M9 3v18", "M15 3v18") }
+    val List: ImageVector by lazy { lucide("list", "M3 5h.01", "M3 12h.01", "M3 19h.01", "M8 5h13", "M8 12h13", "M8 19h13") }
 }

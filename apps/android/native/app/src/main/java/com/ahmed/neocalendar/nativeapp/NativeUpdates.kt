@@ -47,6 +47,11 @@ class NativeUpdates(activity: Activity) {
         updater.checkNow { checkResult = it }
     }
 
+    /** Efface le résultat affiché (il ne reste à l'écran que quelques secondes). */
+    fun clearCheck() {
+        if (checkResult != "checking") checkResult = null
+    }
+
     fun shutdown() {
         io.shutdownNow()
     }

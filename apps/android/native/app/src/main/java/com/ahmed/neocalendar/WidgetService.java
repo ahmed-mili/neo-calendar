@@ -103,6 +103,9 @@ public class WidgetService extends RemoteViewsService {
            accent is whatever theme is loaded, and this one marker has to stay
            the same colour whatever the calendar looks like. */
         private static final int TODAY = 0xFFDF6057;
+        /* Today's rows are drawn at full strength, the days after it at this
+           fraction of it: the day at hand stands out. Change it here only. */
+        private static final float OTHER_DAYS_ALPHA = 0.6f;
 
         private final int appWidgetId;
 
@@ -139,6 +142,7 @@ public class WidgetService extends RemoteViewsService {
             if (position < 0 || position >= rows.size()) return views;
             Row row = rows.get(position);
 
+            views.setFloat(R.id.row_root, "setAlpha", row.today ? 1f : OTHER_DAYS_ALPHA);
             views.setTextViewText(R.id.row_weekday, row.opensDay ? row.weekday : "");
             views.setTextViewText(R.id.row_day, row.opensDay ? row.day : "");
             views.setTextColor(R.id.row_weekday, text);
