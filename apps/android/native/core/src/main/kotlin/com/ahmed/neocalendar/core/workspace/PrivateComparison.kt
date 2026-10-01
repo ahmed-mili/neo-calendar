@@ -90,6 +90,11 @@ fun clearPrivateMessage(c: PrivateComparison?): String {
         if (n == 1) "1 fichier n'existe que dans le stockage privé et sera définitivement supprimé"
         else "$n fichiers n'existent que dans le stockage privé et seront définitivement supprimés"
     }
-    return "$subject : $names$more. Le stockage privé contient ${plural(c.totalFiles, "fichier", "fichiers")} au total ; " +
-        "le dossier externe ne les a pas, ou en a une autre version." + extra
+    val rest = c.totalFiles - n
+    val tail = when {
+        rest <= 0 -> ""
+        rest == 1 -> " Le seul autre fichier du stockage privé existe aussi, identique, dans le dossier externe."
+        else -> " Les $rest autres fichiers du stockage privé existent aussi, identiques, dans le dossier externe."
+    }
+    return "$subject : $names$more. Le stockage privé contient ${plural(c.totalFiles, "fichier", "fichiers")} au total.$tail" + extra
 }

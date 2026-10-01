@@ -48,9 +48,9 @@ class NativeActivity : ComponentActivity() {
         // Comme la WebView : on cherche une mise à jour une fois le calendrier à l'écran, pas avant.
         lifecycleScope.launch {
             viewModel.screen.first { it !is ScreenState.Loading }
-            updates.checkOnLaunch()
             // Un arrêt en pleine copie a pu laisser un dossier temporaire : nettoyé ici, une fois la grille affichée, jamais au lancement.
             withContext(Dispatchers.IO) { runCatching { com.ahmed.neocalendar.nativeapp.sync.StorageSwitch.cleanLeftovers(applicationContext) } }
+            updates.checkOnLaunch()
             // Le moteur de synchronisation démarre APRÈS la grille, hors du fil principal ; jamais avec un dossier externe.
             if (WorkspaceLocation.mode(applicationContext) == StorageMode.Integrated) {
                 withContext(Dispatchers.Default) {
