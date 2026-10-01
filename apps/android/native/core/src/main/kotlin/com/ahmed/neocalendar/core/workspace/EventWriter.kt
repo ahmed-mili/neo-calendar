@@ -277,6 +277,35 @@ class EventWriter(private val storage: WritableWorkspaceStorage) {
     }
 
     /**
+     * Un évènement glissé vers ou depuis la bande « journée entière » : il change de drapeau, de date et d'heures
+     * (`applyEventDrag`, `allDayOverride`). Un jour de série sort de la série comme dans [reschedule].
+     */
+    fun rescheduleToSlot(
+        stored: StoredEvent,
+        displayId: String,
+        slot: com.ahmed.neocalendar.core.grid.DropSlot,
+        zone: java.time.ZoneId,
+        now: () -> String,
+    ): WrittenEvent {
+        requireWritable(stored)
+        if (isSeries(stored.event)) {
+            val day = com.ahmed.neocalendar.core.recurrence.occurrenceDateOf(displayId)
+                ?: throw IllegalArgumentException("Ce jour de la série est introuvable.")
+            val newDate = slot.start.atZone(zone).toLocalDate().toString()
+            val record = com.ahmed.neocalendar.core.grid.seriesConvertedRecord(stored.event, slot, zone)
+            return detachOccurrence(stored, record, day, newDate, stored.calendarPath, now, record["endDate"]?.let { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content })
+        }
+        if (stored.event !is NeoEvent.Single) throw IllegalArgumentException("Cet évènement ne se déplace pas ainsi.")
+        return persist(com.ahmed.neocalendar.core.grid.convertedRecord(stored.event.toRecord(), slot, zone), stored.calendarPath, stored, neverOverwrite = false)
+    }
+
+    /** « Reconvertir les tâches horaires en évènements » : la note sans `completed` ni `due`, le reste inchangé. */
+    fun convertToPlainEvent(stored: StoredEvent): WrittenEvent {
+        requireWritable(stored)
+        return persist(com.ahmed.neocalendar.core.tasks.plainEventRecord(stored.event), stored.calendarPath, stored, neverOverwrite = false)
+    }
+
+    /**
      * La case d'une tâche (`toggleTask`) : une tâche ponctuelle reçoit l'instant de
      * fin ou `false` ; une série coche ou décoche le jour affiché. Ce qui n'est pas
      * une tâche n'en devient pas une.

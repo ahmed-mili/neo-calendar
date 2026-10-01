@@ -189,3 +189,19 @@ fun withIcsFeedDirectory(preferences: JsonObject, id: String, directory: String)
             if (feedText(feed, "id") == id) JsonObject(LinkedHashMap<String, JsonElement>(feed).also { it["directory"] = JsonPrimitive(directory) }) else feed
         },
     )
+
+/** « Appliquer à tous les liens » : chaque lien perd sa fréquence propre et suit la fréquence par défaut (DesktopSettings.tsx). */
+fun withIcsRefreshOverridesCleared(preferences: JsonObject): JsonObject =
+    withFeeds(preferences, feeds(preferences).map { feed -> JsonObject(LinkedHashMap<String, JsonElement>(feed).also { it.remove("refreshMinutes") }) })
+
+// --- les fuseaux horaires supplémentaires (DesktopSettings.tsx : addTimezone, retrait) -------------------
+
+/** Ajoute un fuseau à la liste du fichier tel qu'il est lu à l'instant ; un champ vide, inconnu ou déjà présent ne change rien. */
+fun withTimezoneAdded(preferences: JsonObject, input: String): JsonObject {
+    val next = com.ahmed.neocalendar.core.timezones.timezoneAdded(strings(preferences["secondaryTimezones"]), input) ?: return preferences
+    return preferences.with("secondaryTimezones", stringArray(next))
+}
+
+/** Retire un fuseau de la liste ; les autres gardent leur ordre. */
+fun withTimezoneRemoved(preferences: JsonObject, zone: String): JsonObject =
+    preferences.with("secondaryTimezones", stringArray(strings(preferences["secondaryTimezones"]).filter { it != zone }))
