@@ -1,0 +1,93 @@
+{
+  "name": "journee entiere et horaire du meme jour, dans l'ordre de debut",
+  "fn": "widget.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "Reunion",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "13:00",
+          "endTime": "14:00"
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#89b4fa",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-12-31T23:59:59+01:00"
+      },
+      {
+        "event": {
+          "title": "Ferie",
+          "type": "single",
+          "allDay": true,
+          "date": "2026-08-07"
+        },
+        "id": "b",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#f38ba8",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-12-31T23:59:59+01:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "timeFormat24h": true,
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  },
+  "expected": {
+    "updatedAt": 1786096800000,
+    "rows": [
+      {
+        "id": "b",
+        "startMs": 1786053600000,
+        "endMs": 1786140000000,
+        "dayKey": "2026-7-7",
+        "weekday": "ven",
+        "day": "7",
+        "title": "Ferie",
+        "time": "",
+        "allDay": true,
+        "color": "#f38ba8"
+      },
+      {
+        "id": "a",
+        "startMs": 1786100400000,
+        "endMs": 1786104000000,
+        "dayKey": "2026-7-7",
+        "weekday": "ven",
+        "day": "7",
+        "title": "Reunion",
+        "time": "13:00 – 14:00",
+        "allDay": false,
+        "color": "#89b4fa"
+      }
+    ],
+    "weekdays": [
+      "dim",
+      "lun",
+      "mar",
+      "mer",
+      "jeu",
+      "ven",
+      "sam"
+    ],
+    "emptyLabel": "Aucun événement prévu",
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  }
+}

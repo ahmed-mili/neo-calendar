@@ -78,6 +78,8 @@ import com.ahmed.neocalendar.core.preferences.reminderListOf
 import com.ahmed.neocalendar.core.recurrence.DisplayEvent
 import com.ahmed.neocalendar.core.recurrence.neoEventToDisplayEvents
 import com.ahmed.neocalendar.core.reminders.buildReminders
+import com.ahmed.neocalendar.core.widget.WidgetTheme
+import com.ahmed.neocalendar.core.widget.buildWidgetPayload
 import com.ahmed.neocalendar.core.reminders.prayerRemindersFor
 import com.ahmed.neocalendar.core.reminders.relativeDelayLabel
 import java.time.OffsetDateTime
@@ -139,6 +141,7 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf<String, (JsonOb
     },
     "recurrence.expand" to { input -> expand(input) },
     "reminders.build" to { input -> reminders(input) },
+    "widget.build" to { input -> widget(input) },
     "reminders.prayer" to { input -> prayer(input) },
     "reminders.delayLabel" to { input -> JsonPrimitive(relativeDelayLabel(input.getValue("minutes").jsonPrimitive.double)) },
     "preferences.prayerReminder" to { input ->
@@ -455,6 +458,18 @@ private fun reminders(input: JsonObject): JsonElement {
         timeFormat24h = input.getValue("timeFormat24h").jsonPrimitive.boolean,
     )
     return JsonArray(built.map { it.toJson() })
+}
+
+/** Le corpus compare la forme du TypeScript : le lieu, ajout du natif, n'y figure pas (voir WidgetPayloadTest). */
+private fun widget(input: JsonObject): JsonElement {
+    fun theme(name: String) = input.getValue("theme").jsonObject.getValue(name).jsonPrimitive.content
+    val built = buildWidgetPayload(
+        events = input.getValue("events").jsonArray.flatMap { expandEntry(it.jsonObject) },
+        now = OffsetDateTime.parse(input.getValue("now").jsonPrimitive.content).toInstant(),
+        timeFormat24h = input.getValue("timeFormat24h").jsonPrimitive.boolean,
+        theme = WidgetTheme(theme("surface"), theme("text"), theme("muted"), theme("accent")),
+    )
+    return built.toJson(withLocation = false)
 }
 
 private fun prayer(input: JsonObject): JsonElement {

@@ -1,0 +1,66 @@
+{
+  "name": "un titre vide devient Sans titre",
+  "fn": "widget.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "14:00",
+          "endTime": "15:00"
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#89b4fa",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-12-31T23:59:59+01:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "timeFormat24h": true,
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  },
+  "expected": {
+    "updatedAt": 1786096800000,
+    "rows": [
+      {
+        "id": "a",
+        "startMs": 1786104000000,
+        "endMs": 1786107600000,
+        "dayKey": "2026-7-7",
+        "weekday": "ven",
+        "day": "7",
+        "title": "Sans titre",
+        "time": "14:00 – 15:00",
+        "allDay": false,
+        "color": "#89b4fa"
+      }
+    ],
+    "weekdays": [
+      "dim",
+      "lun",
+      "mar",
+      "mer",
+      "jeu",
+      "ven",
+      "sam"
+    ],
+    "emptyLabel": "Aucun événement prévu",
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  }
+}

@@ -54,6 +54,7 @@ import type { DesktopStoredEvent } from "../apps/windows/src/platform/desktopEve
 import { mergeRemoteEvents } from "../apps/windows/src/platform/mergeRemoteEvents";
 import type { NeoEvent } from "../src/types";
 import { buildReminders } from "../apps/windows/src/platform/androidReminders";
+import { buildWidgetPayload } from "../apps/windows/src/platform/androidWidget";
 import { prayerRemindersFor } from "../apps/windows/src/platform/prayerReminders";
 import { relativeDelayLabel } from "../src/ui/calendar/reminderDelay";
 import { dayShiftFromAnchor, projectGridDrag } from "../src/ui/calendar/dragProjection";
@@ -285,6 +286,13 @@ export const OPERATIONS: Record<string, (input: any) => unknown | Promise<unknow
             minutesBefore,
             minutesByCalendar,
             timeFormat24h,
+        }),
+    "widget.build": ({ events, now, timeFormat24h, theme }) =>
+        buildWidgetPayload({
+            events: (events as any[]).flatMap(expandEntry),
+            now: new Date(now),
+            timeFormat24h,
+            theme,
         }),
     "reminders.prayer": ({ timetable, minutes, now, timeFormat24h }) =>
         prayerRemindersFor({ timetable, minutes, now: new Date(now), timeFormat24h }),

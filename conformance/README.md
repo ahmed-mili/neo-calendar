@@ -11,6 +11,7 @@ conformance/
 ├── preferences/*.json       .neo-calendar.json : lecture tolérante, défauts
 ├── recurrence/*.json        occurrences d'un évènement dans une fenêtre
 ├── reminders/*.json         rappels calculés depuis évènements + préférences
+├── widget/*.json            charge du widget de l'écran d'accueil (lignes à venir, groupées par jour) ; le lieu, ajout du natif, n'y figure pas
 ├── ics/*.json               flux ICS -> occurrences ; plan de synchro en notes ; liens dus et fenêtre de synchro
 ├── layout/*.json            chevauchements de la grille, bandes all-day
 ├── recurrence-form/*.json   répétition de la fiche : RRULE <-> formulaire, préréglages, résumé

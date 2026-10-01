@@ -16,6 +16,7 @@ private val FR = mapOf(
     "Tomorrow, all day" to "Demain, toute la journée",
     "Starting now" to "Ça commence",
     "It is time" to "C'est l'heure",
+    "No event scheduled" to "Aucun événement prévu",
     // Fiche d'évènement : répétition et rappels.
     "Every day" to "Tous les jours",
     "Every week" to "Toutes les semaines",

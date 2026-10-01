@@ -1,0 +1,83 @@
+{
+  "name": "l'horizon part de minuit aujourd'hui, pas de maintenant",
+  "fn": "widget.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "Dernier instant",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-09-05",
+          "startTime": "23:59",
+          "endTime": "23:59"
+        },
+        "id": "in",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#89b4fa",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-12-31T23:59:59+01:00"
+      },
+      {
+        "event": {
+          "title": "Premier instant dehors",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-09-06",
+          "startTime": "00:00",
+          "endTime": "00:30"
+        },
+        "id": "out",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#89b4fa",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-12-31T23:59:59+01:00"
+      }
+    ],
+    "now": "2026-08-07T18:00:00+02:00",
+    "timeFormat24h": true,
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  },
+  "expected": {
+    "updatedAt": 1786118400000,
+    "rows": [
+      {
+        "id": "in",
+        "startMs": 1788645540000,
+        "endMs": 1788731940000,
+        "dayKey": "2026-8-5",
+        "weekday": "sam",
+        "day": "5",
+        "title": "Dernier instant",
+        "time": "23:59 – 23:59",
+        "allDay": false,
+        "color": "#89b4fa"
+      }
+    ],
+    "weekdays": [
+      "dim",
+      "lun",
+      "mar",
+      "mer",
+      "jeu",
+      "ven",
+      "sam"
+    ],
+    "emptyLabel": "Aucun événement prévu",
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  }
+}

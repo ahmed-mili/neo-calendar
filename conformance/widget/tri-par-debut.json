@@ -1,0 +1,124 @@
+{
+  "name": "les lignes suivent le debut, pas l'ordre d'entree",
+  "fn": "widget.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "Dernier",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-09",
+          "startTime": "09:00",
+          "endTime": "10:00"
+        },
+        "id": "c",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#89b4fa",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-12-31T23:59:59+01:00"
+      },
+      {
+        "event": {
+          "title": "Premier",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-07",
+          "startTime": "13:00",
+          "endTime": "14:00"
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#89b4fa",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-12-31T23:59:59+01:00"
+      },
+      {
+        "event": {
+          "title": "Milieu",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-08-08",
+          "startTime": "09:00",
+          "endTime": "10:00"
+        },
+        "id": "b",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#89b4fa",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-12-31T23:59:59+01:00"
+      }
+    ],
+    "now": "2026-08-07T12:00:00+02:00",
+    "timeFormat24h": true,
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  },
+  "expected": {
+    "updatedAt": 1786096800000,
+    "rows": [
+      {
+        "id": "a",
+        "startMs": 1786100400000,
+        "endMs": 1786104000000,
+        "dayKey": "2026-7-7",
+        "weekday": "ven",
+        "day": "7",
+        "title": "Premier",
+        "time": "13:00 – 14:00",
+        "allDay": false,
+        "color": "#89b4fa"
+      },
+      {
+        "id": "b",
+        "startMs": 1786172400000,
+        "endMs": 1786176000000,
+        "dayKey": "2026-7-8",
+        "weekday": "sam",
+        "day": "8",
+        "title": "Milieu",
+        "time": "09:00 – 10:00",
+        "allDay": false,
+        "color": "#89b4fa"
+      },
+      {
+        "id": "c",
+        "startMs": 1786258800000,
+        "endMs": 1786262400000,
+        "dayKey": "2026-7-9",
+        "weekday": "dim",
+        "day": "9",
+        "title": "Dernier",
+        "time": "09:00 – 10:00",
+        "allDay": false,
+        "color": "#89b4fa"
+      }
+    ],
+    "weekdays": [
+      "dim",
+      "lun",
+      "mar",
+      "mer",
+      "jeu",
+      "ven",
+      "sam"
+    ],
+    "emptyLabel": "Aucun événement prévu",
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  }
+}

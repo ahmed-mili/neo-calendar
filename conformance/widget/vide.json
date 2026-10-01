@@ -1,0 +1,35 @@
+{
+  "name": "aucun evenement : le libelle du jour vide",
+  "fn": "widget.build",
+  "input": {
+    "events": [],
+    "now": "2026-08-07T12:00:00+02:00",
+    "timeFormat24h": true,
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  },
+  "expected": {
+    "updatedAt": 1786096800000,
+    "rows": [],
+    "weekdays": [
+      "dim",
+      "lun",
+      "mar",
+      "mer",
+      "jeu",
+      "ven",
+      "sam"
+    ],
+    "emptyLabel": "Aucun événement prévu",
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  }
+}

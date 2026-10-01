@@ -87,5 +87,16 @@
             android:maxLines="1"
             android:textSize="11.6sp"
             android:textColor="#9AA0B4" />
+
+        <TextView
+            android:id="@+id/row_location"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textSize="11.6sp"
+            android:textColor="#9AA0B4"
+            android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>

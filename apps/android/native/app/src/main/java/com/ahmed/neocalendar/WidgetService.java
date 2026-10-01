@@ -38,6 +38,8 @@ public class WidgetService extends RemoteViewsService {
         String day = "";
         String title = "";
         String time = "";
+        /* Where the event is, trimmed; empty when it has no place. */
+        String location = "";
         String color = "";
         boolean allDay;
         boolean opensDay;
@@ -67,6 +69,7 @@ public class WidgetService extends RemoteViewsService {
             row.day = raw.optString("day", "");
             row.title = raw.optString("title", "");
             row.time = raw.optString("time", "");
+            row.location = raw.optString("location", "").trim();
             row.color = raw.optString("color", "");
             row.allDay = raw.optBoolean("allDay", false);
 
@@ -143,6 +146,13 @@ public class WidgetService extends RemoteViewsService {
                     R.id.row_time, row.allDay ? View.GONE : View.VISIBLE);
             views.setTextViewText(R.id.row_time, row.time);
             views.setTextColor(R.id.row_time, muted);
+
+            /* Under the time, one line, muted; nothing at all without a place. */
+            views.setViewVisibility(
+                    R.id.row_location,
+                    row.location.isEmpty() ? View.GONE : View.VISIBLE);
+            views.setTextViewText(R.id.row_location, row.location);
+            views.setTextColor(R.id.row_location, muted);
 
             views.setViewVisibility(
                     R.id.row_bar, row.allDay ? View.GONE : View.VISIBLE);

@@ -1,0 +1,95 @@
+{
+  "name": "autour du changement d'heure d'automne",
+  "fn": "widget.build",
+  "input": {
+    "events": [
+      {
+        "event": {
+          "title": "Avant",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-10-24",
+          "startTime": "09:00",
+          "endTime": "10:00"
+        },
+        "id": "a",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#89b4fa",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-12-31T23:59:59+01:00"
+      },
+      {
+        "event": {
+          "title": "Apres",
+          "type": "single",
+          "allDay": false,
+          "date": "2026-10-26",
+          "startTime": "09:00",
+          "endTime": "10:00"
+        },
+        "id": "b",
+        "calendarId": "cal",
+        "calendarName": "Cal",
+        "color": "#89b4fa",
+        "editable": true,
+        "rangeStart": "2026-08-01T00:00:00+02:00",
+        "rangeEnd": "2026-12-31T23:59:59+01:00"
+      }
+    ],
+    "now": "2026-10-24T08:00:00+02:00",
+    "timeFormat24h": true,
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  },
+  "expected": {
+    "updatedAt": 1792821600000,
+    "rows": [
+      {
+        "id": "a",
+        "startMs": 1792825200000,
+        "endMs": 1792828800000,
+        "dayKey": "2026-9-24",
+        "weekday": "sam",
+        "day": "24",
+        "title": "Avant",
+        "time": "09:00 – 10:00",
+        "allDay": false,
+        "color": "#89b4fa"
+      },
+      {
+        "id": "b",
+        "startMs": 1793001600000,
+        "endMs": 1793005200000,
+        "dayKey": "2026-9-26",
+        "weekday": "lun",
+        "day": "26",
+        "title": "Apres",
+        "time": "09:00 – 10:00",
+        "allDay": false,
+        "color": "#89b4fa"
+      }
+    ],
+    "weekdays": [
+      "dim",
+      "lun",
+      "mar",
+      "mer",
+      "jeu",
+      "ven",
+      "sam"
+    ],
+    "emptyLabel": "Aucun événement prévu",
+    "theme": {
+      "surface": "#2a2a3c",
+      "text": "#c6d0f5",
+      "muted": "#9aa2c6",
+      "accent": "#658ff2"
+    }
+  }
+}
