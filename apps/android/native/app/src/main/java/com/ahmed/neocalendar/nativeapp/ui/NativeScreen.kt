@@ -295,7 +295,20 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     // Le brouillon n'est dessiné sur la grille que tant qu'il n'est pas une note ; un appui hors de la fiche la ferme (`usePopupDismiss`).
     var draftCommitted by remember { mutableStateOf(false) }
     var closeSignal by remember { mutableStateOf(0) }
-    val openDraft = { draft: SheetTarget.Draft -> draftCommitted = false; sheet = draft }
+    // Une fiche ouverte n'est pas remplacée d'un coup : elle sort d'abord (la question de portée d'une série comprise),
+    // puis celle qui attend ici s'ouvre à sa place.
+    var pendingSheet by remember { mutableStateOf<SheetTarget?>(null) }
+    val closeSheet = { pendingSheet = null; closeSignal++ }
+    val show = { next: SheetTarget ->
+        if (sheet == null) {
+            if (next is SheetTarget.Draft) draftCommitted = false
+            sheet = next
+        } else {
+            pendingSheet = next
+            closeSignal++
+        }
+    }
+    val openDraft = { draft: SheetTarget.Draft -> show(draft) }
     var overlayKey by rememberSaveable { mutableStateOf("") }
     val overlay = remember(overlayKey) { decodeOverlay(overlayKey) }
     val calendarsById = remember(data) { data.calendars.associateBy { it.id } }
@@ -304,12 +317,12 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     val taskGroups = remember(data, hidden) { buildDesktopTaskGroups(collectTasks(data.events, calendarsById, hidden)) }
     val openTask = { task: TaskItem ->
         val note = notesById[task.id]
-        if (note != null) sheet = SheetTarget.Existing(note, note.id)
+        if (note != null) show(SheetTarget.Existing(note, note.id))
     }
     // Un appui sur un bloc ou une carte : la note qu'il montre (la série, pour un jour d'une série).
     val openEvent = { event: DisplayEvent ->
         val note = resolveStored(notesById, event.id)
-        if (note != null) sheet = SheetTarget.Existing(note, event.id)
+        if (note != null) show(SheetTarget.Existing(note, event.id))
     }
 
     // Une notification, une ligne du widget ou son « + » : la fiche ou le brouillon, dès que le dossier est lu.
@@ -319,7 +332,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             null -> Unit
             is NativeRoute.Event -> {
                 val note = resolveStored(notesById, wanted.id)
-                if (note != null) sheet = SheetTarget.Existing(note, wanted.id)
+                if (note != null) show(SheetTarget.Existing(note, wanted.id))
                 else Notices.show("Cette note n'existe plus.")
             }
             NativeRoute.NewEvent ->
@@ -339,7 +352,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             onOpen = openEvent,
             onCreate = { start, end ->
                 if (sheet != null) {
-                    closeSignal++
+                    closeSheet()
                 } else if (data.calendars.none { it.editable }) {
                     Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                 } else {
@@ -348,7 +361,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             },
             onCreateAllDay = { date ->
                 if (sheet != null) {
-                    closeSignal++
+                    closeSheet()
                 } else if (data.calendars.none { it.editable }) {
                     Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                 } else {
@@ -432,7 +445,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             )
             // La fiche ouverte : un appui sur la barre du haut la ferme, il ne fait pas l'action du bouton touché.
             if (sheet != null) Box(
-                Modifier.matchParentSize().pointerInput(Unit) { detectTapGestures { closeSignal++ } },
+                Modifier.matchParentSize().pointerInput(Unit) { detectTapGestures { closeSheet() } },
             )
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -471,7 +484,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                         .background(Neo.Accent)
                         .clickable(interactionSource = fabSource, indication = null) {
                             if (sheet != null) {
-                                closeSignal++
+                                closeSheet()
                             } else if (data.calendars.none { it.editable }) {
                                 Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                             } else {
@@ -735,13 +748,20 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
         EventSheet(
             target, data, viewModel,
             closeSignal = closeSignal,
+            replacing = pendingSheet != null,
+            onStay = { pendingSheet = null },
             onDraftCommitted = { draftCommitted = true },
             onOpenOccurrence = { displayId, date ->
                 val note = resolveStored(notesById, displayId)
                 runCatching { LocalDate.parse(date) }.getOrNull()?.let { grid.goTo(scope, it) }
                 if (note != null) sheet = SheetTarget.Existing(note, displayId)
             },
-            onDismiss = { sheet = null },
+            onDismiss = {
+                val next = pendingSheet
+                pendingSheet = null
+                if (next is SheetTarget.Draft) draftCommitted = false
+                sheet = next
+            },
         )
     }
 }

@@ -1,5 +1,6 @@
 package com.ahmed.neocalendar.nativeapp.ui
 
+import android.content.ContextWrapper
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,6 +45,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewModelScope
 import com.ahmed.neocalendar.core.form.BirthdayReturn
 import com.ahmed.neocalendar.core.form.EntryKind
@@ -65,6 +69,7 @@ import com.ahmed.neocalendar.core.recurrence.occurrenceDateOf
 import com.ahmed.neocalendar.core.recurrence.recurringEditChanges
 import com.ahmed.neocalendar.core.sheet.SheetStop
 import com.ahmed.neocalendar.core.sheet.adjacentOccurrenceId
+import com.ahmed.neocalendar.core.sheet.freshNote
 import com.ahmed.neocalendar.core.tasks.isTask
 import com.ahmed.neocalendar.nativeapp.ExternalOpen
 import com.ahmed.neocalendar.nativeapp.NativeViewModel
@@ -83,6 +88,7 @@ import com.ahmed.neocalendar.nativeapp.ui.fields.RepeatField
 import com.ahmed.neocalendar.nativeapp.ui.fields.ScheduleFields
 import com.ahmed.neocalendar.nativeapp.ui.fields.SeriesSteps
 import java.time.LocalDateTime
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -117,6 +123,8 @@ fun EventSheet(
     data: WorkspaceData,
     viewModel: NativeViewModel,
     closeSignal: Int,
+    replacing: Boolean,
+    onStay: () -> Unit,
     onDraftCommitted: () -> Unit,
     onOpenOccurrence: (displayId: String, date: String) -> Unit,
     onDismiss: () -> Unit,
@@ -161,6 +169,8 @@ fun EventSheet(
     var dialog by remember(key) { mutableStateOf<SheetDialog?>(null) }
     var held by remember(key) { mutableStateOf<HeldScope?>(null) }
     val flushLock = remember(key) { Mutex() }
+    // Faux dès que la fiche quitte l'écran : une écriture qui finit après ne touche plus la fiche suivante.
+    val alive = remember(key) { AtomicBoolean(true) }
     val sheetState = rememberSheetState(if (isDraftSheet) SheetStop.Half else SheetStop.Full, isDraftSheet)
 
     val calendarOfNote = stored?.let { s -> latestData.calendars.firstOrNull { it.id == s.calendarId } }
@@ -182,13 +192,13 @@ fun EventSheet(
     }
 
     /** Écrit ce que le formulaire dit de plus que la dernière écriture, jusqu'à ce qu'il n'y ait plus rien. */
-    suspend fun flush() = flushLock.withLock {
+    suspend fun flush(): Unit = flushLock.withLock {
         var attempts = 0
         while (attempts++ < 12) {
             val snapshot = values
             if (snapshot == baseline) return
-            val note = live
-            if (note == null) {
+            val opened = live
+            if (opened == null) {
                 // `shouldAutoCommitDraft` : le brouillon n'existe qu'une fois qu'il a un titre et une date.
                 if (snapshot.title.isBlank() || snapshot.date.isEmpty()) return
                 val written = viewModel.createEvent(calendarPath(snapshot), payload(snapshot))
@@ -197,21 +207,24 @@ fun EventSheet(
                 val created = written.note
                 if (created == null) {
                     // La note est écrite mais introuvable après relecture : ne pas la recréer.
-                    onDismiss()
+                    if (alive.get()) onDismiss()
                     return
                 }
                 live = created
                 displayId = created.id
                 baseline = snapshot
                 error = null
-                onDraftCommitted()
+                if (alive.get()) onDraftCommitted()
                 continue
             }
+            // La note telle que le dossier la rend maintenant : une écriture d'une autre fiche a pu la renommer depuis.
+            val note = freshNote(viewModel.latestData()?.events.orEmpty(), opened, calendarPath(snapshot)) ?: opened
             if (!editable || (needsScopeChoice(note.event.toRecord(), displayId, isDraft = false))) return
             val written = viewModel.updateEvent(note, payload(snapshot), calendarPath(snapshot))
             if (written.error == WRITE_IGNORED) { delay(250); continue }
+            // Une écriture à moitié faite (la note déplacée, puis l'écriture refusée) : la fiche suit la note là où elle est.
+            live = written.note ?: freshNote(viewModel.latestData()?.events.orEmpty(), note, calendarPath(snapshot)) ?: note
             if (written.error != null) { error = written.error; Notices.fail(written.error); return }
-            live = written.note ?: note
             baseline = snapshot
             error = null
         }
@@ -280,16 +293,24 @@ fun EventSheet(
         val path = calendarPath(snapshot)
         val day = occurrenceDate.orEmpty()
         writes.launch {
-            val written = if (choice == RecurringEditScope.Occurrence) {
-                // Une date laissée telle quelle veut dire « le jour ouvert » ; une date changée, que ce jour y est déplacé.
-                val seriesStart = (note.event as? NeoEvent.Rrule)?.startDate ?: (note.event as? NeoEvent.Recurring)?.startRecur
-                val target = if (snapshot.date.isNotEmpty() && snapshot.date != seriesStart) snapshot.date else day
-                viewModel.detachOccurrence(note, built, day, target, path)
-            } else {
-                viewModel.updateEvent(note, built, path)
-            }
+            // Comme `flush` : une écriture en cours fait attendre celle-ci, elle ne l'annule pas.
+            var attempts = 0
+            var written: NativeViewModel.NoteWrite
+            do {
+                if (attempts > 0) delay(250)
+                val current = freshNote(viewModel.latestData()?.events.orEmpty(), note, path) ?: note
+                written = if (choice == RecurringEditScope.Occurrence) {
+                    // Une date laissée telle quelle veut dire « le jour ouvert » ; une date changée, que ce jour y est déplacé.
+                    val seriesStart = (current.event as? NeoEvent.Rrule)?.startDate ?: (current.event as? NeoEvent.Recurring)?.startRecur
+                    val target = if (snapshot.date.isNotEmpty() && snapshot.date != seriesStart) snapshot.date else day
+                    viewModel.detachOccurrence(current, built, day, target, path)
+                } else {
+                    viewModel.updateEvent(current, built, path)
+                }
+            } while (written.error == WRITE_IGNORED && ++attempts < 12)
             val message = written.error
-            if (message != null && message != WRITE_IGNORED) Notices.fail(message)
+            if (message == WRITE_IGNORED) Notices.fail("Une autre écriture n'a pas fini : la modification de la série n'a pas été enregistrée.")
+            else if (message != null) Notices.fail(message)
         }
         held = null
         baseline = snapshot
@@ -302,16 +323,31 @@ fun EventSheet(
     LaunchedEffect(closeSignal) {
         if (closeSignal != lastSignal) {
             lastSignal = closeSignal
-            if (held == null) leave(slide = true)
+            // Un appui sur un autre bloc : la fiche cède la place sans glisser, après la question de portée s'il y en a une.
+            if (held == null) leave(slide = !replacing)
         }
     }
     // Une fiche qui s'en va sans passer par la sortie (une autre s'ouvre à sa place) n'abandonne pas ce qui était en suspens.
-    DisposableEffect(key) { onDispose { writes.launch { flush() } } }
+    DisposableEffect(key) {
+        onDispose {
+            alive.set(false)
+            writes.launch { flush() }
+        }
+    }
+    // L'app qui passe en arrière-plan écrit sans attendre les 400 ms : un processus tué ensuite ne perd pas la dernière frappe.
+    val lifecycle = remember(context) {
+        generateSequence(context) { (it as? ContextWrapper)?.baseContext }.firstNotNullOfOrNull { it as? LifecycleOwner }?.lifecycle
+    }
+    DisposableEffect(key, lifecycle) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) writes.launch { flush() } }
+        lifecycle?.addObserver(observer)
+        onDispose { lifecycle?.removeObserver(observer) }
+    }
 
     BackHandler(enabled = true) {
         when {
             dialog != null -> dialog = null
-            held != null -> held = null
+            held != null -> { held = null; onStay() }
             else -> leave(slide = true)
         }
     }
@@ -456,7 +492,7 @@ fun EventSheet(
         ScopeDialog(
             question.changes, question.isTask,
             onChoose = { choice -> answer(choice, question) },
-            onCancel = { held = null },
+            onCancel = { held = null; onStay() },
         )
     }
     when (val shown = dialog) {
