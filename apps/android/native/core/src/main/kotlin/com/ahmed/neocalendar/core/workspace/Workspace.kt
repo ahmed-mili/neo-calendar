@@ -48,7 +48,7 @@ private fun isNote(name: String) = name.lowercase(java.util.Locale.ROOT).endsWit
 
 /** Un fichier listé mais illisible est une erreur, pas un texte vide. */
 private fun read(storage: WorkspaceStorage, path: String): String =
-    storage.readText(path) ?: throw java.io.IOException("Lecture impossible: $path")
+    storage.readText(path) ?: throw java.io.IOException("Lecture impossible : $path")
 
 /** Toutes les notes d'un calendrier, sous-dossiers compris ; le calendrier reste celui du dossier de tête. */
 private fun collectEvents(
@@ -76,10 +76,28 @@ fun readPreferences(storage: WorkspaceStorage): JsonObject {
         ?: storage.readText(LEGACY_PREFERENCES_FILE_NAME)
         ?: return JsonObject(emptyMap())
     if (raw.isBlank()) return JsonObject(emptyMap())
+    return parsePreferencesText(raw)
+}
+
+private fun parsePreferencesText(raw: String): JsonObject {
     try {
         return Json.parseToJsonElement(raw) as? JsonObject
             ?: throw IllegalArgumentException("A JSONObject text must begin with '{'")
     } catch (e: Exception) {
-        throw UnreadablePreferencesException("Le fichier de preferences est illisible: ${e.message}")
+        throw UnreadablePreferencesException("Le fichier de préférences est illisible : ${e.message}")
     }
+}
+
+/**
+ * Pour écrire : null = aucun fichier (premier lancement, les défauts). Un fichier PRÉSENT mais vide ou
+ * illisible est une erreur : y écrire les défauts détruirait les réglages que Syncthing est en train
+ * d'apporter (copie en cours, écriture interrompue).
+ */
+fun readPreferencesForWrite(storage: WorkspaceStorage): JsonObject? {
+    val raw = storage.readText("$METADATA_DIR/$PREFERENCES_FILE_NAME")
+        ?: storage.readText(PREFERENCES_FILE_NAME)
+        ?: storage.readText(LEGACY_PREFERENCES_FILE_NAME)
+        ?: return null
+    if (raw.isBlank()) throw UnreadablePreferencesException("Le fichier de préférences est vide : rien n'a été écrit.")
+    return parsePreferencesText(raw)
 }

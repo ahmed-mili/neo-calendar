@@ -18,16 +18,16 @@ import kotlinx.serialization.json.JsonObject
  *
  * Un fichier illisible (corrompu) lève [UnreadablePreferencesException] et RIEN n'est écrit : les
  * valeurs par défaut ne remplacent jamais une configuration qu'on n'a pas pu lire. Un fichier absent
- * ou vide est un premier lancement : les valeurs par défaut portent alors la modification.
+ * est un premier lancement (présent mais vide, c'est une erreur comme un fichier illisible) : les valeurs par défaut portent alors la modification.
  * Rend les préférences écrites, ou les lues si `change` n'a rien modifié (rien n'est alors écrit).
  */
 fun updatePreferences(storage: WritableWorkspaceStorage, change: (JsonObject) -> JsonObject): JsonObject {
-    val raw = readPreferences(storage)
-    val current = parseWorkspacePreferences(raw)
+    val raw = readPreferencesForWrite(storage)
+    val current = parseWorkspacePreferences(raw ?: JsonObject(emptyMap()))
     val next = change(current)
     val changed = next.filter { (key, value) -> current[key] != value }
     if (changed.isEmpty()) return current
-    val base: Map<String, JsonElement> = if (raw.isEmpty()) next else raw
+    val base: Map<String, JsonElement> = if (raw == null) next else raw
     val written = JsonObject(LinkedHashMap(base).apply { putAll(changed) })
     savePreferences(storage, preferencesFileText(sharedPreferencesToWrite(written)))
     return next
@@ -40,8 +40,13 @@ fun updatePreferences(storage: WritableWorkspaceStorage, change: (JsonObject) ->
  */
 fun renameCalendar(storage: WritableWorkspaceStorage, relativePath: String, newName: String): String {
     validName(newName, false)
-    readPreferences(storage)
+    requireRenamable(relativePath)
+    readPreferencesForWrite(storage)
     val renamed = renameFolder(storage, relativePath, newName)
-    updatePreferences(storage) { withCalendarRenamed(it, relativePath, renamed) }
+    try {
+        updatePreferences(storage) { withCalendarRenamed(it, relativePath, renamed) }
+    } catch (e: Exception) {
+        throw IllegalStateException("Dossier renommé en « $renamed », mais ses préférences n'ont pas suivi : ${e.message}", e)
+    }
     return renamed
 }

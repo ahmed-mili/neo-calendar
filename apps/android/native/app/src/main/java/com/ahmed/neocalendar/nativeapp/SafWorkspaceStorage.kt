@@ -37,32 +37,32 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : Writable
     fun uriOf(relativePath: String): Uri? = findPath(relativePath)
 
     override fun writeText(relativePath: String, text: String) {
-        val uri = findPath(relativePath) ?: throw IOException("Ecriture impossible: $relativePath")
+        val uri = findPath(relativePath) ?: throw IOException("Écriture impossible: $relativePath")
         // « wt » : le fichier est tronqué avant l'écriture, un texte plus court ne laisse pas de reste.
         context.contentResolver.openOutputStream(uri, "wt").use { out ->
-            if (out == null) throw IOException("Ecriture impossible")
+            if (out == null) throw IOException("Écriture impossible")
             out.write(text.toByteArray(Charsets.UTF_8))
         }
     }
 
     override fun createFile(relativeDir: String, name: String, mimeType: String): String {
-        val parent = findPath(relativeDir) ?: throw IOException("Dossier introuvable: $relativeDir")
+        val parent = findPath(relativeDir) ?: throw IOException("Dossier introuvable : $relativeDir")
         DocumentsContract.createDocument(context.contentResolver, parent, mimeType, name)
-            ?: throw IOException("Creation impossible: $name")
+            ?: throw IOException("Création impossible : $name")
         listings.clear()
         return child(relativeDir, name)
     }
 
     override fun createDirectory(relativeDir: String, name: String): String {
-        val parent = findPath(relativeDir) ?: throw IOException("Dossier introuvable: $relativeDir")
+        val parent = findPath(relativeDir) ?: throw IOException("Dossier introuvable : $relativeDir")
         DocumentsContract.createDocument(context.contentResolver, parent, DocumentsContract.Document.MIME_TYPE_DIR, name)
-            ?: throw IOException("Creation du dossier impossible: $name")
+            ?: throw IOException("Création du dossier impossible : $name")
         listings.clear()
         return child(relativeDir, name)
     }
 
     override fun rename(relativePath: String, newName: String): String {
-        val uri = findPath(relativePath) ?: throw IOException("Renommage impossible: $relativePath")
+        val uri = findPath(relativePath) ?: throw IOException("Renommage impossible : $relativePath")
         DocumentsContract.renameDocument(context.contentResolver, uri, newName) ?: throw IOException("Renommage impossible")
         listings.clear()
         return child(relativePath.substringBeforeLast('/', ""), newName)

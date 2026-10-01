@@ -18,7 +18,7 @@ class WorkspaceWriterTest {
                 validName(bad, true)
                 fail("accepté : '$bad'")
             } catch (e: IllegalArgumentException) {
-                assertTrue(e.message!!.startsWith("Nom invalide: "))
+                assertTrue(e.message!!.startsWith("Nom invalide : "))
             }
         }
         try {
@@ -154,7 +154,7 @@ class WorkspaceWriterTest {
             writeEvent(tree, "Absent", "n.md", "", "x")
             fail()
         } catch (e: IllegalStateException) {
-            assertEquals("Calendrier introuvable: Absent", e.message)
+            assertEquals("Calendrier introuvable : Absent", e.message)
         }
     }
 
@@ -191,7 +191,7 @@ class WorkspaceWriterTest {
             createFolder(tree, "Essai Compose")
             fail()
         } catch (e: IllegalStateException) {
-            assertEquals("Un dossier portant ce nom existe deja.", e.message)
+            assertEquals("Un dossier portant ce nom existe déjà.", e.message)
         }
         assertEquals("Essai", renameFolder(tree, "Essai Compose", "Essai"))
         assertTrue("Essai" in tree.dirs)
@@ -200,7 +200,7 @@ class WorkspaceWriterTest {
             deleteFolder(tree, "Essai")
             fail()
         } catch (e: IllegalStateException) {
-            assertEquals("Ce calendrier nest pas vide.", e.message)
+            assertEquals("Ce calendrier n'est pas vide.", e.message)
         }
         deleteEvent(tree, "Essai/n.md")
         deleteFolder(tree, "Essai")

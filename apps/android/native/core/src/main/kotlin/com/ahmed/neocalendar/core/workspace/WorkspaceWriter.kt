@@ -19,7 +19,7 @@ private const val LEGACY_PREFERENCES_FILE = ".neo-calendar-desktop.json"
 fun validName(name: String, markdown: Boolean): String {
     val trimmed = name.trim()
     if (trimmed.isEmpty() || trimmed == "." || trimmed == ".." || trimmed.contains("/") || trimmed.contains("\\")) {
-        throw IllegalArgumentException("Nom invalide: $trimmed")
+        throw IllegalArgumentException("Nom invalide : $trimmed")
     }
     if (markdown && !trimmed.lowercase(Locale.ROOT).endsWith(".md")) throw IllegalArgumentException("Le fichier doit finir par .md")
     return trimmed
@@ -99,7 +99,7 @@ fun writeEvent(
     // Même calendrier : le dossier réel de la note (un sous-dossier compris) ; sinon la racine du calendrier cible.
     val dir = if (sameCalendar) old!!.substringBeforeLast('/', "")
     else if (calendarPath.isEmpty()) "" else findPath(storage, calendarPath)
-        ?: throw IllegalStateException("Calendrier introuvable: $calendarPath")
+        ?: throw IllegalStateException("Calendrier introuvable : $calendarPath")
     val target = find(storage, dir, name)
     fun written() = child(dir, name)
 
@@ -140,22 +140,45 @@ fun deleteEvent(storage: WritableWorkspaceStorage, relativePath: String) {
 /** Crée un calendrier (un dossier à la racine) et rend son nom. */
 fun createFolder(storage: WritableWorkspaceStorage, name: String): String {
     val valid = validName(name, false)
-    if (find(storage, "", valid) != null) throw IllegalStateException("Un dossier portant ce nom existe deja.")
+    if (valid.startsWith(".")) throw IllegalArgumentException("Un nom de calendrier ne peut pas commencer par un point.")
+    if (nameTaken(storage, valid, null)) throw IllegalStateException(NAME_TAKEN)
     storage.createDirectory("", valid)
     return valid
 }
 
 fun renameFolder(storage: WritableWorkspaceStorage, relative: String, name: String): String {
     val valid = validName(name, false)
+    requireRenamable(relative)
+    if (valid.startsWith(".")) throw IllegalArgumentException("Un nom de calendrier ne peut pas commencer par un point.")
     val path = findPath(storage, relative) ?: throw IllegalStateException("Calendrier introuvable.")
-    if (find(storage, "", valid) != null) throw IllegalStateException("Un dossier portant ce nom existe deja.")
-    storage.rename(path, valid)
-    return valid
+    if (nameTaken(storage, valid, path)) throw IllegalStateException(NAME_TAKEN)
+    // Le nom que le stockage a réellement donné (le SAF peut suffixer « (1) »), pas celui demandé.
+    return storage.rename(path, valid).substringAfterLast('/')
+}
+
+private const val NAME_TAKEN = "Un dossier portant ce nom existe déjà."
+
+/** Windows (le PC) ne distingue pas la casse : « Travail » et « travail » ne peuvent pas coexister. */
+private fun nameTaken(storage: WorkspaceStorage, name: String, except: String?): Boolean =
+    storage.list("").any { it.name.equals(name, ignoreCase = true) && !(it.name == except && it.name != name) }
+
+/**
+ * Le dossier de notes lui-même (chemin vide) et les dossiers cachés (`.neo-calendar` et les autres)
+ * ne sont pas des calendriers : ni renommés ni supprimés.
+ */
+fun requireRenamable(relative: String) {
+    if (isProtectedFolder(relative)) throw IllegalArgumentException("Ce dossier n'est pas un calendrier : il ne peut pas être renommé.")
+}
+
+private fun isProtectedFolder(relative: String): Boolean {
+    val parts = relative.replace('\\', '/').split("/").filter { it.isNotEmpty() && it != "." }
+    return parts.isEmpty() || parts.first().startsWith(".")
 }
 
 fun deleteFolder(storage: WritableWorkspaceStorage, relative: String) {
+    if (isProtectedFolder(relative)) throw IllegalArgumentException("Ce dossier n'est pas un calendrier : il ne peut pas être supprimé.")
     val path = findPath(storage, relative) ?: return
-    if (storage.list(path).isNotEmpty()) throw IllegalStateException("Ce calendrier nest pas vide.")
+    if (storage.list(path).isNotEmpty()) throw IllegalStateException("Ce calendrier n'est pas vide.")
     storage.delete(path)
 }
 

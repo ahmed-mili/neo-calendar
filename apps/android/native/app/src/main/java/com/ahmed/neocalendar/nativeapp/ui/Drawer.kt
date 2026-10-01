@@ -441,10 +441,12 @@ private fun CalendarRow(
             }
             NeoMenu(menu, { menu = false }) {
                 NeoMenuItem("Couleur") { menu = false; actions.onColor(calendar) }
-                NeoMenuItem("Renommer") { menu = false; actions.onRename(calendar) }
+                // Le calendrier de chemin vide est le dossier de notes lui-même : ni renommé ni supprimé.
+                val isFolder = calendar.relativePath.isNotEmpty()
+                if (isFolder) NeoMenuItem("Renommer") { menu = false; actions.onRename(calendar) }
                 NeoMenuItem("Rappel") { menu = false; actions.onReminder(calendar) }
                 if (!isDefault) NeoMenuItem("Calendrier par défaut") { menu = false; actions.onSetDefault(calendar) }
-                NeoMenuItem("Supprimer") { menu = false; actions.onDelete(calendar) }
+                if (isFolder) NeoMenuItem("Supprimer") { menu = false; actions.onDelete(calendar) }
             }
         }
     }

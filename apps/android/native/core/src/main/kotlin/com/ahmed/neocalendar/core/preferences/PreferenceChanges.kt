@@ -40,7 +40,7 @@ fun withDefaultCalendar(preferences: JsonObject, path: String): JsonObject =
 
 /** L'ordre des calendriers : `ordered` d'abord, puis les chemins du fichier que l'écran ne connaissait pas. */
 fun withCalendarOrder(preferences: JsonObject, ordered: List<String>): JsonObject =
-    preferences.with("order", stringArray(ordered.distinct()))
+    preferences.with("order", stringArray(ordered.distinct() + (strings(preferences["order"]) - ordered.toSet()).distinct()))
 
 /** Le rappel d'un calendrier ; `null` retire l'entrée (le calendrier suit de nouveau le réglage de l'application). */
 fun withCalendarReminder(preferences: JsonObject, path: String, minutes: List<Long>?): JsonObject {
@@ -53,11 +53,11 @@ fun withCalendarReminder(preferences: JsonObject, path: String, minutes: List<Lo
 /** Un dossier renommé : tout ce qui le désignait par son chemin le suit (couleur, ordre, défaut, masqués, rappel). */
 fun withCalendarRenamed(preferences: JsonObject, oldPath: String, newPath: String): JsonObject {
     var next = preferences
-    fun rename(list: List<String>) = stringArray(list.map { if (it == oldPath) newPath else it })
+    fun rename(list: List<String>) = stringArray(list.map { if (it == oldPath) newPath else it }.distinct())
     val colors = preferences["colors"] as? JsonObject
     if (colors != null && oldPath in colors) {
         val moved = LinkedHashMap<String, JsonElement>()
-        for ((key, value) in colors) moved[if (key == oldPath) newPath else key] = value
+        for ((key, value) in colors) if (key != newPath) moved[if (key == oldPath) newPath else key] = value
         next = next.with("colors", JsonObject(moved))
     }
     next = next.with("order", rename(strings(preferences["order"])))
@@ -68,7 +68,7 @@ fun withCalendarRenamed(preferences: JsonObject, oldPath: String, newPath: Strin
     val reminders = preferences["calendarReminderMinutes"] as? JsonObject
     if (reminders != null && oldPath in reminders) {
         val moved = LinkedHashMap<String, JsonElement>()
-        for ((key, value) in reminders) moved[if (key == oldPath) newPath else key] = value
+        for ((key, value) in reminders) if (key != newPath) moved[if (key == oldPath) newPath else key] = value
         next = next.with("calendarReminderMinutes", JsonObject(moved))
     }
     return next

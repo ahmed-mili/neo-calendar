@@ -118,8 +118,8 @@ class WorkspaceTest {
                 load(".neo-calendar.json" to raw)
                 fail("attendu : UnreadablePreferencesException pour $raw")
             } catch (e: UnreadablePreferencesException) {
-                assertTrue(e.message!!, e.message!!.startsWith("Le fichier de preferences est illisible: "))
-                assertTrue(e.message!!.length > "Le fichier de preferences est illisible: ".length)
+                assertTrue(e.message!!, e.message!!.startsWith("Le fichier de préférences est illisible : "))
+                assertTrue(e.message!!.length > "Le fichier de préférences est illisible : ".length)
             }
         }
     }

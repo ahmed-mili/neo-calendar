@@ -98,7 +98,7 @@ class PreferencesUpdateTest {
                 updatePreferences(tree) { withSetting(it, "firstDay", JsonPrimitive(3)) }
                 fail("accepté : $corrupt")
             } catch (e: UnreadablePreferencesException) {
-                assertTrue(e.message!!.startsWith("Le fichier de preferences est illisible"))
+                assertTrue(e.message!!.startsWith("Le fichier de préférences est illisible"))
             }
             assertEquals(corrupt, tree.files[file])
             assertTrue("aucune écriture : ${tree.log}", tree.log.isEmpty())
@@ -183,10 +183,103 @@ class PreferencesUpdateTest {
         assertTrue(tree.files.getValue(file).endsWith("}\n"))
     }
 
-    @Test fun aBlankFileIsAFirstRun() {
-        val tree = treeWith("  \n")
+    // Défaut 2 : absent = premier lancement ; présent mais vide = erreur, rien n'est écrit.
+    @Test fun aPresentButEmptyFileIsAnErrorNotAFirstRun() {
+        for (blank in listOf("", "  \n")) {
+            val tree = treeWith(blank)
+            try {
+                updatePreferences(tree) { withSetting(it, "mapsApp", JsonPrimitive("waze")) }
+                fail("accepté : '$blank'")
+            } catch (e: UnreadablePreferencesException) {
+                assertTrue(e.message!!.contains("vide"))
+            }
+            assertEquals(blank, tree.files[file])
+            assertTrue("aucune écriture : ${tree.log}", tree.log.isEmpty())
+        }
+    }
+
+    @Test fun anEmptyFileBlocksTheCalendarRename() {
+        val tree = treeWith("").dir("Islam")
+        try {
+            renameCalendar(tree, "Islam", "Prière")
+            fail()
+        } catch (e: UnreadablePreferencesException) {
+            // attendu
+        }
+        assertTrue("Islam" in tree.dirs)
+        assertTrue(tree.log.isEmpty())
+    }
+
+    @Test fun noFileAtAllIsAFirstRun() {
+        val tree = MemoryTree()
         updatePreferences(tree) { withSetting(it, "mapsApp", JsonPrimitive("waze")) }
         assertEquals(JsonPrimitive("waze"), fileOf(tree)["mapsApp"])
+    }
+
+    // Défaut 1 : le dossier de notes et les dossiers cachés ne sont pas des calendriers.
+    @Test fun theRootAndHiddenFoldersCanNeitherBeRenamedNorDeleted() {
+        for (path in listOf("", ".", "/", ".neo-calendar", ".neo-calendar/sub", ".cache")) {
+            val tree = MemoryTree().file(file, real).dir(".cache")
+            try {
+                renameFolder(tree, path, "Autre"); fail("renommé : '$path'")
+            } catch (e: IllegalArgumentException) { /* attendu */ }
+            try {
+                renameCalendar(tree, path, "Autre"); fail("renommé : '$path'")
+            } catch (e: IllegalArgumentException) { /* attendu */ }
+            try {
+                deleteFolder(tree, path); fail("supprimé : '$path'")
+            } catch (e: IllegalArgumentException) { /* attendu */ }
+            assertTrue("rien touché pour '$path' : ${tree.log}", tree.log.isEmpty())
+        }
+    }
+
+    @Test fun aFolderNameCannotStartWithADot() {
+        val tree = MemoryTree().dir("Etudes")
+        try { createFolder(tree, ".cache"); fail() } catch (e: IllegalArgumentException) { /* attendu */ }
+        try { renameFolder(tree, "Etudes", ".neo-calendar"); fail() } catch (e: IllegalArgumentException) { /* attendu */ }
+        assertEquals(setOf("Etudes"), tree.dirs)
+    }
+
+    // Défaut 3 : les calendriers du fichier que l'écran ne connaît pas gardent leur rang, après ceux de l'écran.
+    @Test fun theOrderKeepsFileCalendarsTheScreenDoesNotKnow() {
+        val tree = treeWith("""{"order": ["A", "B", "C", "D"]}""")
+        updatePreferences(tree) { withCalendarOrder(it, listOf("B", "A")) }
+        assertEquals(listOf("B", "A", "C", "D"), strings(fileOf(tree), "order"))
+    }
+
+    // Défaut 4 (les deux écritures se suivent sous le verrou du ViewModel) : la seconde relit la première.
+    @Test fun renameThenColorBothSurvive() {
+        val tree = treeWith("""{"colors": {"Islam": "#111111"}, "order": ["Islam"]}""").dir("Islam")
+        renameCalendar(tree, "Islam", "Prière")
+        updatePreferences(tree) { withCalendarColor(it, "Prière", "#222222") }
+        val written = fileOf(tree)
+        assertEquals(JsonPrimitive("#222222"), (written["colors"] as JsonObject)["Prière"])
+        assertEquals(listOf("Prière"), strings(written, "order"))
+    }
+
+    // Mineurs : casse, reliquats, message du second temps.
+    @Test fun folderNamesCollideWithoutCase() {
+        val tree = MemoryTree().dir("Travail").dir("Etudes")
+        try { createFolder(tree, "travail"); fail() } catch (e: IllegalStateException) { assertEquals("Un dossier portant ce nom existe déjà.", e.message) }
+        try { renameFolder(tree, "Etudes", "TRAVAIL"); fail() } catch (e: IllegalStateException) { /* attendu */ }
+        assertEquals("etudes", renameFolder(tree, "Etudes", "etudes"))
+    }
+
+    @Test fun renamingOverAStaleEntryLeavesNoDuplicate() {
+        val tree = treeWith("""{"colors": {"Old": "#111111", "New": "#999999"}, "order": ["Old", "New"], "hiddenCalendarPaths": ["Old", "New"]}""").dir("Old")
+        renameCalendar(tree, "Old", "New")
+        val written = fileOf(tree)
+        assertEquals(JsonPrimitive("#111111"), (written["colors"] as JsonObject)["New"])
+        assertEquals(listOf("New"), strings(written, "order"))
+        assertEquals(listOf("New"), strings(written, "hiddenCalendarPaths"))
+    }
+
+    @Test fun aFailedPreferencesStepAfterTheRenameSaysSo() {
+        val tree = treeWith("""{"order": ["Islam"]}""").dir("Islam")
+        tree.failWritesTo = file
+        try { renameCalendar(tree, "Islam", "Prière"); fail() } catch (e: IllegalStateException) {
+            assertTrue(e.message!!, e.message!!.contains("Dossier renommé"))
+        }
     }
 
     @Test fun legacyRootFilesAreReadThenRemoved() {
@@ -297,7 +390,7 @@ class PreferencesUpdateTest {
             renameFolder(tree, "Etudes", "Etudes")
             fail()
         } catch (e: IllegalStateException) {
-            assertEquals("Un dossier portant ce nom existe deja.", e.message)
+            assertEquals("Un dossier portant ce nom existe déjà.", e.message)
         }
         deleteFolder(tree, "Absent")
         assertTrue("Etudes" in tree.dirs)
@@ -309,7 +402,7 @@ class PreferencesUpdateTest {
             deleteFolder(tree, "Etudes")
             fail()
         } catch (e: IllegalStateException) {
-            assertEquals("Ce calendrier nest pas vide.", e.message)
+            assertEquals("Ce calendrier n'est pas vide.", e.message)
         }
         assertTrue("Etudes/.cache" in tree.files)
     }
