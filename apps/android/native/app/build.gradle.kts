@@ -61,7 +61,7 @@ android {
 }
 
 dependencies {
- implementation("androidx.core:core:1.15.0")
+ implementation("androidx.core:core:1.19.1")
  implementation(project(":core"))
  // BOM 2026.09.00 : ui/foundation 1.12.1, material3 1.4.0 (aar-metadata verifies, cf. rapport).
  implementation(platform("androidx.compose:compose-bom:2026.09.00"))
