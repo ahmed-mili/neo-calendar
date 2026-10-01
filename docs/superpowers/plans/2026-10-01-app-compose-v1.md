@@ -131,3 +131,4 @@
 - **Langue** : français fixe (`AppLocale.current`), pas encore de réglage de langue.
 - **Fiche (T3)** : enregistrement par un bouton « Enregistrer » (la WebView enregistrait au fil de l'eau) ; pas de barre de mise en forme riche ; pas d'ajout de lien ni de pièce jointe depuis la fiche (affichés et ouvrables seulement) ; pas de flèches d'occurrence précédente / suivante ; échéance non éditable ; la fiche se ferme à la rotation de l'écran.
 - **Créer / déplacer (T4)** : pas d'aperçu du brouillon sur la grille ; pas de glisser depuis ou vers la bande « journée entière » ; un jour de série déplacé garde toute la fiche de la série (la WebView n'en recopiait que le titre et la description).
+- **Réglages (T5)** : pas encore d'Apparence (thème, mode, fond d'écran), de fuseaux horaires ni de vue initiale ; menu de ligne sans Solo ni Horaires de prière ; préférences écrites clé par clé (la WebView réécrivait tout le fichier) ; messages d'erreur de dossier repris du Java.
