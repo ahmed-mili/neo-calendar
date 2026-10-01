@@ -105,6 +105,7 @@ class IcsSync(
     /** Des notes ont changé sur le disque : l'écran relit le dossier. */
     private val onNotesChanged: () -> Unit,
 ) {
+    private val appContext = context.applicationContext
     private val prefs = context.getSharedPreferences(DEVICE_PREFS, Context.MODE_PRIVATE)
     private val _ui = MutableStateFlow(IcsUi(icsStatesFromJson(prefs.getString(STATES_KEY, null))))
     val ui: StateFlow<IcsUi> = _ui.asStateFlow()
@@ -172,5 +173,6 @@ class IcsSync(
     private fun setStates(states: Map<String, IcsSyncState>) {
         _ui.update { it.copy(states = states) }
         prefs.edit().putString(STATES_KEY, icsStatesToJson(states).toString()).apply()
+        DeviceSettingsExporter.request(appContext)
     }
 }

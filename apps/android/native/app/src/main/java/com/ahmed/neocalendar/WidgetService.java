@@ -122,6 +122,10 @@ public class WidgetService extends RemoteViewsService {
 
         private void reload() {
             JSONObject data = NeoCalendarWidget.payload(context);
+            if (Coexistence.moved(context)) {
+                rows = new ArrayList<>();
+                return;
+            }
             // Null for a widget with no saved choice (placed before it existed): everything shows.
             Set<String> chosen = appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID
                     ? null

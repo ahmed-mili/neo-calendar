@@ -9,6 +9,8 @@
          reminder. Granted at install, unlike SCHEDULE_EXACT_ALARM. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Ecran "Neo Calendar a demenage" : desinstaller cette ancienne version (ACTION_DELETE). -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
     <!-- Depuis Android 11, une application ne voit du telephone que ce qu'elle
          a declare chercher. Sans ces quatre lignes, le menu du lieu croirait
@@ -16,6 +18,8 @@
          nomme les paquets un par un plutot que de demander la liste entiere :
          c'est ce dont on a besoin, et rien de plus. -->
     <queries>
+        <!-- La nouvelle app (com.ahmedmili.neocalendar) : si elle est installee, celle-ci lui laisse rappels et widget. -->
+        <package android:name="com.ahmedmili.neocalendar" />
         <package android:name="com.google.android.apps.maps" />
         <package android:name="com.citymapper.app.release" />
         <package android:name="com.tranzmate" />
