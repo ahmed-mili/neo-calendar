@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -355,7 +356,7 @@ fun EventSheet(
                 Box(Modifier.weight(1f))
                 if (editable && stored != null) {
                     Box {
-                        HeaderButton(NeoIcons.Ellipsis, "Plus d'actions", 22.dp) { overflowMenu = true }
+                        HeaderButton(NeoIcons.Ellipsis, "Plus d'actions", 22.dp, on = overflowMenu) { overflowMenu = true }
                         Popover(overflowMenu, { overflowMenu = false }, PopoverSurface(Neo.Surface, 6.dp, 4.dp, true), width = 182.dp, alignEnd = true) {
                             PopoverEntry("Dupliquer", 46.dp, textSize = 15, radius = 11.dp, icon = NeoIcons.CopyPlus, horizontalPadding = 12.dp) {
                                 overflowMenu = false
@@ -380,7 +381,7 @@ fun EventSheet(
                         }
                     }
                 }
-                HeaderButton(NeoIcons.Close, "Fermer", 14.dp) { leave(slide = true) }
+                HeaderButton(NeoIcons.Close, "Fermer", 18.dp) { leave(slide = true) }
             }
         },
         body = {
@@ -402,6 +403,7 @@ fun EventSheet(
                     val steps = if (previous != null || following != null) SeriesSteps(previous != null, following != null, ::step) else null
                     RepeatField(values, editable, data.firstDay, steps) { values = it }
                 }
+                Spacer(Modifier.height(10.dp))
                 Rule()
 
                 CalendarField(
@@ -410,6 +412,7 @@ fun EventSheet(
                     readOnlyName = calendarOfNote?.name,
                     editable = editable,
                 ) { values = values.copy(calendarIndex = it) }
+                Spacer(Modifier.height(6.dp))
 
                 // Rien à annoncer pour ce qui n'a pas de moment (`form.date || form.isRecurring`).
                 if (values.date.isNotEmpty() || values.isRecurring) {
@@ -423,6 +426,7 @@ fun EventSheet(
                     mapsApp = data.mapsApp,
                     mapsTravelMode = data.mapsTravelMode,
                 ) { values = values.copy(location = it) }
+                Spacer(Modifier.height(17.dp))
                 Rule()
 
                 val open: (String) -> Unit = { targetPath ->
@@ -499,7 +503,7 @@ private fun TitleRow(title: String, editable: Boolean, draft: Boolean, onChange:
     val size = if (draft) 25.sp else 16.sp
     val weight = if (draft) FontWeight(650) else FontWeight.Normal
     Box(
-        Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, bottom = 8.dp)
+        Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = if (draft) 4.dp else 24.dp, bottom = 12.dp)
             .background(if (focused) Neo.Hover else Color.Transparent, shape)
             .border(1.dp, Color.Transparent, shape)
             .padding(horizontal = 8.dp, vertical = 6.dp),
@@ -525,9 +529,9 @@ private fun Rule() {
 
 /** Un bouton de l'en-tête : 48x48, rayon 12, glyphe `TextSecondary` de `glyph` dp. */
 @Composable
-private fun HeaderButton(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, glyph: androidx.compose.ui.unit.Dp, onClick: () -> Unit) {
+private fun HeaderButton(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, glyph: androidx.compose.ui.unit.Dp, on: Boolean = false, onClick: () -> Unit) {
     Box(
-        Modifier.size(48.dp).pressFill(RoundedCornerShape(12.dp), Neo.Hover, onClick = onClick),
+        Modifier.size(48.dp).pressFill(RoundedCornerShape(12.dp), Neo.Hover, on = on, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Icon(icon, description, tint = Neo.TextSecondary, modifier = Modifier.size(glyph)) }
 }

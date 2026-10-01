@@ -75,7 +75,8 @@ fun RemindersField(
         Column(Modifier.alpha(if (editable) 1f else 0.7f)) {
             if (chosen.isEmpty()) {
                 FieldRow(NeoIcons.Bell, onClick = if (editable) ({ menuOpen = true }) else null, open = menuOpen) {
-                    Text("Rappels", color = Neo.TextFaint, fontSize = 16.sp)
+                    Text("Rappels", color = Neo.TextFaint, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                    if (editable) Icon(NeoIcons.ChevronDown, null, tint = Neo.TextFaint, modifier = Modifier.size(14.dp))
                 }
             } else {
                 chosen.forEachIndexed { index, minutes ->
@@ -98,7 +99,11 @@ fun RemindersField(
             for (minutes in remaining) {
                 val parts = reminderLabelParts(minutes, allDay)
                 PopoverEntry(
-                    "${parts.amount}${if (parts.suffix.isNotEmpty()) " ${parts.suffix}" else ""}", 40.dp,
+                    "${parts.amount} ${parts.suffix}", 40.dp,
+                    rich = buildAnnotatedString {
+                        withStyle(SpanStyle(color = Neo.Text, fontWeight = FontWeight.SemiBold)) { append(parts.amount) }
+                        if (parts.suffix.isNotEmpty()) withStyle(SpanStyle(color = Neo.TextFaint)) { append(" ${parts.suffix}") }
+                    },
                 ) {
                     menuOpen = false
                     onChange((chosen + minutes).sorted())

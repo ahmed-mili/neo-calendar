@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -17,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,6 +76,13 @@ fun TimeInput(value: String, timeFormat24h: Boolean, enabled: Boolean, onCommit:
     var text by remember(shown) { mutableStateOf(TextFieldValue(shown)) }
     var focused by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    // Le toucher pose son curseur après le focus : le texte se sélectionne une fois qu'il a fini.
+    LaunchedEffect(focused) {
+        if (focused) {
+            kotlinx.coroutines.delay(80)
+            text = TextFieldValue(text.text, TextRange(0, text.text.length))
+        }
+    }
     fun commit() {
         val parsed = parseTypedTime(text.text)
         if (parsed != null && parsed != value) onCommit(parsed) else text = TextFieldValue(shown)
@@ -94,7 +103,6 @@ fun TimeInput(value: String, timeFormat24h: Boolean, enabled: Boolean, onCommit:
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
             modifier = Modifier.width(if (timeFormat24h) 46.dp else 70.dp).onFocusChanged {
-                if (it.isFocused && !focused) text = TextFieldValue(text.text, TextRange(0, text.text.length))
                 if (!it.isFocused && focused) commit()
                 focused = it.isFocused
             },
@@ -159,6 +167,7 @@ fun ScheduleFields(
     val timesShown = !values.allDay || values.startTime.isNotEmpty()
     val fieldWidth = if (timeFormat24h) 54.dp else 78.dp
 
+    Spacer(Modifier.height(4.dp))
     FieldRow(NeoIcons.Clock, minHeight = 48) {
         if (timesShown) {
             Row(Modifier.alpha(if (values.allDay) 0.38f else 1f), verticalAlignment = Alignment.CenterVertically) {

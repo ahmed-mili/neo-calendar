@@ -114,13 +114,15 @@ fun PopoverEntry(
     color: Color = Neo.Text,
     iconTint: Color = Neo.TextSecondary,
     hint: String? = null,
+    hintAfterLabel: Boolean = false,
     horizontalPadding: Dp = 10.dp,
+    rich: androidx.compose.ui.text.AnnotatedString? = null,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(radius)
     Row(
         Modifier.fillMaxWidth().heightIn(min = height)
-            .background(if (active) Neo.Hover.copy(alpha = 0.78f) else Color.Transparent, shape)
+            .background(if (active && !checkAtStart) Neo.Hover.copy(alpha = 0.78f) else Color.Transparent, shape)
             .pressFill(shape, Neo.Hover, onClick = onClick)
             .padding(horizontal = horizontalPadding),
         verticalAlignment = Alignment.CenterVertically,
@@ -132,8 +134,10 @@ fun PopoverEntry(
         }
         if (swatch != null) Box(Modifier.padding(end = 10.dp).size(10.dp).background(swatch, RoundedCornerShape(3.dp)))
         if (icon != null) Icon(icon, null, tint = iconTint, modifier = Modifier.padding(end = 10.dp).size(15.dp))
-        Text(label, color = color, fontSize = textSize.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = true))
-        if (hint != null) Text(hint, color = Neo.TextFaint, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
+        if (rich != null) Text(rich, fontSize = textSize.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = true))
+        else Text(label, color = color, fontSize = textSize.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = if (hintAfterLabel) Modifier else Modifier.weight(1f, fill = true))
+        if (hint != null && hintAfterLabel) { Text(hint, color = Neo.TextSecondary, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp).weight(1f)) }
+        else if (hint != null) Text(hint, color = Neo.TextFaint, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp))
         if (!checkAtStart && active) Icon(NeoIcons.Check, null, tint = Neo.Text, modifier = Modifier.padding(start = 6.dp).size(14.dp))
     }
 }
@@ -142,7 +146,7 @@ fun PopoverEntry(
 @Composable
 fun PopoverHeading(text: String) {
     Text(
-        text.uppercase(),
+        text,
         color = Neo.TextFaint, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.33.sp,
         modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 4.dp),
     )

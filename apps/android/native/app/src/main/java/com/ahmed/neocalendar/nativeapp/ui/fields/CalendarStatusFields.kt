@@ -55,7 +55,7 @@ fun CalendarField(
         Popover(open, { open = false }, GlassSurface, width = anchor.width) {
             PopoverHeading("Calendrier")
             calendars.forEachIndexed { index, calendar ->
-                PopoverEntry(calendar.name, 48.dp, active = index == selectedIndex, checkAtStart = true, swatch = parseCalendarColor(calendar.color)) {
+                PopoverEntry(calendar.name, 48.dp, active = index == selectedIndex, checkAtStart = true, swatch = parseCalendarColor(calendar.color), hint = "Note", hintAfterLabel = true) {
                     open = false
                     onSelect(index)
                 }

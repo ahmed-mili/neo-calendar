@@ -243,10 +243,7 @@ fun SheetFrame(
                 .pointerInput(Unit) { detectTapGestures { } },
         ) {
             Box(Modifier.fillMaxWidth().then(dragHandle)) {
-                Column {
-                    Box(Modifier.fillMaxWidth().height(30.dp))
-                    header()
-                }
+                header()
                 SheetHandle(handleGlyphFor(state.stop), Modifier.align(Alignment.TopCenter)) { state.tapHandle() }
             }
             Column(

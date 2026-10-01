@@ -32,8 +32,8 @@ import java.time.YearMonth
 
 private val MONTHS_SHORT = listOf("janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc")
 private val WEEKDAY_LETTERS = mapOf(
-    DayOfWeek.MONDAY to "L", DayOfWeek.TUESDAY to "M", DayOfWeek.WEDNESDAY to "M", DayOfWeek.THURSDAY to "J",
-    DayOfWeek.FRIDAY to "V", DayOfWeek.SATURDAY to "S", DayOfWeek.SUNDAY to "D",
+    DayOfWeek.MONDAY to "lu", DayOfWeek.TUESDAY to "ma", DayOfWeek.WEDNESDAY to "me", DayOfWeek.THURSDAY to "je",
+    DayOfWeek.FRIDAY to "ve", DayOfWeek.SATURDAY to "sa", DayOfWeek.SUNDAY to "di",
 )
 
 /** Les 42 jours de la grille d'un mois : six semaines, commençant le jour `firstDay` (0 = dimanche) de la semaine du 1er. */
@@ -114,13 +114,13 @@ fun DatePopover(
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (onClear != null) {
                 Text(
-                    "Retirer la date", color = Neo.TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    "Retirer la date", color = Neo.TextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.pressFill(RoundedCornerShape(6.dp), Neo.Hover) { onClear() }.padding(horizontal = 10.dp, vertical = 8.dp),
                 )
             }
             Box(Modifier.weight(1f))
             Text(
-                "Aujourd'hui", color = Neo.Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                "Aujourd'hui", color = Neo.Accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.pressFill(RoundedCornerShape(6.dp), Neo.Hover) { onPick(today.toString()) }.padding(horizontal = 10.dp, vertical = 8.dp),
             )
         }
