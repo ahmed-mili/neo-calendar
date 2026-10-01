@@ -163,6 +163,16 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     private val zone: ZoneId get() = ZoneId.systemDefault()
     private val devicePrefs = app.getSharedPreferences(DEVICE_PREFS, Context.MODE_PRIVATE)
 
+    init {
+        // Une synchro qui apporte des notes : l'écran se relit comme après une écriture (rappels et widget suivent).
+        com.ahmed.neocalendar.nativeapp.sync.RemoteRefresh.liveReload = ::reloadAfterRemoteChange
+    }
+
+    override fun onCleared() {
+        com.ahmed.neocalendar.nativeapp.sync.RemoteRefresh.liveReload = null
+        super.onCleared()
+    }
+
     private val _screen = MutableStateFlow<ScreenState>(ScreenState.Loading)
     val screen: StateFlow<ScreenState> = _screen.asStateFlow()
 
@@ -420,6 +430,15 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         changePreferences { withIcsFeedRemoved(it, id) }
     }
 
+    /** Un fichier est arrivé d'un autre appareil (fil principal) : jamais en même temps qu'une écriture de l'app. */
+    @Volatile private var remotePending = false
+
+    private fun reloadAfterRemoteChange() {
+        // Une écriture en cours : le fichier reçu attend qu'elle ait fini, puis le dossier est relu (voir `write`).
+        if (writeGate.isBusy) { remotePending = true; return }
+        reload(force = true)
+    }
+
     /** Relit le dossier ; ignoré s'il y en a une en cours ou si la dernière lecture date de moins de 400 ms. */
     fun reload(force: Boolean = false) {
         if (importing) return
@@ -617,6 +636,8 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         } finally {
             writeGate.leave()
             _writing.value = false
+            // Un fichier reçu pendant l'écriture : une relecture de plus, maintenant que le verrou est rendu.
+            if (remotePending) { remotePending = false; reload(force = true) }
         }
     }
 

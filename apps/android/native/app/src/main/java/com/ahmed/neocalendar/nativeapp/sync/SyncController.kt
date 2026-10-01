@@ -2,20 +2,29 @@ package com.ahmed.neocalendar.nativeapp.sync
 
 import android.content.Context
 import android.os.SystemClock
+import com.ahmed.neocalendar.core.sync.ENGINE_EVENT_TYPES
 import com.ahmed.neocalendar.core.sync.EngineState
 import com.ahmed.neocalendar.core.sync.FolderState
 import com.ahmed.neocalendar.core.sync.RunDecision
 import com.ahmed.neocalendar.core.sync.RunMode
 import com.ahmed.neocalendar.core.sync.StatusLine
+import com.ahmed.neocalendar.core.sync.SyncthingApi
 import com.ahmed.neocalendar.core.sync.SyncSetup
 import com.ahmed.neocalendar.core.sync.SyncSettings
 import com.ahmed.neocalendar.core.sync.bindsTcpAndUdp
 import com.ahmed.neocalendar.core.sync.decideRun
+import com.ahmed.neocalendar.core.sync.isRemoteChange
 import com.ahmed.neocalendar.core.sync.pickFreePort
 import com.ahmed.neocalendar.core.sync.summarize
 import com.ahmed.neocalendar.core.workspace.StorageMode
 import com.ahmed.neocalendar.nativeapp.WorkspaceLocation
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -67,13 +76,36 @@ class SyncController private constructor(context: Context) {
     @Volatile var anyDeviceConnected: Boolean = false
         private set
 
+    /** Un fichier est arrivé d'un autre appareil : regroupé sur 1 s avant de relire le dossier (une rafale de fichiers = une relecture). */
+    private val remoteChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private var eventJob: Job? = null
+    @Volatile private var lastFolderId: String? = null
+
     init {
         engine.beforeLaunch = { ensureListenPort() }
         engine.listenPort = { settings.value.listenPort }
         engine.onReady = { api -> SyncSetup(api, WorkspaceLocation.privateRoot(app).absolutePath).applyOptions(settings.value.listenPort) }
         monitor.start()
         scope.launch { settings.settings.collect { reconcile() } }
-        scope.launch { engine.state.collect { publishStatus() } }
+        scope.launch {
+            engine.state.collect { state ->
+                if (state is EngineState.Running) startEventLoop() else stopEventLoop()
+                publishStatus()
+            }
+        }
+        @OptIn(FlowPreview::class)
+        scope.launch {
+            // Hors du fil principal ; les relectures se suivent, jamais deux à la fois.
+            remoteChanges.debounce(1_000).collect {
+                try {
+                    RemoteRefresh.run(app)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Une relecture ratée ne doit pas arrêter l'écoute des suivantes.
+                }
+            }
+        }
         reconcile()
     }
 
@@ -170,6 +202,71 @@ class SyncController private constructor(context: Context) {
         val wantService = integrated && s.configured && !s.quit && s.runMode == RunMode.LikeFork
         if (wantService) SyncService.start(app) else SyncService.stop(app)
         publishStatus()
+    }
+
+    private fun stopEventLoop() {
+        eventJob?.cancel()
+        eventJob = null
+        lastFolderState = null
+        anyDeviceConnected = false
+    }
+
+    private fun startEventLoop() {
+        eventJob?.cancel()
+        val api = engine.api ?: return
+        eventJob = scope.launch(Dispatchers.IO) {
+            var since = 0
+            try {
+                // On part de l'évènement le plus récent : l'historique d'avant ce lancement est déjà dans le dossier.
+                since = api.events(0, 0, ENGINE_EVENT_TYPES, limit = 1).lastOrNull()?.id ?: 0
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Le moteur n'est pas prêt : la boucle réessaie plus bas.
+            }
+            refreshFromEngine(api)
+            while (isActive && engine.api === api) {
+                try {
+                    val events = api.events(since, 30, ENGINE_EVENT_TYPES)
+                    val folderId = lastFolderId
+                    for (event in events) {
+                        since = maxOf(since, event.id)
+                        if (isRemoteChange(event, folderId)) remoteChanges.tryEmit(Unit)
+                    }
+                    refreshFromEngine(api)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Flux coupé (moteur qui redémarre, erreur de lecture) : on reprend, à intervalle espacé.
+                    if (engine.api !== api) break
+                    delay(2_000)
+                }
+            }
+        }
+    }
+
+    /** Lit l'état du moteur (dossier, connexions, appareils) pour la ligne d'état, la notification et le drapeau « appairé ». */
+    private fun refreshFromEngine(api: SyncthingApi) {
+        try {
+            val me = api.myId()
+            val devices = api.devices().filter { it.id != me }
+            val folder = api.folders().firstOrNull()
+            lastFolderId = folder?.id
+            lastFolderState = folder?.let { api.folderState(it.id) }
+            anyDeviceConnected = api.connections().filterKeys { it != me }.any { it.value }
+            if (devices.isNotEmpty() != settings.value.configured) settings.update { it.copy(configured = devices.isNotEmpty()) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Une lecture ratée garde l'état précédent.
+        }
+        publishStatus()
+    }
+
+    /** Relit l'état maintenant (la page Synchronisation après un geste de l'utilisateur). */
+    fun refreshNow() {
+        val api = engine.api ?: return
+        scope.launch(Dispatchers.IO) { refreshFromEngine(api) }
     }
 
     internal fun publishStatus() {

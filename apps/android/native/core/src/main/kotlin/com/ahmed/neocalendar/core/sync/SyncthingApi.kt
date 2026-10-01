@@ -161,10 +161,10 @@ class SyncthingApi(private val transport: HttpTransport) {
 
     /**
      * Longue requête (`/rest/events`) : rend les évènements de numéro supérieur à `since`, ou une liste vide
-     * au bout de `timeoutSeconds`. Le transport doit accepter un délai de lecture plus long que `timeoutSeconds`.
+     * au bout de `timeoutSeconds` (`limit` > 0 : seulement les plus récents). Le transport doit accepter un délai de lecture plus long que `timeoutSeconds`.
      */
-    fun events(since: Int, timeoutSeconds: Int, types: List<String>): List<SyncEvent> {
-        val path = "/rest/events?since=$since&timeout=$timeoutSeconds&events=${q(types.joinToString(","))}"
+    fun events(since: Int, timeoutSeconds: Int, types: List<String>, limit: Int = 0): List<SyncEvent> {
+        val path = "/rest/events?since=$since&timeout=$timeoutSeconds&events=${q(types.joinToString(","))}" + if (limit > 0) "&limit=$limit" else ""
         val body = call("GET", path, null, (timeoutSeconds + 15) * 1000)
         return json.parseToJsonElement(body).jsonArray.map {
             val o = it.jsonObject
