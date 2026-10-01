@@ -110,3 +110,7 @@ apps/android/native/local.properties
 # La liste de la prochaine version est un pense-bête local : elle ne
 # décrit pas le code, elle dit ce qui reste à y faire.
 docs/PROCHAINE_VERSION.md
+
+# Le moteur de synchronisation : les .so se compilent (apps/android/native/syncthing/build-syncthing.sh) et se mettent en cache en CI.
+apps/android/native/app/src/main/jniLibs/
+apps/android/native/syncthing/.work/

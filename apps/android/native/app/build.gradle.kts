@@ -34,7 +34,12 @@ android {
  buildFeatures { buildConfig = true }
 
   versionName = "1.85.0"
+  // Le moteur de synchronisation (libsyncthingnative.so) n'existe que pour ces deux ABI.
+  ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
  }
+
+ // Le binaire Syncthing se lance depuis nativeLibraryDir : il doit être EXTRAIT à l'installation, pas lu dans l'APK.
+ packaging { jniLibs { useLegacyPackaging = true } }
 
  signingConfigs {
   if (missingSigningValues.isEmpty()) {
@@ -71,3 +76,18 @@ dependencies {
  implementation("androidx.activity:activity-compose:1.13.0")
  implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
 }
+
+// Une release sans le moteur ne doit pas partir : les .so se compilent avec syncthing/build-syncthing.sh (cache en CI).
+val checkSyncthingLibs = tasks.register("checkSyncthingLibs") {
+    val libs = listOf("arm64-v8a", "x86_64").map { layout.projectDirectory.file("src/main/jniLibs/$it/libsyncthingnative.so") }
+    doLast {
+        val missing = libs.filter { !it.asFile.isFile }
+        if (missing.isNotEmpty()) {
+            throw GradleException(
+                "Moteur Syncthing absent : " + missing.joinToString { it.asFile.path } +
+                    ". Lancer apps/android/native/syncthing/build-syncthing.sh.",
+            )
+        }
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(checkSyncthingLibs) }

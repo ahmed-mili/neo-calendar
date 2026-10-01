@@ -50,3 +50,38 @@ jobs:
               run: npm --prefix apps/windows run build
             - name: Android frontend build
               run: npm --prefix apps/android run build
+
+    # La compilation de Syncthing ne se rejoue que si les épinglages ou le script changent : pas à chaque PR.
+    syncthing-build:
+        name: Compilation de Syncthing
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  fetch-depth: 0
+
+            - name: Les épinglages ou le script ont-ils changé ?
+              id: changed
+              run: |
+                  if [ "${{ github.event_name }}" = "pull_request" ] &&
+                     ! git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" |
+                       grep -q '^apps/android/native/syncthing/'; then
+                    echo "build=false" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "build=true" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Restaurer le moteur Syncthing (cache)
+              if: steps.changed.outputs.build == 'true'
+              id: syncthing-libs
+              uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+              with:
+                  path: apps/android/native/app/src/main/jniLibs
+                  key: syncthing-libs-${{ hashFiles('apps/android/native/syncthing/version.env', 'apps/android/native/syncthing/build-syncthing.sh', 'apps/android/native/syncthing/release-key.asc') }}
+
+            - name: Compiler Syncthing (arm64-v8a, x86_64)
+              if: steps.changed.outputs.build == 'true' && steps.syncthing-libs.outputs.cache-hit != 'true'
+              run: |
+                  source apps/android/native/syncthing/version.env
+                  "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION"
+                  bash apps/android/native/syncthing/build-syncthing.sh

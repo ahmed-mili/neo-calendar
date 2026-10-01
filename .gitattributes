@@ -1,2 +1,5 @@
 .ladle/obsidian.css linguist-vendored
 .github/workflows/*.yml text eol=lf
+apps/android/native/syncthing/build-syncthing.sh text eol=lf
+apps/android/native/syncthing/version.env text eol=lf
+apps/android/native/syncthing/release-key.asc text eol=lf

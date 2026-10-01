@@ -167,6 +167,28 @@ jobs:
                   yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
                   "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;36.0.0"
 
+            # Le moteur de synchronisation embarqué : Syncthing compilé depuis son tarball source SIGNÉ (SHA-256 et empreinte
+            # GPG épinglés dans apps/android/native/syncthing/), un .so par ABI. La compilation est reproductible : le cache
+            # est indexé par les épinglages et le script, et ne recompile qu'à une montée de version de Syncthing.
+            - name: Restaurer le moteur Syncthing (cache)
+              id: syncthing-libs
+              uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+              with:
+                  path: apps/android/native/app/src/main/jniLibs
+                  key: syncthing-libs-${{ hashFiles('apps/android/native/syncthing/version.env', 'apps/android/native/syncthing/build-syncthing.sh', 'apps/android/native/syncthing/release-key.asc') }}
+
+            - name: Compiler le moteur Syncthing (arm64-v8a, x86_64)
+              if: steps.syncthing-libs.outputs.cache-hit != 'true'
+              run: |
+                  source apps/android/native/syncthing/version.env
+                  "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION"
+                  bash apps/android/native/syncthing/build-syncthing.sh
+
+            - name: Vérifier que les deux moteurs sont là
+              run: |
+                  test -s apps/android/native/app/src/main/jniLibs/arm64-v8a/libsyncthingnative.so
+                  test -s apps/android/native/app/src/main/jniLibs/x86_64/libsyncthingnative.so
+
             - name: Restaurer la clé de signature Android
               shell: bash
               env:
