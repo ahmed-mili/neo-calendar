@@ -20,5 +20,7 @@ tasks.test {
     // Le corpus vit à la racine du dépôt, partagé avec Jest.
     systemProperty("conformance.dir", rootProject.file("../../../conformance").absolutePath)
     jvmArgs("-Duser.timezone=Europe/Paris")
+    // Le test d'intégration à deux moteurs ne tourne que si SYNCTHING_BINARY désigne un binaire Syncthing v2 de cette machine.
+    systemProperty("syncthing.binary", System.getenv("SYNCTHING_BINARY") ?: "")
     testLogging { events("failed"); exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
 }

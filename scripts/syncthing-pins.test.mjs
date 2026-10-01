@@ -80,3 +80,20 @@ test("les binaires compilés ne sont jamais commités", async () => {
     assert.ok(ignore.includes("apps/android/native/app/src/main/jniLibs/"));
     assert.ok(ignore.includes("apps/android/native/syncthing/.work/"));
 });
+
+const fetchTest = await read(
+    "apps/android/native/syncthing/fetch-test-binary.sh"
+);
+
+test("le binaire de test est vérifié comme le tarball", () => {
+    assert.ok(fetchTest.includes("sha256sum -c"));
+    assert.ok(fetchTest.includes("VALIDSIG"));
+    assert.ok(fetchTest.includes("SYNCTHING_KEY_FINGERPRINT"));
+});
+
+test("la validation des PR lance le noyau Kotlin avec le test à deux moteurs", () => {
+    assert.ok(validation.includes("android-core:"));
+    assert.ok(validation.includes("fetch-test-binary.sh"));
+    assert.ok(validation.includes("SYNCTHING_BINARY"));
+    assert.ok(validation.includes(":core:test"));
+});
