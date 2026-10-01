@@ -50,6 +50,16 @@ object Neo {
     val AllDayCellBorder get() = t.allDayCellBorder
     val Draft get() = t.draft
     val DraftFill get() = t.draftFill
+    val Veil get() = t.veil
+    val FaintFill get() = t.faintFill
+    val FaintBorder get() = t.faintBorder
+    val InputFill get() = t.inputFill
+    val InputBorder get() = t.inputBorder
+    val FieldFill get() = t.fieldFill
+    val ControlFill get() = t.controlFill
+    val CardTint get() = t.cardTint
+    val CardEdge get() = t.cardEdge
+    val CardEdgeStrong get() = t.cardEdgeStrong
     val HighlightWeek get() = t.highlightWeek
     val HighlightAnchor get() = t.highlightAnchor
     val ChipNeutral get() = t.chipNeutral

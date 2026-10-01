@@ -6,7 +6,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.input.pointer.pointerInput
@@ -108,7 +113,7 @@ private fun decodeOverlay(key: String): Overlay? = when {
 private sealed interface CalendarDialog {
     data object Add : CalendarDialog
     data object AppReminder : CalendarDialog
-    data class Color(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
+    data class Color(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel, val anchor: androidx.compose.ui.geometry.Rect) : CalendarDialog
     data class Rename(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
     data class Reminder(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
     data class Delete(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
@@ -193,6 +198,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     val occurrences by viewModel.occurrences.collectAsState()
     val allDayCollapsed by viewModel.allDayCollapsed.collectAsState()
     val hidden by viewModel.hidden.collectAsState()
+    val solo by viewModel.solo.collectAsState()
     val reloadError by viewModel.reloadError.collectAsState()
     val icsUi by viewModel.icsUi.collectAsState()
     var monthOpen by rememberSaveable { mutableStateOf(false) }
@@ -306,7 +312,15 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     Box(Modifier.fillMaxSize()) {
         // Le bas n'est pas réservé : la grille défile sous la barre de navigation et garde son inset en marge basse, comme l'ancienne.
         val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-        Column(Modifier.fillMaxSize().neoGlass().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top))) {
+        // La recherche cache le calendrier (il s'efface sous elle, `nc-android-search-in`) : il ne reste que le fond d'écran sous sa surface.
+        val gridAlpha by animateFloatAsState(if (overlay is Overlay.Search) 0f else 1f, tween(180), label = "grid-under-search")
+        Column(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = gridAlpha }
+                .neoGlass()
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)),
+        ) {
             val visible = remember(nearest, dayCount) {
                 (0 until dayCount).map { LocalDate.ofEpochDay(nearest + it).atStartOfDay(zone).toInstant() }
             }
@@ -392,14 +406,9 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                 updates = updates,
                 dayCount = dayCount,
                 onDayCount = { viewModel.setDayCount(it); drawer.close(scope) },
-                anchor = anchor,
-                firstDay = data.firstDay,
-                onSelectDate = { date ->
-                    grid.goTo(scope, date)
-                    drawer.close(scope)
-                },
                 calendars = data.calendars,
                 hiddenIds = hidden,
+                soloId = solo?.first,
                 defaultCalendarPath = data.defaultCalendarPath,
                 onToggleCalendar = viewModel::toggleCalendar,
                 onOpenCalendar = { overlayKey = Overlay.Calendar(it.id).encode() },
@@ -410,21 +419,121 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                     onSettings = { overlayKey = Overlay.Settings.encode() },
                     onAddCalendar = { calendarDialog = CalendarDialog.Add },
                     onSetDefault = { viewModel.setDefaultCalendar(it.relativePath) },
-                    onColor = { calendarDialog = CalendarDialog.Color(it) },
+                    onColor = { calendar, anchor -> calendarDialog = CalendarDialog.Color(calendar, anchor) },
                     onRename = { calendarDialog = CalendarDialog.Rename(it) },
                     onReminder = { calendarDialog = CalendarDialog.Reminder(it) },
                     onIcsLinks = { calendarDialog = CalendarDialog.IcsLinks(it) },
                     onDelete = { calendarDialog = CalendarDialog.Delete(it) },
                     onReorder = viewModel::setCalendarOrder,
+                    onShowOnly = { viewModel.showOnly(it.id) },
                 ),
             )
         }
 
-        // Garde la dernière liste ouverte le temps de sa sortie : sans elle l'écran se viderait avant de glisser.
+        // Garde le dernier écran ouvert le temps de sa sortie : sans lui l'écran se viderait avant de glisser.
         val lastOverlay = remember { arrayOfNulls<Overlay>(1) }
         if (overlay != null) lastOverlay[0] = overlay
+        val shown = overlay ?: lastOverlay[0]
+
+        // La liste d'un calendrier : un panneau de la largeur du tiroir qui se pose dessus, venu de la gauche en 260 ms
+        // (`translate3d(-100%)`, `cubic-bezier(.2,0,0,1)`), sous un voile noir à 42 % qui le referme d'un appui (`mobile.css:4474`).
+        val panelEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+        AnimatedVisibility(visible = overlay is Overlay.Calendar, enter = fadeIn(tween(260, easing = panelEasing)), exit = fadeOut(tween(260, easing = panelEasing))) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.42f)).clickable(indication = null, interactionSource = null) { overlayKey = "" })
+        }
         AnimatedVisibility(
-            visible = overlay != null,
+            visible = overlay is Overlay.Calendar,
+            enter = slideInHorizontally(tween(260, easing = panelEasing)) { -it },
+            exit = slideOutHorizontally(tween(260, easing = panelEasing)) { -it },
+        ) {
+            val calendar = (shown as? Overlay.Calendar)?.let { calendarsById[it.id] }
+            if (calendar == null) {
+                LaunchedEffect(shown, data) { if (overlay is Overlay.Calendar) overlayKey = "" }
+            } else {
+                val events by produceState<List<DisplayEvent>?>(null, data, calendar) {
+                    value = withContext(Dispatchers.Default) {
+                        // Un calendrier de jours fériés n'a pas de notes : ses jours sont calculés, du plus récent au plus ancien.
+                        if (calendar.editable) calendarPanelEvents(data.events, calendar, zone, java.time.Instant.now())
+                        else data.holidays.filter { it.calendarId == calendar.id }.sortedByDescending { it.start }
+                    }
+                }
+                val feeds = remember(data, calendar) { data.icsLinks.filter { it.calendarPath == calendar.relativePath } }
+                BoxWithConstraints(Modifier.fillMaxSize()) {
+                    CalendarEventsPanel(
+                        calendar = calendar,
+                        events = events,
+                        feedOf = { event -> resolveStored(notesById, event.id)?.icsFeedId },
+                        feeds = feeds,
+                        isDefault = calendar.relativePath == data.defaultCalendarPath,
+                        timeFormat24h = data.timeFormat24h,
+                        onBack = { overlayKey = "" },
+                        onEventClick = openEvent,
+                        onAdd = { scope.launch { report(viewModel.createUnscheduledTask(calendar.relativePath)) } },
+                        onSetDefault = { viewModel.setDefaultCalendar(calendar.relativePath) },
+                        onShowOnly = { viewModel.showOnly(calendar.id) },
+                        onColor = { anchor -> calendarDialog = CalendarDialog.Color(calendar, anchor) },
+                        onReminder = { calendarDialog = CalendarDialog.Reminder(calendar) },
+                        onIcsLinks = { calendarDialog = CalendarDialog.IcsLinks(calendar) },
+                        onRemove = { calendarDialog = CalendarDialog.Delete(calendar) },
+                        modifier = Modifier.width(minOf(360.dp, maxWidth * 0.88f)),
+                    )
+                }
+            }
+        }
+
+        // Les listes de tâches : une fenêtre centrée sur son voile.
+        (overlay as? Overlay.Tasks)?.let { tasksOverlay ->
+            TasksList(
+                complete = tasksOverlay.complete,
+                tasks = if (tasksOverlay.complete) taskGroups.complete else taskGroups.todo,
+                tasksById = remember(taskGroups) { (taskGroups.todo + taskGroups.complete).associateBy { it.id } },
+                today = today,
+                onDismiss = { overlayKey = "" },
+                onTaskClick = { task -> overlayKey = ""; openTask(task) },
+                onToggleTask = { task, done ->
+                    val note = notesById[task.id]
+                    if (note == null) {
+                        Notices.show(noteGone)
+                    } else {
+                        scope.launch { viewModel.setTaskDone(note, task.id, done)?.let { if (it != WRITE_IGNORED) Notices.fail(it) } }
+                    }
+                },
+            )
+        }
+
+        // La recherche : la surface à 78 % sur le fond d'écran, arrivée en 260 ms (`nc-android-search-in` : fondu et 12 dp de descente).
+        val searchEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
+        val searchShift = with(androidx.compose.ui.platform.LocalDensity.current) { 12.dp.roundToPx() }
+        AnimatedVisibility(
+            visible = overlay is Overlay.Search,
+            enter = fadeIn(tween(260, easing = searchEasing)) + slideInVertically(tween(260, easing = searchEasing)) { -searchShift },
+            exit = fadeOut(tween(260, easing = searchEasing)) + slideOutVertically(tween(260, easing = searchEasing)) { -searchShift },
+        ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Neo.Surface.copy(alpha = 0.78f))
+                    .pointerInput(Unit) { detectTapGestures { } }
+                    .windowInsetsPadding(WindowInsets.safeDrawing),
+            ) {
+                val searching = overlay == Overlay.Search
+                val corpus by produceState<List<DisplayEvent>?>(null, data, searching) {
+                    value = if (!searching) null
+                    else withContext(Dispatchers.Default) {
+                        val month = anchor.withDayOfMonth(1)
+                        val from = month.minusMonths(2).atStartOfDay(zone).toInstant()
+                        val to = month.plusMonths(3).atStartOfDay(zone).toInstant()
+                        searchCorpus(data.events, calendarsById, anchor, zone, java.time.Instant.now()) +
+                            data.holidays.filter { it.start >= from && it.start < to }
+                    }
+                }
+                SearchScreen(corpus, data.timeFormat24h, { overlayKey = "" }, openEvent)
+            }
+        }
+
+        // Les Réglages : plein écran, glissés de 1/5 depuis la droite.
+        AnimatedVisibility(
+            visible = overlay is Overlay.Settings,
             enter = slideInHorizontally(tween(260)) { it / 5 } + fadeIn(tween(260)),
             exit = slideOutHorizontally(tween(220)) { it / 5 } + fadeOut(tween(220)),
         ) {
@@ -435,76 +544,60 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                     .pointerInput(Unit) { detectTapGestures { } }
                     .windowInsetsPadding(WindowInsets.safeDrawing),
             ) {
-                when (val shown = overlay ?: lastOverlay[0]) {
-                    is Overlay.Calendar -> {
-                        val calendar = calendarsById[shown.id]
-                        if (calendar == null) LaunchedEffect(shown, data) { overlayKey = "" }
-                        else {
-                            val events by produceState<List<DisplayEvent>?>(null, data, calendar) {
-                                value = withContext(Dispatchers.Default) {
-                                    calendarPanelEvents(data.events, calendar, zone, java.time.Instant.now())
-                                }
-                            }
-                            CalendarEventsList(calendar, events, data.timeFormat24h, { overlayKey = "" }, openEvent)
-                        }
-                    }
-                    is Overlay.Tasks -> TasksList(
-                        complete = shown.complete,
-                        tasks = if (shown.complete) taskGroups.complete else taskGroups.todo,
-                        today = today,
-                        onBack = { overlayKey = "" },
-                        onTaskClick = openTask,
-                    )
-                    Overlay.Search -> {
-                        val searching = overlay == Overlay.Search
-                        val corpus by produceState<List<DisplayEvent>?>(null, data, searching) {
-                            value = if (!searching) null
-                            else withContext(Dispatchers.Default) {
-                                searchCorpus(data.events, calendarsById, anchor, zone, java.time.Instant.now())
-                            }
-                        }
-                        SearchScreen(corpus, data.timeFormat24h, { overlayKey = "" }, openEvent)
-                    }
-                    Overlay.Settings -> SettingsScreen(
-                        version = BuildConfig.VERSION_NAME,
-                        updates = updates,
-                        data = data,
-                        actions = SettingsActions(
-                            onSetting = viewModel::setPreference,
-                            onAppReminder = { calendarDialog = CalendarDialog.AppReminder },
-                            onCalendarReminder = { calendarDialog = CalendarDialog.Reminder(it) },
-                            onAddCalendar = { calendarDialog = CalendarDialog.Add },
-                            onPickFolder = { pickTree.launch(Unit) },
-                            folderName = viewModel.treeName(),
-                        ),
-                        onBack = { overlayKey = "" },
-                    )
-                    null -> Unit
-                }
+                SettingsScreen(
+                    version = BuildConfig.VERSION_NAME,
+                    updates = updates,
+                    data = data,
+                    actions = SettingsActions(
+                        onSetting = viewModel::setPreference,
+                        onAppReminder = { calendarDialog = CalendarDialog.AppReminder },
+                        onCalendarReminder = { calendarDialog = CalendarDialog.Reminder(it) },
+                        onAddCalendar = { calendarDialog = CalendarDialog.Add },
+                        onPickFolder = { pickTree.launch(Unit) },
+                        folderName = viewModel.treeName(),
+                    ),
+                    onBack = { overlayKey = "" },
+                )
             }
         }
     }
 
     when (val dialog = calendarDialog) {
         null -> Unit
-        CalendarDialog.Add -> CalendarNameDialog(
-            "Nouveau calendrier", "", "Créer", data.calendars.map { it.name }.toSet(),
-            { name -> calendarDialog = null; scope.launch { report(viewModel.createCalendar(name)) } },
-            { calendarDialog = null },
+        CalendarDialog.Add -> AddCalendarSheet(
+            rootName = viewModel.treeName(),
+            takenNames = data.calendars.map { it.name }.toSet(),
+            onCreate = { request ->
+                when (request) {
+                    is AddCalendarRequest.Notes -> viewModel.createCalendarWithLink(request.name, request.icsUrl)
+                    is AddCalendarRequest.Holidays -> viewModel.addHolidayCalendar(request.name, request.color)
+                }
+            },
+            onDismiss = { calendarDialog = null },
         )
         is CalendarDialog.Rename -> CalendarNameDialog(
             "Renommer le calendrier", dialog.calendar.name, "Renommer", data.calendars.map { it.name }.toSet() - dialog.calendar.name,
             { name -> calendarDialog = null; scope.launch { report(viewModel.renameCalendar(dialog.calendar.relativePath, name)) } },
             { calendarDialog = null },
         )
-        is CalendarDialog.Color -> CalendarColorDialog(
+        is CalendarDialog.Color -> CalendarColorPicker(
             dialog.calendar.color,
-            { hex -> calendarDialog = null; viewModel.setCalendarColor(dialog.calendar.relativePath, hex) },
+            dialog.anchor,
+            { hex -> viewModel.setCalendarColor(dialog.calendar.relativePath, hex) },
             { calendarDialog = null },
         )
         is CalendarDialog.Delete -> ConfirmDeleteCalendarDialog(
             dialog.calendar.name,
-            { calendarDialog = null; scope.launch { report(viewModel.deleteCalendar(dialog.calendar.relativePath)) } },
+            !dialog.calendar.editable,
+            {
+                calendarDialog = null
+                scope.launch {
+                    report(
+                        if (dialog.calendar.editable) viewModel.deleteCalendar(dialog.calendar.relativePath)
+                        else viewModel.removeHolidayCalendar(dialog.calendar.relativePath),
+                    )
+                }
+            },
             { calendarDialog = null },
         )
         is CalendarDialog.Reminder -> ReminderDialog(

@@ -63,6 +63,24 @@ class NeoTokens(
     val allDayCellBorder: Color,
     val draft: Color,
     val draftFill: Color,
+    /** Voile derrière un dialogue ou une feuille (`rgba(8,9,18,.72)`, `--nc-float-veil`). */
+    val veil: Color,
+    /** Fond (blanc 3,5 %) et bord (blanc 7 %) des petits boutons du tiroir (grille des durées). */
+    val faintFill: Color,
+    val faintBorder: Color,
+    /** Fond (blanc 4 %) et bord (blanc 8 %) d'un champ du tiroir. */
+    val inputFill: Color,
+    val inputBorder: Color,
+    /** `--background-modifier-form-field` : fond d'un champ de saisie (`rgb(57,58,78)`). */
+    val fieldFill: Color,
+    /** Fond d'un contrôle posé sur une carte (menu de fréquence, champs d'ajout d'un lien ICS) : `rgb(50,51,70)`. */
+    val controlFill: Color,
+    /** Fond d'une carte posée sur la surface d'un dialogue (`rgba(198,208,245,.03)`). */
+    val cardTint: Color,
+    /** Bord (blanc 5,5 %) et fond d'une carte « en cours » (blanc 5,5 %) de la liste d'un calendrier. */
+    val cardEdge: Color,
+    /** Bord d'une carte « en cours » (blanc 16 %). */
+    val cardEdgeStrong: Color,
     // Voiles posés par-dessus la grille (blanc translucide)
     val highlightWeek: Color,
     val highlightAnchor: Color,
@@ -113,6 +131,16 @@ val CatppuccinMocha = NeoTokens(
     allDayCellBorder = Color(0x3D696D86),
     draft = Color(0xFF4AABE0),
     draftFill = Color(0x2E4AABE0),
+    veil = Color(0xB8080912),
+    faintFill = Color(0x09FFFFFF),
+    faintBorder = Color(0x12FFFFFF),
+    inputFill = Color(0x0AFFFFFF),
+    inputBorder = Color(0x14FFFFFF),
+    fieldFill = Color(0xFF393A4E),
+    controlFill = Color(0xFF323346),
+    cardTint = Color(0x08C6D0F5),
+    cardEdge = Color(0x0EFFFFFF),
+    cardEdgeStrong = Color(0x29FFFFFF),
     highlightWeek = Color(0x17FFFFFF),
     highlightAnchor = Color(0x26FFFFFF),
     chipNeutral = Color(0x24FFFFFF),
