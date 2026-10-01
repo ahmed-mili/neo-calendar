@@ -27,7 +27,7 @@ import org.json.JSONObject;
  * The list itself is written by the app, already worded in the chosen language
  * and time format — the phone is handed times and finished sentences.
  */
-final class ReminderScheduler {
+public final class ReminderScheduler {
     private static final String TAG = "NeoCalendarReminder";
     private static final String PREF_FILE = "neo-calendar-reminders";
     private static final String KEY_PAYLOAD = "payload";
@@ -42,7 +42,7 @@ final class ReminderScheduler {
         return context.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE);
     }
 
-    static void write(Context context, String payload) {
+    public static void write(Context context, String payload) {
         prefs(context).edit().putString(KEY_PAYLOAD, payload).apply();
         schedule(context);
     }

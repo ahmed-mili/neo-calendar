@@ -193,3 +193,14 @@ fun buildReminders(
         .filter { it.atMs > nowMs }
         .sortedBy { it.atMs }
 }
+
+/**
+ * Les délais réglés calendrier par calendrier, relus sous l'identifiant que les
+ * évènements portent (`remindersByCalendarId` de androidReminders.ts). Un chemin
+ * qu'aucun calendrier ne porte est laissé de côté : il vient d'un dossier retiré.
+ */
+fun remindersByCalendarId(
+    calendars: List<Pair<String, String>>,
+    minutesByPath: Map<String, List<Long>>,
+): Map<String, List<Long>> =
+    calendars.filter { (_, path) -> path in minutesByPath }.associate { (id, path) -> id to minutesByPath.getValue(path) }

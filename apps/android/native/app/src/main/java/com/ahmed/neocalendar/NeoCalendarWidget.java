@@ -22,7 +22,7 @@ import org.json.JSONObject;
  * written — there is only one implementation of that, in the app.
  */
 public class NeoCalendarWidget extends AppWidgetProvider {
-    static final String ACTION_NEW_EVENT = "com.ahmed.neocalendar.WIDGET_NEW_EVENT";
+    public static final String ACTION_NEW_EVENT = "com.ahmed.neocalendar.WIDGET_NEW_EVENT";
 
     /** Fallbacks for a widget placed before the app has ever run. */
     private static final int FALLBACK_SURFACE = 0xFF252539;
@@ -50,7 +50,7 @@ public class NeoCalendarWidget extends AppWidgetProvider {
     }
 
     /** Redraws every placed widget. Called by the app whenever events change. */
-    static void refreshAll(Context context) {
+    public static void refreshAll(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         ComponentName provider = new ComponentName(context, NeoCalendarWidget.class);
         int[] ids = manager.getAppWidgetIds(provider);

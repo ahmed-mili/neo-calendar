@@ -33,7 +33,7 @@ public class MainActivity extends Activity {
   private volatile boolean interfaceReady = false;
 
   /** Which event a widget tap wants opened, if any. */
-  static final String EXTRA_EVENT_ID = "neoCalendarEventId";
+  public static final String EXTRA_EVENT_ID = "neoCalendarEventId";
 
   /** Pose par l'action « Reessayer » de la notification d'echec. */
   static final String EXTRA_UPDATE_RETRY = "neoCalendarUpdateRetry";

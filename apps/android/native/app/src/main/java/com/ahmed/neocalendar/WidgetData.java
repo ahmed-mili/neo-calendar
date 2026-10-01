@@ -13,7 +13,7 @@ import android.content.SharedPreferences;
  * grouped by day, already formatted in the chosen language and time format,
  * already coloured — and the widget only lays it out.
  */
-final class WidgetData {
+public final class WidgetData {
     private static final String PREF_FILE = "neo-calendar-widget";
     private static final String KEY_PAYLOAD = "payload";
 
@@ -23,7 +23,7 @@ final class WidgetData {
         return context.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE);
     }
 
-    static void write(Context context, String payload) {
+    public static void write(Context context, String payload) {
         prefs(context).edit().putString(KEY_PAYLOAD, payload).apply();
     }
 

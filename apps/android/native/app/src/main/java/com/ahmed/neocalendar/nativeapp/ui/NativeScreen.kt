@@ -58,6 +58,7 @@ import com.ahmed.neocalendar.BuildConfig
 import com.ahmed.neocalendar.core.layout.getISOWeek
 import com.ahmed.neocalendar.core.layout.todayBadgeState
 import com.ahmed.neocalendar.core.recurrence.DisplayEvent
+import com.ahmed.neocalendar.nativeapp.NativeRoute
 import com.ahmed.neocalendar.nativeapp.NativeViewModel
 import com.ahmed.neocalendar.nativeapp.ScreenState
 import com.ahmed.neocalendar.nativeapp.WRITE_IGNORED
@@ -191,6 +192,26 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
     val openEvent = { event: DisplayEvent ->
         val note = resolveStored(notesById, event.id)
         if (note != null) sheet = SheetTarget.Existing(note, event.id)
+    }
+
+    // Une notification, une ligne du widget ou son « + » : la fiche ou le brouillon, dès que le dossier est lu.
+    val route by viewModel.route.collectAsState()
+    LaunchedEffect(route, data) {
+        when (val wanted = route) {
+            null -> Unit
+            is NativeRoute.Event -> {
+                val note = resolveStored(notesById, wanted.id)
+                if (note != null) sheet = SheetTarget.Existing(note, wanted.id)
+                else Toast.makeText(context, "Cette note n'existe plus.", Toast.LENGTH_LONG).show()
+            }
+            NativeRoute.NewEvent ->
+                if (data.calendars.none { it.editable }) {
+                    Toast.makeText(context, "Créez d'abord un dossier de calendrier avant d'ajouter des évènements.", Toast.LENGTH_LONG).show()
+                } else {
+                    sheet = newDraft()
+                }
+        }
+        if (route != null) viewModel.routeHandled()
     }
 
     // Les gestes de la grille qui écrivent : un brouillon sur un créneau vide, un déplacement, un redimensionnement, une case cochée.
