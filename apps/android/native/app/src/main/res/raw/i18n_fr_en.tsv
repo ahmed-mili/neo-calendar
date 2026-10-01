@@ -617,3 +617,17 @@ Les modifications seront visibles au prochain démarrage de l'ancienne interface
 {n} entrées reconverties en événements.	{n} entries converted back to events.
 Appliquer cette fréquence à tous les liens ICS de tous les calendriers ? Cette action règle la fréquence de tous les liens sur cette valeur et retire leurs remplacements individuels.	Apply this frequency to every ICS link on every calendar? This sets every link's frequency to this value and removes any per-link override.
 Ce fuseau est inconnu. Écrivez un nom comme Europe/Paris ou America/New_York.	Unknown time zone. Write a name like Europe/Paris or America/New_York.
+Quitter	Quit
+Démarrage…	Starting…
+À jour	Up to date
+Aucun appareil : la synchronisation est arrêtée	No device: synchronization is stopped
+Synchronisation en cours (1 fichier)	Syncing (1 file)
+Synchronisation en cours ({n} fichiers)	Syncing ({n} files)
+Hors ligne : aucun appareil connecté	Offline: no device connected
+En pause : économiseur de batterie actif	Paused: battery saver is on
+En pause : seulement sur secteur	Paused: only when charging
+En pause : seulement sur batterie	Paused: only on battery
+En pause : hors ligne	Paused: offline
+En pause : Wi-Fi non autorisé	Paused: Wi-Fi not allowed
+En pause : Wi-Fi limité non autorisé	Paused: metered Wi-Fi not allowed
+En pause : données mobiles non autorisées	Paused: mobile data not allowed

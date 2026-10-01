@@ -9,6 +9,9 @@
          reminder. Granted at install, unlike SCHEDULE_EXACT_ALARM. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Le moteur de synchronisation tourne dans un service au premier plan de type specialUse (comme Syncthing-Fork). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <!-- Desinstaller l'ANCIENNE app (com.ahmed.neocalendar) : ACTION_DELETE sur un autre paquet l'exige (doc Android : REQUEST_DELETE_PACKAGES). -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
@@ -99,6 +102,25 @@
              re-armed when the phone comes back up. -->
         <receiver
             android:name=".ReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- La synchronisation intégrée : un service au premier plan tant que le moteur doit tourner, relancé à l'allumage si l'utilisateur l'a demandé. -->
+        <service
+            android:name=".nativeapp.sync.SyncService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Neo Calendar embeds Syncthing, a continuous file synchronization engine. When the user enables it, it runs in the background to send and receive calendar notes between the user's own devices as they change." />
+        </service>
+
+        <receiver
+            android:name=".nativeapp.sync.SyncBootReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

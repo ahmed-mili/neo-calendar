@@ -14,6 +14,10 @@ import com.ahmed.neocalendar.NeoCalendarWidget
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.ahmed.neocalendar.core.workspace.StorageMode
+import com.ahmed.neocalendar.nativeapp.sync.SyncController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -45,6 +49,15 @@ class NativeActivity : ComponentActivity() {
         lifecycleScope.launch {
             viewModel.screen.first { it !is ScreenState.Loading }
             updates.checkOnLaunch()
+            // Le moteur de synchronisation démarre APRÈS la grille, hors du fil principal ; jamais avec un dossier externe.
+            if (WorkspaceLocation.mode(applicationContext) == StorageMode.Integrated) {
+                withContext(Dispatchers.Default) {
+                    val sync = SyncController.get(applicationContext)
+                    sync.onAppStarted()
+                    // L'app a pu passer en arrière-plan pendant ce temps : onStop est passé avant que le chef d'orchestre existe.
+                    if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) sync.onAppHidden()
+                }
+            }
         }
         // Une notification ou le widget peut avoir lancé l'app à froid : la route attend que le dossier soit lu. Une recréation (rotation) ne la rejoue pas.
         if (savedInstanceState == null) routeFrom(intent)
@@ -115,6 +128,16 @@ class NativeActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT < 33) return
         if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) return
         notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        SyncController.peek()?.onAppVisible()
+    }
+
+    override fun onStop() {
+        SyncController.peek()?.onAppHidden()
+        super.onStop()
     }
 
     /** Le dossier est relu à l'ouverture et à chaque retour dans l'app (400 ms au plus rapproché). */

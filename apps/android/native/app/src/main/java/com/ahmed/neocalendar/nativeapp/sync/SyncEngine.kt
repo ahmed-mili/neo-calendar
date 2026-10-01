@@ -62,6 +62,9 @@ class SyncEngine(private val context: Context, private val scope: CoroutineScope
 
     private var job: Job? = null
 
+    /** Vrai dès que `start()` a lancé la marche et tant qu'elle n'a pas fini, même avant que l'état quitte `Stopped`. */
+    val isActive: Boolean get() = synchronized(lock) { job?.isActive == true }
+
     /** Le processus de la marche en cours. Posé et remis à null par cette marche seule (jamais par `stop()`). */
     @Volatile private var process: Process? = null
 
