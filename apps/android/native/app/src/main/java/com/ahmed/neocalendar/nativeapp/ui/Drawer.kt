@@ -324,7 +324,8 @@ private fun TaskStatusGlyph(done: Boolean, ink: Color) {
 @Composable
 private fun DaySwitcher(dayCount: Int, onDayCount: (Int) -> Unit) {
     var more by rememberSaveable { mutableStateOf(dayCount > 3) }
-    var custom by remember(dayCount) { mutableStateOf(dayCount.toString()) }
+    // Le champ part de 10, quel que soit le nombre de jours affiché (`useState(10)` de l'ancienne).
+    var custom by remember { mutableStateOf("10") }
     // Le bloc a son propre filet bas (blanc 7,5 %) au-dessus de celui de la section suivante : 10 dp de padding + 1 dp de filet.
     Column(
         Modifier
@@ -346,7 +347,7 @@ private fun DaySwitcher(dayCount: Int, onDayCount: (Int) -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("Plus de durées", color = Neo.TextFaint, fontSize = 13.sp, modifier = Modifier.weight(1f))
-            Icon(NeoIcons.ChevronDown, null, tint = Neo.TextFaint, modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = if (more) 180f else 0f })
+            Icon(NeoIcons.ChevronDown, null, tint = Neo.TextFaint, modifier = Modifier.size(16.dp))
         }
         if (more) {
             Column(Modifier.padding(start = 7.dp, end = 7.dp, top = 4.dp, bottom = 2.dp)) {
@@ -608,45 +609,95 @@ private fun CalendarRow(
             // Le calendrier par défaut : un anneau de 2 dp de sa couleur, à 3 dp de la pastille.
             if (isDefault) Box(Modifier.scale(scale).size(25.dp).border(2.dp, color, RoundedCornerShape(9.dp)))
         }
-        Text(
-            calendar.name,
-            color = Neo.Text,
-            fontSize = 14.sp,
-            // 540 : même repli que ci-dessus, la WebView l'affiche en gras.
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 2.dp).weight(1f),
-        )
-        if (isDefault) {
-            Text("Par défaut", color = Neo.TextFaint, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.padding(start = 8.dp, end = 6.dp))
-        }
-        Box {
-            Box(
-                Modifier.size(22.dp).pressFill(RoundedCornerShape(3.dp), Neo.Hover) { menu = true },
-                contentAlignment = Alignment.Center,
-            ) { Icon(NeoIcons.Ellipsis, "Menu de ${calendar.name}", tint = Neo.TextFaint, modifier = Modifier.size(16.dp)) }
-            NeoPopupMenu(menu, { menu = false }) {
-                MenuRow("Couleur", swatch = color) { menu = false; actions.onColor(calendar, swatchBounds) }
-                // Le calendrier de chemin vide est le dossier de notes lui-même : ni renommé ni retiré.
-                val isFolder = calendar.relativePath.isNotEmpty()
-                // Renommer, le rappel et les liens ICS sont ceux d'un dossier de notes : un calendrier automatique n'a que la couleur.
-                if (isFolder && calendar.editable) MenuRow("Renommer", icon = NeoIcons.Pencil) { menu = false; actions.onRename(calendar) }
-                if (calendar.editable) {
-                    MenuRow("Rappel", icon = NeoIcons.Bell) { menu = false; actions.onReminder(calendar) }
-                    MenuRow("Liens ICS", icon = NeoIcons.Link) { menu = false; actions.onIcsLinks(calendar) }
+        // Le nom, « Par défaut » et les actions : deux marges `auto` (`CalendarTouch.css:30`) se partagent la place libre à parts égales,
+        // le libellé tient donc au milieu de l'espace entre le nom et les actions.
+        SpreadRow(
+            Modifier.weight(1f).fillMaxHeight(),
+            name = {
+                Text(
+                    calendar.name,
+                    color = Neo.Text,
+                    fontSize = 14.sp,
+                    // 540 : même repli que ci-dessus, la WebView l'affiche en gras.
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 2.dp),
+                )
+            },
+            label = if (isDefault) {
+                { Text("Par défaut", color = Neo.TextFaint, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.padding(end = 6.dp)) }
+            } else {
+                null
+            },
+            actions = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                Box {
+                    Box(
+                        Modifier.size(22.dp).pressFill(RoundedCornerShape(3.dp), Neo.Hover) { menu = true },
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(NeoIcons.Ellipsis, "Menu de ${calendar.name}", tint = Neo.TextFaint, modifier = Modifier.size(16.dp)) }
+                    NeoPopupMenu(menu, { menu = false }) {
+                        MenuRow("Couleur", swatch = color) { menu = false; actions.onColor(calendar, swatchBounds) }
+                        // Le calendrier de chemin vide est le dossier de notes lui-même : ni renommé ni retiré.
+                        val isFolder = calendar.relativePath.isNotEmpty()
+                        // Renommer, le rappel et les liens ICS sont ceux d'un dossier de notes : un calendrier automatique n'a que la couleur.
+                        if (isFolder && calendar.editable) MenuRow("Renommer", icon = NeoIcons.Pencil) { menu = false; actions.onRename(calendar) }
+                        if (calendar.editable) {
+                            MenuRow("Rappel", icon = NeoIcons.Bell) { menu = false; actions.onReminder(calendar) }
+                            MenuRow("Liens ICS", icon = NeoIcons.Link) { menu = false; actions.onIcsLinks(calendar) }
+                        }
+                        MenuRow(
+                            if (isSolo) "Réafficher les calendriers masqués" else "N'afficher que ce calendrier",
+                            icon = if (isSolo) NeoIcons.DrawerEye else NeoIcons.DrawerEyeOff,
+                        ) { menu = false; actions.onShowOnly(calendar) }
+                        if (isFolder) MenuRow("Retirer de la liste", icon = NeoIcons.ListX, danger = true) { menu = false; actions.onDelete(calendar) }
+                    }
                 }
-                MenuRow(
-                    if (isSolo) "Réafficher les calendriers masqués" else "N'afficher que ce calendrier",
-                    icon = if (isSolo) NeoIcons.DrawerEye else NeoIcons.DrawerEyeOff,
-                ) { menu = false; actions.onShowOnly(calendar) }
-                if (isFolder) MenuRow("Retirer de la liste", icon = NeoIcons.ListX, danger = true) { menu = false; actions.onDelete(calendar) }
+                Spacer(Modifier.width(2.dp))
+                Box(
+                    Modifier.size(22.dp).pressFill(RoundedCornerShape(3.dp), Neo.Hover, onClick = onToggle),
+                    contentAlignment = Alignment.Center,
+                ) { Icon(NeoIcons.DrawerEye, "Masquer ${calendar.name}", tint = Neo.TextFaint, modifier = Modifier.size(16.dp)) }
+                }
+            },
+        )
+    }
+}
+
+/**
+ * Le nom, le libellé « Par défaut » éventuel et les actions : le nom prend sa largeur (tronquée au besoin), les actions s'alignent à
+ * droite, le libellé se pose au milieu de l'espace libre qui reste entre les deux.
+ */
+@Composable
+private fun SpreadRow(
+    modifier: Modifier,
+    name: @Composable () -> Unit,
+    label: (@Composable () -> Unit)?,
+    actions: @Composable () -> Unit,
+) {
+    androidx.compose.ui.layout.Layout(
+        content = {
+            Box { name() }
+            if (label != null) Box { label() }
+            Box { actions() }
+        },
+        modifier = modifier,
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val actionsPlaceable = measurables.last().measure(loose)
+        val labelPlaceable = if (label != null) measurables[1].measure(loose) else null
+        val nameMax = (constraints.maxWidth - actionsPlaceable.width - (labelPlaceable?.width ?: 0)).coerceAtLeast(0)
+        val namePlaceable = measurables[0].measure(loose.copy(maxWidth = nameMax))
+        val width = constraints.maxWidth
+        val height = if (constraints.hasBoundedHeight) constraints.maxHeight else maxOf(namePlaceable.height, actionsPlaceable.height, labelPlaceable?.height ?: 0)
+        layout(width, height) {
+            namePlaceable.placeRelative(0, (height - namePlaceable.height) / 2)
+            actionsPlaceable.placeRelative(width - actionsPlaceable.width, (height - actionsPlaceable.height) / 2)
+            labelPlaceable?.let {
+                val free = width - namePlaceable.width - it.width - actionsPlaceable.width
+                it.placeRelative(namePlaceable.width + free / 2, (height - it.height) / 2)
             }
         }
-        Spacer(Modifier.width(2.dp))
-        Box(
-            Modifier.size(22.dp).pressFill(RoundedCornerShape(3.dp), Neo.Hover, onClick = onToggle),
-            contentAlignment = Alignment.Center,
-        ) { Icon(NeoIcons.DrawerEye, "Masquer ${calendar.name}", tint = Neo.TextFaint, modifier = Modifier.size(16.dp)) }
     }
 }

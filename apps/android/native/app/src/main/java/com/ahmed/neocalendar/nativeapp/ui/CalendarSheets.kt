@@ -443,7 +443,7 @@ fun CalendarColorPicker(current: String, anchor: Rect, onChange: (String) -> Uni
         hexText = hsvToHex(h, s, v)
     }
 
-    Popup(popupPositionProvider = provider, onDismissRequest = onDismiss, properties = PopupProperties(focusable = true)) {
+    Popup(popupPositionProvider = provider, onDismissRequest = onDismiss, properties = PopupProperties(focusable = true, clippingEnabled = false)) {
         val shape = RoundedCornerShape(12.dp)
         Box(Modifier.padding(14.dp)) {
             Column(

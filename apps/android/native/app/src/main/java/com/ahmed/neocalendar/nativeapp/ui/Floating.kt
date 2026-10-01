@@ -102,7 +102,7 @@ fun NeoPopupMenu(
     val provider = remember(density) {
         MenuPositionProvider(with(density) { 8.dp.roundToPx() }, with(density) { 4.dp.roundToPx() }, with(density) { 14.dp.roundToPx() })
     }
-    Popup(popupPositionProvider = provider, onDismissRequest = onDismiss, properties = PopupProperties(focusable = true)) {
+    Popup(popupPositionProvider = provider, onDismissRequest = onDismiss, properties = PopupProperties(focusable = true, clippingEnabled = false)) {
         val shape = RoundedCornerShape(10.dp)
         // La fenêtre du menu s'arrête à son contenu : la marge laisse la place à l'ombre.
         Box(Modifier.padding(14.dp)) {
