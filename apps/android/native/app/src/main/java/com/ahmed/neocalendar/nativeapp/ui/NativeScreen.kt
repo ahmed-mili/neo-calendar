@@ -362,7 +362,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                 version = BuildConfig.VERSION_NAME,
                 updates = updates,
                 dayCount = dayCount,
-                onDayCount = viewModel::setDayCount,
+                onDayCount = { viewModel.setDayCount(it); drawer.close(scope) },
                 anchor = anchor,
                 firstDay = data.firstDay,
                 onSelectDate = { date ->
@@ -516,9 +516,8 @@ private fun resolveStored(notesById: Map<String, com.ahmed.neocalendar.core.note
             // L'identifiant d'une note peut lui-même finir comme une date : seule une série a des jours.
             ?.takeIf { com.ahmed.neocalendar.core.recurrence.isSeries(it.event) }
 
-/** Le bouton + : la prochaine demi-heure, trente minutes, dans le calendrier par défaut. */
+/** Le bouton + (comme la WebView) : maintenant, sans arrondi, trente minutes, dans le calendrier par défaut. */
 private fun newDraft(): SheetTarget.Draft {
-    val now = java.time.LocalDateTime.now().withSecond(0).withNano(0)
-    val start = now.withMinute(0).plusMinutes(((now.minute + 29) / 30 * 30).toLong())
+    val start = java.time.LocalDateTime.now().withSecond(0).withNano(0)
     return SheetTarget.Draft(start, start.plusMinutes(30), allDay = false)
 }

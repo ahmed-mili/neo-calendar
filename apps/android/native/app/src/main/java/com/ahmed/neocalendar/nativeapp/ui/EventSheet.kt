@@ -263,6 +263,11 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
         },
         body = {
             val focus = remember { FocusRequester() }
+            val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+            val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+            // Une fiche en lecture seule ne fait jamais monter le clavier, et la fermer le range.
+            LaunchedEffect(editable) { if (!editable) { focusManager.clearFocus(); keyboard?.hide() } }
+            androidx.compose.runtime.DisposableEffect(Unit) { onDispose { keyboard?.hide() } }
             LaunchedEffect(isDraft) { if (isDraft) focus.requestFocus() }
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
                 // Titre
