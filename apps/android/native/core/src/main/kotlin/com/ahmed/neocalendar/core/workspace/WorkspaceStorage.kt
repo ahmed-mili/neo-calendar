@@ -8,7 +8,8 @@ interface WorkspaceStorage {
     /** Texte UTF-8 d'un fichier, ou null s'il n'existe pas. */
     fun readText(relativePath: String): String?
 
-    data class Entry(val name: String, val isDirectory: Boolean)
+    /** `lastModified` en ms depuis 1970 quand le stockage le sait (0 sinon). */
+    data class Entry(val name: String, val isDirectory: Boolean, val lastModified: Long = 0L)
 }
 
 /**
@@ -31,4 +32,16 @@ interface WritableWorkspaceStorage : WorkspaceStorage {
 
     /** Supprime un fichier ou un dossier. */
     fun delete(relativePath: String)
+}
+
+/**
+ * Un stockage qui sait aussi lire et écrire des octets : pièces jointes, fonds d'écran, copie de bascule.
+ * Les deux stockages réels (SAF et vrai chemin) l'implémentent.
+ */
+interface BinaryWorkspaceStorage : WritableWorkspaceStorage {
+    /** Le contenu d'un fichier, ou null s'il n'existe pas. L'appelant ferme le flux. */
+    fun openInput(relativePath: String): java.io.InputStream?
+
+    /** Remplace le contenu d'un fichier déjà créé par celui du flux. */
+    fun writeStream(relativePath: String, input: java.io.InputStream)
 }

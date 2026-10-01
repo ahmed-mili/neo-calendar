@@ -61,7 +61,8 @@ fun ensureIcsFolder(storage: WritableWorkspaceStorage, calendarPath: String, nam
  * redonnerait à une nouvelle séance le nom d'une note déjà là, qui serait écrasée.
  */
 private fun readRecords(storage: WorkspaceStorage): List<StoredEvent> {
-    val workspace = loadWorkspace(storage)
+    // Les copies de conflit de nos propres notes doivent rester visibles : `deleteDuplicateIcsNotes` les supprime.
+    val workspace = loadWorkspace(storage, keepConflictCopies = true)
     val known = workspace.calendars.map { calendarIdFromPath(it.relativePath) }.toSet()
     return workspace.eventFiles.mapNotNull {
         parseStoredEvent(EventFile(it.relativePath, it.calendarPath, it.fileName, it.contents), known)

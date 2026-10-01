@@ -24,15 +24,20 @@ private const val PREFERENCES_FILE_NAME = ".neo-calendar.json"
 private const val LEGACY_PREFERENCES_FILE_NAME = ".neo-calendar-desktop.json"
 private const val METADATA_DIR = ".neo-calendar"
 
-/** Port de `loadWorkspace` (MainActivity.java), sans SAF. */
-fun loadWorkspace(storage: WorkspaceStorage): LoadedWorkspace {
-    val children = storage.list("")
+/**
+ * Port de `loadWorkspace` (MainActivity.java), sans SAF. Les artefacts de synchro (`.stfolder`, `.stversions/`, `.stignore`,
+ * temporaires, copies de conflit) ne sont jamais des notes : ignorés, dans les deux modes de stockage. Seul le nettoyage des
+ * liens ICS (`keepConflictCopies = true`) garde les copies de conflit, pour supprimer celles de ses propres notes.
+ */
+fun loadWorkspace(storage: WorkspaceStorage, keepConflictCopies: Boolean = false): LoadedWorkspace {
+    val ignored = { name: String -> isSyncArtifact(name) && !(keepConflictCopies && isConflictCopy(name)) }
+    val children = storage.list("").filterNot { ignored(it.name) }
     val calendars = ArrayList<WorkspaceCalendar>()
     val events = ArrayList<WorkspaceEventFile>()
     for (d in children) {
         if (!d.isDirectory || d.name.startsWith(".")) continue
         calendars += WorkspaceCalendar(d.name, d.name)
-        collectEvents(storage, d.name, d.name, events)
+        collectEvents(storage, d.name, d.name, events, ignored)
     }
     if (calendars.isEmpty()) {
         calendars += WorkspaceCalendar("", "Default")
@@ -56,12 +61,13 @@ private fun collectEvents(
     calendarPath: String,
     directory: String,
     out: MutableList<WorkspaceEventFile>,
+    ignored: (String) -> Boolean,
 ) {
-    for (f in storage.list(directory)) {
+    for (f in storage.list(directory).filterNot { ignored(it.name) }) {
         val path = "$directory/${f.name}"
         if (f.isDirectory) {
             if (f.name.startsWith(".")) continue
-            collectEvents(storage, calendarPath, path, out)
+            collectEvents(storage, calendarPath, path, out, ignored)
             continue
         }
         if (!isNote(f.name)) continue
