@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.sp
@@ -53,14 +54,23 @@ fun FieldRow(
     iconTint: Color = Neo.TextSecondary,
     /** Les glyphes de l'ancienne tiennent en haut de leur rangée : décalage vertical du glyphe par rapport au centre. */
     iconOffset: androidx.compose.ui.unit.Dp = 0.dp,
+    /** Le champ qui s'ouvre s'allume en rectangle arrondi de 6 dp, en retrait de `inset` de chaque côté (le bouton de l'ancienne a sa marge) ; le glyphe ne bouge pas. */
+    inset: androidx.compose.ui.unit.Dp = 0.dp,
+    /** Hauteur du rectangle allumé quand le champ est ouvert, s'il est plus bas que la rangée (les rappels de l'ancienne : 37 dp). */
+    highlightHeight: androidx.compose.ui.unit.Dp? = null,
     iconSize: androidx.compose.ui.unit.Dp = 16.dp,
     leading: (@Composable () -> Unit)? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val base = modifier.fillMaxWidth().heightIn(min = minHeight.dp)
+    val base = modifier.fillMaxWidth().padding(horizontal = inset).heightIn(min = minHeight.dp)
     val clickable = if (onClick != null) base.clickable(onClick = onClick) else base
     Row(
-        (if (open) clickable.background(Neo.Hover) else clickable).padding(start = ICON_COLUMN_START, end = 16.dp, top = 2.dp, bottom = 2.dp),
+        (if (open) clickable.drawBehind {
+            val h = highlightHeight?.toPx()?.coerceAtMost(size.height) ?: size.height
+            val r = if (inset > 0.dp) 6.dp.toPx() else 0f
+            drawRoundRect(Neo.Hover, androidx.compose.ui.geometry.Offset(0f, (size.height - h) / 2f), androidx.compose.ui.geometry.Size(size.width, h), androidx.compose.ui.geometry.CornerRadius(r))
+        } else clickable)
+            .padding(start = ICON_COLUMN_START - inset, end = if (inset > 0.dp) 8.dp else 16.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(ICON_SIZE, 20.dp).offset(y = iconOffset), contentAlignment = Alignment.Center) {

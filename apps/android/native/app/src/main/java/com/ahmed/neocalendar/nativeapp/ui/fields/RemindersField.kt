@@ -74,7 +74,7 @@ fun RemindersField(
     Box(anchor.track) {
         Column(Modifier.alpha(if (editable) 1f else 0.7f)) {
             if (chosen.isEmpty()) {
-                FieldRow(NeoIcons.Bell, onClick = if (editable) ({ menuOpen = true }) else null, open = menuOpen) {
+                FieldRow(NeoIcons.Bell, onClick = if (editable) ({ menuOpen = true }) else null, open = menuOpen, inset = 18.5.dp, highlightHeight = 37.dp) {
                     Text("Rappels", color = Neo.TextFaint, fontSize = 16.sp, modifier = Modifier.weight(1f))
                     if (editable) Icon(NeoIcons.ChevronDown, null, tint = Neo.TextFaint, modifier = Modifier.size(14.dp))
                 }
@@ -90,16 +90,16 @@ fun RemindersField(
                         }
                     }
                 }
-                if (editable) FieldRow(null, onClick = { menuOpen = true }, open = menuOpen, minHeight = 40) {
+                if (editable) FieldRow(null, onClick = { menuOpen = true }, open = menuOpen, minHeight = 40, inset = 18.5.dp) {
                     Text("Ajouter un rappel", color = Neo.TextFaint, fontSize = 16.sp)
                 }
             }
         }
-        Popover(menuOpen, { menuOpen = false }, PopoverSurface(Neo.Surface.copy(alpha = 0.95f), 12.dp, 4.dp, true), width = anchor.width) {
+        Popover(menuOpen, { menuOpen = false }, PopoverSurface(Neo.Surface, 12.dp, 5.dp, true, gap = 1.dp), width = anchor.width - 37.dp, anchorInset = 18.5.dp) {
             for (minutes in remaining) {
                 val parts = reminderLabelParts(minutes, allDay)
                 PopoverEntry(
-                    "${parts.amount} ${parts.suffix}", 40.dp,
+                    "${parts.amount} ${parts.suffix}", 40.dp, horizontalPadding = 12.dp,
                     rich = buildAnnotatedString {
                         withStyle(SpanStyle(color = Neo.Text, fontWeight = FontWeight.SemiBold)) { append(parts.amount) }
                         if (parts.suffix.isNotEmpty()) withStyle(SpanStyle(color = Neo.TextFaint)) { append(" ${parts.suffix}") }

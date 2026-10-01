@@ -227,6 +227,8 @@ fun SheetFrame(
             }
         }
 
+        // Sous la feuille, derrière le clavier : la fenêtre de l'ancienne se redimensionnait, son fond uni restait visible là où le clavier est translucide.
+        if (imeBottom.value > 0f) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(imeBottom).background(Neo.Surface))
         Column(
             Modifier.align(Alignment.BottomCenter)
                 .padding(bottom = imeBottom)

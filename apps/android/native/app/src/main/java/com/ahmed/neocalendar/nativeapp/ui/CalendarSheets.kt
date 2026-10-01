@@ -33,6 +33,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Size
 import kotlinx.coroutines.launch
@@ -207,7 +209,13 @@ private fun InputRow(
     uri: Boolean = false,
     rule: Boolean = true,
     inset: Boolean = true,
+    /** Le champ prend le focus dès que la feuille s'ouvre (`inputRef.current?.focus()` de l'ancienne). */
+    focusOnShow: Boolean = false,
+    /** « Suivant » quand un autre champ suit (le clavier de l'ancienne montre la touche à flèche et barre). */
+    imeAction: androidx.compose.ui.text.input.ImeAction = androidx.compose.ui.text.input.ImeAction.Done,
 ) {
+    val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    if (focusOnShow) LaunchedEffect(Unit) { focusRequester.requestFocus() }
     Row(
         modifier
             .fillMaxWidth()
@@ -227,11 +235,11 @@ private fun InputRow(
                 textStyle = TextStyle(color = Neo.Text, fontSize = 16.sp, fontFamily = NeoFonts.inter),
                 cursorBrush = SolidColor(Neo.Accent),
                 keyboardOptions = if (uri) {
-                    KeyboardOptions(capitalization = KeyboardCapitalization.None, keyboardType = KeyboardType.Uri)
+                    KeyboardOptions(capitalization = KeyboardCapitalization.None, keyboardType = KeyboardType.Uri, imeAction = imeAction)
                 } else {
-                    KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+                    KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = imeAction)
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().then(if (focusOnShow) Modifier.focusRequester(focusRequester) else Modifier),
             )
         }
     }
@@ -306,7 +314,7 @@ fun AddCalendarSheet(
                 color = Neo.TextSecondary,
                 size = 11.sp,
                 weight = FontWeight.SemiBold,
-                modifier = Modifier.background(Neo.Mantle, RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
+                modifier = Modifier.background(Neo.ControlFill, RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
             )
             Spacer(Modifier.weight(1f))
             CloseButton(onDismiss)
@@ -329,6 +337,8 @@ fun AddCalendarSheet(
             name,
             if (holidays) "Nom du calendrier (facultatif)" else "Nom du calendrier",
             { name = it; error = null },
+            focusOnShow = true,
+            imeAction = if (holidays) androidx.compose.ui.text.input.ImeAction.Done else androidx.compose.ui.text.input.ImeAction.Next,
         )
         if (!holidays) {
             // Le premier lien ICS, là où l'on crée le calendrier qui va le recevoir ; la note dit où retrouver les liens ensuite.

@@ -623,5 +623,5 @@ private fun HeaderButton(icon: androidx.compose.ui.graphics.vector.ImageVector, 
     Box(
         Modifier.size(48.dp).pressFill(RoundedCornerShape(12.dp), Neo.Hover, on = on, onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, description, tint = Neo.TextSecondary, modifier = Modifier.size(glyph)) }
+    ) { Icon(icon, description, tint = if (on) Neo.Text else Neo.TextSecondary, modifier = Modifier.size(glyph)) }
 }

@@ -43,10 +43,10 @@ import com.ahmed.neocalendar.nativeapp.ui.pressFill
 import kotlin.math.max
 
 /** La surface d'un popover de la fiche : le fond, le bord, le rayon et l'ombre que la feuille de style donne à chacun. */
-class PopoverSurface(val fill: Color, val radius: Dp, val padding: Dp, val shadowed: Boolean)
+class PopoverSurface(val fill: Color, val radius: Dp, val padding: Dp, val shadowed: Boolean, val gap: Dp = 0.dp)
 
-/** `.nc-cal-select-menu` : verre `rgba(30,30,46,.9)`, rayon 12 (le flou de 12 px n'a pas d'équivalent sur une fenêtre). */
-val GlassSurface get() = PopoverSurface(Neo.Surface.copy(alpha = 0.94f), 12.dp, 4.dp, true)
+/** `.nc-cal-select-menu` : verre `rgba(30,30,46,.9)` flouté de 12 px sur la fiche, qui est elle-même opaque : la surface pleine donne le même aplat (mesuré 28,28,44 des deux côtés). Rayon 12, gap 1. */
+val GlassSurface get() = PopoverSurface(Neo.Surface, 12.dp, 5.dp, true, gap = 1.dp)
 
 /** `.nc-panel-kind-menu` : surface pleine, bord, rayon 7, padding 4. */
 val SolidSurface get() = PopoverSurface(Neo.Surface, 7.dp, 4.dp, true)
@@ -63,37 +63,50 @@ fun Popover(
     width: Dp? = null,
     alignEnd: Boolean = false,
     focusable: Boolean = true,
+    /** Le bas de l'ancre de l'ancienne est plus bas que celui du champ qui ouvre (`.nc-panel-date-options` entoure Répéter). */
+    anchorOffset: Dp = 0.dp,
+    /** Le champ qui ouvre est en retrait de chaque côté : le menu prend sa largeur et son bord gauche (`width` en est déjà réduit). */
+    anchorInset: Dp = 0.dp,
+    /** Centré sur la fenêtre plutôt qu'aligné sur l'ancre (le sélecteur de date se centre sur la fiche : `EventPanelRows.tsx`). */
+    centerX: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (!expanded) return
     val density = LocalDensity.current
-    val provider = remember(density, alignEnd) {
-        PopoverPosition(with(density) { 8.dp.roundToPx() }, with(density) { 4.dp.roundToPx() }, with(density) { 16.dp.roundToPx() }, alignEnd)
+    // La fenêtre ne dépasse pas l'écran : sur une carte large, la marge d'ombre latérale se réduit pour que la carte garde sa largeur.
+    val screenWidth = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp
+    val side = if (width != null) minOf(16.dp, ((screenWidth - width) / 2).coerceAtLeast(0.dp)) else 16.dp
+    val provider = remember(density, alignEnd, side, anchorOffset, anchorInset, centerX) {
+        PopoverPosition(
+            with(density) { 8.dp.roundToPx() }, with(density) { (4.dp + anchorOffset).roundToPx() },
+            with(density) { side.roundToPx() }, with(density) { 16.dp.roundToPx() }, alignEnd, with(density) { anchorInset.roundToPx() }, centerX,
+        )
     }
     Popup(popupPositionProvider = provider, onDismissRequest = onDismiss, properties = PopupProperties(focusable = focusable, clippingEnabled = false)) {
         val shape = RoundedCornerShape(surface.radius)
-        Box(Modifier.padding(16.dp)) {
+        Box(Modifier.padding(horizontal = side, vertical = 16.dp)) {
             Column(
                 (if (width != null) Modifier.width(width) else Modifier)
                     .let { if (surface.shadowed) it.shadow(12.dp, shape, ambientColor = Color.Black.copy(alpha = 0.2f), spotColor = Color.Black.copy(alpha = 0.35f)) else it }
                     .background(surface.fill, shape)
                     .border(1.dp, Neo.Border, shape)
                     .padding(surface.padding),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(surface.gap),
             ) { content() }
         }
     }
 }
 
-private class PopoverPosition(private val margin: Int, private val gap: Int, private val shadow: Int, private val alignEnd: Boolean) : PopupPositionProvider {
+private class PopoverPosition(private val margin: Int, private val gap: Int, private val shadow: Int, private val shadowY: Int, private val alignEnd: Boolean, private val insetX: Int = 0, private val centered: Boolean = false) : PopupPositionProvider {
     override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize, layoutDirection: LayoutDirection, popupContentSize: IntSize): IntOffset {
         val cardW = popupContentSize.width - 2 * shadow
-        val cardH = popupContentSize.height - 2 * shadow
-        val rawLeft = if (alignEnd) anchorBounds.right - cardW else anchorBounds.left
+        val cardH = popupContentSize.height - 2 * shadowY
+        val rawLeft = if (centered) (windowSize.width - cardW) / 2 else if (alignEnd) anchorBounds.right - cardW else anchorBounds.left + insetX
         val left = rawLeft.coerceIn(margin, max(margin, windowSize.width - cardW - margin))
         var top = anchorBounds.bottom + gap
         if (top + cardH > windowSize.height - margin) top = anchorBounds.top - gap - cardH
         top = top.coerceIn(margin, max(margin, windowSize.height - cardH - margin))
-        return IntOffset(left - shadow, top - shadow)
+        return IntOffset(left - shadow, top - shadowY)
     }
 }
 
@@ -124,15 +137,16 @@ fun PopoverEntry(
         Modifier.fillMaxWidth().heightIn(min = height)
             .background(if (active && !checkAtStart) Neo.Hover.copy(alpha = 0.78f) else Color.Transparent, shape)
             .pressFill(shape, Neo.Hover, onClick = onClick)
-            .padding(horizontal = horizontalPadding),
+            .padding(horizontal = if (checkAtStart) 8.dp else horizontalPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (checkAtStart) {
-            Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
+            // Coche de 14 dp au bord gauche de la rangée (8 dp) ; le texte (ou la pastille) reprend à la même place qu'avant.
+            Box(Modifier.size(if (swatch != null) 21.5.dp else 24.dp, 22.dp), contentAlignment = Alignment.CenterStart) {
                 if (active) Icon(NeoIcons.Check, null, tint = Neo.Text, modifier = Modifier.size(14.dp))
             }
         }
-        if (swatch != null) Box(Modifier.padding(end = 10.dp).size(10.dp).background(swatch, RoundedCornerShape(3.dp)))
+        if (swatch != null) Box(Modifier.padding(end = if (checkAtStart) 8.5.dp else 10.dp).size(10.dp).background(swatch, RoundedCornerShape(3.dp)))
         if (icon != null) Icon(icon, null, tint = iconTint, modifier = Modifier.padding(end = 10.dp).size(15.dp))
         if (rich != null) Text(rich, fontSize = textSize.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = true))
         else Text(label, color = color, fontSize = textSize.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = if (hintAfterLabel) Modifier else Modifier.weight(1f, fill = true))
@@ -148,7 +162,7 @@ fun PopoverHeading(text: String) {
     Text(
         text,
         color = Neo.TextFaint, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.33.sp,
-        modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 4.dp),
+        modifier = Modifier.padding(start = 30.dp, end = 8.dp, top = 6.3.dp, bottom = 6.5.dp),
     )
 }
 

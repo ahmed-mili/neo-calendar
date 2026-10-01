@@ -47,13 +47,13 @@ fun CalendarField(
     val pickable = editable && calendars.size > 1
     val anchor = rememberAnchorWidth()
     Box(anchor.track) {
-        FieldRow(null, onClick = if (pickable) ({ open = true }) else null, open = open, minHeight = 50, leading = { Box(Modifier.size(10.dp).background(color, RoundedCornerShape(3.dp))) }) {
+        FieldRow(null, onClick = if (pickable) ({ open = true }) else null, open = open, minHeight = 50, inset = 18.5.dp, leading = { Box(Modifier.size(10.dp).background(color, RoundedCornerShape(3.dp))) }) {
             Text(name, color = Neo.Text, fontSize = 16.sp, maxLines = 1)
             // Un événement en lecture seule n'a pas de légende : « Note » promettrait une note qu'il n'a pas (`EventPanelRows.tsx`).
             if (editable) Text("Note", color = Neo.TextSecondary, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp).weight(1f))
             if (pickable) Icon(NeoIcons.ChevronDown, null, tint = Neo.TextFaint, modifier = Modifier.size(14.dp))
         }
-        Popover(open, { open = false }, GlassSurface, width = anchor.width) {
+        Popover(open, { open = false }, GlassSurface, width = anchor.width - 37.dp, anchorInset = 18.5.dp) {
             PopoverHeading("Calendrier")
             calendars.forEachIndexed { index, calendar ->
                 PopoverEntry(calendar.name, 48.dp, active = index == selectedIndex, checkAtStart = true, swatch = parseCalendarColor(calendar.color), hint = "Note", hintAfterLabel = true) {

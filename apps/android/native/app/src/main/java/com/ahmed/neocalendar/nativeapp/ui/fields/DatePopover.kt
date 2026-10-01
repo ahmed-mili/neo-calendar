@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,8 +69,8 @@ fun DatePopover(
     val chosen = runCatching { LocalDate.parse(selected) }.getOrNull()
     val today = LocalDate.now()
     var month by remember(selected) { mutableStateOf(YearMonth.from(chosen ?: today)) }
-    Popover(expanded = true, onDismiss = onDismiss, surface = PopoverSurface(Neo.Surface.copy(alpha = 0.97f), 12.dp, 10.dp, true), width = 252.dp) {
-        Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Popover(expanded = true, onDismiss = onDismiss, surface = PopoverSurface(Neo.Surface, 12.dp, 10.dp, true), width = 252.dp, anchorOffset = 2.dp, centerX = true) {
+        Row(Modifier.fillMaxWidth().padding(top = 1.5.dp, bottom = 7.5.dp), verticalAlignment = Alignment.CenterVertically) {
             MonthArrow(NeoIcons.ChevronLeft, "Mois précédent") { month = month.minusMonths(1) }
             Text(
                 "${(if (AppLanguage.isEnglish) MONTHS_SHORT_EN else MONTHS_SHORT)[month.monthValue - 1]} ${month.year}",
@@ -87,6 +88,7 @@ fun DatePopover(
             }
         }
         val days = monthGridDays(month, firstDay)
+        Spacer(Modifier.height(3.5.dp))
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             for (week in days.chunked(7)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {

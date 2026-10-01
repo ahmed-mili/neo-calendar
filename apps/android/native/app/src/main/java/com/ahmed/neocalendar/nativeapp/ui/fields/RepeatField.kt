@@ -105,7 +105,7 @@ fun RepeatField(
                     if (editable) Icon(NeoIcons.ChevronDown, null, tint = Neo.TextFaint, modifier = Modifier.size(14.dp))
                 }
             }
-            Popover(menuOpen, { menuOpen = false }, GlassSurface, width = anchor.width) {
+            Popover(menuOpen, { menuOpen = false }, GlassSurface, width = anchor.width - 3.dp, anchorOffset = 9.5.dp) {
                 PopoverHeading("Répéter")
                 for ((key, label) in PRESETS) {
                     val selected = if (key == null) !values.isRecurring else values.isRecurring && key == preset

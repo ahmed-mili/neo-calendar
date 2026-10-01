@@ -838,7 +838,10 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
             timeFormat24h = flag("timeFormat24h", true),
             // Un calendrier de jours fériés se désigne par sa clé `auto::<id>`, qui est aussi son identifiant ; un dossier, par `local::<chemin>`.
             hiddenCalendarIds = hiddenPaths.map { if (it.startsWith("auto::")) it else calendarIdFromPath(it) }.toSet(),
-            defaultCalendarPath = (preferences["defaultCalendarPath"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
+            // Comme `CalendarApp.tsx` : le défaut choisi s'il est modifiable, sinon le premier calendrier modifiable (« Par défaut » est toujours quelque part).
+            defaultCalendarPath = (preferences["defaultCalendarPath"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+                ?.takeIf { chosen -> calendars.any { it.editable && it.relativePath == chosen } }
+                ?: calendars.firstOrNull { it.editable }?.relativePath,
             defaultEventsAsTasks = flag("defaultEventsAsTasks", false),
             mapsApp = (preferences["mapsApp"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: "ask",
             mapsTravelMode = (preferences["mapsTravelMode"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: "auto",

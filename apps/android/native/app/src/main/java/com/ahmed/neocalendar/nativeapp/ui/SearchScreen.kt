@@ -112,8 +112,8 @@ fun SearchScreen(
                         singleLine = true,
                         textStyle = TextStyle(color = Neo.Text, fontSize = 17.sp),
                         cursorBrush = SolidColor(Neo.Accent),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                        keyboardActions = KeyboardActions(onGo = { focusManager.clearFocus() }),
                         modifier = Modifier.fillMaxWidth().focusRequester(focus),
                     )
                 }

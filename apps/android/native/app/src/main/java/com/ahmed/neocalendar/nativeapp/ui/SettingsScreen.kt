@@ -6,6 +6,11 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,6 +35,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -171,19 +177,42 @@ fun SettingsScreen(version: String, data: WorkspaceData, hiddenIds: Set<String>,
 
     Column(Modifier.fillMaxSize().background(Neo.Mantle)) {
         SettingsHeader(
-            when (page) { "calendars" -> "Calendriers"; "folder" -> "Dossier de données"; "appearance" -> "Apparence"; "timezones" -> "Fuseaux horaires"; else -> "Paramètres" },
+            when (page) { "calendars" -> "Calendriers"; "folder" -> "Dossier de données"; "appearance" -> "Apparence"; "timezones" -> "Fuseaux horaires"; "vaults" -> "Coffres Obsidian"; else -> "Paramètres" },
             onBack = { if (page.isNotEmpty()) page = "" else onBack() },
         )
-        Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 26.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
-        ) {
-            when (page) {
-                "calendars" -> CalendarsPage(data, hiddenIds, actions, { choice = it }, { confirm = "applyIcs" })
-                "timezones" -> TimezonesPage(data, actions)
-                "folder" -> FolderPage(actions)
-                "appearance" -> AppearancePage { choice = "theme" }
-                else -> RootPage(data, actions, version, misfiled, converted, { page = it }, { choice = it }, { converted = null; confirm = "convert" })
+        // La page racine garde son défilement ; une sous-page s'ouvre toujours en haut (chaque `.nc-settings__page` a son propre défilement).
+        val rootScroll = rememberScrollState()
+        androidx.compose.animation.AnimatedContent(
+            targetState = page,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            transitionSpec = {
+                if (targetState.isNotEmpty()) {
+                    // `nc-android-settings-page-in` : 220 ms, la page arrive de toute la largeur en s'opacifiant.
+                    (slideInHorizontally(tween(220, easing = SETTINGS_PAGE_IN)) { it } + fadeIn(tween(220, easing = SETTINGS_PAGE_IN)))
+                        .togetherWith(androidx.compose.animation.ExitTransition.None)
+                        .apply { targetContentZIndex = 1f }
+                } else {
+                    // Le retour joue la même animation à l'envers : la sous-page repart vers la droite, la racine est dessous.
+                    androidx.compose.animation.EnterTransition.None
+                        .togetherWith(slideOutHorizontally(tween(220, easing = SETTINGS_PAGE_OUT)) { it } + fadeOut(tween(220, easing = SETTINGS_PAGE_OUT)))
+                        .apply { targetContentZIndex = -1f }
+                }
+            },
+            label = "settings-page",
+        ) { shown ->
+            val scroll = if (shown.isEmpty()) rootScroll else rememberScrollState()
+            Column(
+                Modifier.fillMaxSize().background(Neo.Mantle).verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 26.dp),
+                verticalArrangement = Arrangement.spacedBy(22.dp),
+            ) {
+                when (shown) {
+                    "calendars" -> CalendarsPage(data, hiddenIds, actions, { choice = it }, { confirm = "applyIcs" })
+                    "timezones" -> TimezonesPage(data, actions)
+                    "folder" -> FolderPage(actions)
+                    "vaults" -> VaultsPage()
+                    "appearance" -> AppearancePage { choice = "theme" }
+                    else -> RootPage(data, actions, version, misfiled, converted, { page = it }, { choice = it }, { converted = null; confirm = "convert" })
+                }
             }
         }
     }
@@ -231,6 +260,10 @@ fun SettingsScreen(version: String, data: WorkspaceData, hiddenIds: Set<String>,
         }
     }
 }
+
+/** `cubic-bezier(.2,.85,.25,1)` à l'arrivée d'une page, `cubic-bezier(.3,0,.6,1)` au retour (`App.css`, `nc-settings-page-in`). */
+private val SETTINGS_PAGE_IN = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.85f, 0.25f, 1f)
+private val SETTINGS_PAGE_OUT = androidx.compose.animation.core.CubicBezierEasing(0.3f, 0f, 0.6f, 1f)
 
 private fun icsFrequencyLabel(minutes: Int) = if (minutes < 60) "$minutes min" else "${minutes / 60} h"
 
@@ -287,8 +320,8 @@ private fun RootPage(
     }
     Group("Données") {
         row(NeoIcons.FolderOpen, "Dossier de données", actions.folderName) { openPage("folder") }
-        // Coffres Obsidian : sans effet sur téléphone, comme l'ancienne.
-        row(NeoIcons.Library, "Coffres Obsidian", "Aucun dossier", onClick = null)
+        // Coffres Obsidian : la page de l'ancienne s'ouvre, mais ajouter un dossier est sans effet sur téléphone.
+        row(NeoIcons.Library, "Coffres Obsidian", "Aucun dossier") { openPage("vaults") }
         row(NeoIcons.RefreshCw, "Synchronisation", null) { openChoice("sync") }
     }
     // Hors de l'ancienne, gardé tant que les deux interfaces cohabitent.
@@ -297,6 +330,13 @@ private fun RootPage(
         row(NeoIcons.Calendar, "Ancienne interface (WebView)", null) { context.startActivity(Intent(context, MainActivity::class.java)) }
     }
     SText(version, Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp), color = Neo.TextFaint, size = 12f, align = TextAlign.Center)
+}
+
+@Composable
+private fun VaultsPage() {
+    Group(null, note = "Ajoutez le dossier qui contient vos coffres Obsidian. Ceux qui s'y trouvent directement et possèdent un dossier .obsidian sont détectés.") {
+        row(null, "Ajouter un dossier", null, chevron = false, onClick = null)
+    }
 }
 
 private fun List<Option>.label(value: String) = firstOrNull { it.value == value }?.label.orEmpty()
@@ -479,7 +519,7 @@ internal class GroupBuilder {
                 if (iconContent != null) Box(Modifier.width(iconWidth.dp), contentAlignment = Alignment.Center) { iconContent() }
                 else if (icon != null) Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) {
                     Icon(icon, null, tint = Neo.SettingsValue, modifier = Modifier.size(18.dp))
-                }
+                } else if (dot == null) Spacer(Modifier.width(0.dp)) // la colonne d'icône est vide mais garde son espacement (grille de l'ancienne)
                 if (dot != null) {
                     Box(Modifier.size(14.dp).clip(CircleShape).background(dot))
                     Column(Modifier.weight(1f)) {
@@ -488,12 +528,14 @@ internal class GroupBuilder {
                     }
                 } else {
                     SText(label, Modifier.weight(1f), lineHeight = 19.5f)
+                    // La grille de l'ancienne a quatre colonnes (`auto 1fr auto auto`, gap 12) : une colonne vide garde son espacement.
                     if (!value.isNullOrEmpty()) SText(value, Modifier.widthIn(max = 200.dp), color = Neo.SettingsValue, size = valueSize, maxLines = 1, align = TextAlign.End)
+                    else Spacer(Modifier.width(0.dp))
                 }
                 // Le chevron de l'ancienne (`navigates`) : toutes les lignes qui mènent quelque part, y compris celles qui ne mènent encore à rien.
                 if (chevron) {
                     Icon(NeoIcons.ChevronRight, null, tint = Neo.SettingsNote, modifier = Modifier.size(18.dp))
-                }
+                } else if (dot == null) Spacer(Modifier.width(0.dp))
             }
         }
     }
@@ -514,6 +556,7 @@ internal class GroupBuilder {
             ) {
                 Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) { Icon(icon, null, tint = Neo.SettingsValue, modifier = Modifier.size(18.dp)) }
                 SText(label, Modifier.weight(1f), lineHeight = 19.5f)
+                Spacer(Modifier.width(0.dp))
                 SettingsSwitch(checked)
             }
         }
@@ -596,8 +639,8 @@ private fun SyncDialog(folderName: String, onPickFolder: () -> Unit, onDismiss: 
         ) {
             Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) { Icon(NeoIcons.FolderOpen, null, tint = Neo.SettingsValue, modifier = Modifier.size(18.dp)) }
             Column(Modifier.weight(1f)) {
-                SText("Dossier de données", size = 16f, lineHeight = 20.8f)
-                SText(folderName, color = Neo.TextSecondary, size = 16f, maxLines = 1)
+                SText("Dossier de données", size = 16f, lineHeight = 22.4f)
+                SText(folderName, color = Neo.TextSecondary, size = 16f, lineHeight = 22.4f, maxLines = 1)
             }
             Icon(NeoIcons.ChevronRight, null, tint = Neo.SettingsNote, modifier = Modifier.size(18.dp))
         }
@@ -608,8 +651,8 @@ private fun SyncDialog(folderName: String, onPickFolder: () -> Unit, onDismiss: 
         SText("Méthodes possibles", Modifier.padding(start = 16.dp, top = 6.dp, bottom = 4.dp), color = Neo.SettingsValue, size = 13f, weight = 500)
         for ((name, how) in listOf("Syncthing" to "Recommandé", "Stockage en ligne" to "OneDrive, Google Drive, Dropbox", "Transfert manuel" to "Par USB")) {
             Column(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(start = 32.dp, end = 16.dp, top = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.Center) {
-                SText(name, size = 16f, lineHeight = 20.8f)
-                SText(how, color = Neo.TextSecondary, size = 16f, lineHeight = 20.8f)
+                SText(name, size = 16f, lineHeight = 22.4f)
+                SText(how, color = Neo.TextSecondary, size = 16f, lineHeight = 22.4f)
             }
         }
     }

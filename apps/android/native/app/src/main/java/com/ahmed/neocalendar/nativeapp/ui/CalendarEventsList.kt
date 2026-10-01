@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -221,9 +222,14 @@ fun CalendarEventsPanel(
                 )
                 else -> {
                     val bottom = with(LocalDensity.current) { WindowInsets.navigationBars.getBottom(this).toDp() }
+                    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+                    // La barre de défilement de l'ancienne (webkit, non superposée) : 8,8 dp réservés à droite tant que la liste défile,
+                    // un bouton de 4,5 dp `#686C86` dedans (mesuré sur `parite-ancien-08`).
+                    val scrollable = listState.canScrollForward || listState.canScrollBackward
                     LazyColumn(
-                        Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 16.dp + bottom),
+                        Modifier.fillMaxSize().listScrollbar(listState),
+                        state = listState,
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 10.dp, end = 10.dp + if (scrollable) 8.8.dp else 0.dp, top = 10.dp, bottom = 16.dp + bottom),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(shown, key = { it.id }) { event ->
@@ -299,8 +305,8 @@ private fun SearchBar(value: String, onChange: (String) -> Unit) {
                 singleLine = true,
                 textStyle = TextStyle(color = Neo.Text, fontSize = 16.sp),
                 cursorBrush = SolidColor(Neo.Accent),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { }),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                keyboardActions = KeyboardActions(onGo = { }),
                 modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
             )
         }
@@ -383,7 +389,7 @@ private fun EventCard(event: DisplayEvent, accent: Color, now: Instant, zone: Zo
                     )
                 }
             }
-            .padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 8.dp),
+            .padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 9.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         val fade = if (timeframe == Timeframe.PAST) 0.52f else 1f
@@ -676,4 +682,28 @@ private fun PeriodEditor(period: PanelPeriod?, onPeriod: (LocalDate?, LocalDate?
             )
         }
     }
+}
+
+
+/** Le bouton de la barre de défilement d'une liste paresseuse : taille et place estimées sur la hauteur moyenne des lignes déjà mesurées. */
+private fun Modifier.listScrollbar(state: androidx.compose.foundation.lazy.LazyListState): Modifier = drawWithContent {
+    drawContent()
+    val info = state.layoutInfo
+    val visible = info.visibleItemsInfo
+    if (visible.isEmpty() || info.totalItemsCount == 0) return@drawWithContent
+    val viewport = (info.viewportEndOffset - info.viewportStartOffset).toFloat()
+    val average = visible.sumOf { it.size }.toFloat() / visible.size + 8.dp.toPx()
+    val content = average * info.totalItemsCount + info.beforeContentPadding + info.afterContentPadding
+    if (content <= viewport) return@drawWithContent
+    val scrolled = state.firstVisibleItemIndex * average + state.firstVisibleItemScrollOffset
+    val thumb = (viewport * viewport / content).coerceAtLeast(24.dp.toPx())
+    val top = scrolled / (content - viewport) * (viewport - thumb)
+    val track = 8.8.dp.toPx()
+    val width = 4.5.dp.toPx()
+    drawRoundRect(
+        Neo.SettingsNote,
+        topLeft = Offset(size.width - track + (track - width) / 2f, top.coerceIn(0f, viewport - thumb)),
+        size = Size(width, thumb),
+        cornerRadius = CornerRadius(width / 2f),
+    )
 }

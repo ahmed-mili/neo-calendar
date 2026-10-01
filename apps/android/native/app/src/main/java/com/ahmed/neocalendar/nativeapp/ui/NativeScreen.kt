@@ -660,7 +660,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
         AnimatedVisibility(
             visible = overlay is Overlay.Search,
             enter = fadeIn(tween(260, easing = searchEasing)) + slideInVertically(tween(260, easing = searchEasing)) { -searchShift },
-            exit = fadeOut(tween(260, easing = searchEasing)) + slideOutVertically(tween(260, easing = searchEasing)) { -searchShift },
+            exit = fadeOut(tween(220, easing = CubicBezierEasing(0.3f, 0f, 0.7f, 1f))) + slideOutVertically(tween(220, easing = CubicBezierEasing(0.3f, 0f, 0.7f, 1f))) { -searchShift }, // `nc-android-search-out` : 220 ms
         ) {
             Box(
                 Modifier
@@ -684,11 +684,13 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             }
         }
 
-        // Les Réglages : plein écran, glissés de 1/5 depuis la droite.
+        // Les Réglages : plein écran, ils arrivent de toute la largeur en 260 ms (`nc-android-settings-push-in`,
+        // `cubic-bezier(.2,.85,.25,1)`, opacité 0 à 1) et repartent vers la droite en 240 ms (`push-out`, `cubic-bezier(.3,0,.7,1)`).
         AnimatedVisibility(
             visible = overlay is Overlay.Settings,
-            enter = slideInHorizontally(tween(260)) { it / 5 } + fadeIn(tween(260)),
-            exit = slideOutHorizontally(tween(220)) { it / 5 } + fadeOut(tween(220)),
+            enter = slideInHorizontally(tween(260, easing = CubicBezierEasing(0.2f, 0.85f, 0.25f, 1f))) { it } +
+                fadeIn(tween(260, easing = CubicBezierEasing(0.2f, 0.85f, 0.25f, 1f))),
+            exit = slideOutHorizontally(tween(240, easing = CubicBezierEasing(0.3f, 0f, 0.7f, 1f))) { it },
         ) {
             Box(
                 Modifier

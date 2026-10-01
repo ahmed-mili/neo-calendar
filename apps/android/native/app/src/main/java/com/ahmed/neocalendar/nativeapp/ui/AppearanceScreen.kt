@@ -42,6 +42,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.scale
@@ -335,11 +336,17 @@ private fun SliderRow(
     }
 }
 
-/** `input[type=range]` de 22 dp, accent `--nc-accent` : la piste, la part remplie, le bouton. Un appui ou un glissé règle la valeur au pas près. */
+/**
+ * `input[type=range]` de 22 dp, `accent-color: var(--nc-accent)` : le rendu natif de Chrome, mesuré sur l'ancienne (sombre) : piste de
+ * 8 dp sur toute la largeur de la ligne, bord de 1 dp `#858585`, part non remplie `#3b3b3b`, part remplie à l'accent, bouton rond de
+ * 14,5 dp (il voyage entre `rayon` et `largeur - rayon`). Un appui ou un glissé règle la valeur au pas près.
+ */
 @Composable
 internal fun NeoSlider(value: Float, min: Float, max: Float, step: Float, onChange: (Float) -> Unit) {
     val accent = Neo.Accent
-    val track = Neo.Text.copy(alpha = 0.2f)
+    val light = NeoAppearance.isLight
+    val trackFill = if (light) Color(0xFFE4E4E4) else Color(0xFF3B3B3B)
+    val trackEdge = if (light) Color(0xFF767676) else Color(0xFF858585)
     val latest by androidx.compose.runtime.rememberUpdatedState(onChange)
     Canvas(
         Modifier
@@ -348,7 +355,7 @@ internal fun NeoSlider(value: Float, min: Float, max: Float, step: Float, onChan
             .pointerInput(min, max, step) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
-                    val inset = 8.dp.toPx()
+                    val inset = 7.25.dp.toPx()
                     fun at(x: Float) {
                         val fraction = ((x - inset) / (size.width - 2 * inset)).coerceIn(0f, 1f)
                         val raw = min + fraction * (max - min)
@@ -364,13 +371,17 @@ internal fun NeoSlider(value: Float, min: Float, max: Float, step: Float, onChan
                 }
             },
     ) {
-        val inset = 8.dp.toPx()
-        val y = size.height / 2
+        val radius = 7.25.dp.toPx()
+        val trackHeight = 8.dp.toPx()
+        val top = (size.height - trackHeight) / 2
+        val corner = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
         val fraction = if (max > min) ((value - min) / (max - min)).coerceIn(0f, 1f) else 0f
-        val x = inset + fraction * (size.width - 2 * inset)
-        drawLine(track, Offset(inset, y), Offset(size.width - inset, y), 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
-        drawLine(accent, Offset(inset, y), Offset(x, y), 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
-        drawCircle(accent, 8.dp.toPx(), Offset(x, y))
+        val x = radius + fraction * (size.width - 2 * radius)
+        drawRoundRect(trackFill, Offset(0f, top), androidx.compose.ui.geometry.Size(size.width, trackHeight), corner)
+        // La part remplie va du bord gauche au centre du bouton.
+        clipRect(right = x) { drawRoundRect(accent, Offset(0f, top), androidx.compose.ui.geometry.Size(size.width, trackHeight), corner) }
+        drawRoundRect(trackEdge, Offset(0.5.dp.toPx(), top + 0.5.dp.toPx()), androidx.compose.ui.geometry.Size(size.width - 1.dp.toPx(), trackHeight - 1.dp.toPx()), corner, style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
+        drawCircle(accent, radius, Offset(x, size.height / 2))
     }
 }
 
@@ -398,7 +409,7 @@ private fun FieldRow(shape: Shape, icon: androidx.compose.ui.graphics.vector.Ima
         ) {
             BasicTextField(
                 value = value, onValueChange = onChange, singleLine = true,
-                textStyle = TextStyle(color = Neo.Text, fontSize = 14.sp, fontFamily = NeoFonts.inter),
+                textStyle = TextStyle(color = Neo.Text, fontSize = 16.sp, fontFamily = NeoFonts.inter),
                 cursorBrush = SolidColor(Neo.Accent),
                 modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
             )
