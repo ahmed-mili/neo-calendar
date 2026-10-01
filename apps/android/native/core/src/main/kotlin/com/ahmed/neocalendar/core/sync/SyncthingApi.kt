@@ -151,9 +151,9 @@ class SyncthingApi(private val transport: HttpTransport) {
     fun resumeDevice(id: String) { call("POST", "/rest/system/resume?device=${q(id)}") }
 
     /** Arrêt propre. Le moteur peut couper la connexion avant de répondre : ce n'est pas une erreur. */
-    fun shutdown() {
+    fun shutdown(readTimeoutMs: Int = 3_000) {
         try {
-            call("POST", "/rest/system/shutdown")
+            call("POST", "/rest/system/shutdown", readTimeoutMs = readTimeoutMs)
         } catch (e: SyncthingApiException) {
             if (e.code != 0) throw e
         }

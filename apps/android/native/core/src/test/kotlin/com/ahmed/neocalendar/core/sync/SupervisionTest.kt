@@ -69,4 +69,20 @@ class SupervisionTest {
         log.write("apres\n".toByteArray())
         assertEquals("avant\napres\n", log.readAll())
     }
+
+    @Test fun `un moteur qui n'a jamais repondu n'est pas stable meme apres une minute`() {
+        val p = RestartPolicy()
+        repeat(3) { p.onExit(70_000, answered = false) }
+        assertEquals(Decision.RetryIn(16_000, 4), p.onExit(70_000, answered = false))
+        assertEquals(Decision.GiveUp, p.onExit(70_000, answered = false))
+    }
+
+    @Test fun `un journal qui ne peut pas ecrire ne leve jamais`() {
+        val notADir = tmp.newFile("occupe")
+        val log = RotatingLog(notADir, maxBytes = 1000)
+        log.write("perdu\n".toByteArray())
+        log.write("perdu aussi\n".toByteArray())
+        log.close()
+        assertEquals("", log.readAll())
+    }
 }

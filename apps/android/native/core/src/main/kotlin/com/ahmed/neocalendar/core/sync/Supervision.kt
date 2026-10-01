@@ -36,8 +36,12 @@ class RestartPolicy(
 
     private var failures = 0
 
-    fun onExit(ranMs: Long): Decision {
-        if (ranMs >= stableAfterMs) failures = 0
+    /**
+     * `ranMs` : durée de marche mesurée depuis l'instant où le moteur répondait. `answered = false` : il n'a jamais
+     * répondu (vivant mais muet, tué par l'app) : jamais stable, quelle que soit sa durée de vie.
+     */
+    fun onExit(ranMs: Long, answered: Boolean = true): Decision {
+        if (answered && ranMs >= stableAfterMs) failures = 0
         failures++
         if (failures >= maxFailures) return Decision.GiveUp
         // Le décalage est borné : au-delà de 40 doublements le plafond est de toute façon atteint.

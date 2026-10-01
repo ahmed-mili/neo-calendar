@@ -2,6 +2,7 @@ package com.ahmed.neocalendar.core.sync
 
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.io.OutputStream
 
 /**
@@ -22,8 +23,21 @@ class RotatingLog(private val dir: File, private val maxBytes: Long = 1_048_576)
         out = FileOutputStream(current, true)
     }
 
+    /**
+     * Ne lève jamais : un journal qui ne peut pas écrire (disque plein, dossier disparu) perd la ligne, mais celui qui
+     * vide la sortie du processus doit continuer, sinon le moteur se bloque sur son tuyau. La prochaine écriture réessaie.
+     */
     @Synchronized
     fun write(bytes: ByteArray, length: Int = bytes.size) {
+        try {
+            writeUnsafe(bytes, length)
+        } catch (_: IOException) {
+            runCatching { out?.close() }
+            out = null
+        }
+    }
+
+    private fun writeUnsafe(bytes: ByteArray, length: Int) {
         if (out == null) open()
         // Un seul morceau plus gros que la moitié du plafond : on n'en garde que la fin.
         val half = (maxBytes / 2).toInt()
@@ -44,15 +58,15 @@ class RotatingLog(private val dir: File, private val maxBytes: Long = 1_048_576)
 
     @Synchronized
     fun close() {
-        out?.close()
+        runCatching { out?.close() }
         out = null
     }
 
     /** Tout le journal, le plus ancien d'abord (pour l'afficher ou le partager). */
     @Synchronized
     fun readAll(): String {
-        val old = if (previous.exists()) previous.readText(Charsets.UTF_8) else ""
-        val now = if (current.exists()) current.readText(Charsets.UTF_8) else ""
+        val old = if (previous.isFile) previous.readText(Charsets.UTF_8) else ""
+        val now = if (current.isFile) current.readText(Charsets.UTF_8) else ""
         return old + now
     }
 }
