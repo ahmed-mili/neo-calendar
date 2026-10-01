@@ -176,7 +176,7 @@ class SyncController private constructor(context: Context) {
         }
     }
 
-    /** La page Synchronisation est ouverte : le moteur tourne (appairage) même sans appareil. */
+    /** La page Synchronisation est ouverte ET visible : le moteur tourne (appairage) même sans appareil ; app en arrière-plan, la page ne le retient plus. */
     fun setPageOpen(open: Boolean) { pageOpen = open; reconcile() }
 
     /** « Quitter » (mode Comme Syncthing-Fork, sans démarrage automatique) : moteur et service s'arrêtent jusqu'au prochain lancement de l'app. */
@@ -209,7 +209,7 @@ class SyncController private constructor(context: Context) {
         val open = appVisible || SystemClock.elapsedRealtime() < graceUntil
         val background = s.configured && !s.quit && (s.runMode == RunMode.LikeFork || open)
         // Un changement de stockage est en cours : le moteur reste arrêté, quoi que disent les conditions.
-        val wanted = !storageSwitching && integrated && running && (pageOpen || background)
+        val wanted = !storageSwitching && integrated && running && ((pageOpen && appVisible) || background)
         val state = engine.state.value
         if (wanted && state is EngineState.Stopped) engine.start()
         // `engine.isActive` : une marche tout juste lancée a encore l'état Stopped, il ne faut pas la laisser passer.
