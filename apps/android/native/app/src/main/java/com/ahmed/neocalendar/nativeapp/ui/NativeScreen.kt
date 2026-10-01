@@ -700,11 +700,17 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                 SettingsScreen(
                     version = BuildConfig.VERSION_NAME,
                     data = data,
+                    hiddenIds = hidden,
                     actions = SettingsActions(
                         onSetting = viewModel::setPreference,
                         onInitialView = viewModel::setInitialView,
                         onAppReminder = { calendarDialog = CalendarDialog.AppReminder },
                         onCalendarReminder = { calendarDialog = CalendarDialog.Reminder(it) },
+                        onToggleCalendar = { viewModel.toggleCalendar(it.id) },
+                        onSetDefaultCalendar = { viewModel.setDefaultCalendar(it.relativePath) },
+                        onCalendarColor = { calendar, anchor -> calendarDialog = CalendarDialog.Color(calendar, anchor) },
+                        onRenameCalendar = { calendarDialog = CalendarDialog.Rename(it) },
+                        onDeleteCalendar = { calendarDialog = CalendarDialog.Delete(it) },
                         onAddCalendar = { calendarDialog = CalendarDialog.Add },
                         onPickFolder = { pickTree.launch(Unit) },
                         folderName = viewModel.treeName(),

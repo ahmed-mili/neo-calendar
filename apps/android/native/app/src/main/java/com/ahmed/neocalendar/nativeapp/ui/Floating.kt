@@ -62,6 +62,8 @@ fun NeoModal(
     onDismiss: () -> Unit,
     alignment: Alignment = Alignment.Center,
     insets: Boolean = true,
+    /** Faux : pas de voile (le dialogue « Ajouter un lien » de la description n'en a pas), un appui dehors ferme quand même. */
+    veil: Boolean = true,
     content: @Composable BoxScope.() -> Unit,
 ) {
     Dialog(
@@ -73,7 +75,7 @@ fun NeoModal(
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Neo.Veil)
+                .background(if (veil) Neo.Veil else Color.Transparent)
                 .pointerInput(Unit) { detectTapGestures { onDismiss() } }
                 .let { if (insets) it.windowInsetsPadding(WindowInsets.safeDrawing) else it.imePadding() },
             contentAlignment = alignment,

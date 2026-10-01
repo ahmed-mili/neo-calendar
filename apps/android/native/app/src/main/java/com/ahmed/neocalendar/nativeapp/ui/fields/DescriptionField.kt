@@ -23,8 +23,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import com.ahmed.neocalendar.nativeapp.ui.tr
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
@@ -66,9 +72,9 @@ private fun LinkedText(text: String, color: androidx.compose.ui.graphics.Color, 
 }
 
 /**
- * La description : du Markdown. Au repos elle se lit (cases à cocher dessinées
- * comme des cases, sur lesquelles on appuie ; liens sur lesquels on appuie) ; un
- * appui ailleurs l'ouvre en texte, le Markdown intact. Pas de barre de mise en forme.
+ * La description : du Markdown, comme l'ancienne (`DescriptionSection.tsx`). Au repos elle se lit (cases à cocher dessinées
+ * comme des cases, sur lesquelles on appuie ; liens sur lesquels on appuie) ; un appui ailleurs l'ouvre en texte, le Markdown
+ * intact, et la barre de mise en forme se pose au-dessus du clavier (voir `DescriptionToolbar`, posée par la fiche).
  */
 @Composable
 fun DescriptionField(
@@ -76,44 +82,72 @@ fun DescriptionField(
     editable: Boolean,
     onChange: (String) -> Unit,
     onOpenTarget: (String) -> Unit,
+    editor: DescriptionEditor,
 ) {
     var editing by remember { mutableStateOf(false) }
+    var hadFocus by remember(editing) { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
-    LaunchedEffect(editing) { if (editing) focus.requestFocus() }
+    editor.onChange = onChange
+    // Le texte vient aussi d'ailleurs (une case cochée à la lecture, une pièce jointe) : l'éditeur le suit.
+    editor.sync(description)
+    LaunchedEffect(editing) {
+        if (editing) { editor.moveCursorToEnd(); focus.requestFocus() } else { editor.focused = false; editor.expanded = false }
+    }
+
+    // Une boîte qui rend la main (le lien, le choix de fichiers) : le curseur revient dans le champ.
+    LaunchedEffect(editor.holdFocus) { if (!editor.holdFocus && editing) focus.requestFocus() }
 
     Column {
-        FieldRow(NeoIcons.TextAlignStart, minHeight = 52) {
-            Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
+        // La rangée de l'ancienne : 8 dp de marge, 1 de bord (visible seulement au focus), 7 de remplissage ; le glyphe retombe sur la colonne d'icônes.
+        val shape = RoundedCornerShape(12.dp)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp)
+                .heightIn(min = 52.dp)
+                .clip(shape)
+                .background(if (editing && editable) Neo.Hover else Color.Transparent, shape)
+                .border(1.dp, if (editing && editable) Neo.Border else Color.Transparent, shape)
+                .padding(start = 16.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(Modifier.size(ICON_SIZE, 20.dp).padding(top = 0.dp), contentAlignment = Alignment.Center) {
+                Icon(NeoIcons.TextAlignStart, null, tint = Neo.TextSecondary, modifier = Modifier.size(16.dp))
+            }
+            Box(Modifier.width(FIELD_GAP))
+            Column(Modifier.weight(1f)) {
                 if (editing && editable) {
-                    Box(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Neo.Hover)
-                            .border(1.dp, Neo.Accent, RoundedCornerShape(10.dp)).padding(10.dp),
-                    ) {
-                        BasicTextField(
-                            description,
-                            onChange,
-                            textStyle = TextStyle(color = Neo.Text, fontSize = 15.sp),
-                            cursorBrush = SolidColor(Neo.Accent),
-                            modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                    BasicTextField(
+                        editor.value,
+                        editor::typed,
+                        textStyle = TextStyle(color = Neo.Text, fontSize = 15.sp),
+                        cursorBrush = SolidColor(Neo.Accent),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp).focusRequester(focus).onFocusChanged {
+                            // Le premier état (pas encore de focus) n'est pas une sortie.
+                            if (it.isFocused) hadFocus = true
+                            editor.focused = it.isFocused
+                            if (!it.isFocused && hadFocus && !editor.holdFocus) editing = false
+                        },
+                        decorationBox = { inner ->
+                            Box {
+                                if (editor.value.text.isEmpty()) Text(tr("Ajouter une description"), color = Neo.TextFaint, fontSize = 15.sp)
+                                inner()
+                            }
+                        },
+                    )
+                } else if (description.isEmpty()) {
+                    // Verrouillée et vide la ligne n'a rien à proposer : ni invite ni contour.
+                    if (editable) {
+                        Text(
+                            "Ajouter une description",
+                            color = Neo.TextFaint,
+                            fontSize = 15.sp,
+                            modifier = Modifier.fillMaxWidth().clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { editing = true }.padding(vertical = 1.dp),
                         )
                     }
-                    Row(Modifier.padding(top = 6.dp)) {
-                        TextAction("Ajouter une case") {
-                            onChange(if (description.isEmpty() || description.endsWith("\n")) "$description- [ ] " else "$description\n- [ ] ")
-                        }
-                        Box(Modifier.weight(1f))
-                        TextAction("Terminé") { editing = false }
-                    }
-                } else if (description.isEmpty()) {
-                    Text(
-                        "Description",
-                        color = Neo.TextFaint,
-                        fontSize = 15.sp,
-                        modifier = Modifier.fillMaxWidth().let { if (editable) it.clickable { editing = true } else it }.padding(vertical = 8.dp),
-                    )
                 } else {
                     val lines = readChecklist(description)
-                    Column(Modifier.fillMaxWidth().let { if (editable) it.clickable { editing = true } else it }.padding(vertical = 4.dp)) {
+                    Column(Modifier.fillMaxWidth().let { if (editable) it.clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { editing = true } else it }) {
                         lines.forEachIndexed { index, line ->
                             when (line) {
                                 is ChecklistLine.Task -> Row(
@@ -123,7 +157,7 @@ fun DescriptionField(
                                 ) {
                                     Box(
                                         Modifier.size(20.dp).clip(RoundedCornerShape(6.dp))
-                                            .background(if (line.done) Neo.Accent else androidx.compose.ui.graphics.Color.Transparent)
+                                            .background(if (line.done) Neo.Accent else Color.Transparent)
                                             .border(1.5.dp, if (line.done) Neo.Accent else Neo.TextFaint, RoundedCornerShape(6.dp)),
                                         contentAlignment = Alignment.Center,
                                     ) { if (line.done) Icon(NeoIcons.Check, null, tint = Neo.OnAccent, modifier = Modifier.size(14.dp)) }

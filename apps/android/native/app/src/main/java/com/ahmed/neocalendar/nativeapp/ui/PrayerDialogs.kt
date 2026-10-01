@@ -110,7 +110,7 @@ fun PrayerMosqueDialog(
                 for ((id, name, note) in rows) {
                     val selected = id == mosqueId
                     Row(
-                        Modifier.fillMaxWidth().prayerBox(selected).pressFill(RoundedCornerShape(10.dp), Color.Transparent) { onChoose(id); onDismiss() }.padding(horizontal = 12.dp, vertical = 10.dp),
+                        Modifier.fillMaxWidth().prayerBox(selected).pressFill(RoundedCornerShape(10.dp), Color.Transparent) { onChoose(id); onDismiss() }.padding(horizontal = 12.dp, vertical = 10.75.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
@@ -129,7 +129,7 @@ fun PrayerMosqueDialog(
                 Row(
                     Modifier.weight(1f).onGloballyPositioned { bounds = it.boundsInWindow() }.prayerBox(false, pressed = picker != null)
                         .pressFill(RoundedCornerShape(10.dp), Color.Transparent) { picker = bounds }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                          .padding(horizontal = 12.dp, vertical = 10.5.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {

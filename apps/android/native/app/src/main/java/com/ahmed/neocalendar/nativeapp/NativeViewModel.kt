@@ -11,6 +11,9 @@ import com.ahmed.neocalendar.core.ics.IcsLink
 import com.ahmed.neocalendar.core.ics.icsLinksOf
 import com.ahmed.neocalendar.core.preferences.withIcsFeedAdded
 import com.ahmed.neocalendar.core.preferences.withIcsRefreshOverridesCleared
+import com.ahmed.neocalendar.core.description.attachmentFolderName
+import com.ahmed.neocalendar.core.description.attachmentMarkdownPath
+import com.ahmed.neocalendar.core.description.uniqueAttachmentName
 import com.ahmed.neocalendar.core.preferences.withPrayerColor
 import com.ahmed.neocalendar.core.preferences.withPrayerJumua
 import com.ahmed.neocalendar.core.preferences.withPrayerMosque
@@ -787,6 +790,25 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         return runCatching {
             android.provider.DocumentsContract.getTreeDocumentId(Uri.parse(raw)).substringAfterLast(':').substringAfterLast('/')
         }.getOrDefault(raw)
+    }
+
+    /** Un fichier choisi, ce que `copyAttachment` de l'ancienne en fait : copié dans le dossier des pièces jointes à côté de la note. */
+    class CopiedAttachment(val fileName: String, val markdownPath: String)
+
+    suspend fun copyAttachment(eventRelativePath: String, source: Uri): CopiedAttachment = withContext(Dispatchers.IO) {
+        val context = getApplication<Application>()
+        val storage = SafWorkspaceStorage(context, treeUri(write = true))
+        val resolver = context.contentResolver
+        val base = if ('/' in eventRelativePath) eventRelativePath.substringBeforeLast('/') else ""
+        // Le point compte : un dossier sans point serait pris pour un calendrier (voir `attachmentFolderName`).
+        val folder = attachmentFolderName(storage.list(base).map { it.name })
+        val folderPath = if (base.isEmpty()) folder else "$base/$folder"
+        if (storage.list(base).none { it.name == folder }) storage.createDirectory(base, folder)
+        val asked = resolver.query(source, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { if (it.moveToFirst()) it.getString(0) else null }
+        val name = uniqueAttachmentName(storage.list(folderPath).map { it.name }, asked?.takeIf { it.isNotBlank() } ?: "attachment")
+        val created = storage.createFile(folderPath, name, resolver.getType(source) ?: "application/octet-stream")
+        (resolver.openInputStream(source) ?: throw java.io.IOException("Lecture impossible")).use { storage.writeStream(created, it) }
+        CopiedAttachment(name, attachmentMarkdownPath(eventRelativePath, folder, name))
     }
 
     /** Pour ouvrir une pièce jointe : le dossier en lecture, sans rien écrire. */

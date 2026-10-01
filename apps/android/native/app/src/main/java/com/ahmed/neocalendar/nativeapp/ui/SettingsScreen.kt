@@ -8,6 +8,12 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -107,6 +113,12 @@ class SettingsActions(
     val onInitialView: (which: String, value: String) -> Unit,
     val onAppReminder: () -> Unit,
     val onCalendarReminder: (CalendarEntry) -> Unit,
+    /** Les gestes d'une ligne de la page Calendriers : ceux du tiroir (coche, couleur, par défaut, renommer, retirer). */
+    val onToggleCalendar: (CalendarEntry) -> Unit = {},
+    val onSetDefaultCalendar: (CalendarEntry) -> Unit = {},
+    val onCalendarColor: (CalendarEntry, androidx.compose.ui.geometry.Rect) -> Unit = { _, _ -> },
+    val onRenameCalendar: (CalendarEntry) -> Unit = {},
+    val onDeleteCalendar: (CalendarEntry) -> Unit = {},
     val onAddCalendar: () -> Unit,
     val onPickFolder: () -> Unit,
     val folderName: String,
@@ -146,7 +158,7 @@ internal fun SText(
  * Chaque réglage est écrit aussitôt dans le fichier partagé. Seule la ligne des coffres Obsidian reste inerte (sans effet sur téléphone, comme l'ancienne).
  */
 @Composable
-fun SettingsScreen(version: String, data: WorkspaceData, actions: SettingsActions, onBack: () -> Unit) {
+fun SettingsScreen(version: String, data: WorkspaceData, hiddenIds: Set<String>, actions: SettingsActions, onBack: () -> Unit) {
     val context = LocalContext.current
     var page by rememberSaveable { mutableStateOf("") }
     var choice by remember { mutableStateOf<String?>(null) }
@@ -167,7 +179,7 @@ fun SettingsScreen(version: String, data: WorkspaceData, actions: SettingsAction
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             when (page) {
-                "calendars" -> CalendarsPage(data, actions, { choice = it }, { confirm = "applyIcs" })
+                "calendars" -> CalendarsPage(data, hiddenIds, actions, { choice = it }, { confirm = "applyIcs" })
                 "timezones" -> TimezonesPage(data, actions)
                 "folder" -> FolderPage(actions)
                 "appearance" -> AppearancePage { choice = "theme" }
@@ -290,25 +302,70 @@ private fun RootPage(
 private fun List<Option>.label(value: String) = firstOrNull { it.value == value }?.label.orEmpty()
 
 @Composable
-private fun CalendarsPage(data: WorkspaceData, actions: SettingsActions, openChoice: (String) -> Unit, openApply: () -> Unit) {
+private fun CalendarsPage(data: WorkspaceData, hiddenIds: Set<String>, actions: SettingsActions, openChoice: (String) -> Unit, openApply: () -> Unit) {
     Group(null, note = "Chaque sous-dossier direct du dossier de données est un calendrier. Il peut être une note complète, un abonnement ICS, ou détecté automatiquement.") {
         row(NeoIcons.Plus, "Ajouter un calendrier", null, onClick = actions.onAddCalendar)
     }
     if (data.calendars.isNotEmpty()) {
         Group("Calendriers") {
             for (calendar in data.calendars) {
-                val own = data.calendarReminderMinutes[calendar.relativePath]
-                row(
-                    null, calendar.name,
-                    "Rappel : " + if (own == null) "réglage de l'application" else reminderListLabel(own.map { it.toDouble() }),
-                    dot = parseCalendarColor(calendar.color),
-                ) { actions.onCalendarReminder(calendar) }
+                custom { shape ->
+                    CalendarItemRow(shape, calendar, calendar.id in hiddenIds, calendar.relativePath == data.defaultCalendarPath, actions)
+                }
             }
         }
     }
     Group("Liens ICS", note = "Cette action règle la fréquence de tous les liens sur cette valeur et retire leurs remplacements individuels.") {
         row(NeoIcons.RefreshCw, "Fréquence d'actualisation ICS par défaut", icsFrequencyLabel(data.icsDefaultMinutes)) { openChoice("icsDefault") }
         if (data.icsLinks.isNotEmpty()) row(NeoIcons.RefreshCw, "Appliquer à tous les liens", null, chevron = false, onClick = openApply)
+    }
+}
+
+/**
+ * Une ligne de la page Calendriers (`.nc-settings__calendar-item`) : le type (note complète ou automatique), la coche d'affichage,
+ * la couleur, le nom (un appui en fait le calendrier par défaut, un double appui le renomme), « Par défaut » et la corbeille.
+ * Le rappel du calendrier se règle, comme dans l'ancienne, par le menu de sa ligne dans le tiroir.
+ */
+@Composable
+private fun CalendarItemRow(shape: Shape, calendar: CalendarEntry, hidden: Boolean, isDefault: Boolean, actions: SettingsActions) {
+    // Un calendrier de chemin vide est le dossier de notes lui-même : ni renommé ni retiré.
+    val isFolder = calendar.relativePath.isNotEmpty()
+    var swatchBounds by remember { mutableStateOf(androidx.compose.ui.geometry.Rect.Zero) }
+    Row(
+        Modifier.fillMaxWidth().background(Neo.SettingRow, shape).border(1.dp, Neo.Border, shape).padding(horizontal = 16.dp, vertical = 10.8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Icon(if (calendar.editable) NeoIcons.FileText else NeoIcons.Flag, null, tint = Neo.SettingsValue, modifier = Modifier.size(15.dp))
+        // La coche : 28 x 20, pleine à l'accent quand le calendrier est affiché.
+        Box(
+            Modifier.size(28.dp, 20.dp).clip(CircleShape).background(if (hidden) Neo.BorderStrong else Neo.Accent)
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { actions.onToggleCalendar(calendar) },
+            contentAlignment = Alignment.Center,
+        ) { if (!hidden) Icon(NeoIcons.Check, if (hidden) "Afficher ${calendar.name}" else "Masquer ${calendar.name}", tint = Neo.OnAccent, modifier = Modifier.size(14.dp)) }
+        Box(
+            Modifier.size(18.dp).onGloballyPositioned { swatchBounds = it.boundsInWindow() }.clip(RoundedCornerShape(5.dp))
+                .background(parseCalendarColor(calendar.color))
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { actions.onCalendarColor(calendar, swatchBounds) },
+        )
+        SText(
+            calendar.name,
+            Modifier.weight(1f).combinedClickable(
+                indication = null, interactionSource = remember { MutableInteractionSource() },
+                onClick = { if (calendar.editable) actions.onSetDefaultCalendar(calendar) },
+                onDoubleClick = { if (isFolder && calendar.editable) actions.onRenameCalendar(calendar) },
+                // Sur un écran tactile le double appui est malaisé : l'appui long renomme aussi.
+                onLongClick = { if (isFolder && calendar.editable) actions.onRenameCalendar(calendar) },
+            ).padding(vertical = 5.dp),
+            size = 16f, weight = 600, maxLines = 1,
+        )
+        if (isDefault) SText("Par défaut", color = Neo.TextFaint, size = 11f, maxLines = 1)
+        if (isFolder) {
+            Box(
+                Modifier.size(32.dp).border(1.dp, Neo.Border, RoundedCornerShape(8.dp)).pressFill(RoundedCornerShape(8.dp), Neo.Hover) { actions.onDeleteCalendar(calendar) },
+                contentAlignment = Alignment.Center,
+            ) { Icon(NeoIcons.Trash2, "Supprimer ${calendar.name}", tint = Neo.TextSecondary, modifier = Modifier.size(16.dp)) }
+        }
     }
 }
 

@@ -45,6 +45,15 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : Writable
         }
     }
 
+    /** Écrit le contenu d'un flux dans un fichier déjà créé (une pièce jointe : des octets, pas du texte). */
+    fun writeStream(relativePath: String, input: java.io.InputStream) {
+        val uri = findPath(relativePath) ?: throw IOException("Écriture impossible: $relativePath")
+        context.contentResolver.openOutputStream(uri, "wt").use { out ->
+            if (out == null) throw IOException("Écriture impossible")
+            input.copyTo(out)
+        }
+    }
+
     override fun createFile(relativeDir: String, name: String, mimeType: String): String {
         val parent = findPath(relativeDir) ?: throw IOException("Dossier introuvable : $relativeDir")
         DocumentsContract.createDocument(context.contentResolver, parent, mimeType, name)

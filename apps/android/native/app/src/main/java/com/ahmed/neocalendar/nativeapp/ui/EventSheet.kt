@@ -74,7 +74,15 @@ import com.ahmed.neocalendar.nativeapp.NativeViewModel
 import com.ahmed.neocalendar.nativeapp.WRITE_IGNORED
 import com.ahmed.neocalendar.nativeapp.WorkspaceData
 import com.ahmed.neocalendar.nativeapp.ui.fields.CalendarField
+import com.ahmed.neocalendar.nativeapp.ui.fields.AddLinkDialog
+import com.ahmed.neocalendar.nativeapp.ui.fields.DescriptionEditor
 import com.ahmed.neocalendar.nativeapp.ui.fields.DescriptionField
+import com.ahmed.neocalendar.nativeapp.ui.fields.DescriptionToolbar
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.ahmed.neocalendar.core.description.appendMarkdownToDescription
+import com.ahmed.neocalendar.core.description.markdownLinkForAttachment
+import com.ahmed.neocalendar.core.description.readInlineLinks
 import com.ahmed.neocalendar.nativeapp.ui.fields.ICON_COLUMN_START
 import com.ahmed.neocalendar.nativeapp.ui.fields.LinksField
 import com.ahmed.neocalendar.nativeapp.ui.fields.LocationField
@@ -166,9 +174,36 @@ fun EventSheet(
     var overflowMenu by remember { mutableStateOf(false) }
     var dialog by remember(key) { mutableStateOf<SheetDialog?>(null) }
     var held by remember(key) { mutableStateOf<HeldScope?>(null) }
+    // L'éditeur de description (sa barre se pose au-dessus du clavier), la boîte « Ajouter un lien » et le choix de fichiers.
+    val descriptionEditor = remember(key) { DescriptionEditor() }
+    var linkDialog by remember(key) { mutableStateOf<androidx.compose.ui.text.TextRange?>(null) }
+    var attaching by remember(key) { mutableStateOf(false) }
     val flushLock = remember(key) { Mutex() }
     // Faux dès que la fiche quitte l'écran : une écriture qui finit après ne touche plus la fiche suivante.
     val alive = remember(key) { AtomicBoolean(true) }
+    val pickFiles = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        descriptionEditor.holdFocus = false
+        val note = live
+        if (uris.isNotEmpty() && note != null) {
+            attaching = true
+            scope.launch {
+                try {
+                    // `pickEventAttachments` : chaque fichier est copié à côté de la note, ses liens sont ajoutés à la fin de la description.
+                    val links = uris.map { uri ->
+                        val copied = viewModel.copyAttachment(note.relativePath, uri)
+                        markdownLinkForAttachment(copied.fileName, copied.markdownPath)
+                    }
+                    descriptionEditor.replaceAll(appendMarkdownToDescription(values.description, links.joinToString("\n")))
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Notices.fail(e.message ?: e.toString())
+                } finally {
+                    attaching = false
+                }
+            }
+        }
+    }
     val sheetState = rememberSheetState(if (isDraftSheet) SheetStop.Half else SheetStop.Full, isDraftSheet)
 
     val calendarOfNote = stored?.let { s -> latestData.calendars.firstOrNull { it.id == s.calendarId } }
@@ -472,7 +507,7 @@ fun EventSheet(
                         }
                     }
                 }
-                DescriptionField(values.description, editable, { values = values.copy(description = it) }, open)
+                DescriptionField(values.description, editable, { values = values.copy(description = it) }, open, descriptionEditor)
                 LinksField(values.description, open)
 
                 error?.let {
@@ -483,9 +518,26 @@ fun EventSheet(
                     )
                 }
             }
+            // La barre au-dessus du clavier : tant que le curseur est dans la description.
+            if (editable && descriptionEditor.focused) {
+                DescriptionToolbar(
+                    descriptionEditor,
+                    // Une ébauche n'est pas encore une note : il n'y a pas de dossier où ranger le fichier (`!eventId`).
+                    attachDisabled = stored == null || attaching,
+                    onAttach = { descriptionEditor.holdFocus = true; pickFiles.launch(arrayOf("*/*")) },
+                    onLink = { descriptionEditor.holdFocus = true; linkDialog = descriptionEditor.value.selection },
+                )
+            }
         },
     )
 
+    linkDialog?.let { selection ->
+        AddLinkDialog(
+            existing = remember(values.description) { readInlineLinks(values.description).map { it.target } },
+            onInsert = { descriptionEditor.insert(it, selection) },
+            onDismiss = { linkDialog = null; descriptionEditor.holdFocus = false },
+        )
+    }
     held?.let { question ->
         ScopeDialog(
             question.changes, question.isTask,
