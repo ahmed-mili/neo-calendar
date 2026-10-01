@@ -32,10 +32,10 @@ import androidx.compose.ui.unit.sp
 import com.ahmed.neocalendar.nativeapp.ui.Neo
 import com.ahmed.neocalendar.nativeapp.ui.NeoIcons
 
-/** La colonne d'icônes du panneau : une case de 20 dp qui commence à 22 dp du bord (Android). */
-val ICON_COLUMN_START = 22.dp
-val ICON_SIZE = 20.dp
-val FIELD_GAP = 14.dp
+/** La colonne d'icônes du panneau : une case de 22x20 qui commence à 27 dp du bord (10 de marge + 16 de remplissage + 1 de bord), glyphes de 16 dp. */
+val ICON_COLUMN_START = 27.dp
+val ICON_SIZE = 22.dp
+val FIELD_GAP = 6.dp
 
 /**
  * Une ligne du panneau : le glyphe dans sa case, puis le contenu. `onClick` fait
@@ -48,17 +48,19 @@ fun FieldRow(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     open: Boolean = false,
-    minHeight: Int = 48,
+    minHeight: Int = 44,
+    iconTint: Color = Neo.TextSecondary,
+    leading: (@Composable () -> Unit)? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
     val base = modifier.fillMaxWidth().heightIn(min = minHeight.dp)
     val clickable = if (onClick != null) base.clickable(onClick = onClick) else base
     Row(
-        (if (open) clickable.background(Neo.Hover) else clickable).padding(start = ICON_COLUMN_START, end = 16.dp, top = 4.dp, bottom = 4.dp),
+        (if (open) clickable.background(Neo.Hover) else clickable).padding(start = ICON_COLUMN_START, end = 16.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(ICON_SIZE), contentAlignment = Alignment.Center) {
-            if (icon != null) Icon(icon, null, tint = Neo.TextSecondary, modifier = Modifier.size(18.dp))
+        Box(Modifier.size(ICON_SIZE, 20.dp), contentAlignment = Alignment.Center) {
+            if (leading != null) leading() else if (icon != null) Icon(icon, null, tint = iconTint, modifier = Modifier.size(16.dp))
         }
         Box(Modifier.width(FIELD_GAP))
         content()

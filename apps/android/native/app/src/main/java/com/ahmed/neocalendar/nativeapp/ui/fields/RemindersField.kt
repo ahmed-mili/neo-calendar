@@ -23,7 +23,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import com.ahmed.neocalendar.nativeapp.ui.pressFill
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmed.neocalendar.core.reminders.ReminderUnit
@@ -34,16 +40,24 @@ import com.ahmed.neocalendar.core.reminders.splitReminderDelay
 import com.ahmed.neocalendar.nativeapp.ui.Neo
 import com.ahmed.neocalendar.nativeapp.ui.NeoIcons
 
-private fun label(minutes: Double, allDay: Boolean): String {
+@Composable
+private fun ReminderLabel(minutes: Double, allDay: Boolean) {
     val parts = reminderLabelParts(minutes, allDay)
-    return "${parts.amount} ${parts.suffix}".trim()
+    Text(
+        buildAnnotatedString {
+            withStyle(SpanStyle(color = Neo.Text, fontWeight = FontWeight.SemiBold)) { append(parts.amount) }
+            if (parts.suffix.isNotEmpty()) withStyle(SpanStyle(color = Neo.TextFaint)) { append(" ${parts.suffix}") }
+        },
+        fontSize = 16.sp,
+    )
 }
 
 /**
- * Les rappels. Absents (`null`), ceux du réglage s'appliquent ; une liste, même
- * vide, est la décision de cet évènement : la vider est le silence.
+ * Les rappels de l'ancienne : l'icône `bell` et « Rappels » (`#696D86`) tant qu'il n'y en a aucun ; chaque rappel choisi
+ * devient une ligne, avec sa croix ; le menu `nc-reminders-menu` (entrées de 40 dp, nombre en 600, suffixe en `#696D86`)
+ * propose les délais restants, « Personnalisé… » et le retour au réglage de l'application. Absents (`null`), ceux du
+ * réglage s'appliquent ; une liste, même vide, est la décision de cet événement.
  */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun RemindersField(
     reminders: List<Double>?,
@@ -56,52 +70,47 @@ fun RemindersField(
     val chosen = reminders.orEmpty()
     val remaining = reminderChoices(allDay).map { it.toDouble() }.filter { it !in chosen }
 
-    Column {
-        FieldRow(NeoIcons.Bell, minHeight = 52) {
-            Column(Modifier.weight(1f)) {
-                when {
-                    reminders == null -> Text("Par défaut", color = Neo.TextSecondary, fontSize = 15.sp)
-                    chosen.isEmpty() -> Text("Aucun rappel", color = Neo.TextSecondary, fontSize = 15.sp)
-                    else -> FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        for (minutes in chosen) {
-                            Row(
-                                Modifier.defaultMinSize(minHeight = 34.dp).clip(RoundedCornerShape(10.dp))
-                                    .background(Neo.Hover).border(1.dp, Neo.Border, RoundedCornerShape(10.dp))
-                                    .padding(start = 12.dp, end = if (editable) 4.dp else 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(label(minutes, allDay), color = Neo.Text, fontSize = 14.sp)
-                                if (editable) {
-                                    Box(
-                                        Modifier.size(30.dp).clickable { onChange(chosen - minutes) },
-                                        contentAlignment = Alignment.Center,
-                                    ) { Icon(NeoIcons.Close, "Retirer le rappel", tint = Neo.TextSecondary, modifier = Modifier.size(14.dp)) }
-                                }
-                            }
+    val anchor = rememberAnchorWidth()
+    Box(anchor.track) {
+        Column(Modifier.alpha(if (editable) 1f else 0.7f)) {
+            if (chosen.isEmpty()) {
+                FieldRow(NeoIcons.Bell, onClick = if (editable) ({ menuOpen = true }) else null, open = menuOpen) {
+                    Text("Rappels", color = Neo.TextFaint, fontSize = 16.sp)
+                }
+            } else {
+                chosen.forEachIndexed { index, minutes ->
+                    FieldRow(if (index == 0) NeoIcons.Bell else null) {
+                        Box(Modifier.weight(1f)) { ReminderLabel(minutes, allDay) }
+                        if (editable) {
+                            Box(
+                                Modifier.size(36.dp).pressFill(RoundedCornerShape(8.dp), Neo.Hover) { onChange(chosen - minutes) },
+                                contentAlignment = Alignment.Center,
+                            ) { Icon(NeoIcons.Close, "Retirer le rappel", tint = Neo.TextFaint, modifier = Modifier.size(14.dp)) }
                         }
                     }
+                }
+                if (editable) FieldRow(null, onClick = { menuOpen = true }, open = menuOpen, minHeight = 40) {
+                    Text("Ajouter un rappel", color = Neo.TextFaint, fontSize = 16.sp)
                 }
             }
-            if (editable) {
-                Box {
-                    ValuePill("Ajouter", open = menuOpen, chevron = true, onClick = { menuOpen = true })
-                    NeoMenu(menuOpen, { menuOpen = false }) {
-                        for (minutes in remaining) {
-                            NeoMenuItem(label(minutes, allDay)) {
-                                menuOpen = false
-                                onChange((chosen + minutes).sorted())
-                            }
-                        }
-                        if (!allDay) NeoMenuItem("Personnalisé…") {
-                            menuOpen = false
-                            customOpen = true
-                        }
-                        if (reminders != null) NeoMenuItem("Rétablir le réglage de l'application") {
-                            menuOpen = false
-                            onChange(null)
-                        }
-                    }
+        }
+        Popover(menuOpen, { menuOpen = false }, PopoverSurface(Neo.Surface.copy(alpha = 0.95f), 12.dp, 4.dp, true), width = anchor.width) {
+            for (minutes in remaining) {
+                val parts = reminderLabelParts(minutes, allDay)
+                PopoverEntry(
+                    "${parts.amount}${if (parts.suffix.isNotEmpty()) " ${parts.suffix}" else ""}", 40.dp,
+                ) {
+                    menuOpen = false
+                    onChange((chosen + minutes).sorted())
                 }
+            }
+            if (!allDay) PopoverEntry("Personnalisé…", 40.dp) {
+                menuOpen = false
+                customOpen = true
+            }
+            if (reminders != null) PopoverEntry("Rétablir le réglage de l'application", 40.dp, color = Neo.TextSecondary) {
+                menuOpen = false
+                onChange(null)
             }
         }
     }

@@ -142,4 +142,17 @@ object NeoIcons {
     val TriangleAlert: ImageVector by lazy {
         lucide("triangle-alert", "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3", "M12 9v4", "M12 17h.01")
     }
+    val Sun: ImageVector by lazy {
+        lucide(
+            "sun", "M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0", "M12 2v2", "M12 20v2", "m4.93 4.93 1.41 1.41", "m17.66 17.66 1.41 1.41",
+            "M2 12h2", "M20 12h2", "m6.34 17.66-1.41 1.41", "m19.07 4.93-1.41 1.41",
+        )
+    }
+    val ArrowRight: ImageVector by lazy { lucide("arrow-right", "M5 12h14", "m12 5 7 7-7 7") }
+    val CopyPlus: ImageVector by lazy {
+        lucide(
+            "copy-plus", "M15 12v6", "M12 15h6", "M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z",
+            "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2",
+        )
+    }
 }

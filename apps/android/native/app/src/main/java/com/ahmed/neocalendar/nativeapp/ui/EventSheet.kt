@@ -2,15 +2,16 @@ package com.ahmed.neocalendar.nativeapp.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -19,26 +20,30 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewModelScope
 import com.ahmed.neocalendar.core.form.BirthdayReturn
 import com.ahmed.neocalendar.core.form.EntryKind
 import com.ahmed.neocalendar.core.form.EventFormValues
@@ -47,16 +52,18 @@ import com.ahmed.neocalendar.core.form.buildPayload
 import com.ahmed.neocalendar.core.form.entryKindOf
 import com.ahmed.neocalendar.core.form.formValuesOfDraft
 import com.ahmed.neocalendar.core.form.formValuesOfEvent
-import com.ahmed.neocalendar.core.form.withOccurrenceStatus
 import com.ahmed.neocalendar.core.notes.NeoEvent
 import com.ahmed.neocalendar.core.notes.StoredEvent
 import com.ahmed.neocalendar.core.notes.toRecord
 import com.ahmed.neocalendar.core.recurrence.RecurringEditChangeContext
 import com.ahmed.neocalendar.core.recurrence.RecurringEditScope
-import com.ahmed.neocalendar.core.recurrence.needsScopeChoice
+import com.ahmed.neocalendar.core.recurrence.isSeries
 import com.ahmed.neocalendar.core.recurrence.needsOccurrenceChoice
+import com.ahmed.neocalendar.core.recurrence.needsScopeChoice
 import com.ahmed.neocalendar.core.recurrence.occurrenceDateOf
 import com.ahmed.neocalendar.core.recurrence.recurringEditChanges
+import com.ahmed.neocalendar.core.sheet.SheetStop
+import com.ahmed.neocalendar.core.sheet.adjacentOccurrenceId
 import com.ahmed.neocalendar.core.tasks.isTask
 import com.ahmed.neocalendar.nativeapp.ExternalOpen
 import com.ahmed.neocalendar.nativeapp.NativeViewModel
@@ -64,27 +71,28 @@ import com.ahmed.neocalendar.nativeapp.WRITE_IGNORED
 import com.ahmed.neocalendar.nativeapp.WorkspaceData
 import com.ahmed.neocalendar.nativeapp.ui.fields.CalendarField
 import com.ahmed.neocalendar.nativeapp.ui.fields.DescriptionField
+import com.ahmed.neocalendar.nativeapp.ui.fields.ICON_COLUMN_START
 import com.ahmed.neocalendar.nativeapp.ui.fields.LinksField
 import com.ahmed.neocalendar.nativeapp.ui.fields.LocationField
-import com.ahmed.neocalendar.nativeapp.ui.fields.NeoMenu
-import com.ahmed.neocalendar.nativeapp.ui.fields.NeoMenuItem
+import com.ahmed.neocalendar.nativeapp.ui.fields.Popover
+import com.ahmed.neocalendar.nativeapp.ui.fields.PopoverEntry
+import com.ahmed.neocalendar.nativeapp.ui.fields.PopoverSurface
 import com.ahmed.neocalendar.nativeapp.ui.fields.RemindersField
 import com.ahmed.neocalendar.nativeapp.ui.fields.RepeatField
 import com.ahmed.neocalendar.nativeapp.ui.fields.ScheduleFields
-import com.ahmed.neocalendar.nativeapp.ui.fields.StatusField
-import com.ahmed.neocalendar.nativeapp.ui.fields.TextAction
-import com.ahmed.neocalendar.nativeapp.ui.fields.ValuePill
-import com.ahmed.neocalendar.nativeapp.ui.fields.ICON_COLUMN_START
+import com.ahmed.neocalendar.nativeapp.ui.fields.SeriesSteps
 import java.time.LocalDateTime
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 /** Ce que la fiche ouvre : une note qui existe (avec l'identifiant affiché, celui d'un jour pour une série), ou une ébauche. */
 sealed interface SheetTarget {
     data class Existing(val stored: StoredEvent, val displayId: String) : SheetTarget
-    data class Draft(val start: LocalDateTime, val end: LocalDateTime, val allDay: Boolean, val calendarId: String? = null) : SheetTarget
+    data class Draft(val start: LocalDateTime, val end: LocalDateTime, val allDay: Boolean, val calendarId: String? = null, val serial: Long = System.nanoTime()) : SheetTarget
 }
 
 private fun kindLabel(kind: EntryKind) = when (kind) {
@@ -93,21 +101,39 @@ private fun kindLabel(kind: EntryKind) = when (kind) {
     EntryKind.Birthday -> "Anniversaire"
 }
 
+/** Une question que la fiche pose avant de partir : la portée d'une modification retenue sur un jour de série. */
+private class HeldScope(val changes: List<com.ahmed.neocalendar.core.recurrence.RecurringEditChange>, val isTask: Boolean, val then: (() -> Unit)?)
+
 /**
- * La fiche d'un évènement : lecture et édition dans une feuille de bas d'écran à
- * trois ancrages. Les modifications restent dans le formulaire jusqu'à
- * « Enregistrer » ; la note est alors écrite par le noyau (`serializeEventMarkdown`
- * sur le contenu précédent), et pour un jour de série une question demande si la
- * modification vaut pour celui-ci seulement ou pour toute la série.
+ * La fiche d'un évènement, comme `EventPanel.tsx` : une feuille de bas d'écran à trois ancrages. Il n'y a ni bouton
+ * « Enregistrer » ni dialogue d'abandon : chaque modification est écrite au fil de l'eau (400 ms après la dernière frappe),
+ * et un brouillon devient une note dès qu'il a un titre. Une série n'écrit rien tant que la fiche est ouverte : la portée
+ * (« cet évènement seulement » ou toute la série) est demandée à la sortie.
  */
 @Composable
-fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewModel, onDismiss: () -> Unit) {
+fun EventSheet(
+    target: SheetTarget,
+    data: WorkspaceData,
+    viewModel: NativeViewModel,
+    closeSignal: Int,
+    onDraftCommitted: () -> Unit,
+    onOpenOccurrence: (displayId: String, date: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val writes = viewModel.viewModelScope
+    val latestData by rememberUpdatedState(data)
     val editableCalendars = remember(data) { data.calendars.filter { it.editable } }
-    val existing = target as? SheetTarget.Existing
-    val stored = existing?.stored
-    val isDraft = target is SheetTarget.Draft
+    val key = when (target) {
+        is SheetTarget.Existing -> "note:${target.displayId}"
+        is SheetTarget.Draft -> "draft:${target.serial}"
+    }
+    val isDraftSheet = target is SheetTarget.Draft
+    // La note ouverte : celle du brouillon une fois écrite, et à chaque écriture la note relue du dossier.
+    var live by remember(key) { mutableStateOf((target as? SheetTarget.Existing)?.stored) }
+    var displayId by remember(key) { mutableStateOf((target as? SheetTarget.Existing)?.displayId) }
+    val stored = live
 
     val currentCalendarId = when (target) {
         is SheetTarget.Existing -> target.stored.calendarId
@@ -116,7 +142,7 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
             ?: editableCalendars.firstOrNull()?.id.orEmpty()
     }
     val calendarIds = editableCalendars.map { it.id }
-    val initial = remember(target, data.calendars) {
+    val initial = remember(key) {
         when (target) {
             is SheetTarget.Existing -> formValuesOfEvent(target.stored.event, calendarIds, currentCalendarId)
             is SheetTarget.Draft -> formValuesOfDraft(
@@ -124,104 +150,200 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
             )
         }
     }
-    var values by remember(target) { mutableStateOf(initial) }
-    var birthdayReturn by remember(target) { mutableStateOf<BirthdayReturn?>(null) }
-    var error by remember(target) { mutableStateOf<String?>(null) }
-    var busy by remember(target) { mutableStateOf(false) }
-    // Une écriture en cours (même lancée depuis la grille) verrouille Enregistrer, Supprimer et Dupliquer.
-    val writing by viewModel.writing.collectAsState()
-    val blocked = busy || writing
+    var values by remember(key) { mutableStateOf(initial) }
+    // Ce que la dernière écriture a pris : la fiche n'écrit que ce qui en diffère.
+    var baseline by remember(key) { mutableStateOf(initial) }
+    var birthdayReturn by remember(key) { mutableStateOf<BirthdayReturn?>(null) }
+    var error by remember(key) { mutableStateOf<String?>(null) }
     var kindMenu by remember { mutableStateOf(false) }
     var overflowMenu by remember { mutableStateOf(false) }
-    var dialog by remember(target) { mutableStateOf<SheetDialog?>(null) }
+    var dialog by remember(key) { mutableStateOf<SheetDialog?>(null) }
+    var held by remember(key) { mutableStateOf<HeldScope?>(null) }
+    val flushLock = remember(key) { Mutex() }
+    val sheetState = rememberSheetState(if (isDraftSheet) SheetStop.Half else SheetStop.Full, isDraftSheet)
 
-    val calendarOfNote = stored?.let { s -> data.calendars.firstOrNull { it.id == s.calendarId } }
-    val editable = isDraft || (stored?.readOnly != true && calendarOfNote?.editable == true)
-    val dirty = values != initial
-    val series = stored?.event?.let { com.ahmed.neocalendar.core.recurrence.isSeries(it) } == true
-    val occurrenceDate = if (series) occurrenceDateOf(existing?.displayId) else null
+    val calendarOfNote = stored?.let { s -> latestData.calendars.firstOrNull { it.id == s.calendarId } }
+    val editable = (isDraftSheet && stored == null) || (stored?.readOnly != true && calendarOfNote?.editable == true)
+    val series = stored?.event?.let { isSeries(it) } == true
+    val occurrenceDate = if (series) occurrenceDateOf(displayId) else null
     val kind = entryKindOf(values)
+    val dirty = values != baseline
+    // Un jour de série ouvert : rien n'est écrit avant la sortie (`needsScopeChoice`).
+    val heldSeries = stored != null && needsScopeChoice(stored.event.toRecord(), displayId, isDraft = false)
 
-    fun calendarPath(): String =
-        editableCalendars.getOrNull(values.calendarIndex)?.relativePath ?: stored?.calendarPath.orEmpty()
+    fun calendarPath(form: EventFormValues): String =
+        editableCalendars.getOrNull(form.calendarIndex)?.relativePath ?: stored?.calendarPath.orEmpty()
 
     /** Le formulaire tel que l'écrirait la note ; un brouillon porte un titre rogné. */
-    fun payload(): JsonObject {
-        val built = values.buildPayload()
-        return if (isDraft) JsonObject(built + ("title" to JsonPrimitive(values.title.trim()))) else built
+    fun payload(form: EventFormValues): JsonObject {
+        val built = form.buildPayload()
+        return if (stored == null) JsonObject(built + ("title" to JsonPrimitive(form.title.trim()))) else built
     }
 
-    fun finish(message: String?, success: String? = null) {
-        busy = false
-        if (message == WRITE_IGNORED) return
-        if (message == null) {
-            if (success != null) Notices.show(success)
-            onDismiss()
-        } else {
-            error = message
+    /** Écrit ce que le formulaire dit de plus que la dernière écriture, jusqu'à ce qu'il n'y ait plus rien. */
+    suspend fun flush() = flushLock.withLock {
+        var attempts = 0
+        while (attempts++ < 12) {
+            val snapshot = values
+            if (snapshot == baseline) return
+            val note = live
+            if (note == null) {
+                // `shouldAutoCommitDraft` : le brouillon n'existe qu'une fois qu'il a un titre et une date.
+                if (snapshot.title.isBlank() || snapshot.date.isEmpty()) return
+                val written = viewModel.createEvent(calendarPath(snapshot), payload(snapshot))
+                if (written.error == WRITE_IGNORED) { delay(250); continue }
+                if (written.error != null) { error = written.error; Notices.fail(written.error); return }
+                val created = written.note
+                if (created == null) {
+                    // La note est écrite mais introuvable après relecture : ne pas la recréer.
+                    onDismiss()
+                    return
+                }
+                live = created
+                displayId = created.id
+                baseline = snapshot
+                error = null
+                onDraftCommitted()
+                continue
+            }
+            if (!editable || (needsScopeChoice(note.event.toRecord(), displayId, isDraft = false))) return
+            val written = viewModel.updateEvent(note, payload(snapshot), calendarPath(snapshot))
+            if (written.error == WRITE_IGNORED) { delay(250); continue }
+            if (written.error != null) { error = written.error; Notices.fail(written.error); return }
+            live = written.note ?: note
+            baseline = snapshot
+            error = null
         }
     }
 
-    fun save(scopeChoice: RecurringEditScope?) {
-        if (blocked) return
-        if (isDraft && values.title.isBlank()) {
-            error = "Donnez un titre à l'événement."
+    // L'enregistrement au fil de l'eau (`debouncedAutoSave` : 400 ms après la dernière modification).
+    LaunchedEffect(values) {
+        if (values == baseline) return@LaunchedEffect
+        if (live == null) {
+            // Un brouillon devient une note dès que le titre le décide, sans attendre.
+            if (values.title.isNotBlank() && values.date.isNotEmpty()) writes.launch { flush() }
+            return@LaunchedEffect
+        }
+        if (heldSeries) return@LaunchedEffect
+        delay(400)
+        writes.launch { flush() }
+    }
+
+    // Les heures du brouillon suivent son aperçu sur la grille (`NEO_ANDROID_DRAFT_LIVE_TIME`).
+    if (target is SheetTarget.Draft && stored == null) {
+        LaunchedEffect(target.start, target.end, target.allDay) {
+            if (!target.allDay) {
+                values = values.copy(
+                    date = target.start.toLocalDate().toString(),
+                    startTime = target.start.toLocalTime().toString().take(5),
+                    endTime = target.end.toLocalTime().toString().take(5),
+                )
+            }
+        }
+    }
+
+    /** La question de la portée, avec ce qui change ; null quand rien n'est retenu. */
+    fun scopeQuestion(then: (() -> Unit)?): HeldScope? {
+        val note = stored ?: return null
+        if (!heldSeries || !dirty) return null
+        val changes = recurringEditChanges(
+            note.event.toRecord(),
+            payload(values),
+            RecurringEditChangeContext(
+                previousCalendarId = note.calendarId,
+                nextCalendarId = editableCalendars.getOrNull(values.calendarIndex)?.id,
+                previousCalendarLabel = calendarOfNote?.name,
+                nextCalendarLabel = editableCalendars.getOrNull(values.calendarIndex)?.name,
+            ),
+        )
+        return HeldScope(changes, isTask(note.event), then)
+    }
+
+    /** Toutes les sorties passent ici : la question de la portée d'abord, l'écriture en suspens ensuite. */
+    fun leave(slide: Boolean, then: () -> Unit = onDismiss) {
+        val question = scopeQuestion(then)
+        if (question != null) {
+            if (!slide) sheetState.comeBack()
+            held = question
             return
         }
-        busy = true
-        error = null
-        scope.launch {
-            val built = payload()
-            val message = when {
-                target is SheetTarget.Draft -> viewModel.createEvent(calendarPath(), built)
-                stored != null && scopeChoice == RecurringEditScope.Occurrence -> {
-                    // Une date laissée telle quelle veut dire « le jour ouvert » ; une date changée, que ce jour y est déplacé.
-                    val seriesStart = (stored.event as? NeoEvent.Rrule)?.startDate ?: (stored.event as? NeoEvent.Recurring)?.startRecur
-                    val day = if (values.date.isNotEmpty() && values.date != seriesStart) values.date else occurrenceDate.orEmpty()
-                    viewModel.detachOccurrence(stored, built, occurrenceDate.orEmpty(), day, calendarPath())
-                }
-                stored != null -> viewModel.updateEvent(stored, built, calendarPath())
-                else -> "Rien à enregistrer."
+        writes.launch { flush() }
+        if (slide) sheetState.slideOut(then) else then()
+    }
+
+    /** Une réponse à la question : l'écriture part, la fiche s'en va sans l'attendre. */
+    fun answer(choice: RecurringEditScope, question: HeldScope) {
+        val note = stored ?: return
+        val snapshot = values
+        val built = payload(snapshot)
+        val path = calendarPath(snapshot)
+        val day = occurrenceDate.orEmpty()
+        writes.launch {
+            val written = if (choice == RecurringEditScope.Occurrence) {
+                // Une date laissée telle quelle veut dire « le jour ouvert » ; une date changée, que ce jour y est déplacé.
+                val seriesStart = (note.event as? NeoEvent.Rrule)?.startDate ?: (note.event as? NeoEvent.Recurring)?.startRecur
+                val target = if (snapshot.date.isNotEmpty() && snapshot.date != seriesStart) snapshot.date else day
+                viewModel.detachOccurrence(note, built, day, target, path)
+            } else {
+                viewModel.updateEvent(note, built, path)
             }
-            finish(message)
+            val message = written.error
+            if (message != null && message != WRITE_IGNORED) Notices.fail(message)
+        }
+        held = null
+        baseline = snapshot
+        val next = question.then
+        if (next != null) next() else sheetState.slideOut(onDismiss)
+    }
+
+    // Un appui ailleurs (la grille, le bouton +, la barre du haut) ferme la fiche comme la croix, la question de portée comprise.
+    var lastSignal by remember(key) { mutableStateOf(closeSignal) }
+    LaunchedEffect(closeSignal) {
+        if (closeSignal != lastSignal) {
+            lastSignal = closeSignal
+            if (held == null) leave(slide = true)
+        }
+    }
+    // Une fiche qui s'en va sans passer par la sortie (une autre s'ouvre à sa place) n'abandonne pas ce qui était en suspens.
+    DisposableEffect(key) { onDispose { writes.launch { flush() } } }
+
+    BackHandler(enabled = true) {
+        when {
+            dialog != null -> dialog = null
+            held != null -> held = null
+            else -> leave(slide = true)
         }
     }
 
-    fun onSave() {
-        if (stored != null && needsScopeChoice(stored.event.toRecord(), existing?.displayId, isDraft = false) && dirty) {
-            val changes = recurringEditChanges(
-                stored.event.toRecord(),
-                payload(),
-                RecurringEditChangeContext(
-                    previousCalendarId = stored.calendarId,
-                    nextCalendarId = editableCalendars.getOrNull(values.calendarIndex)?.id,
-                    previousCalendarLabel = calendarOfNote?.name,
-                    nextCalendarLabel = editableCalendars.getOrNull(values.calendarIndex)?.name,
-                ),
-            )
-            dialog = SheetDialog.Scope(changes, isTask(stored.event))
-        } else {
-            save(null)
-        }
+    val previous = if (series) adjacentOccurrenceId(stored?.event, displayId, -1) else null
+    val following = if (series) adjacentOccurrenceId(stored?.event, displayId, 1) else null
+    fun step(direction: Int) {
+        val wanted = (if (direction > 0) following else previous) ?: return
+        leave(slide = false) { onOpenOccurrence(wanted.first, wanted.second) }
     }
-
-    fun requestClose() {
-        if (busy) return
-        if (dirty && editable) dialog = SheetDialog.Discard else onDismiss()
-    }
-
-    BackHandler(enabled = true) { if (dialog != null) dialog = null else requestClose() }
 
     SheetFrame(
-        initial = if (isDraft) SheetAnchor.Full else SheetAnchor.Half,
-        onDismissRequest = ::requestClose,
+        state = sheetState,
+        onSwipedAway = { leave(slide = false) },
         header = {
-            Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            val headerStart = if (isDraftSheet) 22.dp else 14.dp
+            Row(
+                Modifier.fillMaxWidth().padding(start = headerStart, end = 14.dp, top = 17.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Box {
-                    ValuePill(kindLabel(kind), enabled = editable, open = kindMenu, chevron = editable, onClick = { kindMenu = true })
-                    NeoMenu(kindMenu, { kindMenu = false }) {
+                    val shape = RoundedCornerShape(6.dp)
+                    Row(
+                        Modifier.heightIn(min = 40.dp).let { if (editable) it.pressFill(shape, Neo.Hover, on = kindMenu) { kindMenu = true } else it.alpha(0.72f) }
+                            .padding(horizontal = 8.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(kindLabel(kind), color = Neo.Text, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        if (editable) Icon(NeoIcons.ChevronDown, null, tint = Neo.Text, modifier = Modifier.padding(start = 4.dp).size(13.dp))
+                    }
+                    Popover(kindMenu, { kindMenu = false }, PopoverSurface(Neo.Surface, 7.dp, 4.dp, true), width = 176.dp) {
                         for (choice in EntryKind.entries) {
-                            NeoMenuItem(kindLabel(choice), choice == kind) {
+                            PopoverEntry(kindLabel(choice), 44.dp, radius = 5.dp, active = choice == kind) {
                                 kindMenu = false
                                 val change = applyEntryKind(values, choice, birthdayReturn)
                                 values = change.values
@@ -231,24 +353,25 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
                     }
                 }
                 Box(Modifier.weight(1f))
-                if (editable && (dirty || isDraft)) {
-                    TextAction(if (busy) "Enregistrement…" else "Enregistrer", enabled = !blocked) { onSave() }
-                }
                 if (editable && stored != null) {
                     Box {
-                        IconTarget(NeoIcons.EllipsisVertical, "Plus d'actions") { overflowMenu = true }
-                        NeoMenu(overflowMenu, { overflowMenu = false }) {
-                            NeoMenuItem("Dupliquer", enabled = !blocked) {
+                        HeaderButton(NeoIcons.Ellipsis, "Plus d'actions", 22.dp) { overflowMenu = true }
+                        Popover(overflowMenu, { overflowMenu = false }, PopoverSurface(Neo.Surface, 6.dp, 4.dp, true), width = 182.dp, alignEnd = true) {
+                            PopoverEntry("Dupliquer", 46.dp, textSize = 15, radius = 11.dp, icon = NeoIcons.CopyPlus, horizontalPadding = 12.dp) {
                                 overflowMenu = false
-                                if (blocked) return@NeoMenuItem
-                                busy = true
-                                scope.launch {
-                                    finish(viewModel.duplicateEvent(stored, stored.calendarPath), "Événement dupliqué")
+                                held = null
+                                writes.launch {
+                                    val message = viewModel.duplicateEvent(stored, stored.calendarPath)
+                                    if (message == null) Notices.show("Événement dupliqué") else if (message != WRITE_IGNORED) Notices.fail(message)
                                 }
+                                sheetState.slideOut(onDismiss)
                             }
-                            NeoMenuItem("Supprimer", enabled = !blocked) {
+                            PopoverEntry(
+                                if (isTask(stored.event)) "Supprimer la tâche" else "Supprimer l'événement", 46.dp, textSize = 15, radius = 11.dp,
+                                icon = NeoIcons.Trash2, color = Neo.Danger, iconTint = Neo.Danger, horizontalPadding = 12.dp,
+                            ) {
                                 overflowMenu = false
-                                dialog = if (series && occurrenceDate != null && needsOccurrenceChoice(stored.event, existing?.displayId.orEmpty())) {
+                                dialog = if (series && occurrenceDate != null && needsOccurrenceChoice(stored.event, displayId.orEmpty())) {
                                     SheetDialog.DeleteOccurrence(isTask(stored.event))
                                 } else {
                                     SheetDialog.DeleteNote(isTask(stored.event))
@@ -257,41 +380,29 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
                         }
                     }
                 }
-                IconTarget(NeoIcons.Close, "Fermer") { requestClose() }
+                HeaderButton(NeoIcons.Close, "Fermer", 14.dp) { leave(slide = true) }
             }
         },
         body = {
-            val focus = remember { FocusRequester() }
-            val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
-            val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+            val keyboard = LocalSoftwareKeyboardController.current
+            val focusManager = LocalFocusManager.current
             // Une fiche en lecture seule ne fait jamais monter le clavier, et la fermer le range.
             LaunchedEffect(editable) { if (!editable) { focusManager.clearFocus(); keyboard?.hide() } }
-            androidx.compose.runtime.DisposableEffect(Unit) { onDispose { keyboard?.hide() } }
-            LaunchedEffect(isDraft) { if (isDraft) focus.requestFocus() }
-            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
-                // Titre
-                Box(Modifier.fillMaxWidth().padding(start = ICON_COLUMN_START, end = 16.dp, top = 4.dp, bottom = 8.dp)) {
-                    if (values.title.isEmpty()) Text("Titre", color = Neo.TextFaint, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-                    BasicTextField(
-                        values.title,
-                        { values = values.copy(title = it) },
-                        enabled = editable,
-                        textStyle = TextStyle(color = Neo.Text, fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
-                        cursorBrush = SolidColor(Neo.Accent),
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
-                        modifier = Modifier.fillMaxWidth().focusRequester(focus),
-                    )
-                }
-                if (!editable) {
-                    Text(
-                        "Cet événement est en lecture seule.",
-                        color = Neo.TextFaint, fontSize = 13.sp,
-                        modifier = Modifier.padding(start = ICON_COLUMN_START, end = 16.dp, bottom = 8.dp),
-                    )
-                }
+            DisposableEffect(Unit) { onDispose { keyboard?.hide() } }
+            Column(
+                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)
+                    // Un champ qui prend le curseur déploie le brouillon (`onFocusIn` de useSheetDrag).
+                    .onFocusChanged { if (it.hasFocus && isDraftSheet && sheetState.stop != SheetStop.Full) sheetState.glideTo(SheetStop.Full) },
+            ) {
+                TitleRow(values.title, editable, isDraftSheet) { values = values.copy(title = it) }
+                Rule()
 
-                ScheduleFields(values, editable, data.timeFormat24h, canClearDate = !isDraft) { values = it }
-                if (values.date.isNotEmpty()) RepeatField(values, editable, data.firstDay) { values = it }
+                ScheduleFields(values, editable, data.timeFormat24h, data.firstDay, canClearDate = stored != null) { values = it }
+                if (values.date.isNotEmpty()) {
+                    val steps = if (previous != null || following != null) SeriesSteps(previous != null, following != null, ::step) else null
+                    RepeatField(values, editable, data.firstDay, steps) { values = it }
+                }
+                Rule()
 
                 CalendarField(
                     calendars = editableCalendars,
@@ -300,7 +411,10 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
                     editable = editable,
                 ) { values = values.copy(calendarIndex = it) }
 
-                RemindersField(values.reminders, values.allDay, editable) { values = values.copy(reminders = it) }
+                // Rien à annoncer pour ce qui n'a pas de moment (`form.date || form.isRecurring`).
+                if (values.date.isNotEmpty() || values.isRecurring) {
+                    RemindersField(values.reminders, values.allDay, editable) { values = values.copy(reminders = it) }
+                }
 
                 LocationField(
                     location = values.location,
@@ -309,6 +423,7 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
                     mapsApp = data.mapsApp,
                     mapsTravelMode = data.mapsTravelMode,
                 ) { values = values.copy(location = it) }
+                Rule()
 
                 val open: (String) -> Unit = { targetPath ->
                     if (ExternalOpen.isWebTarget(targetPath)) {
@@ -322,22 +437,10 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
                 DescriptionField(values.description, editable, { values = values.copy(description = it) }, open)
                 LinksField(values.description, open)
 
-                if (values.taskStatus != null) {
-                    val complete = if (series && occurrenceDate != null) {
-                        values.completedDates.orEmpty().contains(occurrenceDate)
-                    } else {
-                        values.taskStatus == "complete"
-                    }
-                    StatusField(complete, editable) {
-                        values = if (series && occurrenceDate != null) values.withOccurrenceStatus(occurrenceDate, !complete)
-                        else values.copy(taskStatus = if (complete) "todo" else "complete")
-                    }
-                }
-
                 error?.let {
                     Text(
                         it,
-                        color = Neo.Today, fontSize = 13.sp,
+                        color = Neo.Danger, fontSize = 13.sp,
                         modifier = Modifier.padding(start = ICON_COLUMN_START, end = 16.dp, top = 10.dp),
                     )
                 }
@@ -345,27 +448,28 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
         },
     )
 
+    held?.let { question ->
+        ScopeDialog(
+            question.changes, question.isTask,
+            onChoose = { choice -> answer(choice, question) },
+            onCancel = { held = null },
+        )
+    }
     when (val shown = dialog) {
         null -> Unit
-        is SheetDialog.Scope -> ScopeDialog(
-            shown.changes, shown.isTask,
-            onChoose = { choice -> dialog = null; save(choice) },
-            onCancel = { dialog = null },
-        )
-        SheetDialog.Discard -> DiscardDialog(
-            onSave = { dialog = null; onSave() },
-            onDiscard = { dialog = null; onDismiss() },
-            onCancel = { dialog = null },
-        )
         is SheetDialog.DeleteNote -> ConfirmDialog(
             title = if (shown.isTask) "Supprimer la tâche ?" else "Supprimer l'événement ?",
             message = "La note est supprimée du dossier.",
             confirm = "Supprimer",
             onConfirm = {
                 dialog = null
-                if (blocked) return@ConfirmDialog
-                busy = true
-                scope.launch { finish(viewModel.deleteEvent(stored!!), null) }
+                val note = stored ?: return@ConfirmDialog
+                writes.launch {
+                    val message = viewModel.deleteEvent(note)
+                    if (message != null && message != WRITE_IGNORED) Notices.fail(message)
+                }
+                held = null
+                sheetState.slideOut(onDismiss)
             },
             onCancel = { dialog = null },
         )
@@ -373,19 +477,57 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
             isTask = shown.isTask,
             onChoose = { following ->
                 dialog = null
-                if (blocked) return@DeleteOccurrenceDialog
-                busy = true
-                scope.launch { finish(viewModel.deleteOccurrence(stored!!, occurrenceDate.orEmpty(), following), null) }
+                val note = stored ?: return@DeleteOccurrenceDialog
+                writes.launch {
+                    val message = viewModel.deleteOccurrence(note, occurrenceDate.orEmpty(), following)
+                    if (message != null && message != WRITE_IGNORED) Notices.fail(message)
+                }
+                held = null
+                sheetState.slideOut(onDismiss)
             },
             onCancel = { dialog = null },
+        )
+        else -> Unit
+    }
+}
+
+/** Le titre : 16 sp dans une ligne (padding 6 / 8, marge 0 10 8, rayon 6, bord transparent), 25 sp / 650 sur un brouillon. */
+@Composable
+private fun TitleRow(title: String, editable: Boolean, draft: Boolean, onChange: (String) -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(6.dp)
+    val size = if (draft) 25.sp else 16.sp
+    val weight = if (draft) FontWeight(650) else FontWeight.Normal
+    Box(
+        Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, bottom = 8.dp)
+            .background(if (focused) Neo.Hover else Color.Transparent, shape)
+            .border(1.dp, Color.Transparent, shape)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+    ) {
+        if (title.isEmpty()) Text("Titre", color = Neo.TextFaint, fontSize = size, fontWeight = weight)
+        BasicTextField(
+            title,
+            onChange,
+            enabled = editable,
+            textStyle = TextStyle(color = Neo.Text, fontSize = size, fontWeight = weight),
+            cursorBrush = SolidColor(Neo.Accent),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
+            modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
         )
     }
 }
 
+/** Le filet entre deux blocs : 1 dp, de la colonne d'icônes (26 dp) au bord droit. */
 @Composable
-private fun IconTarget(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, onClick: () -> Unit) {
+private fun Rule() {
+    Box(Modifier.fillMaxWidth().padding(start = 26.dp).height(1.dp).background(Neo.Border))
+}
+
+/** Un bouton de l'en-tête : 48x48, rayon 12, glyphe `TextSecondary` de `glyph` dp. */
+@Composable
+private fun HeaderButton(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, glyph: androidx.compose.ui.unit.Dp, onClick: () -> Unit) {
     Box(
-        Modifier.size(Neo.TouchTarget).clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick),
+        Modifier.size(48.dp).pressFill(RoundedCornerShape(12.dp), Neo.Hover, onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, description, tint = Neo.Text, modifier = Modifier.size(22.dp)) }
+    ) { Icon(icon, description, tint = Neo.TextSecondary, modifier = Modifier.size(glyph)) }
 }

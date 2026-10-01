@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,41 +60,44 @@ fun LocationField(
     val destination = locationDestinationFor(location, geo, null)
     val choices = destination?.let { ExternalOpen.mapChoices(it, installed.orEmpty()) }.orEmpty()
 
-    Column {
+    if (!editable && location.isEmpty()) return
+    val open: () -> Unit = {
+        val direct = choices.firstOrNull { it.id != null && it.id == mapsApp }
+        when {
+            destination == null -> Unit
+            destination is LocationDestination.Link -> ExternalOpen.openMap(context, destination, null, mapsTravelMode)
+            direct != null -> ExternalOpen.openMap(context, destination, direct, mapsTravelMode)
+            choices.isEmpty() -> ExternalOpen.openMap(context, destination, null, mapsTravelMode)
+            else -> menuOpen = true
+        }
+    }
+    Box {
         FieldRow(NeoIcons.MapPin, minHeight = 52) {
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (location.isEmpty()) Text("Lieu", color = Neo.TextFaint, fontSize = 15.sp)
-                BasicTextField(
-                    location,
-                    onChange,
-                    enabled = editable,
-                    textStyle = TextStyle(color = Neo.Text, fontSize = 15.sp),
-                    cursorBrush = SolidColor(Neo.Accent),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                )
+                if (editable) {
+                    if (location.isEmpty()) Text("Lieu", color = Neo.TextFaint, fontSize = 16.sp)
+                    BasicTextField(
+                        location,
+                        onChange,
+                        textStyle = TextStyle(color = Neo.Text, fontSize = 16.sp),
+                        cursorBrush = SolidColor(Neo.Accent),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    )
+                } else {
+                    // Verrouillé, le texte EST le lien : rien d'autre à faire de cette rangée que de la suivre.
+                    Text(
+                        location, color = Neo.TextFaint, fontSize = 16.sp, textDecoration = TextDecoration.Underline,
+                        modifier = (if (destination != null) Modifier.clickable { open() } else Modifier).padding(vertical = 8.dp),
+                    )
+                }
             }
         }
-        if (destination != null) {
-            FieldRow(null, minHeight = 40) {
-                Box {
-                    ValuePill("Ouvrir dans les cartes", open = menuOpen, chevron = choices.size > 1, onClick = {
-                        val direct = choices.firstOrNull { it.id != null && it.id == mapsApp }
-                        when {
-                            destination is LocationDestination.Link -> ExternalOpen.openMap(context, destination, null, mapsTravelMode)
-                            direct != null -> ExternalOpen.openMap(context, destination, direct, mapsTravelMode)
-                            choices.isEmpty() -> ExternalOpen.openMap(context, destination, null, mapsTravelMode)
-                            else -> menuOpen = true
-                        }
-                    })
-                    NeoMenu(menuOpen, { menuOpen = false }) {
-                        for (choice in choices) {
-                            NeoMenuItem(choice.label) {
-                                menuOpen = false
-                                ExternalOpen.openMap(context, destination, choice, mapsTravelMode)
-                            }
-                        }
-                    }
+        Popover(menuOpen, { menuOpen = false }, SolidSurface, width = 200.dp) {
+            for (choice in choices) {
+                PopoverEntry(choice.label, 44.dp, radius = 5.dp) {
+                    menuOpen = false
+                    if (destination != null) ExternalOpen.openMap(context, destination, choice, mapsTravelMode)
                 }
             }
         }

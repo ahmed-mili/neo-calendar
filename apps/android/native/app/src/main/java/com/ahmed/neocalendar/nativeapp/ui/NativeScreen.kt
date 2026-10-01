@@ -255,6 +255,10 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     // Une écriture qui échoue le dit ; une écriture ignorée (une autre était en cours) ne dit rien.
     val report = { error: String? -> if (error != null && error != WRITE_IGNORED) Notices.fail(error) }
     var sheet by remember { mutableStateOf<SheetTarget?>(null) }
+    // Le brouillon n'est dessiné sur la grille que tant qu'il n'est pas une note ; un appui hors de la fiche la ferme (`usePopupDismiss`).
+    var draftCommitted by remember { mutableStateOf(false) }
+    var closeSignal by remember { mutableStateOf(0) }
+    val openDraft = { draft: SheetTarget.Draft -> draftCommitted = false; sheet = draft }
     var overlayKey by rememberSaveable { mutableStateOf("") }
     val overlay = remember(overlayKey) { decodeOverlay(overlayKey) }
     val calendarsById = remember(data) { data.calendars.associateBy { it.id } }
@@ -285,7 +289,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                 if (data.calendars.none { it.editable }) {
                     Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                 } else {
-                    sheet = newDraft()
+                    openDraft(newDraft())
                 }
         }
         if (route != null) viewModel.routeHandled()
@@ -297,17 +301,21 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
         GridActions(
             onOpen = openEvent,
             onCreate = { start, end ->
-                if (data.calendars.none { it.editable }) {
+                if (sheet != null) {
+                    closeSignal++
+                } else if (data.calendars.none { it.editable }) {
                     Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                 } else {
-                    sheet = SheetTarget.Draft(start, end, allDay = false)
+                    openDraft(SheetTarget.Draft(start, end, allDay = false))
                 }
             },
             onCreateAllDay = { date ->
-                if (data.calendars.none { it.editable }) {
+                if (sheet != null) {
+                    closeSignal++
+                } else if (data.calendars.none { it.editable }) {
                     Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                 } else {
-                    sheet = SheetTarget.Draft(date.atStartOfDay(), date.plusDays(1).atStartOfDay(), allDay = true)
+                    openDraft(SheetTarget.Draft(date.atStartOfDay(), date.plusDays(1).atStartOfDay(), allDay = true))
                 }
             },
             onReschedule = { event, start, end, resize, onFailed ->
@@ -385,6 +393,10 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                 onSearch = { monthOpen = false; overlayKey = Overlay.Search.encode() },
                 onToday = { grid.goTo(scope, LocalDate.now()) },
             )
+            // La fiche ouverte : un appui sur la barre du haut la ferme, il ne fait pas l'action du bouton touché.
+            if (sheet != null) Box(
+                Modifier.matchParentSize().pointerInput(Unit) { detectTapGestures { closeSignal++ } },
+            )
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 TimeGridArea(
@@ -398,6 +410,8 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                     actions = gridActions,
                     dataVersion = data,
                     bottomInset = bottomInset,
+                    draft = (sheet as? SheetTarget.Draft)?.takeIf { !draftCommitted },
+                    onResizeDraft = { start, end -> (sheet as? SheetTarget.Draft)?.let { sheet = it.copy(start = start, end = end) } },
                 )
                 // Le bouton + : 56 x 56, rayon 16, à `max(18 ; inset + 14)` du bord droit et du bas (`CalendarLayout.css:53`).
                 val fabSource = remember { MutableInteractionSource() }
@@ -419,10 +433,12 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                         .clip(RoundedCornerShape(16.dp))
                         .background(Neo.Accent)
                         .clickable(interactionSource = fabSource, indication = null) {
-                            if (data.calendars.none { it.editable }) {
+                            if (sheet != null) {
+                                closeSignal++
+                            } else if (data.calendars.none { it.editable }) {
                                 Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                             } else {
-                                sheet = newDraft()
+                                openDraft(newDraft())
                             }
                         },
                     contentAlignment = Alignment.Center,
@@ -678,7 +694,19 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
         )
     }
 
-    sheet?.let { EventSheet(it, data, viewModel) { sheet = null } }
+    sheet?.let { target ->
+        EventSheet(
+            target, data, viewModel,
+            closeSignal = closeSignal,
+            onDraftCommitted = { draftCommitted = true },
+            onOpenOccurrence = { displayId, date ->
+                val note = resolveStored(notesById, displayId)
+                runCatching { LocalDate.parse(date) }.getOrNull()?.let { grid.goTo(scope, it) }
+                if (note != null) sheet = SheetTarget.Existing(note, displayId)
+            },
+            onDismiss = { sheet = null },
+        )
+    }
 }
 
 /** La note d'un évènement affiché : directement, ou la série dont c'est un jour (`<série>_<jour>`). */

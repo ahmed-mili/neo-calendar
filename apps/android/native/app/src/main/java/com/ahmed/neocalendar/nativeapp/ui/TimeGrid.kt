@@ -136,6 +136,8 @@ fun TimeGridArea(
     actions: GridActions,
     dataVersion: Any,
     bottomInset: Dp,
+    draft: SheetTarget.Draft? = null,
+    onResizeDraft: (java.time.LocalDateTime, java.time.LocalDateTime) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -219,6 +221,7 @@ fun TimeGridArea(
                 }
                 NowLine(state, dayCount, zone)
                 MoveGhost(ix, dayCount, timeFormat24h)
+                if (draft != null && !draft.allDay) DraftPreview(ix, draft.start, draft.end, onResizeDraft)
             }
         }
         LaunchedEffect(state.viewportHeightPx) { state.initialScrollIfNeeded(hourNow(zone)) }

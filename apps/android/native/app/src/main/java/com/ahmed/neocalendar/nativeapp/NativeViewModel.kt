@@ -539,11 +539,27 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    suspend fun createEvent(calendarPath: String, payload: JsonObject): String? =
-        write { writer, _ -> writer.create(calendarPath, payload) }
+    /** Le dossier tel qu'il est lu à l'instant (les écritures le relisent avant de rendre la main). */
+    fun latestData(): WorkspaceData? = (_screen.value as? ScreenState.Ready)?.data
 
-    suspend fun updateEvent(stored: StoredEvent, payload: JsonObject, targetCalendarPath: String): String? =
-        write { writer, _ -> writer.update(stored, payload, targetCalendarPath) }
+    /**
+     * Une écriture de note : le message du refus (null si elle a réussi) et la note telle que le dossier la rend après
+     * relecture, pour que le geste suivant parte d'elle et non de l'instantané d'avant.
+     */
+    class NoteWrite(val error: String?, val note: StoredEvent?)
+
+    private suspend fun writeNote(block: (EventWriter, SafWorkspaceStorage) -> com.ahmed.neocalendar.core.workspace.WrittenEvent): NoteWrite {
+        var written: com.ahmed.neocalendar.core.workspace.WrittenEvent? = null
+        val error = write { writer, storage -> written = block(writer, storage) }
+        val note = written?.let { w -> latestData()?.events?.firstOrNull { it.relativePath == w.relativePath } }
+        return NoteWrite(error, note)
+    }
+
+    suspend fun createEvent(calendarPath: String, payload: JsonObject): NoteWrite =
+        writeNote { writer, _ -> writer.create(calendarPath, payload) }
+
+    suspend fun updateEvent(stored: StoredEvent, payload: JsonObject, targetCalendarPath: String): NoteWrite =
+        writeNote { writer, _ -> writer.update(stored, payload, targetCalendarPath) }
 
     suspend fun detachOccurrence(
         stored: StoredEvent,
@@ -551,7 +567,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         occurrenceDate: String,
         date: String,
         targetCalendarPath: String,
-    ): String? = write { writer, _ ->
+    ): NoteWrite = writeNote { writer, _ ->
         writer.detachOccurrence(stored, payload, occurrenceDate, date, targetCalendarPath, ::nowUtcIso)
     }
 
