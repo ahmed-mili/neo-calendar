@@ -49,7 +49,7 @@ import com.ahmed.neocalendar.nativeapp.ui.fields.TextAction
 private val HexColor = Regex("#[0-9a-fA-F]{6}")
 
 @Composable
-private fun NeoDialog(
+internal fun NeoDialog(
     title: String,
     onDismiss: () -> Unit,
     confirm: (@Composable () -> Unit)? = null,
@@ -67,7 +67,7 @@ private fun NeoDialog(
 }
 
 @Composable
-private fun TextInput(value: String, onChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
+internal fun TextInput(value: String, onChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier, uri: Boolean = false) {
     val shape = RoundedCornerShape(10.dp)
     Box(
         modifier.fillMaxWidth().heightIn(min = 44.dp).background(Neo.Hover, shape).border(1.dp, Neo.Border, shape).padding(horizontal = 12.dp),
@@ -80,7 +80,11 @@ private fun TextInput(value: String, onChange: (String) -> Unit, placeholder: St
             singleLine = true,
             textStyle = TextStyle(color = Neo.Text, fontSize = 15.sp),
             cursorBrush = SolidColor(Neo.Accent),
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            keyboardOptions = if (uri) {
+                KeyboardOptions(capitalization = KeyboardCapitalization.None, keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri)
+            } else {
+                KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+            },
             modifier = Modifier.fillMaxWidth(),
         )
     }

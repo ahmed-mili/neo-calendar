@@ -1,0 +1,22 @@
+{
+  "name": "un lien inactif ne tourne jamais, meme force",
+  "fn": "ics.dueFeeds",
+  "input": {
+    "feeds": [
+      {
+        "id": "a",
+        "calendarPath": "Etudes",
+        "name": "Lien a",
+        "url": "https://example.com/a.ics",
+        "active": false
+      }
+    ],
+    "states": {},
+    "now": "2026-10-01T10:00:00.000Z",
+    "defaultMinutes": 60,
+    "forcedIds": [
+      "a"
+    ]
+  },
+  "expected": []
+}

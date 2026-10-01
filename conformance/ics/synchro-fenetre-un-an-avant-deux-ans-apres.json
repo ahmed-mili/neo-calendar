@@ -1,0 +1,11 @@
+{
+  "name": "la fenetre va d'un an avant a deux ans apres le jour local",
+  "fn": "ics.syncWindow",
+  "input": {
+    "now": "2026-10-01T10:00:00.000Z"
+  },
+  "expected": {
+    "from": "2025-10-01",
+    "to": "2028-10-01"
+  }
+}

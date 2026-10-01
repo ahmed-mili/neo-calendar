@@ -1,0 +1,54 @@
+{
+  "name": "les liens dus gardent l'ordre de la liste",
+  "fn": "ics.dueFeeds",
+  "input": {
+    "feeds": [
+      {
+        "id": "c",
+        "calendarPath": "Etudes",
+        "name": "Lien c",
+        "url": "https://example.com/c.ics",
+        "active": true
+      },
+      {
+        "id": "a",
+        "calendarPath": "Etudes",
+        "name": "Lien a",
+        "url": "https://example.com/a.ics",
+        "active": true
+      },
+      {
+        "id": "b",
+        "calendarPath": "Etudes",
+        "name": "Lien b",
+        "url": "https://example.com/b.ics",
+        "active": false
+      },
+      {
+        "id": "d",
+        "calendarPath": "Etudes",
+        "name": "Lien d",
+        "url": "https://example.com/d.ics",
+        "active": true
+      }
+    ],
+    "states": {
+      "a": {
+        "knownEventCount": 3,
+        "missingCounts": {},
+        "lastAttemptAt": "2026-10-01T08:00:00.000Z"
+      },
+      "d": {
+        "knownEventCount": 3,
+        "missingCounts": {},
+        "lastAttemptAt": "2026-10-01T09:59:00.000Z"
+      }
+    },
+    "now": "2026-10-01T10:00:00.000Z",
+    "defaultMinutes": 60
+  },
+  "expected": [
+    "c",
+    "a"
+  ]
+}

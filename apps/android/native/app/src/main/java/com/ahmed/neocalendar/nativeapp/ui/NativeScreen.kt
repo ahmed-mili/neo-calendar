@@ -100,6 +100,7 @@ private sealed interface CalendarDialog {
     data class Rename(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
     data class Reminder(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
     data class Delete(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
+    data class IcsLinks(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
 }
 
 /** Le sélecteur de dossier : la même demande que `pickDirectory` de la WebView (lecture, écriture, permission durable). */
@@ -166,6 +167,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
     val allDayCollapsed by viewModel.allDayCollapsed.collectAsState()
     val hidden by viewModel.hidden.collectAsState()
     val reloadError by viewModel.reloadError.collectAsState()
+    val icsUi by viewModel.icsUi.collectAsState()
     var monthOpen by rememberSaveable { mutableStateOf(false) }
     var calendarDialog by remember { mutableStateOf<CalendarDialog?>(null) }
     val pickTree = androidx.activity.compose.rememberLauncherForActivityResult(PickTree()) { result ->
@@ -358,6 +360,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                     onColor = { calendarDialog = CalendarDialog.Color(it) },
                     onRename = { calendarDialog = CalendarDialog.Rename(it) },
                     onReminder = { calendarDialog = CalendarDialog.Reminder(it) },
+                    onIcsLinks = { calendarDialog = CalendarDialog.IcsLinks(it) },
                     onDelete = { calendarDialog = CalendarDialog.Delete(it) },
                     onReorder = viewModel::setCalendarOrder,
                 ),
@@ -455,6 +458,17 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
             data.calendarReminderMinutes[dialog.calendar.relativePath],
             data.reminderMinutes,
             { viewModel.setCalendarReminder(dialog.calendar.relativePath, it) },
+            { calendarDialog = null },
+        )
+        is CalendarDialog.IcsLinks -> IcsLinksDialog(
+            dialog.calendar.name,
+            data.icsLinks.filter { it.calendarPath == dialog.calendar.relativePath },
+            icsUi,
+            data.icsDefaultMinutes,
+            { name, url -> viewModel.addIcsLink(dialog.calendar.relativePath, name, url) },
+            viewModel::editIcsLink,
+            viewModel::removeIcsLink,
+            viewModel::refreshIcsLink,
             { calendarDialog = null },
         )
         CalendarDialog.AppReminder -> ReminderDialog(

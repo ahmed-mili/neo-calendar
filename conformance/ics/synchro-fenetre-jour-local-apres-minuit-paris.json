@@ -1,0 +1,11 @@
+{
+  "name": "juste avant minuit UTC le jour local est deja le lendemain a Paris",
+  "fn": "ics.syncWindow",
+  "input": {
+    "now": "2026-12-31T23:30:00.000Z"
+  },
+  "expected": {
+    "from": "2026-01-01",
+    "to": "2029-01-01"
+  }
+}

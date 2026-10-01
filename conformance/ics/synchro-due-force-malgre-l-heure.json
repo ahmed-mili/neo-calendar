@@ -1,0 +1,31 @@
+{
+  "name": "un lien force est du meme juste synchronise",
+  "fn": "ics.dueFeeds",
+  "input": {
+    "feeds": [
+      {
+        "id": "a",
+        "calendarPath": "Etudes",
+        "name": "Lien a",
+        "url": "https://example.com/a.ics",
+        "active": true
+      }
+    ],
+    "states": {
+      "a": {
+        "knownEventCount": 3,
+        "missingCounts": {},
+        "lastAttemptAt": "2026-10-01T09:59:00.000Z",
+        "lastSuccessAt": "2026-10-01T09:59:00.000Z"
+      }
+    },
+    "now": "2026-10-01T10:00:00.000Z",
+    "defaultMinutes": 60,
+    "forcedIds": [
+      "a"
+    ]
+  },
+  "expected": [
+    "a"
+  ]
+}

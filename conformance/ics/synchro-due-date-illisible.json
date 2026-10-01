@@ -1,0 +1,25 @@
+{
+  "name": "une date d'essai illisible ne rend pas le lien du",
+  "fn": "ics.dueFeeds",
+  "input": {
+    "feeds": [
+      {
+        "id": "a",
+        "calendarPath": "Etudes",
+        "name": "Lien a",
+        "url": "https://example.com/a.ics",
+        "active": true
+      }
+    ],
+    "states": {
+      "a": {
+        "knownEventCount": 3,
+        "missingCounts": {},
+        "lastAttemptAt": "pas une date"
+      }
+    },
+    "now": "2026-10-01T10:00:00.000Z",
+    "defaultMinutes": 60
+  },
+  "expected": []
+}

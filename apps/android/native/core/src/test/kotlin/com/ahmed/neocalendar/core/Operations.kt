@@ -16,6 +16,10 @@ import com.ahmed.neocalendar.core.ics.scopedIcalEvent
 import com.ahmed.neocalendar.core.ics.startOfLocalWeekIso
 import com.ahmed.neocalendar.core.ics.occurrenceSignature
 import com.ahmed.neocalendar.core.ics.parseIcsSnapshot
+import com.ahmed.neocalendar.core.ics.dueIcsLinks
+import com.ahmed.neocalendar.core.ics.icsLinkOf
+import com.ahmed.neocalendar.core.ics.icsStatesFromJson
+import com.ahmed.neocalendar.core.ics.icsSyncWindow
 import com.ahmed.neocalendar.core.layout.ALLDAY_MAX_ROWS
 import com.ahmed.neocalendar.core.layout.ALLDAY_ROW_HEIGHT
 import com.ahmed.neocalendar.core.layout.ANDROID_HOUR_HEIGHT
@@ -302,6 +306,20 @@ val OPERATIONS: Map<String, (JsonObject) -> JsonElement> = mapOf<String, (JsonOb
         if (now == null) JsonObject(mapOf("error" to JsonPrimitive("invalid-now"))) else JsonPrimitive(startOfLocalWeekIso(now))
     },
     "ics.planSync" to { input -> planSync(input) },
+    "ics.syncWindow" to { input ->
+        val (from, to) = icsSyncWindow(parseInstant(input.getValue("now").jsonPrimitive.content))
+        JsonObject(mapOf("from" to JsonPrimitive(from), "to" to JsonPrimitive(to)))
+    },
+    "ics.dueFeeds" to { input ->
+        val links = input.getValue("feeds").jsonArray.map { icsLinkOf(it.jsonObject)!! }
+        val states = icsStatesFromJson(input.getValue("states").toString())
+        val forced = input["forcedIds"]?.takeUnless { it is JsonNull }?.jsonArray?.map { it.jsonPrimitive.content }?.toSet()
+        val due = dueIcsLinks(
+            links, states, parseInstant(input.getValue("now").jsonPrimitive.content),
+            input.getValue("defaultMinutes").jsonPrimitive.int, forced,
+        )
+        JsonArray(due.map { JsonPrimitive(it.id) })
+    },
     "ics.mergeRemote" to { input ->
         JsonArray(
             mergeRemoteEvents(

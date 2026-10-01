@@ -174,6 +174,8 @@ data class IcsSyncState(
     val lastSuccessAt: String?,
     val knownEventCount: Long,
     val missingCounts: Map<String, Long>,
+    /** L'erreur du dernier essai (jamais écrite par le planificateur : une synchro réussie l'efface). */
+    val lastError: String? = null,
 )
 
 data class IcsSyncPlan(val writes: List<IcalNoteWrite>, val deletes: List<StoredEvent>, val nextState: IcsSyncState)

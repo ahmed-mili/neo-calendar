@@ -4,6 +4,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import com.ahmed.neocalendar.core.notes.jsTrim
 
 /*
  * Les changements de préférences que l'écran de réglages et le tiroir demandent, en fonctions pures
@@ -73,3 +74,71 @@ fun withCalendarRenamed(preferences: JsonObject, oldPath: String, newPath: Strin
     }
     return next
 }
+
+// --- les liens ICS d'un calendrier (DesktopCalendar.tsx : onAdd, onEdit, onRemove du panneau) -------------
+
+private fun feeds(preferences: JsonObject): List<JsonObject> =
+    (preferences["icsFeeds"] as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }
+
+/** La liste repasse par `parseIcsFeeds`, comme le TypeScript à l'écriture : même ordre des champs, même nettoyage. */
+private fun withFeeds(preferences: JsonObject, list: List<JsonObject>): JsonObject =
+    preferences.with("icsFeeds", parseIcsFeeds(JsonArray(list)))
+
+private fun feedText(feed: JsonObject, key: String) = (feed[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
+
+/**
+ * Pourquoi ce lien ne peut pas être ajouté à ce calendrier, ou null s'il le peut (textes de `IcsFeedsPanel.tsx`) :
+ * nom et adresse valides, adresse pas déjà prise par un autre lien du calendrier, cinq liens au plus.
+ */
+fun icsFeedProblem(name: String, rawUrl: String, calendarFeedUrls: List<String>): String? {
+    val url = normalizeIcsUrl(rawUrl)
+    return when {
+        calendarFeedUrls.size >= MAX_ICS_FEEDS_PER_CALENDAR -> "Ce calendrier a déjà le maximum de cinq liens ICS."
+        name.jsTrim().isEmpty() || url.isEmpty() -> "Cette adresse n'est pas valide. Entrez une adresse HTTPS ou webcal."
+        url in calendarFeedUrls -> "Ce lien est déjà utilisé par un autre flux de ce calendrier."
+        else -> null
+    }
+}
+
+/** Ajoute un lien actif au calendrier ; refusé (message de [icsFeedProblem]) sur les préférences lues à l'instant. */
+fun withIcsFeedAdded(preferences: JsonObject, id: String, calendarPath: String, name: String, rawUrl: String): JsonObject {
+    val existing = feeds(preferences).filter { feedText(it, "calendarPath") == calendarPath }.mapNotNull { feedText(it, "url") }
+    icsFeedProblem(name, rawUrl, existing)?.let { throw IllegalArgumentException(it) }
+    val feed = JsonObject(
+        linkedMapOf(
+            "id" to JsonPrimitive(id),
+            "calendarPath" to JsonPrimitive(calendarPath),
+            "name" to JsonPrimitive(name.jsTrim()),
+            "url" to JsonPrimitive(normalizeIcsUrl(rawUrl)),
+            "active" to JsonPrimitive(true),
+        )
+    )
+    return withFeeds(preferences, feeds(preferences) + feed)
+}
+
+/** Change le nom, la fréquence ou l'adresse d'un lien ; une adresse vide se retire du fichier. Un lien disparu : rien ne change. */
+fun withIcsFeedEdited(preferences: JsonObject, id: String, name: String? = null, refreshMinutes: Int? = null, address: String? = null): JsonObject =
+    withFeeds(
+        preferences,
+        feeds(preferences).map { feed ->
+            if (feedText(feed, "id") != id) return@map feed
+            val next = LinkedHashMap<String, JsonElement>(feed)
+            if (name != null && name.jsTrim().isNotEmpty()) next["name"] = JsonPrimitive(name.jsTrim())
+            if (refreshMinutes != null) next["refreshMinutes"] = JsonPrimitive(refreshMinutes.toLong())
+            if (address != null) if (address.isEmpty()) next.remove("address") else next["address"] = JsonPrimitive(address)
+            JsonObject(next)
+        },
+    )
+
+/** Retire le lien. Ses notes restent : rien ici ne les supprime. */
+fun withIcsFeedRemoved(preferences: JsonObject, id: String): JsonObject =
+    withFeeds(preferences, feeds(preferences).filter { feedText(it, "id") != id })
+
+/** Le dossier propre d'un lien, noté une fois créé. */
+fun withIcsFeedDirectory(preferences: JsonObject, id: String, directory: String): JsonObject =
+    withFeeds(
+        preferences,
+        feeds(preferences).map { feed ->
+            if (feedText(feed, "id") == id) JsonObject(LinkedHashMap<String, JsonElement>(feed).also { it["directory"] = JsonPrimitive(directory) }) else feed
+        },
+    )

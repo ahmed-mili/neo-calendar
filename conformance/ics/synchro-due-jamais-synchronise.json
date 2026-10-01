@@ -1,0 +1,21 @@
+{
+  "name": "un lien sans etat est du",
+  "fn": "ics.dueFeeds",
+  "input": {
+    "feeds": [
+      {
+        "id": "a",
+        "calendarPath": "Etudes",
+        "name": "Lien a",
+        "url": "https://example.com/a.ics",
+        "active": true
+      }
+    ],
+    "states": {},
+    "now": "2026-10-01T10:00:00.000Z",
+    "defaultMinutes": 60
+  },
+  "expected": [
+    "a"
+  ]
+}

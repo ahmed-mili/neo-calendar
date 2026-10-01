@@ -1,0 +1,42 @@
+{
+  "name": "forcer un lien ne force pas les autres",
+  "fn": "ics.dueFeeds",
+  "input": {
+    "feeds": [
+      {
+        "id": "a",
+        "calendarPath": "Etudes",
+        "name": "Lien a",
+        "url": "https://example.com/a.ics",
+        "active": true
+      },
+      {
+        "id": "b",
+        "calendarPath": "Etudes",
+        "name": "Lien b",
+        "url": "https://example.com/b.ics",
+        "active": true
+      }
+    ],
+    "states": {
+      "a": {
+        "knownEventCount": 3,
+        "missingCounts": {},
+        "lastAttemptAt": "2026-10-01T09:59:00.000Z"
+      },
+      "b": {
+        "knownEventCount": 3,
+        "missingCounts": {},
+        "lastAttemptAt": "2026-10-01T09:59:00.000Z"
+      }
+    },
+    "now": "2026-10-01T10:00:00.000Z",
+    "defaultMinutes": 60,
+    "forcedIds": [
+      "b"
+    ]
+  },
+  "expected": [
+    "b"
+  ]
+}

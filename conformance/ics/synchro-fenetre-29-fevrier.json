@@ -1,0 +1,11 @@
+{
+  "name": "un 29 fevrier retombe sur le 28 fevrier des annees ordinaires",
+  "fn": "ics.syncWindow",
+  "input": {
+    "now": "2028-02-29T12:00:00.000Z"
+  },
+  "expected": {
+    "from": "2027-02-28",
+    "to": "2030-02-28"
+  }
+}

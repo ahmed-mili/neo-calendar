@@ -158,6 +158,7 @@ class DrawerActions(
     val onColor: (CalendarModel) -> Unit,
     val onRename: (CalendarModel) -> Unit,
     val onReminder: (CalendarModel) -> Unit,
+    val onIcsLinks: (CalendarModel) -> Unit,
     val onDelete: (CalendarModel) -> Unit,
     val onReorder: (List<String>) -> Unit,
 )
@@ -445,6 +446,7 @@ private fun CalendarRow(
                 val isFolder = calendar.relativePath.isNotEmpty()
                 if (isFolder) NeoMenuItem("Renommer") { menu = false; actions.onRename(calendar) }
                 NeoMenuItem("Rappel") { menu = false; actions.onReminder(calendar) }
+                NeoMenuItem("Liens ICS") { menu = false; actions.onIcsLinks(calendar) }
                 if (!isDefault) NeoMenuItem("Calendrier par défaut") { menu = false; actions.onSetDefault(calendar) }
                 if (isFolder) NeoMenuItem("Supprimer") { menu = false; actions.onDelete(calendar) }
             }

@@ -1,6 +1,8 @@
 import { filenameForEvent, parseFrontmatter, parseStoredEvent, serializeEventMarkdown } from "../apps/windows/src/platform/desktopEventFormat";
 import { cloneFranceHolidaySource, parseExternalCalendarSources } from "../apps/windows/src/platform/desktopExternalCalendars";
 import { migrateLegacyIcalSources, normalizeIcsUrl, parseIcsFeeds } from "../apps/windows/src/platform/icsFeedPreferences";
+import { icsSyncWindow } from "../apps/windows/src/platform/icsCalendarIntegration";
+import { dueIcsFeeds } from "../apps/windows/src/platform/icsSyncScheduler";
 import {
     defaultDesktopWorkspacePreferences,
     deviceWorkspacePreferences,
@@ -435,6 +437,11 @@ export const OPERATIONS: Record<string, (input: any) => unknown | Promise<unknow
             return { error: message.startsWith("The ICS snapshot is unexpectedly empty") ? "empty-snapshot" : "invalid-now" };
         }
     },
+    "ics.syncWindow": ({ now }) => icsSyncWindow(new Date(now)),
+    "ics.dueFeeds": ({ feeds, states, now, defaultMinutes, forcedIds }) =>
+        dueIcsFeeds(feeds, states, new Date(now), defaultMinutes, forcedIds ? new Set<string>(forcedIds) : undefined).map(
+            (feed) => feed.id
+        ),
     "ics.mergeRemote": ({ current, refreshedCalendarIds, arrived }) =>
         mergeRemoteEvents(current, refreshedCalendarIds, arrived),
 };
