@@ -1,0 +1,102 @@
+package com.ahmed.neocalendar.core.sync
+
+import java.security.SecureRandom
+
+/** Ce que l'app fait d'un dossier que le PC (ou un autre appareil accepté) propose. */
+sealed interface ProposalDecision {
+    /** Aucun dossier ici : le dossier de notes prend l'identifiant proposé. */
+    data object Adopt : ProposalDecision
+
+    /** Notre dossier a un autre identifiant, mais personne d'autre que le proposeur n'y est lié : il prend l'identifiant proposé. */
+    data class Replace(val oldId: String) : ProposalDecision
+
+    /** C'est déjà notre dossier : il suffit d'y ajouter le proposeur. */
+    data object ShareExisting : ProposalDecision
+
+    data class Refuse(val reason: String) : ProposalDecision
+}
+
+const val REFUSE_SECOND_FOLDER =
+    "Un seul dossier est synchronisé, et le dossier de notes de ce téléphone l'est déjà avec d'autres appareils. " +
+        "Retirez ces appareils avant d'en adopter un autre, ou refusez cette proposition."
+
+/** Un seul dossier est synchronisé. `local` = le dossier de notes configuré dans le moteur, s'il y en a un. */
+fun decideProposal(local: ConfiguredFolder?, selfId: String, proposerId: String, proposedId: String): ProposalDecision = when {
+    local == null -> ProposalDecision.Adopt
+    local.id == proposedId -> ProposalDecision.ShareExisting
+    (local.deviceIds.toSet() - selfId - proposerId).isEmpty() -> ProposalDecision.Replace(local.id)
+    else -> ProposalDecision.Refuse(REFUSE_SECOND_FOLDER)
+}
+
+/** Les gestes de l'utilisateur sur les appareils et le dossier, traduits en appels à l'API. `folderPath` : le dossier de notes privé. */
+class SyncSetup(
+    private val api: SyncthingApi,
+    private val folderPath: String,
+    private val random: SecureRandom = SecureRandom(),
+) {
+    companion object {
+        const val FOLDER_LABEL = "Neo Calendar"
+    }
+
+    /** Premier démarrage : options du moteur (port d'écoute, découvertes, pas de statistiques). */
+    fun applyOptions(port: Int) = api.patchOptions(EngineConfig.options(port))
+
+    /** « Ajouter un appareil » : l'identifiant est validé (somme de contrôle) AVANT toute requête. */
+    fun addDevice(rawId: String, name: String) {
+        val id = DeviceIds.normalize(rawId) ?: throw IllegalArgumentException("Cet identifiant d'appareil n'est pas valide.")
+        val me = api.myId()
+        if (id == me) throw IllegalArgumentException("C'est l'identifiant de cet appareil.")
+        api.putDevice(id, name.trim().ifEmpty { id.take(7) })
+        shareFolderWith(me, id)
+    }
+
+    /** Accepte une demande entrante : jamais appelé sans geste de l'utilisateur. */
+    fun acceptDevice(pending: PendingDevice) {
+        val me = api.myId()
+        api.putDevice(pending.id, pending.name.trim().ifEmpty { pending.id.take(7) })
+        // Si cet appareil propose déjà un dossier, l'utilisateur doit choisir : on ne crée pas un deuxième dossier derrière son dos.
+        if (api.pendingFolders(pending.id).isEmpty()) shareFolderWith(me, pending.id)
+        runCatching { api.dismissPendingDevice(pending.id) }
+    }
+
+    fun rejectDevice(id: String) = api.dismissPendingDevice(id)
+
+    /** Retire l'appareil, d'abord du dossier puis du moteur. Les notes locales ne sont pas touchées. */
+    fun removeDevice(id: String) {
+        api.folders().firstOrNull { id in it.deviceIds }?.let { api.setFolderDevices(it.id, it.deviceIds - id) }
+        api.removeDevice(id)
+    }
+
+    /** Ce qui arrivera si l'utilisateur adopte la proposition (pour le dialogue de confirmation). */
+    fun decide(proposal: PendingFolder): ProposalDecision =
+        decideProposal(api.folders().firstOrNull(), api.myId(), proposal.offeredBy, proposal.id)
+
+    /** Adopte le dossier proposé, après confirmation. Rend la décision appliquée. */
+    fun adopt(proposal: PendingFolder): ProposalDecision {
+        val me = api.myId()
+        val local = api.folders().firstOrNull()
+        val decision = decideProposal(local, me, proposal.offeredBy, proposal.id)
+        when (decision) {
+            is ProposalDecision.Refuse -> return decision
+            ProposalDecision.ShareExisting -> api.setFolderDevices(proposal.id, (local!!.deviceIds + proposal.offeredBy))
+            ProposalDecision.Adopt, is ProposalDecision.Replace -> {
+                val devices = (local?.deviceIds.orEmpty() + me + proposal.offeredBy).distinct()
+                if (decision is ProposalDecision.Replace) api.removeFolder(decision.oldId)
+                api.putFolder(EngineConfig.folder(proposal.id, proposal.label.ifBlank { FOLDER_LABEL }, folderPath, devices))
+            }
+        }
+        runCatching { api.dismissPendingFolder(proposal.id, proposal.offeredBy) }
+        return decision
+    }
+
+    fun refuseFolder(proposal: PendingFolder) = api.dismissPendingFolder(proposal.id, proposal.offeredBy)
+
+    private fun shareFolderWith(me: String, deviceId: String) {
+        val folder = api.folders().firstOrNull()
+        if (folder == null) {
+            api.putFolder(EngineConfig.folder(EngineConfig.newFolderId(random), FOLDER_LABEL, folderPath, listOf(me, deviceId)))
+        } else if (deviceId !in folder.deviceIds) {
+            api.setFolderDevices(folder.id, folder.deviceIds + deviceId)
+        }
+    }
+}
