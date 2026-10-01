@@ -33,7 +33,7 @@ private const val KEY_DAY_COUNT = "dayCount"
 private const val KEY_ALLDAY_COLLAPSED = "allDayCollapsed"
 private const val KEY_ICS_STATE = "icsRuntimeState"
 
-// L'origine de MainActivity (APP_HOST) : le localStorage est par origine.
+// L'origine qu'avait l'ancienne interface (WebView) : le localStorage est par origine.
 private const val WEB_HOST = "neo-calendar.local"
 private const val WEB_TIMEOUT_MS = 10_000L
 
@@ -69,6 +69,9 @@ suspend fun importDeviceSettings(app: Context, tree: Uri) {
             Log.w(TAG, "import des réglages : export non supprimé", e)
         }
     }
+    if (settings.webViewLocalStorage.isNotEmpty()) {
+        withContext(Dispatchers.Main) { com.ahmed.neocalendar.nativeapp.ui.theme.NeoAppearance.importFromWebView(app) }
+    }
     Log.i(TAG, "import des réglages : fait (${settings.webViewLocalStorage.size} clés de localStorage)")
 }
 
@@ -85,8 +88,8 @@ private fun applyToPreferences(app: Context, settings: DeviceSettings) {
 }
 
 /**
- * Une WebView invisible sur la MÊME origine que MainActivity (https://neo-calendar.local) : la page servie est vide
- * (aucun script de l'ancienne interface ne tourne), seule l'origine compte. Rend vrai quand chaque clé est écrite.
+ * Une WebView invisible sur la MÊME origine que l'ancienne interface (https://neo-calendar.local) : la page servie est vide
+ * (l'APK n'embarque plus aucun fichier de l'ancienne interface), seule l'origine compte. Rend vrai quand chaque clé est écrite.
  */
 private suspend fun injectLocalStorage(app: Context, entries: Map<String, String>): Boolean = withContext(Dispatchers.Main) {
     var web: WebView? = null

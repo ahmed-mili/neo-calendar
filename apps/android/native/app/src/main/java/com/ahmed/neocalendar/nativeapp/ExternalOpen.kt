@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.webkit.MimeTypeMap
-import com.ahmed.neocalendar.MainActivity
 import com.ahmed.neocalendar.core.description.attachmentPathFor
 import com.ahmed.neocalendar.core.location.LocationDestination
 import com.ahmed.neocalendar.core.location.geoUrlFor
@@ -18,18 +17,40 @@ import kotlinx.coroutines.withContext
 /** Une application de cartes que le téléphone a : `id` est celui du menu (google...), absent pour une application `geo:` quelconque. */
 data class InstalledMap(val id: String?, val packageName: String, val label: String)
 
+private val KNOWN_PACKAGES = listOf(
+    "google" to "com.google.android.apps.maps",
+    "citymapper" to "com.citymapper.app.release",
+    "moovit" to "com.tranzmate",
+    "waze" to "com.waze",
+)
+
 private val KNOWN_LABELS = mapOf("google" to "Google Maps", "citymapper" to "Citymapper", "moovit" to "Moovit", "waze" to "Waze")
 
 /** Ce qui s'ouvre hors de l'app : cartes, liens web, pièces jointes du dossier. */
 object ExternalOpen {
-    /** Les cartes installées, par la même logique que le cas `installed_maps_apps` du pont (MainActivity). */
+    /**
+     * Les cartes installées : les quatre qu'on sait viser (leur `id` est celui du menu), puis celles qu'Android dit
+     * capables d'ouvrir un point `geo:` et dont on ignore l'adresse d'itinéraire (Bonjour RATP et les suivantes se
+     * signalent elles-mêmes ; on ne leur promet qu'une épingle).
+     */
     fun installedMaps(context: Context): List<InstalledMap> = try {
-        val array = MainActivity.installedMapsApps(context)
-        (0 until array.length()).map {
-            val entry = array.getJSONObject(it)
-            val id = entry.optString("id", "").ifEmpty { null }
-            InstalledMap(id, entry.getString("package"), id?.let { known -> KNOWN_LABELS[known] } ?: entry.optString("label", entry.getString("package")))
+        val packages = context.packageManager
+        val seen = HashSet<String>()
+        val found = ArrayList<InstalledMap>()
+        for ((id, pkg) in KNOWN_PACKAGES) {
+            if (packages.getLaunchIntentForPackage(pkg) == null) continue
+            seen.add(pkg)
+            found.add(InstalledMap(id, pkg, KNOWN_LABELS.getValue(id)))
         }
+        val probe = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=0,0"))
+        for (info in packages.queryIntentActivities(probe, 0)) {
+            val pkg = info.activityInfo?.packageName ?: continue
+            if (pkg == context.packageName || !seen.add(pkg)) continue
+            val label = info.loadLabel(packages)?.toString().orEmpty()
+            if (label.isEmpty()) continue
+            found.add(InstalledMap(null, pkg, label))
+        }
+        found
     } catch (_: Exception) {
         emptyList()
     }

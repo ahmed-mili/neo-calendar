@@ -136,7 +136,7 @@ public final class ReminderScheduler {
         String key = reminder.optString("key", eventId);
         Intent open = new Intent(context, com.ahmed.neocalendar.nativeapp.NativeActivity.class);
         open.setAction(Intent.ACTION_VIEW);
-        open.putExtra(MainActivity.EXTRA_EVENT_ID, eventId);
+        open.putExtra(com.ahmed.neocalendar.nativeapp.NativeExtras.EVENT_ID, eventId);
         open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
         Notification.Builder builder = new Notification.Builder(context, CHANNEL_ID)

@@ -74,7 +74,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ahmed.neocalendar.MainActivity
 import com.ahmed.neocalendar.core.appearance.AppearanceMode
 import com.ahmed.neocalendar.core.appearance.THEMES
 import com.ahmed.neocalendar.core.preferences.ICS_REFRESH_MINUTES
@@ -324,10 +323,9 @@ private fun RootPage(
         row(NeoIcons.Library, "Coffres Obsidian", "Aucun dossier") { openPage("vaults") }
         row(NeoIcons.RefreshCw, "Synchronisation", null) { openChoice("sync") }
     }
-    // Hors de l'ancienne, gardé tant que les deux interfaces cohabitent.
-    Group("Application") {
-        if (actions.oldAppInstalled) row(NeoIcons.Trash2, "Ancienne version encore installée", "Désinstaller", chevron = false, onClick = actions.onUninstallOldApp)
-        row(NeoIcons.Calendar, "Ancienne interface (WebView)", null) { context.startActivity(Intent(context, MainActivity::class.java)) }
+    // Seule l'ancienne version (autre paquet) y figure, et seulement tant qu'elle est installée.
+    if (actions.oldAppInstalled) Group("Application") {
+        row(NeoIcons.Trash2, "Ancienne version encore installée", "Désinstaller", chevron = false, onClick = actions.onUninstallOldApp)
     }
     SText(version, Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp), color = Neo.TextFaint, size = 12f, align = TextAlign.Center)
 }

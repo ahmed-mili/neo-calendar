@@ -433,13 +433,13 @@ public final class AppUpdater {
   }
 
   private void notifyFailed() {
-    // L'intention porte l'ordre de reprendre : MainActivity la lit et relance
+    // L'intention porte l'ordre de reprendre : NativeActivity la lit et relance
     // sans que personne ait a retrouver le bouton dans l'app.
     PendingIntent retry = PendingIntent.getActivity(
       activity,
       1,
       new Intent(activity, com.ahmed.neocalendar.nativeapp.NativeActivity.class)
-        .putExtra(MainActivity.EXTRA_UPDATE_RETRY, true)
+        .putExtra(com.ahmed.neocalendar.nativeapp.NativeExtras.UPDATE_RETRY, true)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP),
       PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
     );

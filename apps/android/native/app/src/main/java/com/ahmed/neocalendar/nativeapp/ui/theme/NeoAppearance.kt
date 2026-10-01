@@ -50,13 +50,14 @@ data class WallpaperEffects(
 }
 
 /**
- * Le thème, le mode de couleur, la personnalisation, le fond d'écran et ses effets, la langue. Ils sont rangés aux MÊMES
- * endroits que l'ancienne interface (le `localStorage` de la WebView : `neo-calendar.appearance`,
- * `neo-calendar-wallpaper-effects-v1`, `desktop-settings.json:preferences` pour le `themeId`, `neo-calendar.language`)
- * ET dans les préférences natives, lues sans attendre. À chaque lancement une WebView muette, sur la même origine que
- * l'ancienne, relit les quatre clés : ce que l'ancienne interface a changé entre-temps l'emporte, puis tout est recopié
- * dans les préférences natives. Chaque choix fait ici est écrit dans les deux (la WebView avec 400 ms de répit, un curseur
- * qu'on glisse n'ouvre pas une WebView par image).
+ * Le thème, le mode de couleur, la personnalisation, le fond d'écran et ses effets, la langue : rangés dans les
+ * préférences natives, lues sans attendre. Rien n'est plus écrit dans le `localStorage` d'une WebView.
+ *
+ * Une seule lecture, à la reprise : tant que les préférences natives n'ont jamais rien reçu (installation neuve, ou mise à
+ * jour depuis une version dont l'ancienne interface rangeait tout dans le `localStorage`), une WebView muette relit les
+ * quatre clés de l'ancienne interface (`neo-calendar.appearance`, `neo-calendar-wallpaper-effects-v1`,
+ * `desktop-settings.json:preferences` pour le `themeId`, `neo-calendar.language`) et les recopie dans les préférences
+ * natives. Cette WebView ne charge aucun fichier de l'ancienne interface : seule l'origine compte.
  */
 object NeoAppearance {
     private const val PREFS = "neo_native_appearance"
@@ -98,26 +99,27 @@ object NeoAppearance {
         }
 
     private val handler = Handler(Looper.getMainLooper())
-    private var pendingWebWrite: Runnable? = null
-
-    /** Un choix fait ici que la WebView n'a pas encore reçu : la relecture ne doit pas le défaire. */
-    private var unsynced = false
 
     // --- Lecture ---
 
-    /** Lecture synchrone des préférences natives (quelques octets), puis la relecture de la WebView. */
+    /** Lecture synchrone des préférences natives (quelques octets) ; la reprise de la WebView seulement si elles sont vierges. */
     fun load(context: Context) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val storedAppearance = prefs.getString("appearance", null)
         preferences = if (storedAppearance != null) parseAppearancePreferences(storedAppearance) else legacyPreferences(prefs)
         themeId = getTheme(prefs.getString("theme_id", null)).id
-        unsynced = prefs.getBoolean("unsynced", false)
         effects = if (prefs.contains("effects")) fromValues(parseWallpaperEffects(prefs.getString("effects", null)))
         else WallpaperEffects(prefs.getFloat("brightness", 0.7f), prefs.getFloat("blur", 5f), prefs.getFloat("container_opacity", 0.4f)).normalized()
         AppLanguage.set(prefs.getString("language", null))
         systemDark = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) != android.content.res.Configuration.UI_MODE_NIGHT_NO
         refreshTokens()
-        syncFromWebView(context.applicationContext)
+        if (!prefs.contains("appearance")) syncFromWebView(context.applicationContext)
+        else if (preferences.themeOverrides[themeId]?.wallpaperId == null) recoverWallpaper(context.applicationContext)
+    }
+
+    /** Après l'import des réglages d'une ancienne version : reprend le `localStorage` qu'il vient de poser, si rien n'a encore été choisi ici. */
+    fun importFromWebView(context: Context) {
+        if (!context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).contains("appearance")) syncFromWebView(context.applicationContext)
     }
 
     /** Avant le lot 5b : seul le fond du thème Catppuccin était rangé, sous `wallpaper_id`. */
@@ -132,7 +134,7 @@ object NeoAppearance {
         refreshTokens()
     }
 
-    // --- Changements (écrits aux deux endroits) ---
+    // --- Changements (écrits dans les préférences natives) ---
 
     fun setTheme(context: Context, id: String) {
         themeId = getTheme(id).id
@@ -171,9 +173,7 @@ object NeoAppearance {
 
     private fun changed(context: Context) {
         refreshTokens()
-        unsynced = true
         save(context)
-        scheduleWebWrite(context.applicationContext)
     }
 
     private fun refreshTokens() {
@@ -193,7 +193,6 @@ object NeoAppearance {
             .putString("theme_id", themeId)
             .putString("effects", toValues(effects).toJsonText())
             .putString("language", AppLanguage.code)
-            .putBoolean("unsynced", unsynced)
             .apply()
     }
 
@@ -203,15 +202,7 @@ object NeoAppearance {
     private fun toValues(e: WallpaperEffects) =
         WallpaperEffectValues(e.brightness.toDouble(), e.blur.toDouble(), e.containerOpacity.toDouble())
 
-    // --- La WebView : même origine que l'ancienne interface, donc même `localStorage` ---
-
-    private fun scheduleWebWrite(context: Context) {
-        unsynced = true
-        pendingWebWrite?.let { handler.removeCallbacks(it) }
-        val job = Runnable { writeToWebView(context) }
-        pendingWebWrite = job
-        handler.postDelayed(job, 400)
-    }
+    // --- La reprise depuis la WebView de l'ancienne interface (lecture seule) ---
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun newWebView(context: Context, onLoaded: (WebView) -> Unit) {
@@ -224,27 +215,7 @@ object NeoAppearance {
         web.loadDataWithBaseURL(ORIGIN, "<html></html>", "text/html", "utf-8", null)
     }
 
-    /** Recopie le choix dans le `localStorage` : l'ancienne interface lit les mêmes clés à son prochain démarrage. */
-    private fun writeToWebView(context: Context) {
-        val appearance = JSONObject.quote(preferences.toJsonText())
-        val effectsText = JSONObject.quote(toValues(effects).toJsonText())
-        val theme = JSONObject.quote(themeId)
-        val language = JSONObject.quote(AppLanguage.code)
-        newWebView(context) { view ->
-            view.evaluateJavascript(
-                "(function(){try{localStorage.setItem('$APPEARANCE_KEY',$appearance);localStorage.setItem('$EFFECTS_KEY',$effectsText);" +
-                    "localStorage.setItem('$LANGUAGE_KEY',$language);" +
-                    "var o={};try{o=JSON.parse(localStorage.getItem('$DESKTOP_KEY')||'{}')||{}}catch(e){}o.themeId=$theme;" +
-                    "localStorage.setItem('$DESKTOP_KEY',JSON.stringify(o));return 1}catch(x){return 0}})()",
-            ) {
-                unsynced = false
-                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("unsynced", false).apply()
-                view.destroy()
-            }
-        }
-    }
-
-    /** Ce que l'ancienne interface a rangé depuis la dernière fois l'emporte ; sans rien à lire, le natif pousse le sien. */
+    /** Recopie dans les préférences natives ce que l'ancienne interface avait rangé ; rien à lire : les valeurs par défaut restent. */
     private fun syncFromWebView(context: Context) {
         newWebView(context) { view ->
             view.evaluateJavascript(
@@ -266,21 +237,19 @@ object NeoAppearance {
     private fun JSONObject.text(key: String): String? = optString(key).takeIf { it.isNotEmpty() && it != "null" }
 
     private fun applyFromWebView(context: Context, stored: JSONObject) {
-        // Un choix fait ici passe avant ce que la WebView contient encore : on le lui envoie, on ne le relit pas.
-        if (unsynced) { scheduleWebWrite(context); return }
+        if (listOf("a", "e", "d", "l").all { stored.text(it) == null }) return
         stored.text("a")?.let { preferences = parseAppearancePreferences(it) }
         stored.text("e")?.let { effects = fromValues(parseWallpaperEffects(it)) }
         stored.text("d")?.let { themeId = themeIdOfDesktopPreferences(it) }
         stored.text("l")?.let { AppLanguage.set(it) }
         refreshTokens()
         save(context)
-        if (stored.text("a") == null || stored.text("d") == null || stored.text("l") == null || stored.text("e") == null) scheduleWebWrite(context)
         if (preferences.themeOverrides[themeId]?.wallpaperId == null) recoverWallpaper(context)
     }
 
     /**
-     * Aucun fond mémorisé (ni dans la WebView, ni ici) mais des images dans `.neo-calendar/wallpapers/` : la plus récente
-     * est le dernier fond téléchargé, donc choisi. Elle devient le choix, aux deux endroits ; un choix existant n'est jamais touché.
+     * Aucun fond mémorisé (ni repris de l'ancienne interface, ni ici) mais des images dans `.neo-calendar/wallpapers/` : la plus récente
+     * est le dernier fond téléchargé, donc choisi. Elle devient le choix ; un choix existant n'est jamais touché.
      */
     private fun recoverWallpaper(context: Context) {
         Thread {

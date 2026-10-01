@@ -9,7 +9,7 @@ import java.io.IOException
 import java.util.Locale
 
 /**
- * Le dossier de notes par SAF ; mêmes règles que MainActivity.list() / findChild() /
+ * Le dossier de notes par SAF ; mêmes règles que l'ancienne interface : list(), findChild(),
  * readText() / writeText() / createDocument() / renameDocument() / deleteDocument().
  * Une instance sert une seule opération : chaque dossier n'est interrogé qu'une
  * fois, et toute écriture oublie ce qui avait été listé.

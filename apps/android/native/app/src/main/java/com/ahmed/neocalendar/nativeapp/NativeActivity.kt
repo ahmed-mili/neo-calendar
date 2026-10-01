@@ -10,7 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import com.ahmed.neocalendar.MainActivity
 import com.ahmed.neocalendar.NeoCalendarWidget
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -29,7 +28,7 @@ class NativeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         com.ahmed.neocalendar.nativeapp.ui.Translator.load(this)
         NeoAppearance.load(this)
-        // Comme MainActivity : barres transparentes sur le fond d'écran, icônes claires, contraste forcé coupé.
+        // Barres transparentes sur le fond d'écran, icônes claires, contraste forcé coupé.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
@@ -71,8 +70,8 @@ class NativeActivity : ComponentActivity() {
 
     /** « Réessayer » de la notification d'échec : le drapeau est consommé, une rotation ne le rejoue pas. */
     private fun consumeUpdateRetry(intent: Intent?) {
-        if (intent == null || !intent.getBooleanExtra(MainActivity.EXTRA_UPDATE_RETRY, false)) return
-        intent.removeExtra(MainActivity.EXTRA_UPDATE_RETRY)
+        if (intent == null || !intent.getBooleanExtra(NativeExtras.UPDATE_RETRY, false)) return
+        intent.removeExtra(NativeExtras.UPDATE_RETRY)
         updates.retry()
     }
 
@@ -102,16 +101,16 @@ class NativeActivity : ComponentActivity() {
             viewModel.openRoute(NativeRoute.NewEvent)
             return
         }
-        val id = intent.getStringExtra(MainActivity.EXTRA_EVENT_ID)
+        val id = intent.getStringExtra(NativeExtras.EVENT_ID)
         if (!id.isNullOrEmpty()) {
-            intent.removeExtra(MainActivity.EXTRA_EVENT_ID)
+            intent.removeExtra(NativeExtras.EVENT_ID)
             viewModel.openRoute(NativeRoute.Event(id))
         }
     }
 
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
-    /** Comme `MainActivity` : au démarrage, une demande s'il manque l'autorisation (Android 13 et plus) ; un refus est définitif et silencieux. */
+    /** Au démarrage, une demande s'il manque l'autorisation (Android 13 et plus) ; un refus est définitif et silencieux. */
     private fun askNotificationsOnce() {
         if (Build.VERSION.SDK_INT < 33) return
         if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) return

@@ -576,7 +576,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         return Occurrences(fromDay, toDay, timed, lanes, allDay)
     }
 
-    /** Le dossier choisi, avec les mêmes contrôles que `MainActivity.tree()` ; `write` exige aussi l'autorisation d'écrire. */
+    /** Le dossier choisi, avec les contrôles habituels (permission durable) ; `write` exige aussi l'autorisation d'écrire. */
     private fun treeUri(write: Boolean): Uri {
         val context = getApplication<Application>()
         val raw = context.getSharedPreferences(TREE_PREFS, Context.MODE_PRIVATE).getString(TREE_KEY, "").orEmpty()
@@ -814,7 +814,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     /** Pour ouvrir une pièce jointe : le dossier en lecture, sans rien écrire. */
     fun attachmentStorage(): SafWorkspaceStorage? = runCatching { SafWorkspaceStorage(getApplication(), treeUri(write = false)) }.getOrNull()
 
-    /** Lit le dossier : mêmes contrôles que `MainActivity.tree()`, puis le noyau fait le reste. */
+    /** Lit le dossier : permission durable contrôlée, puis le noyau fait le reste. */
     private fun read(): WorkspaceData {
         val context = getApplication<Application>()
         val workspace = loadWorkspace(SafWorkspaceStorage(context, treeUri(write = false)))

@@ -63,13 +63,6 @@
             </intent-filter>
         </activity>
 
-        <!-- L'ancienne interface (WebView), sans filtre LAUNCHER : ouverte depuis les Réglages de l'app native. -->
-        <activity
-            android:name=".MainActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
-            android:exported="false"
-            android:screenOrientation="unspecified" />
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.updates"

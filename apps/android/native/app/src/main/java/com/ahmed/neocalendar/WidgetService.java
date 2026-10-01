@@ -192,7 +192,7 @@ public class WidgetService extends RemoteViewsService {
 
             if (!row.id.isEmpty()) {
                 Intent fill = new Intent();
-                fill.putExtra(MainActivity.EXTRA_EVENT_ID, row.id);
+                fill.putExtra(com.ahmed.neocalendar.nativeapp.NativeExtras.EVENT_ID, row.id);
                 views.setOnClickFillInIntent(R.id.row_root, fill);
             }
             return views;
