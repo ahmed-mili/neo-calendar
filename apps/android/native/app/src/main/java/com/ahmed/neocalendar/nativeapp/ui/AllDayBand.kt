@@ -97,7 +97,7 @@ fun AllDayBand(
             if (lanes.laneCount >= 2 || collapsed) {
                 Icon(
                     if (collapsed) NeoIcons.ChevronDown else NeoIcons.ChevronUp,
-                    contentDescription = if (collapsed) "Afficher les évènements sur la journée" else "Réduire les évènements sur la journée",
+                    contentDescription = if (collapsed) "Afficher les événements sur la journée" else "Réduire les événements sur la journée",
                     tint = Neo.TextSecondary,
                     modifier = Modifier.size(16.dp),
                 )
@@ -141,7 +141,7 @@ fun AllDayBand(
                                 contentAlignment = Alignment.CenterStart,
                             ) {
                                 Text(
-                                    "$count évènements",
+                                    "$count événements",
                                     color = Neo.TextSecondary,
                                     fontSize = 11.sp,
                                     maxLines = 1,

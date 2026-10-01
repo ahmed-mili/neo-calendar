@@ -66,12 +66,12 @@ fun SearchScreen(
 
     Column(Modifier.fillMaxSize().imePadding()) {
         Row(Modifier.fillMaxWidth().height(Neo.TopBarHeight).padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            ListSearchField(query, { query = it }, "Rechercher un évènement", Modifier.weight(1f), autoFocus = true)
+            ListSearchField(query, { query = it }, "Rechercher un événement", Modifier.weight(1f), autoFocus = true)
             Box(Modifier.height(Neo.TouchTarget).clickable(onClick = onClose).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
                 Text("Annuler", color = Neo.Accent, fontSize = 15.sp)
             }
         }
-        if (query.isNotBlank() && corpus != null && days.isEmpty()) EmptyNote("Aucun évènement trouvé")
+        if (query.isNotBlank() && corpus != null && days.isEmpty()) EmptyNote("Aucun événement trouvé")
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp)) {
             for (day in days) {
                 item {

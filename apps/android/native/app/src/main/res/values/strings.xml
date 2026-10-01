@@ -33,8 +33,8 @@
     </plurals>
     <string name="native_calendars">"Calendriers"</string>
     <plurals name="native_calendar_events">
-        <item quantity="one">"%1$s : %2$d évènement"</item>
-        <item quantity="other">"%1$s : %2$d évènements"</item>
+        <item quantity="one">"%1$s : %2$d événement"</item>
+        <item quantity="other">"%1$s : %2$d événements"</item>
     </plurals>
     <string name="native_upcoming">"Prochaines notes"</string>
     <string name="native_no_upcoming">"Aucune note ponctuelle à venir."</string>

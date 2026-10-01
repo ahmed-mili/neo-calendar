@@ -163,6 +163,6 @@ fun failedIcsState(previous: IcsSyncState, now: Instant, error: String): IcsSync
 
 /** Le message montré sur le lien : celui du réseau ou du stockage, et une phrase claire pour l'instantané vide. */
 fun describeIcsFailure(error: Throwable): String = when (error) {
-    is EmptySnapshotException -> "Le lien ne renvoie plus aucun évènement alors qu'il en avait : les notes sont conservées."
+    is EmptySnapshotException -> "Le lien ne renvoie plus aucun événement alors qu'il en avait : les notes sont conservées."
     else -> error.message?.takeIf { it.isNotBlank() } ?: error.javaClass.simpleName
 }

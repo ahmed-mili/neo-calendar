@@ -93,7 +93,7 @@ fun SettingsScreen(version: String, updates: NativeUpdates, data: WorkspaceData,
     BackHandler(enabled = page.isNotEmpty()) { page = "" }
 
     Column(Modifier.fillMaxSize().background(Neo.Background)) {
-        ListHeader(if (page == "calendars") "Calendriers" else "Réglages", onBack = { if (page.isNotEmpty()) page = "" else onBack() })
+        ListHeader(if (page == "calendars") "Calendriers" else "Paramètres", onBack = { if (page.isNotEmpty()) page = "" else onBack() })
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp)) {
             if (page == "calendars") CalendarsPage(data, actions) else RootPage(data, actions, version, updates, { page = it }, { choice = it })
         }
@@ -126,14 +126,14 @@ fun SettingsScreen(version: String, updates: NativeUpdates, data: WorkspaceData,
 
 @Composable
 private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: String, updates: NativeUpdates, openPage: (String) -> Unit, openChoice: (String) -> Unit) {
-    Group("Affichage") {
+    Group("Vue du calendrier") {
         SettingRow(NeoIcons.Calendar, "Premier jour de la semaine", WEEKDAYS[data.firstDay.coerceIn(0, 6)]) { openChoice("firstDay") }
-        SettingToggle(NeoIcons.Clock, "Format 24 h", data.timeFormat24h) { actions.onSetting("timeFormat24h", JsonPrimitive(it)) }
+        SettingToggle(NeoIcons.Clock, "Format 24 heures", data.timeFormat24h) { actions.onSetting("timeFormat24h", JsonPrimitive(it)) }
         SettingToggle(NeoIcons.ChevronRight, "Défilement libre entre les jours", data.freeScroll) { actions.onSetting("freeScroll", JsonPrimitive(it)) }
         SettingRow(NeoIcons.Bell, "Rappel", reminderListLabel(data.reminderMinutes.map { it.toDouble() }), onClick = actions.onAppReminder)
         SettingRow(NeoIcons.Navigation, "Mode de trajet", TRAVEL_MODES.firstOrNull { it.first == data.mapsTravelMode }?.second.orEmpty()) { openChoice("travel") }
         SettingRow(NeoIcons.MapPin, "Application de cartes", MAPS_APPS.firstOrNull { it.first == data.mapsApp }?.second.orEmpty()) { openChoice("maps") }
-        SettingToggle(NeoIcons.Check, "Nouveaux évènements en tâches", data.defaultEventsAsTasks) { actions.onSetting("defaultEventsAsTasks", JsonPrimitive(it)) }
+        SettingToggle(NeoIcons.Check, "Nouveaux événements créés comme des tâches", data.defaultEventsAsTasks) { actions.onSetting("defaultEventsAsTasks", JsonPrimitive(it)) }
     }
     Group("Intégrations") {
         SettingRow(NeoIcons.Calendar, "Calendriers", data.calendars.size.toString()) { openPage("calendars") }

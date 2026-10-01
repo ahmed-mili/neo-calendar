@@ -61,12 +61,12 @@ fun CalendarEventsList(
 
     Column(Modifier.fillMaxSize()) {
         ListHeader(calendar.name, onBack, dot = accent)
-        ListSearchField(query, { query = it }, "Rechercher un évènement", Modifier.padding(horizontal = 16.dp))
+        ListSearchField(query, { query = it }, "Rechercher un événement", Modifier.padding(horizontal = 16.dp))
         when {
             shown == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Neo.Accent)
             }
-            shown.isEmpty() -> EmptyNote(if (query.isNotBlank()) "Aucun évènement correspondant" else "Aucun évènement")
+            shown.isEmpty() -> EmptyNote(if (query.isNotBlank()) "Aucun événement correspondant" else "Aucun événement")
             else -> LazyColumn(
                 Modifier.fillMaxSize(),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
