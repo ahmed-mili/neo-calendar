@@ -423,10 +423,11 @@ fun EventSheet(
                     }
                 }
                 Box(Modifier.weight(1f))
-                if (editable && stored != null) {
+                // Le bouton est toujours là dans l'ancienne ; en lecture seule son menu est vide (rien à dessiner).
+                if (stored != null) {
                     Box {
-                        HeaderButton(NeoIcons.Ellipsis, "Plus d'actions", 22.dp, on = overflowMenu) { overflowMenu = true }
-                        Popover(overflowMenu, { overflowMenu = false }, PopoverSurface(Neo.Surface, 6.dp, 4.dp, true), width = 182.dp, alignEnd = true) {
+                        HeaderButton(NeoIcons.Ellipsis, "Plus d'actions", 22.dp, on = overflowMenu) { if (editable) overflowMenu = true }
+                        Popover(overflowMenu && editable, { overflowMenu = false }, PopoverSurface(Neo.Surface, 6.dp, 4.dp, true), width = 182.dp, alignEnd = true) {
                             PopoverEntry("Dupliquer", 46.dp, textSize = 15, radius = 11.dp, icon = NeoIcons.CopyPlus, horizontalPadding = 12.dp) {
                                 overflowMenu = false
                                 held = null
@@ -450,7 +451,7 @@ fun EventSheet(
                         }
                     }
                 }
-                HeaderButton(NeoIcons.Close, "Fermer", 18.dp) { leave(slide = true) }
+                HeaderButton(NeoIcons.Close, "Fermer", 22.dp) { leave(slide = true) }
             }
         },
         body = {
@@ -472,8 +473,9 @@ fun EventSheet(
                     val steps = if (previous != null || following != null) SeriesSteps(previous != null, following != null, ::step) else null
                     RepeatField(values, editable, data.firstDay, steps) { values = it }
                 }
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(8.5.dp))
                 Rule()
+                Spacer(Modifier.height(2.dp))
 
                 CalendarField(
                     calendars = editableCalendars,
@@ -495,8 +497,10 @@ fun EventSheet(
                     mapsApp = data.mapsApp,
                     mapsTravelMode = data.mapsTravelMode,
                 ) { values = values.copy(location = it) }
-                Spacer(Modifier.height(17.dp))
+                // Un lieu rempli (lien) pèse 9 px de moins qu'un champ vide (`min-height: 44px` des champs, pas du bouton).
+                Spacer(Modifier.height(if (values.location.isEmpty()) 9.5.dp else 5.5.dp))
                 Rule()
+                Spacer(Modifier.height(5.dp))
 
                 val open: (String) -> Unit = { targetPath ->
                     if (ExternalOpen.isWebTarget(targetPath)) {
@@ -589,7 +593,7 @@ private fun TitleRow(title: String, editable: Boolean, draft: Boolean, onChange:
     val size = if (draft) 25.sp else 16.sp
     val weight = if (draft) FontWeight(650) else FontWeight.Normal
     Box(
-        Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = if (draft) 4.dp else 24.dp, bottom = 12.dp)
+        Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = if (draft) 4.dp else 17.dp, bottom = if (draft) 12.dp else 15.dp)
             .background(if (focused) Neo.Hover else Color.Transparent, shape)
             .border(1.dp, Color.Transparent, shape)
             .padding(horizontal = 8.dp, vertical = 6.dp),

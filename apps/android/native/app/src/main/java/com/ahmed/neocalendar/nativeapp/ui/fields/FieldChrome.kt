@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.sp
 import com.ahmed.neocalendar.nativeapp.ui.Neo
 import com.ahmed.neocalendar.nativeapp.ui.NeoIcons
@@ -50,6 +51,9 @@ fun FieldRow(
     open: Boolean = false,
     minHeight: Int = 44,
     iconTint: Color = Neo.TextSecondary,
+    /** Les glyphes de l'ancienne tiennent en haut de leur rangée : décalage vertical du glyphe par rapport au centre. */
+    iconOffset: androidx.compose.ui.unit.Dp = 0.dp,
+    iconSize: androidx.compose.ui.unit.Dp = 16.dp,
     leading: (@Composable () -> Unit)? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -59,8 +63,8 @@ fun FieldRow(
         (if (open) clickable.background(Neo.Hover) else clickable).padding(start = ICON_COLUMN_START, end = 16.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(ICON_SIZE, 20.dp), contentAlignment = Alignment.Center) {
-            if (leading != null) leading() else if (icon != null) Icon(icon, null, tint = iconTint, modifier = Modifier.size(16.dp))
+        Box(Modifier.size(ICON_SIZE, 20.dp).offset(y = iconOffset), contentAlignment = Alignment.Center) {
+            if (leading != null) leading() else if (icon != null) Icon(icon, null, tint = iconTint, modifier = Modifier.size(iconSize))
         }
         Box(Modifier.width(FIELD_GAP))
         content()

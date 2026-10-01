@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmed.neocalendar.core.form.EventFormValues
@@ -46,6 +47,7 @@ import com.ahmed.neocalendar.core.form.parseTypedTime
 import com.ahmed.neocalendar.core.form.withAllDay
 import com.ahmed.neocalendar.core.form.withClearedDate
 import com.ahmed.neocalendar.core.format.formatClock
+import com.ahmed.neocalendar.core.format.formatDatedDay
 import com.ahmed.neocalendar.core.format.formatDatedDayWithYear
 import com.ahmed.neocalendar.nativeapp.ui.Neo
 import com.ahmed.neocalendar.nativeapp.ui.NeoIcons
@@ -57,6 +59,12 @@ import java.time.LocalTime
 fun dateLabel(iso: String): String {
     val date = runCatching { LocalDate.parse(iso) }.getOrNull() ?: return ""
     return formatDatedDayWithYear(date, LocalDate.now().year)
+}
+
+/** `formatPanelDate` : le jour de la fiche, sans l'année et avec la majuscule (« Jeu 1 oct »). */
+fun panelDateLabel(iso: String): String {
+    val date = runCatching { LocalDate.parse(iso) }.getOrNull() ?: return ""
+    return formatDatedDay(date).replaceFirstChar { it.uppercase() }
 }
 
 /** « 09:00 » ou « 9:00 AM » selon le réglage ; une heure absente se dit « --:-- ». */
@@ -90,6 +98,19 @@ fun TimeInput(value: String, timeFormat24h: Boolean, enabled: Boolean, onCommit:
     val shape = RoundedCornerShape(6.dp)
     Box(
         Modifier.heightIn(min = 44.dp).background(if (focused) Neo.Text.copy(alpha = 0.1f) else androidx.compose.ui.graphics.Color.Transparent, shape)
+            // `:focus-visible { outline: 2px solid accent; outline-offset: 2px }` : le champ d'heure est un `input[type=time]`, hors de la liste des champs de texte sans anneau.
+            .drawBehind {
+                if (focused) {
+                    val out = 3.dp.toPx()
+                    drawRoundRect(
+                        Neo.Accent,
+                        topLeft = androidx.compose.ui.geometry.Offset(-out, -out),
+                        size = androidx.compose.ui.geometry.Size(size.width + out * 2, size.height + out * 2),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(8.dp.toPx()),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()),
+                    )
+                }
+            }
             .padding(horizontal = 4.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -120,7 +141,7 @@ private fun DateButton(iso: String, editable: Boolean, firstDay: Int, onPick: (S
             Modifier.heightIn(min = 40.dp).let { if (editable) it.pressFill(shape, Neo.Hover, on = open) { open = true } else it }
                 .padding(horizontal = 6.dp, vertical = 2.dp),
             contentAlignment = Alignment.CenterStart,
-        ) { Text(dateLabel(iso), color = Neo.Text, fontSize = 16.sp, maxLines = 1) }
+        ) { Text(panelDateLabel(iso), color = Neo.Text, fontSize = 16.sp, maxLines = 1) }
         DatePopover(open, iso, firstDay, { open = false }, { open = false; onPick(it) }, onClear?.let { clear -> { open = false; clear() } })
     }
 }
@@ -167,8 +188,8 @@ fun ScheduleFields(
     val timesShown = !values.allDay || values.startTime.isNotEmpty()
     val fieldWidth = if (timeFormat24h) 54.dp else 78.dp
 
-    Spacer(Modifier.height(4.dp))
-    FieldRow(NeoIcons.Clock, minHeight = 48) {
+    Spacer(Modifier.height(2.dp))
+    FieldRow(NeoIcons.Clock, minHeight = 48, iconOffset = (-9.5).dp, iconSize = 14.dp) {
         if (timesShown) {
             Row(Modifier.alpha(if (values.allDay) 0.38f else 1f), verticalAlignment = Alignment.CenterVertically) {
                 TimeInput(values.startTime, timeFormat24h, editable && !values.allDay) { onChange(values.copy(startTime = it)) }
@@ -178,6 +199,7 @@ fun ScheduleFields(
             }
         }
     }
+    Spacer(Modifier.height(1.dp))
     Row(Modifier.fillMaxWidth().padding(start = ICON_COLUMN_START + ICON_SIZE + FIELD_GAP - 6.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(if (ranged && timesShown) Modifier.width(fieldWidth + 43.dp) else Modifier) {
             DateButton(values.date, editable, firstDay, { onChange(values.copy(date = it)) }, if (editable && canClearDate) ({ onChange(values.withClearedDate()) }) else null)
@@ -188,6 +210,7 @@ fun ScheduleFields(
     }
 
     // « Toute la journée » : une ligne qui s'allume, sans interrupteur.
+    Spacer(Modifier.height(4.dp))
     val shape = RoundedCornerShape(6.dp)
     Box(
         Modifier.fillMaxWidth().padding(horizontal = 10.dp)

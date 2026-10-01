@@ -1,6 +1,7 @@
 package com.ahmed.neocalendar.nativeapp.ui.fields
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -72,23 +73,38 @@ fun LocationField(
         }
     }
     Box {
-        FieldRow(NeoIcons.MapPin, minHeight = 52) {
+        FieldRow(NeoIcons.MapPin, minHeight = 52, iconOffset = (-3.5).dp) {
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (editable) {
-                    if (location.isEmpty()) Text("Lieu", color = Neo.TextFaint, fontSize = 16.sp)
+                    if (location.isEmpty()) Text("Lieu", color = Neo.TextFaint, fontSize = 16.sp, modifier = Modifier.align(Alignment.TopStart).padding(start = 7.dp, top = 13.dp))
                     BasicTextField(
                         location,
                         onChange,
                         textStyle = TextStyle(color = Neo.Text, fontSize = 16.sp),
                         cursorBrush = SolidColor(Neo.Accent),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(start = 7.dp, top = 13.dp, bottom = 3.dp),
                     )
                 } else {
                     // Verrouillé, le texte EST le lien : rien d'autre à faire de cette rangée que de la suivre.
+                    // `.nc-panel-location-link` : texte `--nc-text-primary`, souligné à 2 px de la ligne de base en `--nc-text-faint`.
+                    var layout by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
                     Text(
-                        location, color = Neo.TextFaint, fontSize = 16.sp, textDecoration = TextDecoration.Underline,
-                        modifier = (if (destination != null) Modifier.clickable { open() } else Modifier).padding(vertical = 8.dp),
+                        location, color = Neo.Text, fontSize = 16.sp,
+                        onTextLayout = { layout = it },
+                        modifier = (if (destination != null) Modifier.clickable { open() } else Modifier)
+                            .padding(start = 7.dp, top = 8.dp, bottom = 8.dp)
+                            .drawBehind {
+                                layout?.let { text ->
+                                    for (line in 0 until text.lineCount) {
+                                        drawRect(
+                                            Neo.TextFaint,
+                                            topLeft = androidx.compose.ui.geometry.Offset(text.getLineLeft(line), text.getLineBaseline(line) + 2.dp.toPx()),
+                                            size = androidx.compose.ui.geometry.Size(text.getLineRight(line) - text.getLineLeft(line), 1.dp.toPx()),
+                                        )
+                                    }
+                                }
+                            },
                     )
                 }
             }

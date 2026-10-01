@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -97,8 +98,9 @@ fun IcsLinksDialog(
                 .padding(14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(NeoIcons.Link, null, tint = Neo.TextSecondary, modifier = Modifier.size(22.dp))
-                UiText("Liens ICS — $calendarName", size = 16.sp, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) { Icon(NeoIcons.Link, null, tint = Neo.TextSecondary, modifier = Modifier.size(16.dp)) }
+                // Le `h2` hérite de la police du panneau (`system-ui`), pas d'Inter qui ne vaut que pour champs et boutons.
+                UiText("Liens ICS — $calendarName", size = 16.sp, weight = FontWeight.Bold, family = FontFamily.Default, modifier = Modifier.weight(1f))
                 Box(Modifier.size(30.dp).pressFill(RoundedCornerShape(7.dp), Neo.Hover, onClick = onDismiss), contentAlignment = Alignment.Center) {
                     Icon(NeoIcons.Close, "Fermer", tint = Neo.TextSecondary, modifier = Modifier.size(18.dp))
                 }
@@ -165,7 +167,7 @@ fun IcsLinksDialog(
                 ) {
                     // Texte blanc sur l'accent : `.nc-ics-panel__add-form button { color: #fff }`.
                     Icon(NeoIcons.Plus, null, tint = Color.White, modifier = Modifier.size(15.dp))
-                    UiText("Ajouter un lien ICS", color = Color.White, size = 13.sp, weight = FontWeight.SemiBold, modifier = Modifier.padding(start = 6.dp))
+                    UiText("Ajouter un lien ICS", color = Color.White, size = 16.sp, weight = FontWeight.SemiBold, modifier = Modifier.padding(start = 6.dp))
                 }
             }
             problem?.let { UiText(it, color = Neo.Danger, size = 12.sp, modifier = Modifier.padding(top = 8.dp)) }

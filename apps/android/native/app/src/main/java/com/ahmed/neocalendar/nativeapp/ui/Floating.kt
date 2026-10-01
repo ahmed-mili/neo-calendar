@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.os.Build
+import android.view.WindowManager
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
@@ -55,13 +57,14 @@ import kotlin.math.max
 /**
  * Un dialogue à la façon de l'ancienne : un voile `rgba(8,9,18,.72)` sur tout l'écran (jetons `Veil`), la carte posée
  * où `alignment` la met. Un appui sur le voile ferme ; la carte garde ses propres appuis (`NeoModalCard`).
- * Écart assumé : pas de flou 5 à 7 px derrière le voile, une fenêtre Android ne peut pas flouter l'écran dessous.
+ * Le flou 7 px derrière le voile vient de `FLAG_BLUR_BEHIND` (Android 12 et plus).
  */
 @Composable
 fun NeoModal(
     onDismiss: () -> Unit,
     alignment: Alignment = Alignment.Center,
-    insets: Boolean = true,
+    /** Vrai : la carte évite les barres système. Faux (défaut) : elle se centre sur tout l'écran, comme `position: fixed; inset: 0`. */
+    insets: Boolean = false,
     /** Faux : pas de voile (le dialogue « Ajouter un lien » de la description n'en a pas), un appui dehors ferme quand même. */
     veil: Boolean = true,
     content: @Composable BoxScope.() -> Unit,
@@ -71,7 +74,15 @@ fun NeoModal(
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         val window = (LocalView.current.parent as? DialogWindowProvider)?.window
-        SideEffect { window?.setDimAmount(0f) }
+        val blurPx = with(LocalDensity.current) { 7.dp.roundToPx() }
+        SideEffect {
+            window?.setDimAmount(0f)
+            // Le `backdrop-filter: blur(5 à 7px)` des voiles de l'ancienne : flou de fenêtre d'Android 12 (sans effet en dessous).
+            if (window != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && veil) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                window.attributes = window.attributes.also { it.blurBehindRadius = blurPx }
+            }
+        }
         Box(
             Modifier
                 .fillMaxSize()
