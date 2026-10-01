@@ -127,6 +127,8 @@ class SettingsActions(
     val onAddCalendar: () -> Unit,
     val onPickFolder: () -> Unit,
     val folderName: String,
+    /** Les notes sont dans le stockage privé (synchronisation intégrée) : pas de « Changer de dossier ». */
+    val integratedStorage: Boolean = false,
     val oldAppInstalled: Boolean = false,
     val onUninstallOldApp: () -> Unit = {},
     val onTimezoneAdd: (String) -> Unit = {},
@@ -490,6 +492,12 @@ private fun ZoneRow(shape: Shape, zone: String, onRemove: () -> Unit) {
 
 @Composable
 private fun FolderPage(actions: SettingsActions) {
+    if (actions.integratedStorage) {
+        Group(null, note = "Vos notes sont dans le stockage privé de Neo Calendar, que les autres applications ne peuvent pas lire.\nElles se synchronisent avec la synchronisation intégrée (Réglages, Synchronisation).") {
+            text(actions.folderName)
+        }
+        return
+    }
     Group(null, note = "Neo Calendar range ses fichiers de calendrier dans ce dossier. Chaque sous-dossier direct est un calendrier.") {
         text(actions.folderName)
         row(NeoIcons.FolderOpen, "Changer de dossier", null, chevron = false, onClick = actions.onPickFolder)

@@ -83,6 +83,8 @@ import com.ahmed.neocalendar.core.recurrence.DisplayEvent
 import com.ahmed.neocalendar.nativeapp.NativeRoute
 import com.ahmed.neocalendar.nativeapp.NativeViewModel
 import com.ahmed.neocalendar.nativeapp.ScreenState
+import com.ahmed.neocalendar.core.workspace.StorageMode
+import com.ahmed.neocalendar.nativeapp.WorkspaceLocation
 import com.ahmed.neocalendar.nativeapp.uninstallOldApp
 import com.ahmed.neocalendar.nativeapp.WRITE_IGNORED
 import com.ahmed.neocalendar.nativeapp.WorkspaceData
@@ -716,6 +718,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                         onAddCalendar = { calendarDialog = CalendarDialog.Add },
                         onPickFolder = { pickTree.launch(Unit) },
                         folderName = viewModel.treeName(),
+                        integratedStorage = WorkspaceLocation.mode(context) == StorageMode.Integrated,
                         oldAppInstalled = oldAppInstalled,
                         onUninstallOldApp = { uninstallOldApp(context) },
                         onTimezoneAdd = viewModel::addTimezone,

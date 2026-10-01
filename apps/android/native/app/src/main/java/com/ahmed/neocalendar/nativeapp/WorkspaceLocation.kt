@@ -1,0 +1,98 @@
+package com.ahmed.neocalendar.nativeapp
+
+import android.content.Context
+import android.net.Uri
+import androidx.core.content.FileProvider
+import com.ahmed.neocalendar.core.workspace.BinaryWorkspaceStorage
+import com.ahmed.neocalendar.core.workspace.FileWorkspaceStorage
+import com.ahmed.neocalendar.core.workspace.StorageMode
+import com.ahmed.neocalendar.core.workspace.initNewWorkspace
+import com.ahmed.neocalendar.core.workspace.resolveStorageMode
+import java.io.File
+
+/**
+ * Le dossier de notes courant. Une installation d'avant ce mode (un dossier SAF déjà choisi, pas de mode
+ * écrit) est `External` : rien n'est copié, déplacé ni demandé à la mise à jour (`resolveStorageMode`).
+ */
+object WorkspaceLocation {
+    private const val PREFS = "neo_android"
+    private const val KEY_TREE = "tree_uri"
+    private const val KEY_MODE = "storage_mode"
+
+    fun privateRoot(context: Context): File = File(context.filesDir, "Neo Calendar")
+
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    /** `null` : rien de choisi, c'est une nouvelle installation. Ne touche pas au disque (appelable sur le fil principal). */
+    fun mode(context: Context): StorageMode? {
+        val p = prefs(context)
+        return resolveStorageMode(p.getString(KEY_MODE, null), p.getString(KEY_TREE, null))
+    }
+
+    fun setMode(context: Context, mode: StorageMode) {
+        prefs(context).edit().putString(KEY_MODE, mode.name).commit()
+    }
+
+    fun isNewInstall(context: Context): Boolean = mode(context) == null
+
+    /**
+     * Première ouverture d'une nouvelle installation : le dossier privé `Neo Calendar`, son marqueur et son
+     * `.stignore`, puis le mode. Le mode est écrit EN DERNIER : une coupure au milieu recommence proprement.
+     * Hors du fil principal. Sans effet quand un mode est déjà écrit (appelable à chaque lecture).
+     */
+    @Synchronized
+    fun prepareNewInstall(context: Context) {
+        if (!isNewInstall(context)) return
+        val root = privateRoot(context)
+        root.mkdirs()
+        initNewWorkspace(FileWorkspaceStorage(root))
+        setMode(context, StorageMode.Integrated)
+    }
+
+    /** Le dossier SAF choisi, avec les contrôles habituels (permission durable) ; `write` exige aussi l'autorisation d'écrire. */
+    fun externalTreeUri(context: Context, write: Boolean): Uri {
+        val raw = prefs(context).getString(KEY_TREE, "").orEmpty()
+        if (raw.isEmpty()) throw Exception("Sélectionnez d'abord un dossier de notes.")
+        val uri = Uri.parse(raw)
+        val grants = context.contentResolver.persistedUriPermissions.filter { it.uri == uri }
+        if (grants.none { it.isReadPermission }) throw Exception("L'autorisation du dossier a été révoquée. Sélectionnez-le à nouveau.")
+        if (write && grants.none { it.isWritePermission }) {
+            throw Exception("L'autorisation d'écrire dans le dossier a été révoquée. Sélectionnez-le à nouveau.")
+        }
+        return uri
+    }
+
+    fun rememberTree(context: Context, uri: Uri) {
+        prefs(context).edit().putString(KEY_TREE, uri.toString()).commit()
+    }
+
+    /** Le stockage du dossier de notes, selon le mode. Lève une exception au message lisible si le dossier n'est pas utilisable. */
+    fun open(context: Context, write: Boolean): BinaryWorkspaceStorage = when (mode(context)) {
+        StorageMode.Integrated -> FileWorkspaceStorage(privateRoot(context))
+        StorageMode.External -> SafWorkspaceStorage(context, externalTreeUri(context, write))
+        null -> throw Exception("Sélectionnez d'abord un dossier de notes.")
+    }
+
+    /** Le nom du dossier pour les Réglages. */
+    fun displayName(context: Context): String = when (mode(context)) {
+        StorageMode.Integrated -> "Stockage privé de l'application"
+        StorageMode.External -> {
+            val raw = prefs(context).getString(KEY_TREE, "").orEmpty()
+            runCatching {
+                android.provider.DocumentsContract.getTreeDocumentId(Uri.parse(raw)).substringAfterLast(':').substringAfterLast('/')
+            }.getOrDefault(raw)
+        }
+        null -> "Aucun"
+    }
+
+    /** Une pièce jointe à ouvrir dans une autre appli : un URI SAF, ou un URI de FileProvider pour le stockage privé. Null si elle n'existe pas. */
+    fun attachmentUri(context: Context, relativePath: String): Uri? = when (mode(context)) {
+        StorageMode.Integrated -> {
+            val file = File(privateRoot(context), relativePath)
+            val inside = file.canonicalPath.startsWith(privateRoot(context).canonicalPath + File.separator)
+            if (inside && file.isFile) FileProvider.getUriForFile(context, "${context.packageName}.updates", file) else null
+        }
+        StorageMode.External -> (open(context, write = false) as SafWorkspaceStorage).uriOf(relativePath)
+        null -> null
+    }
+}

@@ -48,7 +48,10 @@ import com.ahmed.neocalendar.core.preferences.withHolidayRemoved
 import com.ahmed.neocalendar.core.holidays.holidayDisplayEvents
 import com.ahmed.neocalendar.core.holidays.holidaySourcesOf
 import com.ahmed.neocalendar.core.preferences.withSetting
+import com.ahmed.neocalendar.core.workspace.BinaryWorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.EventWriter
+import com.ahmed.neocalendar.core.workspace.StorageMode
+import com.ahmed.neocalendar.core.workspace.WorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.createFolder
 import com.ahmed.neocalendar.core.workspace.deleteFolder
 import com.ahmed.neocalendar.core.workspace.renameCalendar as renameCalendarAndPreferences
@@ -83,8 +86,6 @@ import kotlinx.serialization.json.booleanOrNull
 /** Rendu par une écriture refusée parce qu'une autre était en cours : ni un succès ni une erreur à afficher. */
 const val WRITE_IGNORED = "\u0000write-ignored"
 
-private const val TREE_PREFS = "neo_android"
-private const val TREE_KEY = "tree_uri"
 private const val DEVICE_PREFS = "neo_native"
 private const val KEY_DAY_COUNT = "dayCount"
 private const val KEY_ALLDAY_COLLAPSED = "allDayCollapsed"
@@ -359,7 +360,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun writePreferences(change: (JsonObject) -> JsonObject): String? = prefsLock.withLock {
         withContext(Dispatchers.IO) {
             try {
-                updatePreferences(SafWorkspaceStorage(getApplication(), treeUri(write = true)), change)
+                updatePreferences(openStorage(write = true), change)
                 null
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -383,7 +384,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     private val icsSync = IcsSync(
         app,
         viewModelScope,
-        { SafWorkspaceStorage(getApplication(), treeUri(write = true)) },
+        { openStorage(write = true) },
         ::writePreferences,
         { reload(force = true) },
     )
@@ -422,10 +423,6 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     /** Relit le dossier ; ignoré s'il y en a une en cours ou si la dernière lecture date de moins de 400 ms. */
     fun reload(force: Boolean = false) {
         if (importing) return
-        if (!hasTree()) {
-            _screen.value = ScreenState.NeedsFolder
-            return
-        }
         // Jamais pendant une écriture : l'écriture relit le dossier elle-même quand elle finit.
         if (!force && writeGate.isBusy) return
         val now = SystemClock.elapsedRealtime()
@@ -435,7 +432,11 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         lastReloadAt = now
         loading = viewModelScope.launch {
             try {
-                val data = withContext(Dispatchers.IO) { read() }
+                // Nouvelle installation : le dossier privé est créé ici (hors du fil principal), puis lu comme les autres.
+                val data = withContext(Dispatchers.IO) {
+                    WorkspaceLocation.prepareNewInstall(getApplication())
+                    read()
+                }
                 // Les calendriers masqués sont ceux du fichier (le PC a pu en changer).
                 _hidden.value = data.hiddenCalendarIds
                 withContext(compute) {
@@ -576,19 +577,8 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         return Occurrences(fromDay, toDay, timed, lanes, allDay)
     }
 
-    /** Le dossier choisi, avec les contrôles habituels (permission durable) ; `write` exige aussi l'autorisation d'écrire. */
-    private fun treeUri(write: Boolean): Uri {
-        val context = getApplication<Application>()
-        val raw = context.getSharedPreferences(TREE_PREFS, Context.MODE_PRIVATE).getString(TREE_KEY, "").orEmpty()
-        if (raw.isEmpty()) throw Exception("Sélectionnez d'abord un dossier de notes.")
-        val uri = Uri.parse(raw)
-        val grants = context.contentResolver.persistedUriPermissions.filter { it.uri == uri }
-        if (grants.none { it.isReadPermission }) throw Exception("L'autorisation du dossier a été révoquée. Sélectionnez-le à nouveau.")
-        if (write && grants.none { it.isWritePermission }) {
-            throw Exception("L'autorisation d'écrire dans le dossier a été révoquée. Sélectionnez-le à nouveau.")
-        }
-        return uri
-    }
+    /** Le stockage du dossier de notes selon le mode : privé (vrai chemin) ou SAF. Lève une exception au message lisible si inutilisable. */
+    private fun openStorage(write: Boolean): BinaryWorkspaceStorage = WorkspaceLocation.open(getApplication(), write)
 
     /**
      * Une seule écriture à la fois, puis le dossier est relu, qu'elle ait réussi ou non. Un geste qui
@@ -602,13 +592,13 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     val writing: StateFlow<Boolean> = _writing.asStateFlow()
 
     /** Rend le message de l'erreur, null quand l'écriture a réussi, [WRITE_IGNORED] quand une autre était en cours. */
-    private suspend fun write(block: (EventWriter, SafWorkspaceStorage) -> Unit): String? {
+    private suspend fun write(block: (EventWriter, BinaryWorkspaceStorage) -> Unit): String? {
         if (!writeGate.tryEnter()) return WRITE_IGNORED
         _writing.value = true
         try {
             val error = withContext(Dispatchers.IO) {
                 try {
-                    val storage = SafWorkspaceStorage(getApplication(), treeUri(write = true))
+                    val storage = openStorage(write = true)
                     block(EventWriter(storage), storage)
                     null
                 } catch (e: Exception) {
@@ -634,7 +624,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
      */
     class NoteWrite(val error: String?, val note: StoredEvent?)
 
-    private suspend fun writeNote(block: (EventWriter, SafWorkspaceStorage) -> com.ahmed.neocalendar.core.workspace.WrittenEvent): NoteWrite {
+    private suspend fun writeNote(block: (EventWriter, BinaryWorkspaceStorage) -> com.ahmed.neocalendar.core.workspace.WrittenEvent): NoteWrite {
         var written: com.ahmed.neocalendar.core.workspace.WrittenEvent? = null
         val error = write { writer, storage -> written = block(writer, storage) }
         val note = written?.let { w -> latestData()?.events?.firstOrNull { it.relativePath == w.relativePath } }
@@ -745,7 +735,8 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
             _notices.tryEmit(e.message ?: e.toString())
             return
         }
-        app.getSharedPreferences(TREE_PREFS, Context.MODE_PRIVATE).edit().putString(TREE_KEY, uri.toString()).apply()
+        WorkspaceLocation.rememberTree(app, uri)
+        WorkspaceLocation.setMode(app, StorageMode.External)
         // L'export de l'ancienne app (s'il y en a un) est réappliqué avant la première lecture.
         importing = true
         _screen.value = ScreenState.Loading
@@ -768,9 +759,6 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
 
     @Volatile private var importing = false
 
-    private fun hasTree(): Boolean =
-        getApplication<Application>().getSharedPreferences(TREE_PREFS, Context.MODE_PRIVATE).getString(TREE_KEY, "").orEmpty().isNotEmpty()
-
     // --- l'ancienne app ---------------------------------------------------------------------------
 
     private val _oldAppInstalled = MutableStateFlow(isOldAppInstalled(app))
@@ -783,21 +771,15 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         _oldAppInstalled.value = isOldAppInstalled(getApplication())
     }
 
-    /** Le nom du dossier de notes choisi, pour la ligne des Réglages. */
-    fun treeName(): String {
-        val raw = getApplication<Application>().getSharedPreferences(TREE_PREFS, Context.MODE_PRIVATE).getString(TREE_KEY, "").orEmpty()
-        if (raw.isEmpty()) return "Aucun"
-        return runCatching {
-            android.provider.DocumentsContract.getTreeDocumentId(Uri.parse(raw)).substringAfterLast(':').substringAfterLast('/')
-        }.getOrDefault(raw)
-    }
+    /** Le nom du dossier de notes, pour la ligne des Réglages. */
+    fun treeName(): String = WorkspaceLocation.displayName(getApplication())
 
     /** Un fichier choisi, ce que `copyAttachment` de l'ancienne en fait : copié dans le dossier des pièces jointes à côté de la note. */
     class CopiedAttachment(val fileName: String, val markdownPath: String)
 
     suspend fun copyAttachment(eventRelativePath: String, source: Uri): CopiedAttachment = withContext(Dispatchers.IO) {
         val context = getApplication<Application>()
-        val storage = SafWorkspaceStorage(context, treeUri(write = true))
+        val storage = openStorage(write = true)
         val resolver = context.contentResolver
         val base = if ('/' in eventRelativePath) eventRelativePath.substringBeforeLast('/') else ""
         // Le point compte : un dossier sans point serait pris pour un calendrier (voir `attachmentFolderName`).
@@ -811,56 +793,62 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         CopiedAttachment(name, attachmentMarkdownPath(eventRelativePath, folder, name))
     }
 
-    /** Pour ouvrir une pièce jointe : le dossier en lecture, sans rien écrire. */
-    fun attachmentStorage(): SafWorkspaceStorage? = runCatching { SafWorkspaceStorage(getApplication(), treeUri(write = false)) }.getOrNull()
+    /** Pour ouvrir une pièce jointe dans une autre appli : son URI (SAF, ou FileProvider pour le stockage privé), sans rien écrire. */
+    fun attachmentUri(relativePath: String): Uri? = runCatching { WorkspaceLocation.attachmentUri(getApplication(), relativePath) }.getOrNull()
 
-    /** Lit le dossier : permission durable contrôlée, puis le noyau fait le reste. */
-    private fun read(): WorkspaceData {
-        val context = getApplication<Application>()
-        val workspace = loadWorkspace(SafWorkspaceStorage(context, treeUri(write = false)))
-        // La lecture tolérante du noyau : un fichier étrange ne plante pas, il retombe sur les valeurs lues une à une.
-        val preferences = parseWorkspacePreferences(workspace.preferences)
-        val holidaySources = holidaySourcesOf(preferences)
-        val calendars = buildCalendarModels(workspace.calendars, preferences, AppLocale.current, holidaySources)
-        val known = workspace.calendars.map { calendarIdFromPath(it.relativePath) }.toSet()
-        val events = workspace.eventFiles.mapNotNull {
-            parseStoredEvent(EventFile(it.relativePath, it.calendarPath, it.fileName, it.contents), known)
-        }
-        val hiddenPaths = (preferences["hiddenCalendarPaths"] as? JsonArray).orEmpty()
-            .mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
-        fun flag(key: String, fallback: Boolean) =
-            (preferences[key] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fallback
-        return WorkspaceData(
-            calendars = calendars,
-            events = events,
-            firstDay = (preferences["firstDay"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 1,
-            freeScroll = flag("freeScroll", false),
-            timeFormat24h = flag("timeFormat24h", true),
-            // Un calendrier de jours fériés se désigne par sa clé `auto::<id>`, qui est aussi son identifiant ; un dossier, par `local::<chemin>`.
-            hiddenCalendarIds = hiddenPaths.map { if (it.startsWith("auto::")) it else calendarIdFromPath(it) }.toSet(),
-            // Comme `CalendarApp.tsx` : le défaut choisi s'il est modifiable, sinon le premier calendrier modifiable (« Par défaut » est toujours quelque part).
-            defaultCalendarPath = (preferences["defaultCalendarPath"] as? JsonPrimitive)?.takeIf { it.isString }?.content
-                ?.takeIf { chosen -> calendars.any { it.editable && it.relativePath == chosen } }
-                ?: calendars.firstOrNull { it.editable }?.relativePath,
-            defaultEventsAsTasks = flag("defaultEventsAsTasks", false),
-            mapsApp = (preferences["mapsApp"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: "ask",
-            mapsTravelMode = (preferences["mapsTravelMode"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: "auto",
-            reminderMinutes = (preferences["reminderMinutes"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.content?.toLongOrNull() },
-            calendarReminderMinutes = (preferences["calendarReminderMinutes"] as? JsonObject).orEmpty().mapValues { (_, list) ->
-                (list as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.content?.toLongOrNull() }
-            },
-            icsLinks = icsLinksOf(preferences["icsFeeds"]),
-            icsDefaultMinutes = (preferences["icsDefaultRefreshMinutes"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 60,
-            holidays = holidaySources.flatMap { holidayDisplayEvents(it, LocalDate.now().year, zone) },
-            initialDesktop = ((preferences["initialView"] as? JsonObject)?.get("desktop") as? JsonPrimitive)?.content ?: "week",
-            initialMobile = ((preferences["initialView"] as? JsonObject)?.get("mobile") as? JsonPrimitive)?.content ?: "3days",
-            clickToCreateFromMonth = flag("clickToCreateEventFromMonthView", true),
-            secondaryTimezones = (preferences["secondaryTimezones"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.content },
-            prayerMosques = (preferences["prayerMosques"] as? JsonObject).orEmpty().mapNotNull { (path, id) -> (id as? JsonPrimitive)?.takeIf { it.isString }?.content?.let { path to it } }.toMap(),
-            prayerColors = (preferences["prayerColors"] as? JsonObject).orEmpty().mapNotNull { (path, hex) -> (hex as? JsonPrimitive)?.takeIf { it.isString }?.content?.let { path to it } }.toMap(),
-            prayerJumua = (preferences["prayerJumua"] as? JsonObject).orEmpty().mapValues { (_, list) ->
-                (list as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
-            }.filterValues { it.isNotEmpty() },
-        )
+    /** Lit le dossier selon le mode (permission durable contrôlée pour le SAF), puis le noyau fait le reste. */
+    private fun read(): WorkspaceData = readWorkspaceData(openStorage(write = false))
+}
+
+/**
+ * Le dossier lu et prêt pour l'écran : les calendriers, les notes, les réglages. Sans ViewModel, pour que le
+ * rafraîchissement des rappels et du widget après une synchro reçue (app fermée) lise exactement la même chose.
+ */
+internal fun readWorkspaceData(storage: WorkspaceStorage): WorkspaceData {
+    val zone = ZoneId.systemDefault()
+    val workspace = loadWorkspace(storage)
+    // La lecture tolérante du noyau : un fichier étrange ne plante pas, il retombe sur les valeurs lues une à une.
+    val preferences = parseWorkspacePreferences(workspace.preferences)
+    val holidaySources = holidaySourcesOf(preferences)
+    val calendars = buildCalendarModels(workspace.calendars, preferences, AppLocale.current, holidaySources)
+    val known = workspace.calendars.map { calendarIdFromPath(it.relativePath) }.toSet()
+    val events = workspace.eventFiles.mapNotNull {
+        parseStoredEvent(EventFile(it.relativePath, it.calendarPath, it.fileName, it.contents), known)
     }
+    val hiddenPaths = (preferences["hiddenCalendarPaths"] as? JsonArray).orEmpty()
+        .mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
+    fun flag(key: String, fallback: Boolean) =
+        (preferences[key] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: fallback
+    return WorkspaceData(
+        calendars = calendars,
+        events = events,
+        firstDay = (preferences["firstDay"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 1,
+        freeScroll = flag("freeScroll", false),
+        timeFormat24h = flag("timeFormat24h", true),
+        // Un calendrier de jours fériés se désigne par sa clé `auto::<id>`, qui est aussi son identifiant ; un dossier, par `local::<chemin>`.
+        hiddenCalendarIds = hiddenPaths.map { if (it.startsWith("auto::")) it else calendarIdFromPath(it) }.toSet(),
+        // Comme `CalendarApp.tsx` : le défaut choisi s'il est modifiable, sinon le premier calendrier modifiable (« Par défaut » est toujours quelque part).
+        defaultCalendarPath = (preferences["defaultCalendarPath"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            ?.takeIf { chosen -> calendars.any { it.editable && it.relativePath == chosen } }
+            ?: calendars.firstOrNull { it.editable }?.relativePath,
+        defaultEventsAsTasks = flag("defaultEventsAsTasks", false),
+        mapsApp = (preferences["mapsApp"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: "ask",
+        mapsTravelMode = (preferences["mapsTravelMode"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: "auto",
+        reminderMinutes = (preferences["reminderMinutes"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.content?.toLongOrNull() },
+        calendarReminderMinutes = (preferences["calendarReminderMinutes"] as? JsonObject).orEmpty().mapValues { (_, list) ->
+            (list as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.content?.toLongOrNull() }
+        },
+        icsLinks = icsLinksOf(preferences["icsFeeds"]),
+        icsDefaultMinutes = (preferences["icsDefaultRefreshMinutes"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 60,
+        holidays = holidaySources.flatMap { holidayDisplayEvents(it, LocalDate.now().year, zone) },
+        initialDesktop = ((preferences["initialView"] as? JsonObject)?.get("desktop") as? JsonPrimitive)?.content ?: "week",
+        initialMobile = ((preferences["initialView"] as? JsonObject)?.get("mobile") as? JsonPrimitive)?.content ?: "3days",
+        clickToCreateFromMonth = flag("clickToCreateEventFromMonthView", true),
+        secondaryTimezones = (preferences["secondaryTimezones"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.content },
+        prayerMosques = (preferences["prayerMosques"] as? JsonObject).orEmpty().mapNotNull { (path, id) -> (id as? JsonPrimitive)?.takeIf { it.isString }?.content?.let { path to it } }.toMap(),
+        prayerColors = (preferences["prayerColors"] as? JsonObject).orEmpty().mapNotNull { (path, hex) -> (hex as? JsonPrimitive)?.takeIf { it.isString }?.content?.let { path to it } }.toMap(),
+        prayerJumua = (preferences["prayerJumua"] as? JsonObject).orEmpty().mapValues { (_, list) ->
+            (list as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
+        }.filterValues { it.isNotEmpty() },
+    )
 }

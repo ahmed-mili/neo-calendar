@@ -99,7 +99,7 @@ class IcsSync(
     context: Context,
     private val scope: CoroutineScope,
     /** Le dossier de notes, avec l'autorisation d'écrire (lève si elle est révoquée). */
-    private val storage: () -> SafWorkspaceStorage,
+    private val storage: () -> com.ahmed.neocalendar.core.workspace.WritableWorkspaceStorage,
     /** L'écriture sûre des préférences ; rend le message d'erreur, ou null. */
     private val updatePreferences: suspend ((JsonObject) -> JsonObject) -> String?,
     /** Des notes ont changé sur le disque : l'écran relit le dossier. */

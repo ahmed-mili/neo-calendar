@@ -507,7 +507,7 @@ fun EventSheet(
                         ExternalOpen.openLink(context, targetPath)
                     } else {
                         scope.launch {
-                            ExternalOpen.openAttachment(context, viewModel.attachmentStorage(), stored?.relativePath.orEmpty(), targetPath)
+                            ExternalOpen.openAttachment(context, viewModel::attachmentUri, stored?.relativePath.orEmpty(), targetPath)
                         }
                     }
                 }

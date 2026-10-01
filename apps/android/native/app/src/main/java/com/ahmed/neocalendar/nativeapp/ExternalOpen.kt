@@ -86,11 +86,11 @@ object ExternalOpen {
     }
 
     /** Une pièce jointe : son chemin depuis le dossier de notes (`attachmentPathFor`), ouverte par l'application qui sait la lire. */
-    suspend fun openAttachment(context: Context, storage: SafWorkspaceStorage?, eventRelativePath: String, target: String) {
+    suspend fun openAttachment(context: Context, uriOf: (String) -> Uri?, eventRelativePath: String, target: String) {
         val written = runCatching { Uri.decode(target) }.getOrDefault(target)
         val path = attachmentPathFor(eventRelativePath, written)
         // Retrouver le fichier interroge le dossier : hors du fil principal.
-        val uri = withContext(Dispatchers.IO) { runCatching { storage?.uriOf(path) }.getOrNull() }
+        val uri = withContext(Dispatchers.IO) { runCatching { uriOf(path) }.getOrNull() }
             ?: return toast(context, "Fichier introuvable : $path")
         val extension = MimeTypeMap.getFileExtensionFromUrl(path.replace(" ", "_")).lowercase(Locale.ROOT)
         val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"

@@ -3,8 +3,8 @@ package com.ahmed.neocalendar.nativeapp
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
+import com.ahmed.neocalendar.core.workspace.BinaryWorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.WorkspaceStorage
-import com.ahmed.neocalendar.core.workspace.WritableWorkspaceStorage
 import java.io.IOException
 import java.util.Locale
 
@@ -14,15 +14,15 @@ import java.util.Locale
  * Une instance sert une seule opération : chaque dossier n'est interrogé qu'une
  * fois, et toute écriture oublie ce qui avait été listé.
  */
-class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : WritableWorkspaceStorage {
+class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : BinaryWorkspaceStorage {
     private val root: Uri =
         DocumentsContract.buildDocumentUriUsingTree(treeUri, DocumentsContract.getTreeDocumentId(treeUri))
 
-    private class Doc(val uri: Uri, val name: String, val isDirectory: Boolean)
+    private class Doc(val uri: Uri, val name: String, val isDirectory: Boolean, val lastModified: Long)
 
     override fun list(relativeDir: String): List<WorkspaceStorage.Entry> {
         val dir = findPath(relativeDir) ?: return emptyList()
-        return children(dir).map { WorkspaceStorage.Entry(it.name, it.isDirectory) }
+        return children(dir).map { WorkspaceStorage.Entry(it.name, it.isDirectory, it.lastModified) }
     }
 
     override fun readText(relativePath: String): String? {
@@ -31,6 +31,11 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : Writable
             if (input == null) throw IOException("Lecture impossible")
             return String(input.readBytes(), Charsets.UTF_8)
         }
+    }
+
+    override fun openInput(relativePath: String): java.io.InputStream? {
+        val uri = findPath(relativePath) ?: return null
+        return context.contentResolver.openInputStream(uri) ?: throw IOException("Lecture impossible")
     }
 
     /** L'URI du fichier, pour l'ouvrir dans une autre application ; null s'il n'existe pas. */
@@ -46,7 +51,7 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : Writable
     }
 
     /** Écrit le contenu d'un flux dans un fichier déjà créé (une pièce jointe : des octets, pas du texte). */
-    fun writeStream(relativePath: String, input: java.io.InputStream) {
+    override fun writeStream(relativePath: String, input: java.io.InputStream) {
         val uri = findPath(relativePath) ?: throw IOException("Écriture impossible: $relativePath")
         context.contentResolver.openOutputStream(uri, "wt").use { out ->
             if (out == null) throw IOException("Écriture impossible")
@@ -106,6 +111,7 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : Writable
             DocumentsContract.Document.COLUMN_DOCUMENT_ID,
             DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_MIME_TYPE,
+            DocumentsContract.Document.COLUMN_LAST_MODIFIED,
         )
         context.contentResolver.query(uri, columns, null, null, null)?.use { c ->
             while (c.moveToNext()) {
@@ -113,6 +119,7 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : Writable
                     DocumentsContract.buildDocumentUriUsingTree(parent, c.getString(0)),
                     c.getString(1),
                     c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR,
+                    if (c.isNull(3)) 0L else c.getLong(3),
                 )
             }
         }
