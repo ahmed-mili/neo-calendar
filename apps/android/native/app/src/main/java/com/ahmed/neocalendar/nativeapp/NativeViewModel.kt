@@ -641,6 +641,34 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Un changement de stockage (bascule, dossier existant, retour à un dossier externe) : sous le même verrou que les écritures de
+     * notes (aucune note n'est écrite pendant une copie), puis le dossier est relu. Rend le message d'erreur, ou null.
+     */
+    suspend fun switchStorage(block: suspend () -> String?): String? {
+        if (!writeGate.tryEnter()) return "Une écriture est en cours : réessayez dans un instant."
+        _writing.value = true
+        try {
+            val error = withContext(Dispatchers.IO) {
+                try {
+                    block()
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    e.message ?: e.toString()
+                }
+            }
+            reload(force = true)
+            loading?.join()
+            return error
+        } finally {
+            writeGate.leave()
+            _writing.value = false
+            // Un fichier reçu pendant le changement : une relecture de plus, maintenant que le verrou est rendu.
+            if (remotePending) { remotePending = false; reload(force = true) }
+        }
+    }
+
     /** Le dossier tel qu'il est lu à l'instant (les écritures le relisent avant de rendre la main). */
     fun latestData(): WorkspaceData? = (_screen.value as? ScreenState.Ready)?.data
 

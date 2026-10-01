@@ -136,7 +136,7 @@ private sealed interface CalendarDialog {
 }
 
 /** Le sélecteur de dossier : la même demande que `pickDirectory` de la WebView (lecture, écriture, permission durable). */
-private class PickTree : androidx.activity.result.contract.ActivityResultContract<Unit, android.content.Intent?>() {
+internal class PickTree : androidx.activity.result.contract.ActivityResultContract<Unit, android.content.Intent?>() {
     override fun createIntent(context: android.content.Context, input: Unit) =
         android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(
             android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
@@ -297,6 +297,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
         if (result != null) viewModel.onTreePicked(result)
     }
     val oldAppInstalled by viewModel.oldAppInstalled.collectAsState()
+    val storageSwitch = rememberStorageSwitch(viewModel)
     LaunchedEffect(reloadError) { reloadError?.let { Notices.fail(it) } }
     LaunchedEffect(Unit) { viewModel.notices.collect { Notices.show(it) } }
     // Une écriture qui échoue le dit ; une écriture ignorée (une autre était en cours) ne dit rien.
@@ -719,6 +720,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                         onPickFolder = { pickTree.launch(Unit) },
                         folderName = viewModel.treeName(),
                         integratedStorage = WorkspaceLocation.mode(context) == StorageMode.Integrated,
+                        sync = storageSwitch,
                         oldAppInstalled = oldAppInstalled,
                         onUninstallOldApp = { uninstallOldApp(context) },
                         onTimezoneAdd = viewModel::addTimezone,

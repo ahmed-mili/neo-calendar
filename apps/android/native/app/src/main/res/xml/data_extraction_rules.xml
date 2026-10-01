@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 et plus. Le dossier d'état du moteur (clé, certificat, secrets, index) ne quitte jamais le téléphone : une restauration
+     sur un autre téléphone dupliquerait l'identité de l'appareil Syncthing. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="syncthing/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="syncthing/" />
+    </device-transfer>
+</data-extraction-rules>

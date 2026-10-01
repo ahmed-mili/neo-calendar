@@ -177,6 +177,15 @@ class SyncController private constructor(context: Context) {
     /** « Quitter » (mode Comme Syncthing-Fork, sans démarrage automatique) : moteur et service s'arrêtent jusqu'au prochain lancement de l'app. */
     fun quit() = settings.update { it.copy(quit = true) }
 
+    /**
+     * Un changement de stockage commence : le moteur est arrêté (attente de sa sortie réelle) et ne repart pas avant
+     * [releaseStorageSwitch]. Pris sous le verrou du chef d'orchestre : une décision en cours a fini, les suivantes voient le drapeau.
+     */
+    internal suspend fun holdForStorageSwitch() {
+        storageSwitching = true
+        mutex.withLock { engine.stop() }
+    }
+
     /** « Réessayer » après l'abandon des relances. */
     fun retry() {
         engine.start()
@@ -194,7 +203,8 @@ class SyncController private constructor(context: Context) {
         val running = decision is RunDecision.Run
         val open = appVisible || SystemClock.elapsedRealtime() < graceUntil
         val background = s.configured && !s.quit && (s.runMode == RunMode.LikeFork || open)
-        val wanted = integrated && running && (pageOpen || background)
+        // Un changement de stockage est en cours : le moteur reste arrêté, quoi que disent les conditions.
+        val wanted = !storageSwitching && integrated && running && (pageOpen || background)
         val state = engine.state.value
         if (wanted && state is EngineState.Stopped) engine.start()
         // `engine.isActive` : une marche tout juste lancée a encore l'état Stopped, il ne faut pas la laisser passer.
@@ -276,6 +286,9 @@ class SyncController private constructor(context: Context) {
 
     companion object {
         private const val GRACE_MS = 60_000L
+
+        /** Vrai pendant un changement de stockage (même sans contrôleur créé : un contrôleur né pendant ce temps ne lance rien). */
+        @Volatile internal var storageSwitching = false
 
         @Volatile private var instance: SyncController? = null
 

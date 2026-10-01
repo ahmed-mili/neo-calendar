@@ -55,6 +55,7 @@ class SyncSwitchActions(
     val onSwitchToIntegrated: () -> Unit = {},
     val onOpenExistingFolder: () -> Unit = {},
     val onBackToExternal: () -> Unit = {},
+    val onClearPrivate: () -> Unit = {},
 )
 
 private sealed interface SyncSheet {
@@ -79,12 +80,18 @@ internal fun SyncPage(switchActions: SyncSwitchActions) {
 private fun ExternalSyncPage(actions: SyncSwitchActions) {
     val context = LocalContext.current
     val folderName = WorkspaceLocation.displayName(context)
+    // Des notes restées dans le stockage privé d'un passage précédent : on propose de les vider (jamais automatiquement).
+    // Relu à chaque nouvelle série d'actions (`actions` change après chaque passage).
+    val leftover by androidx.compose.runtime.produceState(false, actions) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.ahmed.neocalendar.nativeapp.sync.StorageSwitch.privateHasNotes(context) }
+    }
     Group(
         "Mode de stockage",
         note = "Vos notes sont dans un dossier que vous avez choisi, synchronisé par un autre outil (Syncthing, stockage en ligne, transfert manuel).\nLa synchronisation intégrée de Neo Calendar est inactive : les deux ne tournent jamais ensemble sur les mêmes notes.",
     ) {
         row(NeoIcons.FolderOpen, "Dossier synchronisé par une autre app", folderName, chevron = false, onClick = null)
         row(NeoIcons.RefreshCw, "Passer à la synchronisation intégrée", "Recommandé", onClick = actions.onSwitchToIntegrated)
+        if (leftover) row(NeoIcons.Trash2, "Vider le stockage privé", "Notes d'un passage précédent", chevron = false, onClick = actions.onClearPrivate)
     }
 }
 
