@@ -23,8 +23,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -48,14 +47,23 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmed.neocalendar.MainActivity
+import com.ahmed.neocalendar.core.appearance.AppearanceMode
+import com.ahmed.neocalendar.core.appearance.THEMES
 import com.ahmed.neocalendar.core.reminders.reminderListLabel
+import com.ahmed.neocalendar.nativeapp.AppLanguage
+import com.ahmed.neocalendar.nativeapp.ui.theme.NeoAppearance
 import com.ahmed.neocalendar.nativeapp.WorkspaceData
 import com.ahmed.neocalendar.nativeapp.ui.theme.NeoFonts
 import kotlinx.serialization.json.JsonPrimitive
 
 private val WEEKDAYS = listOf("Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi")
 
-private class Option(val value: String, val label: String, val icon: ImageVector? = null)
+internal class Option(val value: String, val label: String, val icon: ImageVector? = null, val iconContent: (@Composable () -> Unit)? = null)
+
+private val MODES = listOf(
+    Option("system", "Système", NeoIcons.Smartphone), Option("light", "Clair", NeoIcons.SunMedium), Option("dark", "Sombre", NeoIcons.Moon),
+)
+private val LANGUAGE_OPTIONS = listOf(Option("fr", "Français"), Option("en", "English"))
 
 private val DESKTOP_VIEWS = listOf(
     Option("day", "Jour", NeoIcons.Square), Option("week", "Semaine", NeoIcons.Columns3),
@@ -90,7 +98,7 @@ class SettingsActions(
 typealias CalendarEntry = com.ahmed.neocalendar.core.grid.CalendarModel
 
 @Composable
-private fun SText(
+internal fun SText(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = Neo.Text,
@@ -114,13 +122,14 @@ private fun SText(
  */
 @Composable
 fun SettingsScreen(version: String, data: WorkspaceData, actions: SettingsActions, onBack: () -> Unit) {
+    val context = LocalContext.current
     var page by rememberSaveable { mutableStateOf("") }
     var choice by remember { mutableStateOf<String?>(null) }
     BackHandler(enabled = page.isNotEmpty()) { page = "" }
 
     Column(Modifier.fillMaxSize().background(Neo.Mantle)) {
         SettingsHeader(
-            when (page) { "calendars" -> "Calendriers"; "folder" -> "Dossier de données"; else -> "Paramètres" },
+            when (page) { "calendars" -> "Calendriers"; "folder" -> "Dossier de données"; "appearance" -> "Apparence"; else -> "Paramètres" },
             onBack = { if (page.isNotEmpty()) page = "" else onBack() },
         )
         Column(
@@ -130,6 +139,7 @@ fun SettingsScreen(version: String, data: WorkspaceData, actions: SettingsAction
             when (page) {
                 "calendars" -> CalendarsPage(data, actions)
                 "folder" -> FolderPage(actions)
+                "appearance" -> AppearancePage { choice = "theme" }
                 else -> RootPage(data, actions, version, { page = it }, { choice = it })
             }
         }
@@ -146,6 +156,14 @@ fun SettingsScreen(version: String, data: WorkspaceData, actions: SettingsAction
         }
         "travel" -> pick(TRAVEL_MODES, data.mapsTravelMode, "Mode de trajet") { actions.onSetting("mapsTravelMode", JsonPrimitive(it)) }
         "maps" -> pick(MAPS_APPS, data.mapsApp, "Application de cartes") { actions.onSetting("mapsApp", JsonPrimitive(it)) }
+        "theme" -> pick(
+            THEMES.map { Option(it.id, it.label, iconContent = { ThemePreview(it) }) }, NeoAppearance.themeId, "Thèmes",
+        ) { NeoAppearance.setTheme(context, it) }
+        "mode" -> pick(MODES, NeoAppearance.preferences.mode.key, "Mode de couleur") { NeoAppearance.setMode(context, AppearanceMode.of(it)) }
+        "language" -> pick(LANGUAGE_OPTIONS, AppLanguage.code, "Langue") {
+            NeoAppearance.setLanguage(context, it)
+            (context as? android.app.Activity)?.recreate()
+        }
         "sync" -> SyncDialog(actions.folderName, onPickFolder = { choice = null; actions.onPickFolder() }, onDismiss = { choice = null })
     }
 }
@@ -186,11 +204,10 @@ private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: Str
             actions.onSetting("defaultEventsAsTasks", JsonPrimitive(it))
         }
     }
-    // Thème, mode de couleur et langue : lot 5b. Les lignes sont là, leur page pas encore.
     Group("Apparence") {
-        row(NeoIcons.Palette, "Thème", "Catppuccin", onClick = null)
-        row(NeoIcons.Moon, "Mode de couleur", "Sombre", onClick = null)
-        row(NeoIcons.Languages, "Langue", "Français", onClick = null)
+        row(NeoIcons.Palette, "Thème", NeoAppearance.theme.label) { openPage("appearance") }
+        row(NeoIcons.Moon, "Mode de couleur", MODES.label(NeoAppearance.preferences.mode.key)) { openChoice("mode") }
+        row(NeoIcons.Languages, "Langue", LANGUAGE_OPTIONS.label(AppLanguage.code)) { openChoice("language") }
     }
     Group("Intégrations") {
         row(NeoIcons.CalendarDays, "Calendriers", data.calendars.size.toString()) { openPage("calendars") }
@@ -241,20 +258,25 @@ private fun FolderPage(actions: SettingsActions) {
 }
 
 /** Ce qu'un groupe contient : le groupe en dessine les lignes, chacune avec son rayon (14 en haut du premier, 14 en bas du dernier, 4 ailleurs). */
-private class GroupBuilder {
+internal class GroupBuilder {
     val rows = mutableListOf<@Composable (Shape) -> Unit>()
 
     /** Une ligne ; sans `onClick` elle est inerte (ni fond d'appui, ni chevron). Un `dot` fait la ligne d'un calendrier. */
-    fun row(icon: ImageVector?, label: String, value: String?, dot: Color? = null, chevron: Boolean = true, onClick: (() -> Unit)?) {
+    fun row(
+        icon: ImageVector?, label: String, value: String?, dot: Color? = null, chevron: Boolean = true,
+        iconContent: (@Composable () -> Unit)? = null, iconWidth: Int = 22, valueSize: Float = 15f, disabled: Boolean = false, onClick: (() -> Unit)?,
+    ) {
         rows += { shape ->
             val base = Modifier.fillMaxWidth().heightIn(min = 52.dp).background(Neo.SettingRow, shape)
             Row(
-                (if (onClick != null) base.pressFill(shape, Neo.Hover, onClick = onClick) else base.clip(shape))
+                (if (onClick != null && !disabled) base.pressFill(shape, Neo.Hover, onClick = onClick) else base.clip(shape))
+                    .let { if (disabled) it.alpha(0.5f) else it }
                     .padding(start = 16.dp, end = 14.dp, top = 9.dp, bottom = 9.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (icon != null) Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) {
+                if (iconContent != null) Box(Modifier.width(iconWidth.dp), contentAlignment = Alignment.Center) { iconContent() }
+                else if (icon != null) Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) {
                     Icon(icon, null, tint = Neo.SettingsValue, modifier = Modifier.size(18.dp))
                 }
                 if (dot != null) {
@@ -265,7 +287,7 @@ private class GroupBuilder {
                     }
                 } else {
                     SText(label, Modifier.weight(1f), lineHeight = 19.5f)
-                    if (!value.isNullOrEmpty()) SText(value, Modifier.widthIn(max = 200.dp), color = Neo.SettingsValue, maxLines = 1, align = TextAlign.End)
+                    if (!value.isNullOrEmpty()) SText(value, Modifier.widthIn(max = 200.dp), color = Neo.SettingsValue, size = valueSize, maxLines = 1, align = TextAlign.End)
                 }
                 // Le chevron de l'ancienne (`navigates`) : toutes les lignes qui mènent quelque part, y compris celles qui ne mènent encore à rien.
                 if (chevron) {
@@ -273,6 +295,11 @@ private class GroupBuilder {
                 }
             }
         }
+    }
+
+    /** Une ligne dont le contenu est dessiné par l'appelant (curseur, champ de texte) : il reçoit la forme de la ligne. */
+    fun custom(content: @Composable (Shape) -> Unit) {
+        rows += content
     }
 
     fun toggle(icon: ImageVector, label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
@@ -303,7 +330,7 @@ private class GroupBuilder {
 
 /** Les groupes de l'ancienne : titre 13 / 500, lignes séparées de 2 dp, fond `SettingRow`, note de 13 dessous. */
 @Composable
-private fun Group(title: String?, note: String? = null, content: GroupBuilder.() -> Unit) {
+internal fun Group(title: String?, note: String? = null, content: GroupBuilder.() -> Unit) {
     val rows = GroupBuilder().apply(content).rows
     Column {
         if (title != null) SText(title, Modifier.padding(start = 4.dp, bottom = 8.dp), color = Neo.SettingsValue, size = 13f, weight = 500)
@@ -322,7 +349,7 @@ private val SwitchEasing = CubicBezierEasing(0.2f, 0.85f, 0.25f, 1f)
 
 /** `.nc-set-switch` : piste 44 x 26, bouton 20 posé à 3, décalé de 18 une fois activé ; 160 ms. */
 @Composable
-private fun SettingsSwitch(checked: Boolean) {
+internal fun SettingsSwitch(checked: Boolean) {
     val knobX by animateDpAsState(if (checked) 21.dp else 3.dp, tween(160, easing = SwitchEasing), label = "switch-knob")
     val track by animateColorAsState(if (checked) Neo.Accent else Color(0x32C6D0F5), tween(160), label = "switch-track")
     val knob by animateColorAsState(if (checked) Color.White else Neo.Text, tween(160), label = "switch-knob-color")
@@ -333,7 +360,7 @@ private fun SettingsSwitch(checked: Boolean) {
 
 /** `nc-choice-dialog` : la carte de 300 dp, un titre, des options de 40 dp ; la choisie en accent avec sa coche de 16. */
 @Composable
-private fun ChoiceDialog(title: String, options: List<Option>, selected: String, onPick: (String) -> Unit, onDismiss: () -> Unit) {
+internal fun ChoiceDialog(title: String, options: List<Option>, selected: String, onPick: (String) -> Unit, onDismiss: () -> Unit) {
     ChoiceCard(title, onDismiss) {
         for (option in options) {
             val on = option.value == selected
@@ -343,11 +370,12 @@ private fun ChoiceDialog(title: String, options: List<Option>, selected: String,
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                if (option.icon != null) Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) {
+                if (option.iconContent != null) Box(Modifier.width(24.dp), contentAlignment = Alignment.Center) { option.iconContent.invoke() }
+                else if (option.icon != null) Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) {
                     Icon(option.icon, null, tint = if (on) Neo.Accent else Neo.TextSecondary, modifier = Modifier.size(19.dp))
                 }
                 // Sans icône le libellé garde sa place (la colonne d'icône vide et son interstice de 10), comme la grille de l'ancienne.
-                SText(option.label, Modifier.weight(1f).padding(start = if (option.icon == null) 10.dp else 0.dp), color = if (on) Neo.Accent else Neo.Text, size = 14f, maxLines = 1)
+                SText(option.label, Modifier.weight(1f).padding(start = if (option.icon == null && option.iconContent == null) 10.dp else 0.dp), color = if (on) Neo.Accent else Neo.Text, size = 14f, maxLines = 1)
                 if (on) Icon(NeoIcons.Check, null, tint = Neo.Accent, modifier = Modifier.size(16.dp))
             }
         }

@@ -104,4 +104,14 @@ class AppearancePreferencesTest {
         assertEquals("ayu", getTheme("ayu").id)
         assertEquals("catppuccin-mocha", getTheme("zzz").id)
     }
+
+    @Test fun `enregistrer sans rien changer ne laisse pas de personnalisation`() {
+        val theme = getTheme("github")
+        val saved = ThemeCustomization(
+            accent = theme.accent, surface = theme.surface, ink = theme.ink, uiFont = theme.uiFont, codeFont = theme.codeFont,
+            translucentSidebar = !theme.opaqueWindows, contrast = theme.contrast, wallpaperId = "none",
+        ).withoutThemeDefaults(theme)
+        assertEquals(ThemeCustomization(wallpaperId = "none"), saved)
+        assertEquals("#000000", ThemeCustomization(accent = "#000000").withoutThemeDefaults(theme).accent)
+    }
 }

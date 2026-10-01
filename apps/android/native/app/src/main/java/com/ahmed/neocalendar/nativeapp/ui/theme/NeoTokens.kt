@@ -4,6 +4,8 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ahmed.neocalendar.core.appearance.ThemeColors
+import com.ahmed.neocalendar.core.appearance.mixColors
 
 /** `0 offsetY blur color`, l'ombre de `--nc-shadow` ; le thème n'a ni décalage horizontal ni étalement. */
 @Immutable
@@ -152,3 +154,74 @@ val CatppuccinMocha = NeoTokens(
     wallpaperVeilTop = 0.16f,
     wallpaperVeilBottom = 0.24f,
 )
+
+private fun c(argb: Long) = Color(argb)
+private fun mix(a: Long, b: Long, t: Double) = Color(mixColors(a, b, t))
+
+/**
+ * Les jetons d'un thème autre que Catppuccin Mocha sombre (ou d'un Mocha dont une couleur a été personnalisée), calculés à
+ * partir des couleurs résolues du thème. Chaque jeton garde le rôle et l'opacité qu'il a dans `CatppuccinMocha` (la table
+ * mesurée de la spec §22) ; seule la teinte vient du thème : les fonds, les textes, l'accent et les états lui appartiennent,
+ * les voiles translucides prennent l'encre (sombre : blanc, clair : noir). Le rouge d'aujourd'hui, les couleurs de tâche et
+ * le brouillon sont ceux de l'ancienne pour tous les thèmes (elle ne les surcharge pas).
+ */
+fun deriveTokens(id: String, colors: ThemeColors, themeWallpaperFile: String): NeoTokens {
+    val base = CatppuccinMocha
+    val light = colors.light
+    // Les voiles de la grille et des champs : du blanc sur un fond sombre, du noir sur un fond clair.
+    val veilBase = if (light) Color.Black else Color.White
+    fun veil(alpha: Float) = veilBase.copy(alpha = alpha)
+    val ink = c(colors.text)
+    return NeoTokens(
+        id = id,
+        surface = c(colors.primary),
+        mantle = c(colors.secondary),
+        background = c(colors.crust),
+        settingRow = if (light) mix(colors.crust, colors.secondary, 0.6) else mix(colors.crust, colors.secondary, 0.25),
+        hover = c(colors.hover),
+        barPress = veil(0x14 / 255f),
+        border = c(colors.border),
+        borderStrong = ink.copy(alpha = 0x38 / 255f),
+        text = ink,
+        textSecondary = c(colors.muted),
+        textFaint = c(colors.faint),
+        label = if (light) ink else mix(colors.text, 0xFFFFFFFFL, 0.25),
+        settingsValue = mix(colors.muted, colors.faint, 0.18),
+        settingsNote = mix(colors.muted, colors.faint, 0.78),
+        accent = c(colors.accent),
+        accentStrong = c(colors.accentStrong),
+        onAccent = c(colors.onAccent),
+        today = base.today,
+        todayPill = base.todayPill,
+        danger = c(colors.error),
+        overdue = base.overdue,
+        success = c(colors.success),
+        taskTodo = base.taskTodo,
+        taskDone = base.taskDone,
+        gridLine = mix(colors.muted, colors.faint, 0.1).copy(alpha = 0x2B / 255f),
+        allDayGutterBorder = base.allDayGutterBorder,
+        allDayCellBorder = c(colors.faint).copy(alpha = 0x3D / 255f),
+        draft = base.draft,
+        draftFill = base.draftFill,
+        veil = mix(colors.crust, 0xFF000000L, 0.5).copy(alpha = 0xB8 / 255f),
+        faintFill = veil(0x09 / 255f),
+        faintBorder = veil(0x12 / 255f),
+        inputFill = veil(0x0A / 255f),
+        inputBorder = veil(0x14 / 255f),
+        fieldFill = mix(colors.primary, colors.text, 0.16),
+        controlFill = mix(colors.primary, colors.text, 0.12),
+        cardTint = ink.copy(alpha = 0x08 / 255f),
+        cardEdge = veil(0x0E / 255f),
+        cardEdgeStrong = veil(0x29 / 255f),
+        highlightWeek = veil(0x17 / 255f),
+        highlightAnchor = veil(0x26 / 255f),
+        chipNeutral = veil(0x24 / 255f),
+        todayColumn = veil(0x0D / 255f),
+        cardRadius = base.cardRadius,
+        shadow = NeoShadow(base.shadow.offsetY, base.shadow.blur, c(colors.crust).copy(alpha = 0x52 / 255f)),
+        themeWallpaperFile = themeWallpaperFile,
+        defaultWallpaperId = base.defaultWallpaperId,
+        wallpaperVeilTop = if (light) 0.18f else base.wallpaperVeilTop,
+        wallpaperVeilBottom = if (light) 0.18f else base.wallpaperVeilBottom,
+    )
+}

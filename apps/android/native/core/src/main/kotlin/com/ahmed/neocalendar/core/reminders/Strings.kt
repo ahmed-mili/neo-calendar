@@ -44,10 +44,14 @@ private val FR = mapOf(
 )
 
 /** `t(key)` de l'interface, langue « fr ». Une clé inconnue est une erreur de port. */
-internal fun t(key: String): String = FR[key] ?: error("Chaîne absente de Strings.kt : $key")
+internal fun t(key: String): String {
+    val french = FR[key] ?: error("Chaîne absente de Strings.kt : $key")
+    // Sans entrée française l'ancienne rend la clé : en anglais, la clé EST le texte (sauf « 1 day », « days »... déjà anglais).
+    return if (com.ahmed.neocalendar.core.format.CoreLanguage.english) key else french
+}
 
 /** `DAYS_SHORT` (`days.short`), dimanche en premier comme `Date.getDay()`. */
-internal val DAYS_SHORT = listOf("dim", "lun", "mar", "mer", "jeu", "ven", "sam")
+internal val DAYS_SHORT: List<String> get() = if (com.ahmed.neocalendar.core.format.CoreLanguage.english) listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat") else listOf("dim", "lun", "mar", "mer", "jeu", "ven", "sam")
 
 /** `MONTHS_SHORT` (`months.short`). */
-internal val MONTHS_SHORT = listOf("janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc")
+internal val MONTHS_SHORT: List<String> get() = if (com.ahmed.neocalendar.core.format.CoreLanguage.english) listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec") else listOf("janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc")

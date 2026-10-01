@@ -49,14 +49,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.border
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -91,6 +89,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.TextStyle
 import com.ahmed.neocalendar.nativeapp.AppLocale
+import com.ahmed.neocalendar.nativeapp.ui.theme.NeoAppearance
 
 /** Un écran plein écran posé sur la grille et le tiroir : liste d'un calendrier, tâches, recherche. */
 private sealed interface Overlay {
@@ -145,13 +144,16 @@ private class PickTree : androidx.activity.result.contract.ActivityResultContrac
 /** L'écran de l'application : l'état du dossier, puis la grille quand il est lu. */
 @Composable
 fun NativeApp(viewModel: NativeViewModel, updates: NativeUpdates) {
+    val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    androidx.compose.runtime.SideEffect { NeoAppearance.followSystem(systemDark) }
+    NeoSystemBars()
     NeoTheme {
         val screen by viewModel.screen.collectAsState()
         val pickTree = androidx.activity.compose.rememberLauncherForActivityResult(PickTree()) { result ->
             if (result != null) viewModel.onTreePicked(result)
         }
         Box(Modifier.fillMaxSize().background(Neo.Background)) {
-            WallpaperLayer(reloadKey = screen::class)
+            WallpaperLayer(reloadKey = screen::class, modifier = Modifier.neoContrast())
             when (val s = screen) {
                 ScreenState.NeedsFolder -> WelcomeScreen { pickTree.launch(Unit) }
                 // Pas de spinner : le splash système tient jusqu'à la lecture du dossier (`holdSplashUntilReady`), puis la grille arrive remplie.
@@ -422,6 +424,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             Modifier
                 .fillMaxSize()
                 .graphicsLayer { alpha = gridAlpha }
+                .neoContrast()
                 .neoGlass()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)),
         ) {

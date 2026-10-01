@@ -13,8 +13,12 @@ import java.time.ZoneId
  */
 
 /** Du lundi au dimanche, comme `DayOfWeek.value - 1`. */
-private val DAYS_SHORT = listOf("lun", "mar", "mer", "jeu", "ven", "sam", "dim")
-private val MONTHS_SHORT = listOf("janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc")
+private val DAYS_SHORT_FR = listOf("lun", "mar", "mer", "jeu", "ven", "sam", "dim")
+private val MONTHS_SHORT_FR = listOf("janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc")
+private val DAYS_SHORT_EN = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+private val MONTHS_SHORT_EN = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+private val DAYS_SHORT get() = if (CoreLanguage.english) DAYS_SHORT_EN else DAYS_SHORT_FR
+private val MONTHS_SHORT get() = if (CoreLanguage.english) MONTHS_SHORT_EN else MONTHS_SHORT_FR
 
 /** « lun » à « dim » : le nom court d'un jour de la semaine, tel que l'interface l'écrit. */
 fun weekdayShort(date: LocalDate): String = DAYS_SHORT[date.dayOfWeek.value - 1]

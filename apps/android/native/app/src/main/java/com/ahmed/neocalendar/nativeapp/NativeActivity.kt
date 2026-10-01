@@ -27,6 +27,7 @@ class NativeActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.ahmed.neocalendar.nativeapp.ui.Translator.load(this)
         NeoAppearance.load(this)
         // Comme MainActivity : barres transparentes sur le fond d'écran, icônes claires, contraste forcé coupé.
         enableEdgeToEdge(

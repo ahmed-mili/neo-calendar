@@ -156,6 +156,20 @@ fun effectiveThemeAppearance(
 fun AppearancePreferences.withCustomization(themeId: String, customization: ThemeCustomization): AppearancePreferences =
     copy(themeOverrides = themeOverrides + (themeId to normalizeCustomization(customization.toJson())))
 
+/**
+ * La personnalisation sans ce qui vaut déjà le défaut du thème : « Enregistrer » sans rien changer ne laisse pas de
+ * personnalisation (l'ancienne range tous les champs ; lue, c'est la même chose). Le fond choisi est toujours gardé.
+ */
+fun ThemeCustomization.withoutThemeDefaults(theme: ThemeDefinition): ThemeCustomization = copy(
+    accent = accent?.takeIf { it != theme.accent },
+    surface = surface?.takeIf { it != theme.surface },
+    ink = ink?.takeIf { it != theme.ink },
+    uiFont = uiFont?.takeIf { it != theme.uiFont },
+    codeFont = codeFont?.takeIf { it != theme.codeFont },
+    translucentSidebar = translucentSidebar?.takeIf { it != !theme.opaqueWindows },
+    contrast = contrast?.takeIf { it != theme.contrast },
+)
+
 /** `resetThemeCustomization`. */
 fun AppearancePreferences.withoutCustomization(themeId: String): AppearancePreferences = copy(themeOverrides = themeOverrides - themeId)
 

@@ -143,7 +143,7 @@ public final class WallpaperStore {
   }
 
   /** Les noms deja presents, pour que le selecteur sache quoi marquer. */
-  List<String> installed() {
+  public List<String> installed() {
     List<String> names = new ArrayList<>();
     Uri folder = folder(false);
     if (folder == null) return names;
@@ -197,7 +197,7 @@ public final class WallpaperStore {
    *
    * @throws IOException si le reseau, l'empreinte ou l'ecriture ne suivent pas
    */
-  void download(String name, String url, String sha256) throws IOException {
+  public void download(String name, String url, String sha256) throws IOException {
     Uri folder = folder(true);
     if (folder == null) {
       throw new IOException("no-folder");

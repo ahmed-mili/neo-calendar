@@ -52,7 +52,7 @@ fun WallpaperLayer(reloadKey: Any? = null, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val tokens = NeoAppearance.tokens
     val effects = NeoAppearance.effects
-    val id = NeoAppearance.wallpaperId ?: tokens.defaultWallpaperId
+    val id = NeoAppearance.wallpaperId
     val solid = id == "none"
     val metrics = context.resources.displayMetrics
     val bitmap by produceState<ImageBitmap?>(null, id, reloadKey) {

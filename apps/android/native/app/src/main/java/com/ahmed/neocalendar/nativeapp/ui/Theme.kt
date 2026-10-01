@@ -3,10 +3,16 @@ package com.ahmed.neocalendar.nativeapp.ui
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -82,7 +88,7 @@ fun Modifier.neoGlass(): Modifier = drawBehind {
 }
 
 @Composable
-private fun neoColorScheme() = darkColorScheme(
+private fun neoColorScheme() = (if (NeoAppearance.isLight) lightColorScheme() else darkColorScheme()).copy(
     primary = Neo.Accent,
     onPrimary = Neo.OnAccent,
     background = Neo.Background,
@@ -113,4 +119,36 @@ fun parseCalendarColor(hex: String): Color = try {
     Color(android.graphics.Color.parseColor(hex))
 } catch (_: IllegalArgumentException) {
     Neo.Accent
+}
+
+/**
+ * `filter: contrast(0.85 + contrast * 0.003)` de `.nc-desktop--calendar` : le curseur « Contraste » de l'Apparence
+ * (60 par défaut, donc 1,03). `contrast(c)` de CSS : chaque canal devient `(v - 0,5) * c + 0,5`.
+ */
+fun Modifier.neoContrast(): Modifier = graphicsLayer {
+    val c = 0.85f + NeoAppearance.effective.contrast * 0.003f
+    val shift = (1f - c) * 0.5f * 255f
+    colorFilter = ColorFilter.colorMatrix(
+        ColorMatrix(
+            floatArrayOf(
+                c, 0f, 0f, 0f, shift,
+                0f, c, 0f, 0f, shift,
+                0f, 0f, c, 0f, shift,
+                0f, 0f, 0f, 1f, 0f,
+            ),
+        ),
+    )
+    compositingStrategy = CompositingStrategy.Offscreen
+}
+
+/** Barres système transparentes sur le fond d'écran ; les icônes suivent le mode (claires en sombre, sombres en clair). */
+@Composable
+fun NeoSystemBars() {
+    val activity = androidx.compose.ui.platform.LocalContext.current as? androidx.activity.ComponentActivity ?: return
+    val light = NeoAppearance.isLight
+    androidx.compose.runtime.LaunchedEffect(light) {
+        val transparent = android.graphics.Color.TRANSPARENT
+        val style = if (light) androidx.activity.SystemBarStyle.light(transparent, transparent) else androidx.activity.SystemBarStyle.dark(transparent)
+        activity.enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+    }
 }
