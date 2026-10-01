@@ -2,61 +2,31 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const src = new URL("../dist/", import.meta.url);
-const dst = new URL("../native/app/src/main/assets/", import.meta.url);
-
 /*
- * Les fonds d'écran ne voyagent plus dans l'APK.
+ * Ce que l'APK embarque : les vignettes des fonds d'écran et leur manifeste,
+ * rien d'autre. L'ancienne interface (WebView) n'existe plus dans l'APK : plus
+ * de page, de script ni de police web. Les fonds en pleine résolution ne
+ * voyagent pas non plus ; ils arrivent un par un dans
+ * `.neo-calendar/wallpapers/` du dossier de données quand on les choisit.
  *
- * Onze mégaoctets de photographies y représentaient les trois quarts de chaque
- * mise à jour, pour des fichiers qui ne changent jamais — retéléchargés en
- * entier à chaque version, et perdus à chaque désinstallation. Ils vivent
- * maintenant dans `.neo-calendar/wallpapers/` du dossier de données, où ils
- * arrivent un par un quand on les choisit et où ils restent ensuite.
- *
- * Ce qui reste ici : les vignettes (552 Ko pour vingt-quatre) et le manifeste.
- * Les garder est ce qui permet au sélecteur de s'ouvrir instantanément et hors
- * ligne — on voit ce qu'on choisit avant de payer le transfert. À cent fonds ce
- * sera 2,3 Mo, ce qui reste très en dessous des quarante-quatre qu'auraient
- * coûté les originaux.
+ * Les vignettes permettent au sélecteur de s'ouvrir instantanément et hors
+ * ligne. Elles viennent directement de `apps/windows/public`, sans passer par
+ * un build web.
  */
 const WALLPAPERS = "themes/neo-wallpapers";
+const src = new URL(`../../windows/public/${WALLPAPERS}/`, import.meta.url);
+const dst = new URL(`../native/app/src/main/assets/${WALLPAPERS}/`, import.meta.url);
 const root = fileURLToPath(src);
 
 function keep(source) {
-    const relative = path
-        .relative(root, source)
-        .split(path.sep)
-        .join("/");
-
-    if (!relative.startsWith(`${WALLPAPERS}/`)) return true;
-
-    const rest = relative.slice(WALLPAPERS.length + 1);
-    // Les vignettes et le manifeste restent ; les pleines résolutions, non.
-    return rest.startsWith("thumbs/") || !/\.jpe?g$/i.test(rest);
+    const relative = path.relative(root, source).split(path.sep).join("/");
+    if (relative === "") return true;
+    // Les vignettes et le manifeste ; les pleines résolutions, non.
+    return relative.startsWith("thumbs") || !/\.jpe?g$/i.test(relative);
 }
 
-function bytesOf(directory) {
-    let total = 0;
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-        const full = path.join(directory, entry.name);
-        total += entry.isDirectory()
-            ? bytesOf(full)
-            : fs.statSync(full).size;
-    }
-    return total;
-}
-
-fs.rmSync(dst, { recursive: true, force: true });
+fs.rmSync(new URL("../native/app/src/main/assets/", import.meta.url), { recursive: true, force: true });
 fs.mkdirSync(dst, { recursive: true });
 fs.cpSync(src, dst, { recursive: true, filter: keep });
 
-const before = bytesOf(root);
-const after = bytesOf(fileURLToPath(dst));
-const mo = (bytes) => `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
-
-console.log(`Synced Android web assets to ${fileURLToPath(dst)}`);
-console.log(
-    `${mo(after)} embarqués, ${mo(before - after)} laissés dehors ` +
-        `(fonds d'écran en pleine résolution).`
-);
+console.log(`Synced wallpaper thumbnails to ${fileURLToPath(dst)}`);

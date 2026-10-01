@@ -8,8 +8,6 @@ if (-not (Get-Command java -ErrorAction SilentlyContinue)) { throw 'JDK 17 est r
 npm install --ignore-scripts
 npm --prefix apps/windows install --ignore-scripts
 npm --prefix apps/android install --ignore-scripts
-npm --prefix apps/windows run build
-npm --prefix apps/android run build
 npm --prefix apps/android run android:sync
 
 # Le chemin du SDK n'est pas versionné : il change d'un poste à l'autre. On le

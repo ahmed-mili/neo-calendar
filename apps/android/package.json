@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc --noEmit && vite build",
     "android:sync": "node scripts/sync-assets.mjs",
-    "android:build": "npm run build && npm run android:sync && cd native && ./gradlew assembleDebug"
+    "android:build": "npm run android:sync && cd native && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

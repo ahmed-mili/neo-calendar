@@ -26,7 +26,6 @@ Le plus court, depuis la racine du dépôt : `.\BUILD_ANDROID.ps1`. À la main :
 npm install
 npm --prefix apps/windows install
 npm --prefix apps/android install
-npm --prefix apps/android run build
 npm --prefix apps/android run android:sync
 cd apps/android/native
 gradle assembleRelease

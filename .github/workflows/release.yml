@@ -156,10 +156,8 @@ jobs:
                   npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
                   npm --prefix apps/android install --ignore-scripts --no-audit --no-fund
 
-            - name: Construire le front et le copier dans les assets
-              run: |
-                  npm --prefix apps/android run build
-                  npm --prefix apps/android run android:sync
+            - name: Copier les vignettes de fonds d'écran dans les assets
+              run: npm --prefix apps/android run android:sync
 
             # Le runner expose son SDK par ANDROID_HOME, dont Gradle se contente
             # en l'absence de local.properties. Reste à garantir la plateforme
