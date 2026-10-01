@@ -31,6 +31,32 @@ fun withCalendarHidden(preferences: JsonObject, path: String, hidden: Boolean): 
     return preferences.with("hiddenCalendarPaths", stringArray(next))
 }
 
+/** Remplace d'un coup la liste des calendriers masqués (« n'afficher que ce calendrier » et son retour). */
+fun withHiddenCalendars(preferences: JsonObject, paths: List<String>): JsonObject =
+    preferences.with("hiddenCalendarPaths", stringArray(paths.distinct()))
+
+/**
+ * Ajoute le calendrier des jours fériés (createCalendar de DesktopCalendar.tsx, branche « auto ») : la source dans
+ * `externalCalendars`, sa couleur dans `colors` et sa place à la fin de `order`, sous la clé `auto::<id>`.
+ * Refusé si cette source y est déjà.
+ */
+fun withHolidayCalendar(preferences: JsonObject, name: String?, color: String): JsonObject {
+    val source = LinkedHashMap(FRANCE_HOLIDAY_SOURCE)
+    name?.jsTrim()?.takeIf { it.isNotEmpty() }?.let { source["name"] = JsonPrimitive(it) }
+    source["color"] = JsonPrimitive(color)
+    val key = "auto::" + (source.getValue("id") as JsonPrimitive).content
+    val existing = (preferences["externalCalendars"] as? JsonArray).orEmpty()
+    if (existing.any { ((it as? JsonObject)?.get("id") as? JsonPrimitive)?.content == "FR" && ((it["type"]) as? JsonPrimitive)?.content == "auto" }) {
+        throw IllegalStateException("Ce calendrier existe déjà.")
+    }
+    val colors = preferences["colors"] as? JsonObject ?: JsonObject(emptyMap())
+    val order = strings(preferences["order"])
+    return preferences
+        .with("externalCalendars", JsonArray(existing + JsonObject(source)))
+        .with("colors", colors.with(key, JsonPrimitive(color)))
+        .with("order", stringArray(if (key in order) order else order + key))
+}
+
 fun withCalendarColor(preferences: JsonObject, path: String, color: String): JsonObject {
     val colors = preferences["colors"] as? JsonObject ?: JsonObject(emptyMap())
     return preferences.with("colors", colors.with(path, JsonPrimitive(color)))

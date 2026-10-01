@@ -17,6 +17,10 @@ import kotlinx.serialization.json.JsonPrimitive
  * lira. Une clé absente du TypeScript est absente ici, jamais un null inventé.
  */
 
+/** Le nom et la couleur du calendrier des jours fériés français (ceux de [FRANCE_HOLIDAY_SOURCE]). */
+const val FRANCE_HOLIDAY_NAME = "Jours fériés et autres fêtes en France"
+const val FRANCE_HOLIDAY_COLOR = "#4a9d5f"
+
 /** Le calendrier des jours fériés français, proposé à l'ajout d'un calendrier. */
 val FRANCE_HOLIDAY_SOURCE: JsonObject = jsonObject(
     "type" to JsonPrimitive("auto"),
