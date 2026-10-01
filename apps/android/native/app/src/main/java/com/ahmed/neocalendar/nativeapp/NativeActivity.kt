@@ -19,8 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.ahmed.neocalendar.nativeapp.ui.NativeApp
-
-private const val BACKGROUND = 0xFF11111B.toInt()
+import com.ahmed.neocalendar.nativeapp.ui.theme.NeoAppearance
 
 class NativeActivity : ComponentActivity() {
     private val viewModel: NativeViewModel by viewModels()
@@ -28,10 +27,16 @@ class NativeActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NeoAppearance.load(this)
+        // Comme MainActivity : barres transparentes sur le fond d'écran, icônes claires, contraste forcé coupé.
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(BACKGROUND),
-            navigationBarStyle = SystemBarStyle.dark(BACKGROUND),
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
+        if (Build.VERSION.SDK_INT >= 29) {
+            window.isNavigationBarContrastEnforced = false
+            window.isStatusBarContrastEnforced = false
+        }
         updates = NativeUpdates(this)
         setContent { NativeApp(viewModel, updates) }
         holdSplashUntilReady()

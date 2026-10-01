@@ -140,6 +140,6 @@ fun TaskCheck(done: Boolean, accent: Color, size: androidx.compose.ui.unit.Dp = 
             .then(if (done) Modifier.background(accent) else Modifier.border(2.dp, Neo.TextSecondary, CircleShape)),
         contentAlignment = Alignment.Center,
     ) {
-        if (done) Icon(NeoIcons.Check, null, tint = Neo.Background, modifier = Modifier.size(size * 0.64f))
+        if (done) Icon(NeoIcons.Check, null, tint = Neo.OnAccent, modifier = Modifier.size(size * 0.64f))
     }
 }

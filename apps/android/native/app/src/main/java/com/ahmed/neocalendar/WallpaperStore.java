@@ -34,7 +34,7 @@ import javax.net.ssl.HttpsURLConnection;
  * Un fond est telecharge quand il est CHOISI, jamais en lot : a cent images le
  * lot ferait quarante megaoctets pour en utiliser une.
  */
-final class WallpaperStore {
+public final class WallpaperStore {
   private static final String TAG = "NeoCalendarWallpaper";
   private static final String PREF_FILE = "neo_android";
   private static final String PREF_TREE = "tree_uri";
@@ -47,7 +47,7 @@ final class WallpaperStore {
 
   private final Context context;
 
-  WallpaperStore(Context context) {
+  public WallpaperStore(Context context) {
     this.context = context;
   }
 
@@ -129,7 +129,7 @@ final class WallpaperStore {
   // ── Lecture ───────────────────────────────────────────────
 
   /** Le flux d'un fond deja telecharge, ou null. C'est ce que sert la WebView. */
-  InputStream open(String name) {
+  public InputStream open(String name) {
     try {
       Uri folder = folder(false);
       if (folder == null) return null;

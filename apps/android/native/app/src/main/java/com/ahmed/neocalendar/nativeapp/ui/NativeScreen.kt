@@ -1,6 +1,5 @@
 package com.ahmed.neocalendar.nativeapp.ui
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -47,6 +46,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.ahmed.neocalendar.nativeapp.ui.theme.WallpaperLayer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -125,19 +125,26 @@ fun NativeApp(viewModel: NativeViewModel, updates: NativeUpdates) {
     NeoTheme {
         val screen by viewModel.screen.collectAsState()
         Box(Modifier.fillMaxSize().background(Neo.Background)) {
+            WallpaperLayer(reloadKey = screen::class)
             when (val s = screen) {
                 ScreenState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Neo.Accent)
                 }
-                is ScreenState.Failed -> FailedScreen(s.message) { viewModel.reload(force = true) }
+                is ScreenState.Failed -> {
+                    val pick = androidx.activity.compose.rememberLauncherForActivityResult(PickTree()) { result ->
+                        if (result != null) viewModel.onTreePicked(result)
+                    }
+                    FailedScreen(s.message, onPick = { pick.launch(Unit) }) { viewModel.reload(force = true) }
+                }
                 is ScreenState.Ready -> MainScreen(viewModel, s.data, updates)
             }
+            NoticeHost()
         }
     }
 }
 
 @Composable
-private fun FailedScreen(message: String, onRetry: () -> Unit) {
+private fun FailedScreen(message: String, onPick: () -> Unit, onRetry: () -> Unit) {
     Column(
         Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -151,7 +158,15 @@ private fun FailedScreen(message: String, onRetry: () -> Unit) {
                 .background(Neo.Accent)
                 .clickable(onClick = onRetry)
                 .padding(horizontal = 24.dp, vertical = 14.dp),
-        ) { Text("Réessayer", color = Neo.Background, fontSize = 14.sp) }
+        ) { Text("Réessayer", color = Neo.OnAccent, fontSize = 14.sp) }
+        Box(
+            Modifier
+                .padding(top = 12.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Neo.Hover)
+                .clickable(onClick = onPick)
+                .padding(horizontal = 24.dp, vertical = 14.dp),
+        ) { Text("Choisir le dossier de notes", color = Neo.Text, fontSize = 14.sp) }
     }
 }
 
@@ -175,9 +190,10 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     val pickTree = androidx.activity.compose.rememberLauncherForActivityResult(PickTree()) { result ->
         if (result != null) viewModel.onTreePicked(result)
     }
-    LaunchedEffect(Unit) { viewModel.notices.collect { Toast.makeText(context, it, Toast.LENGTH_LONG).show() } }
+    LaunchedEffect(reloadError) { reloadError?.let { Notices.fail(it) } }
+    LaunchedEffect(Unit) { viewModel.notices.collect { Notices.show(it) } }
     // Une écriture qui échoue le dit ; une écriture ignorée (une autre était en cours) ne dit rien.
-    val report = { error: String? -> if (error != null && error != WRITE_IGNORED) Toast.makeText(context, error, Toast.LENGTH_LONG).show() }
+    val report = { error: String? -> if (error != null && error != WRITE_IGNORED) Notices.fail(error) }
     var sheet by remember { mutableStateOf<SheetTarget?>(null) }
     var overlayKey by rememberSaveable { mutableStateOf("") }
     val overlay = remember(overlayKey) { decodeOverlay(overlayKey) }
@@ -203,11 +219,11 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             is NativeRoute.Event -> {
                 val note = resolveStored(notesById, wanted.id)
                 if (note != null) sheet = SheetTarget.Existing(note, wanted.id)
-                else Toast.makeText(context, "Cette note n'existe plus.", Toast.LENGTH_LONG).show()
+                else Notices.show("Cette note n'existe plus.")
             }
             NativeRoute.NewEvent ->
                 if (data.calendars.none { it.editable }) {
-                    Toast.makeText(context, "Créez d'abord un dossier de calendrier avant d'ajouter des évènements.", Toast.LENGTH_LONG).show()
+                    Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                 } else {
                     sheet = newDraft()
                 }
@@ -222,14 +238,14 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             onOpen = openEvent,
             onCreate = { start, end ->
                 if (data.calendars.none { it.editable }) {
-                    Toast.makeText(context, "Créez d'abord un dossier de calendrier avant d'ajouter des évènements.", Toast.LENGTH_LONG).show()
+                    Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                 } else {
                     sheet = SheetTarget.Draft(start, end, allDay = false)
                 }
             },
             onCreateAllDay = { date ->
                 if (data.calendars.none { it.editable }) {
-                    Toast.makeText(context, "Créez d'abord un dossier de calendrier avant d'ajouter des évènements.", Toast.LENGTH_LONG).show()
+                    Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                 } else {
                     sheet = SheetTarget.Draft(date.atStartOfDay(), date.plusDays(1).atStartOfDay(), allDay = true)
                 }
@@ -238,12 +254,12 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                 val note = resolveStored(notesById, event.id)
                 if (note == null) {
                     onFailed()
-                    Toast.makeText(context, noteGone, Toast.LENGTH_LONG).show()
+                    Notices.show(noteGone)
                 } else {
                     scope.launch {
                         viewModel.rescheduleEvent(note, event.id, start, end, resize)?.let {
                             onFailed()
-                            if (it != WRITE_IGNORED) Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                            if (it != WRITE_IGNORED) Notices.fail(it)
                         }
                     }
                 }
@@ -251,11 +267,11 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             onToggleTask = { event ->
                 val note = resolveStored(notesById, event.id)
                 if (note == null) {
-                    Toast.makeText(context, noteGone, Toast.LENGTH_LONG).show()
+                    Notices.show(noteGone)
                 } else {
                     scope.launch {
                         viewModel.setTaskDone(note, event.id, event.taskStatus != "complete")?.let {
-                            if (it != WRITE_IGNORED) Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                            if (it != WRITE_IGNORED) Notices.fail(it)
                         }
                     }
                 }
@@ -278,7 +294,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     BackHandler(enabled = overlay != null) { overlayKey = "" }
 
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+        Column(Modifier.fillMaxSize().neoGlass().windowInsetsPadding(WindowInsets.safeDrawing)) {
             val visible = remember(nearest, dayCount) {
                 (0 until dayCount).map { LocalDate.ofEpochDay(nearest + it).atStartOfDay(zone).toInstant() }
             }
@@ -307,17 +323,6 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                     actions = gridActions,
                     dataVersion = data,
                 )
-                reloadError?.let {
-                    Text(
-                        it,
-                        color = Neo.Text,
-                        fontSize = 12.sp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Neo.Today.copy(alpha = 0.85f))
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                }
                 Box(
                     Modifier
                         .align(Alignment.BottomEnd)
@@ -328,13 +333,13 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                         .background(Neo.Accent)
                         .clickable {
                             if (data.calendars.none { it.editable }) {
-                                Toast.makeText(context, "Créez d'abord un dossier de calendrier avant d'ajouter des évènements.", Toast.LENGTH_LONG).show()
+                                Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                             } else {
                                 sheet = newDraft()
                             }
                         },
                     contentAlignment = Alignment.Center,
-                ) { Icon(NeoIcons.Plus, "Nouvel évènement", tint = Neo.Background, modifier = Modifier.size(26.dp)) }
+                ) { Icon(NeoIcons.Plus, "Nouvel événement", tint = Neo.OnAccent, modifier = Modifier.size(26.dp)) }
             }
         }
 

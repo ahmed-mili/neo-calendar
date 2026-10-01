@@ -126,7 +126,7 @@ fun DescriptionField(
                                             .background(if (line.done) Neo.Accent else androidx.compose.ui.graphics.Color.Transparent)
                                             .border(1.5.dp, if (line.done) Neo.Accent else Neo.TextFaint, RoundedCornerShape(6.dp)),
                                         contentAlignment = Alignment.Center,
-                                    ) { if (line.done) Icon(NeoIcons.Check, null, tint = Neo.Background, modifier = Modifier.size(14.dp)) }
+                                    ) { if (line.done) Icon(NeoIcons.Check, null, tint = Neo.OnAccent, modifier = Modifier.size(14.dp)) }
                                     LinkedText(
                                         line.title,
                                         if (line.done) Neo.TextFaint else Neo.Text,

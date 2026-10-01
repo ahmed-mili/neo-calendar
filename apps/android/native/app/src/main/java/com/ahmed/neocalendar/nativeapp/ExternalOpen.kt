@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.webkit.MimeTypeMap
-import android.widget.Toast
 import com.ahmed.neocalendar.MainActivity
 import com.ahmed.neocalendar.core.description.attachmentPathFor
 import com.ahmed.neocalendar.core.location.LocationDestination
@@ -94,5 +93,5 @@ object ExternalOpen {
         }
     }
 
-    private fun toast(context: Context, message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    private fun toast(@Suppress("UNUSED_PARAMETER") context: Context, message: String) = com.ahmed.neocalendar.nativeapp.ui.Notices.show(message)
 }

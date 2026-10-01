@@ -289,7 +289,7 @@ private fun GridBackground(state: GridState, dayCount: Int, zone: ZoneId) {
         // Aujourd'hui : un voile léger sur sa colonne.
         val todayX = (todayIdx - offset) * columnWidth
         if (todayX + columnWidth > 0f && todayX < size.width) {
-            drawRect(Color(0x0DFFFFFF), Offset(todayX, 0f), Size(columnWidth, size.height))
+            drawRect(Neo.TodayColumn, Offset(todayX, 0f), Size(columnWidth, size.height))
         }
         for (h in 0..24) {
             val y = h * hourPx - scroll

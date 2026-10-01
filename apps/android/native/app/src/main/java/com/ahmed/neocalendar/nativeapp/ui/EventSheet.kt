@@ -1,6 +1,5 @@
 package com.ahmed.neocalendar.nativeapp.ui
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -89,7 +88,7 @@ sealed interface SheetTarget {
 }
 
 private fun kindLabel(kind: EntryKind) = when (kind) {
-    EntryKind.Event -> "Évènement"
+    EntryKind.Event -> "Événement"
     EntryKind.Task -> "Tâche"
     EntryKind.Birthday -> "Anniversaire"
 }
@@ -156,7 +155,7 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
         busy = false
         if (message == WRITE_IGNORED) return
         if (message == null) {
-            if (success != null) Toast.makeText(context, success, Toast.LENGTH_SHORT).show()
+            if (success != null) Notices.show(success)
             onDismiss()
         } else {
             error = message
@@ -166,7 +165,7 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
     fun save(scopeChoice: RecurringEditScope?) {
         if (blocked) return
         if (isDraft && values.title.isBlank()) {
-            error = "Donnez un titre à l'évènement."
+            error = "Donnez un titre à l'événement."
             return
         }
         busy = true
@@ -244,7 +243,7 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
                                 if (blocked) return@NeoMenuItem
                                 busy = true
                                 scope.launch {
-                                    finish(viewModel.duplicateEvent(stored, stored.calendarPath), "Évènement dupliqué")
+                                    finish(viewModel.duplicateEvent(stored, stored.calendarPath), "Événement dupliqué")
                                 }
                             }
                             NeoMenuItem("Supprimer", enabled = !blocked) {
@@ -285,7 +284,7 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
                 }
                 if (!editable) {
                     Text(
-                        "Cet évènement est en lecture seule.",
+                        "Cet événement est en lecture seule.",
                         color = Neo.TextFaint, fontSize = 13.sp,
                         modifier = Modifier.padding(start = ICON_COLUMN_START, end = 16.dp, bottom = 8.dp),
                     )
@@ -359,7 +358,7 @@ fun EventSheet(target: SheetTarget, data: WorkspaceData, viewModel: NativeViewMo
             onCancel = { dialog = null },
         )
         is SheetDialog.DeleteNote -> ConfirmDialog(
-            title = if (shown.isTask) "Supprimer la tâche ?" else "Supprimer l'évènement ?",
+            title = if (shown.isTask) "Supprimer la tâche ?" else "Supprimer l'événement ?",
             message = "La note est supprimée du dossier.",
             confirm = "Supprimer",
             onConfirm = {

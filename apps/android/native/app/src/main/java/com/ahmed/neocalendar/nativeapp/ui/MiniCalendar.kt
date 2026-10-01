@@ -116,7 +116,7 @@ fun MiniCalendar(
                 Modifier
                     .fillMaxWidth()
                     .padding(vertical = 1.dp)
-                    .then(if (isCurrentWeek) Modifier.background(Color(0x17FFFFFF), RoundedCornerShape(9.dp)) else Modifier),
+                    .then(if (isCurrentWeek) Modifier.background(Neo.HighlightWeek, RoundedCornerShape(9.dp)) else Modifier),
             ) {
                 for (d in 0 until 7) {
                     val day = weekStart.plusDays(d.toLong())
@@ -153,7 +153,7 @@ private fun DayCell(
     ) {
         val badge = when {
             isToday -> Modifier.size(32.dp).background(Neo.Today, RoundedCornerShape(9.dp))
-            isAnchor -> Modifier.size(32.dp).background(Color(0x26FFFFFF), RoundedCornerShape(9.dp))
+            isAnchor -> Modifier.size(32.dp).background(Neo.HighlightAnchor, RoundedCornerShape(9.dp))
             else -> Modifier.size(32.dp)
         }
         Box(badge, contentAlignment = Alignment.Center) {

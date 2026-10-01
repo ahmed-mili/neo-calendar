@@ -299,7 +299,7 @@ private fun DaySwitcher(dayCount: Int, onDayCount: (Int) -> Unit) {
                         .clickable { apply() }
                         .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.Center,
-                ) { Text("Appliquer", color = Neo.Background, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                ) { Text("Appliquer", color = Neo.OnAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
             }
             Text("De $MIN_DAY_COUNT à $MAX_DAY_COUNT jours", color = Neo.TextFaint, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
         }

@@ -34,10 +34,10 @@ fun UpdatePill(updates: NativeUpdates) {
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(NeoIcons.Download, null, tint = Neo.Background, modifier = Modifier.size(14.dp))
+        Icon(NeoIcons.Download, null, tint = Neo.OnAccent, modifier = Modifier.size(14.dp))
         Text(
             if (downloading) (if (percent!! >= 0) "$percent %" else "…") else "Mettre à jour",
-            color = Neo.Background,
+            color = Neo.OnAccent,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,

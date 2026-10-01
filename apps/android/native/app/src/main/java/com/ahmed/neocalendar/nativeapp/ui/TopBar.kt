@@ -104,7 +104,7 @@ fun TopBar(
             Box(
                 Modifier
                     .size(width = 32.dp, height = 30.dp)
-                    .background(if (late) Neo.Today else Color(0x24FFFFFF), RoundedCornerShape(9.dp)),
+                    .background(if (late) Neo.TodayPill else Neo.ChipNeutral, RoundedCornerShape(9.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(

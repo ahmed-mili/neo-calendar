@@ -154,7 +154,7 @@ private fun CustomRecurrence(state: RecurrenceState, startDate: String, firstDay
                                 if (next.isNotEmpty()) onChange(state.copy(byDay = next))
                             },
                         contentAlignment = Alignment.Center,
-                    ) { Text(DAY_LETTERS.getValue(code), color = if (on) Neo.Background else Neo.Text, fontSize = 13.sp) }
+                    ) { Text(DAY_LETTERS.getValue(code), color = if (on) Neo.OnAccent else Neo.Text, fontSize = 13.sp) }
                 }
             }
         }
