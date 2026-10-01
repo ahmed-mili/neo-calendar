@@ -57,6 +57,27 @@ fun withHolidayCalendar(preferences: JsonObject, name: String?, color: String): 
         .with("order", stringArray(if (key in order) order else order + key))
 }
 
+/**
+ * Retire un calendrier de jours fériés (deleteCalendar de DesktopCalendar.tsx, branche en lecture seule) : sa source et tout ce qui
+ * le désignait par sa clé `auto::<id>` (couleur, ordre, masquage, rappel, défaut).
+ */
+fun withHolidayRemoved(preferences: JsonObject, key: String): JsonObject {
+    val id = key.removePrefix("auto::")
+    val sources = (preferences["externalCalendars"] as? JsonArray).orEmpty().filterNot {
+        val source = it as? JsonObject
+        (source?.get("type") as? JsonPrimitive)?.content == "auto" && (source["id"] as? JsonPrimitive)?.content == id
+    }
+    var next = preferences.with("externalCalendars", JsonArray(sources))
+    (preferences["colors"] as? JsonObject)?.let { colors -> next = next.with("colors", JsonObject(colors.filterKeys { it != key })) }
+    (preferences["calendarReminderMinutes"] as? JsonObject)?.let { reminders ->
+        next = next.with("calendarReminderMinutes", JsonObject(reminders.filterKeys { it != key }))
+    }
+    next = next.with("order", stringArray(strings(preferences["order"]).filter { it != key }))
+    next = next.with("hiddenCalendarPaths", stringArray(strings(preferences["hiddenCalendarPaths"]).filter { it != key }))
+    if ((preferences["defaultCalendarPath"] as? JsonPrimitive)?.takeIf { it.isString }?.content == key) next = next.without("defaultCalendarPath")
+    return next
+}
+
 fun withCalendarColor(preferences: JsonObject, path: String, color: String): JsonObject {
     val colors = preferences["colors"] as? JsonObject ?: JsonObject(emptyMap())
     return preferences.with("colors", colors.with(path, JsonPrimitive(color)))

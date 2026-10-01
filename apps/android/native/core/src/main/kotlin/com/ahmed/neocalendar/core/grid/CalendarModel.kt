@@ -1,5 +1,6 @@
 package com.ahmed.neocalendar.core.grid
 
+import com.ahmed.neocalendar.core.holidays.HolidaySource
 import com.ahmed.neocalendar.core.notes.calendarIdFromPath
 import com.ahmed.neocalendar.core.workspace.WorkspaceCalendar
 import java.text.Collator
@@ -42,6 +43,7 @@ fun buildCalendarModels(
     calendars: List<WorkspaceCalendar>,
     preferences: JsonObject,
     locale: Locale = Locale.getDefault(),
+    holidays: List<HolidaySource> = emptyList(),
 ): List<CalendarModel> {
     val colors = preferences["colors"] as? JsonObject
     val order = (preferences["order"] as? JsonArray).orEmpty()
@@ -50,7 +52,9 @@ fun buildCalendarModels(
         }
         .toMap()
     val collator = Collator.getInstance(locale).apply { strength = Collator.TERTIARY }
-    return calendars
+    // Un calendrier de jours fériés n'est pas un dossier : son « chemin » est la clé `auto::<id>` de ses préférences, il est en lecture seule.
+    val automatic = holidays.map { CalendarModel(it.calendarId, it.calendarId, it.name, it.color, editable = false) }
+    return (calendars
         .mapIndexed { index, calendar ->
             val stored = (colors?.get(calendar.relativePath) as? JsonPrimitive)?.takeIf { it.isString }?.content
             CalendarModel(
@@ -60,7 +64,7 @@ fun buildCalendarModels(
                 color = stored ?: stableCalendarColor(calendar.relativePath, index),
                 editable = true,
             )
-        }
+        } + automatic)
         .sortedWith { a, b ->
             val left = order[a.relativePath] ?: Int.MAX_VALUE
             val right = order[b.relativePath] ?: Int.MAX_VALUE
