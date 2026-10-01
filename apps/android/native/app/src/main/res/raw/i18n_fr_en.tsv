@@ -1,0 +1,615 @@
+# fr<TAB>en : généré depuis src/ui/i18n.ts (clé anglaise = texte anglais) ; les dernières lignes sont les textes propres au natif.
+Dimanche	Sunday
+Lundi	Monday
+Mardi	Tuesday
+Mercredi	Wednesday
+Jeudi	Thursday
+Vendredi	Friday
+Samedi	Saturday
+Jour	Day
+Semaine	Week
+Mois	Month
+Liste	List
+3 jours	3 days
+1 jour	1 day
+jours	days
+Aujourd'hui	Today
+Aller à aujourd'hui	Go to today
+Revenir à aujourd'hui	Go back to today
+Précédent	Previous
+Suivant	Next
+Mois précédent	Previous month
+Mois suivant	Next month
+Retour	Back
+Nombre de jours	Number of days
+Jours affichés	Days displayed
+Nombre de jours personnalisé	Custom number of days
+Plus de durées	More day spans
+Autre…	Other…
+de plus	more
+Numéros de semaine	Week numbers
+Réglages d'affichage	View settings
+Réglages généraux	General settings
+Général	General
+Filtres	Filters
+Passer à la vue jour	Switch to Day View
+Passer à la vue semaine	Switch to Week View
+Passer à la vue mois	Switch to Month View
+Passer à la vue 3 jours	Switch to 3-Day View
+Passer à la vue liste	Switch to List View
+Afficher ou masquer le panneau	Toggle Sidebar
+Événement	Event
+Détails de l'événement	Event details
+Titre	Event Name
+Nouvel événement	New event
+Créer l'événement	Create event
+Créer un événement	Create a new event
+Événement créé	Event created
+Ajouter un événement	Add event
+Ajouter une date	Add date
+Toute la journée	All day
+Répéter	Repeat
+Une seule fois	Once
+Personnalisé…	Custom…
+Répétition	Repetition
+Anniversaire	Birthday
+Début de la série	Start of the series
+Ça commence	Starting now
+C'est l'heure	It is time
+À l'heure de la prière	At the prayer
+Mosquée suivie	Followed mosque
+Rappels	Reminders
+Retirer le rappel	Remove reminder
+Au début de l'événement	At start of event
+Réglage de l'application	App setting
+Ajouter	Add
+Unité	Unit
+minute	minute
+minutes	minutes
+heure	hour
+heures	hours
+jour	day
+avant	before
+Supprimer la tâche récurrente	Delete the recurring task
+Supprimer l'événement récurrent	Delete the recurring event
+Supprimer cette tâche uniquement	Delete this task only
+Supprimer cette tâche et toutes les suivantes	Delete this task and all following
+Supprimer cet événement uniquement	Delete this event only
+Supprimer cet événement et toutes les suivantes	Delete this event and all following
+Tous les	Every
+De	From
+À	To
+Fin	Ends
+Récurrence personnalisée	Custom recurrence
+Fréquence de répétition	Repeat frequency
+Répéter le	Repeat on
+Jamais	Never
+Le	On date
+Après	After count
+occurrences	occurrences
+Tous les jours	Every day
+Toutes les semaines	Every week
+Tous les mois	Every month
+Tous les ans	Every year
+tous les {n} jours	every {n} days
+toutes les {n} semaines	every {n} weeks
+tous les {n} mois	every {n} months
+tous les {n} ans	every {n} years
+le {days}	on {days}
+jusqu'au {date}	until {date}
+{n} fois	{n} times
+Le {n} de chaque mois	Monthly on day {n}
+Le même jour de la semaine chaque mois	Monthly on the same weekday
+Période	Period
+Période personnalisée	Custom period
+Personnalisé	Custom
+Quotidien	Daily
+Hebdomadaire	Weekly
+Mensuel	Monthly
+Annuel	Yearly
+jour(s)	day(s)
+semaine(s)	week(s)
+mois	month(s)
+an(s)	year(s)
+Statut	Status
+À faire	To do
+Fait	Done
+Type	Type
+Tâche	Task
+Tâches	Tasks
+Sans date	No date
+Terminées	Completed
+En retard	Overdue
+Échéance	Deadline
+Retirer l'échéance	Remove deadline
+Retirer la date	Remove date
+Mise à jour disponible	Update available
+Téléchargement de la mise à jour	Downloading update
+Mettre à jour	Update now
+Retirer la date d'un événement qui se répète supprime aussi la répétition. Il devient une entrée unique non planifiée.	Removing the date on a repeating event also removes the repeat. It becomes a single unscheduled entry.
+Étapes	Steps
+Ajouter une étape	Add a step
+Supprimer l'étape	Remove step
+Aucune tâche	No tasks yet
++ Ajouter une tâche	Add task
+Ajoutez une date ou une échéance avant de terminer cette tâche	Add a date or deadline before completing this task
+Reconvertir les tâches horaires en événements	Convert timed tasks back to events
+Convertir	Convert
+entrées reconverties en événements.	entries converted back to events.
+entrées ont une heure de début et une heure de fin, ce qui est la forme d'un événement et non d'une tâche. Elles perdront leur case à cocher. Les tâches sur toute la journée et celles déjà terminées ne sont pas touchées.	entries have both a start and an end time, which is the shape of an event rather than a task. They will lose their checkbox. All-day tasks and anything already completed are left untouched.
+Description	Description
+Vide	Empty
+Ajouter une description	Add a description
+Mise en forme de la description	Description formatting
+Gras	Bold
+Italique	Italic
+Souligné	Underline
+Liste numérotée	Numbered list
+Liste à puces	Bulleted list
+Élément à vérifier	Checklist item
+Effacer la mise en forme	Clear formatting
+Redimensionner le panneau	Resize panel
+Enregistrer un événement récurrent	Save a recurring event
+Enregistrer une tâche récurrente	Save a recurring task
+Modifier un événement récurrent	Edit recurring event
+Modifier une tâche récurrente	Edit recurring task
+Choisissez comment appliquer ces modifications.	Choose how to apply these changes.
+Modifications	Changes
+Cet événement uniquement	This event only
+Cette tâche uniquement	This task only
+Dates	Dates
+Heure de début	Start time
+Heure de fin	End time
+Activé	On
+Désactivé	Off
+Cet événement	This event
+Tous les événements	All events
+Cette tâche	This task
+Toutes les tâches	All tasks
+Date	Date
+Choisir une date	Pick a date
+Changer de fuseau horaire	Change time zone
+Changer de fuseau horaire ?	Change time zone?
+L'heure de votre système est passée au fuseau horaire	Your system time moved to the time zone
+Ajouter un fuseau horaire	Add timezone
+Renommer le fuseau horaire	Rename time zone
+Libellé	Label
+Récent	Recent
+Temps total	Total time
+Totaux des événements	Event totals
+Ajouter des liens et des fichiers	Add links and attachments
+Ajouter un autre lien ou fichier	Add another link or attachment
+Ajouter un lien web	Add web link
+Ajouter un Lien	Add Link
+Joindre des fichiers	Attach files
+Pièce jointe	Attachment
+Fichier lié	Linked file
+Fichiers liés	Linked files
+Modifier le lien	Edit link
+Texte	Link text
+Adresse du lien	Link address
+Supprimer le lien	Remove link
+Copier le lien	Copy link
+Copier le chemin	Copy path
+Aller à l'évènement précédent de cette série	Go to previous event in this series
+Aller à l'évènement suivant de cette série	Go to next event in this series
+Renommer le lien	Rename link
+Lien copié	Link copied
+Chemin copié	Path copied
+Impossible de copier le lien	Could not copy link
+Collez-le où vous voulez	Paste it wherever you like
+Lien	Link
+Rechercher un document ou coller un lien	Search a document or paste a link
+Maintenir pour supprimer	Hold to remove
+Garder le doigt sur la croix jusqu'à ce qu'elle se remplisse	Keep pressing the cross until it fills
+Aucune note correspondante	No matching notes
+Ajoutez des coffres Obsidian dans les Réglages pour chercher des notes.	Add Obsidian vaults in Settings to search notes.
+Ouvrir la note	Open note
+Disponible une fois l'événement créé	Available once the event is created
+Recharger ce lien	Reload this link
+Supprimer l'événement	Delete event
+Supprimer la tâche	Delete task
+Cliquer à nouveau pour confirmer	Click again to confirm
+Sans titre	Untitled
+Retour aux calendriers	Back to calendars
+Ça ne ressemble pas à un lien	That does not look like a link
+Ce lien est déjà là	This link is already here
+Ce lien mène au même endroit qu'un lien déjà là	This link leads to the same place as one already here
+Titre indisponible pour ce lien — vous pouvez le nommer vous-même.	No title available for this link — you can name it yourself.
+Le site n'a pas donné de titre pour ce lien	The site did not give a title for this link
+Aucun événement prévu	No event scheduled
+Rappel	Reminder
+Aucun rappel	No reminder
+5 minutes avant	5 minutes before
+10 minutes avant	10 minutes before
+15 minutes avant	15 minutes before
+30 minutes avant	30 minutes before
+1 heure avant	1 hour before
+Demain, toute la journée	Tomorrow, all day
+Dans	In
+Demain	Tomorrow
+h	h
+j	j
+Lancer au démarrage de Windows	Launch at Windows startup
+Neo Calendar continue de veiller ici.	Neo Calendar keeps watch here
+Clic droit sur l'icône pour quitter.	Right-click the icon to quit.
+Un jour	Someday
+Calendrier	Calendar
+Calendriers	Calendars
+Nom du calendrier	Calendar name
+Nom du nouveau calendrier	New calendar name
+Ajouter un calendrier	Add calendar
+Ajout du calendrier	Adding Calendar
+Créer le calendrier	Create calendar
+Supprimer le calendrier	Delete calendar
+Changer la couleur	Change color
+Couleur	Color
+Icône	Icon
+Dossier de notes	Notes folder
+Un fichier Markdown par événement, dans un dossier que vous choisissez.	One Markdown file per event, in a folder you pick.
+Abonnement en ligne	Online subscription
+En lecture seule, depuis une adresse webcal ou HTTPS.	Read-only, from a webcal or HTTPS address.
+Jours fériés	Public holidays
+En lecture seule, calculés sur l'appareil.	Read-only, worked out on the device.
+Note complète	Full note
+ICS distant	Remote ICS
+Calendrier automatique	Auto calendar
+Note quotidienne	Daily Note
+Notes quotidiennes	Daily notes
+Son propre calendrier	Its own calendar
+Classer dans	File into
+Dossier	Directory
+Dossier de stockage des événements	Directory to store events
+Choisir un dossier	Choose a directory
+Choisir un calendrier	Choose a calendar
+Choisir un pays	Choose a country
+Choisir un titre	Choose a heading
+Choisir un sous-dossier existant ou en créer un	Choose an existing subfolder or create a new one
+Titre sous lequel ranger les événements dans la note quotidienne.	Heading to store events under in the daily note.
+Pays	Country
+Les jours fériés d'un pays, ou un jeu de règles personnalisé	A country's public holidays, or a custom rule set
+Copier en JSON, pour partager ce calendrier	Copy as JSON, to share this calendar
+Importer des calendriers	Import Calendars
+Import des calendriers	Importing Calendars
+Importer	Import
+Ouvrir les calendriers	Open calendars
+Fermer les calendriers	Close calendars
+Développer les calendriers	Expand calendars
+Réduire les calendriers	Collapse calendars
+Afficher les événements sur la journée	Expand all-day events
+Réduire les événements sur la journée	Collapse all-day events
+1 événement	1 event
+{n} événements	{n} events
+Développer l'agenda du jour	Expand today's agenda
+Réduire l'agenda du jour	Collapse today's agenda
+Tous	All
+Toutes les dates	All dates
+Planifiés	Scheduled
+Non planifiés	Unscheduled
+Afficher les totaux	Show totals
+N'afficher que cette vue	Show only this view
+Retirer la vue de la liste	Remove view from list
+Épingler le panneau	Pin panel
+Détacher le panneau	Unpin panel
+Définir par défaut	Set as default
+Définir par défaut (maj-clic pour changer la couleur)	Set as default (shift-click to change colour)
+Maj-clic pour changer la couleur	Shift-click to change colour
+N'afficher que ce calendrier	Show only this calendar
+Réafficher les calendriers masqués	Show previously visible calendars
+Retirer de la liste	Remove from list
+Aucun événement correspondant	No matching events
+Aucun événement	No events
+Glissez sur la grille pour ajouter une date	Drag onto the grid to add a date
+Rechercher	Search
+Rechercher un événement	Search events
+Ajouter un événement… (ex. déjeuner avec Alex demain 12h)	Add event… (e.g. lunch with Alex tomorrow 12pm)
+Rechercher un événement ou une commande…	Search events or type a command…
+Fuseau horaire…	Time zone…
+Jours…	Days…
+Aucun événement trouvé	No events found
+Aucun résultat	No results found
+Effacer la recherche	Clear search
+Rechercher dans les paramètres	Search settings
+Rubriques des paramètres	Settings sections
+Données et intégrations	Data and integrations
+Aucun paramètre trouvé	No settings found
+Ouvrir le menu de commandes	Open command menu
+Raccourcis clavier	Keyboard shortcuts
+Rechercher un raccourci	Find keyboard shortcuts
+Actions	Actions
+Navigation	Navigation
+Affichage	View
+Modifier	Edit
+Afficher	Display
+Menu de l'application	Application menu
+Rechercher les mises à jour…	Check for updates…
+Paramètres…	Settings…
+Annuler l'action	Undo
+Rétablir	Redo
+Coller	Paste
+Coller et respecter le style	Paste and match style
+Sélectionner tous les éléments visibles	Select all visible items
+Espacement des heures par défaut	Default hour spacing
+Augmenter l'espacement des heures	Increase hour spacing
+Réduire l'espacement des heures	Decrease hour spacing
+Échelle de l'interface	Interface scale
+Relancer	Reload
+Forcer le rafraîchissement	Force refresh
+Afficher les outils de développement	Show developer tools
+Basculer en plein écran	Toggle full screen
+Ctrl+Virgule	Ctrl+Comma
+Ctrl+Maj+V	Ctrl+Shift+V
+Ctrl+Maj+R	Ctrl+Shift+R
+Ctrl+Maj+0	Ctrl+Shift+0
+Ctrl+Maj+Point	Ctrl+Shift+Period
+Ctrl+Maj+Virgule	Ctrl+Shift+Comma
+Enregistrer	Save
+Annuler	Cancel
+Fermer	Close
+Supprimer	Delete
+Dupliquer	Duplicate
+Copier	Copy
+Couper	Cut
+événements	events
+Coller l'événement	Paste event
+Dupliquer vers le calendrier par défaut	Duplicate to default calendar
+Copié	Copied
+Renommer	Rename
+Retirer	Remove
+Cliquer pour renommer	Click to rename
+Appliquer	Apply
+Effacer	Clear
+Masquer	Hide
+Réduire	Collapse
+Agrandir	Maximize
+Restaurer	Restore
+Plus	More
+Plus d'options	More options
+Masquer l'erreur	Dismiss error
+Paramètres	Settings
+Vue du calendrier	Calendar view
+Sans « Créer un événement en cliquant un jour du mois », un clic dans le mois ouvre la vue du jour.	Without “Create an event by tapping a day of the month”, tapping a day opens the day view instead.
+Vue initiale sur ordinateur	Initial view on desktop
+Vue initiale sur téléphone	Initial view on phone
+Premier jour de la semaine	First day of the week
+Format 24 heures	24-hour time
+Créer un événement en cliquant un jour du mois	Create an event by tapping a day of the month
+Défilement libre entre les jours	Free scrolling between days
+Nouveaux événements créés comme des tâches	New events created as tasks
+Apparence	Appearance
+Thème	Theme
+Mode de couleur	Colour mode
+Système	System
+Clair	Light
+Sombre	Dark
+Langue	Language
+Intégrations	Integrations
+Fuseaux horaires	Time zones
+Aucun	None
+Données	Data
+Dossier de données	Data folder
+Coffres Obsidian	Obsidian vaults
+Aucun dossier	No folder
+Synchronisation	Sync
+Une colonne d'heures supplémentaire apparaît dans les vues semaine, jour et trois jours.	An extra hour column appears in the week, day and three-day views.
+Fuseau horaire à ajouter	Time zone to add
+Fuseaux ajoutés	Time zones added
+Neo Calendar range ses fichiers de calendrier dans ce dossier. Chaque sous-dossier direct est un calendrier.	Neo Calendar keeps its calendar files in this folder. Each direct subfolder is a calendar.
+Changer de dossier	Change folder
+Ouvrir le dossier	Open folder
+Ajoutez le dossier qui contient vos coffres Obsidian. Ceux qui s'y trouvent directement et possèdent un dossier .obsidian sont détectés.	Add the folder that holds your Obsidian vaults. Those sitting directly inside it with an .obsidian folder are detected.
+Sélection…	Choosing…
+Ajouter un dossier	Add a folder
+Dossiers ajoutés	Folders added
+Coffres détectés — analyse…	Vaults detected — scanning…
+Coffres détectés	Vaults detected
+Désactivez un coffre pour l'exclure de la recherche de notes.	Turn a vault off to leave it out of note search.
+Aucun coffre détecté	No vault detected
+Chaque sous-dossier direct du dossier de données est un calendrier.	Each direct subfolder of the data folder is a calendar.
+Note complète, ICS ou automatique	Full note, ICS or automatic
+Il peut être une note complète, un abonnement ICS, ou détecté automatiquement.	It can be a full note, an ICS subscription, or one detected automatically.
+Neo Calendar range ses données dans le dossier que vous choisissez. La synchronisation est assurée par l'outil que vous retenez.	Neo Calendar keeps its data in the folder you choose. Syncing is done by whichever tool you settle on.
+Méthodes possibles	Possible methods
+Recommandé	Recommended
+Stockage en ligne	Online storage
+OneDrive, Google Drive, Dropbox	OneDrive, Google Drive, Dropbox
+Transfert manuel	Manual transfer
+Par USB	Over USB
+Fermer les paramètres	Close settings
+Arrière-plan	Background
+Avant-plan	Foreground
+Accentuation	Accent
+Aucun fond d'écran	No wallpaper
+Fonds d'écran	Wallpapers
+Thèmes	Themes
+Mode système	System mode
+Mode clair	Light mode
+Mode sombre	Dark mode
+Copier le thème	Copy theme
+Importer un thème	Import a theme
+Réinitialiser ce thème	Reset this theme
+Réinitialiser	Reset
+Couleurs	Colours
+Polices	Fonts
+Modifications non enregistrées	Unsaved changes
+L’aperçu et l’application se mettent à jour instantanément.	The preview and the app update instantly.
+Thème copié	Theme copied
+Thème réinitialisé	Theme reset
+Modifications enregistrées	Changes saved
+Impossible de copier le thème	Could not copy the theme
+Fichier de thème invalide	Invalid theme file
+Les couleurs doivent utiliser le format #RRGGBB	Colours must use the #RRGGBB format
+Police de l’interface utilisateur	Interface font
+Police monospace	Monospace font
+Barre latérale translucide	Translucent sidebar
+Contraste	Contrast
+Ajustements du fond	Wallpaper adjustments
+Luminosité du fond	Wallpaper brightness
+Flou du fond	Wallpaper blur
+Opacité des conteneurs	Container opacity
+Par défaut du thème	Theme default
+Choisir une couleur	Pick a colour
+Image de fond	Wallpaper
+Cliquer pour définir par défaut, double-cliquer pour renommer	Tap to set as default, double-tap to rename
+Calendrier en lecture seule ; double-cliquer pour renommer	Read-only calendar; double-tap to rename
+Par défaut	Default
+Chaque événement est un fichier Markdown.	Each event is one Markdown file.
+Abonnement en lecture seule à une URL webcal ou HTTPS.	Read-only subscription to a webcal or HTTPS URL.
+Événements en lecture seule, calculés localement à partir de règles.	Read-only events, computed locally from rules.
+Un calendrier porte déjà ce nom.	A calendar already has this name.
+Saisissez un nom de calendrier.	Enter a calendar name.
+Le JSON du calendrier personnalisé est invalide.	The custom calendar JSON is invalid.
+Le JSON doit contenir id, name et un tableau rules valide.	The JSON must contain id, name and a valid rules array.
+Type de calendrier	Calendar type
+JSON du calendrier	Calendar JSON
+URL du calendrier	Calendar URL
+Nom du calendrier (facultatif)	Calendar name (optional)
+Importer un JSON de règles	Import a rules JSON
+Modèle	Preset
+Ajouter le calendrier	Add the calendar
+Ajout…	Adding…
+Retirer le dossier de calendrier vide	Remove the empty calendar folder
+Retirer le calendrier en lecture seule	Remove the read-only calendar
+Neo Calendar a rencontré une erreur d’interface.	Neo Calendar encountered an interface error.
+Recharger l’interface	Reload interface
+Confirmer	Confirm
+Choisir le dossier	Choose the folder
+Choisissez le dossier de données de Neo Calendar.	Choose your Neo Calendar data folder.
+Les fichiers de calendrier restent hors de tout coffre Obsidian.	Calendar files stay outside every Obsidian vault.
+Liens ICS	ICS links
+Ajouter un lien ICS	Add an ICS link
+Aucun lien ICS pour l'instant.	No ICS links yet.
+Nom	Name
+Ce calendrier a déjà le maximum de cinq liens ICS.	This calendar already has the maximum of five ICS links.
+Cette adresse n'est pas valide. Entrez une adresse HTTPS ou webcal.	Enter a valid HTTPS or webcal address.
+Horaires de prière	Prayer times
+Aucun horaire de prière	No prayer times
+Lieu	Location
+Ouvrir dans Maps	Open in Maps
+Adresse où mène ce lien	Address this link leads to
+Mode de trajet	Travel mode
+Transports en commun	Public transport
+Application de cartes	Maps app
+Ouvrir le lieu dans	Open the location in
+Rechercher une tâche	Search tasks
+Rien ne correspond	Nothing matches
+Rien ici	Nothing here
+Couleur des traits	Line colour
+Reprendre la couleur du calendrier	Follow the calendar's colour
+Ce calendrier n'affiche rien des prières.	This calendar shows nothing of the prayers.
+Jumu'a	Jumu'a
+Un trait marque la prochaine prière, à la couleur de ce calendrier.	A line marks the next prayer, in this calendar's colour.
+Un trait marque la prochaine prière, à la couleur de ce calendrier. Maintenez P pour voir celles de la journée.	A line marks the next prayer, in this calendar's colour. Hold P to see the whole day's.
+Lien ICS (facultatif)	ICS link (optional)
+Une adresse https:// ou webcal://. Ses évènements sont synchronisés dans ce calendrier et restent en lecture seule. Pour ajouter, modifier ou retirer des liens ensuite : menu à trois points du calendrier, « Liens ICS ».	An https:// or webcal:// address. Its events are synchronised into this calendar and stay read-only. To add, change or remove links later: three-dot menu of the calendar, “ICS links”.
+Ce lien est déjà utilisé par un autre flux de ce calendrier.	This link is already used by another feed on this calendar.
+Fréquence	Frequency
+Actualiser maintenant	Refresh now
+Jamais synchronisé	Never synced
+Terminées récemment	Recently completed
+Synchronisation…	Syncing…
+Chargement des calendriers distants…	Loading remote calendars…
+Afficher seulement ce lien	Show only this link
+Ne plus isoler	Stop isolating
+Dernière synchro. le	Last sync on
+à	at
+Fréquence d'actualisation ICS par défaut	Default ICS refresh frequency
+Appliquer à tous les liens	Apply to all links
+Appliquer cette fréquence à tous les liens ICS de tous les calendriers ?	Apply this frequency to every ICS link on every calendar?
+Cette action règle la fréquence de tous les liens sur cette valeur et retire leurs remplacements individuels.	This sets every link's frequency to this value and removes any per-link override.
+Développer les événements sur la journée	Expand all-day events
+Le nom ne peut pas contenir / ou \.	The name cannot contain / or \.
+Une adresse https:// ou webcal://. Ses évènements sont synchronisés dans ce calendrier et restent en lecture seule. 	An https:// or webcal:// address. Its events are synchronised into this calendar and stay read-only. 
+Pour ajouter, modifier ou retirer des liens ensuite : menu à trois points du calendrier, « Liens ICS ».	To add, change or remove links later: three-dot menu of the calendar, “ICS links”.
+Le nom ne peut pas contenir / ou \, ni être « . » ou « .. ».	The name cannot contain / or \, nor be “.” or “..”.
+Retirer le calendrier en lecture seule « {} » ?	Remove the read-only calendar “{}”?
+Retirer le dossier de calendrier vide « {} » ? Un calendrier ne peut l'être que s'il est vide.	Remove the empty calendar folder “{}”? A calendar can only be removed if it is empty.
+{} jours	{} days
+Aucun calendrier masqué	No hidden calendar
+Afficher : {}	Show: {}
+Menu de {}	{} menu
+Masquer {}	Hide {}
+Terminée	Completed
+{} · Toute la journée	{} · All day
+{} – {} · Toute la journée	{} – {} · All day
+Une autre écriture n'a pas fini : la modification de la série n'a pas été enregistrée.	Another write has not finished: the series change was not saved.
+Plus d'actions	More actions
+Événement dupliqué	Event duplicated
+Supprimer la tâche ?	Delete the task?
+Supprimer l'événement ?	Delete the event?
+La note est supprimée du dossier.	The note is deleted from the folder.
+Cet événement seulement	This event only
+Cette tâche uniquement	This task only
+Toutes les tâches	All tasks
+Que supprimer de cette série de tâches ?	What to delete from this task series?
+Que supprimer de cette série ?	What to delete from this series?
+Supprimer cette tâche et les suivantes	Delete this task and the following ones
+Supprimer cet événement et les suivants	Delete this event and the following ones
+Supprimer cette tâche uniquement	Delete this task only
+Liens ICS — {}	ICS links — {}
+{} liens ics	{} ics links
+Actualiser maintenant — {}	Refresh now — {}
+Supprimer le lien — {}	Delete link — {}
+L'ancienne version de Neo Calendar est encore installée	The old version of Neo Calendar is still installed
+Désinstaller	Uninstall
+Réessayer	Retry
+Cette note n'existe plus.	This note no longer exists.
+Créez d'abord un dossier de calendrier avant d'ajouter des événements.	First create a calendar folder before adding events.
+Cette note n'existe plus. Rechargez et recommencez.	This note no longer exists. Reload and try again.
+Renommer le calendrier	Rename calendar
+Rappel : {}	Reminder: {}
+Rappel : 	Reminder: 
+Ancienne version encore installée	Old version still installed
+Ancienne interface (WebView)	Old interface (WebView)
+Chaque sous-dossier direct du dossier de données est un calendrier. Il peut être une note complète, un abonnement ICS, ou détecté automatiquement.	Each direct subfolder of the data folder is a calendar. It can be a full note, an ICS subscription, or detected automatically.
+réglage de l'application	app setting
+TERMINÉES RÉCEMMENT	RECENTLY COMPLETED
+Semaine {}	Week {}
+À jour	Up to date
+Développement	Development
+Impossible de vérifier	Unable to check
+Rechercher les mises à jour	Check for updates
+Aucun calendrier	No calendar
+Ajouter une case	Add a checkbox
+Liens et pièces jointes	Links and attachments
+Ajouter un rappel	Add a reminder
+Rétablir le réglage de l'application	Restore the app setting
+Rappel personnalisé	Custom reminder
+Le {} du mois	On the {} of the month
+Le {} {}	On {} {}
+Paramètres	Settings
+Automatique	Automatic
+Demander à chaque fois	Ask every time
+Transports en commun	Public transport
+Voiture	Car
+À pied	On foot
+Vélo	Bike
+Aucun	None
+Terminé	Done
+À faire	To do
+Image de fond	Wallpaper
+Tout télécharger ({})	Download all ({})
+Téléchargement… {}/{}	Downloading… {}/{}
+Téléchargement…	Downloading…
+À télécharger	To download
+Téléchargement impossible — appuyez pour réessayer	Download failed — tap to retry
+1 fond n'a pas pu être téléchargé — appuyez pour réessayer	1 wallpaper could not be downloaded — tap to retry
+{} fonds n'ont pas pu être téléchargés — appuyez pour réessayer	{} wallpapers could not be downloaded — tap to retry
+Photo de {}	Photo by {}
+Montagnes	Mountains
+Forêt	Forest
+Océan	Ocean
+Désert	Desert
+Nuit	Night
+Ville	City
+Automne	Autumn
+Ce thème n’est pas installé dans Neo Calendar	This theme is not installed in Neo Calendar
+{} importé — enregistre pour appliquer	{} imported — save to apply
+Coller un thème	Paste a theme
+Collez ici un thème copié (codex-theme-v1)	Paste a copied theme here (codex-theme-v1)
+Importer	Import
+Un fond d'écran est choisi	A wallpaper is chosen
+Choisir une couleur	Pick a colour
+Hexadécimal	Hex
+Langue modifiée	Language changed
+Les modifications seront visibles au prochain démarrage de l'ancienne interface.	Changes will show the next time the old interface starts.

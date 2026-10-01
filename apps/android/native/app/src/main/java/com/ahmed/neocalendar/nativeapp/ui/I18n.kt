@@ -20,7 +20,7 @@ import com.ahmed.neocalendar.nativeapp.AppLanguage
 
 /**
  * Le français de l'application vers l'anglais, d'après le dictionnaire de l'ancienne (`src/ui/i18n.ts`, la clé anglaise
- * EST le texte anglais) : `assets/i18n-fr-en.tsv`, une ligne `français<TAB>anglais`. Les textes propres au natif sont en bas
+ * EST le texte anglais) : `res/raw/i18n_fr_en.tsv`, une ligne `français<TAB>anglais`. Les textes propres au natif sont en bas
  * du fichier. Une entrée avec `{}` ou `{n}` est un modèle (« {n} événements » donne « 3 events »). En français (le défaut)
  * rien n'est traduit ni même cherché : c'est le texte écrit dans le code qui s'affiche.
  *
@@ -33,7 +33,7 @@ object Translator {
 
     fun load(context: Context) {
         dictionary = try {
-            FrenchToEnglish(context.assets.open("i18n-fr-en.tsv").bufferedReader(Charsets.UTF_8).use { it.readText() })
+            FrenchToEnglish(context.resources.openRawResource(com.ahmed.neocalendar.R.raw.i18n_fr_en).bufferedReader(Charsets.UTF_8).use { it.readText() })
         } catch (_: Exception) {
             // Sans dictionnaire l'anglais retombe sur le français : rien ne casse.
             FrenchToEnglish("")

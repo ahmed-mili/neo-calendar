@@ -234,7 +234,8 @@ private fun AllDayBars(
 @Composable
 private fun AllDayBarView(display: DisplayEvent?, onEventClick: (DisplayEvent) -> Unit, onToggleTask: (DisplayEvent) -> Unit) {
     val accent = remember(display?.color) { parseCalendarColor(display?.color ?: "#658ff2") }
-    val fill = remember(accent) { accent.copy(alpha = 0.15f).compositeOver(Neo.Surface) }
+    val surface = Neo.Surface
+    val fill = remember(accent, surface) { accent.copy(alpha = 0.15f).compositeOver(surface) }
     val shape = RoundedCornerShape(4.dp)
     // `nc-allday-bar-in` : la barre apparaît en 0,22 s (`cubic-bezier(.215,.61,.355,1)`).
     val appear = remember { Animatable(0f) }

@@ -330,7 +330,8 @@ private fun hourLabel(hour: Int, timeFormat24h: Boolean): String =
 private fun HourRail(state: GridState, dayCount: Int, timeFormat24h: Boolean, zone: ZoneId) {
     val measurer = rememberTextMeasurer()
     val shadow = legibleShadow()
-    val style = remember(shadow) { TextStyle(color = Neo.Label, fontSize = 10.sp, lineHeight = 10.sp, textAlign = TextAlign.End, shadow = shadow) }
+    val label = Neo.Label
+    val style = remember(shadow, label) { TextStyle(color = label, fontSize = 10.sp, lineHeight = 10.sp, textAlign = TextAlign.End, shadow = shadow) }
     val nowStyle = remember { TextStyle(color = Color.White, fontSize = 10.sp, lineHeight = 10.sp, fontWeight = FontWeight.Bold) }
     val labels = remember(timeFormat24h) { (0..23).map { hourLabel(it, timeFormat24h) } }
     Canvas(Modifier.width(RailWidth).fillMaxHeight().clipToBounds()) {

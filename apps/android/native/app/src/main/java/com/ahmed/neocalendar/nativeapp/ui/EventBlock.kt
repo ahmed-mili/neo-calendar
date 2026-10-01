@@ -66,7 +66,8 @@ internal fun EventBlock(
     onOpen: (DisplayEvent) -> Unit,
 ) {
     val accent = remember(event.color) { parseCalendarColor(event.color) }
-    val fill = remember(accent) { accent.copy(alpha = 0.15f).compositeOver(Neo.Surface) }
+    val surface = Neo.Surface
+    val fill = remember(accent, surface) { accent.copy(alpha = 0.15f).compositeOver(surface) }
     val past = event.end.toEpochMilli() < System.currentTimeMillis()
     val completed = event.isTask && event.taskStatus == "complete"
     val shape = RoundedCornerShape(4.dp)

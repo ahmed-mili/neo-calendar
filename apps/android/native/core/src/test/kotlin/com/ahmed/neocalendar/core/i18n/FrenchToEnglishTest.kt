@@ -31,7 +31,7 @@ class FrenchToEnglishTest {
     }
 
     @Test fun `le vrai dictionnaire donne les textes des Reglages`() {
-        val tsv = File("../app/src/main/assets/i18n-fr-en.tsv").takeIf { it.exists() }?.readText() ?: return
+        val tsv = File("../app/src/main/res/raw/i18n_fr_en.tsv").takeIf { it.exists() }?.readText() ?: error("res/raw/i18n_fr_en.tsv introuvable")
         val dictionary = FrenchToEnglish(tsv)
         assertEquals("Colour mode", dictionary.translate("Mode de couleur"))
         assertEquals("Theme", dictionary.translate("Thème"))
