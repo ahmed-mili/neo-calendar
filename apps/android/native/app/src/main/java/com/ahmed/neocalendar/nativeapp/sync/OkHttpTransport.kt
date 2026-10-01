@@ -5,6 +5,7 @@ import com.ahmed.neocalendar.core.sync.HttpTransport
 import java.net.InetAddress
 import java.net.Proxy
 import java.util.concurrent.TimeUnit
+import okhttp3.ConnectionPool
 import okhttp3.Dns
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -22,6 +23,10 @@ class OkHttpTransport(socketPath: String, private val apiKey: String) : HttpTran
         })
         .connectTimeout(5, TimeUnit.SECONDS)
         .retryOnConnectionFailure(false)
+        // Aucune connexion gardée : le moteur ferme les connexions inactives, et le contrôle de santé d'OkHttp ne peut pas
+        // le voir sur un socket Unix (isInputShutdown lève). Réutilisée, elle donnait « Broken pipe » à la première requête
+        // après un temps mort, et un échec silencieux de l'attente d'envoi avant l'arrêt du moteur. Un socket local est quasi gratuit.
+        .connectionPool(ConnectionPool(0, 1, TimeUnit.SECONDS))
         .build()
 
     override fun request(method: String, path: String, body: String?, readTimeoutMs: Int): HttpResult {
