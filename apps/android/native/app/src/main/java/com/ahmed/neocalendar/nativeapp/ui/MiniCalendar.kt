@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -63,6 +64,7 @@ fun MiniCalendar(
     val gridStart = month.atDay(1).with(TemporalAdjusters.previousOrSame(weekStartDay))
     val currentWeekStart = today.with(TemporalAdjusters.previousOrSame(weekStartDay))
 
+    // Le même écart de 3 dp entre toutes les rangées, l'en-tête des jours compris (`gap: 3px 2px`).
     Column(
         modifier.pointerInput(Unit) {
             var total = 0f
@@ -73,6 +75,7 @@ fun MiniCalendar(
                 },
             ) { _, delta -> total += delta }
         },
+        verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         if (showHeader) {
             Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -100,12 +103,19 @@ fun MiniCalendar(
         }
         Row(Modifier.fillMaxWidth()) {
             for (i in 0 until 7) {
+                val weekday = weekStartDay.plus(i.toLong())
                 Text(
-                    weekStartDay.plus(i.toLong()).getDisplayName(TextStyle.NARROW, AppLocale.current).uppercase(AppLocale.current),
+                    // Deux lettres en minuscules (« lu ma me je ve sa di »), le week-end à 75 %.
+                    weekday.getDisplayName(TextStyle.SHORT, AppLocale.current).lowercase(AppLocale.current).take(2),
                     color = Neo.TextSecondary,
                     fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f).height(27.dp).padding(top = 6.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(27.dp)
+                        .alpha(if (weekday == DayOfWeek.SATURDAY || weekday == DayOfWeek.SUNDAY) 0.75f else 1f)
+                        .padding(top = 4.dp),
                 )
             }
         }
@@ -115,7 +125,6 @@ fun MiniCalendar(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 1.dp)
                     .then(if (isCurrentWeek) Modifier.background(Neo.HighlightWeek, RoundedCornerShape(9.dp)) else Modifier),
             ) {
                 for (d in 0 until 7) {
@@ -146,25 +155,21 @@ private fun DayCell(
     onClick: () -> Unit,
 ) {
     val isToday = day == today
-    val isAnchor = day == anchor
     Box(
         modifier.height(height).clip(RoundedCornerShape(9.dp)).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        val badge = when {
-            isToday -> Modifier.size(32.dp).background(Neo.Today, RoundedCornerShape(9.dp))
-            isAnchor -> Modifier.size(32.dp).background(Neo.HighlightAnchor, RoundedCornerShape(9.dp))
-            else -> Modifier.size(32.dp)
-        }
+        // Le jour de repère n'a pas de pastille : la semaine est la bande.
+        val badge = if (isToday) Modifier.size(32.dp).background(Neo.Today, RoundedCornerShape(9.dp)) else Modifier.size(32.dp)
         Box(badge, contentAlignment = Alignment.Center) {
             Text(
                 day.dayOfMonth.toString(),
                 fontSize = 13.sp,
-                fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Normal,
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                 color = when {
                     isToday -> Color.White
                     inMonth -> Neo.Text
-                    else -> Neo.TextFaint
+                    else -> Neo.TextSecondary
                 },
             )
         }

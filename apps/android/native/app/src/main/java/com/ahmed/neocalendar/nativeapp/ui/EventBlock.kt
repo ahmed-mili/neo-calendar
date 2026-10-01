@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -81,7 +81,7 @@ internal fun EventBlock(
         Modifier
             .fillMaxSize()
             .alpha(if (dimmed) PENDING_DIM else 1f)
-            .shadow(4.dp, shape, ambientColor = Color.Black.copy(alpha = 0.18f), spotColor = Color.Black.copy(alpha = 0.18f))
+            .cssShadow(offsetY = 5.dp, blur = 14.dp, color = Color.Black.copy(alpha = 0.18f), radius = 4.dp)
             .background(fill, shape)
             .clip(shape)
             // Le toucher (ouvrir, déplacer, redimensionner) est lu par la grille ; ceci ne dit que « ouvrir » aux technologies d'assistance.
@@ -95,7 +95,7 @@ internal fun EventBlock(
             .drawBehind {
                 drawRect(accent.copy(alpha = if (past) 0.4f else 1f), size = Size(4.dp.toPx(), size.height))
             }
-            .padding(start = 11.dp, end = 7.dp, top = if (short) 2.dp else 5.dp, bottom = 2.dp),
+            .padding(start = 11.dp, end = 7.dp, top = 5.dp, bottom = 5.dp),
     ) {
         if (short) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -103,7 +103,7 @@ internal fun EventBlock(
                 // Titre puis heure dans un seul texte : c'est l'heure qui est coupée en premier.
                 Text(
                     buildAnnotatedString {
-                        withStyle(SpanStyle(color = ink, fontWeight = FontWeight.Medium, textDecoration = if (completed) TextDecoration.LineThrough else null)) {
+                        withStyle(SpanStyle(color = ink, fontWeight = FontWeight.SemiBold, textDecoration = if (completed) TextDecoration.LineThrough else null)) {
                             append(event.title)
                         }
                         if (segment.durationHours * 60 > 20) {
@@ -111,25 +111,35 @@ internal fun EventBlock(
                         }
                     },
                     fontSize = 11.sp,
+                    lineHeight = 14.3.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
         } else {
-            Column {
-                Row(verticalAlignment = Alignment.Top) {
-                    if (event.isTask) TaskCheck(completed, ink, event.editable) { onToggleTask(event) }
-                    Text(
-                        event.title,
-                        color = ink,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 6,
-                        overflow = TextOverflow.Ellipsis,
-                        textDecoration = if (completed) TextDecoration.LineThrough else null,
-                    )
+            // Le titre rétrécit en premier (il perd ses lignes du bas), puis le lieu, jamais l'heure.
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                // Le lieu n'apparaît que si le contenu a la hauteur de trois lignes (`@container (min-height: 52px)`).
+                val location = event.location?.trim().orEmpty()
+                val showLocation = location.isNotEmpty() && maxHeight >= 52.dp
+                Column(Modifier.fillMaxSize()) {
+                    Row(Modifier.weight(1f, fill = false), verticalAlignment = Alignment.Top) {
+                        if (event.isTask) TaskCheck(completed, ink, event.editable) { onToggleTask(event) }
+                        Text(
+                            event.title,
+                            color = ink,
+                            fontSize = 11.sp,
+                            lineHeight = 14.3.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            overflow = TextOverflow.Clip,
+                            textDecoration = if (completed) TextDecoration.LineThrough else null,
+                        )
+                    }
+                    if (showLocation) {
+                        Text(location, color = Neo.TextSecondary, fontSize = 11.sp, lineHeight = 14.3.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Text(time, color = Neo.TextSecondary, fontSize = 11.sp, lineHeight = 14.3.sp, maxLines = 1, softWrap = false)
                 }
-                Text(time, color = Neo.TextSecondary, fontSize = 11.sp, maxLines = 1, softWrap = false)
             }
         }
         if (resizing) {

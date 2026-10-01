@@ -6,6 +6,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
@@ -19,10 +20,12 @@ import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.unit.Velocity
 import com.ahmed.neocalendar.core.grid.nearestDay
 import com.ahmed.neocalendar.core.grid.snapTargetDay
 import com.ahmed.neocalendar.core.layout.MAX_HOUR_HEIGHT
@@ -62,6 +65,9 @@ class GridState(
     var columnWidthPx = 1f
     var viewportHeightPx by mutableFloatStateOf(0f)
 
+    /** Sous minuit : 10 dp et l'inset bas, comme le `padding-bottom` de la zone défilante de l'ancienne. */
+    var bottomPadPx by mutableFloatStateOf(0f)
+
     /** L'heure qu'il est, rafraîchie chaque minute : la ligne de l'heure actuelle la lit. */
     var nowMillis by mutableLongStateOf(System.currentTimeMillis())
 
@@ -69,7 +75,7 @@ class GridState(
     private var verticalJob: Job? = null
 
     val hourPx: Float get() = hourHeightDp * density
-    val maxScroll: Float get() = maxOf(0f, HOURS * hourPx - viewportHeightPx)
+    val maxScroll: Float get() = maxOf(0f, HOURS * hourPx + bottomPadPx - viewportHeightPx)
     val clampedScrollY: Float get() = scrollY.coerceIn(0f, maxScroll)
 
     /** Le jour (epoch) le plus proche de la tête de grille : celui que disent le mois et la semaine. */
@@ -102,10 +108,15 @@ class GridState(
         scrollY = (hourUnderFingers * hourPx - centroidY).coerceIn(0f, maxScroll)
     }
 
-    /** Se pose à l'heure qui précède maintenant d'une heure, une fois la hauteur de la vue connue. */
+    /**
+     * Au premier affichage, `h` heures avant maintenant, `h = clamp(heures visibles x 0,68 ; 3,5 ; 6)` (6 h sur un
+     * téléphone, `TimeGrid.tsx:591`), une fois la hauteur de la vue connue.
+     */
     fun initialScrollIfNeeded(hourOfDay: Float) {
         if (scrollY >= 0f || viewportHeightPx <= 0f) return
-        scrollY = ((hourOfDay - 1f) * hourPx).coerceIn(0f, maxScroll)
+        val visibleHours = viewportHeightPx / hourPx
+        val before = (visibleHours * 0.68f).coerceIn(3.5f, 6f)
+        scrollY = ((hourOfDay - before) * hourPx).coerceIn(0f, maxScroll)
     }
 
     /** Au lâcher hors défilement libre : un jour exactement, dans le sens du geste. */
@@ -123,15 +134,42 @@ class GridState(
         }
     }
 
-    fun flingY(scope: CoroutineScope, velocityPxPerSec: Float, decay: DecayAnimationSpec<Float>) {
+    /**
+     * L'élan vertical. À une borne il s'arrête ; ce qui lui reste de vitesse part dans l'effet de débordement
+     * (l'étirement Android), qui rebondit avec. Sans doigt levé avec vitesse, `velocityPxPerSec` vaut 0 : l'effet
+     * est quand même prévenu, il lui faut le lâcher pour se relâcher.
+     */
+    fun flingY(scope: CoroutineScope, velocityPxPerSec: Float, decay: DecayAnimationSpec<Float>, overscroll: OverscrollEffect?) {
         verticalJob?.cancel()
         verticalJob = scope.launch {
-            val state = AnimationState(initialValue = clampedScrollY, initialVelocity = -velocityPxPerSec)
-            state.animateDecay(decay) {
-                val clamped = value.coerceIn(0f, maxScroll)
-                scrollY = clamped
-                if (clamped != value) cancelAnimation()
+            // Rend la part de vitesse (du doigt) que le défilement a consommée.
+            val fling: suspend (Velocity) -> Velocity = { available ->
+                var left = 0f
+                val anim = AnimationState(initialValue = clampedScrollY, initialVelocity = -available.y)
+                anim.animateDecay(decay) {
+                    val clamped = value.coerceIn(0f, maxScroll)
+                    scrollY = clamped
+                    if (clamped != value) {
+                        left = velocity
+                        cancelAnimation()
+                    }
+                }
+                Velocity(0f, available.y + left)
             }
+            if (overscroll == null) fling(Velocity(0f, velocityPxPerSec)) else overscroll.applyToFling(Velocity(0f, velocityPxPerSec), fling)
+        }
+    }
+
+    /** Un delta de doigt vertical, passé par l'effet de débordement : ce que la grille ne peut plus défiler l'étire. */
+    fun pullY(deltaPx: Float, overscroll: OverscrollEffect?) {
+        if (overscroll == null) {
+            dragY(deltaPx)
+            return
+        }
+        overscroll.applyToScroll(Offset(0f, deltaPx), NestedScrollSource.UserInput) { d ->
+            val before = clampedScrollY
+            dragY(d.y)
+            Offset(0f, before - clampedScrollY)
         }
     }
 
@@ -175,7 +213,8 @@ fun Modifier.gridDrag(
     freeScroll: Boolean,
     vertical: Boolean,
     decay: DecayAnimationSpec<Float>,
-): Modifier = pointerInput(state, freeScroll, vertical) {
+    overscroll: OverscrollEffect? = null,
+): Modifier = pointerInput(state, freeScroll, vertical, overscroll) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
         state.cancelAnimations()
@@ -191,11 +230,11 @@ fun Modifier.gridDrag(
         val horizontal = abs(overSlop.x) > abs(overSlop.y)
         val tracker = VelocityTracker()
         tracker.addPosition(slop.uptimeMillis, slop.position)
-        if (horizontal) state.dragX(overSlop.x) else state.dragY(overSlop.y)
+        if (horizontal) state.dragX(overSlop.x) else state.pullY(overSlop.y, overscroll)
         val released = drag(slop.id) { change ->
             tracker.addPosition(change.uptimeMillis, change.position)
             val delta = change.positionChange()
-            if (horizontal) state.dragX(delta.x) else state.dragY(delta.y)
+            if (horizontal) state.dragX(delta.x) else state.pullY(delta.y, overscroll)
             change.consume()
         }
         val velocity = if (released) tracker.calculateVelocity() else null
@@ -205,8 +244,8 @@ fun Modifier.gridDrag(
             } else {
                 state.settleToDay(scope, startIdx, startOffset, velocity?.x ?: 0f)
             }
-        } else if (velocity != null) {
-            state.flingY(scope, velocity.y, decay)
+        } else {
+            state.flingY(scope, velocity?.y ?: 0f, decay, overscroll)
         }
     }
 }

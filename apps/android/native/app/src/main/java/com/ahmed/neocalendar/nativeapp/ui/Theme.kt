@@ -46,6 +46,8 @@ object Neo {
     val TaskTodo get() = t.taskTodo
     val TaskDone get() = t.taskDone
     val GridLine get() = t.gridLine
+    val AllDayGutterBorder get() = t.allDayGutterBorder
+    val AllDayCellBorder get() = t.allDayCellBorder
     val Draft get() = t.draft
     val DraftFill get() = t.draftFill
     val HighlightWeek get() = t.highlightWeek

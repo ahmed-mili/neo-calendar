@@ -1,7 +1,16 @@
 package com.ahmed.neocalendar.nativeapp.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.unit.em
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -51,27 +60,29 @@ fun TopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.size(Neo.TouchTarget).clip(RoundedCornerShape(14.dp)).clickable(onClick = onMenu),
+            Modifier.size(Neo.TouchTarget).pressFill(RoundedCornerShape(13.dp), onClick = onMenu),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(NeoIcons.Menu, "Ouvrir les calendriers", tint = Neo.Text, modifier = Modifier.size(23.dp))
+            Icon(NeoIcons.Menu, "Ouvrir les calendriers", tint = Neo.TextSecondary, modifier = Modifier.size(23.dp))
             // La pastille bleue : une mise à jour est prête à poser.
             if (updateDot) Box(Modifier.align(Alignment.TopEnd).padding(top = 9.dp, end = 9.dp).size(9.dp).clip(CircleShape).background(Neo.Accent))
         }
 
+        val compact = needsCompactMonthType(monthName)
+        val chevron by animateFloatAsState(if (monthOpen) 180f else 0f, tween(170), label = "month-chevron")
         Row(
             Modifier
                 .height(Neo.TouchTarget)
-                .clip(RoundedCornerShape(14.dp))
-                .clickable(onClick = onMonth)
+                .pressFill(RoundedCornerShape(12.dp), fill = Neo.HighlightWeek, on = monthOpen, onClick = onMonth)
                 .padding(horizontal = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 monthName,
                 color = Neo.Text,
-                fontSize = if (needsCompactMonthType(monthName)) 18.sp else 22.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontSize = if (compact) 24.sp else 29.sp,
+                fontWeight = FontWeight(750),
+                letterSpacing = if (compact) (-0.05).em else (-0.045).em,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
@@ -81,38 +92,51 @@ fun TopBar(
                 NeoIcons.ChevronDown,
                 null,
                 tint = Neo.TextSecondary,
-                modifier = Modifier.size(18.dp).rotate(if (monthOpen) 180f else 0f),
+                modifier = Modifier.size(15.dp).rotate(chevron),
             )
         }
         Text(
             "Semaine $weekNumber",
-            color = Neo.TextFaint,
+            color = Neo.Label,
             fontSize = 13.sp,
+            lineHeight = 19.5.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(start = 8.dp).weight(1f),
         )
         Box(
-            Modifier.size(Neo.TouchTarget).clip(RoundedCornerShape(14.dp)).clickable(onClick = onSearch),
+            Modifier.size(Neo.TouchTarget).pressFill(RoundedCornerShape(13.dp), onClick = onSearch),
             contentAlignment = Alignment.Center,
-        ) { Icon(NeoIcons.Search, "Rechercher", tint = Neo.Text, modifier = Modifier.size(22.dp)) }
-        Box(
-            Modifier.size(Neo.TouchTarget).clickable(onClick = onToday, indication = null, interactionSource = null),
-            contentAlignment = Alignment.Center,
-        ) {
+        ) { Icon(NeoIcons.Search, "Rechercher", tint = Neo.TextSecondary, modifier = Modifier.size(23.dp)) }
+        // La pastille mesure 32 x 30 et touche le bord (7 dp) ; sa zone de toucher de 48 x 48 déborde de 8 dp de chaque côté.
+        val source = remember { MutableInteractionSource() }
+        val pressed by source.collectIsPressedAsState()
+        val scale by animateFloatAsState(if (pressed) 0.94f else 1f, tween(90), label = "today-scale")
+        Box(Modifier.width(32.dp).height(Neo.TouchTarget), contentAlignment = Alignment.Center) {
             val late = badge != TodayBadgeState.PRESENT
             Box(
                 Modifier
-                    .size(width = 32.dp, height = 30.dp)
-                    .background(if (late) Neo.TodayPill else Neo.ChipNeutral, RoundedCornerShape(9.dp)),
+                    .requiredSize(Neo.TouchTarget)
+                    .scale(scale)
+                    .clickable(interactionSource = source, indication = null, onClick = onToday),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    todayNumber.toString(),
-                    color = if (late) Color.White else Neo.Text,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                )
+                Box(
+                    Modifier
+                        .size(width = 32.dp, height = 30.dp)
+                        .background(
+                            if (late) Neo.TodayPill else if (pressed) Neo.HighlightAnchor else Neo.ChipNeutral,
+                            RoundedCornerShape(9.dp),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        todayNumber.toString(),
+                        color = if (late) Color.White else Neo.Text,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
         }
     }

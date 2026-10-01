@@ -57,6 +57,10 @@ class NeoTokens(
     val taskTodo: Color,
     val taskDone: Color,
     val gridLine: Color,
+    /** Bord droit de la gouttière de la bande « journée entière » (`rgba(128,128,128,.35)`). */
+    val allDayGutterBorder: Color,
+    /** Bord gauche des cellules de la bande « journée entière » (`rgba(105,109,134,.24)`). */
+    val allDayCellBorder: Color,
     val draft: Color,
     val draftFill: Color,
     // Voiles posés par-dessus la grille (blanc translucide)
@@ -105,6 +109,8 @@ val CatppuccinMocha = NeoTokens(
     taskTodo = Color(0xFFE9973F),
     taskDone = Color(0xFF2F9E44),
     gridLine = Color(0x2B9BA0B9),
+    allDayGutterBorder = Color(0x59808080),
+    allDayCellBorder = Color(0x3D696D86),
     draft = Color(0xFF4AABE0),
     draftFill = Color(0x2E4AABE0),
     highlightWeek = Color(0x17FFFFFF),

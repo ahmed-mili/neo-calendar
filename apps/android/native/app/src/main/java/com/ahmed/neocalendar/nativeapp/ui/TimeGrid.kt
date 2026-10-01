@@ -1,6 +1,17 @@
 package com.ahmed.neocalendar.nativeapp.ui
 
 import androidx.compose.animation.rememberSplineBasedDecay
+import androidx.compose.foundation.overscroll
+import androidx.compose.foundation.rememberOverscrollEffect
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -66,9 +77,12 @@ import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
-val RailWidth = 48.dp
-val HeaderHeight = 48.dp
-private const val MIN_BLOCK_DP = 14
+/** 64 dp : les libellés d'heure et le bord droit de 1 px (`CalendarGrid.css:17`). */
+val RailWidth = 64.dp
+
+/** 59 dp : `min-height 58` et le filet bas de 1 px. */
+val HeaderHeight = 59.dp
+private const val MIN_BLOCK_DP = 26
 
 /**
  * Compose seulement les colonnes qui se voient (plus une de marge de chaque
@@ -121,10 +135,14 @@ fun TimeGridArea(
     onToggleAllDayCollapsed: () -> Unit,
     actions: GridActions,
     dataVersion: Any,
+    bottomInset: Dp,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
     state.density = density.density
+    // Sous minuit : 10 dp et l'inset bas, comme le `padding-bottom` de la zone défilante de l'ancienne.
+    state.bottomPadPx = with(density) { (10.dp + bottomInset).toPx() }
+    val overscroll = rememberOverscrollEffect()
     val scope = rememberCoroutineScope()
     val decay = rememberSplineBasedDecay<Float>()
     val zone = remember { ZoneId.systemDefault() }
@@ -161,8 +179,8 @@ fun TimeGridArea(
                 .height(HeaderHeight)
                 .gridDrag(state, scope, freeScroll, vertical = false, decay = decay),
         ) {
-            Box(Modifier.width(RailWidth))
-            DayColumns(state, dayCount, Modifier.weight(1f).fillMaxHeight()) { day -> DayHeader(day, state) }
+            TimeZoneCorner(zone)
+            DayColumns(state, dayCount, Modifier.weight(1f).fillMaxHeight()) { day -> DayHeader(day) }
         }
         AllDayBand(
             state = state,
@@ -179,12 +197,14 @@ fun TimeGridArea(
             Modifier
                 .weight(1f)
                 .fillMaxWidth()
+                .clipToBounds()
+                .overscroll(overscroll)
                 .gridPinch(state)
-                .gridDrag(state, scope, freeScroll, vertical = true, decay = decay),
+                .gridDrag(state, scope, freeScroll, vertical = true, decay = decay, overscroll = overscroll),
         ) {
-            HourRail(state, timeFormat24h)
+            HourRail(state, dayCount, timeFormat24h, zone)
             Box(Modifier.weight(1f).fillMaxHeight().gridTouch(ix, haptic)) {
-                GridBackground(state, dayCount, zone)
+                GridBackground(state, dayCount)
                 DayColumns(
                     state,
                     dayCount,
@@ -197,6 +217,7 @@ fun TimeGridArea(
                         DayEvents(day, events, ix, timeFormat24h, zone)
                     }
                 }
+                NowLine(state, dayCount, zone)
                 MoveGhost(ix, dayCount, timeFormat24h)
             }
         }
@@ -209,37 +230,85 @@ private fun hourNow(zone: ZoneId): Float {
     return now.hour + now.minute / 60f
 }
 
+/** `0 1px 2px rgba(0,0,0,.62)` : l'ombre qui garde lisible le texte de la grille sur n'importe quel fond d'écran. */
 @Composable
-private fun DayHeader(day: Long, state: GridState) {
-    val date = LocalDate.ofEpochDay(day)
-    val today = LocalDate.now()
-    val isToday = date == today
-    val weekday = remember(day) { weekdayShort(date) }
-    Column(
-        Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+private fun legibleShadow(): Shadow {
+    val d = LocalDensity.current.density
+    return Shadow(Color.Black.copy(alpha = 0.62f), Offset(0f, d), 2f * d)
+}
+
+/** « GMT+2 » : le décalage de l'appareil (`offsetLabel`, `TimezonePicker.tsx:21`). */
+private fun gmtLabel(zone: ZoneId): String {
+    val minutes = zone.rules.getOffset(Instant.now()).totalSeconds / 60
+    val abs = kotlin.math.abs(minutes)
+    val rest = if (abs % 60 != 0) ":%02d".format(abs % 60) else ""
+    return "GMT${if (minutes >= 0) "+" else "−"}${abs / 60}$rest"
+}
+
+/** Le coin de la grille, au-dessus des heures : le fuseau principal, et le filet qui prolonge celui des en-têtes. */
+@Composable
+private fun TimeZoneCorner(zone: ZoneId) {
+    val label = remember(zone) { gmtLabel(zone) }
+    Box(
+        Modifier
+            .width(RailWidth)
+            .fillMaxHeight()
+            .drawBehind { drawLine(Neo.AllDayCellBorder, Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1f) },
+        contentAlignment = Alignment.Center,
     ) {
         Text(
-            weekday,
-            color = if (isToday) Neo.Today else Neo.TextSecondary,
-            fontSize = 11.sp,
+            label,
+            color = Neo.Label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
+            softWrap = false,
+            style = TextStyle(shadow = legibleShadow()),
+            modifier = Modifier.padding(horizontal = 2.dp, vertical = 1.dp),
         )
+    }
+}
+
+@Composable
+private fun DayHeader(day: Long) {
+    val date = LocalDate.ofEpochDay(day)
+    val isToday = date == LocalDate.now()
+    val weekday = remember(day) { weekdayShort(date) }
+    val shadow = legibleShadow()
+    Row(
+        Modifier
+            .fillMaxSize()
+            .drawBehind { drawLine(Neo.BarPress, Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1f) }
+            .padding(start = 2.dp, end = 2.dp, top = 7.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.Top,
+    ) {
+        // Une seule ligne : l'abréviation du jour, puis le nombre dans sa case de 25 x 25.
+        Box(Modifier.height(25.dp), contentAlignment = Alignment.Center) {
+            Text(
+                weekday,
+                color = Neo.Label,
+                fontSize = 12.sp,
+                fontWeight = FontWeight(if (isToday) 600 else 650),
+                maxLines = 1,
+                style = TextStyle(shadow = shadow),
+            )
+        }
+        Spacer(Modifier.width(4.dp))
         Box(
             Modifier
-                .padding(top = 2.dp)
-                .then(
-                    if (isToday) Modifier.background(Neo.Today, RoundedCornerShape(9.dp)).padding(horizontal = 7.dp, vertical = 1.dp)
-                    else Modifier.padding(horizontal = 7.dp, vertical = 1.dp),
-                ),
+                .defaultMinSize(25.dp, 25.dp)
+                .then(if (isToday) Modifier.background(Neo.Today, RoundedCornerShape(8.dp)) else Modifier)
+                .padding(horizontal = 4.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 date.dayOfMonth.toString(),
-                color = if (isToday) Color.White else Neo.Text,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
+                color = if (isToday) Color.White else Neo.Label,
+                fontSize = 12.sp,
+                fontWeight = FontWeight(if (isToday) 600 else 500),
                 maxLines = 1,
+                style = if (isToday) TextStyle.Default else TextStyle(shadow = shadow),
             )
         }
     }
@@ -256,41 +325,56 @@ private fun hourLabel(hour: Int, timeFormat24h: Boolean): String =
     }
 
 @Composable
-private fun HourRail(state: GridState, timeFormat24h: Boolean) {
+private fun HourRail(state: GridState, dayCount: Int, timeFormat24h: Boolean, zone: ZoneId) {
     val measurer = rememberTextMeasurer()
-    val style = remember { TextStyle(color = Neo.TextSecondary, fontSize = 11.sp, textAlign = TextAlign.End) }
+    val shadow = legibleShadow()
+    val style = remember(shadow) { TextStyle(color = Neo.Label, fontSize = 10.sp, lineHeight = 10.sp, textAlign = TextAlign.End, shadow = shadow) }
+    val nowStyle = remember { TextStyle(color = Color.White, fontSize = 10.sp, lineHeight = 10.sp, fontWeight = FontWeight.Bold) }
     val labels = remember(timeFormat24h) { (0..23).map { hourLabel(it, timeFormat24h) } }
     Canvas(Modifier.width(RailWidth).fillMaxHeight().clipToBounds()) {
         val hourPx = state.hourPx
         val scroll = state.clampedScrollY
         val widthPx = size.width
-        val pad = 6.dp.toPx()
+        // Les libellés sont collés à 8 dp du bord droit, qui mesure 1 dp.
+        val right = widthPx - 9.dp.toPx()
         for (h in 1..23) {
             val y = h * hourPx - scroll
             // L'étiquette est centrée sur sa ligne ; on saute ce qui sort de la vue.
             if (y < -20.dp.toPx() || y > size.height + 20.dp.toPx()) continue
             val layout = measurer.measure(labels[h], style, maxLines = 1)
-            drawText(layout, topLeft = Offset(widthPx - pad - layout.size.width, y - layout.size.height / 2f))
+            drawText(layout, topLeft = Offset(right - layout.size.width, y - layout.size.height / 2f))
         }
+        // La pastille de l'heure actuelle (`nc-now-label`), posée sur l'étiquette voisine, quand la colonne d'aujourd'hui se voit.
+        val now = Instant.ofEpochMilli(state.nowMillis).atZone(zone)
+        val todayCol = LocalDate.now(zone).toEpochDay() - state.origin - state.offsetDays
+        if (todayCol + 1f > 0f && todayCol < dayCount) {
+            val y = (now.hour + now.minute / 60f) * hourPx - scroll
+            if (y in 0f..size.height) {
+                val layout = measurer.measure(formatClock(Instant.ofEpochMilli(state.nowMillis), zone, timeFormat24h), nowStyle, maxLines = 1)
+                val boxW = layout.size.width + 12.dp.toPx()
+                val boxH = 16.dp.toPx()
+                val left = widthPx - 4.dp.toPx() - boxW
+                val top = y - boxH / 2f
+                drawRoundRect(Neo.Today, Offset(left, top), Size(boxW, boxH), CornerRadius(4.dp.toPx()))
+                drawText(layout, topLeft = Offset(left + 6.dp.toPx(), top + 4.dp.toPx()))
+            }
+        }
+        // Le bord droit de la gouttière.
+        drawLine(Neo.GridLine, Offset(widthPx - 0.5f * density, 0f), Offset(widthPx - 0.5f * density, size.height), density)
     }
 }
 
-/** Les lignes d'heure, les séparateurs de jours, la teinte d'aujourd'hui et la ligne de l'heure actuelle. */
+/** Les lignes d'heure, les séparateurs de jours et la ligne de l'heure actuelle. */
 @Composable
-private fun GridBackground(state: GridState, dayCount: Int, zone: ZoneId) {
+private fun GridBackground(state: GridState, dayCount: Int) {
     Canvas(Modifier.fillMaxSize()) {
         val hourPx = state.hourPx
         val scroll = state.clampedScrollY
         val columnWidth = size.width / dayCount
         val offset = state.offsetDays
-        val hairline = 1f
-        val todayIdx = LocalDate.now(zone).toEpochDay() - state.origin
+        // 1 dp (un pixel CSS) : `rgba(155,160,185,0.17)`.
+        val hairline = 1.dp.toPx()
 
-        // Aujourd'hui : un voile léger sur sa colonne.
-        val todayX = (todayIdx - offset) * columnWidth
-        if (todayX + columnWidth > 0f && todayX < size.width) {
-            drawRect(Neo.TodayColumn, Offset(todayX, 0f), Size(columnWidth, size.height))
-        }
         for (h in 0..24) {
             val y = h * hourPx - scroll
             if (y < -1f || y > size.height + 1f) continue
@@ -302,16 +386,38 @@ private fun GridBackground(state: GridState, dayCount: Int, zone: ZoneId) {
             if (x < 0f || x > size.width) continue
             drawLine(Neo.GridLine, Offset(x, 0f), Offset(x, size.height), hairline)
         }
+    }
+}
 
-        // L'heure actuelle : un filet pâle sur toute la largeur, un trait vif sur la colonne d'aujourd'hui.
+/** L'heure actuelle, au-dessus des évènements (z-index 5 et 6 de l'ancienne) : un filet pâle, un trait vif et ombré sur la colonne d'aujourd'hui. */
+@Composable
+private fun NowLine(state: GridState, dayCount: Int, zone: ZoneId) {
+    Canvas(Modifier.fillMaxSize()) {
+        val hourPx = state.hourPx
+        val scroll = state.clampedScrollY
+        val columnWidth = size.width / dayCount
+        val hairline = 1.dp.toPx()
+        val todayX = (LocalDate.now(zone).toEpochDay() - state.origin - state.offsetDays) * columnWidth
         val now = Instant.ofEpochMilli(state.nowMillis).atZone(zone)
         val nowHours = now.hour + now.minute / 60f
         val y = nowHours * hourPx - scroll
         if (y in 0f..size.height) {
             drawLine(Neo.Today.copy(alpha = 0.3f), Offset(0f, y), Offset(size.width, y), hairline)
             if (todayX + columnWidth > 0f && todayX < size.width) {
-                drawLine(Neo.Today, Offset(todayX, y), Offset(todayX + columnWidth, y), 2.dp.toPx())
-                drawCircle(Neo.Today, 4.dp.toPx(), Offset(todayX, y))
+                val thick = 2.dp.toPx()
+                drawIntoCanvas { canvas ->
+                    // `0 0 3px rgba(0,0,0,.35)` : le sigma d'un flou de 3 px est 1,5.
+                    val glow = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                        color = Color.Black.copy(alpha = 0.35f).toArgb()
+                        strokeWidth = thick
+                        strokeCap = android.graphics.Paint.Cap.ROUND
+                        maskFilter = android.graphics.BlurMaskFilter((1.5f * density - 0.5f) / 0.57735f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                    }
+                    canvas.nativeCanvas.drawLine(todayX, y, todayX + columnWidth, y, glow)
+                }
+                drawLine(Neo.Today, Offset(todayX, y), Offset(todayX + columnWidth, y), thick, StrokeCap.Round)
+                // Le tiret (`nc-now-tick`) : 2 x 6 dp, rayon 1, au bord gauche de la colonne.
+                drawRoundRect(Neo.Today, Offset(todayX, y - 3.dp.toPx()), Size(2.dp.toPx(), 6.dp.toPx()), CornerRadius(1.dp.toPx()))
             }
         }
     }
@@ -376,9 +482,10 @@ private fun DayEvents(
         modifier = Modifier.fillMaxSize(),
     ) { measurables, c ->
         val hourPx = state.hourPx
-        val gap = OVERLAP_COL_GAP.dp.toPx()
+        val gap = (OVERLAP_COL_GAP + 1).dp.toPx()
         val vgap = EVENT_VGAP.dp.toPx()
-        val margin = 4.dp.toPx()
+        // Colonne de jour + 5 dp, largeur `colonne - 17 dp` (le filet de 1 dp de l'ancienne décale tout d'un cran).
+        val margin = 5.dp.toPx()
         val minHeight = MIN_BLOCK_DP.dp.toPx()
         val rects = placed.map { p ->
             val slot = c.maxWidth.toFloat() / p.total

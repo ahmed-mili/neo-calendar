@@ -14,7 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
@@ -45,8 +46,9 @@ fun MonthSheet(
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .shadow(18.dp, ambientColor = Color.Black, spotColor = Color.Black)
-                    .background(Neo.Background)
+                    .cssShadow(offsetY = 18.dp, blur = 34.dp, color = Color.Black.copy(alpha = 0.28f))
+                    .background(Neo.Surface)
+                    .drawBehind { drawLine(Neo.BarPress, Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1f) }
                     .padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 13.dp),
             ) {
                 MiniCalendar(anchor, firstDay, onSelect, showHeader = false)

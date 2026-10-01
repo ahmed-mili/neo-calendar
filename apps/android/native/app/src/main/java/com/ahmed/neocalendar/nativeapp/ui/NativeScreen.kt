@@ -28,7 +28,17 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -294,7 +304,9 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     BackHandler(enabled = overlay != null) { overlayKey = "" }
 
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().neoGlass().windowInsetsPadding(WindowInsets.safeDrawing)) {
+        // Le bas n'est pas réservé : la grille défile sous la barre de navigation et garde son inset en marge basse, comme l'ancienne.
+        val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        Column(Modifier.fillMaxSize().neoGlass().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top))) {
             val visible = remember(nearest, dayCount) {
                 (0 until dayCount).map { LocalDate.ofEpochDay(nearest + it).atStartOfDay(zone).toInstant() }
             }
@@ -322,16 +334,28 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                     onToggleAllDayCollapsed = { viewModel.setAllDayCollapsed(!allDayCollapsed) },
                     actions = gridActions,
                     dataVersion = data,
+                    bottomInset = bottomInset,
+                )
+                // Le bouton + : 56 x 56, rayon 16, à `max(18 ; inset + 14)` du bord droit et du bas (`CalendarLayout.css:53`).
+                val fabSource = remember { MutableInteractionSource() }
+                val fabPressed by fabSource.collectIsPressedAsState()
+                // Échelle 0,94 en 90 ms à l'appui, retour en 260 ms (`cubic-bezier(.2,.9,.3,1)`).
+                val fabScale by animateFloatAsState(
+                    if (fabPressed) 0.94f else 1f,
+                    if (fabPressed) tween(90) else tween(260, easing = CubicBezierEasing(0.2f, 0.9f, 0.3f, 1f)),
+                    label = "fab-scale",
                 )
                 Box(
                     Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                        .shadow(8.dp, RoundedCornerShape(18.dp))
+                        .padding(end = 18.dp, bottom = maxOf(18.dp, bottomInset + 14.dp))
                         .size(56.dp)
-                        .clip(RoundedCornerShape(18.dp))
+                        .scale(fabScale)
+                        .cssShadow(offsetY = 12.dp, blur = 28.dp, color = Neo.Accent.copy(alpha = 0.3f), radius = 16.dp)
+                        .cssShadow(offsetY = 5.dp, blur = 14.dp, color = Color.Black.copy(alpha = 0.34f), radius = 16.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(Neo.Accent)
-                        .clickable {
+                        .clickable(interactionSource = fabSource, indication = null) {
                             if (data.calendars.none { it.editable }) {
                                 Notices.show("Créez d'abord un dossier de calendrier avant d'ajouter des événements.")
                             } else {
@@ -339,7 +363,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                             }
                         },
                     contentAlignment = Alignment.Center,
-                ) { Icon(NeoIcons.Plus, "Nouvel événement", tint = Neo.OnAccent, modifier = Modifier.size(26.dp)) }
+                ) { Icon(NeoIcons.Plus, "Nouvel événement", tint = Neo.OnAccent, modifier = Modifier.size(24.dp)) }
             }
         }
 
