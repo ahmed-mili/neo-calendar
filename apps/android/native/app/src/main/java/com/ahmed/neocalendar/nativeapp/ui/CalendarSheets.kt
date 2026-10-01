@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Size
 import kotlinx.coroutines.launch
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
@@ -151,6 +152,8 @@ internal fun SheetFooter(
     onConfirm: () -> Unit,
     enabled: Boolean = true,
     danger: Boolean = false,
+    /** Le bouton nu d'une confirmation qui n'est pas un danger : le bouton par défaut de la WebView (gris `#6B6B6B`, texte blanc, biseau de 2 dp). */
+    neutral: Boolean = false,
 ) {
     val shape = RoundedCornerShape(8.dp)
     Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 14.dp, bottom = 18.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -163,15 +166,27 @@ internal fun SheetFooter(
                 .weight(1f)
                 .height(48.dp)
                 .clip(shape)
-                .background(if (danger) Neo.Danger else Neo.Accent)
+                .background(if (danger) Neo.Danger else if (neutral) Color(0xFF6B6B6B) else Neo.Accent)
+                .let { if (neutral) it.drawWithContent { drawContent(); drawOutsetBevel() } else it }
                 .let { if (enabled) it.clickable(onClick = onConfirm) else it }
                 .then(if (enabled) Modifier else Modifier.background(Color.Black.copy(alpha = 0.4f))),
             contentAlignment = Alignment.Center,
         ) {
             // Le danger écrit en blanc (`.nc-confirm-dialog__danger { color: #fff }`), le reste en texte sur accent.
-            UiText(confirmLabel, color = if (danger) Color.White else Neo.OnAccent, size = 16.sp, weight = FontWeight.SemiBold)
+            UiText(confirmLabel, color = if (danger || neutral) Color.White else Neo.OnAccent, size = 16.sp, weight = FontWeight.SemiBold)
         }
     }
+}
+
+/** `2px outset` du bouton par défaut : clair en haut et à gauche, sombre en bas et à droite. */
+private fun androidx.compose.ui.graphics.drawscope.ContentDrawScope.drawOutsetBevel() {
+    val w = 2.dp.toPx()
+    val light = Color(0xFFBFBFBF)
+    val dark = Color(0xFF161616)
+    drawRect(light, Offset(0f, 0f), androidx.compose.ui.geometry.Size(size.width, w))
+    drawRect(light, Offset(0f, 0f), androidx.compose.ui.geometry.Size(w, size.height))
+    drawRect(dark, Offset(0f, size.height - w), androidx.compose.ui.geometry.Size(size.width, w))
+    drawRect(dark, Offset(size.width - w, 0f), androidx.compose.ui.geometry.Size(w, size.height))
 }
 
 @Composable
@@ -391,9 +406,9 @@ fun CalendarNameDialog(
 
 // ── Suppression ───────────────────────────────────────────────────────────────────────────────────────────
 
-/** `ConfirmDialog` : une icône d'alerte, le titre, un mot, Annuler et le bouton rouge. */
+/** `ConfirmDialog` : une icône d'alerte, le titre, un mot, Annuler et le bouton de confirmation (rouge si `danger`). */
 @Composable
-fun ConfirmDeleteCalendarDialog(name: String, readOnly: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+internal fun ConfirmPanel(title: String, message: String, confirmLabel: String, danger: Boolean, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     BottomPanel(onDismiss) {
         Row(
             Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 18.dp),
@@ -401,21 +416,25 @@ fun ConfirmDeleteCalendarDialog(name: String, readOnly: Boolean, onConfirm: () -
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Icon(NeoIcons.TriangleAlert, null, tint = Neo.Danger, modifier = Modifier.size(18.dp))
-            UiText("Supprimer le calendrier", size = 17.sp, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            UiText(title, size = 17.sp, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
             CloseButton(onDismiss)
         }
-        UiText(
-            if (readOnly) {
-                "Retirer le calendrier en lecture seule « $name » ?"
-            } else {
-                "Retirer le dossier de calendrier vide « $name » ? Un calendrier ne peut l'être que s'il est vide."
-            },
-            color = Neo.TextSecondary,
-            size = 16.sp,
-            modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 14.dp),
-        )
-        SheetFooter("Annuler", "Supprimer le calendrier", onDismiss, onConfirm, danger = true)
+        UiText(message, color = Neo.TextSecondary, size = 16.sp, modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 14.dp))
+        SheetFooter("Annuler", confirmLabel, onDismiss, onConfirm, danger = danger, neutral = !danger)
     }
+}
+
+@Composable
+fun ConfirmDeleteCalendarDialog(name: String, readOnly: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    ConfirmPanel(
+        "Supprimer le calendrier",
+        if (readOnly) {
+            "Retirer le calendrier en lecture seule « $name » ?"
+        } else {
+            "Retirer le dossier de calendrier vide « $name » ? Un calendrier ne peut l'être que s'il est vide."
+        },
+        "Supprimer le calendrier", danger = true, onDismiss, onConfirm,
+    )
 }
 
 // ── Couleur ───────────────────────────────────────────────────────────────────────────────────────────────

@@ -613,3 +613,7 @@ Choisir une couleur	Pick a colour
 Hexadécimal	Hex
 Langue modifiée	Language changed
 Les modifications seront visibles au prochain démarrage de l'ancienne interface.	Changes will show the next time the old interface starts.
+{n} entrées ont une heure de début et une heure de fin, ce qui est la forme d'un événement et non d'une tâche. Elles perdront leur case à cocher. Les tâches sur toute la journée et celles déjà terminées ne sont pas touchées.	{n} entries have both a start and an end time, which is the shape of an event rather than a task. They will lose their checkbox. All-day tasks and anything already completed are left untouched.
+{n} entrées reconverties en événements.	{n} entries converted back to events.
+Appliquer cette fréquence à tous les liens ICS de tous les calendriers ? Cette action règle la fréquence de tous les liens sur cette valeur et retire leurs remplacements individuels.	Apply this frequency to every ICS link on every calendar? This sets every link's frequency to this value and removes any per-link override.
+Ce fuseau est inconnu. Écrivez un nom comme Europe/Paris ou America/New_York.	Unknown time zone. Write a name like Europe/Paris or America/New_York.

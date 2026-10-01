@@ -7,12 +7,26 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -25,6 +39,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -49,7 +65,11 @@ import androidx.compose.ui.unit.sp
 import com.ahmed.neocalendar.MainActivity
 import com.ahmed.neocalendar.core.appearance.AppearanceMode
 import com.ahmed.neocalendar.core.appearance.THEMES
+import com.ahmed.neocalendar.core.preferences.ICS_REFRESH_MINUTES
 import com.ahmed.neocalendar.core.reminders.reminderListLabel
+import com.ahmed.neocalendar.core.tasks.misfiledEventsOf
+import com.ahmed.neocalendar.core.timezones.canonicalZoneId
+import com.ahmed.neocalendar.core.timezones.timezoneAdded
 import com.ahmed.neocalendar.nativeapp.AppLanguage
 import com.ahmed.neocalendar.nativeapp.ui.theme.NeoAppearance
 import com.ahmed.neocalendar.nativeapp.WorkspaceData
@@ -92,6 +112,12 @@ class SettingsActions(
     val folderName: String,
     val oldAppInstalled: Boolean = false,
     val onUninstallOldApp: () -> Unit = {},
+    val onTimezoneAdd: (String) -> Unit = {},
+    val onTimezoneRemove: (String) -> Unit = {},
+    val onIcsDefault: (Int) -> Unit = {},
+    val onApplyIcsToAll: () -> Unit = {},
+    /** Reconvertit les tâches horaires en évènements ; rend le nombre de notes réécrites. */
+    val onConvertMisfiled: suspend () -> Int = { 0 },
 )
 
 /** Un calendrier tel que la page « Calendriers » le montre. */
@@ -117,19 +143,23 @@ internal fun SText(
 
 /**
  * Les Réglages (§16) : pages posées sur `Mantle`, en-tête de l'ancienne, groupes de lignes séparées, dialogues de choix.
- * Chaque réglage est écrit aussitôt dans le fichier partagé. Les trois lignes de l'Apparence (thème, mode, langue),
- * les fuseaux horaires et les coffres Obsidian restent inertes jusqu'aux lots 5b et 6.
+ * Chaque réglage est écrit aussitôt dans le fichier partagé. Seule la ligne des coffres Obsidian reste inerte (sans effet sur téléphone, comme l'ancienne).
  */
 @Composable
 fun SettingsScreen(version: String, data: WorkspaceData, actions: SettingsActions, onBack: () -> Unit) {
     val context = LocalContext.current
     var page by rememberSaveable { mutableStateOf("") }
     var choice by remember { mutableStateOf<String?>(null) }
+    // Les deux questions de confirmation (« convert », « applyIcs ») et le résultat de la reconversion.
+    var confirm by remember { mutableStateOf<String?>(null) }
+    var converted by remember { mutableStateOf<Int?>(null) }
+    val misfiled = remember(data.events) { misfiledEventsOf(data.events).size }
+    val scope = rememberCoroutineScope()
     BackHandler(enabled = page.isNotEmpty()) { page = "" }
 
     Column(Modifier.fillMaxSize().background(Neo.Mantle)) {
         SettingsHeader(
-            when (page) { "calendars" -> "Calendriers"; "folder" -> "Dossier de données"; "appearance" -> "Apparence"; else -> "Paramètres" },
+            when (page) { "calendars" -> "Calendriers"; "folder" -> "Dossier de données"; "appearance" -> "Apparence"; "timezones" -> "Fuseaux horaires"; else -> "Paramètres" },
             onBack = { if (page.isNotEmpty()) page = "" else onBack() },
         )
         Column(
@@ -137,10 +167,11 @@ fun SettingsScreen(version: String, data: WorkspaceData, actions: SettingsAction
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
             when (page) {
-                "calendars" -> CalendarsPage(data, actions)
+                "calendars" -> CalendarsPage(data, actions, { choice = it }, { confirm = "applyIcs" })
+                "timezones" -> TimezonesPage(data, actions)
                 "folder" -> FolderPage(actions)
                 "appearance" -> AppearancePage { choice = "theme" }
-                else -> RootPage(data, actions, version, { page = it }, { choice = it })
+                else -> RootPage(data, actions, version, misfiled, converted, { page = it }, { choice = it }, { converted = null; confirm = "convert" })
             }
         }
     }
@@ -164,9 +195,32 @@ fun SettingsScreen(version: String, data: WorkspaceData, actions: SettingsAction
             NeoAppearance.setLanguage(context, it)
             (context as? android.app.Activity)?.recreate()
         }
+        "icsDefault" -> pick(
+            ICS_REFRESH_MINUTES.map { Option(it.toString(), icsFrequencyLabel(it)) }, data.icsDefaultMinutes.toString(), "Fréquence d'actualisation ICS par défaut",
+        ) { actions.onIcsDefault(it.toInt()) }
         "sync" -> SyncDialog(actions.folderName, onPickFolder = { choice = null; actions.onPickFolder() }, onDismiss = { choice = null })
     }
+    when (confirm) {
+        "convert" -> ConfirmPanel(
+            "Reconvertir les tâches horaires en événements",
+            "$misfiled entrées ont une heure de début et une heure de fin, ce qui est la forme d'un événement et non d'une tâche. Elles perdront leur case à cocher. Les tâches sur toute la journée et celles déjà terminées ne sont pas touchées.",
+            "Convertir", danger = false, onDismiss = { confirm = null },
+        ) {
+            confirm = null
+            scope.launch { converted = actions.onConvertMisfiled() }
+        }
+        "applyIcs" -> ConfirmPanel(
+            "Appliquer à tous les liens",
+            "Appliquer cette fréquence à tous les liens ICS de tous les calendriers ? Cette action règle la fréquence de tous les liens sur cette valeur et retire leurs remplacements individuels.",
+            "Appliquer à tous les liens", danger = false, onDismiss = { confirm = null },
+        ) {
+            confirm = null
+            actions.onApplyIcsToAll()
+        }
+    }
 }
+
+private fun icsFrequencyLabel(minutes: Int) = if (minutes < 60) "$minutes min" else "${minutes / 60} h"
 
 /** `.nc-settings__header` : filet bas, flèche Lucide dans un rond de 48, titre 19 / 650. */
 @Composable
@@ -186,9 +240,13 @@ private fun SettingsHeader(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: String, openPage: (String) -> Unit, openChoice: (String) -> Unit) {
+private fun RootPage(
+    data: WorkspaceData, actions: SettingsActions, version: String, misfiled: Int, converted: Int?,
+    openPage: (String) -> Unit, openChoice: (String) -> Unit, openConvert: () -> Unit,
+) {
     val context = LocalContext.current
-    Group("Vue du calendrier", note = "Sans « Créer un événement en cliquant un jour du mois », un clic dans le mois ouvre la vue du jour.") {
+    val monthNote = "Sans « Créer un événement en cliquant un jour du mois », un clic dans le mois ouvre la vue du jour."
+    Group("Vue du calendrier", note = if (converted != null) "$converted entrées reconverties en événements.\n$monthNote" else monthNote) {
         row(NeoIcons.Monitor, "Vue initiale sur ordinateur", DESKTOP_VIEWS.label(data.initialDesktop)) { openChoice("desktopView") }
         row(NeoIcons.Smartphone, "Vue initiale sur téléphone", MOBILE_VIEWS.label(data.initialMobile)) { openChoice("mobileView") }
         row(NeoIcons.CalendarRange, "Premier jour de la semaine", WEEKDAYS[data.firstDay.coerceIn(0, 6)]) { openChoice("firstDay") }
@@ -203,6 +261,8 @@ private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: Str
         toggle(NeoIcons.Check, "Nouveaux événements créés comme des tâches", data.defaultEventsAsTasks) {
             actions.onSetting("defaultEventsAsTasks", JsonPrimitive(it))
         }
+        // Offerte seulement s'il y a quelque chose à réparer : une ligne qui dit « 0 » invite à l'appuyer pour rien.
+        if (misfiled > 0) row(NeoIcons.Check, "Reconvertir les tâches horaires en événements", misfiled.toString(), onClick = openConvert)
     }
     Group("Apparence") {
         row(NeoIcons.Palette, "Thème", NeoAppearance.theme.label) { openPage("appearance") }
@@ -211,8 +271,7 @@ private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: Str
     }
     Group("Intégrations") {
         row(NeoIcons.CalendarDays, "Calendriers", data.calendars.size.toString()) { openPage("calendars") }
-        // Fuseaux horaires : lot 6.
-        row(NeoIcons.Globe, "Fuseaux horaires", if (data.secondaryTimezones.isEmpty()) "Aucun" else data.secondaryTimezones.size.toString(), onClick = null)
+        row(NeoIcons.Globe, "Fuseaux horaires", if (data.secondaryTimezones.isEmpty()) "Aucun" else data.secondaryTimezones.size.toString()) { openPage("timezones") }
     }
     Group("Données") {
         row(NeoIcons.FolderOpen, "Dossier de données", actions.folderName) { openPage("folder") }
@@ -231,7 +290,7 @@ private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: Str
 private fun List<Option>.label(value: String) = firstOrNull { it.value == value }?.label.orEmpty()
 
 @Composable
-private fun CalendarsPage(data: WorkspaceData, actions: SettingsActions) {
+private fun CalendarsPage(data: WorkspaceData, actions: SettingsActions, openChoice: (String) -> Unit, openApply: () -> Unit) {
     Group(null, note = "Chaque sous-dossier direct du dossier de données est un calendrier. Il peut être une note complète, un abonnement ICS, ou détecté automatiquement.") {
         row(NeoIcons.Plus, "Ajouter un calendrier", null, onClick = actions.onAddCalendar)
     }
@@ -246,6 +305,91 @@ private fun CalendarsPage(data: WorkspaceData, actions: SettingsActions) {
                 ) { actions.onCalendarReminder(calendar) }
             }
         }
+    }
+    Group("Liens ICS", note = "Cette action règle la fréquence de tous les liens sur cette valeur et retire leurs remplacements individuels.") {
+        row(NeoIcons.RefreshCw, "Fréquence d'actualisation ICS par défaut", icsFrequencyLabel(data.icsDefaultMinutes)) { openChoice("icsDefault") }
+        if (data.icsLinks.isNotEmpty()) row(NeoIcons.RefreshCw, "Appliquer à tous les liens", null, chevron = false, onClick = openApply)
+    }
+}
+
+/**
+ * Les fuseaux horaires (`renderTimezones`) : un champ et son « + » (Entrée aussi), la liste des fuseaux ajoutés avec leur croix.
+ * Un nom inconnu n'est pas ajouté (l'ancienne l'écrivait tel quel et en tirait une colonne illisible) et le dit.
+ */
+@Composable
+private fun TimezonesPage(data: WorkspaceData, actions: SettingsActions) {
+    var text by remember { mutableStateOf("") }
+    var unknown by remember { mutableStateOf(false) }
+    fun add() {
+        if (timezoneAdded(data.secondaryTimezones, text) != null) {
+            actions.onTimezoneAdd(text)
+            text = ""
+            unknown = false
+        } else {
+            unknown = text.isNotBlank() && canonicalZoneId(text) == null
+        }
+    }
+    Group(null, note = "Une colonne d'heures supplémentaire apparaît dans les vues semaine, jour et trois jours.") {
+        custom { shape -> ZoneFieldRow(shape, text, { text = it; unknown = false }, ::add) }
+    }
+    if (unknown) SText("Ce fuseau est inconnu. Écrivez un nom comme Europe/Paris ou America/New_York.", Modifier.padding(horizontal = 4.dp), color = Neo.Danger, size = 13f, lineHeight = 18.85f)
+    if (data.secondaryTimezones.isNotEmpty()) {
+        Group("Fuseaux ajoutés") {
+            for (zone in data.secondaryTimezones) custom { shape -> ZoneRow(shape, zone) { actions.onTimezoneRemove(zone) } }
+        }
+    }
+}
+
+/** `.nc-set-row--field` : le champ prend la largeur (38 dp, rayon 10, fond du champ à 70 %), le bouton « + » de 38 dp le ferme. */
+@Composable
+private fun ZoneFieldRow(shape: Shape, value: String, onChange: (String) -> Unit, onAdd: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val inputShape = RoundedCornerShape(10.dp)
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 52.dp).background(Neo.SettingRow, shape).padding(start = 16.dp, end = 14.dp, top = 9.dp, bottom = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            Modifier
+                .weight(1f)
+                .height(38.dp)
+                .background(Neo.FieldFill.copy(alpha = 0.7f), inputShape)
+                .border(1.dp, if (focused) Neo.Accent else Neo.Border.copy(alpha = Neo.Border.alpha * 0.8f), inputShape)
+                .padding(horizontal = 12.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            if (value.isEmpty()) SText("ex. America/New_York", color = Neo.TextFaint, maxLines = 1)
+            BasicTextField(
+                value = value, onValueChange = onChange, singleLine = true,
+                textStyle = TextStyle(color = Neo.Text, fontSize = 15.sp, fontFamily = NeoFonts.inter),
+                cursorBrush = SolidColor(Neo.Accent),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onAdd() }),
+                modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }
+                    .semantics { contentDescription = "Fuseau horaire à ajouter" },
+            )
+        }
+        Box(
+            Modifier.size(38.dp).pressFill(RoundedCornerShape(10.dp), Neo.Hover, onClick = onAdd).semantics { contentDescription = "Ajouter un fuseau horaire"; role = Role.Button },
+            contentAlignment = Alignment.Center,
+        ) { Icon(NeoIcons.Plus, null, tint = Neo.TextSecondary, modifier = Modifier.size(18.dp)) }
+    }
+}
+
+/** Une ligne de la liste : le nom du fuseau (retrait de la colonne d'icône vide : 16 + 12) et la croix de 38 dp. */
+@Composable
+private fun ZoneRow(shape: Shape, zone: String, onRemove: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 52.dp).background(Neo.SettingRow, shape).padding(start = 28.dp, end = 14.dp, top = 9.dp, bottom = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SText(zone, Modifier.weight(1f), lineHeight = 19.5f)
+        Box(
+            Modifier.size(38.dp).pressFill(RoundedCornerShape(10.dp), Neo.Hover, onClick = onRemove).semantics { contentDescription = "Retirer $zone"; role = Role.Button },
+            contentAlignment = Alignment.Center,
+        ) { Icon(NeoIcons.Close, null, tint = Neo.TextSecondary, modifier = Modifier.size(16.dp)) }
     }
 }
 
@@ -341,7 +485,8 @@ internal fun Group(title: String?, note: String? = null, content: GroupBuilder.(
                 row(RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom))
             }
         }
-        if (note != null) SText(note, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp), color = Neo.SettingsNote, size = 13f, lineHeight = 18.85f)
+        // Une ligne par paragraphe : chacune se traduit à part.
+        if (note != null) for (line in note.lines()) SText(line, Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp), color = Neo.SettingsNote, size = 13f, lineHeight = 18.85f)
     }
 }
 
