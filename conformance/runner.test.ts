@@ -28,20 +28,16 @@ const asJson = (value: unknown) =>
 
 const files = caseFiles(__dirname);
 
-// Le fuseau du corpus : les dates de la récurrence se lisent en heure locale.
-let previousTz: string | undefined;
-beforeAll(() => {
-    previousTz = process.env.TZ;
-    process.env.TZ = "Europe/Paris";
-});
-afterAll(() => {
-    if (previousTz === undefined) delete process.env.TZ;
-    else process.env.TZ = previousTz;
-});
-
 describe("corpus de conformité", () => {
     it("contient au moins un cas", () => {
         expect(files.length).toBeGreaterThan(0);
+    });
+
+    // Le fuseau est posé par `test_helpers/globalTimezone.js` (globalSetup) :
+    // poser `process.env.TZ` ici ne servirait à rien, Jest n'en donne qu'une
+    // copie. Sans ce garde-fou, une CI en UTC décale des centaines de cas.
+    it("tourne à l'heure de Paris, comme le noyau Kotlin", () => {
+        expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe("Europe/Paris");
     });
 
     it.each(files.map((file) => [path.relative(__dirname, file), file]))(

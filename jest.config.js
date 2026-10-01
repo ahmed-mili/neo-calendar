@@ -20,6 +20,8 @@ const { version } = require("./package.json");
 module.exports = {
     preset: "ts-jest",
     testEnvironment: "node",
+    // Heure de Paris pour toute la suite, workers compris : voir le fichier.
+    globalSetup: "<rootDir>/test_helpers/globalTimezone.js",
     globals: {
         __NEO_VERSION__: version,
     },

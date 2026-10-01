@@ -15,16 +15,8 @@ const files = fs.existsSync(dir)
     ? fs.readdirSync(dir).filter((name) => name.endsWith(".json")).sort()
     : [];
 
-// Le fuseau du corpus : les heures des ébauches se lisent en heure locale.
-let previousTz: string | undefined;
-beforeAll(() => {
-    previousTz = process.env.TZ;
-    process.env.TZ = "Europe/Paris";
-});
-afterAll(() => {
-    if (previousTz === undefined) delete process.env.TZ;
-    else process.env.TZ = previousTz;
-});
+// Les heures des ébauches se lisent en heure de Paris : le fuseau est posé
+// pour toute la suite par `test_helpers/globalTimezone.js` (globalSetup).
 
 describe("corpus de conformité : la fiche", () => {
     it("contient au moins un cas", () => {
