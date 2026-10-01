@@ -11,6 +11,9 @@ import com.ahmed.neocalendar.core.ics.IcsLink
 import com.ahmed.neocalendar.core.ics.icsLinksOf
 import com.ahmed.neocalendar.core.preferences.withIcsFeedAdded
 import com.ahmed.neocalendar.core.preferences.withIcsRefreshOverridesCleared
+import com.ahmed.neocalendar.core.preferences.withPrayerColor
+import com.ahmed.neocalendar.core.preferences.withPrayerJumua
+import com.ahmed.neocalendar.core.preferences.withPrayerMosque
 import com.ahmed.neocalendar.core.preferences.withTimezoneAdded
 import com.ahmed.neocalendar.core.preferences.withTimezoneRemoved
 import com.ahmed.neocalendar.core.tasks.misfiledEventsOf
@@ -113,6 +116,10 @@ data class WorkspaceData(
     val initialMobile: String = "3days",
     val clickToCreateFromMonth: Boolean = true,
     val secondaryTimezones: List<String> = emptyList(),
+    /** Réglages de prière, par chemin de calendrier : la mosquée suivie, la couleur des traits, les séances de Jumu'a choisies. */
+    val prayerMosques: Map<String, String> = emptyMap(),
+    val prayerColors: Map<String, String> = emptyMap(),
+    val prayerJumua: Map<String, List<String>> = emptyMap(),
 )
 
 /** Où une notification ou le widget veut aller : la fiche d'un évènement, ou un brouillon. */
@@ -271,6 +278,24 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
             val current = (prefs["initialView"] as? JsonObject).orEmpty()
             withSetting(prefs, "initialView", JsonObject(current + (which to JsonPrimitive(value))))
         }
+    }
+
+    /** La mosquée dont un calendrier suit les horaires ; `null` : aucune. */
+    fun setPrayerMosque(path: String, mosqueId: String?) {
+        patchData { d -> d.copy(prayerMosques = if (mosqueId == null) d.prayerMosques - path else d.prayerMosques + (path to mosqueId)) }
+        changePreferences { withPrayerMosque(it, path, mosqueId) }
+    }
+
+    /** La couleur des traits de prière ; `null` : celle du calendrier. */
+    fun setPrayerColor(path: String, hex: String?) {
+        patchData { d -> d.copy(prayerColors = if (hex == null) d.prayerColors - path else d.prayerColors + (path to hex)) }
+        changePreferences { withPrayerColor(it, path, hex) }
+    }
+
+    /** Les séances de Jumu'a choisies ; `null` : celles de la mosquée suivie. */
+    fun setPrayerJumua(path: String, times: List<String>?) {
+        patchData { d -> d.copy(prayerJumua = if (times == null) d.prayerJumua - path else d.prayerJumua + (path to times)) }
+        changePreferences { withPrayerJumua(it, path, times) }
     }
 
     /** Un fuseau de plus (la colonne apparaît tout de suite) ; un nom inconnu, vide ou déjà présent ne change rien. */
@@ -806,6 +831,11 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
             initialMobile = ((preferences["initialView"] as? JsonObject)?.get("mobile") as? JsonPrimitive)?.content ?: "3days",
             clickToCreateFromMonth = flag("clickToCreateEventFromMonthView", true),
             secondaryTimezones = (preferences["secondaryTimezones"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.content },
+            prayerMosques = (preferences["prayerMosques"] as? JsonObject).orEmpty().mapNotNull { (path, id) -> (id as? JsonPrimitive)?.takeIf { it.isString }?.content?.let { path to it } }.toMap(),
+            prayerColors = (preferences["prayerColors"] as? JsonObject).orEmpty().mapNotNull { (path, hex) -> (hex as? JsonPrimitive)?.takeIf { it.isString }?.content?.let { path to it } }.toMap(),
+            prayerJumua = (preferences["prayerJumua"] as? JsonObject).orEmpty().mapValues { (_, list) ->
+                (list as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
+            }.filterValues { it.isNotEmpty() },
         )
     }
 }

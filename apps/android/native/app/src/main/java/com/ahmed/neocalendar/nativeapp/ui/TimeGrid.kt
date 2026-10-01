@@ -149,6 +149,9 @@ fun TimeGridArea(
     onResizeDraft: (java.time.LocalDateTime, java.time.LocalDateTime) -> Unit = { _, _ -> },
     /** Les fuseaux horaires ajoutés aux Réglages : une colonne d'heures chacun, à droite de celle de l'appareil. */
     extraZones: List<ZoneId> = emptyList(),
+    /** Les traits des horaires de prière du calendrier « Islam », dans sa couleur. */
+    prayerLines: List<com.ahmed.neocalendar.core.prayer.PrayerLineSpec> = emptyList(),
+    prayerColor: Color = Color.Unspecified,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -218,7 +221,7 @@ fun TimeGridArea(
                 .gridPinch(state)
                 .gridDrag(state, scope, freeScroll, vertical = true, decay = decay, overscroll = overscroll),
         ) {
-            HourRail(state, dayCount, timeFormat24h, zone, extraZones, railWidth)
+            HourRail(state, dayCount, timeFormat24h, zone, extraZones, railWidth, prayerLines, prayerColor)
             Box(Modifier.weight(1f).fillMaxHeight().gridTouch(ix, haptic)) {
                 GridBackground(state, dayCount)
                 DayColumns(
@@ -233,6 +236,7 @@ fun TimeGridArea(
                         DayEvents(day, events, ix, timeFormat24h, zone)
                     }
                 }
+                if (prayerLines.isNotEmpty()) PrayerLinesLayer(state, dayCount, prayerLines, prayerColor)
                 NowLine(state, dayCount, zone)
                 MoveGhost(ix, dayCount, timeFormat24h)
                 if (draft != null && !draft.allDay) DraftPreview(ix, draft.start, draft.end, onResizeDraft)
@@ -347,7 +351,10 @@ private fun hourLabel(hour: Int, timeFormat24h: Boolean): String =
     }
 
 @Composable
-private fun HourRail(state: GridState, dayCount: Int, timeFormat24h: Boolean, zone: ZoneId, extraZones: List<ZoneId>, railWidth: Dp) {
+private fun HourRail(
+    state: GridState, dayCount: Int, timeFormat24h: Boolean, zone: ZoneId, extraZones: List<ZoneId>, railWidth: Dp,
+    prayerLines: List<com.ahmed.neocalendar.core.prayer.PrayerLineSpec>, prayerColor: Color,
+) {
     val measurer = rememberTextMeasurer()
     val shadow = legibleShadow()
     val label = Neo.Label
@@ -390,6 +397,18 @@ private fun HourRail(state: GridState, dayCount: Int, timeFormat24h: Boolean, zo
                 // `.nc-tz-column` : le bord droit de 1 dp, de la couleur des lignes de la grille.
                 drawLine(Neo.GridLine, Offset(columnLeft + columnPx - 0.5f * density, 0f), Offset(columnLeft + columnPx - 0.5f * density, size.height), density)
             }
+        }
+        // L'heure de chaque prière (`nc-prayer-label`) : la pastille de l'heure actuelle, à la couleur du calendrier, dans la première colonne.
+        for (line in prayerLines) {
+            val y = line.hours.toFloat() * hourPx - scroll
+            if (y !in 0f..size.height) continue
+            val layout = measurer.measure(prayerClock(line.minutes, timeFormat24h), nowStyle, maxLines = 1)
+            val boxW = layout.size.width + 12.dp.toPx()
+            val boxH = 16.dp.toPx()
+            val left = columnPx - 4.dp.toPx() - boxW
+            val top = y - boxH / 2f
+            drawRoundRect(prayerColor, Offset(left, top), Size(boxW, boxH), CornerRadius(4.dp.toPx()))
+            drawText(layout, topLeft = Offset(left + 6.dp.toPx(), top + 4.dp.toPx()))
         }
         // La pastille de l'heure actuelle (`nc-now-label`) : sur la colonne la plus proche de la grille (la dernière), à 4 dp de son bord droit ;
         // elle dit l'heure de ce fuseau. Posée sur l'étiquette voisine, quand la colonne d'aujourd'hui se voit.

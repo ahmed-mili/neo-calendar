@@ -176,6 +176,8 @@ class DrawerActions(
     val onRename: (CalendarModel) -> Unit,
     val onReminder: (CalendarModel) -> Unit,
     val onIcsLinks: (CalendarModel) -> Unit,
+    /** « Horaires de prière », proposé au seul calendrier « Islam ». */
+    val onPrayer: (CalendarModel) -> Unit,
     val onDelete: (CalendarModel) -> Unit,
     val onReorder: (List<String>) -> Unit,
     /** « N'afficher que ce calendrier », ou le retour aux calendriers précédents quand il l'est déjà. */
@@ -646,6 +648,9 @@ private fun CalendarRow(
                         if (calendar.editable) {
                             MenuRow("Rappel", icon = NeoIcons.Bell) { menu = false; actions.onReminder(calendar) }
                             MenuRow("Liens ICS", icon = NeoIcons.Link) { menu = false; actions.onIcsLinks(calendar) }
+                            if (com.ahmed.neocalendar.core.prayer.isPrayerCalendarName(calendar.name)) {
+                                MenuRow("Horaires de prière", icon = NeoIcons.Clock) { menu = false; actions.onPrayer(calendar) }
+                            }
                         }
                         MenuRow(
                             if (isSolo) "Réafficher les calendriers masqués" else "N'afficher que ce calendrier",

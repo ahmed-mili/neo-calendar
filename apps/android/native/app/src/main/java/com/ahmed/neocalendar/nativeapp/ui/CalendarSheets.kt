@@ -649,7 +649,7 @@ internal fun ChoiceCard(title: String, onDismiss: () -> Unit, content: @Composab
 }
 
 @Composable
-private fun ChoiceOption(label: String, note: String? = null, checked: Boolean = false, muted: Boolean = false, onClick: (() -> Unit)?) {
+internal fun ChoiceOption(label: String, note: String? = null, checked: Boolean = false, muted: Boolean = false, accentWhenChecked: Boolean = false, onClick: (() -> Unit)?) {
     val shape = RoundedCornerShape(6.dp)
     Row(
         Modifier
@@ -661,7 +661,7 @@ private fun ChoiceOption(label: String, note: String? = null, checked: Boolean =
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            UiText(label, color = if (muted) Neo.TextFaint else Neo.Text, size = 14.sp)
+            UiText(label, color = if (muted) Neo.TextFaint else if (checked && accentWhenChecked) Neo.Accent else Neo.Text, size = 14.sp)
             if (note != null) UiText(note, color = if (muted) Neo.TextFaint else Neo.TextSecondary, size = 12.sp)
         }
         if (checked) Icon(NeoIcons.Check, null, tint = Neo.Accent, modifier = Modifier.size(19.dp))

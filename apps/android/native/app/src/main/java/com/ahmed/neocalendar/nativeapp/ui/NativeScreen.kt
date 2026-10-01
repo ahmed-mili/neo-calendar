@@ -91,6 +91,10 @@ import java.time.ZoneId
 import java.time.format.TextStyle
 import com.ahmed.neocalendar.nativeapp.AppLocale
 import com.ahmed.neocalendar.nativeapp.ui.theme.NeoAppearance
+import com.ahmed.neocalendar.core.prayer.isPrayerCalendarName
+import com.ahmed.neocalendar.core.prayer.prayerLinesFor
+import com.ahmed.neocalendar.core.prayer.prayerTimetableById
+import com.ahmed.neocalendar.core.prayer.withJumua
 
 /** Un écran plein écran posé sur la grille et le tiroir : liste d'un calendrier, tâches, recherche. */
 private sealed interface Overlay {
@@ -126,6 +130,7 @@ private sealed interface CalendarDialog {
     data class Reminder(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
     data class Delete(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
     data class IcsLinks(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
+    data class Prayer(val calendar: com.ahmed.neocalendar.core.grid.CalendarModel) : CalendarDialog
 }
 
 /** Le sélecteur de dossier : la même demande que `pickDirectory` de la WebView (lecture, écriture, permission durable). */
@@ -314,6 +319,27 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     val openDraft = { draft: SheetTarget.Draft -> show(draft) }
     var overlayKey by rememberSaveable { mutableStateOf("") }
     val overlay = remember(overlayKey) { decodeOverlay(overlayKey) }
+    // Les horaires de prière : le calendrier « Islam » qui suit une mosquée trace la prochaine prière, à la minute (`DesktopCalendar.tsx`).
+    val prayerTables = remember { PrayerTables.get(context) }
+    val prayerCalendar = remember(data, hidden, prayerTables) {
+        data.calendars.firstOrNull {
+            it.id !in hidden && isPrayerCalendarName(it.name) && prayerTimetableById(prayerTables, data.prayerMosques[it.relativePath]) != null
+        }
+    }
+    val prayerTimetable = remember(prayerCalendar, data, prayerTables) {
+        prayerCalendar?.let { calendar ->
+            prayerTimetableById(prayerTables, data.prayerMosques[calendar.relativePath])?.let { withJumua(it, data.prayerJumua[calendar.relativePath]) }
+        }
+    }
+    val prayerColor = prayerCalendar?.let { parseCalendarColor(data.prayerColors[it.relativePath] ?: it.color) }
+    // La minute, pas la seconde : le trait ne bouge qu'aux changements de prière.
+    val prayerMinute by produceState(java.time.LocalDateTime.now(), prayerTimetable) {
+        while (prayerTimetable != null) {
+            value = java.time.LocalDateTime.now()
+            kotlinx.coroutines.delay(60_000 - System.currentTimeMillis() % 60_000 + 50)
+        }
+    }
+    val prayerLines = remember(prayerTimetable, prayerMinute) { prayerLinesFor(prayerTimetable, prayerMinute, showAll = false) }
     val extraZones = remember(data.secondaryTimezones) { data.secondaryTimezones.mapNotNull { runCatching { ZoneId.of(it) }.getOrNull() } }
     val calendarsById = remember(data) { data.calendars.associateBy { it.id } }
     val notesById = remember(data) { data.events.associateBy { it.id } }
@@ -471,6 +497,8 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                     draft = (sheet as? SheetTarget.Draft)?.takeIf { !draftCommitted },
                     onResizeDraft = { start, end -> (sheet as? SheetTarget.Draft)?.let { sheet = it.copy(start = start, end = end) } },
                     extraZones = extraZones,
+                    prayerLines = prayerLines,
+                    prayerColor = prayerColor ?: Neo.Accent,
                 )
                 // Le bouton + : 56 x 56, rayon 16, à `max(18 ; inset + 14)` du bord droit et du bas (`CalendarLayout.css:53`).
                 val fabSource = remember { MutableInteractionSource() }
@@ -547,6 +575,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                     onRename = { calendarDialog = CalendarDialog.Rename(it) },
                     onReminder = { calendarDialog = CalendarDialog.Reminder(it) },
                     onIcsLinks = { calendarDialog = CalendarDialog.IcsLinks(it) },
+                    onPrayer = { calendarDialog = CalendarDialog.Prayer(it) },
                     onDelete = { calendarDialog = CalendarDialog.Delete(it) },
                     onReorder = viewModel::setCalendarOrder,
                     onShowOnly = { viewModel.showOnly(it.id) },
@@ -749,6 +778,22 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             viewModel::refreshIcsLink,
             { calendarDialog = null },
         )
+        is CalendarDialog.Prayer -> {
+            // Les réglages se lisent dans `data` (écrits aussitôt) : le dialogue montre toujours l'état courant.
+            val path = dialog.calendar.relativePath
+            PrayerMosqueDialog(
+                calendarName = dialog.calendar.name,
+                tables = prayerTables,
+                mosqueId = data.prayerMosques[path],
+                color = data.prayerColors[path],
+                calendarColor = dialog.calendar.color,
+                jumua = data.prayerJumua[path],
+                onChoose = { viewModel.setPrayerMosque(path, it) },
+                onColor = { viewModel.setPrayerColor(path, it) },
+                onJumua = { viewModel.setPrayerJumua(path, it) },
+                onDismiss = { calendarDialog = null },
+            )
+        }
         CalendarDialog.AppReminder -> ReminderDialog(
             "Rappel",
             data.reminderMinutes,

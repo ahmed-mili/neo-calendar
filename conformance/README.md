@@ -17,7 +17,8 @@ conformance/
 ├── recurrence-form/*.json   répétition de la fiche : RRULE <-> formulaire, préréglages, résumé
 ├── recurring-edit/*.json    modifier ou supprimer un jour d'une série, différences affichées
 ├── location/*.json          destination d'un lieu, applications de cartes, adresses
-├── description/*.json       cases à cocher, liens et chemins de pièces jointes d'une description
+├── description/*.json       cases à cocher, liens, chemins et liens de pièces jointes, mise en forme de la barre (gras, listes...), saisie d'un lien d'une description
+├── prayer/*.json            horaires de prière : prières d'un jour, prochaine prière, traits de la grille, Jumu'a, nom du calendrier
 ├── form-panel/*.json        durée et date de fin affichées par la fiche
 ├── form/*.json              la fiche rendue pour de bon (jsdom) : valeurs lues, payload écrit
 ├── drag/*.json              gestes de la grille : appui calé au quart d'heure, jours déplacés, écriture d'un déplacement ou d'un redimensionnement
