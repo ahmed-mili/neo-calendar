@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.ahmed.neocalendar.core.widget.WidgetCalendars;
+import com.ahmed.neocalendar.core.widget.WidgetPayloadKt;
 
 /**
  * Feeds the widget's list. One row per event, the date shown once per day.
@@ -66,6 +67,8 @@ public class WidgetService extends RemoteViewsService {
 
         String previousDay = null;
         for (int i = 0; i < rows.length(); i++) {
+            // The 60-row cap is per widget, counted after its calendar choice.
+            if (out.size() >= WidgetPayloadKt.WIDGET_MAX_ROWS) break;
             JSONObject raw = rows.optJSONObject(i);
             if (raw == null) continue;
             if (raw.optLong("endMs", 0L) < now) continue;

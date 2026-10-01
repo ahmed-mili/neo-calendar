@@ -37,9 +37,9 @@ class WidgetCalendarsTest {
         assertFalse(isCalendarShown(null, setOf("etudes")))
     }
 
-    private fun event(calendarId: String) = DisplayEvent(
-        id = "e-$calendarId", title = "T",
-        start = Instant.parse("2026-08-07T12:00:00Z"), end = Instant.parse("2026-08-07T13:00:00Z"),
+    private fun event(calendarId: String, id: String = "e-$calendarId", hour: Int = 12) = DisplayEvent(
+        id = id, title = "T",
+        start = Instant.parse("2026-08-07T00:00:00Z").plusSeconds(hour * 3600L), end = Instant.parse("2026-08-07T00:00:00Z").plusSeconds(hour * 3600L + 3600),
         allDay = false, color = "#89b4fa", editable = true, calendarId = calendarId, calendarName = calendarId,
         isTask = false, taskCompleted = JsonPrimitive(false), taskStatus = null, reminders = null,
         isRecurring = false, isSeriesStart = false, isMultiDay = false, isSomeday = false,
@@ -69,5 +69,20 @@ class WidgetCalendarsTest {
         ).toJson(withNativeFields = false)
         assertFalse("calendars" in payload.keys)
         assertFalse("calendarId" in payload.getValue("rows").jsonArray.single().jsonObject.keys)
+    }
+
+    @Test
+    fun aQuietCalendarKeepsAllItsEventsWhenAnotherOneFillsTheCap() {
+        val busy = (0 until 100).map { event("busy", id = "b$it", hour = 11 + it % 5) }
+        val quiet = (0 until 3).map { event("quiet", id = "q$it", hour = 18 + it) }
+        val rows = buildWidgetPayload(busy + quiet, now, true, theme, maxRows = NATIVE_PAYLOAD_MAX_ROWS).rows
+        val shown = rows.filter { isCalendarShown(it.calendarId, setOf("quiet")) }.take(WIDGET_MAX_ROWS)
+        assertEquals(3, shown.size)
+    }
+
+    @Test
+    fun theTypeScriptShapeStillCapsAtSixty() {
+        val many = (0 until 100).map { event("busy", id = "b$it") }
+        assertEquals(WIDGET_MAX_ROWS, buildWidgetPayload(many, now, true, theme).rows.size)
     }
 }

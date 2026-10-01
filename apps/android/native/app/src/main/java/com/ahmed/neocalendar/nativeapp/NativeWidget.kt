@@ -5,6 +5,7 @@ import com.ahmed.neocalendar.NeoCalendarWidget
 import com.ahmed.neocalendar.WidgetData
 import com.ahmed.neocalendar.core.recurrence.DisplayEvent
 import com.ahmed.neocalendar.core.widget.WidgetCalendar
+import com.ahmed.neocalendar.core.widget.NATIVE_PAYLOAD_MAX_ROWS
 import com.ahmed.neocalendar.core.widget.buildWidgetPayload
 import com.ahmed.neocalendar.core.widget.widgetThemeOf
 import java.time.Instant
@@ -21,6 +22,8 @@ internal fun widgetJson(data: WorkspaceData, events: List<DisplayEvent>, now: In
         calendars = data.calendars
             .filter { it.id !in data.hiddenCalendarIds }
             .map { WidgetCalendar(it.id, it.name, it.color) },
+        // Les 60 lignes se comptent par widget, après son filtre (WidgetService) : pas de coupe ici.
+        maxRows = NATIVE_PAYLOAD_MAX_ROWS,
     ).toJson().toString()
 
 /** Écrit la charge du widget puis redessine ceux qui sont posés ; à appeler sur le fil principal pour le redessin. */

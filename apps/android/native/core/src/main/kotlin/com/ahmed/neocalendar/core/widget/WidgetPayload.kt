@@ -21,8 +21,14 @@ import kotlinx.serialization.json.JsonPrimitive
  * format d'heure choisis, colorée par calendrier.
  */
 
-/** Au-delà, une ligne n'est jamais vue. */
-private const val MAX_ROWS = 60
+/** Au-delà, une ligne n'est jamais vue : la limite de la forme TypeScript, et celle de chaque widget natif. */
+const val WIDGET_MAX_ROWS = 60
+
+/**
+ * Plafond de sécurité de la charge NATIVE : la limite de 60 lignes s'y applique par widget, après le choix
+ * des calendriers, sinon un calendrier peu chargé perdrait ses évènements au profit des autres.
+ */
+const val NATIVE_PAYLOAD_MAX_ROWS = 1000
 
 /** Au-delà, un jour n'est plus « à venir ». */
 private const val HORIZON_DAYS = 30L
@@ -120,6 +126,7 @@ fun buildWidgetPayload(
     timeFormat24h: Boolean,
     theme: WidgetTheme,
     calendars: List<WidgetCalendar> = emptyList(),
+    maxRows: Int = WIDGET_MAX_ROWS,
 ): WidgetPayload {
     val horizon = addDays(startOfDay(now), HORIZON_DAYS)
 
@@ -128,7 +135,7 @@ fun buildWidgetPayload(
         .filter { !it.isSomeday }
         .filter { it.end >= now && it.start < horizon }
         .sortedBy { it.start }
-        .take(MAX_ROWS)
+        .take(maxRows)
 
     val rows = upcoming.map { event ->
         val local = event.start.atZone(localZone())
