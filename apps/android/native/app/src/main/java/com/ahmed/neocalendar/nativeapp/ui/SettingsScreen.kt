@@ -205,7 +205,7 @@ private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: Str
     }
     // Hors de l'ancienne, gardé tant que les deux interfaces cohabitent.
     Group("Application") {
-        if (actions.oldAppInstalled) row(NeoIcons.Trash2, "Ancienne version encore installée", "Désinstaller", onClick = actions.onUninstallOldApp)
+        if (actions.oldAppInstalled) row(NeoIcons.Trash2, "Ancienne version encore installée", "Désinstaller", chevron = false, onClick = actions.onUninstallOldApp)
         row(NeoIcons.Calendar, "Ancienne interface (WebView)", null) { context.startActivity(Intent(context, MainActivity::class.java)) }
     }
     SText(version, Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp), color = Neo.TextFaint, size = 12f, align = TextAlign.Center)
@@ -236,7 +236,7 @@ private fun CalendarsPage(data: WorkspaceData, actions: SettingsActions) {
 private fun FolderPage(actions: SettingsActions) {
     Group(null, note = "Neo Calendar range ses fichiers de calendrier dans ce dossier. Chaque sous-dossier direct est un calendrier.") {
         text(actions.folderName)
-        row(NeoIcons.FolderOpen, "Changer de dossier", null, onClick = actions.onPickFolder)
+        row(NeoIcons.FolderOpen, "Changer de dossier", null, chevron = false, onClick = actions.onPickFolder)
     }
 }
 
@@ -245,7 +245,7 @@ private class GroupBuilder {
     val rows = mutableListOf<@Composable (Shape) -> Unit>()
 
     /** Une ligne ; sans `onClick` elle est inerte (ni fond d'appui, ni chevron). Un `dot` fait la ligne d'un calendrier. */
-    fun row(icon: ImageVector?, label: String, value: String?, dot: Color? = null, onClick: (() -> Unit)?) {
+    fun row(icon: ImageVector?, label: String, value: String?, dot: Color? = null, chevron: Boolean = true, onClick: (() -> Unit)?) {
         rows += { shape ->
             val base = Modifier.fillMaxWidth().heightIn(min = 52.dp).background(Neo.SettingRow, shape)
             Row(
@@ -267,8 +267,8 @@ private class GroupBuilder {
                     SText(label, Modifier.weight(1f), lineHeight = 19.5f)
                     if (!value.isNullOrEmpty()) SText(value, Modifier.widthIn(max = 200.dp), color = Neo.SettingsValue, maxLines = 1, align = TextAlign.End)
                 }
-                // Le chevron annonce une page ou un dialogue ; « Ajouter » et « Changer de dossier » agissent sur place.
-                if (onClick != null && (dot != null || value != null)) {
+                // Le chevron de l'ancienne (`navigates`) : toutes les lignes qui mènent quelque part, y compris celles qui ne mènent encore à rien.
+                if (chevron) {
                     Icon(NeoIcons.ChevronRight, null, tint = Neo.SettingsNote, modifier = Modifier.size(18.dp))
                 }
             }
@@ -346,39 +346,40 @@ private fun ChoiceDialog(title: String, options: List<Option>, selected: String,
                 if (option.icon != null) Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) {
                     Icon(option.icon, null, tint = if (on) Neo.Accent else Neo.TextSecondary, modifier = Modifier.size(19.dp))
                 }
-                SText(option.label, Modifier.weight(1f), color = if (on) Neo.Accent else Neo.Text, size = 14f, maxLines = 1)
+                // Sans icône le libellé garde sa place (la colonne d'icône vide et son interstice de 10), comme la grille de l'ancienne.
+                SText(option.label, Modifier.weight(1f).padding(start = if (option.icon == null) 10.dp else 0.dp), color = if (on) Neo.Accent else Neo.Text, size = 14f, maxLines = 1)
                 if (on) Icon(NeoIcons.Check, null, tint = Neo.Accent, modifier = Modifier.size(16.dp))
             }
         }
     }
 }
 
-/** La Synchronisation : un dialogue de texte (dossier, note, trois méthodes), comme `nc-choice-dialog` sur l'ancienne. */
+/** La Synchronisation : un dialogue de texte (dossier, note, trois méthodes) ; `.nc-choice-dialog .nc-set-row` : 52 dp, 16 sp, valeur sous le nom. */
 @Composable
 private fun SyncDialog(folderName: String, onPickFolder: () -> Unit, onDismiss: () -> Unit) {
     ChoiceCard("Synchronisation", onDismiss) {
-        val shape = RoundedCornerShape(6.dp)
+        val shape = RoundedCornerShape(12.dp)
         Row(
-            Modifier.fillMaxWidth().pressFill(shape, Neo.Hover, onClick = onPickFolder).padding(horizontal = 10.dp, vertical = 9.dp),
+            Modifier.fillMaxWidth().heightIn(min = 52.dp).pressFill(shape, Neo.Hover, onClick = onPickFolder).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) { Icon(NeoIcons.FolderOpen, null, tint = Neo.SettingsValue, modifier = Modifier.size(18.dp)) }
             Column(Modifier.weight(1f)) {
-                SText("Dossier de données", lineHeight = 19.5f)
-                SText(folderName, color = Neo.SettingsValue, maxLines = 1)
+                SText("Dossier de données", size = 16f, lineHeight = 20.8f)
+                SText(folderName, color = Neo.TextSecondary, size = 16f, maxLines = 1)
             }
             Icon(NeoIcons.ChevronRight, null, tint = Neo.SettingsNote, modifier = Modifier.size(18.dp))
         }
         SText(
             "Neo Calendar range ses données dans le dossier que vous choisissez. La synchronisation est assurée par l'outil que vous retenez.",
-            Modifier.padding(horizontal = 10.dp, vertical = 8.dp), color = Neo.SettingsNote, size = 13f, lineHeight = 18.85f,
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = Neo.SettingsNote, size = 13f, lineHeight = 18.85f,
         )
-        SText("Méthodes possibles", Modifier.padding(start = 10.dp, top = 6.dp, bottom = 4.dp), color = Neo.SettingsValue, size = 13f, weight = 500)
+        SText("Méthodes possibles", Modifier.padding(start = 16.dp, top = 6.dp, bottom = 4.dp), color = Neo.SettingsValue, size = 13f, weight = 500)
         for ((name, how) in listOf("Syncthing" to "Recommandé", "Stockage en ligne" to "OneDrive, Google Drive, Dropbox", "Transfert manuel" to "Par USB")) {
-            Column(Modifier.fillMaxWidth().padding(start = 44.dp, end = 10.dp, top = 8.dp, bottom = 8.dp)) {
-                SText(name, lineHeight = 19.5f)
-                SText(how, color = Neo.SettingsValue, lineHeight = 19.5f)
+            Column(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(start = 32.dp, end = 16.dp, top = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.Center) {
+                SText(name, size = 16f, lineHeight = 20.8f)
+                SText(how, color = Neo.TextSecondary, size = 16f, lineHeight = 20.8f)
             }
         }
     }
