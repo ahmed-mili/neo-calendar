@@ -23,6 +23,8 @@ import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -324,12 +326,15 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     // Déclaré après : le plus récent passe en premier, la liste se ferme avant le tiroir qu'elle recouvre.
     BackHandler(enabled = overlay != null) { overlayKey = "" }
 
+    // Bas réel de la barre du haut (bandeau de l'ancienne version compris) : le bord du tiroir commence dessous.
+    var topBarBottomPx by remember { mutableStateOf(0f) }
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             val visible = remember(nearest, dayCount) {
                 (0 until dayCount).map { LocalDate.ofEpochDay(nearest + it).atStartOfDay(zone).toInstant() }
             }
             if (oldAppInstalled) OldAppBanner { uninstallOldApp(context) }
+            Box(Modifier.onGloballyPositioned { topBarBottomPx = it.positionInRoot().y + it.size.height }) {
             TopBar(
                 monthName = anchor.month.getDisplayName(TextStyle.FULL_STANDALONE, AppLocale.current)
                     .replaceFirstChar { it.titlecase(AppLocale.current) },
@@ -343,6 +348,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                 onSearch = { monthOpen = false; overlayKey = Overlay.Search.encode() },
                 onToday = { grid.goTo(scope, LocalDate.now()) },
             )
+            }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 TimeGridArea(
                     state = grid,
@@ -404,7 +410,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
         NeoDrawer(
             drawer,
             scope,
-            edgeTopPadding = WindowInsets.safeDrawing.asPaddingValues().calculateTopPadding() + Neo.TopBarHeight,
+            edgeTopPadding = with(androidx.compose.ui.platform.LocalDensity.current) { topBarBottomPx.toDp() },
         ) {
             DrawerContent(
                 version = BuildConfig.VERSION_NAME,

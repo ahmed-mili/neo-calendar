@@ -148,7 +148,7 @@ private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: Str
         if (updates.pending.isNotEmpty()) SettingRow(NeoIcons.Download, "Installer la version ${updates.pending}", "", onClick = updates::install)
         SettingRow(NeoIcons.RefreshCw, "Rechercher les mises à jour", checkLabel(updates)) { updates.check() }
         if (actions.oldAppInstalled) {
-            SettingRow(NeoIcons.Trash2, "L'ancienne version de Neo Calendar est encore installée", "Désinstaller", onClick = actions.onUninstallOldApp)
+            SettingRow(NeoIcons.Trash2, "Ancienne version encore installée", "Désinstaller", onClick = actions.onUninstallOldApp)
         }
         SettingRow(NeoIcons.Calendar, "Ancienne interface (WebView)", "") {
             context.startActivity(Intent(context, MainActivity::class.java))
