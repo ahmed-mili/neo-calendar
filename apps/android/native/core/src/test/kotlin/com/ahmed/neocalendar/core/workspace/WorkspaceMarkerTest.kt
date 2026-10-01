@@ -63,4 +63,19 @@ class WorkspaceMarkerTest {
         writeStignore(s)
         assertEquals(STIGNORE_TEXT, s.readText(".stignore"))
     }
+
+    @Test fun `des preferences corrompues ne font pas lever la detection des notes`() {
+        val tree = MemoryTree().file(".neo-calendar.json", "{pas du json").file("a.md", "x")
+        assertTrue(workspaceHasNotes(tree))
+        assertFalse(workspaceHasNotes(MemoryTree().file(".neo-calendar.json", "{pas du json")))
+    }
+
+    @Test fun `une note illisible ne fait pas lever la detection des notes`() {
+        val unreadable = object : WorkspaceStorage {
+            override fun list(relativeDir: String) =
+                if (relativeDir.isEmpty()) listOf(WorkspaceStorage.Entry("a.md", false)) else emptyList()
+            override fun readText(relativePath: String): String? = throw java.io.IOException("illisible")
+        }
+        assertTrue(workspaceHasNotes(unreadable))
+    }
 }

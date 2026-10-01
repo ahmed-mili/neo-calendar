@@ -10,11 +10,15 @@ private const val MARKER_DIR = ".neo-calendar"
 fun isNeoCalendarFolder(storage: WorkspaceStorage): Boolean =
     storage.list("").any { (it.name == MARKER_FILE && !it.isDirectory) || (it.name == MARKER_DIR && it.isDirectory) }
 
-/** Le dossier contient-il de vraies notes (un calendrier ou une note à la racine), et pas seulement le marqueur et `.stignore` ? */
-fun workspaceHasNotes(storage: WorkspaceStorage): Boolean {
-    val loaded = loadWorkspace(storage)
-    return loaded.eventFiles.isNotEmpty() || storage.list("").any { it.isDirectory && !it.name.startsWith(".") }
-}
+/**
+ * Le dossier contient-il de vraies notes (un calendrier, ou une note `.md` à la racine), et pas seulement le marqueur
+ * et `.stignore` ? Parcours de `list` seul, sans lire aucun contenu : ni préférences corrompues ni note illisible ne lèvent.
+ */
+fun workspaceHasNotes(storage: WorkspaceStorage): Boolean =
+    storage.list("").any {
+        !isSyncArtifact(it.name) &&
+            if (it.isDirectory) !it.name.startsWith(".") else it.name.lowercase(java.util.Locale.ROOT).endsWith(".md")
+    }
 
 /**
  * Prépare un dossier de notes neuf (première ouverture d'une nouvelle installation) : le marqueur

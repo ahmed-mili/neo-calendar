@@ -111,4 +111,33 @@ class FileWorkspaceStorageTest {
         assertTrue(bytes.contentEquals(s.openInput("p.bin")!!.use { it.readBytes() }))
         assertNull(s.openInput("absent"))
     }
+
+    @Test fun `un nom qui est un chemin est refuse et rien n'est cree hors de la racine`() {
+        val s = FileWorkspaceStorage(File(tmp.root, "notes").also { it.mkdir() })
+        s.createFile("", "a.md", "text/markdown")
+        for (bad in listOf("", ".", "..", "../x", "a/b", "a\\b", "../../x.md")) {
+            try { s.createFile("", bad, "text/markdown"); fail("createFile $bad") } catch (_: IllegalArgumentException) {}
+            try { s.createDirectory("", bad); fail("createDirectory $bad") } catch (_: IllegalArgumentException) {}
+            try { s.rename("a.md", bad); fail("rename $bad") } catch (_: IllegalArgumentException) {}
+        }
+        assertEquals(listOf("notes"), tmp.root.list()!!.toList())
+        assertEquals(listOf("a.md"), File(tmp.root, "notes").list()!!.toList())
+    }
+
+    @Test fun `supprimer la racine est refuse`() {
+        val s = storage()
+        s.createFile("", "a.md", "text/markdown")
+        for (bad in listOf("", ".", "x/..")) {
+            try { s.delete(bad); fail("delete $bad") } catch (_: IllegalArgumentException) {}
+        }
+        assertTrue(File(tmp.root, "a.md").exists())
+    }
+
+    @Test fun `renommer la racine est refuse`() {
+        val s = storage()
+        for (bad in listOf("", ".")) {
+            try { s.rename(bad, "autre"); fail("rename $bad") } catch (_: IllegalArgumentException) {}
+        }
+        assertTrue(tmp.root.exists())
+    }
 }

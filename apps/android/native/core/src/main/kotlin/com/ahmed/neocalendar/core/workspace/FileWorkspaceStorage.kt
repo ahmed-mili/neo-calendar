@@ -29,6 +29,19 @@ class FileWorkspaceStorage(private val root: File) : BinaryWorkspaceStorage {
         return file
     }
 
+    /** Un chemin qui se résout sur la racine elle-même (vide, `.`) : jamais supprimé ni renommé. */
+    private fun resolveBelowRoot(relative: String): File {
+        val file = resolve(relative)
+        if (file == root) throw IllegalArgumentException("Chemin invalide : la racine")
+        return file
+    }
+
+    /** Un nom, pas un chemin : ni vide, ni `.`, ni `..`, ni séparateur. */
+    private fun requireSimpleName(name: String) {
+        if (name.isEmpty() || name == "." || name == ".." || name.contains('/') || name.contains('\\'))
+            throw IllegalArgumentException("Nom invalide : $name")
+    }
+
     private fun child(dir: String, name: String) = if (dir.isEmpty()) name else "$dir/$name"
 
     override fun list(relativeDir: String): List<WorkspaceStorage.Entry> =
@@ -59,6 +72,7 @@ class FileWorkspaceStorage(private val root: File) : BinaryWorkspaceStorage {
     }
 
     override fun createFile(relativeDir: String, name: String, mimeType: String): String {
+        requireSimpleName(name)
         val dir = resolve(relativeDir)
         if (!dir.isDirectory) throw IOException("Dossier introuvable : $relativeDir")
         try {
@@ -70,6 +84,7 @@ class FileWorkspaceStorage(private val root: File) : BinaryWorkspaceStorage {
     }
 
     override fun createDirectory(relativeDir: String, name: String): String {
+        requireSimpleName(name)
         val dir = resolve(relativeDir)
         if (!dir.isDirectory) throw IOException("Dossier introuvable : $relativeDir")
         if (!File(dir, name).mkdir()) throw IOException("Création du dossier impossible : $name")
@@ -77,7 +92,8 @@ class FileWorkspaceStorage(private val root: File) : BinaryWorkspaceStorage {
     }
 
     override fun rename(relativePath: String, newName: String): String {
-        val source = resolve(relativePath)
+        requireSimpleName(newName)
+        val source = resolveBelowRoot(relativePath)
         if (!source.exists()) throw IOException("Renommage impossible : $relativePath")
         val target = File(source.parentFile, newName)
         if (target.exists()) throw IOException("Le nom est déjà pris : $newName")
@@ -86,7 +102,7 @@ class FileWorkspaceStorage(private val root: File) : BinaryWorkspaceStorage {
     }
 
     override fun delete(relativePath: String) {
-        val file = resolve(relativePath)
+        val file = resolveBelowRoot(relativePath)
         if (!file.exists()) return
         if (!file.deleteRecursively()) throw IOException("Suppression impossible : $relativePath")
     }
