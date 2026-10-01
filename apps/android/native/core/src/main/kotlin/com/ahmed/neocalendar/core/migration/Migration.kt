@@ -43,6 +43,8 @@ data class DeviceSettings(
     val allDayCollapsed: Boolean,
     val icsRuntimeState: JsonElement?,
     val widgetCalendars: Map<String, Set<String>>,
+    /** Le localStorage de la WebView de l'ancienne interface, clé -> valeur chaîne ; null si la lecture a échoué ou était vide. */
+    val webViewLocalStorage: Map<String, String>? = null,
 )
 
 private val ISO_MILLIS: DateTimeFormatter =
@@ -64,7 +66,11 @@ fun deviceSettingsJson(settings: DeviceSettings, writtenAt: Instant): String {
             "allDayCollapsed" to JsonPrimitive(settings.allDayCollapsed),
             "icsRuntimeState" to (settings.icsRuntimeState ?: JsonNull),
             "widgetCalendars" to widgets,
-        ),
+        ).apply {
+            settings.webViewLocalStorage?.let { storage ->
+                put("webViewLocalStorage", JsonObject(storage.toSortedMap().mapValues { JsonPrimitive(it.value) }))
+            }
+        },
     )
     return PRETTY.encodeToString(JsonElement.serializer(), root) + "\n"
 }
@@ -93,4 +99,19 @@ fun writeDeviceSettings(storage: WritableWorkspaceStorage, text: String): Boolea
     val file = findOrCreate(storage, metadata, EXPORT_FILE, "application/json")
     storage.writeText(file, text)
     return true
+}
+
+/**
+ * Ce que `evaluateJavascript("JSON.stringify(Object.fromEntries(Object.entries(localStorage)))")` rend : le texte
+ * JSON de l'objet, lui-même encadré en chaîne JSON (« "{\"k\":\"v\"}" »). Rend null si rien d'exploitable
+ * (échec, "null", localStorage vide) ; une valeur qui n'est pas une chaîne est écartée.
+ */
+fun webViewStorageFromJs(result: String?): Map<String, String>? = try {
+    val text = (Json.parseToJsonElement(result ?: return null) as? JsonPrimitive)?.takeIf { it.isString }?.content
+    val entries = (Json.parseToJsonElement(text ?: return null) as? JsonObject)
+        ?.mapNotNull { (key, value) -> (value as? JsonPrimitive)?.takeIf { it.isString }?.let { key to it.content } }
+        ?.toMap()
+    entries?.takeIf { it.isNotEmpty() }
+} catch (_: Exception) {
+    null
 }

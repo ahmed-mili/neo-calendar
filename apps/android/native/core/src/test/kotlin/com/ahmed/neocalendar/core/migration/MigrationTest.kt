@@ -45,6 +45,22 @@ class MigrationTest {
         assertEquals(JsonArray(emptyList()), widgets.getValue("w10"))
     }
 
+    @Test fun webview_storage_is_exported_as_is_and_omitted_when_absent() {
+        val with = Json.parseToJsonElement(deviceSettingsJson(settings.copy(webViewLocalStorage = mapOf("wallpaper" to "a.jpg", "desktop-settings.json:x" to "{\"k\":1}")), at)).jsonObject
+        val storage = with.getValue("webViewLocalStorage").jsonObject
+        assertEquals("a.jpg", storage.getValue("wallpaper").jsonPrimitive.content)
+        assertEquals("{\"k\":1}", storage.getValue("desktop-settings.json:x").jsonPrimitive.content)
+        assertFalse(Json.parseToJsonElement(deviceSettingsJson(settings, at)).jsonObject.containsKey("webViewLocalStorage"))
+    }
+
+    @Test fun javascript_result_is_unwrapped() {
+        assertEquals(mapOf("a" to "1", "b" to "{\"x\":2}"), webViewStorageFromJs("\"{\\\"a\\\":\\\"1\\\",\\\"b\\\":\\\"{\\\\\\\"x\\\\\\\":2}\\\"}\""))
+        assertEquals(null, webViewStorageFromJs("null"))
+        assertEquals(null, webViewStorageFromJs(null))
+        assertEquals(null, webViewStorageFromJs("\"{}\""))
+        assertEquals(null, webViewStorageFromJs("\"pas du json\""))
+    }
+
     @Test fun missing_ics_state_is_null() {
         val json = Json.parseToJsonElement(deviceSettingsJson(settings.copy(icsRuntimeState = null), at)).jsonObject
         assertEquals(JsonNull, json.getValue("icsRuntimeState"))

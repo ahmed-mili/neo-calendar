@@ -40,7 +40,6 @@ class NativeActivity : ComponentActivity() {
             setContent { MovedScreen() }
             return
         }
-        DeviceSettingsExporter.request(this)
         updates = NativeUpdates(this)
         setContent { NativeApp(viewModel, updates) }
         holdSplashUntilReady()
@@ -49,6 +48,7 @@ class NativeActivity : ComponentActivity() {
         lifecycleScope.launch {
             viewModel.screen.first { it !is ScreenState.Loading }
             updates.checkOnLaunch()
+            DeviceSettingsExporter.start(this@NativeActivity)
         }
         // Une notification ou le widget peut avoir lancé l'app à froid : la route attend que le dossier soit lu. Une recréation (rotation) ne la rejoue pas.
         if (savedInstanceState == null) routeFrom(intent)
