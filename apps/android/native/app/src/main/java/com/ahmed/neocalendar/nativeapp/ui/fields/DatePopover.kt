@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ahmed.neocalendar.nativeapp.AppLanguage
 import com.ahmed.neocalendar.nativeapp.ui.Neo
 import com.ahmed.neocalendar.nativeapp.ui.NeoIcons
 import com.ahmed.neocalendar.nativeapp.ui.pressFill
@@ -35,6 +36,11 @@ private val WEEKDAY_LETTERS = mapOf(
     DayOfWeek.MONDAY to "lu", DayOfWeek.TUESDAY to "ma", DayOfWeek.WEDNESDAY to "me", DayOfWeek.THURSDAY to "je",
     DayOfWeek.FRIDAY to "ve", DayOfWeek.SATURDAY to "sa", DayOfWeek.SUNDAY to "di",
 )
+private val MONTHS_SHORT_EN = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+private val WEEKDAY_LETTERS_EN = mapOf(
+    DayOfWeek.MONDAY to "Mo", DayOfWeek.TUESDAY to "Tu", DayOfWeek.WEDNESDAY to "We", DayOfWeek.THURSDAY to "Th",
+    DayOfWeek.FRIDAY to "Fr", DayOfWeek.SATURDAY to "Sa", DayOfWeek.SUNDAY to "Su",
+)
 
 /** Les 42 jours de la grille d'un mois : six semaines, commençant le jour `firstDay` (0 = dimanche) de la semaine du 1er. */
 fun monthGridDays(month: YearMonth, firstDay: Int): List<LocalDate> {
@@ -46,7 +52,7 @@ fun monthGridDays(month: YearMonth, firstDay: Int): List<LocalDate> {
 
 /**
  * `.nc-datepicker` : le popover de date de l'ancienne, 252 dp de large, ancré au champ. Flèches de mois, titre
- * « sept 2026 », jours en français (les autres mois à demi-teinte), « Retirer la date » (si la fiche peut la rendre) et
+ * « sept 2026 », jours en français ou en anglais selon la langue choisie (les autres mois à demi-teinte), « Retirer la date » (si la fiche peut la rendre) et
  * « Aujourd'hui ».
  */
 @Composable
@@ -66,7 +72,7 @@ fun DatePopover(
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             MonthArrow(NeoIcons.ChevronLeft, "Mois précédent") { month = month.minusMonths(1) }
             Text(
-                "${MONTHS_SHORT[month.monthValue - 1]} ${month.year}",
+                "${(if (AppLanguage.isEnglish) MONTHS_SHORT_EN else MONTHS_SHORT)[month.monthValue - 1]} ${month.year}",
                 color = Neo.Text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),
             )
@@ -76,7 +82,7 @@ fun DatePopover(
         Row(Modifier.fillMaxWidth()) {
             for (day in order) {
                 Box(Modifier.weight(1f).height(24.dp), contentAlignment = Alignment.Center) {
-                    Text(WEEKDAY_LETTERS.getValue(day), color = Neo.TextFaint, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    Text((if (AppLanguage.isEnglish) WEEKDAY_LETTERS_EN else WEEKDAY_LETTERS).getValue(day), color = Neo.TextFaint, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }

@@ -10,6 +10,11 @@ import com.ahmed.neocalendar.core.grid.CalendarModel
 import com.ahmed.neocalendar.core.ics.IcsLink
 import com.ahmed.neocalendar.core.ics.icsLinksOf
 import com.ahmed.neocalendar.core.preferences.withIcsFeedAdded
+import com.ahmed.neocalendar.core.preferences.withIcsRefreshOverridesCleared
+import com.ahmed.neocalendar.core.preferences.withTimezoneAdded
+import com.ahmed.neocalendar.core.preferences.withTimezoneRemoved
+import com.ahmed.neocalendar.core.tasks.misfiledEventsOf
+import com.ahmed.neocalendar.core.timezones.timezoneAdded
 import com.ahmed.neocalendar.core.preferences.withIcsFeedEdited
 import com.ahmed.neocalendar.core.preferences.withIcsFeedRemoved
 import com.ahmed.neocalendar.core.grid.DEFAULT_DAY_COUNT
@@ -252,6 +257,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
                 "mapsTravelMode" -> d.copy(mapsTravelMode = value.content)
                 "mapsApp" -> d.copy(mapsApp = value.content)
                 "clickToCreateEventFromMonthView" -> d.copy(clickToCreateFromMonth = value.booleanOrNull ?: d.clickToCreateFromMonth)
+                "icsDefaultRefreshMinutes" -> d.copy(icsDefaultMinutes = value.content.toIntOrNull() ?: d.icsDefaultMinutes)
                 else -> d
             }
         }
@@ -265,6 +271,43 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
             val current = (prefs["initialView"] as? JsonObject).orEmpty()
             withSetting(prefs, "initialView", JsonObject(current + (which to JsonPrimitive(value))))
         }
+    }
+
+    /** Un fuseau de plus (la colonne apparaît tout de suite) ; un nom inconnu, vide ou déjà présent ne change rien. */
+    fun addTimezone(input: String) {
+        patchData { d -> d.copy(secondaryTimezones = timezoneAdded(d.secondaryTimezones, input) ?: d.secondaryTimezones) }
+        changePreferences { withTimezoneAdded(it, input) }
+    }
+
+    fun removeTimezone(zone: String) {
+        patchData { d -> d.copy(secondaryTimezones = d.secondaryTimezones - zone) }
+        changePreferences { withTimezoneRemoved(it, zone) }
+    }
+
+    /** « Appliquer à tous les liens » : chaque lien perd sa fréquence propre. */
+    fun applyIcsFrequencyToAll() = changePreferences { withIcsRefreshOverridesCleared(it) }
+
+    /**
+     * « Reconvertir les tâches horaires en évènements » : une seule écriture pour toutes les notes (le dossier n'est relu qu'à la fin),
+     * une note qui échoue est laissée telle quelle et ne compte pas. Rend le nombre de notes réécrites.
+     */
+    suspend fun convertMisfiledEvents(): Int {
+        val notes = misfiledEventsOf(latestData()?.events.orEmpty())
+        var converted = 0
+        val error = write { writer, _ ->
+            for (note in notes) {
+                try {
+                    writer.convertToPlainEvent(note)
+                    converted++
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.w("NeoNative", "note non reconvertie : ${note.relativePath}", e)
+                }
+            }
+        }
+        if (error != null && error != WRITE_IGNORED) _notices.tryEmit(error)
+        return converted
     }
 
     /** Le rappel de toute l'application. */
@@ -597,6 +640,10 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     /** Déplacer (`resize` faux) ou redimensionner un évènement horodaté ; un jour de série en sort, la série ne change que par `skipDates`. */
     suspend fun rescheduleEvent(stored: StoredEvent, displayId: String, start: Instant, end: Instant, resize: Boolean): String? =
         write { writer, _ -> writer.reschedule(stored, displayId, start, end, resize, zone, ::nowUtcIso) }
+
+    /** Un évènement glissé vers ou depuis la bande « journée entière » : il change de drapeau, de date et d'heures. */
+    suspend fun rescheduleToSlot(stored: StoredEvent, displayId: String, slot: com.ahmed.neocalendar.core.grid.DropSlot): String? =
+        write { writer, _ -> writer.rescheduleToSlot(stored, displayId, slot, zone, ::nowUtcIso) }
 
     /** La case d'une tâche : faite ou à faire (pour une série, le jour affiché). */
     suspend fun setTaskDone(stored: StoredEvent, displayId: String, done: Boolean): String? =

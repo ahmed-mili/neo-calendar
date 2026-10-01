@@ -7,7 +7,15 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -81,6 +89,9 @@ fun AllDayBand(
     onEventClick: (DisplayEvent) -> Unit,
     onToggleTask: (DisplayEvent) -> Unit,
     onCreateAllDay: (java.time.LocalDate) -> Unit,
+    railWidth: androidx.compose.ui.unit.Dp,
+    /** Les gestes qui déplacent : une barre saisie à l'appui long suit le doigt jusque dans la grille. */
+    ix: GridInteraction,
     modifier: Modifier = Modifier,
 ) {
     val lanes = occurrences.lanes
@@ -88,6 +99,8 @@ fun AllDayBand(
     val rowHeight = ROW_HEIGHT
     val firstDay by remember(state) { derivedStateOf { state.firstDayEpoch } }
     val byId = remember(occurrences) { occurrences.allDay.associateBy { it.id } }
+    val bandScroll = rememberScrollState()
+    val haptic = LocalHapticFeedback.current
 
     // Les jours où le repli cache des barres, avec le total du jour ; indexés comme les barres (depuis `fromDay`).
     val hiddenByIndex = remember(lanes, firstDay, dayCount, collapsed) {
@@ -107,7 +120,7 @@ fun AllDayBand(
         // La gouttière : son bord droit de 1 px, et le bouton de repli de 22 x 22 (rayon 6) près de ce bord.
         Box(
             Modifier
-                .width(RailWidth)
+                .width(railWidth)
                 .height(rowHeight * rows.visibleRows)
                 .drawBehind { drawLine(Neo.AllDayGutterBorder, Offset(size.width - 0.5f, 0f), Offset(size.width - 0.5f, size.height), 1f) }
                 .padding(end = 5.dp),
@@ -141,14 +154,66 @@ fun AllDayBand(
                         if (x in 0f..size.width) drawLine(Neo.AllDayCellBorder, Offset(x + 0.5f, 0f), Offset(x + 0.5f, size.height), 1f)
                     }
                 }
-                .pointerInput(state) {
-                    detectTapGestures { offset ->
-                        if (state.isGliding) return@detectTapGestures
-                        val day = state.origin + floor(state.offsetDays + offset.x / state.columnWidthPx).toLong()
-                        onCreateAllDay(java.time.LocalDate.ofEpochDay(day))
+                .onSizeChanged { ix.bandHeightPx = it.height.toFloat() }
+                .pointerInput(state, ix, lanes, collapsed, hiddenByIndex, rows) {
+                    val slop = viewConfiguration.touchSlop
+                    val rowPx = ROW_HEIGHT.toPx()
+                    // La barre sous le doigt (position dans la bande, défilement de la bande compris), si elle est visible.
+                    fun barAt(position: Offset): DisplayEvent? {
+                        val columnWidth = state.columnWidthPx
+                        val x = position.x
+                        val y = position.y + bandScroll.value
+                        return lanes.bars.lastOrNull { bar ->
+                            val left = (occurrences.fromDay + bar.startIdx - state.origin - state.offsetDays) * columnWidth
+                            val covered = (bar.startIdx..bar.startIdx + bar.span - 1)
+                            x >= left && x <= left + bar.span * columnWidth &&
+                                y >= bar.lane * rowPx && y < (bar.lane + 1) * rowPx &&
+                                (!collapsed || bar.lane < rows.visibleRows) && covered.none { it in hiddenByIndex }
+                        }?.let { byId[it.event.id] }
+                    }
+                    awaitEachGesture {
+                        // La barre (`clickable`) consomme déjà l'appui : sans `requireUnconsumed` le geste la voit quand même.
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val gliding = state.isGliding
+                        val hit = if (gliding) null else barAt(down.position)
+                        fun createHere() {
+                            val day = state.origin + floor(state.offsetDays + down.position.x / state.columnWidthPx).toLong()
+                            onCreateAllDay(java.time.LocalDate.ofEpochDay(day))
+                        }
+                        val first = withTimeoutOrNull(LONG_PRESS_MS) { waitForTapOrMove(down, slop) }
+                        if (first == Phase.Moved) return@awaitEachGesture
+                        if (first == Phase.Up) {
+                            // Un appui sur une barre est celui de la barre ; sur le vide, il crée.
+                            if (!gliding && hit == null) createHere()
+                            return@awaitEachGesture
+                        }
+                        // Appui long : une barre qu'on peut déplacer la saisit, sinon le geste reste un appui.
+                        if (gliding) return@awaitEachGesture
+                        if (hit == null || !hit.editable) {
+                            if (waitForTapOrMove(down, slop) == Phase.Up && hit == null) createHere()
+                            return@awaitEachGesture
+                        }
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        // Le doigt se mesure depuis le haut du corps de la grille : la bande est juste au-dessus, donc négatif.
+                        fun inBody(position: Offset) = Offset(position.x, position.y - size.height)
+                        ix.startBandDrag(hit, inBody(down.position))
+                        try {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                change.consume()
+                                if (!change.pressed) {
+                                    ix.finishDrag()
+                                    return@awaitEachGesture
+                                }
+                                ix.dragTo(inBody(change.position))
+                            }
+                        } finally {
+                            if (ix.drag != null) ix.cancelDrag()
+                        }
                     }
                 }
-                .verticalScroll(rememberScrollState(), enabled = rows.contentRows > rows.visibleRows),
+                .verticalScroll(bandScroll, enabled = rows.contentRows > rows.visibleRows),
         ) {
             Box(Modifier.fillMaxWidth().height(rowHeight * rows.contentRows)) {
                 val visibleBars by remember(lanes, collapsed, hiddenByIndex) {
@@ -164,7 +229,8 @@ fun AllDayBand(
                         }
                     }
                 }
-                AllDayBars(state, dayCount, occurrences.fromDay, visibleBars, byId, rowHeight.value, onEventClick, onToggleTask)
+                AllDayBars(state, dayCount, occurrences.fromDay, visibleBars, byId, rowHeight.value, ix.movingId, onEventClick, onToggleTask)
+                ix.allDayPreview?.let { DropPreview(state, it, ix.zone, rowHeight.value) }
                 if (hiddenByIndex.isNotEmpty()) {
                     // Le badge couvre la seule rangée visible (le contenu, lui, garde toutes ses rangées sous le repli).
                     DayColumns(state, dayCount, Modifier.fillMaxWidth().height(rowHeight)) { day ->
@@ -202,12 +268,13 @@ private fun AllDayBars(
     bars: List<AllDayLaneBar>,
     byId: Map<String, DisplayEvent>,
     rowHeightDp: Float,
+    movingId: String?,
     onEventClick: (DisplayEvent) -> Unit,
     onToggleTask: (DisplayEvent) -> Unit,
 ) {
     Layout(
         content = {
-            for (bar in bars) key(bar.event.id) { AllDayBarView(byId[bar.event.id], onEventClick, onToggleTask) }
+            for (bar in bars) key(bar.event.id) { AllDayBarView(byId[bar.event.id], bar.event.id == movingId, onEventClick, onToggleTask) }
         },
         modifier = Modifier.fillMaxSize(),
     ) { measurables, c ->
@@ -232,7 +299,7 @@ private fun AllDayBars(
 }
 
 @Composable
-private fun AllDayBarView(display: DisplayEvent?, onEventClick: (DisplayEvent) -> Unit, onToggleTask: (DisplayEvent) -> Unit) {
+private fun AllDayBarView(display: DisplayEvent?, dimmed: Boolean, onEventClick: (DisplayEvent) -> Unit, onToggleTask: (DisplayEvent) -> Unit) {
     val accent = remember(display?.color) { parseCalendarColor(display?.color ?: "#658ff2") }
     val surface = Neo.Surface
     val fill = remember(accent, surface) { accent.copy(alpha = 0.15f).compositeOver(surface) }
@@ -243,7 +310,7 @@ private fun AllDayBarView(display: DisplayEvent?, onEventClick: (DisplayEvent) -
     Box(
         Modifier
             .fillMaxSize()
-            .graphicsLayer { alpha = appear.value }
+            .graphicsLayer { alpha = appear.value * (if (dimmed) PENDING_DIM else 1f) }
             .cssShadow(offsetY = 5.dp, blur = 14.dp, color = Color.Black.copy(alpha = 0.18f), radius = 4.dp)
             .background(fill, shape)
             .clip(shape)
@@ -268,6 +335,30 @@ private fun AllDayBarView(display: DisplayEvent?, onEventClick: (DisplayEvent) -
             )
         }
     }
+}
+
+/**
+ * La barre visée par un déplacement qui monte sur la bande (ou en attente de relecture après un lâcher sur elle) : sur la
+ * première ligne, un jour par colonne couverte, aux couleurs du bloc fantôme de la grille.
+ */
+@Composable
+private fun DropPreview(state: GridState, slot: com.ahmed.neocalendar.core.grid.DropSlot, zone: java.time.ZoneId, rowHeightDp: Float) {
+    val first = slot.start.atZone(zone).toLocalDate().toEpochDay()
+    val last = slot.end.atZone(zone).toLocalDate().toEpochDay() - 1
+    val span = (last - first + 1).coerceAtLeast(1)
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val shape = RoundedCornerShape(4.dp)
+    Box(
+        Modifier
+            .offset {
+                val x = (first - state.origin - state.offsetDays) * state.columnWidthPx + 5.dp.toPx()
+                androidx.compose.ui.unit.IntOffset(x.roundToInt(), with(density) { (EVENT_VGAP.dp / 2).roundToPx() })
+            }
+            .width(with(density) { (span * state.columnWidthPx - (OVERLAP_COL_GAP + 1).dp.toPx()).coerceAtLeast(8.dp.toPx()).toDp() })
+            .height(rowHeightDp.dp - EVENT_VGAP.dp)
+            .background(Neo.Accent.copy(alpha = 0.35f).compositeOver(Neo.Surface), shape)
+            .border(1.5.dp, Neo.Accent, shape),
+    )
 }
 
 /**

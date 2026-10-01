@@ -37,7 +37,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ahmed.neocalendar.core.grid.ALLDAY_BAND_SLOP_DP
 import com.ahmed.neocalendar.core.grid.DaySegment
+import com.ahmed.neocalendar.core.grid.DropSlot
+import com.ahmed.neocalendar.core.grid.dropMinuteOfDay
+import com.ahmed.neocalendar.core.grid.isInAllDayBand
+import com.ahmed.neocalendar.core.grid.projectDrop
 import com.ahmed.neocalendar.core.grid.MovedSlot
 import com.ahmed.neocalendar.core.grid.ResizeEdge
 import com.ahmed.neocalendar.core.grid.dayShiftFromAnchor
@@ -69,7 +74,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  */
 
 /** Appui long avant un déplacement (inventaire §1). */
-private const val LONG_PRESS_MS = 220L
+internal const val LONG_PRESS_MS = 220L
 
 /** Deux appuis sur le même bloc plus rapprochés que cela : le double appui. */
 private const val DOUBLE_TAP_MS = 340L
@@ -79,8 +84,8 @@ class GridActions(
     val onOpen: (DisplayEvent) -> Unit,
     val onCreate: (LocalDateTime, LocalDateTime) -> Unit,
     val onCreateAllDay: (LocalDate) -> Unit,
-    /** `onFailed` : l'écriture a échoué, le créneau dessiné en attente doit disparaître. */
-    val onReschedule: (event: DisplayEvent, start: Instant, end: Instant, resize: Boolean, onFailed: () -> Unit) -> Unit,
+    /** `onFailed` : l'écriture a échoué, le créneau dessiné en attente doit disparaître. `slot.allDay` : l'évènement va sur la bande ou en vient. */
+    val onReschedule: (event: DisplayEvent, slot: DropSlot, resize: Boolean, onFailed: () -> Unit) -> Unit,
     val onToggleTask: (DisplayEvent) -> Unit,
 )
 
@@ -96,13 +101,20 @@ class MoveDrag(val event: DisplayEvent, val grabDay: Long, val grabFraction: Dou
 }
 
 /** Un créneau qui attend que la note écrite revienne du dossier. */
-class Landing(val event: DisplayEvent, val slot: MovedSlot)
+class Landing(val event: DisplayEvent, val slot: DropSlot)
 
 class ResizePreview(val eventId: String, val start: Instant, val end: Instant)
 
 @Stable
 class GridInteraction(val grid: GridState, val zone: ZoneId, private val scope: CoroutineScope) {
     lateinit var actions: GridActions
+
+    /** La hauteur de la bande « journée entière » au-dessus du corps : un doigt qui y monte la vise (`isInAllDayBand`). */
+    var bandHeightPx = 0f
+
+    /** Le créneau que la bande doit montrer : un déplacement qui la vise, ou celui qu'on a lâché sur elle en attendant la relecture. */
+    val allDayPreview: DropSlot?
+        get() = drag?.let { slotOf(it) }?.takeIf { it.allDay } ?: landing?.slot?.takeIf { it.allDay }
 
     /** Les blocs de chaque jour visible, posés par la mise en page. */
     val rects = HashMap<Long, List<BlockRect>>()
@@ -212,23 +224,44 @@ class GridInteraction(val grid: GridState, val zone: ZoneId, private val scope: 
         drag?.pointer = position
     }
 
-    /** Où le déplacement en cours atterrirait : jours visés, puis heure au quart d'heure. */
-    fun slotOf(d: MoveDrag): MovedSlot {
+    /**
+     * Où le déplacement en cours atterrirait : jours visés, puis heure au quart d'heure, ou la bande « journée entière »
+     * quand le doigt y est (`projectGridDrag`). Une barre de la bande suit la colonne sous le doigt, un bloc le point de saisie.
+     */
+    fun slotOf(d: MoveDrag): DropSlot {
         val pos = dayPosition(d.pointer.x)
         val idx = floor(pos)
-        val shift = dayShiftFromAnchor(d.grabDay, d.grabFraction, grid.origin + idx.toLong(), pos - idx)
-        val deltaY = (d.pointer.y + grid.clampedScrollY) - d.grabContentY
-        return movedSlot(d.event.start, d.event.end, shift, snappedMinutes(deltaY.toDouble(), grid.hourPx.toDouble()), zone)
+        val dayUnderFinger = grid.origin + idx.toLong()
+        val shift = if (d.event.allDay) {
+            (dayUnderFinger - d.event.start.atZone(zone).toLocalDate().toEpochDay()).toInt()
+        } else {
+            dayShiftFromAnchor(d.grabDay, d.grabFraction, dayUnderFinger, pos - idx)
+        }
+        val contentY = d.pointer.y + grid.clampedScrollY
+        val deltaMinutes = snappedMinutes((contentY - d.grabContentY).toDouble(), grid.hourPx.toDouble())
+        val inBand = isInAllDayBand(d.pointer.y, bandHeightPx, ALLDAY_BAND_SLOP_DP * grid.density)
+        return projectDrop(
+            d.event.start, d.event.end, d.event.allDay, shift, deltaMinutes, inBand,
+            dropMinuteOfDay(contentY.toDouble(), grid.hourPx.toDouble()), zone,
+        )
+    }
+
+    /** Une barre de la bande saisie : `position` se mesure déjà depuis le haut du corps de la grille (négatif dans la bande). */
+    fun startBandDrag(event: DisplayEvent, position: Offset) {
+        grid.cancelAnimations()
+        val pos = dayPosition(position.x)
+        val idx = floor(pos)
+        drag = MoveDrag(event, grid.origin + idx.toLong(), pos - idx, position.y + grid.clampedScrollY, position)
     }
 
     fun finishDrag() {
         val d = drag ?: return
         val slot = slotOf(d)
         drag = null
-        if (slot.start == d.event.start && slot.end == d.event.end) return
+        if (slot.start == d.event.start && slot.end == d.event.end && slot.allDay == d.event.allDay) return
         landing = Landing(d.event, slot)
         pendingData = currentData
-        actions.onReschedule(d.event, slot.start, slot.end, false, ::clearPending)
+        actions.onReschedule(d.event, slot, false, ::clearPending)
     }
 
     fun cancelDrag() {
@@ -260,7 +293,7 @@ class GridInteraction(val grid: GridState, val zone: ZoneId, private val scope: 
             return
         }
         pendingData = currentData
-        actions.onReschedule(event, preview.start, preview.end, true, ::clearPending)
+        actions.onReschedule(event, DropSlot(preview.start, preview.end, false), true, ::clearPending)
         // Un évènement se règle par ses deux bouts : le mode se ferme quand les deux ont été tirés.
         usedEdges += edge
         if (usedEdges.size == ResizeEdge.entries.size) leaveResizeMode()
@@ -287,13 +320,13 @@ class GridInteraction(val grid: GridState, val zone: ZoneId, private val scope: 
     val hasPending: Boolean get() = landing != null || resizePreview != null
 }
 
-private sealed interface Phase {
+internal sealed interface Phase {
     data object Moved : Phase
     data object Up : Phase
 }
 
 /** Attend la fin du toucher ou son départ en glissé ; un évènement déjà consommé ou un second doigt l'annule. */
-private suspend fun AwaitPointerEventScope.waitForTapOrMove(down: PointerInputChange, slop: Float): Phase {
+internal suspend fun AwaitPointerEventScope.waitForTapOrMove(down: PointerInputChange, slop: Float): Phase {
     while (true) {
         val event = awaitPointerEvent()
         val change = event.changes.firstOrNull { it.id == down.id } ?: return Phase.Moved
@@ -343,7 +376,7 @@ fun Modifier.gridTouch(ix: GridInteraction, haptic: HapticFeedback): Modifier = 
 
 // ── Ce qui se dessine par-dessus les colonnes ───────────────────────────────
 
-private class Ghost(val event: DisplayEvent, val slot: MovedSlot)
+private class Ghost(val event: DisplayEvent, val slot: DropSlot)
 
 /**
  * Le créneau visé par un déplacement (ou posé en attendant la relecture), un
@@ -377,13 +410,16 @@ fun MoveGhost(ix: GridInteraction, dayCount: Int, timeFormat24h: Boolean, modifi
             val y = d.pointer.y
             if (x < edge) grid.offsetDays -= 2f * dt
             else if (x > width - edge) grid.offsetDays += 2f * dt
-            if (y < edge) grid.scrollY = (grid.clampedScrollY - verticalSpeed * dt).coerceIn(0f, grid.maxScroll)
+            // Au-dessus du corps (sur la bande), la grille ne défile pas : le doigt vise la bande, pas le haut de l'écran.
+            if (y in 0f..edge) grid.scrollY = (grid.clampedScrollY - verticalSpeed * dt).coerceIn(0f, grid.maxScroll)
             else if (y > grid.viewportHeightPx - edge) grid.scrollY = (grid.clampedScrollY + verticalSpeed * dt).coerceIn(0f, grid.maxScroll)
         }
     }
 
     val shown = ghost ?: return
+    // Lâché sur la bande, il n'y a pas de bloc dans la grille : la bande dessine la barre visée.
     val segments = remember(shown.slot) {
+        if (shown.slot.allDay) return@remember emptyList()
         val first = shown.slot.start.atZone(ix.zone).toLocalDate()
         val lastInstant = if (shown.slot.end > shown.slot.start) shown.slot.end.minusMillis(1) else shown.slot.start
         val last = lastInstant.atZone(ix.zone).toLocalDate()

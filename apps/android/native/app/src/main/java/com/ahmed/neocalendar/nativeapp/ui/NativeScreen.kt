@@ -23,6 +23,7 @@ import com.ahmed.neocalendar.core.tasks.buildDesktopTaskGroups
 import com.ahmed.neocalendar.core.tasks.collectTasks
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -313,6 +314,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     val openDraft = { draft: SheetTarget.Draft -> show(draft) }
     var overlayKey by rememberSaveable { mutableStateOf("") }
     val overlay = remember(overlayKey) { decodeOverlay(overlayKey) }
+    val extraZones = remember(data.secondaryTimezones) { data.secondaryTimezones.mapNotNull { runCatching { ZoneId.of(it) }.getOrNull() } }
     val calendarsById = remember(data) { data.calendars.associateBy { it.id } }
     val notesById = remember(data) { data.events.associateBy { it.id } }
     // Les tâches se lisent dans les notes brutes (une tâche en retard est hors de la fenêtre de la grille) ; masquer un calendrier les masque aussi.
@@ -370,14 +372,17 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                     openDraft(SheetTarget.Draft(date.atStartOfDay(), date.plusDays(1).atStartOfDay(), allDay = true))
                 }
             },
-            onReschedule = { event, start, end, resize, onFailed ->
+            onReschedule = { event, slot, resize, onFailed ->
                 val note = resolveStored(notesById, event.id)
                 if (note == null) {
                     onFailed()
                     Notices.show(noteGone)
                 } else {
                     scope.launch {
-                        viewModel.rescheduleEvent(note, event.id, start, end, resize)?.let {
+                        // Un évènement horodaté qui reste horodaté se déplace ou se redimensionne ; sinon il change de bande.
+                        val write = if (resize || (!slot.allDay && !event.allDay)) viewModel.rescheduleEvent(note, event.id, slot.start, slot.end, resize)
+                        else viewModel.rescheduleToSlot(note, event.id, slot)
+                        write?.let {
                             onFailed()
                             if (it != WRITE_IGNORED) Notices.fail(it)
                         }
@@ -465,6 +470,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                     bottomInset = bottomInset,
                     draft = (sheet as? SheetTarget.Draft)?.takeIf { !draftCommitted },
                     onResizeDraft = { start, end -> (sheet as? SheetTarget.Draft)?.let { sheet = it.copy(start = start, end = end) } },
+                    extraZones = extraZones,
                 )
                 // Le bouton + : 56 x 56, rayon 16, à `max(18 ; inset + 14)` du bord droit et du bas (`CalendarLayout.css:53`).
                 val fabSource = remember { MutableInteractionSource() }
@@ -675,6 +681,11 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                         folderName = viewModel.treeName(),
                         oldAppInstalled = oldAppInstalled,
                         onUninstallOldApp = { uninstallOldApp(context) },
+                        onTimezoneAdd = viewModel::addTimezone,
+                        onTimezoneRemove = viewModel::removeTimezone,
+                        onIcsDefault = { viewModel.setPreference("icsDefaultRefreshMinutes", JsonPrimitive(it)) },
+                        onApplyIcsToAll = viewModel::applyIcsFrequencyToAll,
+                        onConvertMisfiled = viewModel::convertMisfiledEvents,
                     ),
                     onBack = { overlayKey = "" },
                 )
