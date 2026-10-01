@@ -3,6 +3,7 @@ package com.ahmed.neocalendar.core.workspace
 import com.ahmed.neocalendar.core.ics.EmptySnapshotException
 import com.ahmed.neocalendar.core.ics.IcsFeed
 import com.ahmed.neocalendar.core.ics.IcsLink
+import com.ahmed.neocalendar.core.ics.IcsSyncPlan
 import com.ahmed.neocalendar.core.ics.IcsSyncState
 import com.ahmed.neocalendar.core.ics.icsSyncWindow
 import com.ahmed.neocalendar.core.ics.parseIcsSnapshot
@@ -16,6 +17,7 @@ import com.ahmed.neocalendar.core.notes.calendarIdFromPath
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.jsonPrimitive
 
 /*
@@ -80,6 +82,37 @@ fun deleteIcsNoteIfOwned(storage: WritableWorkspaceStorage, relativePath: String
     return true
 }
 
+/** La clé d'occurrence d'une note de CE lien (uid, ou uid::recurrenceId), lue dans ses marqueurs. */
+private fun occurrenceKeyOfNote(contents: String, feedId: String): String? {
+    val metadata = managedMetadataFromMarkdown(contents) ?: return null
+    if (metadata["neoIcsFeedId"]?.jsonPrimitive?.content != feedId) return null
+    val uid = metadata["neoIcsUid"]?.jsonPrimitive?.content ?: return null
+    val recurrenceId = metadata["neoIcsRecurrenceId"]?.takeIf { it !is JsonNull }?.jsonPrimitive?.content
+    return if (recurrenceId == null) uid else "$uid::$recurrenceId"
+}
+
+/**
+ * Plusieurs notes du dossier pour la même occurrence de ce lien (copie de conflit Syncthing
+ * `*.sync-conflict-*.md`, doublon) : le planificateur n'en retient qu'une, les autres ne seraient jamais ni
+ * mises à jour ni supprimées. On garde celle qu'il réécrit, ou à défaut celle qu'il a retenue (la dernière lue),
+ * et on supprime les autres par le chemin gardé. Une note que le plan touche n'est jamais supprimée ici.
+ */
+private fun deleteDuplicateIcsNotes(storage: WritableWorkspaceStorage, feedId: String, records: List<StoredEvent>, plan: IcsSyncPlan): Int {
+    val touched = plan.writes.mapNotNull { it.previousRelativePath }.toSet() + plan.deletes.map { it.relativePath }
+    val retainedByWrite = plan.writes.mapNotNull { it.previousRelativePath }.toSet()
+    var deleted = 0
+    val groups = records.mapNotNull { r -> occurrenceKeyOfNote(r.contents, feedId)?.let { it to r } }.groupBy({ it.first }, { it.second })
+    for ((_, group) in groups) {
+        if (group.size < 2) continue
+        val kept = group.firstOrNull { it.relativePath in retainedByWrite } ?: group.last()
+        for (record in group) {
+            if (record === kept || record.relativePath in touched) continue
+            if (deleteIcsNoteIfOwned(storage, record.relativePath, feedId)) deleted += 1
+        }
+    }
+    return deleted
+}
+
 /**
  * Applique un flux téléchargé : le dossier du lien (créé une fois), l'instantané, le plan du noyau,
  * les écritures puis les suppressions. Les enregistrements existants sont relus ICI, juste avant.
@@ -102,13 +135,24 @@ fun applyIcsDownload(
         provisioned = directory
     }
 
-    val plan = planIcsNoteSync(IcsFeed(link.id, link.calendarPath, directory), snapshot, readRecords(storage), previous, now)
+    val records = readRecords(storage)
+    val plan = planIcsNoteSync(IcsFeed(link.id, link.calendarPath, directory), snapshot, records, previous, now)
 
     for (write in plan.writes) {
-        writeEvent(storage, write.calendarPath, write.fileName, write.previousRelativePath.orEmpty(), write.contents)
+        val previousPath = write.previousRelativePath.orEmpty()
+        var fileName = write.fileName
+        if (previousPath.isEmpty()) {
+            // Sans note précédente, la cible n'est jamais réécrite : un fichier de ce nom que le planificateur
+            // n'a pas vu (illisible pour lui) est peut-être une note d'Ahmed. Seule une note gérée est réécrite en place.
+            val dir = if (write.calendarPath.isEmpty()) "" else findPath(storage, write.calendarPath)
+                ?: throw IllegalStateException("Calendrier introuvable : ${write.calendarPath}")
+            fileName = uniqueName(storage, dir, validName(fileName, true))
+        }
+        writeEvent(storage, write.calendarPath, fileName, previousPath, write.contents)
     }
     var deleted = 0
     for (record in plan.deletes) if (deleteIcsNoteIfOwned(storage, record.relativePath, link.id)) deleted += 1
+    deleted += deleteDuplicateIcsNotes(storage, link.id, records, plan)
 
     return IcsApplied(plan.nextState, provisioned, plan.writes.size, deleted)
 }

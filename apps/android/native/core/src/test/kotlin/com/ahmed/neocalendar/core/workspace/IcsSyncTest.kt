@@ -31,6 +31,7 @@ private fun linkNotes(tree: MemoryTree, dir: String = "Etudes/Planning Test") =
     tree.files.keys.filter { it.startsWith("$dir/") }.sorted()
 
 private const val PERSONAL = "---\ntitle: \"Perso\"\nallDay: false\nstartTime: \"09:00\"\nendTime: \"10:00\"\ntype: \"single\"\ndate: \"2026-10-05\"\nendDate: null\n---\nA moi\n"
+private const val BROKEN = "---\ntitre casse\n"
 
 class IcsSyncTest {
     /** Ce que le planificateur du noyau écrirait pour ce flux sur ce dossier vide. */
@@ -80,6 +81,62 @@ class IcsSyncTest {
         assertEquals(2, applied.written)
         assertEquals(3, linkNotes(tree).size)
         assertTrue(linkNotes(tree).any { it.endsWith("${name.removeSuffix(".md")} (1).md") })
+    }
+
+    // Un fichier du nom voulu que le planificateur ne voit pas (illisible) n'est jamais écrasé : la séance prend « (1) ».
+    @Test fun anUnreadableFileAtTheTargetNameIsNeverOverwritten() {
+        val name = planned(COURSES, "Etudes/Planning Test").writes.first().fileName
+        val tree = MemoryTree().file("Etudes/Planning Test/$name", BROKEN)
+        val applied = applyIcsDownload(tree, LINK.copy(directory = "Etudes/Planning Test"), COURSES, NEVER, NOW)
+        assertEquals(BROKEN, tree.files["Etudes/Planning Test/$name"])
+        assertEquals(2, applied.written)
+        assertEquals(3, linkNotes(tree).size)
+        assertTrue(linkNotes(tree).any { it.endsWith("${name.removeSuffix(".md")} (1).md") })
+    }
+
+    // Copie de conflit Syncthing : une seule note par occurrence reste, l'autre est supprimée par le chemin gardé.
+    @Test fun aSyncConflictCopyOfAnOwnedNoteIsDeleted() {
+        val link = LINK.copy(directory = "Etudes/Planning Test")
+        val tree = MemoryTree().dir("Etudes").dir("Etudes/Planning Test")
+        val first = applyIcsDownload(tree, link, COURSES, NEVER, NOW)
+        val original = linkNotes(tree).first { it.contains("Cours A") }
+        tree.file(original.removeSuffix(".md") + ".sync-conflict-20261001-120000-ABCDEFG.md", tree.files.getValue(original))
+        tree.file("Etudes/Planning Test/perso.sync-conflict-1.md", PERSONAL)
+        assertEquals(4, linkNotes(tree).size)
+        val second = applyIcsDownload(tree, link, COURSES, first.state, NOW)
+        assertEquals(1, second.deleted)
+        assertEquals(0, second.written)
+        assertEquals(1, linkNotes(tree).count { it.contains("Cours A") })
+        assertEquals(1, linkNotes(tree).count { it.contains("Cours B") })
+        assertTrue(tree.files.containsKey("Etudes/Planning Test/perso.sync-conflict-1.md"))
+    }
+
+    // Le doublon obsolète (contenu ancien) ne survit pas non plus : la note réécrite est celle que le plan touche.
+    @Test fun theDuplicateThatThePlanRewritesIsTheOneKept() {
+        val link = LINK.copy(directory = "Etudes/Planning Test")
+        val tree = MemoryTree().dir("Etudes").dir("Etudes/Planning Test")
+        val first = applyIcsDownload(tree, link, COURSES, NEVER, NOW)
+        val original = linkNotes(tree).first { it.contains("Cours A") }
+        tree.file(original.removeSuffix(".md") + ".sync-conflict-1.md", tree.files.getValue(original))
+        val moved = ics(
+            vevent("u1", "20261005T080000Z", "20261005T093000Z", "Cours A"),
+            vevent("u2", "20261006T060000Z", "20261006T073000Z", "Cours B"),
+        )
+        val second = applyIcsDownload(tree, link, moved, first.state, NOW)
+        assertEquals(1, second.written)
+        assertEquals(1, linkNotes(tree).count { it.contains("Cours A") })
+        assertEquals(2, linkNotes(tree).size)
+    }
+
+    @Test fun anEmptyDirectoryIsNoDirectory() {
+        val feed = kotlinx.serialization.json.buildJsonObject {
+            put("id", kotlinx.serialization.json.JsonPrimitive("f"))
+            put("calendarPath", kotlinx.serialization.json.JsonPrimitive("Etudes"))
+            put("name", kotlinx.serialization.json.JsonPrimitive("N"))
+            put("url", kotlinx.serialization.json.JsonPrimitive("https://x"))
+            put("directory", kotlinx.serialization.json.JsonPrimitive("  "))
+        }
+        assertEquals(null, com.ahmed.neocalendar.core.ics.icsLinkOf(feed)?.directory)
     }
 
     // Un flux qui se vide d'un coup : rien n'est écrit ni supprimé, l'erreur est notée sur le lien.

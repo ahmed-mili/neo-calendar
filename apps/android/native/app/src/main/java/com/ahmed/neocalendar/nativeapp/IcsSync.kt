@@ -50,6 +50,7 @@ data class IcsUi(val states: Map<String, IcsSyncState> = emptyMap(), val syncing
  */
 internal fun downloadIcs(address: String): String {
     var url = URL(address.trim())
+    if (url.protocol != "http" && url.protocol != "https") throw IOException("Adresse non prise en charge : seules http et https le sont.")
     repeat(MAX_REDIRECTS + 1) {
         val connection = url.openConnection() as HttpURLConnection
         connection.connectTimeout = 15000
@@ -133,25 +134,38 @@ class IcsSync(
     }
 
     /** Un lien retiré n'a plus d'état à garder. */
-    fun forget(id: String) = setStates(_ui.value.states - id)
+    fun forget(id: String) {
+        // Une synchro en cours pour ce lien ne doit pas ressusciter son état en se terminant.
+        inFlight -= id
+        _ui.update { it.copy(syncing = it.syncing - id) }
+        setStates(_ui.value.states - id)
+    }
 
     /** Rend vrai si des notes ont changé. */
     private suspend fun run(link: IcsLink, now: Instant): Boolean {
         val previous = _ui.value.states[link.id] ?: IcsSyncState(null, null, 0, emptyMap())
         var changed = false
+        var applying = false
         val next = try {
             val text = downloads.withPermit { withContext(Dispatchers.IO) { downloadIcs(link.url) } }
+            applying = true
             val applied = applyLock.withLock { withContext(Dispatchers.IO) { applyIcsDownload(storage(), link, text, previous, now) } }
+            applying = false
             changed = applied.written > 0 || applied.deleted > 0 || applied.provisionedDirectory != null
+            // L'état d'abord : une écriture de préférences qui échoue ne le perd pas.
+            if (link.id in inFlight) setStates(_ui.value.states + (link.id to applied.state))
             // Le dossier du lien est noté dans le fichier partagé : le PC écrit au même endroit.
-            applied.provisionedDirectory?.let { directory -> updatePreferences { withIcsFeedDirectory(it, link.id, directory) } }
-            applied.state
+            val problem = applied.provisionedDirectory?.let { directory -> updatePreferences { withIcsFeedDirectory(it, link.id, directory) } }
+            if (problem != null && link.id in inFlight) setStates(_ui.value.states + (link.id to applied.state.copy(lastError = problem)))
+            return changed
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            // Des notes ont pu être écrites avant l'échec : l'écran relit le dossier.
+            if (applying) changed = true
             failedIcsState(previous, now, describeIcsFailure(e))
         }
-        setStates(_ui.value.states + (link.id to next))
+        if (link.id in inFlight) setStates(_ui.value.states + (link.id to next))
         return changed
     }
 

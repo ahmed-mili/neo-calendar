@@ -1,5 +1,6 @@
 package com.ahmed.neocalendar.core.ics
 
+import com.ahmed.neocalendar.core.notes.jsTrim
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -45,7 +46,7 @@ fun icsLinkOf(feed: JsonObject): IcsLink? {
         url = feed.text("url") ?: return null,
         refreshMinutes = refresh,
         active = active,
-        directory = feed.text("directory"),
+        directory = feed.text("directory")?.takeIf { it.jsTrim().isNotEmpty() },
         address = feed.text("address"),
     )
 }

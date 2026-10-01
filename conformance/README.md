@@ -130,3 +130,14 @@ téléphone écrit dans `.neo-calendar.json` (`org.json` d'Android, `toString(2)
 Le PC écrit autrement (Rust, `serde_json::to_string_pretty` : clés triées par
 ordre alphabétique, `/` non échappé, couleurs d'un fichier déjà présent
 fusionnées) ; l'écart est un fait relevé, pas corrigé.
+
+Limite connue : fuseaux différents entre PC et téléphone. La fenêtre de synchro
+d'un lien ICS et la lecture des évènements UTC ou flottants (`IcsParser`,
+`instant()` / `systemDefault()`) suivent le fuseau de l'appareil, comme le PC.
+Si les deux appareils n'ont pas le même fuseau (voyage, téléphone resté sur un
+autre), l'heure ou la date écrite dans une note de ces évènements diffère d'un
+appareil à l'autre : chacun juge la note de l'autre « différente » et la
+réécrit à chaque cycle d'une heure, ce qui peut faire naître des copies de
+conflit Syncthing en boucle (celles-ci sont ensuite nettoyées par la synchro
+native, cf. `deleteDuplicateIcsNotes`). Rien n'est corrigé : même défaut que le
+PC, à garder en tête en voyage.
