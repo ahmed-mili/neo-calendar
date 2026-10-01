@@ -240,7 +240,7 @@ fun SettingsScreen(version: String, data: WorkspaceData, hiddenIds: Set<String>,
         "icsDefault" -> pick(
             ICS_REFRESH_MINUTES.map { Option(it.toString(), icsFrequencyLabel(it)) }, data.icsDefaultMinutes.toString(), "Fréquence d'actualisation ICS par défaut",
         ) { actions.onIcsDefault(it.toInt()) }
-        "sync" -> SyncDialog(actions.folderName, onPickFolder = { choice = null; actions.onPickFolder() }, onDismiss = { choice = null })
+        "sync" -> SyncDialog(actions.folderName, actions.integratedStorage, onPickFolder = { choice = null; actions.onPickFolder() }, onDismiss = { choice = null })
     }
     when (confirm) {
         "convert" -> ConfirmPanel(
@@ -635,20 +635,23 @@ internal fun ChoiceDialog(title: String, options: List<Option>, selected: String
 
 /** La Synchronisation : un dialogue de texte (dossier, note, trois méthodes) ; `.nc-choice-dialog .nc-set-row` : 52 dp, 16 sp, valeur sous le nom. */
 @Composable
-private fun SyncDialog(folderName: String, onPickFolder: () -> Unit, onDismiss: () -> Unit) {
+private fun SyncDialog(folderName: String, integratedStorage: Boolean, onPickFolder: () -> Unit, onDismiss: () -> Unit) {
     ChoiceCard("Synchronisation", onDismiss) {
         val shape = RoundedCornerShape(12.dp)
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 52.dp).pressFill(shape, Neo.Hover, onClick = onPickFolder).padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) { Icon(NeoIcons.FolderOpen, null, tint = Neo.SettingsValue, modifier = Modifier.size(18.dp)) }
-            Column(Modifier.weight(1f)) {
-                SText("Dossier de données", size = 16f, lineHeight = 22.4f)
-                SText(folderName, color = Neo.TextSecondary, size = 16f, lineHeight = 22.4f, maxLines = 1)
+        // En stockage privé il n'y a pas de dossier à choisir : la ligne n'est pas proposée.
+        if (!integratedStorage) {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 52.dp).pressFill(shape, Neo.Hover, onClick = onPickFolder).padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) { Icon(NeoIcons.FolderOpen, null, tint = Neo.SettingsValue, modifier = Modifier.size(18.dp)) }
+                Column(Modifier.weight(1f)) {
+                    SText("Dossier de données", size = 16f, lineHeight = 22.4f)
+                    SText(folderName, color = Neo.TextSecondary, size = 16f, lineHeight = 22.4f, maxLines = 1)
+                }
+                Icon(NeoIcons.ChevronRight, null, tint = Neo.SettingsNote, modifier = Modifier.size(18.dp))
             }
-            Icon(NeoIcons.ChevronRight, null, tint = Neo.SettingsNote, modifier = Modifier.size(18.dp))
         }
         SText(
             "Neo Calendar range ses données dans le dossier que vous choisissez. La synchronisation est assurée par l'outil que vous retenez.",

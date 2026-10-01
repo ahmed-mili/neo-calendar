@@ -50,7 +50,7 @@ import com.ahmed.neocalendar.core.holidays.holidaySourcesOf
 import com.ahmed.neocalendar.core.preferences.withSetting
 import com.ahmed.neocalendar.core.workspace.BinaryWorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.EventWriter
-import com.ahmed.neocalendar.core.workspace.StorageMode
+import com.ahmed.neocalendar.core.workspace.mayPickExternalTree
 import com.ahmed.neocalendar.core.workspace.WorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.createFolder
 import com.ahmed.neocalendar.core.workspace.deleteFolder
@@ -435,7 +435,12 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
                 // Nouvelle installation : le dossier privé est créé ici (hors du fil principal), puis lu comme les autres.
                 val data = withContext(Dispatchers.IO) {
                     WorkspaceLocation.prepareNewInstall(getApplication())
-                    read()
+                    // Toujours aucun mode (préférences perdues, doute sur l'installation) : rien n'est créé, on demande le dossier comme avant.
+                    if (WorkspaceLocation.isNewInstall(getApplication())) null else read()
+                }
+                if (data == null) {
+                    _screen.value = ScreenState.NeedsFolder
+                    return@launch
                 }
                 // Les calendriers masqués sont ceux du fichier (le PC a pu en changer).
                 _hidden.value = data.hiddenCalendarIds
@@ -728,6 +733,11 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     fun onTreePicked(result: android.content.Intent) {
         val uri = result.data ?: return
         val app = getApplication<Application>()
+        // Passer en dossier externe depuis le stockage privé ne copie rien : le changement passe par la page Synchronisation.
+        if (!mayPickExternalTree(WorkspaceLocation.mode(app))) {
+            _notices.tryEmit("Avec la synchronisation intégrée, changer de dossier passe par la page Synchronisation")
+            return
+        }
         val flags = result.flags and (android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
         try {
             app.contentResolver.takePersistableUriPermission(uri, flags)
@@ -735,13 +745,13 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
             _notices.tryEmit(e.message ?: e.toString())
             return
         }
-        WorkspaceLocation.rememberTree(app, uri)
-        WorkspaceLocation.setMode(app, StorageMode.External)
         // L'export de l'ancienne app (s'il y en a un) est réappliqué avant la première lecture.
         importing = true
         _screen.value = ScreenState.Loading
         viewModelScope.launch {
             try {
+                // Le dossier et le mode s'écrivent ensemble, hors du fil principal.
+                withContext(Dispatchers.IO) { WorkspaceLocation.chooseExternalTree(app, uri) }
                 importDeviceSettings(app, uri)
                 _dayCount.value = clampDayCount(devicePrefs.getInt(KEY_DAY_COUNT, DEFAULT_DAY_COUNT))
                 _allDayCollapsed.value = devicePrefs.getBoolean(KEY_ALLDAY_COLLAPSED, false)

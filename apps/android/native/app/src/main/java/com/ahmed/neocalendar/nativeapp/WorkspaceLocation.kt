@@ -5,7 +5,9 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import com.ahmed.neocalendar.core.workspace.BinaryWorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.FileWorkspaceStorage
+import com.ahmed.neocalendar.core.workspace.InstallFacts
 import com.ahmed.neocalendar.core.workspace.StorageMode
+import com.ahmed.neocalendar.core.workspace.isGenuineNewInstall
 import com.ahmed.neocalendar.core.workspace.initNewWorkspace
 import com.ahmed.neocalendar.core.workspace.resolveStorageMode
 import java.io.File
@@ -42,11 +44,25 @@ object WorkspaceLocation {
      */
     @Synchronized
     fun prepareNewInstall(context: Context) {
-        if (!isNewInstall(context)) return
+        // Les faits ne sont réunis que dans la branche « aucun mode » : rien de plus pour une installation saine.
+        if (!isNewInstall(context) || !isGenuineNewInstall(installFacts(context))) return
         val root = privateRoot(context)
         root.mkdirs()
         initNewWorkspace(FileWorkspaceStorage(root))
         setMode(context, StorageMode.Integrated)
+    }
+
+    private fun installFacts(context: Context): InstallFacts {
+        val p = prefs(context)
+        val info = context.packageManager.getPackageInfo(context.packageName, 0)
+        return InstallFacts(
+            storedMode = p.getString(KEY_MODE, null),
+            treeUri = p.getString(KEY_TREE, null),
+            persistedGrantCount = context.contentResolver.persistedUriPermissions.size,
+            oldAppInstalled = isOldAppInstalled(context),
+            firstInstallTime = info.firstInstallTime,
+            lastUpdateTime = info.lastUpdateTime,
+        )
     }
 
     /** Le dossier SAF choisi, avec les contrôles habituels (permission durable) ; `write` exige aussi l'autorisation d'écrire. */
@@ -62,8 +78,9 @@ object WorkspaceLocation {
         return uri
     }
 
-    fun rememberTree(context: Context, uri: Uri) {
-        prefs(context).edit().putString(KEY_TREE, uri.toString()).commit()
+    /** Le dossier choisi ET le mode `External`, en une seule édition atomique. Hors du fil principal (`commit`). */
+    fun chooseExternalTree(context: Context, uri: Uri) {
+        prefs(context).edit().putString(KEY_TREE, uri.toString()).putString(KEY_MODE, StorageMode.External.name).commit()
     }
 
     /** Le stockage du dossier de notes, selon le mode. Lève une exception au message lisible si le dossier n'est pas utilisable. */
