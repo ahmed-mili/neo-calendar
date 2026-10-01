@@ -70,12 +70,6 @@ public final class ReminderScheduler {
         AlarmManager alarms = context.getSystemService(AlarmManager.class);
         if (alarms == null) return;
 
-        // The new app (com.ahmedmili.neocalendar) rings from now on: arming here too would ring twice.
-        if (Coexistence.newAppInstalled(context)) {
-            alarms.cancel(alarmIntent(context));
-            return;
-        }
-
         JSONArray list = reminders(context);
         long now = System.currentTimeMillis();
         long next = Long.MAX_VALUE;
@@ -110,10 +104,6 @@ public final class ReminderScheduler {
      * nobody can act on.
      */
     static void fire(Context context) {
-        if (Coexistence.newAppInstalled(context)) {
-            schedule(context);
-            return;
-        }
         JSONArray list = reminders(context);
         long now = System.currentTimeMillis();
         JSONArray remaining = new JSONArray();

@@ -10,7 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import com.ahmed.neocalendar.Coexistence
 import com.ahmed.neocalendar.MainActivity
 import com.ahmed.neocalendar.NeoCalendarWidget
 import androidx.lifecycle.Lifecycle
@@ -26,7 +25,6 @@ private const val BACKGROUND = 0xFF11111B.toInt()
 class NativeActivity : ComponentActivity() {
     private val viewModel: NativeViewModel by viewModels()
     private lateinit var updates: NativeUpdates
-    private var moved = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,12 +32,6 @@ class NativeActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(BACKGROUND),
             navigationBarStyle = SystemBarStyle.dark(BACKGROUND),
         )
-        // La nouvelle app (com.ahmedmili.neocalendar) est installée : seulement l'écran « a déménagé », rien ne tourne ici.
-        moved = Coexistence.enforce(this)
-        if (moved) {
-            setContent { MovedScreen() }
-            return
-        }
         updates = NativeUpdates(this)
         setContent { NativeApp(viewModel, updates) }
         holdSplashUntilReady()
@@ -48,7 +40,6 @@ class NativeActivity : ComponentActivity() {
         lifecycleScope.launch {
             viewModel.screen.first { it !is ScreenState.Loading }
             updates.checkOnLaunch()
-            DeviceSettingsExporter.start(this@NativeActivity)
         }
         // Une notification ou le widget peut avoir lancé l'app à froid : la route attend que le dossier soit lu. Une recréation (rotation) ne la rejoue pas.
         if (savedInstanceState == null) routeFrom(intent)
@@ -124,10 +115,7 @@ class NativeActivity : ComponentActivity() {
     /** Le dossier est relu à l'ouverture et à chaque retour dans l'app (400 ms au plus rapproché). */
     override fun onResume() {
         super.onResume()
-        if (Coexistence.enforce(this)) {
-            if (!moved) recreate()
-            return
-        }
+        viewModel.refreshOldApp()
         viewModel.reload()
         updates.onResume()
     }

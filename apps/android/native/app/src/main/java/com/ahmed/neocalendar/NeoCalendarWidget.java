@@ -98,12 +98,8 @@ public class NeoCalendarWidget extends AppWidgetProvider {
             views.setRemoteAdapter(R.id.widget_list, items);
             views.setEmptyView(R.id.widget_list, R.id.widget_empty);
 
-            // The new app took over: this widget only says so (WidgetService then lists no row).
-            boolean moved = Coexistence.moved(context);
-            views.setTextViewText(R.id.widget_empty_date, moved ? "" : emptyDate);
-            views.setTextViewText(
-                    R.id.widget_empty_label,
-                    moved ? context.getString(R.string.widget_moved) : data.optString("emptyLabel", ""));
+            views.setTextViewText(R.id.widget_empty_date, emptyDate);
+            views.setTextViewText(R.id.widget_empty_label, data.optString("emptyLabel", ""));
             views.setTextColor(R.id.widget_empty_date, text);
 
             // Tapping a row opens that event; the template carries the action and

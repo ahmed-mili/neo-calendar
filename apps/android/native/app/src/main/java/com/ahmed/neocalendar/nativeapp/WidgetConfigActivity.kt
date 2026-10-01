@@ -89,7 +89,6 @@ class WidgetConfigActivity : ComponentActivity() {
     private fun save(calendars: List<WidgetCalendar>, ids: Set<String>) {
         // Sans liste (l'app n'a jamais tourné), aucun choix n'est enregistré : le widget montre tout.
         if (calendars.isNotEmpty()) WidgetData.chooseCalendars(this, appWidgetId, ids)
-        DeviceSettingsExporter.request(this)
         val manager = AppWidgetManager.getInstance(this)
         manager.notifyAppWidgetViewDataChanged(intArrayOf(appWidgetId), R.id.widget_list)
         NeoCalendarWidget().onUpdate(this, manager, intArrayOf(appWidgetId))

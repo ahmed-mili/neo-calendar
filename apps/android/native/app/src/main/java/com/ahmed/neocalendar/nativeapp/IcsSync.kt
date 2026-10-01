@@ -110,6 +110,11 @@ class IcsSync(
     private val _ui = MutableStateFlow(IcsUi(icsStatesFromJson(prefs.getString(STATES_KEY, null))))
     val ui: StateFlow<IcsUi> = _ui.asStateFlow()
 
+    /** Les états ont été réécrits dans les préférences par un import : on les relit. */
+    fun reloadStates() {
+        _ui.update { it.copy(states = icsStatesFromJson(prefs.getString(STATES_KEY, null))) }
+    }
+
     /** Les liens en cours : touché depuis le fil principal seulement. */
     private val inFlight = HashSet<String>()
     private val downloads = Semaphore(2)
@@ -173,6 +178,5 @@ class IcsSync(
     private fun setStates(states: Map<String, IcsSyncState>) {
         _ui.update { it.copy(states = states) }
         prefs.edit().putString(STATES_KEY, icsStatesToJson(states).toString()).apply()
-        DeviceSettingsExporter.request(appContext)
     }
 }

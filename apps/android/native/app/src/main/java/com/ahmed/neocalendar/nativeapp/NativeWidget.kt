@@ -1,7 +1,6 @@
 package com.ahmed.neocalendar.nativeapp
 
 import android.content.Context
-import com.ahmed.neocalendar.Coexistence
 import com.ahmed.neocalendar.NeoCalendarWidget
 import com.ahmed.neocalendar.WidgetData
 import com.ahmed.neocalendar.core.recurrence.DisplayEvent
@@ -29,7 +28,6 @@ internal fun widgetJson(data: WorkspaceData, events: List<DisplayEvent>, now: In
 
 /** Écrit la charge du widget puis redessine ceux qui sont posés ; à appeler sur le fil principal pour le redessin. */
 internal fun writeWidget(context: Context, data: WorkspaceData, events: List<DisplayEvent>, now: Instant) {
-    if (Coexistence.moved(context)) return
     WidgetData.write(context, widgetJson(data, events, now))
 }
 

@@ -29,5 +29,4 @@
     <string name="widget_config_title">"Calendriers affichés"</string>
     <string name="widget_config_empty">"Ouvrez Neo Calendar une fois pour charger vos calendriers. Le widget affichera alors tous les calendriers."</string>
     <string name="widget_config_add">"Ajouter"</string>
-    <string name="widget_moved">"Neo Calendar a déménagé : ouvrez la nouvelle app"</string>
 </resources>

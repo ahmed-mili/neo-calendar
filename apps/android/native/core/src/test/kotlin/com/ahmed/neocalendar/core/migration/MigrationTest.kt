@@ -1,88 +1,77 @@
 package com.ahmed.neocalendar.core.migration
 
 import com.ahmed.neocalendar.core.workspace.MemoryTree
-import java.time.Instant
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MigrationTest {
-    private val at = Instant.parse("2026-10-01T10:00:00Z")
-    private val settings = DeviceSettings(
-        dayCount = 3,
-        allDayCollapsed = true,
-        icsRuntimeState = Json.parseToJsonElement("""{"a":{"lastSync":"x"}}"""),
-        widgetCalendars = mapOf("w12" to setOf("b", "a"), "w10" to emptySet()),
-    )
+    private val path = ".neo-calendar/android-device-settings.json"
+    private val full = """
+        {
+          "version": 1,
+          "writtenBy": "com.ahmed.neocalendar",
+          "writtenAt": "2026-10-01T10:00:00.000Z",
+          "dayCount": 3,
+          "allDayCollapsed": true,
+          "icsRuntimeState": { "a": { "lastSync": "x" } },
+          "widgetCalendars": { "w12": ["b", "a"], "w10": [] },
+          "webViewLocalStorage": { "wallpaper": "a.jpg", "desktop-settings.json:x": "{\"k\":1}" }
+        }
+    """.trimIndent()
 
-    @Test fun reminders_do_not_ring_when_the_new_app_is_there() {
-        assertFalse(remindersMayRing(true))
-        assertTrue(remindersMayRing(false))
-        assertTrue(hasMovedOn(true))
-        assertFalse(hasMovedOn(false))
+    @Test fun full_export_maps_to_settings() {
+        val s = parseDeviceSettings(full)!!
+        assertEquals(3, s.dayCount)
+        assertEquals(true, s.allDayCollapsed)
+        assertEquals("""{"a":{"lastSync":"x"}}""", s.icsRuntimeState)
+        assertEquals(mapOf("w12" to setOf("a", "b"), "w10" to emptySet<String>()), s.widgetCalendars)
+        assertEquals(mapOf("wallpaper" to "a.jpg", "desktop-settings.json:x" to "{\"k\":1}"), s.webViewLocalStorage)
     }
 
-    @Test fun export_content() {
-        val json = Json.parseToJsonElement(deviceSettingsJson(settings, at)).jsonObject
-        assertEquals(1, json.getValue("version").jsonPrimitive.int)
-        assertEquals("com.ahmed.neocalendar", json.getValue("writtenBy").jsonPrimitive.content)
-        assertEquals("2026-10-01T10:00:00.000Z", json.getValue("writtenAt").jsonPrimitive.content)
-        assertEquals(3, json.getValue("dayCount").jsonPrimitive.int)
-        assertEquals(JsonPrimitive(true), json.getValue("allDayCollapsed"))
-        assertEquals("x", json.getValue("icsRuntimeState").jsonObject.getValue("a").jsonObject.getValue("lastSync").jsonPrimitive.content)
-        val widgets = json.getValue("widgetCalendars").jsonObject
-        assertEquals(listOf("a", "b"), widgets.getValue("w12").jsonArray.map { it.jsonPrimitive.content })
-        assertEquals(JsonArray(emptyList()), widgets.getValue("w10"))
+    @Test fun missing_or_malformed_fields_stay_default() {
+        val s = parseDeviceSettings(
+            """{"version":1,"writtenBy":"com.ahmed.neocalendar","dayCount":"trois","allDayCollapsed":"true","icsRuntimeState":null,"widgetCalendars":{"w1":"x","w2":["a",3]},"webViewLocalStorage":{"k":4,"j":"v"}}""",
+        )!!
+        assertNull(s.dayCount)
+        assertNull(s.allDayCollapsed)
+        assertNull(s.icsRuntimeState)
+        assertEquals(mapOf("w2" to setOf("a")), s.widgetCalendars)
+        assertEquals(mapOf("j" to "v"), s.webViewLocalStorage)
+        val bare = parseDeviceSettings("""{"version":1,"writtenBy":"com.ahmed.neocalendar"}""")!!
+        assertNull(bare.dayCount)
+        assertTrue(bare.webViewLocalStorage.isEmpty())
     }
 
-    @Test fun webview_storage_is_exported_as_is_and_omitted_when_absent() {
-        val with = Json.parseToJsonElement(deviceSettingsJson(settings.copy(webViewLocalStorage = mapOf("wallpaper" to "a.jpg", "desktop-settings.json:x" to "{\"k\":1}")), at)).jsonObject
-        val storage = with.getValue("webViewLocalStorage").jsonObject
-        assertEquals("a.jpg", storage.getValue("wallpaper").jsonPrimitive.content)
-        assertEquals("{\"k\":1}", storage.getValue("desktop-settings.json:x").jsonPrimitive.content)
-        assertFalse(Json.parseToJsonElement(deviceSettingsJson(settings, at)).jsonObject.containsKey("webViewLocalStorage"))
+    @Test fun unusable_exports_are_ignored() {
+        assertNull(parseDeviceSettings(null))
+        assertNull(parseDeviceSettings("pas du json"))
+        assertNull(parseDeviceSettings("[1]"))
+        assertNull(parseDeviceSettings(full.replace("\"version\": 1", "\"version\": 2")))
+        assertNull(parseDeviceSettings(full.replace("com.ahmed.neocalendar", "com.autre.app")))
+        assertNull(parseDeviceSettings("""{"writtenBy":"com.ahmed.neocalendar"}"""))
     }
 
-    @Test fun javascript_result_is_unwrapped() {
-        assertEquals(mapOf("a" to "1", "b" to "{\"x\":2}"), webViewStorageFromJs("\"{\\\"a\\\":\\\"1\\\",\\\"b\\\":\\\"{\\\\\\\"x\\\\\\\":2}\\\"}\""))
-        assertEquals(null, webViewStorageFromJs("null"))
-        assertEquals(null, webViewStorageFromJs(null))
-        assertEquals(null, webViewStorageFromJs("\"{}\""))
-        assertEquals(null, webViewStorageFromJs("\"pas du json\""))
+    @Test fun read_finds_the_file_and_ignores_absent_or_unreadable() {
+        assertNull(readDeviceSettings(MemoryTree()))
+        assertNull(readDeviceSettings(MemoryTree().file(path, "pas du json")))
+        assertNotNull(readDeviceSettings(MemoryTree().file(path, full)))
     }
 
-    @Test fun missing_ics_state_is_null() {
-        val json = Json.parseToJsonElement(deviceSettingsJson(settings.copy(icsRuntimeState = null), at)).jsonObject
-        assertEquals(JsonNull, json.getValue("icsRuntimeState"))
+    @Test fun delete_removes_only_the_export() {
+        val tree = MemoryTree().file(path, full).file("Essai/a.md", "x")
+        deleteDeviceSettings(tree)
+        assertFalse(tree.files.containsKey(path))
+        assertTrue(tree.files.containsKey("Essai/a.md"))
+        deleteDeviceSettings(tree)
     }
 
-    @Test fun write_creates_folder_and_file_and_nothing_else() {
-        val tree = MemoryTree()
-        assertTrue(writeDeviceSettings(tree, deviceSettingsJson(settings, at)))
-        assertEquals(setOf(".neo-calendar/android-device-settings.json"), tree.files.keys)
-    }
-
-    @Test fun unchanged_settings_are_not_rewritten_but_a_change_is() {
-        val tree = MemoryTree()
-        writeDeviceSettings(tree, deviceSettingsJson(settings, at))
-        assertFalse(writeDeviceSettings(tree, deviceSettingsJson(settings, at.plusSeconds(60))))
-        assertTrue(writeDeviceSettings(tree, deviceSettingsJson(settings.copy(dayCount = 7), at.plusSeconds(120))))
-        val stored = Json.parseToJsonElement(tree.files.getValue(".neo-calendar/android-device-settings.json")) as JsonObject
-        assertEquals(7, stored.getValue("dayCount").jsonPrimitive.int)
-    }
-
-    @Test fun unreadable_existing_file_is_replaced() {
-        val tree = MemoryTree().file(".neo-calendar/android-device-settings.json", "pas du json")
-        assertTrue(writeDeviceSettings(tree, deviceSettingsJson(settings, at)))
+    @Test fun script_writes_every_key_as_is() {
+        val script = localStorageScript(mapOf("a" to "x\"y</script>\n", "b" to "{\"k\":1}"))
+        assertTrue(script.contains("localStorage.setItem"))
+        assertTrue(script.contains("""var d={"a":"x\"y</script>\n","b":"{\"k\":1}"};"""))
     }
 }
