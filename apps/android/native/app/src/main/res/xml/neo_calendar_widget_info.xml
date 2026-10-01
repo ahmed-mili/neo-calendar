@@ -2,6 +2,7 @@
 <!-- Four cells by two at rest, and free to grow in both directions: enlarging
      it simply shows more of the same list. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:configure="com.ahmed.neocalendar.nativeapp.WidgetConfigActivity"
     android:initialLayout="@layout/widget_root"
     android:minHeight="110dp"
     android:minResizeHeight="110dp"
@@ -12,4 +13,5 @@
     android:targetCellHeight="2"
     android:targetCellWidth="4"
     android:updatePeriodMillis="1800000"
+    android:widgetFeatures="reconfigurable"
     android:widgetCategory="home_screen" />

@@ -57,7 +57,7 @@ class WidgetPayloadTest {
     @Test
     fun theCorpusShapeLeavesTheLocationOut() {
         val payload = buildWidgetPayload(listOf(event("a", 12, "Amphi B")), now, true, theme)
-        val row: JsonObject = payload.toJson(withLocation = false).getValue("rows").jsonArray.single().jsonObject
+        val row: JsonObject = payload.toJson(withNativeFields = false).getValue("rows").jsonArray.single().jsonObject
         assertFalse("location" in row.keys)
     }
 

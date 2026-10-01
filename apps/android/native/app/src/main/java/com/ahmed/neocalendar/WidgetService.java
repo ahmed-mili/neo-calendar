@@ -1,5 +1,6 @@
 package com.ahmed.neocalendar;
 
+import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -16,6 +17,9 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Set;
+
+import com.ahmed.neocalendar.core.widget.WidgetCalendars;
 
 /**
  * Feeds the widget's list. One row per event, the date shown once per day.
@@ -29,7 +33,10 @@ import java.util.List;
 public class WidgetService extends RemoteViewsService {
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
-        return new Factory(getApplicationContext());
+        return new Factory(
+                getApplicationContext(),
+                intent.getIntExtra(
+                        AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID));
     }
 
     static final class Row {
@@ -47,7 +54,7 @@ public class WidgetService extends RemoteViewsService {
     }
 
     /** Drops what has ended and marks the first event of each remaining day. */
-    static List<Row> visibleRows(JSONArray rows, long now) {
+    static List<Row> visibleRows(JSONArray rows, long now, Set<String> chosen) {
         List<Row> out = new ArrayList<>();
         if (rows == null) return out;
 
@@ -62,6 +69,7 @@ public class WidgetService extends RemoteViewsService {
             JSONObject raw = rows.optJSONObject(i);
             if (raw == null) continue;
             if (raw.optLong("endMs", 0L) < now) continue;
+            if (!WidgetCalendars.isCalendarShown(raw.optString("calendarId", null), chosen)) continue;
 
             Row row = new Row();
             row.id = raw.optString("id", "");
@@ -93,8 +101,11 @@ public class WidgetService extends RemoteViewsService {
            the same colour whatever the calendar looks like. */
         private static final int TODAY = 0xFFDF6057;
 
-        Factory(Context context) {
+        private final int appWidgetId;
+
+        Factory(Context context, int appWidgetId) {
             this.context = context;
+            this.appWidgetId = appWidgetId;
         }
 
         @Override public void onCreate() { reload(); }
@@ -108,7 +119,11 @@ public class WidgetService extends RemoteViewsService {
 
         private void reload() {
             JSONObject data = NeoCalendarWidget.payload(context);
-            rows = visibleRows(data.optJSONArray("rows"), System.currentTimeMillis());
+            // Null for a widget with no saved choice (placed before it existed): everything shows.
+            Set<String> chosen = appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID
+                    ? null
+                    : WidgetData.chosenCalendars(context, appWidgetId);
+            rows = visibleRows(data.optJSONArray("rows"), System.currentTimeMillis(), chosen);
             JSONObject theme = data.optJSONObject("theme");
             text = NeoCalendarWidget.colorOf(theme, "text", text);
             muted = NeoCalendarWidget.colorOf(theme, "muted", muted);

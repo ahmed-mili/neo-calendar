@@ -76,6 +76,15 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Le choix des calendriers du widget : ouvert à la pose, et par « Reconfigurer » (appui long). -->
+        <activity
+            android:name=".nativeapp.WidgetConfigActivity"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <receiver
             android:name=".NeoCalendarWidget"
             android:exported="false"

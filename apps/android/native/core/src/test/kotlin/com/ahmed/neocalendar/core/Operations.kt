@@ -469,7 +469,7 @@ private fun widget(input: JsonObject): JsonElement {
         timeFormat24h = input.getValue("timeFormat24h").jsonPrimitive.boolean,
         theme = WidgetTheme(theme("surface"), theme("text"), theme("muted"), theme("accent")),
     )
-    return built.toJson(withLocation = false)
+    return built.toJson(withNativeFields = false)
 }
 
 private fun prayer(input: JsonObject): JsonElement {

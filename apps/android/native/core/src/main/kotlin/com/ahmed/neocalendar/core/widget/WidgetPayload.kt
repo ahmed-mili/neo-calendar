@@ -42,9 +42,11 @@ data class WidgetRow(
     val color: String,
     /** Ajout du natif : le lieu, vide s'il n'y en a pas (absent de la charge dans ce cas). Le TypeScript n'a pas ce champ. */
     val location: String,
+    /** Ajout du natif : le calendrier de la ligne, pour que chaque widget filtre selon son choix. */
+    val calendarId: String = "",
 ) {
-    /** [withLocation] faux : la forme exacte du TypeScript, que le corpus compare. */
-    fun toJson(withLocation: Boolean = true): JsonObject {
+    /** [withNativeFields] faux : la forme exacte du TypeScript, que le corpus compare (sans lieu ni calendrier). */
+    fun toJson(withNativeFields: Boolean = true): JsonObject {
         val record = LinkedHashMap<String, JsonElement>()
         record["id"] = JsonPrimitive(id)
         record["startMs"] = JsonPrimitive(startMs)
@@ -56,9 +58,21 @@ data class WidgetRow(
         record["time"] = JsonPrimitive(time)
         record["allDay"] = JsonPrimitive(allDay)
         record["color"] = JsonPrimitive(color)
-        if (withLocation && location.isNotEmpty()) record["location"] = JsonPrimitive(location)
+        if (withNativeFields && location.isNotEmpty()) record["location"] = JsonPrimitive(location)
+        if (withNativeFields) record["calendarId"] = JsonPrimitive(calendarId)
         return JsonObject(record)
     }
+}
+
+/** Un calendrier proposé à la configuration du widget (ajout du natif). */
+data class WidgetCalendar(val id: String, val name: String, val color: String) {
+    fun toJson(): JsonObject = JsonObject(
+        mapOf<String, JsonElement>(
+            "id" to JsonPrimitive(id),
+            "name" to JsonPrimitive(name),
+            "color" to JsonPrimitive(color),
+        )
+    )
 }
 
 data class WidgetTheme(val surface: String, val text: String, val muted: String, val accent: String) {
@@ -79,16 +93,19 @@ data class WidgetPayload(
     val weekdays: List<String>,
     val emptyLabel: String,
     val theme: WidgetTheme,
+    /** Les calendriers visibles, pour la liste à cocher de la configuration (ajout du natif). */
+    val calendars: List<WidgetCalendar> = emptyList(),
 ) {
-    fun toJson(withLocation: Boolean = true): JsonObject = JsonObject(
-        mapOf<String, JsonElement>(
-            "updatedAt" to JsonPrimitive(updatedAt),
-            "rows" to JsonArray(rows.map { it.toJson(withLocation) }),
-            "weekdays" to JsonArray(weekdays.map { JsonPrimitive(it) }),
-            "emptyLabel" to JsonPrimitive(emptyLabel),
-            "theme" to theme.toJson(),
-        )
-    )
+    fun toJson(withNativeFields: Boolean = true): JsonObject {
+        val record = LinkedHashMap<String, JsonElement>()
+        record["updatedAt"] = JsonPrimitive(updatedAt)
+        record["rows"] = JsonArray(rows.map { it.toJson(withNativeFields) })
+        record["weekdays"] = JsonArray(weekdays.map { JsonPrimitive(it) })
+        record["emptyLabel"] = JsonPrimitive(emptyLabel)
+        record["theme"] = theme.toJson()
+        if (withNativeFields) record["calendars"] = JsonArray(calendars.map { it.toJson() })
+        return JsonObject(record)
+    }
 }
 
 /** `${année}-${mois de 0 à 11}-${jour}`, jour civil local. */
@@ -102,6 +119,7 @@ fun buildWidgetPayload(
     now: Instant,
     timeFormat24h: Boolean,
     theme: WidgetTheme,
+    calendars: List<WidgetCalendar> = emptyList(),
 ): WidgetPayload {
     val horizon = addDays(startOfDay(now), HORIZON_DAYS)
 
@@ -126,6 +144,7 @@ fun buildWidgetPayload(
             allDay = event.allDay,
             color = event.color,
             location = (event.location ?: "").jsTrim(),
+            calendarId = event.calendarId,
         )
     }
 
@@ -135,6 +154,7 @@ fun buildWidgetPayload(
         weekdays = DAYS_SHORT,
         emptyLabel = t("No event scheduled"),
         theme = theme,
+        calendars = calendars,
     )
 }
 

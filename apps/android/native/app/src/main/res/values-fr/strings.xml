@@ -26,4 +26,7 @@
     <string name="update_ready_text">"Appuyez pour installer Neo Calendar %1$s"</string>
     <string name="update_failed_title">"Échec du téléchargement"</string>
     <string name="update_retry">"Réessayer"</string>
+    <string name="widget_config_title">"Calendriers affichés"</string>
+    <string name="widget_config_empty">"Ouvrez Neo Calendar une fois pour charger vos calendriers. Le widget affichera alors tous les calendriers."</string>
+    <string name="widget_config_add">"Ajouter"</string>
 </resources>

@@ -60,6 +60,11 @@ public class NeoCalendarWidget extends AppWidgetProvider {
     }
 
     @Override
+    public void onDeleted(Context context, int[] ids) {
+        for (int id : ids) WidgetData.forgetCalendars(context, id);
+    }
+
+    @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
         JSONObject data = payload(context);
         JSONObject theme = data.optJSONObject("theme");
@@ -87,6 +92,8 @@ public class NeoCalendarWidget extends AppWidgetProvider {
             views.setInt(R.id.widget_card, "setColorFilter", surface);
 
             Intent items = new Intent(context, WidgetService.class);
+            // One list per widget: the id is in the intent's data, so two widgets never share a factory.
+            items.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
             items.setData(Uri.parse(items.toUri(Intent.URI_INTENT_SCHEME)));
             views.setRemoteAdapter(R.id.widget_list, items);
             views.setEmptyView(R.id.widget_list, R.id.widget_empty);
