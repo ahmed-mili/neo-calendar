@@ -3,6 +3,7 @@ package com.ahmed.neocalendar.nativeapp.sync
 import com.ahmed.neocalendar.core.sync.HttpResult
 import com.ahmed.neocalendar.core.sync.HttpTransport
 import java.net.InetAddress
+import java.net.Proxy
 import java.util.concurrent.TimeUnit
 import okhttp3.Dns
 import okhttp3.MediaType.Companion.toMediaType
@@ -14,6 +15,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 class OkHttpTransport(socketPath: String, private val apiKey: String) : HttpTransport {
     private val client = OkHttpClient.Builder()
         .socketFactory(UnixSocketFactory(socketPath))
+        // Jamais de proxy système : le trafic passe par le socket Unix, rien d'autre.
+        .proxy(Proxy.NO_PROXY)
         .dns(object : Dns {
             override fun lookup(hostname: String): List<InetAddress> = listOf(InetAddress.getByAddress("localhost", byteArrayOf(127, 0, 0, 1)))
         })

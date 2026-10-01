@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Le clair est interdit partout, sauf pour le domaine `localhost` : c'est l'adresse (http://localhost) sous laquelle
+  OkHttp parle à l'interface REST du moteur. Le trafic réel ne quitte pas l'appareil : la SocketFactory l'envoie sur
+  le socket Unix `gui.sock`, jamais sur le réseau.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>
