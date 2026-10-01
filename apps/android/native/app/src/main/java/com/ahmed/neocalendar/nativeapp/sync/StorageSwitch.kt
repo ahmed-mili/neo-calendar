@@ -8,10 +8,13 @@ import com.ahmed.neocalendar.core.workspace.FileWorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.PrivateStorageInUse
 import com.ahmed.neocalendar.core.workspace.StorageMode
 import com.ahmed.neocalendar.core.workspace.copyToPrivateAtomically
-import com.ahmed.neocalendar.core.workspace.copyWorkspaceVerified
+import com.ahmed.neocalendar.core.workspace.PrivateComparison
+import com.ahmed.neocalendar.core.workspace.comparePrivateWithExternal
+import com.ahmed.neocalendar.core.workspace.copyBackToExternal
 import com.ahmed.neocalendar.core.workspace.isNeoCalendarFolder
 import com.ahmed.neocalendar.core.workspace.privateStorageInUse
 import com.ahmed.neocalendar.nativeapp.SafWorkspaceStorage
+import com.ahmed.neocalendar.nativeapp.StorageGate
 import com.ahmed.neocalendar.nativeapp.WorkspaceLocation
 import java.io.File
 
@@ -40,9 +43,33 @@ object StorageSwitch {
         if (WorkspaceLocation.mode(context) != StorageMode.External) return "Le stockage privé est le dossier de notes actuel : il n'est pas vidé."
         val root = WorkspaceLocation.privateRoot(context)
         val staging = File(root.parentFile, root.name + ".copie-en-cours")
-        if (root.exists() && !root.deleteRecursively()) return "Le stockage privé n'a pas pu être entièrement vidé."
-        staging.deleteRecursively()
-        return null
+        return StorageGate.writing {
+            if (root.exists() && !root.deleteRecursively()) "Le stockage privé n'a pas pu être entièrement vidé."
+            else { staging.deleteRecursively(); null }
+        }
+    }
+
+    /**
+     * Ce que le stockage privé a en plus du dossier externe actuel, lu seulement (SHA-256), avant de proposer de le vider.
+     * `null` : le dossier externe n'a pas pu être lu, rien n'est prouvé. Hors du fil principal.
+     */
+    fun compareWithExternal(context: Context): PrivateComparison? = try {
+        comparePrivateWithExternal(
+            FileWorkspaceStorage(WorkspaceLocation.privateRoot(context)),
+            SafWorkspaceStorage(context, WorkspaceLocation.externalTreeUri(context, write = false)),
+        )
+    } catch (e: Exception) {
+        null
+    }
+
+    /**
+     * Un dossier temporaire de copie laissé par un arrêt en pleine copie : supprimé, sauf pendant un changement de stockage
+     * (la porte attend sa fin). À appeler APRÈS le premier écran, hors du fil principal, jamais sur le chemin du lancement.
+     */
+    fun cleanLeftovers(context: Context) {
+        val root = WorkspaceLocation.privateRoot(context)
+        val staging = File(root.parentFile, root.name + ".copie-en-cours")
+        if (staging.exists()) StorageGate.writing { staging.deleteRecursively() }
     }
 
     /** Dossier externe vers stockage privé. Rend le message d'erreur, ou null quand tout a réussi. */
@@ -76,7 +103,8 @@ object StorageSwitch {
     suspend fun openExisting(context: Context, picked: Intent): String? {
         val uri = picked.data ?: return "Aucun dossier choisi."
         if (WorkspaceLocation.mode(context) != StorageMode.Integrated) return "Les notes sont déjà dans un dossier externe."
-        val grant = takeGrant(context, picked, uri, needWrite = false) ?: return "L'autorisation d'accès à ce dossier n'a pas été accordée. Rien n'a changé."
+        // Écriture exigée comme pour le retour : un dossier en lecture seule ne ferait que casser l'app à la première note.
+        val grant = takeGrant(context, picked, uri, needWrite = true)
         if (grant.error != null) return grant.error
         val marked = try {
             isNeoCalendarFolder(SafWorkspaceStorage(context, uri))
@@ -109,13 +137,13 @@ object StorageSwitch {
     suspend fun backToExternal(context: Context, picked: Intent): String? {
         val uri: Uri = picked.data ?: return "Aucun dossier choisi."
         if (WorkspaceLocation.mode(context) != StorageMode.Integrated) return "Les notes sont déjà dans un dossier externe."
-        val grant = takeGrant(context, picked, uri, needWrite = true) ?: return "L'autorisation d'écrire dans ce dossier n'a pas été accordée. Rien n'a changé."
+        val grant = takeGrant(context, picked, uri, needWrite = true)
         if (grant.error != null) return grant.error
         SyncController.storageSwitching = true
         try {
             // Le moteur est arrêté (sortie réelle du processus) et ne repart pas : rien n'écrit plus dans les notes privées.
             SyncController.peek()?.holdForStorageSwitch()
-            copyWorkspaceVerified(FileWorkspaceStorage(WorkspaceLocation.privateRoot(context)), SafWorkspaceStorage(context, uri))
+            copyBackToExternal(FileWorkspaceStorage(WorkspaceLocation.privateRoot(context)), SafWorkspaceStorage(context, uri))
             WorkspaceLocation.chooseExternalTree(context, uri)
             if (WorkspaceLocation.mode(context) != StorageMode.External) {
                 grant.undo(context)
@@ -149,10 +177,14 @@ object StorageSwitch {
         }
     }
 
-    private fun takeGrant(context: Context, picked: Intent, uri: Uri, needWrite: Boolean): Grant? {
+    private fun takeGrant(context: Context, picked: Intent, uri: Uri, needWrite: Boolean): Grant {
         val flags = picked.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-        if (flags and Intent.FLAG_GRANT_READ_URI_PERMISSION == 0) return null
-        if (needWrite && flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION == 0) return null
+        if (flags and Intent.FLAG_GRANT_READ_URI_PERMISSION == 0) {
+            return Grant(uri, flags, newlyTaken = false, error = "L'autorisation de lire ce dossier n'a pas été accordée. Rien n'a changé.")
+        }
+        if (needWrite && flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION == 0) {
+            return Grant(uri, flags, newlyTaken = false, error = "Ce dossier est en lecture seule : Neo Calendar doit pouvoir y écrire. Choisissez un autre dossier. Rien n'a changé.")
+        }
         val already = context.contentResolver.persistedUriPermissions.any { it.uri == uri }
         return try {
             context.contentResolver.takePersistableUriPermission(uri, flags)

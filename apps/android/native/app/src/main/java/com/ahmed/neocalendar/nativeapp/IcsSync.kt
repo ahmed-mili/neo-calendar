@@ -155,7 +155,7 @@ class IcsSync(
         val next = try {
             val text = downloads.withPermit { withContext(Dispatchers.IO) { downloadIcs(link.url) } }
             applying = true
-            val applied = applyLock.withLock { withContext(Dispatchers.IO) { applyIcsDownload(storage(), link, text, previous, now) } }
+            val applied = applyLock.withLock { withContext(Dispatchers.IO) { StorageGate.writing { applyIcsDownload(storage(), link, text, previous, now) } } }
             applying = false
             changed = applied.written > 0 || applied.deleted > 0 || applied.provisionedDirectory != null
             // L'état d'abord : une écriture de préférences qui échoue ne le perd pas.

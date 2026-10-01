@@ -370,7 +370,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun writePreferences(change: (JsonObject) -> JsonObject): String? = prefsLock.withLock {
         withContext(Dispatchers.IO) {
             try {
-                updatePreferences(openStorage(write = true), change)
+                StorageGate.writing { updatePreferences(openStorage(write = true), change) }
                 null
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -622,8 +622,11 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         try {
             val error = withContext(Dispatchers.IO) {
                 try {
-                    val storage = openStorage(write = true)
-                    block(EventWriter(storage), storage)
+                    // Le stockage est ouvert DANS la porte : une écriture retenue par un changement de stockage écrit dans le nouveau.
+                    StorageGate.writing {
+                        val storage = openStorage(write = true)
+                        block(EventWriter(storage), storage)
+                    }
                     null
                 } catch (e: Exception) {
                     e.message ?: e.toString()
@@ -650,12 +653,16 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         _writing.value = true
         try {
             val error = withContext(Dispatchers.IO) {
+                // La porte attend les écritures qui ne passent pas par le verrou de notes (réglages, pièce jointe, fond, lien ICS) et retient les suivantes.
+                if (!StorageGate.beginSwitch()) return@withContext "Un changement de stockage est déjà en cours."
                 try {
                     block()
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
                 } catch (e: Exception) {
                     e.message ?: e.toString()
+                } finally {
+                    StorageGate.endSwitch()
                 }
             }
             reload(force = true)
@@ -782,6 +789,10 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     fun onTreePicked(result: android.content.Intent) {
         val uri = result.data ?: return
         val app = getApplication<Application>()
+        if (StorageGate.isSwitching) {
+            _notices.tryEmit("Un changement de stockage est en cours : réessayez dans un instant.")
+            return
+        }
         // Passer en dossier externe depuis le stockage privé ne copie rien : le changement passe par la page Synchronisation.
         if (!mayPickExternalTree(WorkspaceLocation.mode(app))) {
             _notices.tryEmit("Avec la synchronisation intégrée, changer de dossier passe par la page Synchronisation")
@@ -836,7 +847,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     /** Un fichier choisi, ce que `copyAttachment` de l'ancienne en fait : copié dans le dossier des pièces jointes à côté de la note. */
     class CopiedAttachment(val fileName: String, val markdownPath: String)
 
-    suspend fun copyAttachment(eventRelativePath: String, source: Uri): CopiedAttachment = withContext(Dispatchers.IO) {
+    suspend fun copyAttachment(eventRelativePath: String, source: Uri): CopiedAttachment = withContext(Dispatchers.IO) { StorageGate.writing {
         val context = getApplication<Application>()
         val storage = openStorage(write = true)
         val resolver = context.contentResolver
@@ -850,7 +861,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         val created = storage.createFile(folderPath, name, resolver.getType(source) ?: "application/octet-stream")
         (resolver.openInputStream(source) ?: throw java.io.IOException("Lecture impossible")).use { storage.writeStream(created, it) }
         CopiedAttachment(name, attachmentMarkdownPath(eventRelativePath, folder, name))
-    }
+    } }
 
     /** Pour ouvrir une pièce jointe dans une autre appli : son URI (SAF, ou FileProvider pour le stockage privé), sans rien écrire. */
     fun attachmentUri(relativePath: String): Uri? = runCatching { WorkspaceLocation.attachmentUri(getApplication(), relativePath) }.getOrNull()

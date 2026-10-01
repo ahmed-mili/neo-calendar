@@ -10,6 +10,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.ahmed.neocalendar.core.workspace.PrivateStorageInUse
+import com.ahmed.neocalendar.core.workspace.clearPrivateMessage
 import com.ahmed.neocalendar.nativeapp.NativeViewModel
 import com.ahmed.neocalendar.nativeapp.sync.StorageSwitch
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +22,7 @@ private sealed interface SwitchStep {
     data class Confirm(val hasStfolder: Boolean) : SwitchStep
     data class Working(val message: String) : SwitchStep
     data class Reminder(val message: String) : SwitchStep
-    data object ConfirmClear : SwitchStep
+    data class ConfirmClear(val message: String) : SwitchStep
 }
 
 /**
@@ -40,6 +41,8 @@ internal fun rememberStorageSwitch(viewModel: NativeViewModel): SyncSwitchAction
     fun finish(error: String?, success: String, reminder: String? = null) {
         step = SwitchStep.None
         version++
+        // L'erreur d'un essai précédent ne reste pas affichée à côté d'un succès.
+        Notices.dismissError()
         if (error != null) Notices.fail(error)
         else if (reminder != null) step = SwitchStep.Reminder(reminder)
         else Notices.show(success)
@@ -81,15 +84,16 @@ internal fun rememberStorageSwitch(viewModel: NativeViewModel): SyncSwitchAction
             SText("Ne fermez pas l'application. Rien n'est écrit dans vos notes pendant la copie.", color = Neo.TextSecondary, size = 13f, lineHeight = 18f)
         }
         is SwitchStep.Reminder -> ConfirmPanel("Passage terminé", s.message, "OK", danger = false, onDismiss = { step = SwitchStep.None }) { step = SwitchStep.None }
-        SwitchStep.ConfirmClear -> ConfirmPanel(
+        is SwitchStep.ConfirmClear -> ConfirmPanel(
             "Vider le stockage privé",
-            "Les notes copiées dans le stockage privé lors d'un passage précédent seront supprimées de ce téléphone. Vos notes du dossier externe ne sont pas touchées.",
-            "Vider", danger = true, onDismiss = { step = SwitchStep.None },
+            s.message,
+            "Vider définitivement", danger = true, onDismiss = { step = SwitchStep.None },
         ) {
             scope.launch {
                 val error = withContext(Dispatchers.IO) { StorageSwitch.clearPrivate(context) }
                 step = SwitchStep.None
                 version++
+                Notices.dismissError()
                 if (error != null) Notices.fail(error) else Notices.show("Stockage privé vidé.")
             }
         }
@@ -114,7 +118,14 @@ internal fun rememberStorageSwitch(viewModel: NativeViewModel): SyncSwitchAction
             },
             onOpenExistingFolder = { openExisting.launch(Unit) },
             onBackToExternal = { backToExternal.launch(Unit) },
-            onClearPrivate = { step = SwitchStep.ConfirmClear },
+            onClearPrivate = {
+                scope.launch {
+                    // Lecture seule : ce qui n'existe QUE dans le stockage privé est dit avant de proposer le vidage.
+                    step = SwitchStep.Working("Comparaison avec le dossier externe…")
+                    val message = withContext(Dispatchers.IO) { clearPrivateMessage(StorageSwitch.compareWithExternal(context)) }
+                    step = SwitchStep.ConfirmClear(message)
+                }
+            },
         )
     }
 }

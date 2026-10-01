@@ -3,6 +3,7 @@ package com.ahmed.neocalendar
 import android.content.Context
 import android.util.Log
 import com.ahmed.neocalendar.core.workspace.BinaryWorkspaceStorage
+import com.ahmed.neocalendar.nativeapp.StorageGate
 import com.ahmed.neocalendar.nativeapp.WorkspaceLocation
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -67,7 +68,8 @@ class WallpaperStore(private val context: Context) {
     @Throws(IOException::class)
     fun download(name: String, url: String, sha256: String?) {
         if (name.isEmpty() || name.contains('/') || name.contains('\\') || name == "..") throw IOException("name")
-        val storage = try {
+        // Dossier inutilisable : dit avant le téléchargement ; le stockage est rouvert dans la porte, après lui.
+        try {
             WorkspaceLocation.open(context, write = true)
         } catch (e: Exception) {
             throw IOException("no-folder")
@@ -75,6 +77,16 @@ class WallpaperStore(private val context: Context) {
         val body = fetch(url)
         val actual = MessageDigest.getInstance("SHA-256").digest(body).joinToString("") { "%02x".format(it) }
         if (!sha256.isNullOrEmpty() && !actual.equals(sha256, ignoreCase = true)) throw IOException("checksum")
+        StorageGate.writing { publish(name, body) }
+    }
+
+    /** Écrit le fond dans le stockage courant ; appelé dans la porte d'écriture (jamais pendant un changement de stockage). */
+    private fun publish(name: String, body: ByteArray) {
+        val storage = try {
+            WorkspaceLocation.open(context, write = true)
+        } catch (e: Exception) {
+            throw IOException("no-folder")
+        }
         if (storage.list("").none { it.name == FOLDER }) storage.createDirectory("", FOLDER)
         if (storage.list(FOLDER).none { it.name == SUBFOLDER }) storage.createDirectory(FOLDER, SUBFOLDER)
         // Un fichier du même nom est remplacé : re-télécharger doit réparer, pas empiler des « image (1).jpg ».

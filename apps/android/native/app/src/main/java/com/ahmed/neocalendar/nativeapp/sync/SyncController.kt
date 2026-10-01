@@ -17,6 +17,7 @@ import com.ahmed.neocalendar.core.sync.isRemoteChange
 import com.ahmed.neocalendar.core.sync.pickFreePort
 import com.ahmed.neocalendar.core.sync.summarize
 import com.ahmed.neocalendar.core.workspace.StorageMode
+import com.ahmed.neocalendar.core.workspace.ensureFolderMarker
 import com.ahmed.neocalendar.nativeapp.WorkspaceLocation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -84,7 +85,11 @@ class SyncController private constructor(context: Context) {
     init {
         engine.beforeLaunch = { ensureListenPort() }
         engine.listenPort = { settings.value.listenPort }
-        engine.onReady = { api -> SyncSetup(api, WorkspaceLocation.privateRoot(app).absolutePath).applyOptions(settings.value.listenPort) }
+        engine.onReady = { api ->
+            // Le dossier de notes a pu être recopié (bascule après « Vider ») : le moteur exige son marqueur .stfolder.
+            ensureFolderMarker(WorkspaceLocation.privateRoot(app))
+            SyncSetup(api, WorkspaceLocation.privateRoot(app).absolutePath).applyOptions(settings.value.listenPort)
+        }
         monitor.start()
         scope.launch { settings.settings.collect { reconcile() } }
         scope.launch {
