@@ -361,7 +361,7 @@ Le widget n'a pas de capture dédiée dans ce relevé (pas de widget posé sur l
 | Élément | Ancienne (valeur exacte + source) | Nouvelle (valeur actuelle + source) | À faire |
 |---|---|---|---|
 | Habillage et mise en page | `NeoCalendarWidget` + `res/layout`, `drawable/widget_*` (carte, barre de couleur, point, « + ») communs aux deux interfaces <br>Source : `apps/android/native/app/src/main/res/drawable/widget_card.xml` | Les mêmes ressources <br>Source : idem | OK. Rien |
-| Contenu | Au plus 60 lignes sur 30 jours (`MAX_ROWS = 60`), calendriers choisis à la pose (activité de configuration), pas de lieu <br>Source : `apps/windows/src/platform/androidWidget.ts:21` | `buildWidgetPayload` du noyau : fenêtre = le mois à venir, **lieu affiché sous l'heure** (écart T8 du plan) <br>Source : `NativeWidget.kt:8` | **ECART** Retirer le lieu pour coller à l'ancienne, ou décision d'Ahmed |
+| Contenu | Au plus 60 lignes sur 30 jours (`MAX_ROWS = 60`), calendriers choisis à la pose (activité de configuration), pas de lieu <br>Source : `apps/windows/src/platform/androidWidget.ts:21` | `buildWidgetPayload` du noyau : fenêtre = le mois à venir, **lieu affiché sous l'heure** (écart T8 du plan) <br>Source : `NativeWidget.kt:8` | OK. Garder le lieu (décision d'Ahmed du 2026-10-01) |
 | Appui sur une ligne / sur « + » | Ouvre la fiche / un brouillon (route `new-event`) <br>Source : `MainActivity.java` | Idem (`NativeRoute`) <br>Source : `ui/NativeScreen.kt:203` | OK. Rien |
 
 ## 18. Écran de démarrage et premier lancement
