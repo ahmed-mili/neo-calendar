@@ -129,6 +129,8 @@ class SettingsActions(
     val folderName: String,
     /** Les notes sont dans le stockage privé (synchronisation intégrée) : pas de « Changer de dossier ». */
     val integratedStorage: Boolean = false,
+    /** Les gestes de bascule de la page Synchronisation (dossier existant, retour à un dossier externe, passage à la synchro intégrée). */
+    val sync: SyncSwitchActions = SyncSwitchActions(),
     val oldAppInstalled: Boolean = false,
     val onUninstallOldApp: () -> Unit = {},
     val onTimezoneAdd: (String) -> Unit = {},
@@ -178,7 +180,7 @@ fun SettingsScreen(version: String, data: WorkspaceData, hiddenIds: Set<String>,
 
     Column(Modifier.fillMaxSize().background(Neo.Mantle)) {
         SettingsHeader(
-            when (page) { "calendars" -> "Calendriers"; "folder" -> "Dossier de données"; "appearance" -> "Apparence"; "timezones" -> "Fuseaux horaires"; "vaults" -> "Coffres Obsidian"; else -> "Paramètres" },
+            when (page) { "calendars" -> "Calendriers"; "folder" -> "Dossier de données"; "appearance" -> "Apparence"; "timezones" -> "Fuseaux horaires"; "vaults" -> "Coffres Obsidian"; "sync" -> "Synchronisation"; else -> "Paramètres" },
             onBack = { if (page.isNotEmpty()) page = "" else onBack() },
         )
         // La page racine garde son défilement ; une sous-page s'ouvre toujours en haut (chaque `.nc-settings__page` a son propre défilement).
@@ -211,6 +213,7 @@ fun SettingsScreen(version: String, data: WorkspaceData, hiddenIds: Set<String>,
                     "timezones" -> TimezonesPage(data, actions)
                     "folder" -> FolderPage(actions)
                     "vaults" -> VaultsPage()
+                    "sync" -> SyncPage(actions.sync)
                     "appearance" -> AppearancePage { choice = "theme" }
                     else -> RootPage(data, actions, version, misfiled, converted, { page = it }, { choice = it }, { converted = null; confirm = "convert" })
                 }
@@ -240,7 +243,6 @@ fun SettingsScreen(version: String, data: WorkspaceData, hiddenIds: Set<String>,
         "icsDefault" -> pick(
             ICS_REFRESH_MINUTES.map { Option(it.toString(), icsFrequencyLabel(it)) }, data.icsDefaultMinutes.toString(), "Fréquence d'actualisation ICS par défaut",
         ) { actions.onIcsDefault(it.toInt()) }
-        "sync" -> SyncDialog(actions.folderName, actions.integratedStorage, onPickFolder = { choice = null; actions.onPickFolder() }, onDismiss = { choice = null })
     }
     when (confirm) {
         "convert" -> ConfirmPanel(
@@ -323,7 +325,7 @@ private fun RootPage(
         row(NeoIcons.FolderOpen, "Dossier de données", actions.folderName) { openPage("folder") }
         // Coffres Obsidian : la page de l'ancienne s'ouvre, mais ajouter un dossier est sans effet sur téléphone.
         row(NeoIcons.Library, "Coffres Obsidian", "Aucun dossier") { openPage("vaults") }
-        row(NeoIcons.RefreshCw, "Synchronisation", null) { openChoice("sync") }
+        row(NeoIcons.RefreshCw, "Synchronisation", null) { openPage("sync") }
     }
     // Seule l'ancienne version (autre paquet) y figure, et seulement tant qu'elle est installée.
     if (actions.oldAppInstalled) Group("Application") {
@@ -628,40 +630,6 @@ internal fun ChoiceDialog(title: String, options: List<Option>, selected: String
                 // Sans icône le libellé garde sa place (la colonne d'icône vide et son interstice de 10), comme la grille de l'ancienne.
                 SText(option.label, Modifier.weight(1f).padding(start = if (option.icon == null && option.iconContent == null) 10.dp else 0.dp), color = if (on) Neo.Accent else Neo.Text, size = 14f, maxLines = 1)
                 if (on) Icon(NeoIcons.Check, null, tint = Neo.Accent, modifier = Modifier.size(16.dp))
-            }
-        }
-    }
-}
-
-/** La Synchronisation : un dialogue de texte (dossier, note, trois méthodes) ; `.nc-choice-dialog .nc-set-row` : 52 dp, 16 sp, valeur sous le nom. */
-@Composable
-private fun SyncDialog(folderName: String, integratedStorage: Boolean, onPickFolder: () -> Unit, onDismiss: () -> Unit) {
-    ChoiceCard("Synchronisation", onDismiss) {
-        val shape = RoundedCornerShape(12.dp)
-        // En stockage privé il n'y a pas de dossier à choisir : la ligne n'est pas proposée.
-        if (!integratedStorage) {
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 52.dp).pressFill(shape, Neo.Hover, onClick = onPickFolder).padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Box(Modifier.width(22.dp), contentAlignment = Alignment.Center) { Icon(NeoIcons.FolderOpen, null, tint = Neo.SettingsValue, modifier = Modifier.size(18.dp)) }
-                Column(Modifier.weight(1f)) {
-                    SText("Dossier de données", size = 16f, lineHeight = 22.4f)
-                    SText(folderName, color = Neo.TextSecondary, size = 16f, lineHeight = 22.4f, maxLines = 1)
-                }
-                Icon(NeoIcons.ChevronRight, null, tint = Neo.SettingsNote, modifier = Modifier.size(18.dp))
-            }
-        }
-        SText(
-            "Neo Calendar range ses données dans le dossier que vous choisissez. La synchronisation est assurée par l'outil que vous retenez.",
-            Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = Neo.SettingsNote, size = 13f, lineHeight = 18.85f,
-        )
-        SText("Méthodes possibles", Modifier.padding(start = 16.dp, top = 6.dp, bottom = 4.dp), color = Neo.SettingsValue, size = 13f, weight = 500)
-        for ((name, how) in listOf("Syncthing" to "Recommandé", "Stockage en ligne" to "OneDrive, Google Drive, Dropbox", "Transfert manuel" to "Par USB")) {
-            Column(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(start = 32.dp, end = 16.dp, top = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.Center) {
-                SText(name, size = 16f, lineHeight = 22.4f)
-                SText(how, color = Neo.TextSecondary, size = 16f, lineHeight = 22.4f)
             }
         }
     }

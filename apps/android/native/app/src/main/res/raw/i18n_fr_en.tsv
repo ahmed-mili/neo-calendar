@@ -631,3 +631,91 @@ En pause : hors ligne	Paused: offline
 En pause : Wi-Fi non autorisé	Paused: Wi-Fi not allowed
 En pause : Wi-Fi limité non autorisé	Paused: metered Wi-Fi not allowed
 En pause : données mobiles non autorisées	Paused: mobile data not allowed
+Mode de stockage	Storage mode
+Vos notes sont dans un dossier que vous avez choisi, synchronisé par un autre outil (Syncthing, stockage en ligne, transfert manuel).	Your notes are in a folder you chose, synchronized by another tool (Syncthing, online storage, manual transfer).
+La synchronisation intégrée de Neo Calendar est inactive : les deux ne tournent jamais ensemble sur les mêmes notes.	Neo Calendar's built-in sync is inactive: the two never run together on the same notes.
+Dossier synchronisé par une autre app	Folder synchronized by another app
+Passer à la synchronisation intégrée	Switch to built-in sync
+Vider le stockage privé	Clear private storage
+Notes d'un passage précédent	Notes from a previous switch
+Vos notes sont dans le stockage privé de Neo Calendar, synchronisé par le moteur intégré.	Your notes are in Neo Calendar's private storage, synchronized by the built-in engine.
+Ce mode et un dossier synchronisé par une autre app s'excluent : jamais les deux sur les mêmes notes.	This mode and a folder synchronized by another app exclude each other: never both on the same notes.
+Synchronisation intégrée	Built-in sync
+Ouvrir un dossier existant	Open an existing folder
+Revenir à un dossier externe	Go back to an external folder
+État	Status
+Cet appareil	This device
+Pour appairer un autre appareil, scannez ce QR code depuis lui, ou saisissez l'identifiant.	To pair another device, scan this QR code from it, or enter the ID.
+Sans nom	Unnamed
+Identifiant	ID
+Démarrage du moteur…	Starting the engine…
+QR code de l'identifiant de cet appareil	QR code of this device's ID
+Afficher le QR code	Show the QR code
+Masquer le QR code	Hide the QR code
+Copier l'identifiant	Copy the ID
+Identifiant copié	ID copied
+Partager	Share
+Appareils	Devices
+Ajouter un appareil	Add a device
+Connecté	Connected
+Jamais connecté	Never connected
+Vu à l'instant	Seen just now
+Vu il y a {n} min	Seen {n} min ago
+Vu il y a {n} h	Seen {n} h ago
+Vu il y a {n} j	Seen {n} d ago
+Vu le {}	Seen on {}
+Demandes de connexion	Connection requests
+Comparez l'identifiant à celui que l'autre appareil affiche avant d'accepter. Rien n'est jamais accepté automatiquement.	Compare the ID with the one the other device shows before accepting. Nothing is ever accepted automatically.
+{} veut se connecter	{} wants to connect
+Un appareil	A device
+Refuser	Decline
+Accepter	Accept
+Un seul dossier est synchronisé : celui de ce téléphone, partagé automatiquement avec chaque appareil accepté.	A single folder is synchronized: this phone's, shared automatically with each accepted device.
+Dossier partagé	Shared folder
+{n} appareil(s)	{n} device(s)
+{} propose un dossier	{} offers a folder
+Ignorer	Ignore
+Synchroniser…	Sync…
+Fonctionnement	Operation
+Mode	Mode
+Comme Syncthing-Fork	Like Syncthing-Fork
+Seulement quand l'app est ouverte	Only when the app is open
+Démarrage automatique	Start automatically
+Sur Wi-Fi	On Wi-Fi
+Sur Wi-Fi limité	On metered Wi-Fi
+Sur données mobiles	On mobile data
+Source d'alimentation	Power source
+Secteur et batterie	Mains and battery
+Secteur seulement	Mains only
+Batterie seulement	Battery only
+Respecter l'économiseur de batterie	Respect battery saver
+Arrête la synchronisation jusqu'au prochain lancement	Stops syncing until the next launch
+Conflits	Conflicts
+Quand deux appareils modifient la même note en même temps, Syncthing garde une copie. Elle n'est pas affichée comme évènement ; la fusion arrivera plus tard.	When two devices edit the same note at the same time, Syncthing keeps a copy. It is not shown as an event; merging will come later.
+Fichiers de conflit	Conflict files
+Journal du moteur	Engine log
+Le journal est vide.	The log is empty.
+Retirer l'appareil	Remove the device
+Synchroniser ce dossier	Sync this folder
+Synchroniser	Sync
+Sur l'autre appareil, ouvrez Syncthing et affichez son identifiant (QR code ou texte), ou celui de Neo Calendar.	On the other device, open Syncthing and show its ID (QR code or text), or Neo Calendar's.
+Scanner un QR code	Scan a QR code
+Scannez l'identifiant de l'appareil	Scan the device ID
+Identifiant de l'appareil	Device ID
+Cet identifiant n'est pas valide (la somme de contrôle ne correspond pas).	This ID is not valid (the checksum does not match).
+Nom de l'appareil (facultatif)	Device name (optional)
+Nom de cet appareil	This device's name
+En pause : {}	Paused: {}
+Erreur : {}	Error: {}
+Copier et passer	Copy and switch
+Copie et vérification des notes…	Copying and verifying notes…
+Ouverture du dossier…	Opening the folder…
+Passage terminé	Switch complete
+Notes copiées et vérifiées : la synchronisation intégrée est prête.	Notes copied and verified: built-in sync is ready.
+Dossier ouvert : la synchronisation intégrée est arrêtée.	Folder opened: built-in sync is stopped.
+Notes copiées dans le dossier choisi. Le stockage privé est conservé.	Notes copied to the chosen folder. Private storage is kept.
+Stockage privé vidé.	Private storage cleared.
+Vider	Clear
+Patienter	Please wait
+Stockage privé de l'application	App private storage
+Le dossier de notes n'a pas pu être posé : réessayez.	The notes folder could not be set up: try again.

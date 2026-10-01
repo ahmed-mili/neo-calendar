@@ -77,6 +77,8 @@ dependencies {
  implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
  // Client HTTP de l'interface REST du moteur (socket Unix, voir sync/UnixSocketFactory.kt).
  implementation("com.squareup.okhttp3:okhttp:4.12.0")
+ // QR code de l'identifiant d'appareil : lecture (caméra) et dessin.
+ implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 }
 
 // Une release sans le moteur ne doit pas partir : les .so se compilent avec syncthing/build-syncthing.sh (cache en CI).

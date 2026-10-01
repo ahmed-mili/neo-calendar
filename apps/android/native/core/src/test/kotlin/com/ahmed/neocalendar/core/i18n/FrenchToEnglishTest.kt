@@ -41,4 +41,17 @@ class FrenchToEnglishTest {
         assertEquals("Wallpaper brightness", dictionary.translate("Luminosité du fond"))
         assertEquals("Check for updates", dictionary.translate("Rechercher les mises à jour"))
     }
+
+    @Test fun `le vrai dictionnaire donne les textes de la synchronisation`() {
+        val tsv = File("../app/src/main/res/raw/i18n_fr_en.tsv").takeIf { it.exists() }?.readText() ?: error("res/raw/i18n_fr_en.tsv introuvable")
+        val dictionary = FrenchToEnglish(tsv)
+        assertEquals("Storage mode", dictionary.translate("Mode de stockage"))
+        assertEquals("Built-in sync", dictionary.translate("Synchronisation intégrée"))
+        assertEquals("Seen 5 min ago", dictionary.translate("Vu il y a 5 min"))
+        assertEquals("3 device(s)", dictionary.translate("3 appareil(s)"))
+        assertEquals("Syncing (3 files)", dictionary.translate("Synchronisation en cours (3 fichiers)"))
+        assertEquals("Error: boom", dictionary.translate("Erreur : boom"))
+        assertEquals("DESKTOP wants to connect", dictionary.translate("DESKTOP veut se connecter"))
+        assertEquals("Paused: Wi-Fi not allowed", dictionary.translate("En pause : Wi-Fi non autorisé"))
+    }
 }

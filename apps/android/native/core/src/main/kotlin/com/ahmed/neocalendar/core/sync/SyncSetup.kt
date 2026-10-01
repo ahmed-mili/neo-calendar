@@ -20,6 +20,11 @@ const val REFUSE_SECOND_FOLDER =
     "Un seul dossier est synchronisé, et le dossier de notes de ce téléphone l'est déjà avec d'autres appareils. " +
         "Retirez ces appareils avant d'en adopter un autre, ou refusez cette proposition."
 
+/** Le dossier précédent a été retiré mais le nouveau n'a pas pu être posé : le moteur n'a plus de dossier tant que l'adoption n'est pas rejouée. */
+class FolderLostException(val oldId: String, cause: Throwable) : Exception(
+    "Le dossier de notes a été retiré du moteur mais le nouveau n'a pas pu être posé (${cause.message}).", cause,
+)
+
 /** Un seul dossier est synchronisé. `local` = le dossier de notes configuré dans le moteur, s'il y en a un. */
 fun decideProposal(local: ConfiguredFolder?, selfId: String, proposerId: String, proposedId: String): ProposalDecision = when {
     local == null -> ProposalDecision.Adopt
@@ -33,6 +38,7 @@ class SyncSetup(
     private val api: SyncthingApi,
     private val folderPath: String,
     private val random: SecureRandom = SecureRandom(),
+    private val retryDelayMs: Long = 400,
 ) {
     companion object {
         const val FOLDER_LABEL = "Neo Calendar"
@@ -81,12 +87,32 @@ class SyncSetup(
             ProposalDecision.ShareExisting -> api.setFolderDevices(proposal.id, (local!!.deviceIds + proposal.offeredBy))
             ProposalDecision.Adopt, is ProposalDecision.Replace -> {
                 val devices = (local?.deviceIds.orEmpty() + me + proposal.offeredBy).distinct()
-                if (decision is ProposalDecision.Replace) api.removeFolder(decision.oldId)
-                api.putFolder(EngineConfig.folder(proposal.id, proposal.label.ifBlank { FOLDER_LABEL }, folderPath, devices))
+                val folder = EngineConfig.folder(proposal.id, proposal.label.ifBlank { FOLDER_LABEL }, folderPath, devices)
+                if (decision is ProposalDecision.Replace) {
+                    api.removeFolder(decision.oldId)
+                    // L'ancien est parti : le nouveau est posé coûte que coûte (trois essais), sinon le moteur resterait sans dossier.
+                    putFolderOrLose(folder, decision.oldId)
+                } else {
+                    api.putFolder(folder)
+                }
             }
         }
         runCatching { api.dismissPendingFolder(proposal.id, proposal.offeredBy) }
         return decision
+    }
+
+    private fun putFolderOrLose(folder: kotlinx.serialization.json.JsonObject, oldId: String) {
+        var last: Exception? = null
+        repeat(3) { attempt ->
+            try {
+                api.putFolder(folder)
+                return
+            } catch (e: Exception) {
+                last = e
+                if (attempt < 2 && retryDelayMs > 0) Thread.sleep(retryDelayMs)
+            }
+        }
+        throw FolderLostException(oldId, last!!)
     }
 
     fun refuseFolder(proposal: PendingFolder) = api.dismissPendingFolder(proposal.id, proposal.offeredBy)

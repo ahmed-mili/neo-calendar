@@ -18,7 +18,7 @@ class SyncSetupTest {
     private val pc = "P56IOI7-MZJNU2Y-IQGDREY-DM2MGTI-MGL3BXN-PQ6W5BM-TBBZ4TJ-XZWICQ2"
     private val tablet = validId(7)
     private val fake = FakeTransport()
-    private val setup = SyncSetup(SyncthingApi(fake), "/data/files/Neo Calendar")
+    private val setup = SyncSetup(SyncthingApi(fake), "/data/files/Neo Calendar", retryDelayMs = 0)
 
     private fun noFolders() = fake.answer("GET /rest/config/folders", "[]")
     private fun folder(id: String, vararg devices: String) =
@@ -134,5 +134,32 @@ class SyncSetupTest {
         val decision = setup.adopt(PendingFolder("f1", "Neo Calendar", pc))
         assertTrue(decision is ProposalDecision.Refuse)
         assertTrue(fake.calls.all { it.method == "GET" })
+    }
+
+    @Test fun `un PUT du nouveau dossier qui echoue est retente puis signale que le dossier a ete retire`() {
+        fake.answer("GET /rest/system/status", """{"myID":"$me"}""")
+        folder("neo-1", me, pc)
+        fake.answer("DELETE /rest/config/folders/neo-1", "")
+        fake.answer("PUT /rest/config/folders/f1", "boom", code = 500)
+        try { setup.adopt(PendingFolder("f1", "Neo Calendar", pc)); fail() } catch (e: FolderLostException) { assertEquals("neo-1", e.oldId) }
+        assertEquals(3, fake.calls.count { it.method == "PUT" && it.path == "/rest/config/folders/f1" })
+        // La demande reste (jamais effacée avant que le dossier existe) : l'utilisateur peut réessayer.
+        assertTrue(fake.calls.none { it.method == "DELETE" && it.path.startsWith("/rest/cluster/pending/folders") })
+    }
+
+    @Test fun `un PUT qui reussit au deuxieme essai adopte normalement`() {
+        fake.answer("GET /rest/system/status", """{"myID":"$me"}""")
+        folder("neo-1", me, pc)
+        fake.answer("DELETE /rest/config/folders/neo-1", "")
+        val flaky = object : HttpTransport {
+            var puts = 0
+            override fun request(method: String, path: String, body: String?, readTimeoutMs: Int): HttpResult =
+                if (method == "PUT" && path == "/rest/config/folders/f1" && ++puts == 1) HttpResult(500, "boom") else fake.request(method, path, body, readTimeoutMs)
+        }
+        fake.answer("PUT /rest/config/folders/f1", "")
+        fake.answer("DELETE /rest/cluster/pending/folders?folder=f1&device=$pc", "")
+        val decision = SyncSetup(SyncthingApi(flaky), "/data/files/Neo Calendar", retryDelayMs = 0).adopt(PendingFolder("f1", "Neo Calendar", pc))
+        assertEquals(ProposalDecision.Replace("neo-1"), decision)
+        assertEquals(2, flaky.puts)
     }
 }
