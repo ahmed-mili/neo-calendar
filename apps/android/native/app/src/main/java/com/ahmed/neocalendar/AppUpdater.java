@@ -39,7 +39,7 @@ import java.util.concurrent.ExecutorService;
 
 import javax.net.ssl.HttpsURLConnection;
 
-final class AppUpdater {
+public final class AppUpdater {
   private static final String TAG = "NeoCalendarUpdate";
   private static final String METADATA_URL =
     "https://github.com/ahmed-mili/neo-calendar/releases/latest/download/latest-android.json";
@@ -84,7 +84,7 @@ final class AppUpdater {
   private static Metadata lastAttempt;
 
   /** Read across the bridge by the web side; see appUpdates.ts. */
-  static String pendingVersion() {
+  public static String pendingVersion() {
     return pendingVersion;
   }
 
@@ -106,7 +106,7 @@ final class AppUpdater {
   private Runnable onUpdateFound;
   private java.util.function.Consumer<Integer> onProgress;
 
-  AppUpdater(Activity activity, ExecutorService io) {
+  public AppUpdater(Activity activity, ExecutorService io) {
     this.activity = activity;
     this.io = io;
   }
@@ -123,7 +123,7 @@ final class AppUpdater {
    *  A debug build still says nothing: it is usually newer than anything
    *  published, and the release APK it would offer carries a different signing
    *  certificate anyway. */
-  void checkOnLaunch() {
+  public void checkOnLaunch() {
     check(true);
   }
 
@@ -134,8 +134,35 @@ final class AppUpdater {
    *  dormait en arriere-plan n'etait vue qu'apres l'avoir fermee et rouverte a
    *  la main — et c'est exactement ce qui obligeait a presser le numero de
    *  version pour savoir. */
-  void checkOnResume() {
+  public void checkOnResume() {
     check(false);
+  }
+
+  /** « Rechercher les mises à jour » des Réglages natifs : une demande explicite,
+   *  sans le repos de deux minutes. Le résultat revient sur le fil principal :
+   *  « debug » (un build de développement ne cherche jamais), « found » (une
+   *  version est prête ou descend), « latest » ou « error ». */
+  public void checkNow(java.util.function.Consumer<String> result) {
+    if (BuildConfig.DEBUG) { result.accept("debug"); return; }
+    if (!pendingVersion.isEmpty() || downloading) { result.accept("found"); return; }
+    lastCheckAt = android.os.SystemClock.elapsedRealtime();
+    io.execute(() -> {
+      String outcome;
+      try {
+        Metadata metadata = fetchMetadata();
+        if (metadata.versionCode <= currentVersionCode()) {
+          outcome = "latest";
+        } else {
+          outcome = "found";
+          activity.runOnUiThread(() -> download(metadata));
+        }
+      } catch (Exception error) {
+        Log.w(TAG, "Manual update check failed", error);
+        outcome = "error";
+      }
+      String done = outcome;
+      activity.runOnUiThread(() -> result.accept(done));
+    });
   }
 
   private void check(boolean atLaunch) {
@@ -173,11 +200,11 @@ final class AppUpdater {
     });
   }
 
-  void setOnUpdateFound(Runnable listener) {
+  public void setOnUpdateFound(Runnable listener) {
     onUpdateFound = listener;
   }
 
-  void setOnProgress(java.util.function.Consumer<Integer> listener) {
+  public void setOnProgress(java.util.function.Consumer<Integer> listener) {
     onProgress = listener;
   }
 
@@ -199,7 +226,7 @@ final class AppUpdater {
    *  bouton. Une notification qui signale un probleme doit porter de quoi le
    *  reprendre. Sans tentative en memoire — le processus est peut-etre reparti
    *  de zero — on refait la verification, qui aboutit au meme endroit. */
-  void retryLastDownload() {
+  public void retryLastDownload() {
     if (lastAttempt != null) {
       download(lastAttempt);
       return;
@@ -222,7 +249,7 @@ final class AppUpdater {
     }
   }
 
-  void resumePendingInstall() {
+  public void resumePendingInstall() {
     if (pendingApk == null || !pendingApk.isFile()) return;
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
         && !activity.getPackageManager().canRequestPackageInstalls()) {
@@ -237,7 +264,7 @@ final class AppUpdater {
   private File readyApk;
 
   /** Ce que la fenetre appelle quand on presse « Mettre a jour ». */
-  void installReady() {
+  public void installReady() {
     File apk = readyApk;
     if (apk == null || !apk.isFile()) return;
     activity.runOnUiThread(() -> requestInstall(apk));
@@ -411,7 +438,7 @@ final class AppUpdater {
     PendingIntent retry = PendingIntent.getActivity(
       activity,
       1,
-      new Intent(activity, MainActivity.class)
+      new Intent(activity, com.ahmed.neocalendar.nativeapp.NativeActivity.class)
         .putExtra(MainActivity.EXTRA_UPDATE_RETRY, true)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP),
       PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE

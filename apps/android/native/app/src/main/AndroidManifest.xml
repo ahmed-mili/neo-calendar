@@ -39,11 +39,12 @@
         android:theme="@style/Theme.NeoCalendar"
         android:usesCleartextTraffic="false">
 
+        <!-- L'app Compose : l'icône principale, les liens profonds, le widget et les notifications. -->
         <activity
-            android:name=".MainActivity"
+            android:name=".nativeapp.NativeActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
-            android:exported="true"
-            android:screenOrientation="unspecified">
+            android:enableOnBackInvokedCallback="true"
+            android:exported="true">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -58,11 +59,12 @@
             </intent-filter>
         </activity>
 
-        <!-- Écran Compose : sans filtre d'intention, lancé seulement par l'alias debug. -->
+        <!-- L'ancienne interface (WebView), sans filtre LAUNCHER : ouverte depuis les Réglages de l'app native. -->
         <activity
-            android:name=".nativeapp.NativeActivity"
-            android:enableOnBackInvokedCallback="true"
-            android:exported="false" />
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:exported="false"
+            android:screenOrientation="unspecified" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -2,6 +2,7 @@ package com.ahmed.neocalendar.nativeapp.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,6 +39,7 @@ fun TopBar(
     monthOpen: Boolean,
     todayNumber: Int,
     badge: TodayBadgeState,
+    updateDot: Boolean,
     onMenu: () -> Unit,
     onMonth: () -> Unit,
     onSearch: () -> Unit,
@@ -51,7 +53,11 @@ fun TopBar(
         Box(
             Modifier.size(Neo.TouchTarget).clip(RoundedCornerShape(14.dp)).clickable(onClick = onMenu),
             contentAlignment = Alignment.Center,
-        ) { Icon(NeoIcons.Menu, "Ouvrir les calendriers", tint = Neo.Text, modifier = Modifier.size(23.dp)) }
+        ) {
+            Icon(NeoIcons.Menu, "Ouvrir les calendriers", tint = Neo.Text, modifier = Modifier.size(23.dp))
+            // La pastille bleue : une mise à jour est prête à poser.
+            if (updateDot) Box(Modifier.align(Alignment.TopEnd).padding(top = 9.dp, end = 9.dp).size(9.dp).clip(CircleShape).background(Neo.Accent))
+        }
 
         Row(
             Modifier

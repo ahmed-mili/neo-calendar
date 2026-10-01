@@ -97,7 +97,7 @@ public class NeoCalendarWidget extends AppWidgetProvider {
 
             // Tapping a row opens that event; the template carries the action and
             // each row fills in which event it is.
-            Intent open = new Intent(context, MainActivity.class);
+            Intent open = new Intent(context, com.ahmed.neocalendar.nativeapp.NativeActivity.class);
             open.setAction(Intent.ACTION_VIEW);
             views.setPendingIntentTemplate(
                     R.id.widget_list,
@@ -105,7 +105,7 @@ public class NeoCalendarWidget extends AppWidgetProvider {
                             context, 0, open,
                             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
 
-            Intent create = new Intent(context, MainActivity.class);
+            Intent create = new Intent(context, com.ahmed.neocalendar.nativeapp.NativeActivity.class);
             create.setAction(ACTION_NEW_EVENT);
             create.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             views.setOnClickPendingIntent(

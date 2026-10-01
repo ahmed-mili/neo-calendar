@@ -16,6 +16,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.ahmed.neocalendar.nativeapp.ui.NativeApp
 
@@ -23,6 +24,7 @@ private const val BACKGROUND = 0xFF11111B.toInt()
 
 class NativeActivity : ComponentActivity() {
     private val viewModel: NativeViewModel by viewModels()
+    private lateinit var updates: NativeUpdates
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,7 +32,15 @@ class NativeActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(BACKGROUND),
             navigationBarStyle = SystemBarStyle.dark(BACKGROUND),
         )
-        setContent { NativeApp(viewModel) }
+        updates = NativeUpdates(this)
+        setContent { NativeApp(viewModel, updates) }
+        holdSplashUntilReady()
+        consumeUpdateRetry(intent)
+        // Comme la WebView : on cherche une mise à jour une fois le calendrier à l'écran, pas avant.
+        lifecycleScope.launch {
+            viewModel.screen.first { it !is ScreenState.Loading }
+            updates.checkOnLaunch()
+        }
         // Une notification ou le widget peut avoir lancé l'app à froid : la route attend que le dossier soit lu. Une recréation (rotation) ne la rejoue pas.
         if (savedInstanceState == null) routeFrom(intent)
         askNotificationsOnce()
@@ -49,7 +59,33 @@ class NativeActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        consumeUpdateRetry(intent)
         routeFrom(intent)
+    }
+
+    /** « Réessayer » de la notification d'échec : le drapeau est consommé, une rotation ne le rejoue pas. */
+    private fun consumeUpdateRetry(intent: Intent?) {
+        if (intent == null || !intent.getBooleanExtra(MainActivity.EXTRA_UPDATE_RETRY, false)) return
+        intent.removeExtra(MainActivity.EXTRA_UPDATE_RETRY)
+        updates.retry()
+    }
+
+    /** Le splash système reste jusqu'à ce que le dossier soit lu (ou 1,5 s au plus) : pas de spinner nu entre le splash et la grille. */
+    private fun holdSplashUntilReady() {
+        val content = findViewById<android.view.View>(android.R.id.content)
+        val deadline = android.os.SystemClock.uptimeMillis() + 1_500
+        content.viewTreeObserver.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (viewModel.screen.value is ScreenState.Loading && android.os.SystemClock.uptimeMillis() < deadline) return false
+                content.viewTreeObserver.removeOnPreDrawListener(this)
+                return true
+            }
+        })
+    }
+
+    override fun onDestroy() {
+        updates.shutdown()
+        super.onDestroy()
     }
 
     /** « + » du widget : un brouillon ; une ligne ou une notification : la fiche de l'évènement. Le drapeau est consommé, une rotation ne le rejoue pas. */
@@ -80,5 +116,6 @@ class NativeActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.reload()
+        updates.onResume()
     }
 }

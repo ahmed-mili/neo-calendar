@@ -34,7 +34,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmed.neocalendar.core.reminders.reminderListLabel
+import com.ahmed.neocalendar.MainActivity
+import com.ahmed.neocalendar.nativeapp.NativeUpdates
 import com.ahmed.neocalendar.nativeapp.WorkspaceData
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
 import com.ahmed.neocalendar.nativeapp.ui.fields.NeoSwitch
 import kotlinx.serialization.json.JsonPrimitive
 
@@ -66,6 +70,15 @@ class SettingsActions(
     val folderName: String,
 )
 
+private fun checkLabel(updates: NativeUpdates): String = when (updates.checkResult) {
+    null -> ""
+    "checking" -> "Recherche…"
+    "debug" -> "Développement"
+    "latest" -> "À jour"
+    "found" -> if (updates.pending.isNotEmpty()) "Version ${updates.pending} prête" else "Téléchargement…"
+    else -> "Impossible de vérifier"
+}
+
 /** Un calendrier tel que la page « Calendriers » le montre. */
 typealias CalendarEntry = com.ahmed.neocalendar.core.grid.CalendarModel
 
@@ -74,7 +87,7 @@ typealias CalendarEntry = com.ahmed.neocalendar.core.grid.CalendarModel
  * Chaque réglage est écrit aussitôt dans le fichier partagé (la clé seule, relue avant l'écriture).
  */
 @Composable
-fun SettingsScreen(version: String, data: WorkspaceData, actions: SettingsActions, onBack: () -> Unit) {
+fun SettingsScreen(version: String, updates: NativeUpdates, data: WorkspaceData, actions: SettingsActions, onBack: () -> Unit) {
     var page by rememberSaveable { mutableStateOf("") }
     var choice by remember { mutableStateOf<String?>(null) }
     BackHandler(enabled = page.isNotEmpty()) { page = "" }
@@ -82,7 +95,7 @@ fun SettingsScreen(version: String, data: WorkspaceData, actions: SettingsAction
     Column(Modifier.fillMaxSize().background(Neo.Background)) {
         ListHeader(if (page == "calendars") "Calendriers" else "Réglages", onBack = { if (page.isNotEmpty()) page = "" else onBack() })
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp)) {
-            if (page == "calendars") CalendarsPage(data, actions) else RootPage(data, actions, version, { page = it }, { choice = it })
+            if (page == "calendars") CalendarsPage(data, actions) else RootPage(data, actions, version, updates, { page = it }, { choice = it })
         }
     }
 
@@ -112,7 +125,7 @@ fun SettingsScreen(version: String, data: WorkspaceData, actions: SettingsAction
 }
 
 @Composable
-private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: String, openPage: (String) -> Unit, openChoice: (String) -> Unit) {
+private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: String, updates: NativeUpdates, openPage: (String) -> Unit, openChoice: (String) -> Unit) {
     Group("Affichage") {
         SettingRow(NeoIcons.Calendar, "Premier jour de la semaine", WEEKDAYS[data.firstDay.coerceIn(0, 6)]) { openChoice("firstDay") }
         SettingToggle(NeoIcons.Clock, "Format 24 h", data.timeFormat24h) { actions.onSetting("timeFormat24h", JsonPrimitive(it)) }
@@ -127,6 +140,14 @@ private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: Str
     }
     Group("Données") {
         SettingRow(NeoIcons.FolderOpen, "Dossier de données", actions.folderName, onClick = actions.onPickFolder)
+    }
+    Group("Application") {
+        val context = LocalContext.current
+        if (updates.pending.isNotEmpty()) SettingRow(NeoIcons.Download, "Installer la version ${updates.pending}", "", onClick = updates::install)
+        SettingRow(NeoIcons.RefreshCw, "Rechercher les mises à jour", checkLabel(updates)) { updates.check() }
+        SettingRow(NeoIcons.Calendar, "Ancienne interface (WebView)", "") {
+            context.startActivity(Intent(context, MainActivity::class.java))
+        }
     }
     Text("v$version", color = Neo.TextFaint, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
 }

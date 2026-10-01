@@ -36,7 +36,7 @@ public class MainActivity extends Activity {
   public static final String EXTRA_EVENT_ID = "neoCalendarEventId";
 
   /** Pose par l'action « Reessayer » de la notification d'echec. */
-  static final String EXTRA_UPDATE_RETRY = "neoCalendarUpdateRetry";
+  public static final String EXTRA_UPDATE_RETRY = "neoCalendarUpdateRetry";
 
   /** Held until the page can hear it: a widget tap can start the app cold. */
   private String pendingWidgetRoute = null;

@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahmed.neocalendar.BuildConfig
+import com.ahmed.neocalendar.nativeapp.NativeUpdates
 import com.ahmed.neocalendar.core.layout.getISOWeek
 import com.ahmed.neocalendar.core.layout.todayBadgeState
 import com.ahmed.neocalendar.core.recurrence.DisplayEvent
@@ -120,7 +121,7 @@ private class PickTree : androidx.activity.result.contract.ActivityResultContrac
 
 /** L'écran de l'application : l'état du dossier, puis la grille quand il est lu. */
 @Composable
-fun NativeApp(viewModel: NativeViewModel) {
+fun NativeApp(viewModel: NativeViewModel, updates: NativeUpdates) {
     NeoTheme {
         val screen by viewModel.screen.collectAsState()
         Box(Modifier.fillMaxSize().background(Neo.Background)) {
@@ -129,7 +130,7 @@ fun NativeApp(viewModel: NativeViewModel) {
                     CircularProgressIndicator(color = Neo.Accent)
                 }
                 is ScreenState.Failed -> FailedScreen(s.message) { viewModel.reload(force = true) }
-                is ScreenState.Ready -> MainScreen(viewModel, s.data)
+                is ScreenState.Ready -> MainScreen(viewModel, s.data, updates)
             }
         }
     }
@@ -155,7 +156,7 @@ private fun FailedScreen(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
+private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates: NativeUpdates) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val zone = remember { ZoneId.systemDefault() }
@@ -288,6 +289,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                 monthOpen = monthOpen,
                 todayNumber = today.dayOfMonth,
                 badge = todayBadgeState(visible, java.time.Instant.now(), zone),
+                updateDot = updates.pending.isNotEmpty(),
                 onMenu = { drawer.open(scope) },
                 onMonth = { monthOpen = !monthOpen },
                 onSearch = { monthOpen = false; overlayKey = Overlay.Search.encode() },
@@ -358,6 +360,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
         ) {
             DrawerContent(
                 version = BuildConfig.VERSION_NAME,
+                updates = updates,
                 dayCount = dayCount,
                 onDayCount = viewModel::setDayCount,
                 anchor = anchor,
@@ -435,6 +438,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData) {
                     }
                     Overlay.Settings -> SettingsScreen(
                         version = BuildConfig.VERSION_NAME,
+                        updates = updates,
                         data = data,
                         actions = SettingsActions(
                             onSetting = viewModel::setPreference,

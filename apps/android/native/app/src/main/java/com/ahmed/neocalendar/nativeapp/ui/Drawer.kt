@@ -4,6 +4,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import com.ahmed.neocalendar.nativeapp.NativeUpdates
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -167,6 +168,7 @@ class DrawerActions(
 @Composable
 fun DrawerContent(
     version: String,
+    updates: NativeUpdates,
     dayCount: Int,
     onDayCount: (Int) -> Unit,
     anchor: LocalDate,
@@ -193,11 +195,13 @@ fun DrawerContent(
     ) {
         Row(Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Neo Calendar", color = Neo.Text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            Text("v$version", color = Neo.TextFaint, fontSize = 12.sp)
+            Text("v$version", color = Neo.TextFaint, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp))
             Box(Modifier.size(Neo.TouchTarget).clickable(onClick = actions.onSettings), contentAlignment = Alignment.Center) {
                 Icon(NeoIcons.Settings, "Réglages", tint = Neo.TextSecondary, modifier = Modifier.size(20.dp))
             }
         }
+        // La mise à jour prête (ou en route) a sa propre ligne : dans l'en-tête elle ferait passer le titre sur deux lignes.
+        Box(Modifier.padding(start = 16.dp, bottom = 10.dp)) { UpdatePill(updates) }
         DaySwitcher(dayCount, onDayCount)
         MiniCalendar(anchor, firstDay, onSelectDate, Modifier.padding(horizontal = 12.dp, vertical = 8.dp), cellHeight = 34.dp)
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {

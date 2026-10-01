@@ -134,7 +134,7 @@ public final class ReminderScheduler {
         // of them opens the same event) and are told apart by their key, so one
         // does not replace the other in the shade.
         String key = reminder.optString("key", eventId);
-        Intent open = new Intent(context, MainActivity.class);
+        Intent open = new Intent(context, com.ahmed.neocalendar.nativeapp.NativeActivity.class);
         open.setAction(Intent.ACTION_VIEW);
         open.putExtra(MainActivity.EXTRA_EVENT_ID, eventId);
         open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
