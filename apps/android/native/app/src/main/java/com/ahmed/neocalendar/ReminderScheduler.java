@@ -66,7 +66,7 @@ public final class ReminderScheduler {
     }
 
     /** Arms the alarm on the nearest reminder still ahead of us. */
-    static void schedule(Context context) {
+    public static void schedule(Context context) {
         AlarmManager alarms = context.getSystemService(AlarmManager.class);
         if (alarms == null) return;
 

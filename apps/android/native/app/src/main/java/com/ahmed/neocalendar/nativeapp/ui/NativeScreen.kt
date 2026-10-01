@@ -27,6 +27,8 @@ import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -77,6 +79,7 @@ import com.ahmed.neocalendar.core.recurrence.DisplayEvent
 import com.ahmed.neocalendar.nativeapp.NativeRoute
 import com.ahmed.neocalendar.nativeapp.NativeViewModel
 import com.ahmed.neocalendar.nativeapp.ScreenState
+import com.ahmed.neocalendar.nativeapp.uninstallOldApp
 import com.ahmed.neocalendar.nativeapp.WRITE_IGNORED
 import com.ahmed.neocalendar.nativeapp.WorkspaceData
 import java.time.LocalDate
@@ -139,21 +142,61 @@ private class PickTree : androidx.activity.result.contract.ActivityResultContrac
 fun NativeApp(viewModel: NativeViewModel, updates: NativeUpdates) {
     NeoTheme {
         val screen by viewModel.screen.collectAsState()
+        val pickTree = androidx.activity.compose.rememberLauncherForActivityResult(PickTree()) { result ->
+            if (result != null) viewModel.onTreePicked(result)
+        }
         Box(Modifier.fillMaxSize().background(Neo.Background)) {
             WallpaperLayer(reloadKey = screen::class)
             when (val s = screen) {
+                ScreenState.NeedsFolder -> WelcomeScreen { pickTree.launch(Unit) }
                 ScreenState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Neo.Accent)
                 }
-                is ScreenState.Failed -> {
-                    val pick = androidx.activity.compose.rememberLauncherForActivityResult(PickTree()) { result ->
-                        if (result != null) viewModel.onTreePicked(result)
-                    }
-                    FailedScreen(s.message, onPick = { pick.launch(Unit) }) { viewModel.reload(force = true) }
-                }
+                is ScreenState.Failed -> FailedScreen(s.message, onPick = { pickTree.launch(Unit) }) { viewModel.reload(force = true) }
                 is ScreenState.Ready -> MainScreen(viewModel, s.data, updates)
             }
             NoticeHost()
+        }
+    }
+}
+
+/** Premier lancement sous ce nom : l'autorisation du dossier ne passe pas d'une app à l'autre, il faut le rechoisir une fois. */
+@Composable
+private fun WelcomeScreen(onPick: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+    ) {
+        Text("Bienvenue dans la nouvelle version de Neo Calendar", color = Neo.Text, fontSize = 20.sp, textAlign = TextAlign.Center)
+        Text(
+            "Android demande de rechoisir une fois le dossier de notes : vos calendriers et vos réglages seront retrouvés tels quels.",
+            color = Neo.TextSecondary,
+            fontSize = 15.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+        Box(
+            Modifier
+                .padding(top = 28.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Neo.Accent)
+                .clickable(onClick = onPick)
+                .padding(horizontal = 24.dp, vertical = 14.dp),
+        ) { Text("Choisir le dossier de notes", color = Neo.OnAccent, fontSize = 14.sp) }
+    }
+}
+
+/** L'ancienne app (com.ahmed.neocalendar) est encore là : un bandeau tant qu'elle n'est pas désinstallée. */
+@Composable
+private fun OldAppBanner(onUninstall: () -> Unit) {
+    androidx.compose.foundation.layout.Row(
+        Modifier.fillMaxWidth().background(Neo.Surface).padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("L'ancienne version de Neo Calendar est encore installée", color = Neo.Text, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        Box(Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onUninstall).padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Text("Désinstaller", color = Neo.Accent, fontSize = 13.sp)
         }
     }
 }
@@ -206,6 +249,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     val pickTree = androidx.activity.compose.rememberLauncherForActivityResult(PickTree()) { result ->
         if (result != null) viewModel.onTreePicked(result)
     }
+    val oldAppInstalled by viewModel.oldAppInstalled.collectAsState()
     LaunchedEffect(reloadError) { reloadError?.let { Notices.fail(it) } }
     LaunchedEffect(Unit) { viewModel.notices.collect { Notices.show(it) } }
     // Une écriture qui échoue le dit ; une écriture ignorée (une autre était en cours) ne dit rien.
@@ -309,6 +353,8 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
     // Déclaré après : le plus récent passe en premier, la liste se ferme avant le tiroir qu'elle recouvre.
     BackHandler(enabled = overlay != null) { overlayKey = "" }
 
+    // Bas réel de la barre du haut (bandeau de l'ancienne version compris) : le bord du tiroir commence dessous.
+    var topBarBottomPx by remember { mutableStateOf(0f) }
     Box(Modifier.fillMaxSize()) {
         // Le bas n'est pas réservé : la grille défile sous la barre de navigation et garde son inset en marge basse, comme l'ancienne.
         val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -324,6 +370,8 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
             val visible = remember(nearest, dayCount) {
                 (0 until dayCount).map { LocalDate.ofEpochDay(nearest + it).atStartOfDay(zone).toInstant() }
             }
+            if (oldAppInstalled) OldAppBanner { uninstallOldApp(context) }
+            Box(Modifier.onGloballyPositioned { topBarBottomPx = it.positionInRoot().y + it.size.height }) {
             TopBar(
                 monthName = anchor.month.getDisplayName(TextStyle.FULL_STANDALONE, AppLocale.current)
                     .replaceFirstChar { it.titlecase(AppLocale.current) },
@@ -337,6 +385,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                 onSearch = { monthOpen = false; overlayKey = Overlay.Search.encode() },
                 onToday = { grid.goTo(scope, LocalDate.now()) },
             )
+            }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 TimeGridArea(
                     state = grid,
@@ -399,7 +448,7 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
         NeoDrawer(
             drawer,
             scope,
-            edgeTopPadding = WindowInsets.safeDrawing.asPaddingValues().calculateTopPadding() + Neo.TopBarHeight,
+            edgeTopPadding = with(androidx.compose.ui.platform.LocalDensity.current) { topBarBottomPx.toDp() },
         ) {
             DrawerContent(
                 version = BuildConfig.VERSION_NAME,
@@ -555,6 +604,8 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                         onAddCalendar = { calendarDialog = CalendarDialog.Add },
                         onPickFolder = { pickTree.launch(Unit) },
                         folderName = viewModel.treeName(),
+                        oldAppInstalled = oldAppInstalled,
+                        onUninstallOldApp = { uninstallOldApp(context) },
                     ),
                     onBack = { overlayKey = "" },
                 )

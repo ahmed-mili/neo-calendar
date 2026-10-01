@@ -9,6 +9,8 @@
          reminder. Granted at install, unlike SCHEDULE_EXACT_ALARM. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Desinstaller l'ANCIENNE app (com.ahmed.neocalendar) : ACTION_DELETE sur un autre paquet l'exige (doc Android : REQUEST_DELETE_PACKAGES). -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
     <!-- Depuis Android 11, une application ne voit du telephone que ce qu'elle
          a declare chercher. Sans ces quatre lignes, le menu du lieu croirait
@@ -16,6 +18,8 @@
          nomme les paquets un par un plutot que de demander la liste entiere :
          c'est ce dont on a besoin, et rien de plus. -->
     <queries>
+        <!-- L'ancienne app (com.ahmed.neocalendar) : encore installee ou non, pour le bandeau « Desinstaller ». -->
+        <package android:name="com.ahmed.neocalendar" />
         <package android:name="com.google.android.apps.maps" />
         <package android:name="com.citymapper.app.release" />
         <package android:name="com.tranzmate" />

@@ -27,13 +27,13 @@ android {
  namespace = "com.ahmed.neocalendar"
  compileSdk = 37
  defaultConfig {
-  applicationId = "com.ahmed.neocalendar"
+  applicationId = "com.ahmedmili.neocalendar"
   minSdk = 26
   targetSdk = 35
-  versionCode = 188
+  versionCode = 190
  buildFeatures { buildConfig = true }
 
-  versionName = "1.83.1"
+  versionName = "1.84.0"
  }
 
  signingConfigs {

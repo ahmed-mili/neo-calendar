@@ -89,7 +89,7 @@ class NativeActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        updates.shutdown()
+        if (::updates.isInitialized) updates.shutdown()
         super.onDestroy()
     }
 
@@ -120,6 +120,7 @@ class NativeActivity : ComponentActivity() {
     /** Le dossier est relu à l'ouverture et à chaque retour dans l'app (400 ms au plus rapproché). */
     override fun onResume() {
         super.onResume()
+        viewModel.refreshOldApp()
         viewModel.reload()
         updates.onResume()
     }

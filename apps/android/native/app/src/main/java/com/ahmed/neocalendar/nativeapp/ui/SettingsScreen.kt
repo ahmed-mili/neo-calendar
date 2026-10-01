@@ -68,6 +68,8 @@ class SettingsActions(
     val onAddCalendar: () -> Unit,
     val onPickFolder: () -> Unit,
     val folderName: String,
+    val oldAppInstalled: Boolean = false,
+    val onUninstallOldApp: () -> Unit = {},
 )
 
 private fun checkLabel(updates: NativeUpdates): String = when (updates.checkResult) {
@@ -145,6 +147,9 @@ private fun RootPage(data: WorkspaceData, actions: SettingsActions, version: Str
         val context = LocalContext.current
         if (updates.pending.isNotEmpty()) SettingRow(NeoIcons.Download, "Installer la version ${updates.pending}", "", onClick = updates::install)
         SettingRow(NeoIcons.RefreshCw, "Rechercher les mises à jour", checkLabel(updates)) { updates.check() }
+        if (actions.oldAppInstalled) {
+            SettingRow(NeoIcons.Trash2, "Ancienne version encore installée", "Désinstaller", onClick = actions.onUninstallOldApp)
+        }
         SettingRow(NeoIcons.Calendar, "Ancienne interface (WebView)", "") {
             context.startActivity(Intent(context, MainActivity::class.java))
         }
