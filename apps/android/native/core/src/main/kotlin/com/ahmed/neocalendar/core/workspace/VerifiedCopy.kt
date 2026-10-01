@@ -9,7 +9,7 @@ import java.security.MessageDigest
 class CopyReport(val files: Int, val bytes: Long)
 
 /** Une copie qui n'a pas pu être garantie ; `path` est le fichier en cause ("" pour la copie entière). */
-class CopyFailure(val path: String, reason: String) : IOException(if (path.isEmpty()) reason else "$path : $reason")
+class CopyFailure(val path: String, val reason: String) : IOException(if (path.isEmpty()) reason else "$path : $reason")
 
 private class Node(val path: String, val isDirectory: Boolean)
 
@@ -29,17 +29,34 @@ fun copyWorkspaceVerified(source: BinaryWorkspaceStorage, destination: BinaryWor
     try {
         return copyThenVerify(source, destination, created)
     } catch (e: Throwable) {
-        for (name in created) runCatching { destination.delete(name) }
+        val stuck = ArrayList<String>()
+        for (name in created) {
+            try { destination.delete(name) } catch (_: Exception) { stuck += name }
+        }
+        if (stuck.isNotEmpty() && e is CopyFailure)
+            throw CopyFailure(e.path, e.reason + " ; nettoyage incomplet de la destination, à supprimer à la main : " + stuck.joinToString(", "))
         throw e
     }
 }
+
+/** Toute exception d'un stockage (IOException, SecurityException d'un accès retiré, etc.) sort en [CopyFailure] nommant `path`. */
+private inline fun <T> guard(path: String, what: String, block: () -> T): T =
+    try {
+        block()
+    } catch (e: CopyFailure) {
+        throw e
+    } catch (e: Exception) {
+        throw CopyFailure(path, "$what (${e.javaClass.simpleName}: ${e.message})")
+    }
 
 private fun copyThenVerify(
     source: BinaryWorkspaceStorage,
     destination: BinaryWorkspaceStorage,
     created: MutableList<String>,
 ): CopyReport {
-    val nodes = try { inventory(source) } catch (e: IOException) { throw CopyFailure("", "lecture de la source impossible (${e.message})") }
+    val nodes = inventory(source)
+    // Un accès perdu (permission SAF retirée) se voit comme un dossier vide : jamais de bascule dessus.
+    if (nodes.none { !it.isDirectory }) throw CopyFailure("", "la source est vide")
     val destinationOf = HashMap<String, String>()
     val copied = HashMap<String, Fingerprint>()
     var bytes = 0L
@@ -47,21 +64,18 @@ private fun copyThenVerify(
         val parent = node.path.substringBeforeLast('/', "")
         val name = node.path.substringAfterLast('/')
         val destParent = if (parent.isEmpty()) "" else destinationOf.getValue(parent)
-        val target = try {
+        val target = guard(node.path, "création impossible dans la copie") {
             if (node.isDirectory) destination.createDirectory(destParent, name)
             else destination.createFile(destParent, name, "application/octet-stream")
-        } catch (e: IOException) {
-            throw CopyFailure(node.path, "création impossible dans la copie (${e.message})")
-        } catch (e: IllegalArgumentException) {
-            throw CopyFailure(node.path, "nom refusé par la copie (${e.message})")
         }
         destinationOf[node.path] = target
         if (parent.isEmpty()) created += target
         if (node.isDirectory) continue
         val digest = MessageDigest.getInstance("SHA-256")
         var size = 0L
-        val input = source.openInput(node.path) ?: throw CopyFailure(node.path, "lecture impossible")
-        try {
+        val input = guard(node.path, "lecture impossible") { source.openInput(node.path) }
+            ?: throw CopyFailure(node.path, "lecture impossible")
+        guard(node.path, "copie impossible") {
             DigestInputStream(input, digest).use { stream ->
                 destination.writeStream(target, object : InputStream() {
                     override fun read(): Int = stream.read().also { if (it >= 0) size++ }
@@ -69,8 +83,6 @@ private fun copyThenVerify(
                         stream.read(b, off, len).also { if (it > 0) size += it }
                 })
             }
-        } catch (e: IOException) {
-            throw CopyFailure(node.path, "copie impossible (${e.message})")
         }
         copied[node.path] = Fingerprint(size, hex(digest.digest()))
         bytes += size
@@ -106,11 +118,10 @@ private fun verify(
 }
 
 private fun fingerprint(storage: BinaryWorkspaceStorage, path: String): Fingerprint? {
-    val input = try { storage.openInput(path) } catch (e: IOException) { throw CopyFailure(path, "lecture impossible (${e.message})") }
-        ?: return null
+    val input = guard(path, "lecture impossible") { storage.openInput(path) } ?: return null
     val digest = MessageDigest.getInstance("SHA-256")
     var size = 0L
-    try {
+    guard(path, "lecture impossible") {
         input.use {
             val buffer = ByteArray(64 * 1024)
             while (true) {
@@ -120,8 +131,6 @@ private fun fingerprint(storage: BinaryWorkspaceStorage, path: String): Fingerpr
                 size += n
             }
         }
-    } catch (e: IOException) {
-        throw CopyFailure(path, "lecture impossible (${e.message})")
     }
     return Fingerprint(size, hex(digest.digest()))
 }
@@ -130,7 +139,7 @@ private fun fingerprint(storage: BinaryWorkspaceStorage, path: String): Fingerpr
 private fun inventory(storage: WorkspaceStorage, filterArtifacts: Boolean = true): List<Node> {
     val out = ArrayList<Node>()
     fun walk(dir: String) {
-        for (entry in storage.list(dir)) {
+        for (entry in guard(dir, "inventaire impossible") { storage.list(dir) }) {
             if (filterArtifacts && isSyncArtifact(entry.name)) continue
             val path = if (dir.isEmpty()) entry.name else "$dir/${entry.name}"
             out += Node(path, entry.isDirectory)

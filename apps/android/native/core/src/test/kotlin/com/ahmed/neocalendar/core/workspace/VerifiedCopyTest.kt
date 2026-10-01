@@ -50,7 +50,7 @@ class VerifiedCopyTest {
         assertEquals(3, report.files)
         assertEquals(before, relativeFiles(source))
         assertEquals("---\ntitle: Réunion\n---\n", File(dest, "Travail/rdv.md").readText())
-        assertTrue(File(source, "Travail/photo.bin").exists().not())
+        assertTrue(File(source, "Travail/.attachments/photo.bin").exists())
     }
 
     /** Enveloppe qui altère ce que `openInput` rend pour un chemin, à partir de la n-ième ouverture. */
@@ -141,6 +141,79 @@ class VerifiedCopyTest {
         assertEquals("Travail/rdv.md", e.path)
         assertEquals(listOf("etranger.md"), dest.listFiles()!!.map { it.name })
         assertEquals("arrive entre-temps", File(dest, "etranger.md").readText())
+    }
+
+    @Test fun `une exception de lecture de la source, IOException ou SecurityException, sort en CopyFailure nommee`() {
+        val source = sourceTree()
+        for (boom in listOf<Exception>(java.io.IOException("disque"), SecurityException("permission retiree"))) {
+            val dest = tmp.newFolder()
+            val fs = FileWorkspaceStorage(source)
+            val broken = object : BinaryWorkspaceStorage by fs {
+                override fun openInput(relativePath: String): InputStream? =
+                    if (relativePath == "Travail/rdv.md") throw boom else fs.openInput(relativePath)
+            }
+            val e = failure { copyWorkspaceVerified(broken, FileWorkspaceStorage(dest)) }
+            assertEquals("Travail/rdv.md", e.path)
+            assertTrue(e.message!!.contains(boom.message!!))
+            assertEquals(0, dest.listFiles()!!.size)
+        }
+    }
+
+    @Test fun `une exception de creation dans la destination sort en CopyFailure nommee`() {
+        val source = sourceTree(); val dest = tmp.newFolder("dest")
+        val real = FileWorkspaceStorage(dest)
+        val broken = object : BinaryWorkspaceStorage by real {
+            override fun createFile(relativeDir: String, name: String, mimeType: String): String =
+                if (name == "rdv.md") throw IllegalStateException("etat") else real.createFile(relativeDir, name, mimeType)
+        }
+        val e = failure { copyWorkspaceVerified(FileWorkspaceStorage(source), broken) }
+        assertEquals("Travail/rdv.md", e.path)
+        assertEquals(0, dest.listFiles()!!.size)
+    }
+
+    @Test fun `une exception d'inventaire pendant la verification sort en CopyFailure et nettoie`() {
+        val source = sourceTree(); val dest = tmp.newFolder("dest")
+        val fs = FileWorkspaceStorage(source)
+        var lists = 0
+        val broken = object : BinaryWorkspaceStorage by fs {
+            override fun list(relativeDir: String): List<WorkspaceStorage.Entry> {
+                if (relativeDir == "Travail" && ++lists == 2) throw SecurityException("acces retire")
+                return fs.list(relativeDir)
+            }
+        }
+        val e = failure { copyWorkspaceVerified(broken, FileWorkspaceStorage(dest)) }
+        assertEquals("Travail", e.path)
+        assertTrue(e.message!!.contains("acces retire"))
+        assertEquals(0, dest.listFiles()!!.size)
+    }
+
+    @Test fun `une source sans aucun fichier est refusee`() {
+        val source = tmp.newFolder("source"); File(source, "dossier-vide").mkdirs()
+        val dest = tmp.newFolder("dest")
+        val e = failure { copyWorkspaceVerified(FileWorkspaceStorage(source), FileWorkspaceStorage(dest)) }
+        assertEquals("", e.path)
+        assertTrue(e.message!!.contains("la source est vide"))
+        assertEquals(0, dest.listFiles()!!.size)
+    }
+
+    @Test fun `un nettoyage qui echoue est signale dans le message`() {
+        val source = sourceTree(); val dest = tmp.newFolder("dest")
+        val real = FileWorkspaceStorage(dest)
+        val stuck = object : BinaryWorkspaceStorage by real {
+            override fun writeStream(relativePath: String, input: InputStream) {
+                if (relativePath == "Travail/rdv.md") throw java.io.IOException("disque plein")
+                real.writeStream(relativePath, input)
+            }
+            override fun delete(relativePath: String) {
+                if (relativePath == "Travail") throw java.io.IOException("verrou")
+                real.delete(relativePath)
+            }
+        }
+        val e = failure { copyWorkspaceVerified(FileWorkspaceStorage(source), stuck) }
+        assertEquals("Travail/rdv.md", e.path)
+        assertTrue(e.message!!.contains("disque plein"))
+        assertTrue(e.message!!.contains("Travail"))
+        assertTrue(e.message!!.contains("nettoyage incomplet"))
     }
 
     @Test fun `une destination non vide est refusee sans y toucher`() {
