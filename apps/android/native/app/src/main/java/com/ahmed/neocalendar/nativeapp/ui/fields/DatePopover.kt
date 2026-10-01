@@ -69,7 +69,7 @@ fun DatePopover(
     val chosen = runCatching { LocalDate.parse(selected) }.getOrNull()
     val today = LocalDate.now()
     var month by remember(selected) { mutableStateOf(YearMonth.from(chosen ?: today)) }
-    Popover(expanded = true, onDismiss = onDismiss, surface = PopoverSurface(Neo.Surface, 12.dp, 10.dp, true), width = 252.dp, anchorOffset = 2.dp, centerX = true) {
+    Popover(expanded = true, onDismiss = onDismiss, surface = PopoverSurface(Neo.Surface, 12.dp, 10.dp, true), width = 252.dp, anchorOffset = 4.5.dp, centerX = true) {
         Row(Modifier.fillMaxWidth().padding(top = 1.5.dp, bottom = 7.5.dp), verticalAlignment = Alignment.CenterVertically) {
             MonthArrow(NeoIcons.ChevronLeft, "Mois précédent") { month = month.minusMonths(1) }
             Text(
