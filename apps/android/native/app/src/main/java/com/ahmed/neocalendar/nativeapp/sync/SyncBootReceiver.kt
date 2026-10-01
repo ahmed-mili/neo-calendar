@@ -3,7 +3,7 @@ package com.ahmed.neocalendar.nativeapp.sync
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.ahmed.neocalendar.core.sync.RunMode
+import com.ahmed.neocalendar.core.sync.startsAtBoot
 import com.ahmed.neocalendar.core.workspace.StorageMode
 import com.ahmed.neocalendar.nativeapp.WorkspaceLocation
 
@@ -15,9 +15,10 @@ import com.ahmed.neocalendar.nativeapp.WorkspaceLocation
 class SyncBootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
+        // Les réglages se lisent sans créer le chef d'orchestre : sa création lance elle-même le moteur et le service, ce qui
+        // ignorerait « Démarrage automatique » et jouerait en plein lancement de l'app quand ce récepteur est réveillé alors.
+        if (!SyncSettingsStore(context).value.startsAtBoot()) return
         if (WorkspaceLocation.mode(context) != StorageMode.Integrated) return
-        val controller = SyncController.get(context)
-        val s = controller.settings.value
-        if (s.configured && s.autoStart && s.runMode == RunMode.LikeFork && !s.quit) controller.reconcile()
+        SyncController.get(context).reconcile()
     }
 }

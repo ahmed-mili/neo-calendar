@@ -13,3 +13,6 @@ data class SyncSettings(
     /** « Quitter » appuyé : le moteur reste arrêté jusqu'au prochain lancement de l'app. */
     val quit: Boolean = false,
 )
+
+/** Le moteur repart à l'allumage (ou après une mise à jour de l'app) : appareil appairé, démarrage automatique, mode « Comme Syncthing-Fork », pas de « Quitter ». */
+fun SyncSettings.startsAtBoot(): Boolean = configured && autoStart && runMode == RunMode.LikeFork && !quit
