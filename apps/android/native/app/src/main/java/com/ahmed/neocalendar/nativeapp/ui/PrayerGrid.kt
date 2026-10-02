@@ -48,18 +48,6 @@ fun prayerClock(minutes: Int, timeFormat24h: Boolean): String {
     return "${if (hour % 12 == 0) 12 else hour % 12}:$minute ${if (hour < 12) "AM" else "PM"}"
 }
 
-private fun DrawScope.softShadow(from: Offset, to: Offset, thick: Float, color: Color, blurDp: Float) {
-    drawIntoCanvas { canvas ->
-        val glow = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = color.toArgb()
-            strokeWidth = thick
-            strokeCap = android.graphics.Paint.Cap.ROUND
-            maskFilter = android.graphics.BlurMaskFilter((blurDp / 2f * density - 0.5f) / 0.57735f, android.graphics.BlurMaskFilter.Blur.NORMAL)
-        }
-        canvas.nativeCanvas.drawLine(from.x, from.y, to.x, to.y, glow)
-    }
-}
-
 /**
  * Les horaires de prière sur la grille (`.nc-prayer-line-full`, `.nc-prayer-line`) : un filet de 1 dp à 30 % de la couleur en travers de
  * toutes les colonnes, et sur la colonne du jour de la prière un trait de 2 dp, bouts arrondis, ombre `0 0 3px`, avec son tiret de 2 x 6
@@ -90,8 +78,6 @@ fun PrayerLinesLayer(state: GridState, dayCount: Int, lines: List<PrayerLineSpec
             val x = (line.date.toEpochDay() - state.origin - state.offsetDays).toFloat() * columnWidth
             if (x + columnWidth <= 0f || x >= size.width) continue
             val jumua = line.name == PrayerName.Jumua
-            softShadow(Offset(x, y), Offset(x + columnWidth, y), thick, Color.Black.copy(alpha = 0.35f), 3f)
-            if (jumua) softShadow(Offset(x, y), Offset(x + columnWidth, y), thick, color, 6f)
             if (jumua) {
                 // `background-position: p% 0` sur un fond de 2 colonnes : son bord gauche est à (1 - 2) x p colonnes, p allant de 1 à -1.
                 val start = x - shimmer * columnWidth
@@ -99,12 +85,10 @@ fun PrayerLinesLayer(state: GridState, dayCount: Int, lines: List<PrayerLineSpec
                     0f to color, 0.3f to color, 0.5f to Color.White, 0.7f to color, 1f to color,
                     startX = start, endX = start + 2f * columnWidth,
                 )
-                drawLine(brush, Offset(x, y), Offset(x + columnWidth, y), thick, StrokeCap.Round)
+                drawDayLine(x, y, columnWidth, color, brush, haloDp = 6f)
             } else {
-                drawLine(color, Offset(x, y), Offset(x + columnWidth, y), thick, StrokeCap.Round)
+                drawDayLine(x, y, columnWidth, color)
             }
-            // Le tiret du bord gauche de la colonne (`::before`).
-            drawRoundRect(color, Offset(x, y - 3.dp.toPx()), Size(2.dp.toPx(), 6.dp.toPx()), CornerRadius(1.dp.toPx()))
         }
     }
 }

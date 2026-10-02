@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -459,6 +461,37 @@ private fun GridBackground(state: GridState, dayCount: Int) {
     }
 }
 
+/**
+ * Le trait vif d'une ligne de temps sur la colonne de son jour (`.nc-now-today-line`, `.nc-now-tick`) : un segment de 2 dp, rayon 1 dp,
+ * strictement dans `[x, x + columnWidth]`, son ombre `0 0 3px rgba(0,0,0,.35)` (+ halo facultatif) sur la même forme, puis le tiret
+ * de 2 x 6 dp au bord gauche. Partagé par la ligne de l'heure et la ligne de prière. `brush` remplace la couleur du segment (reflet de la Jumu'a).
+ */
+internal fun DrawScope.drawDayLine(
+    x: Float, y: Float, columnWidth: Float, color: Color,
+    brush: Brush? = null, haloDp: Float = 0f,
+) {
+    val thick = 2.dp.toPx()
+    val radius = 1.dp.toPx()
+    val top = y - thick / 2f
+    fun shadow(c: Color, blurDp: Float, l: Float, t: Float, w: Float, h: Float) = drawIntoCanvas { canvas ->
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = c.toArgb()
+            // Le sigma d'un flou de `blurDp` px CSS est blurDp / 2.
+            maskFilter = android.graphics.BlurMaskFilter((blurDp / 2f * density - 0.5f) / 0.57735f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+        }
+        canvas.nativeCanvas.drawRoundRect(l, t, l + w, t + h, radius, radius, paint)
+    }
+    shadow(Color.Black.copy(alpha = 0.35f), 3f, x, top, columnWidth, thick)
+    if (haloDp > 0f) shadow(color, haloDp, x, top, columnWidth, thick)
+    val corner = CornerRadius(radius)
+    if (brush != null) drawRoundRect(brush, Offset(x, top), Size(columnWidth, thick), corner)
+    else drawRoundRect(color, Offset(x, top), Size(columnWidth, thick), corner)
+    val tickTop = y - 3.dp.toPx()
+    val tickSize = Size(2.dp.toPx(), 6.dp.toPx())
+    shadow(Color.Black.copy(alpha = 0.35f), 3f, x, tickTop, tickSize.width, tickSize.height)
+    drawRoundRect(color, Offset(x, tickTop), tickSize, corner)
+}
+
 /** L'heure actuelle, au-dessus des évènements (z-index 5 et 6 de l'ancienne) : un filet pâle, un trait vif et ombré sur la colonne d'aujourd'hui. */
 @Composable
 private fun NowLine(state: GridState, dayCount: Int, zone: ZoneId) {
@@ -474,20 +507,7 @@ private fun NowLine(state: GridState, dayCount: Int, zone: ZoneId) {
         if (y in 0f..size.height) {
             drawLine(Neo.Today.copy(alpha = 0.3f), Offset(0f, y), Offset(size.width, y), hairline)
             if (todayX + columnWidth > 0f && todayX < size.width) {
-                val thick = 2.dp.toPx()
-                drawIntoCanvas { canvas ->
-                    // `0 0 3px rgba(0,0,0,.35)` : le sigma d'un flou de 3 px est 1,5.
-                    val glow = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-                        color = Color.Black.copy(alpha = 0.35f).toArgb()
-                        strokeWidth = thick
-                        strokeCap = android.graphics.Paint.Cap.ROUND
-                        maskFilter = android.graphics.BlurMaskFilter((1.5f * density - 0.5f) / 0.57735f, android.graphics.BlurMaskFilter.Blur.NORMAL)
-                    }
-                    canvas.nativeCanvas.drawLine(todayX, y, todayX + columnWidth, y, glow)
-                }
-                drawLine(Neo.Today, Offset(todayX, y), Offset(todayX + columnWidth, y), thick, StrokeCap.Round)
-                // Le tiret (`nc-now-tick`) : 2 x 6 dp, rayon 1, au bord gauche de la colonne.
-                drawRoundRect(Neo.Today, Offset(todayX, y - 3.dp.toPx()), Size(2.dp.toPx(), 6.dp.toPx()), CornerRadius(1.dp.toPx()))
+                drawDayLine(todayX, y, columnWidth, Neo.Today)
             }
         }
     }
