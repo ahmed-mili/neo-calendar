@@ -125,14 +125,8 @@ fun writeEvent(
         return written()
     }
     if (target != null || clash) name = uniqueName(storage, dir, name)
-    val created = storage.createFile(dir, name, MARKDOWN_MIME)
-    try {
-        storage.writeText(created, contents)
-    } catch (e: Exception) {
-        // Pas de note vide laissée à Syncthing ; la note précédente n'a pas été touchée.
-        runCatching { storage.delete(created) }
-        throw e
-    }
+    // Jamais de fichier vide visible de Syncthing ; la note précédente n'est pas touchée si l'écriture échoue.
+    storage.createFileWithText(dir, name, MARKDOWN_MIME, contents)
     if (old != null) storage.delete(old)
     return written()
 }
@@ -184,7 +178,8 @@ private fun isProtectedFolder(relative: String): Boolean {
 fun deleteFolder(storage: WritableWorkspaceStorage, relative: String) {
     if (isProtectedFolder(relative)) throw IllegalArgumentException("Ce dossier n'est pas un calendrier : il ne peut pas être supprimé.")
     val path = findPath(storage, relative) ?: return
-    if (storage.list(path).isNotEmpty()) throw IllegalStateException("Ce calendrier n'est pas vide.")
+    // Les artefacts de synchro (marqueur, temporaires, copies de conflit) ne sont pas des notes : ils ne retiennent pas le calendrier.
+    if (storage.list(path).any { !isSyncArtifact(it.name) }) throw IllegalStateException("Ce calendrier n'est pas vide.")
     storage.delete(path)
 }
 

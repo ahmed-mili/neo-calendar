@@ -37,7 +37,7 @@ class NewInstallTest {
     }
 
     @Test fun `une app deja mise a jour n'est pas une nouvelle installation`() {
-        assertFalse(isGenuineNewInstall(fresh.copy(lastUpdateTime = 2_000L)))
+        assertFalse(isGenuineNewInstall(fresh.copy(lastUpdateTime = 2_000_000L)))
     }
 
     @Test fun `un dossier vide en chaine vide compte comme absent`() {
@@ -48,5 +48,11 @@ class NewInstallTest {
         assertFalse(mayPickExternalTree(StorageMode.Integrated))
         assertTrue(mayPickExternalTree(StorageMode.External))
         assertTrue(mayPickExternalTree(null))
+    }
+
+    @Test fun `quelques secondes d'ecart entre installation et mise a jour restent une nouvelle installation`() {
+        assertTrue(isGenuineNewInstall(fresh.copy(lastUpdateTime = 1_000L + 3_000L)))
+        assertFalse(isGenuineNewInstall(fresh.copy(lastUpdateTime = 1_000L + 60_000L)))
+        assertFalse(isGenuineNewInstall(fresh.copy(lastUpdateTime = 1_000L - 60_000L)))
     }
 }

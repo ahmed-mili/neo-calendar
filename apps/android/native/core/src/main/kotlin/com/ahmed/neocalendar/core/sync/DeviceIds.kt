@@ -26,12 +26,12 @@ object DeviceIds {
 
     /**
      * L'identifiant mis au format affiché, ou null s'il est invalide. Comme Syncthing : majuscules,
-     * tirets et espaces ignorés, 0 / 1 / 8 lus O / I / B (fautes de frappe). Seule la forme à 56
+     * tirets et tous les blancs ignorés, 0 / 1 / 8 lus O / I / B (fautes de frappe). Seule la forme à 56
      * caractères est acceptée : sans caractères de contrôle, une faute de frappe passerait.
      */
     fun normalize(raw: String): String? {
         val compact = raw.trim().uppercase(Locale.ROOT)
-            .replace("-", "").replace(" ", "")
+            .replace(Regex("[-\\s]"), "")
             .replace('0', 'O').replace('1', 'I').replace('8', 'B')
         if (compact.length != 56) return null
         for (i in 0 until 4) {

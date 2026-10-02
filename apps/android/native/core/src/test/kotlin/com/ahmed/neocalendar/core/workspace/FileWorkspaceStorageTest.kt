@@ -140,4 +140,25 @@ class FileWorkspaceStorageTest {
         }
         assertTrue(tmp.root.exists())
     }
+
+    @Test fun `creer avec son texte est atomique, sans temporaire, accents compris`() {
+        val s = storage()
+        s.createDirectory("", "Cal")
+        assertEquals("Cal/n.md", s.createFileWithText("Cal", "n.md", "text/markdown", "é\n"))
+        assertEquals("é\n", s.readText("Cal/n.md"))
+        assertTrue(leftovers().isEmpty())
+    }
+
+    @Test fun `creer avec son texte refuse un nom pris et laisse l'existant intact`() {
+        val s = storage()
+        s.createFile("", "n.md", "text/markdown")
+        s.writeText("n.md", "ancien")
+        try {
+            s.createFileWithText("", "n.md", "text/markdown", "neuf")
+            fail()
+        } catch (_: IOException) {
+        }
+        assertEquals("ancien", s.readText("n.md"))
+        assertTrue(leftovers().isEmpty())
+    }
 }

@@ -24,6 +24,22 @@ interface WritableWorkspaceStorage : WorkspaceStorage {
     /** Crée un fichier vide dans un dossier qui existe ; le nom doit être libre. */
     fun createFile(relativeDir: String, name: String, mimeType: String): String
 
+    /**
+     * Crée un fichier avec son contenu ; le nom doit être libre. Par défaut en deux temps (création puis
+     * écriture, le fichier vide est retiré si l'écriture échoue) ; un stockage sur vrai chemin l'écrit
+     * d'un bloc (temporaire puis renommage atomique).
+     */
+    fun createFileWithText(relativeDir: String, name: String, mimeType: String, text: String): String {
+        val created = createFile(relativeDir, name, mimeType)
+        try {
+            writeText(created, text)
+        } catch (e: Exception) {
+            runCatching { delete(created) }
+            throw e
+        }
+        return created
+    }
+
     /** Crée un sous-dossier ; le nom doit être libre. */
     fun createDirectory(relativeDir: String, name: String): String
 

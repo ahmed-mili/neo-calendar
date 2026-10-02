@@ -52,4 +52,10 @@ class DeviceIdsTest {
         assertEquals('Y', DeviceIds.checkChar("P56IOI7MZJNU2"))
         assertTrue(DeviceIds.checkChar("1") == null)
     }
+
+    @Test fun `tous les blancs sont ignores, tabulations et retours a la ligne compris`() {
+        val spread = good.chunked(14).joinToString("\n\t ")
+        assertEquals(good, DeviceIds.normalize(spread))
+        assertEquals(good, DeviceIds.normalize(good.replace("-", "\r\n")))
+    }
 }

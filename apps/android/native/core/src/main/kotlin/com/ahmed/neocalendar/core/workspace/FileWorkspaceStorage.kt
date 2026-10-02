@@ -83,6 +83,16 @@ class FileWorkspaceStorage(private val root: File) : BinaryWorkspaceStorage {
         return child(relativeDir, name)
     }
 
+    override fun createFileWithText(relativeDir: String, name: String, mimeType: String, text: String): String {
+        requireSimpleName(name)
+        val dir = resolve(relativeDir)
+        if (!dir.isDirectory) throw IOException("Dossier introuvable : $relativeDir")
+        val target = File(dir, name)
+        if (target.exists()) throw IOException("Le nom est déjà pris : $name")
+        atomicWrite(target) { it.write(text.toByteArray(Charsets.UTF_8)) }
+        return child(relativeDir, name)
+    }
+
     override fun createDirectory(relativeDir: String, name: String): String {
         requireSimpleName(name)
         val dir = resolve(relativeDir)

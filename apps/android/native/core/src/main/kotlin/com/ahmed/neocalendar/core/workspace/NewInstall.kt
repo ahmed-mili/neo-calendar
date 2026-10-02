@@ -1,5 +1,8 @@
 package com.ahmed.neocalendar.core.workspace
 
+/** Le système pose parfois `lastUpdateTime` quelques secondes après `firstInstallTime` à l'installation même. */
+private const val INSTALL_UPDATE_TOLERANCE_MS = 5_000L
+
 /** Ce que l'app sait d'elle-même au premier lancement ; rien n'est lu sur le disque des notes. */
 data class InstallFacts(
     val storedMode: String?,
@@ -21,7 +24,7 @@ fun isGenuineNewInstall(facts: InstallFacts): Boolean =
         facts.treeUri.isNullOrEmpty() &&
         facts.persistedGrantCount == 0 &&
         !facts.oldAppInstalled &&
-        facts.firstInstallTime == facts.lastUpdateTime
+        kotlin.math.abs(facts.lastUpdateTime - facts.firstInstallTime) <= INSTALL_UPDATE_TOLERANCE_MS
 
 /** Le choix d'un dossier externe est refusé en mode intégré : il passerait en `External` sans copier les notes. */
 fun mayPickExternalTree(mode: StorageMode?): Boolean = mode != StorageMode.Integrated

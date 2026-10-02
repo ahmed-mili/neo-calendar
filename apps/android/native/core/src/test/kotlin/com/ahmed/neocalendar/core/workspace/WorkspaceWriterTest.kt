@@ -295,4 +295,38 @@ class WorkspaceWriterTest {
         val tree = MemoryTree().file("Cal/dentiste.md", "1")
         assertEquals("Cal/Dentiste.md", writeEvent(tree, "Cal", "Dentiste.md", "Cal/dentiste.md", "neuf"))
     }
+
+    @Test fun aCalendarHoldingOnlySyncArtifactsCountsAsEmpty() {
+        val tree = MemoryTree().file("Essai/.stfolder").file("Essai/n.sync-conflict-20260101-120000-ABCDEFG.md")
+            .file("Essai/.neo-tmp-abc").file("Essai/.syncthing.x.tmp")
+        deleteFolder(tree, "Essai")
+        assertFalse("Essai" in tree.dirs)
+    }
+
+    @Test fun aCalendarWithARealNoteIsStillNotEmpty() {
+        val tree = MemoryTree().file("Essai/.neo-tmp-abc").file("Essai/n.md")
+        try {
+            deleteFolder(tree, "Essai")
+            fail()
+        } catch (e: IllegalStateException) {
+            assertEquals("Ce calendrier n'est pas vide.", e.message)
+        }
+    }
+
+    // Une note neuve ne passe jamais par un fichier vide visible : temporaire puis renommage atomique.
+    @Test fun aNewNoteIsNeverCreatedEmptyOnARealFolder() {
+        val dir = java.nio.file.Files.createTempDirectory("neo").toFile()
+        try {
+            val real = FileWorkspaceStorage(dir)
+            real.createDirectory("", "Cal")
+            val noEmptyFile = object : WritableWorkspaceStorage by real {
+                override fun createFile(relativeDir: String, name: String, mimeType: String): String =
+                    throw AssertionError("fichier vide créé : $name")
+            }
+            assertEquals("Cal/n.md", writeEvent(noEmptyFile, "Cal", "n.md", "", "contenu"))
+            assertEquals("contenu", real.readText("Cal/n.md"))
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
 }
