@@ -272,4 +272,27 @@ class WorkspaceWriterTest {
         assertEquals(setOf("A/n.md"), tree.files.keys)
         assertEquals("ancien", tree.files["A/n.md"])
     }
+
+    // Windows et le SAF ne distinguent pas la casse : deux noms qui ne diffèrent que par elle ne doivent pas coexister.
+    @Test fun namesDifferingOnlyByCaseGetADistinctSuffix() {
+        val tree = MemoryTree().dir("Cal")
+        assertEquals("Cal/2026-10-01 Dentiste.md", writeEvent(tree, "Cal", "2026-10-01 Dentiste.md", "", "a"))
+        assertEquals("Cal/2026-10-01 dentiste (1).md", writeEvent(tree, "Cal", "2026-10-01 dentiste.md", "", "b"))
+        assertEquals(setOf("Cal/2026-10-01 Dentiste.md", "Cal/2026-10-01 dentiste (1).md"), tree.files.keys)
+    }
+
+    @Test fun uniqueNameIgnoresCase() {
+        val tree = MemoryTree().file("Cal/Dentiste.md")
+        assertEquals("dentiste (1).md", uniqueName(tree, "Cal", "dentiste.md"))
+    }
+
+    @Test fun renamingANoteToAnotherNotesNameIgnoringCaseGetsASuffix() {
+        val tree = MemoryTree().file("Cal/Dentiste.md", "1").file("Cal/a.md", "2")
+        assertEquals("Cal/dentiste (1).md", writeEvent(tree, "Cal", "dentiste.md", "Cal/a.md", "neuf"))
+    }
+
+    @Test fun changingTheCaseOfTheNotesOwnNameIsNotAClash() {
+        val tree = MemoryTree().file("Cal/dentiste.md", "1")
+        assertEquals("Cal/Dentiste.md", writeEvent(tree, "Cal", "Dentiste.md", "Cal/dentiste.md", "neuf"))
+    }
 }

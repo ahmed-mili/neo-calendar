@@ -30,16 +30,20 @@ private fun child(dir: String, name: String) = if (dir.isEmpty()) name else "$di
 private fun find(storage: WorkspaceStorage, dir: String, name: String): String? =
     if (storage.list(dir).any { it.name == name }) child(dir, name) else null
 
+/** Le même nom à la casse près (Windows et le SAF ne distinguent pas la casse : « Dentiste » et « dentiste » seraient le même fichier). */
+private fun findIgnoringCase(storage: WorkspaceStorage, dir: String, name: String): String? =
+    storage.list(dir).firstOrNull { it.name.equals(name, ignoreCase = true) }?.let { child(dir, it.name) }
+
 /** Le premier nom libre : « nom (1).md », « nom (2).md »... ; le point initial d'un fichier caché n'est pas une extension. */
 fun uniqueName(storage: WorkspaceStorage, dir: String, name: String): String {
-    if (find(storage, dir, name) == null) return name
+    if (findIgnoringCase(storage, dir, name) == null) return name
     val dot = name.lastIndexOf('.')
     val stem = if (dot > 0) name.substring(0, dot) else name
     val ext = if (dot > 0) name.substring(dot) else ""
     var i = 1
     while (true) {
         val candidate = "$stem ($i)$ext"
-        if (find(storage, dir, candidate) == null) return candidate
+        if (findIgnoringCase(storage, dir, candidate) == null) return candidate
         i++
     }
 }
@@ -101,6 +105,8 @@ fun writeEvent(
     else if (calendarPath.isEmpty()) "" else findPath(storage, calendarPath)
         ?: throw IllegalStateException("Calendrier introuvable : $calendarPath")
     val target = find(storage, dir, name)
+    // Un autre fichier au même nom à la casse près : sur un stockage insensible à la casse, ce serait le même.
+    val clash = target == null && findIgnoringCase(storage, dir, name).let { it != null && it != old }
     fun written() = child(dir, name)
 
     if (old != null && sameCalendar) {
@@ -108,7 +114,7 @@ fun writeEvent(
             storage.writeText(old, contents)
             return written()
         }
-        if (target != null) name = uniqueName(storage, dir, name)
+        if (target != null || clash) name = uniqueName(storage, dir, name)
         val renamed = storage.rename(old, name)
         storage.writeText(renamed, contents)
         return written()
@@ -118,7 +124,7 @@ fun writeEvent(
         storage.writeText(target, contents)
         return written()
     }
-    if (target != null) name = uniqueName(storage, dir, name)
+    if (target != null || clash) name = uniqueName(storage, dir, name)
     val created = storage.createFile(dir, name, MARKDOWN_MIME)
     try {
         storage.writeText(created, contents)
