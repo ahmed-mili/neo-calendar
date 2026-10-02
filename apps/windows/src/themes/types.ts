@@ -1,18 +1,10 @@
 export const THEME_IDS = [
     "catppuccin-mocha",
-    "tokyo-night",
-    "absolutely",
-    "ayu",
     "github",
-    "linear",
-    "lobster",
-    "matrix",
     "one",
-    "oscurange",
-    "raycast",
+    "ayu",
     "rose-pine",
     "vercel",
-    "vscode-plus",
 ] as const;
 
 export type ThemeId = (typeof THEME_IDS)[number];

@@ -70,6 +70,12 @@ describe("normalizeDesktopPreferences", () => {
         });
     });
 
+    it("un thème enregistré puis retiré retombe sur Catppuccin", () => {
+        expect(
+            normalizeDesktopPreferences({ themeId: "lobster" }).themeId
+        ).toBe("catppuccin-mocha");
+    });
+
     it("keeps the vaults that were configured", () => {
         expect(
             normalizeDesktopPreferences({

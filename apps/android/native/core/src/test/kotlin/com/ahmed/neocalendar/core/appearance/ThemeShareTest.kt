@@ -7,18 +7,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ThemeShareTest {
-    private val effective = effectiveThemeAppearance(getTheme("tokyo-night"), AppearancePreferences())
+    private val effective = effectiveThemeAppearance(getTheme("github"), AppearancePreferences())
 
     @Test fun `le texte copie a le prefixe et les cles de l'ancienne`() {
-        val text = themeShareText("tokyo-night", effective)
-        assertTrue(text.startsWith("codex-theme-v1:{\"codeThemeId\":\"tokyo-night\",\"theme\":{\"accent\":\"#3d59a1\",\"contrast\":60,"))
+        val text = themeShareText("github", effective)
+        assertTrue(text.startsWith("codex-theme-v1:{\"codeThemeId\":\"github\",\"theme\":{\"accent\":\"${getTheme("github").accent}\",\"contrast\":60,"))
         assertTrue(text.endsWith("\"variant\":\"dark\"}"))
     }
 
     @Test fun `copier puis importer redonne le theme`() {
         val custom = effective.copy(accent = "#112233", contrast = 20, translucentSidebar = false, wallpaperId = "none")
-        val back = parseThemeShare(themeShareText("tokyo-night", custom)) as ThemeImport.Ok
-        assertEquals("tokyo-night", back.theme.themeId)
+        val back = parseThemeShare(themeShareText("github", custom)) as ThemeImport.Ok
+        assertEquals("github", back.theme.themeId)
         assertEquals("#112233", back.theme.accent)
         assertEquals(20, back.theme.contrast)
         assertEquals(false, back.theme.translucentSidebar)
@@ -26,7 +26,7 @@ class ThemeShareTest {
     }
 
     @Test fun `la copie du theme ne porte plus de fond`() {
-        val text = themeShareText("tokyo-night", effective)
+        val text = themeShareText("github", effective)
         assertFalse(text.contains("wallpaperId"))
     }
 
@@ -39,6 +39,10 @@ class ThemeShareTest {
     @Test fun `un texte qui n'est pas du json est invalide`() {
         assertEquals(ThemeImport.Invalid, parseThemeShare("n'importe quoi"))
         assertEquals(ThemeImport.Invalid, parseThemeShare("codex-theme-v1:[1,2]"))
+    }
+
+    @Test fun `un theme retire n'est pas installe`() {
+        assertEquals(ThemeImport.NotInstalled, parseThemeShare("""{"codeThemeId":"tokyo-night"}"""))
     }
 
     @Test fun `un theme inconnu n'est pas installe`() {

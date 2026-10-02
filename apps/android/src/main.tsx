@@ -11,7 +11,6 @@ import "@fontsource-variable/jetbrains-mono/wght.css";
 import "../../windows/src/themes/fonts.css";
 import App from "../../windows/src/App";
 import "../../windows/src/themes/catppuccin-mocha.css";
-import "../../windows/src/themes/tokyo-night.css";
 import "../../windows/src/themes/codex-themes.css";
 import "../../../src/ui/calendar/Calendar.css";
 import "../../windows/src/App.css";

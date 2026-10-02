@@ -39,11 +39,11 @@ class AppearancePreferencesTest {
 
     @Test fun `ecrire puis relire redonne la meme chose`() {
         val start = AppearancePreferences(AppearanceMode.Light, false, 30)
-            .withCustomization("tokyo-night", ThemeCustomization(accent = "#112233", uiFont = "Inter", translucentSidebar = true, contrast = 61, wallpaperId = "none"))
+            .withCustomization("github", ThemeCustomization(accent = "#112233", uiFont = "Inter", translucentSidebar = true, contrast = 61, wallpaperId = "none"))
         val text = start.toJsonText()
         assertEquals(start, parseAppearancePreferences(text))
         assertEquals(
-            """{"mode":"light","translucentSidebar":false,"contrast":30,"themeOverrides":{"tokyo-night":{"accent":"#112233","uiFont":"Inter","translucentSidebar":true,"contrast":61,"wallpaperId":"none"}}}""",
+            """{"mode":"light","translucentSidebar":false,"contrast":30,"themeOverrides":{"github":{"accent":"#112233","uiFont":"Inter","translucentSidebar":true,"contrast":61,"wallpaperId":"none"}}}""",
             text,
         )
     }
@@ -178,11 +178,22 @@ class AppearancePreferencesTest {
         assertEquals("""{"themeId":"one"}""", desktopPreferencesWithTheme("corrompu{", "one"))
     }
 
-    @Test fun `le registre a les quatorze themes de l'ancienne`() {
-        assertEquals(14, THEMES.size)
-        assertEquals("catppuccin-mocha", THEMES.first().id)
+    @Test fun `le registre garde les six themes choisis`() {
+        assertEquals(listOf("catppuccin-mocha", "github", "one", "ayu", "rose-pine", "vercel"), THEMES.map { it.id })
         assertEquals("ayu", getTheme("ayu").id)
         assertEquals("catppuccin-mocha", getTheme("zzz").id)
+        for (retired in listOf("tokyo-night", "absolutely", "linear", "lobster", "matrix", "oscurange", "raycast", "vscode-plus")) {
+            assertEquals("catppuccin-mocha", getTheme(retired).id)
+            assertEquals("catppuccin-mocha", themeIdOfDesktopPreferences("""{"themeId":"$retired"}"""))
+        }
+    }
+
+    @Test fun `un theme retire garde son fond d'avant en passant sur Catppuccin`() {
+        val p = parseAppearancePreferences("""{"themeOverrides":{"tokyo-night":{"wallpaperId":"golden-summit-portrait"}}}""")
+        assertEquals(
+            "golden-summit-portrait",
+            effectiveThemeAppearance(getTheme("tokyo-night"), p, savedThemeId = "tokyo-night").wallpaperId,
+        )
     }
 
     @Test fun `enregistrer sans rien changer ne laisse pas de personnalisation`() {

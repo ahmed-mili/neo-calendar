@@ -3781,12 +3781,6 @@ body[class*="nc-theme-"] :where(code, pre, kbd, samp) {
     ) !important;
 }
 
-/* Satoshi is used when installed locally. Inter Variable is the guaranteed
-   bundled fallback, so the Lobster theme never falls back to a serif font. */
-.nc-theme-lobster {
-    --nc-ui-font: Satoshi, "Inter Variable", Inter, "Segoe UI", sans-serif;
-}
-
 /* ── Theme wallpaper registry and custom colour picker ──────────────── */
 
 .nc-theme-color-popover {
