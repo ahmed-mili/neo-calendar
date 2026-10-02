@@ -1,4 +1,11 @@
-import { normalizeDesktopPreferences } from "./preferences";
+import {
+    normalizeDesktopPreferences,
+    withChosenTheme,
+} from "./preferences";
+import {
+    normalizeAppearancePreferences,
+    resolveWallpaperId,
+} from "../themes/appearancePreferences";
 import {
     defaultDesktopWorkspacePreferences,
     parseDesktopWorkspacePreferences,
@@ -63,6 +70,7 @@ describe("normalizeDesktopPreferences", () => {
         ).toEqual({
             dataFolder: null,
             themeId: "catppuccin-mocha",
+            legacyThemeId: "unknown",
             vaultFolders: [],
             disabledVaults: [],
             startupDefaultApplied: false,
@@ -70,10 +78,54 @@ describe("normalizeDesktopPreferences", () => {
         });
     });
 
-    it("un thème enregistré puis retiré retombe sur Catppuccin", () => {
+    it("un thème enregistré puis retiré s'affiche en Catppuccin ET garde son id d'origine", () => {
+        const prefs = normalizeDesktopPreferences({ themeId: "lobster" });
+        expect(prefs.themeId).toBe("catppuccin-mocha");
+        expect(prefs.legacyThemeId).toBe("lobster");
         expect(
-            normalizeDesktopPreferences({ themeId: "lobster" }).themeId
-        ).toBe("catppuccin-mocha");
+            normalizeDesktopPreferences({ themeId: "github" }).legacyThemeId
+        ).toBeUndefined();
+        expect(
+            "legacyThemeId" in normalizeDesktopPreferences({})
+        ).toBe(false);
+    });
+
+    it("de bout en bout : le fond de l'ancien thème survit à la lecture et à une sauvegarde", () => {
+        const stored = {
+            themeId: "tokyo-night",
+            dataFolder: "C:\data",
+        };
+        const appearance = normalizeAppearancePreferences({
+            themeOverrides: {
+                "tokyo-night": { wallpaperId: "golden-summit" },
+            },
+        });
+        const read = normalizeDesktopPreferences(stored);
+        const savedThemeId = read.legacyThemeId ?? read.themeId;
+        expect(read.themeId).toBe("catppuccin-mocha");
+        expect(resolveWallpaperId(appearance, savedThemeId)).toBe(
+            "golden-summit"
+        );
+        // Sauvegarde d'un autre réglage (comme useDesktopBridge), puis relecture.
+        const afterSave = normalizeDesktopPreferences(
+            JSON.parse(JSON.stringify({ ...read, dataFolder: "D:\autre" }))
+        );
+        expect(afterSave.legacyThemeId).toBe("tokyo-night");
+        expect(
+            resolveWallpaperId(
+                appearance,
+                afterSave.legacyThemeId ?? afterSave.themeId
+            )
+        ).toBe("golden-summit");
+    });
+
+    it("choisir un thème efface l'id d'origine", () => {
+        const read = normalizeDesktopPreferences({ themeId: "lobster" });
+        const chosen = normalizeDesktopPreferences(
+            JSON.parse(JSON.stringify(withChosenTheme(read, "catppuccin-mocha")))
+        );
+        expect(chosen.legacyThemeId).toBeUndefined();
+        expect(chosen.themeId).toBe("catppuccin-mocha");
     });
 
     it("keeps the vaults that were configured", () => {

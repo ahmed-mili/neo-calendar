@@ -37,6 +37,7 @@ import {
     ThemeCustomization,
     getEffectiveThemeAppearance,
     loadAppearancePreferences,
+    pinWallpaperId,
     resetThemeCustomization,
     resolveWallpaperId,
     saveAppearancePreferences,
@@ -191,6 +192,8 @@ export interface DesktopSettingsProps {
     isChoosingVaultFolder?: boolean;
     isScanningVaults?: boolean;
     themeId: ThemeId;
+    /** Identifiant d'un thème retiré (`themeId` est alors Catppuccin) : il sert au fond hérité. */
+    legacyThemeId?: string;
     preferences: DesktopWorkspacePreferences;
     calendars: DesktopSettingsCalendar[];
     /** Timed entries still marked as tasks by the old `completed: false` bug. */
@@ -275,6 +278,7 @@ export default function DesktopSettings({
     isChoosingVaultFolder = false,
     isScanningVaults = false,
     themeId,
+    legacyThemeId,
     preferences,
     calendars,
     misfiledEventCount,
@@ -524,7 +528,11 @@ export default function DesktopSettings({
     };
 
     const resetCurrentTheme = () => {
-        const next = resetThemeCustomization(appearance, themeId);
+        // Réinitialiser les couleurs ne touche pas au fond hérité d'un thème retiré : on le fige d'abord.
+        const next = resetThemeCustomization(
+            pinWallpaperId(appearance, legacyThemeId ?? themeId),
+            themeId
+        );
         setAppearance(next);
         setThemeDraft(createThemeDraft(themeId, next));
         setThemeDirty(false);
@@ -1403,7 +1411,10 @@ export default function DesktopSettings({
      * curseur, une pile de polices) prend la seconde ligne en entier plutôt que
      * de se serrer dans la colonne de droite.
      */
-    const currentWallpaperId = resolveWallpaperId(appearance, currentTheme.id);
+    const currentWallpaperId = resolveWallpaperId(
+        appearance,
+        legacyThemeId ?? currentTheme.id
+    );
     const renderAppearance = () => (
         <div className="nc-set-groups nc-settings__appearance">
             <SettingsGroup title={t("Theme")}>

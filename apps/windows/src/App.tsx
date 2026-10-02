@@ -76,7 +76,11 @@ export default function App() {
         route,
     } = useDesktopBridge();
 
+    // Le thème retiré est déjà remplacé par Catppuccin dans `themeId` : son
+    // identifiant d'origine, gardé à part, ne sert qu'à retrouver son fond.
+    const legacyThemeId = readStringProperty(preferences, "legacyThemeId");
     const savedThemeId =
+        legacyThemeId ??
         readStringProperty(preferences, "themeId") ??
         readStringProperty(preferences, "theme");
     const theme = getTheme(savedThemeId);
@@ -334,6 +338,7 @@ export default function App() {
                         isChoosingVaultFolder={isChoosingVaultFolder}
                         isScanningVaults={isScanningVaults}
                         themeId={theme.id}
+                        legacyThemeId={legacyThemeId}
                         onThemeChange={changeTheme}
                     />
                 </DesktopErrorBoundary>

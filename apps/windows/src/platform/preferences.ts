@@ -4,6 +4,9 @@ import { ThemeId } from "../themes/types";
 export interface DesktopPreferences {
     dataFolder: string | null;
     themeId: ThemeId;
+    /** L'identifiant lu quand le thème enregistré n'existe plus (`themeId` est alors Catppuccin). Il ne sert qu'à retrouver
+     *  le fond que cette personne avait ; les sauvegardes le gardent, choisir un thème l'efface. */
+    legacyThemeId?: string;
     vaultFolders: string[];
     disabledVaults: string[];
     /** Le démarrage automatique a déjà été posé une première fois. Sans ce
@@ -70,15 +73,38 @@ export function normalizeDesktopPreferences(
     const themeId = getTheme(
         typeof input.themeId === "string" ? input.themeId : DEFAULT_THEME_ID
     ).id;
+    // Le thème lu n'existe plus : on garde son identifiant (ou celui déjà gardé par une sauvegarde précédente).
+    const rawThemeId =
+        typeof input.themeId === "string" && input.themeId.trim()
+            ? input.themeId
+            : undefined;
+    const keptLegacy =
+        rawThemeId === themeId &&
+        typeof input.legacyThemeId === "string" &&
+        input.legacyThemeId.trim()
+            ? input.legacyThemeId
+            : undefined;
+    const legacyThemeId =
+        rawThemeId && rawThemeId !== themeId ? rawThemeId : keptLegacy;
 
     return {
         dataFolder,
         themeId,
+        ...(legacyThemeId ? { legacyThemeId } : {}),
         vaultFolders: migrateLegacyVaultFolders(input),
         disabledVaults: normalizePathList(input.disabledVaults),
         startupDefaultApplied: input.startupDefaultApplied === true,
         trayHintSeen: input.trayHintSeen === true,
     };
+}
+
+/** Les préférences avec un thème choisi : l'identifiant d'origine d'un thème retiré n'a plus lieu d'être. */
+export function withChosenTheme(
+    preferences: DesktopPreferences,
+    themeId: ThemeId
+): DesktopPreferences {
+    const { legacyThemeId: _dropped, ...rest } = preferences;
+    return { ...rest, themeId };
 }
 
 export function isSameDesktopPath(left: string, right: string): boolean {

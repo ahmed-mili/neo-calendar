@@ -8,6 +8,7 @@ import {
     DesktopPreferences,
     isSameDesktopPath,
     normalizeDesktopPreferences,
+    withChosenTheme,
 } from "./preferences";
 import { ThemeId } from "../themes/types";
 import { selectLastDesktopRoute } from "./routeDelivery";
@@ -234,7 +235,7 @@ export function useDesktopBridge() {
             setError(null);
             try {
                 const current = preferences ?? (await loadDesktopPreferences());
-                await savePreferences({ ...current, themeId });
+                await savePreferences(withChosenTheme(current, themeId));
             } catch (reason) {
                 setError(getErrorMessage(reason));
             }

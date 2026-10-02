@@ -43,6 +43,36 @@ const commonProps = {
 };
 
 describe("Windows settings", () => {
+    it("coche le fond hérité d'un thème retiré (id d'origine), pas celui de Catppuccin", () => {
+        const stored = JSON.stringify({
+            mode: "dark",
+            translucentSidebar: true,
+            contrast: 50,
+            themeOverrides: {
+                "tokyo-night": { wallpaperId: "panorama-valley" },
+            },
+        });
+        const globals = globalThis as unknown as { window?: unknown };
+        const before = globals.window;
+        globals.window = {
+            localStorage: { getItem: () => stored, setItem: () => {} },
+            dispatchEvent: () => true,
+        };
+        try {
+            const html = renderToStaticMarkup(
+                <DesktopSettings
+                    open
+                    initialTab="appearance"
+                    {...commonProps}
+                    legacyThemeId="tokyo-night"
+                />
+            );
+            expect(html).toContain("Vallée panoramique");
+        } finally {
+            globals.window = before;
+        }
+    });
+
     afterEach(() => applyLanguage("fr"));
 
     it("renders nothing while settings are closed", () => {

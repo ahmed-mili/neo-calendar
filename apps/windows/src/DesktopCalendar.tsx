@@ -244,6 +244,8 @@ export interface DesktopCalendarProps {
     isChoosingVaultFolder: boolean;
     isScanningVaults: boolean;
     themeId: ThemeId;
+    /** Identifiant d'un thème retiré, pour retrouver son fond. */
+    legacyThemeId?: string;
     onThemeChange: (themeId: ThemeId) => Promise<void>;
     /** Fired once the folder has been read, so the shell can reveal the
         calendar only when it has something to show. */
@@ -667,6 +669,7 @@ export default function DesktopCalendar({
     isChoosingVaultFolder,
     isScanningVaults,
     themeId,
+    legacyThemeId,
     onThemeChange,
     onReady,
 }: DesktopCalendarProps) {
@@ -4762,6 +4765,7 @@ export default function DesktopCalendar({
                 onSetDefaultCalendar={setDefaultCalendar}
                 onCalendarColorChange={changeColor}
                 themeId={themeId}
+                legacyThemeId={legacyThemeId}
                 onThemeChange={onThemeChange}
             />
 
