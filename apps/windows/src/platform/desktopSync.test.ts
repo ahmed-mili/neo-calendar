@@ -39,6 +39,7 @@ const running = (patch: Partial<SyncStatusDto> = {}): SyncStatusDto => ({
     pairingRemainingMs: null,
     takenOver: false,
     pairingError: null,
+    deviceName: null,
     ...patch,
 });
 

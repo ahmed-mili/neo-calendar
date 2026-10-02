@@ -4730,29 +4730,12 @@ body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
     font-size: 14px;
 }
 
-/* Le geste principal de la page, à la couleur d'accent comme les autres boutons pleins. */
-.nc-sync-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 9px;
+/* « Ajouter un appareil », sous la liste de « Vos appareils » : le même bouton discret que « Partager ». */
+.nc-sync-add {
     justify-self: start;
-    padding: 10px 18px;
-    border: 0;
-    border-radius: 12px;
-    color: var(--nc-accent-text);
-    background: var(--nc-accent);
-    font-weight: 650;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: filter 100ms ease;
 }
 
-.nc-sync-primary:hover:not(:disabled) {
-    filter: brightness(1.08);
-}
-
-.nc-sync-primary:disabled {
+.nc-sync-add:disabled {
     opacity: 0.55;
     cursor: default;
 }

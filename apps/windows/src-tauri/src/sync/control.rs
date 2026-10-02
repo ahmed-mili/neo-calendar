@@ -89,6 +89,8 @@ pub struct StatusDto {
     pub taken_over: bool,
     /// Message à montrer quand l'appairage par QR code a échoué après la lecture du code (il faut un nouveau code).
     pub pairing_error: Option<String>,
+    /// Le nom de ce PC (celui que Syncthing donne à l'appareil), affiché à côté de son identifiant.
+    pub device_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -382,6 +384,7 @@ impl Controller {
                 .map(|d| d.as_millis() as u64),
             taken_over: self.read_takeover().is_some(),
             pairing_error: self.pairing_error.lock().unwrap_or_else(|e| e.into_inner()).clone(),
+            device_name: std::env::var("COMPUTERNAME").ok().filter(|name| !name.is_empty()),
         };
         let (Some(api), Some(me)) = (snapshot.api, snapshot.my_id) else { return dto };
         if let Ok(Some(folder)) = api.folders().map(|f| f.into_iter().next()) {

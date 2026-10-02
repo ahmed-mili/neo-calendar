@@ -180,7 +180,11 @@ export function SyncPageView({
 
             {live && (
                 <section className="nc-sync-section">
-                    <h3 className="nc-sync-title">{t("Device ID")}</h3>
+                    <h3 className="nc-sync-title">
+                        {status.deviceName
+                            ? `${t("Device ID")} - ${status.deviceName}`
+                            : t("Device ID")}
+                    </h3>
                     <div className="nc-sync-me">
                         <code className="nc-sync-id" title={status.myId ?? ""}>
                             {status.myId ?? "-"}
@@ -193,18 +197,6 @@ export function SyncPageView({
                         )}
                     </div>
                 </section>
-            )}
-
-            {live && (
-                <button
-                    type="button"
-                    className="nc-sync-primary"
-                    onClick={actions.startPairing}
-                    disabled={busy}
-                >
-                    <Plus size={18} />
-                    {t("Add a device")}
-                </button>
             )}
 
             {live && status.pending.length > 0 && (
@@ -248,6 +240,15 @@ export function SyncPageView({
                             ))}
                         </SettingsGroup>
                     )}
+                    <button
+                        type="button"
+                        className="nc-sync-share nc-sync-add"
+                        onClick={actions.startPairing}
+                        disabled={busy}
+                    >
+                        <Plus size={16} />
+                        {t("Add a device")}
+                    </button>
                 </section>
             )}
 

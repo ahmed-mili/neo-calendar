@@ -54,6 +54,8 @@ export interface SyncStatusDto {
     takenOver: boolean;
     /** Pourquoi le dernier appairage a échoué après la lecture du code (le code, lui, n'y figure jamais). */
     pairingError: string | null;
+    /** Le nom de ce PC, affiché à côté de son identifiant. */
+    deviceName: string | null;
 }
 
 export type SyncDetectionDto =

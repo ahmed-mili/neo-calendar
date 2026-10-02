@@ -50,6 +50,7 @@ const status = (patch: Partial<SyncStatusDto> = {}): SyncStatusDto => ({
     pairingRemainingMs: null,
     takenOver: false,
     pairingError: null,
+    deviceName: null,
     ...patch,
 });
 
@@ -90,7 +91,11 @@ describe("page Synchronisation du PC", () => {
         expect(html).toContain("Journal");
         expect(html).toContain('aria-label="Syncthing"');
         expect(html).toContain('href="https://syncthing.net"');
-        expect(html).toContain("nc-sync-primary");
+        // « Ajouter un appareil » vit dans « Vos appareils », sous la liste, en bouton discret.
+        expect(html.indexOf("Ajouter un appareil")).toBeGreaterThan(
+            html.indexOf("Pixel 8")
+        );
+        expect(html).toContain("nc-sync-add");
         expect(html).toContain("En savoir plus");
         // L'ancienne ligne du bas et le QR permanent n'existent plus.
         expect(html).not.toContain("Identifiant de ce PC");
