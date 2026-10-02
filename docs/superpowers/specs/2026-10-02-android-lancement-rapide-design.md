@@ -75,13 +75,20 @@ série sur un seul fil**, de 0,17 s à 8,11 s : un appel par fichier lu
 - Les écritures de l'app ne touchent pas la copie : la relecture qui suit
   chaque écriture voit la nouvelle date du fichier écrit et le relit.
 
-### 3.3 Rond de chargement
+### 3.3 Rond de chargement (révisé le 2026-10-02 par Ahmed)
 
-- Tant que l'état est `Loading` une fois l'écran de démarrage relâché, l'écran
-  montre, sur le fond d'écran, un indicateur circulaire qui tourne, aux
-  couleurs du thème (jeton d'accent), centré.
-- L'écran de démarrage garde son plafond de 1,5 s ; avec la copie il sera
-  relâché par la fin de la lecture, avant le plafond.
+« Au lancement de l'app on ne doit voir que le rond qui tourne ; on ne doit
+voir le fond d'écran que juste avant que l'app soit utilisable, pas pendant le
+chargement. »
+
+- L'écran de démarrage système n'a plus d'icône (icône transparente) : un
+  aplat de couleur, cédé tout de suite (plus de plafond de 1,5 s).
+- Pendant `Loading` : écran opaque de la même couleur, un indicateur
+  circulaire qui tourne au centre (jeton d'accent). Ni fond d'écran ni grille.
+- Le fond d'écran et la grille apparaissent ensemble, par un fondu court, quand
+  les données sont prêtes et l'image du fond décodée ; si le décodage tarde
+  au-delà d'environ 150 ms après les données, la grille apparaît sur l'aplat et
+  le fond suit en fondu. Jamais le fond seul avant la grille.
 
 ## 4. Erreurs
 
