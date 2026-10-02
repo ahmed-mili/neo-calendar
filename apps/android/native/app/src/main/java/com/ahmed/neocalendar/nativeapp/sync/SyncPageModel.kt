@@ -95,6 +95,23 @@ class SyncPageModel(context: Context) {
         runCatching { loadWorkspace(FileWorkspaceStorage(WorkspaceLocation.privateRoot(app))).eventFiles.size }.getOrDefault(0)
     }
 
+    /** Le dossier de notes a-t-il son propre fichier de réglages partagés ? (adopter un dossier le mettrait de côté.) */
+    suspend fun hasLocalPreferences(): Boolean = withContext(Dispatchers.IO) {
+        runCatching { com.ahmed.neocalendar.core.workspace.hasLocalPreferences(WorkspaceLocation.privateRoot(app)) }.getOrDefault(false)
+    }
+
+    /**
+     * Le fichier de réglages local est mis de côté (stockage privé, hors du dossier synchronisé, nom horodaté) avant une adoption
+     * qui apporte un autre dossier : le PC fait foi, jamais deux fichiers créés chacun de leur côté qui se disputent.
+     */
+    private fun setAsidePreferences() {
+        val root = WorkspaceLocation.privateRoot(app)
+        val aside = java.io.File(root.parentFile, "reglages-mis-de-cote")
+        val stamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
+        val moved = com.ahmed.neocalendar.nativeapp.StorageGate.writing { com.ahmed.neocalendar.core.workspace.setAsideLocalPreferences(root, aside, stamp) }
+        if (moved != null) controller.engine.note("Adoption : réglages locaux mis de côté dans ${moved.name}")
+    }
+
     /** Le journal du moteur (lecture de fichiers : jamais sur le fil principal). */
     suspend fun logText(): String = withContext(Dispatchers.IO) { controller.engine.logText() }
 
@@ -123,7 +140,10 @@ class SyncPageModel(context: Context) {
     suspend fun adopt(proposal: PendingFolder): String? = withContext(Dispatchers.IO) {
         var message: String? = null
         try {
-            val decision = setup().adopt(proposal)
+            val setup = setup()
+            val planned = setup.decide(proposal)
+            if (planned == ProposalDecision.Adopt || planned is ProposalDecision.Replace) setAsidePreferences()
+            val decision = setup.adopt(proposal)
             if (decision is ProposalDecision.Refuse) message = decision.reason else folderLost = null
         } catch (e: FolderLostException) {
             folderLost = proposal

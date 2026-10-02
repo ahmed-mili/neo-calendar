@@ -65,7 +65,7 @@ private sealed interface SyncSheet {
     data object Power : SyncSheet
     data object Log : SyncSheet
     data class Remove(val device: DeviceRow) : SyncSheet
-    data class Adopt(val row: ProposalRow, val notes: Int) : SyncSheet
+    data class Adopt(val row: ProposalRow, val notes: Int, val replacesPreferences: Boolean) : SyncSheet
 }
 
 /** La page Synchronisation (Réglages). Stockage externe : seulement le choix du mode ; stockage privé : tout le reste. */
@@ -191,7 +191,12 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
             ProposalCard(
                 shape,
                 proposal,
-                onAdopt = { scope.launch { sheet = SyncSheet.Adopt(proposal, model.localNoteCount()) } },
+                onAdopt = {
+                    scope.launch {
+                        val brings = proposal.decision == ProposalDecision.Adopt || proposal.decision is ProposalDecision.Replace
+                        sheet = SyncSheet.Adopt(proposal, model.localNoteCount(), brings && model.hasLocalPreferences())
+                    }
+                },
                 onIgnore = { scope.launch { report(model.refuseFolder(proposal.proposal)) } },
             )
         }
@@ -245,11 +250,18 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
             "${open.row.proposerName.ifBlank { "Cet appareil" }} propose le dossier « ${open.row.proposal.label.ifBlank { "Neo Calendar" }} ». " +
                 (if (open.notes == 0) "Vous n'avez pas encore de note locale : celles de cet appareil arriveront sur ce téléphone. Aucune note n'est supprimée"
                 else "Vos ${open.notes} notes locales seront fusionnées avec celles de cet appareil ; aucune note n'est supprimée") +
-                " (une note écrasée reste récupérable dans la corbeille de synchronisation pendant 30 jours).",
+                " (une note écrasée reste récupérable dans la corbeille de synchronisation pendant 30 jours)." +
+                (if (open.replacesPreferences) PREFERENCES_WARNING else ""),
             "Synchroniser", danger = false, onDismiss = { sheet = null },
         ) { scope.launch { report(model.adopt(open.row.proposal)) }; sheet = null }
     }
 }
+
+/** Les réglages partagés (`.neo-calendar/.neo-calendar.json`) existent des deux côtés : le fichier de l'autre appareil fait foi. */
+private const val PREFERENCES_WARNING =
+    "\n\nCe téléphone a déjà ses réglages partagés (couleurs, calendriers masqués, liens ICS) : ils pourront être remplacés par ceux " +
+        "de l'autre appareil, ou l'inverse. Pour que l'autre appareil fasse foi, le fichier de réglages de ce téléphone est mis de côté " +
+        "avant la synchronisation (copie datée dans le stockage privé, hors du dossier synchronisé, jamais supprimée)."
 
 private fun powerLabel(power: PowerSource) = when (power) {
     PowerSource.Always -> "Secteur et batterie"
