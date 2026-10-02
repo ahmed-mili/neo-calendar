@@ -9,7 +9,7 @@
         <item name="android:windowLightNavigationBar">false</item>
         <item name="android:statusBarColor">#11111B</item>
         <item name="android:navigationBarColor">#11111B</item>
-        <item name="android:windowBackground">#11111B</item>
+        <item name="android:windowBackground">#0B1125</item>
         <item name="android:colorAccent">#89B4FA</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>

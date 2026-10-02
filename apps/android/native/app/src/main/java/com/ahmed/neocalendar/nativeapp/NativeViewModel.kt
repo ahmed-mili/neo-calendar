@@ -453,11 +453,12 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
         loading = viewModelScope.launch {
             try {
                 // Nouvelle installation : le dossier privé est créé ici (hors du fil principal), puis lu comme les autres.
-                val data = withContext(Dispatchers.IO) {
+                val result = withContext(Dispatchers.IO) {
                     WorkspaceLocation.prepareNewInstall(getApplication())
                     // Toujours aucun mode (préférences perdues, doute sur l'installation) : rien n'est créé, on demande le dossier comme avant.
                     if (WorkspaceLocation.isNewInstall(getApplication())) null else read()
                 }
+                val data = result?.data
                 if (data == null) {
                     _screen.value = ScreenState.NeedsFolder
                     return@launch
@@ -472,6 +473,8 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 _reloadError.value = null
                 _screen.value = ScreenState.Ready(data)
+                // La copie des notes s'écrit une fois l'écran publié, hors du fil principal.
+                result.saveCache?.let { save -> viewModelScope.launch(Dispatchers.IO) { save() } }
                 publish()
                 pushToNativeServices(data)
                 // Les liens dus se synchronisent sans attendre le réseau : les notes du disque sont déjà à l'écran.
@@ -871,30 +874,34 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
      * Lit le dossier selon le mode (permission durable contrôlée pour le SAF), puis le noyau fait le reste. Les fichiers dont
      * la date et la taille n'ont pas bougé viennent de la copie des notes (stockage privé, jamais synchronisée, exclue des
      * sauvegardes) ; le dossier est toujours listé pour de vrai. La copie est chargée ici, hors du fil principal, et réécrite
-     * après coup (jamais avant le retour) seulement si la lecture a changé quelque chose.
+     * après l'affichage (l'appelant lance `saveCache`) seulement si la lecture a changé quelque chose.
      */
-    private fun read(): WorkspaceData {
+    private fun read(): ReadResult {
         val app = getApplication<Application>()
         val identity = WorkspaceLocation.cacheIdentity(app)
         val storage = openStorage(write = false)
         // Le dossier ou le mode a pu changer entre l'identité et l'ouverture : sans identité sûre, lecture sans copie.
-        if (identity.isEmpty() || WorkspaceLocation.cacheIdentity(app) != identity) return readWorkspaceData(storage)
+        if (identity.isEmpty() || WorkspaceLocation.cacheIdentity(app) != identity) return ReadResult(readWorkspaceData(storage), null)
         val noteCache = WorkspaceLocation.noteCache(app)
         val cached = CachedWorkspaceStorage(storage, noteCache.load(identity))
         val data = readWorkspaceData(cached)
-        if (cached.changed) {
-            val snapshot = cached.snapshot()
-            viewModelScope.launch(Dispatchers.IO) {
-                try {
-                    noteCache.save(identity, snapshot)
-                } catch (e: Exception) {
-                    // Disque plein ou autre : l'app marche comme sans copie, rien à montrer.
-                    android.util.Log.w("NoteCache", "Copie des notes non écrite", e)
-                }
+        if (!cached.changed) return ReadResult(data, null)
+        val snapshot = cached.snapshot()
+        return ReadResult(data) {
+            try {
+                noteCache.save(identity, snapshot)
+            } catch (e: Exception) {
+                // Disque plein ou autre : l'app marche comme sans copie, rien à montrer.
+                android.util.Log.w("NoteCache", "Copie des notes non écrite", e)
             }
         }
-        return data
     }
+
+    /** Les données lues, et l'écriture de la copie à lancer APRÈS l'affichage (jamais en concurrence avec le premier écran). */
+    private class ReadResult(val data: WorkspaceData, val saveCache: (() -> Unit)?)
+
+    /** Le rideau du lancement a été levé (survit à une rotation, pas à la mort du processus : un nouveau processus relit tout). */
+    var launchRevealed = false
 }
 
 /**

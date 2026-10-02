@@ -168,11 +168,11 @@ fun NativeApp(viewModel: NativeViewModel, updates: NativeUpdates) {
         // n'apparaissent qu'ensemble, par un fondu : quand les données sont lues ET la photo décodée, ou 150 ms après les données.
         var wallpaperSettled by remember { mutableStateOf(false) }
         var graceOver by remember { mutableStateOf(false) }
-        var revealedOnce by rememberSaveable { mutableStateOf(false) }
+        var revealedOnce by remember { mutableStateOf(viewModel.launchRevealed) }
         val dataReady = screen !is ScreenState.Loading
         LaunchedEffect(dataReady) { if (dataReady) { delay(WALLPAPER_GRACE_MS); graceOver = true } }
         val reveal = revealedOnce || (dataReady && (wallpaperSettled || graceOver))
-        LaunchedEffect(reveal) { if (reveal) revealedOnce = true }
+        LaunchedEffect(reveal) { if (reveal) { revealedOnce = true; viewModel.launchRevealed = true } }
         val curtain by animateFloatAsState(if (reveal) 0f else 1f, tween(250), label = "curtain")
         Box(Modifier.fillMaxSize().background(Neo.Background)) {
             // La photo se décode PENDANT la lecture du dossier (la couche est composée dès `Loading`, cachée par le rideau) :
