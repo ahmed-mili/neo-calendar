@@ -4601,12 +4601,133 @@ body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
     white-space: nowrap;
 }
 
-/* La phrase qui dit qui synchronise le dossier : une ligne, en tête de page. */
-.nc-sync-statement {
+/* Ligne d'état (pastille + texte) et phrase d'explication, en tête de page. */
+.nc-sync-head {
+    display: grid;
+    gap: 6px;
+    justify-items: start;
+    margin: 0 4px;
+}
+
+.nc-sync-status {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    color: var(--nc-text, var(--text-normal));
+    font-size: 15px;
+    font-weight: 650;
+}
+
+.nc-sync-status > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nc-sync-dot {
+    flex: 0 0 auto;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--nc-text-faint, var(--text-faint));
+}
+
+.nc-sync-status[data-tone="ok"] .nc-sync-dot {
+    background: #3fb950;
+}
+
+.nc-sync-status[data-tone="error"] .nc-sync-dot {
+    background: #f85149;
+}
+
+.nc-sync-hint {
+    margin: 0;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.nc-sync-error {
+    margin: 0;
+    color: #f85149;
+    font-size: 13px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.nc-sync-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--nc-accent);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.nc-sync-link:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.nc-sync-section {
+    display: grid;
+    gap: 8px;
+}
+
+.nc-sync-title {
     margin: 0 4px;
     color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 13px;
+    font-weight: 650;
+}
+
+/* L'identifiant de ce PC et « Partager » : la ligne tient, l'identifiant passe à la ligne si besoin. */
+.nc-sync-me {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 12px;
+}
+
+.nc-sync-me .nc-sync-id {
+    min-width: 0;
+    font: 12.5px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.nc-sync-share {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.nc-sync-share:hover {
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+}
+
+.nc-sync-empty {
+    padding: 14px 16px;
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 12px;
+    color: var(--nc-text-faint, var(--text-faint));
     font-size: 14px;
-    line-height: 1.4;
 }
 
 /* Le geste principal de la page, à la couleur d'accent comme les autres boutons pleins. */

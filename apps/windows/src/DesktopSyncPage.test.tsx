@@ -11,6 +11,7 @@ import DesktopSyncPage, {
     type SyncPageViewProps,
 } from "./DesktopSyncPage";
 import type { SyncStatusDto } from "./platform/desktopSync";
+import { createStatusReader } from "./platform/desktopSync";
 import { applyLanguage } from "../../../src/ui/i18n";
 
 const noop = () => undefined;
@@ -27,6 +28,7 @@ const actions: SyncPageActions = {
     askGiveBack: noop,
     showLog: noop,
     toggleStartup: noop,
+    copyId: async () => true,
 };
 
 const status = (patch: Partial<SyncStatusDto> = {}): SyncStatusDto => ({
@@ -72,33 +74,45 @@ beforeEach(() => applyLanguage("fr"));
 afterEach(() => applyLanguage("fr"));
 
 describe("page Synchronisation du PC", () => {
-    it("dit en une phrase qui synchronise, l'état, les appareils, et garde le lien Syncthing en bas", () => {
+    it("montre l'état, l'identifiant avec Partager, Ajouter un appareil, Vos appareils, et garde le lien Syncthing en bas", () => {
         const html = view();
-        expect(html).toContain(
-            "synchronisé par Neo Calendar (Syncthing intégré v2.1.5)"
-        );
         expect(html).toContain("À jour");
+        expect(html).toContain("Garde vos notes identiques");
+        expect(html).toContain("Identifiant de l&#x27;appareil");
+        expect(html).toContain("7ZSUPCU-MIU3GEY");
+        expect(html).toContain("Partager");
+        expect(html).toContain("Ajouter un appareil");
+        expect(html).toContain("Vos appareils");
         expect(html).toContain("Pixel 8");
         expect(html).toContain("Connecté");
-        expect(html).toContain("Ajouter le téléphone");
         expect(html).toContain("LIGNE-DOSSIER");
+        expect(html).toContain("Lancer au démarrage de Windows");
+        expect(html).toContain("Journal");
         expect(html).toContain('aria-label="Syncthing"');
         expect(html).toContain('href="https://syncthing.net"');
-        // Le bouton principal de la page est à la couleur d'accent, et nul libellé ne dit « Recommandé ».
         expect(html).toContain("nc-sync-primary");
-        expect(html).not.toContain("Recommandé");
         expect(html).toContain("En savoir plus");
-        // L'identifiant complet reste consultable, dans « Détails » seulement.
-        expect(html).toContain("7ZSUPCU-MIU3GEY");
+        // L'ancienne ligne du bas et le QR permanent n'existent plus.
+        expect(html).not.toContain("Identifiant de ce PC");
+        expect(html).not.toContain("<img");
     });
 
-    it("désactivée : ni appareils ni bouton d'ajout", () => {
+    it("sans appareil : « Aucun appareil » en état et dans un cadre", () => {
+        const html = view({ status: status({ devices: [] }) });
+        expect(html).toContain("Aucun appareil");
+        expect(html).toContain("Aucun appareil pour l&#x27;instant.");
+        expect(html).toContain("nc-sync-empty");
+    });
+
+    it("désactivée : ni identifiant, ni bouton d'ajout, ni appareils, mais l'interrupteur reste", () => {
         const html = view({
             status: status({ enabled: false, state: { kind: "stopped" } }),
         });
         expect(html).toContain("désactivée");
-        expect(html).not.toContain("Ajouter le téléphone");
-        expect(html).not.toContain("Appareils");
+        expect(html).toContain("Synchronisation intégrée");
+        expect(html).not.toContain("Ajouter un appareil");
+        expect(html).not.toContain("Vos appareils");
+        expect(html).not.toContain("Identifiant de l&#x27;appareil");
     });
 
     it("propose la reprise d'un Syncthing installé qui tourne, jamais automatiquement", () => {
@@ -113,9 +127,6 @@ describe("page Synchronisation du PC", () => {
                 otherFolders: 1,
             },
         });
-        expect(html).toContain(
-            "synchronisé par le Syncthing installé sur ce PC"
-        );
         expect(html).toContain("Reprendre le dossier");
         expect(html).toContain(
             "Seul le dossier Neo Calendar quitte votre Syncthing"
@@ -170,7 +181,6 @@ describe("page Synchronisation du PC", () => {
     it("un marqueur orphelin n'est pas un conflit : aucun Syncthing ne partage, aucune proposition", () => {
         const html = view({ detection: { kind: "notSharing" } });
         expect(html).not.toContain("Reprendre le dossier");
-        expect(html).toContain("synchronisé par Neo Calendar");
     });
 
     it("les demandes entrantes se lisent par leur nom, sans code", () => {
@@ -228,13 +238,6 @@ describe("page Synchronisation du PC", () => {
         expect(html).toContain("générez un nouveau code");
     });
 
-    it("désactivée, la phrase ne prétend pas que Neo Calendar synchronise le dossier", () => {
-        const html = view({
-            status: status({ enabled: false, state: { kind: "stopped" } }),
-        });
-        expect(html).not.toContain("synchronisé par Neo Calendar");
-    });
-
     it("un moteur abandonné propose de réessayer", () => {
         const html = view({
             status: status({ state: { kind: "failed", error: "port pris" } }),
@@ -267,5 +270,63 @@ describe("contenant", () => {
             />
         );
         expect(html).toContain("ANCIENNE-PAGE");
+    });
+});
+
+describe("lecture périodique de l'état", () => {
+    const running = status();
+
+    it("une erreur passagère après une lecture réussie garde l'état et la cadence", async () => {
+        const seen: Array<SyncStatusDto | null> = [];
+        const loads = [status({ state: { kind: "starting" } }), null, running];
+        const reader = createStatusReader(
+            async () => loads.shift() ?? null,
+            (next) => seen.push(next)
+        );
+        await reader.read();
+        await reader.read();
+        expect(reader.isUnavailable()).toBe(false);
+        await reader.read();
+        expect(seen.map((one) => one?.state.kind)).toEqual([
+            "starting",
+            "running",
+        ]);
+    });
+
+    it("l'absence dès la première lecture (coque Android) arrête les lectures", async () => {
+        const seen: Array<SyncStatusDto | null> = [];
+        const reader = createStatusReader(
+            async () => null,
+            (next) => seen.push(next)
+        );
+        await reader.read();
+        expect(reader.isUnavailable()).toBe(true);
+        expect(seen).toEqual([null]);
+    });
+
+    it("une seule lecture à la fois : une réponse ancienne n'écrase pas une plus récente", async () => {
+        const releases: Array<(value: SyncStatusDto) => void> = [];
+        let calls = 0;
+        const seen: string[] = [];
+        const reader = createStatusReader(
+            () => {
+                calls += 1;
+                return new Promise<SyncStatusDto>((resolve) =>
+                    releases.push(resolve)
+                );
+            },
+            (next) => seen.push(next?.state.kind ?? "null")
+        );
+        const first = reader.read();
+        void reader.read();
+        void reader.read();
+        expect(calls).toBe(1);
+        releases[0](status({ state: { kind: "starting" } }));
+        await first;
+        const second = reader.read();
+        expect(calls).toBe(2);
+        releases[1](running);
+        await second;
+        expect(seen).toEqual(["starting", "running"]);
     });
 });

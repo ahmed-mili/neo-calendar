@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    Activity,
+    Check,
     FileText,
     FolderSync,
-    Info,
+    Plus,
     Power,
-    QrCode,
     RefreshCw,
+    Share2,
     Smartphone,
     Undo2,
 } from "lucide-react";
@@ -21,6 +21,7 @@ import {
     type SettingsChoice,
 } from "./SettingsPrimitives";
 import {
+    createStatusReader,
     deviceLine,
     loadSyncStatus,
     remainingLabel,
@@ -36,7 +37,10 @@ import {
     isStartupEnabled,
     setStartupEnabled,
 } from "./platform/desktopAutostart";
-import { openDesktopExternalTarget } from "./platform/desktopCalendarStore";
+import {
+    openDesktopExternalTarget,
+    writeDesktopClipboardText,
+} from "./platform/desktopCalendarStore";
 
 const SYNCTHING_URL = "https://syncthing.net";
 
@@ -74,6 +78,8 @@ export interface SyncPageActions {
     askGiveBack: () => void;
     showLog: () => void;
     toggleStartup: (enabled: boolean) => void;
+    /** Copie l'identifiant de ce PC dans le presse-papiers ; vrai si c'est fait. */
+    copyId: (id: string) => Promise<boolean>;
 }
 
 export interface SyncPageViewProps {
@@ -88,13 +94,33 @@ export interface SyncPageViewProps {
     actions: SyncPageActions;
 }
 
-const fill = (template: string, values: Record<string, string>) =>
-    Object.entries(values).reduce(
-        (text, [key, value]) => text.replace(`{${key}}`, value),
-        template
+/** « Partager » : copie l'identifiant, et le dit un instant sur le bouton. */
+function ShareIdButton({
+    id,
+    copy,
+}: {
+    id: string;
+    copy: (id: string) => Promise<boolean>;
+}) {
+    const [copied, setCopied] = useState(false);
+    useEffect(() => {
+        if (!copied) return;
+        const handle = setTimeout(() => setCopied(false), 1800);
+        return () => clearTimeout(handle);
+    }, [copied]);
+    return (
+        <button
+            type="button"
+            className="nc-sync-share"
+            onClick={() => void copy(id).then((ok) => ok && setCopied(true))}
+        >
+            {copied ? <Check size={16} /> : <Share2 size={16} />}
+            {copied ? t("ID copied") : t("Share")}
+        </button>
     );
+}
 
-/** La page, sans état : tout ce qu'elle affiche vient de `props`, tout ce qu'elle déclenche part dans `actions`. */
+/** La page, sans état métier : tout ce qu'elle affiche vient de `props`, tout ce qu'elle déclenche part dans `actions`. */
 export function SyncPageView({
     status,
     detection,
@@ -106,42 +132,124 @@ export function SyncPageView({
     actions,
 }: SyncPageViewProps) {
     const running = status.state.kind === "running";
+    const live = status.enabled && running;
     const shared = detection?.kind === "shares" ? detection : null;
-    // Une seule phrase dit qui synchronise le dossier ; désactivée, personne : elle se tait.
-    const statement = !status.enabled
-        ? null
-        : shared || status.state.kind === "blockedByInstalled"
-        ? t(
-              "The Neo Calendar folder is synced by the Syncthing installed on this PC"
-          )
-        : fill(
-              t(
-                  "The Neo Calendar folder is synced by Neo Calendar (built-in Syncthing v{version})"
-              ),
-              { version: status.engineVersion }
-          );
+    const failing =
+        status.state.kind === "failed" || status.state.kind === "backoff";
+    const tone = !status.enabled
+        ? "off"
+        : failing || status.folder?.error
+        ? "error"
+        : running && status.devices.some((device) => device.connected)
+        ? "ok"
+        : "neutral";
 
     return (
         <div className="nc-set-groups nc-sync-page">
-            {statement && <p className="nc-sync-statement">{statement}</p>}
-
-            <SettingsGroup>
-                {dataFolderRow}
-                <SettingsToggleRow
-                    label={t("Built-in sync")}
-                    icon={<FolderSync size={18} />}
-                    checked={status.enabled}
-                    onChange={actions.toggle}
-                />
-                <SettingsRow
-                    label={statusLine(status)}
-                    icon={<Activity size={18} />}
-                />
-                {error && <SettingsRow label={error} />}
+            <section className="nc-sync-head">
+                <p
+                    className="nc-sync-status"
+                    data-tone={tone}
+                    role="status"
+                    aria-live="polite"
+                >
+                    <span className="nc-sync-dot" aria-hidden="true" />
+                    <span>{statusLine(status)}</span>
+                </p>
+                <p className="nc-sync-hint">
+                    {t(
+                        "Keeps your notes identical on all your devices, directly between them, with no account and no server of ours. It runs on Syncthing (open source), built into Neo Calendar: Windows may name Syncthing when it asks for permission."
+                    )}
+                </p>
+                {error && <p className="nc-sync-error">{error}</p>}
                 {status.pairingError && (
-                    <SettingsRow label={status.pairingError} />
+                    <p className="nc-sync-error">{status.pairingError}</p>
                 )}
-            </SettingsGroup>
+                {failing && (
+                    <button
+                        type="button"
+                        className="nc-sync-link"
+                        onClick={actions.retry}
+                        disabled={busy}
+                    >
+                        <RefreshCw size={14} />
+                        {t("Try again")}
+                    </button>
+                )}
+            </section>
+
+            {live && (
+                <section className="nc-sync-section">
+                    <h3 className="nc-sync-title">{t("Device ID")}</h3>
+                    <div className="nc-sync-me">
+                        <code className="nc-sync-id" title={status.myId ?? ""}>
+                            {status.myId ?? "-"}
+                        </code>
+                        {status.myId && (
+                            <ShareIdButton
+                                id={status.myId}
+                                copy={actions.copyId}
+                            />
+                        )}
+                    </div>
+                </section>
+            )}
+
+            {live && (
+                <button
+                    type="button"
+                    className="nc-sync-primary"
+                    onClick={actions.startPairing}
+                    disabled={busy}
+                >
+                    <Plus size={18} />
+                    {t("Add a device")}
+                </button>
+            )}
+
+            {live && status.pending.length > 0 && (
+                <SettingsGroup title={t("Requests to accept")}>
+                    {status.pending.map((request) => (
+                        <SettingsRow
+                            key={request.id}
+                            label={request.name || request.id.slice(0, 7)}
+                            icon={<Smartphone size={18} />}
+                            value={t("wants to connect")}
+                            onClick={() =>
+                                actions.askRequest(request.id, request.name)
+                            }
+                        />
+                    ))}
+                </SettingsGroup>
+            )}
+
+            {live && (
+                <section className="nc-sync-section">
+                    <h3 className="nc-sync-title">{t("Your devices")}</h3>
+                    {status.devices.length === 0 ? (
+                        <div className="nc-sync-empty">
+                            {t("No device yet.")}
+                        </div>
+                    ) : (
+                        <SettingsGroup>
+                            {status.devices.map((device) => (
+                                <SettingsRow
+                                    key={device.id}
+                                    label={device.name}
+                                    icon={<Smartphone size={18} />}
+                                    value={deviceLine(device)}
+                                    onClick={() =>
+                                        actions.askDevice(
+                                            device.id,
+                                            device.name
+                                        )
+                                    }
+                                />
+                            ))}
+                        </SettingsGroup>
+                    )}
+                </section>
+            )}
 
             {shared && (
                 <SettingsGroup
@@ -193,66 +301,14 @@ export function SyncPageView({
                 </SettingsGroup>
             )}
 
-            {(status.state.kind === "failed" ||
-                status.state.kind === "backoff") && (
-                <SettingsGroup>
-                    <SettingsRow
-                        label={t("Try again")}
-                        icon={<RefreshCw size={18} />}
-                        onClick={actions.retry}
-                        disabled={busy}
-                    />
-                </SettingsGroup>
-            )}
-
-            {status.enabled && running && status.devices.length > 0 && (
-                <SettingsGroup title={t("Devices")}>
-                    {status.devices.map((device) => (
-                        <SettingsRow
-                            key={device.id}
-                            label={device.name}
-                            icon={<Smartphone size={18} />}
-                            value={deviceLine(device)}
-                            onClick={() =>
-                                actions.askDevice(device.id, device.name)
-                            }
-                        />
-                    ))}
-                </SettingsGroup>
-            )}
-
-            {status.enabled && running && status.pending.length > 0 && (
-                <SettingsGroup
-                    title={t("Requests to accept")}
-                    note={t("Only accept a device you recognise.")}
-                >
-                    {status.pending.map((request) => (
-                        <SettingsRow
-                            key={request.id}
-                            label={request.name || request.id.slice(0, 7)}
-                            icon={<Smartphone size={18} />}
-                            value={t("wants to connect")}
-                            onClick={() =>
-                                actions.askRequest(request.id, request.name)
-                            }
-                        />
-                    ))}
-                </SettingsGroup>
-            )}
-
-            {status.enabled && running && (
-                <button
-                    type="button"
-                    className="nc-sync-primary"
-                    onClick={actions.startPairing}
-                    disabled={busy}
-                >
-                    <QrCode size={18} />
-                    {t("Add the phone")}
-                </button>
-            )}
-
             <SettingsGroup>
+                {dataFolderRow}
+                <SettingsToggleRow
+                    label={t("Built-in sync")}
+                    icon={<FolderSync size={18} />}
+                    checked={status.enabled}
+                    onChange={actions.toggle}
+                />
                 <SettingsToggleRow
                     label={t("Launch at Windows startup")}
                     icon={<Power size={18} />}
@@ -274,15 +330,6 @@ export function SyncPageView({
                     onClick={actions.showLog}
                     navigates
                 />
-                <SettingsRow
-                    label={t("ID of this PC")}
-                    icon={<Info size={18} />}
-                    value={
-                        <span className="nc-sync-id" title={status.myId ?? ""}>
-                            {status.myId ?? "-"}
-                        </span>
-                    }
-                />
             </SettingsGroup>
 
             <p className="nc-sync-about">
@@ -301,7 +348,7 @@ export function SyncPageView({
 
             {pairing && (
                 <SettingsDialog
-                    title={t("Add the phone")}
+                    title={t("Add a device")}
                     onClose={actions.closePairing}
                 >
                     <div className="nc-sync-pairing">
@@ -367,13 +414,13 @@ export default function DesktopSyncPage({
     );
     const [log, setLog] = useState<string | null>(null);
     const alive = useRef(true);
-    const unavailable = useRef(false);
+    const reader = useRef(
+        createStatusReader(loadSyncStatus, (next) => {
+            if (alive.current) setStatus(next);
+        })
+    );
 
-    const refresh = useCallback(async () => {
-        const next = await loadSyncStatus();
-        unavailable.current = next === null;
-        if (alive.current) setStatus(next);
-    }, []);
+    const refresh = useCallback(() => reader.current.read(), []);
 
     const detect = useCallback(async () => {
         try {
@@ -392,7 +439,7 @@ export default function DesktopSyncPage({
         const timer = setInterval(
             () => {
                 // Pas de moteur intégré ici (coque Android) : inutile de l'interroger toutes les deux secondes.
-                if (!unavailable.current) void refresh();
+                if (!reader.current.isUnavailable()) void refresh();
             },
             pairing ? 1000 : 2000
         );
@@ -490,6 +537,11 @@ export default function DesktopSyncPage({
                 .catch(() => setLog("")),
         toggleStartup: (enabled) =>
             void setStartupEnabled(enabled).then(setStartup),
+        copyId: (id) =>
+            writeDesktopClipboardText(id).then(
+                () => true,
+                () => false
+            ),
     };
 
     return (

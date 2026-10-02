@@ -194,7 +194,7 @@ describe("statusLine", () => {
             })
         ).toBe("Synchronisation en cours (3 fichiers)");
         expect(line({ devices: [] })).toBe(
-            "Aucun appareil : ajoutez votre téléphone"
+            "Aucun appareil"
         );
         expect(
             line({

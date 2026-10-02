@@ -91,6 +91,38 @@ export async function loadSyncStatus(): Promise<SyncStatusDto | null> {
  * synchro est un service de fond, l'ouverture de l'app ne dépend pas d'elle. Le léger délai laisse le premier
  * affichage se terminer avant que le moindre travail de synchro ne commence.
  */
+/**
+ * La lecture périodique de l'état. Deux garanties, pour que la page ne reste jamais figée sur un état périmé
+ * (« Démarrage… » alors que le moteur est prêt) : une seule lecture à la fois (sinon, pendant que le moteur
+ * indexe, les lectures de 2 s s'empilent et une réponse ancienne peut écraser une plus récente), et une erreur
+ * passagère après une première lecture réussie garde l'état connu et la cadence, au lieu de déclarer pour
+ * toujours « pas de synchro intégrée ici ». Seule l'absence dès la première lecture (coque Android) l'est.
+ */
+export function createStatusReader(
+    load: () => Promise<SyncStatusDto | null>,
+    apply: (status: SyncStatusDto | null) => void
+) {
+    let reading = false;
+    let known = false;
+    let unavailable = false;
+    return {
+        isUnavailable: () => unavailable,
+        async read(): Promise<void> {
+            if (reading) return;
+            reading = true;
+            try {
+                const next = await load();
+                if (next === null && known) return;
+                known = known || next !== null;
+                unavailable = next === null;
+                apply(next);
+            } finally {
+                reading = false;
+            }
+        },
+    };
+}
+
 export function startSyncSoon(dataFolder: string, delayMs = 1500): () => void {
     const timer = setTimeout(() => {
         try {
@@ -172,7 +204,7 @@ export function statusLine(status: SyncStatusDto): string {
         return `${t("Syncing")} (${folder.needFiles} ${
             folder.needFiles === 1 ? t("file") : t("files")
         })`;
-    if (status.devices.length === 0) return t("No device yet: add your phone");
+    if (status.devices.length === 0) return t("No device yet");
     if (!status.devices.some((device) => device.connected))
         return t("Offline: no device connected");
     return t("Up to date");

@@ -576,7 +576,15 @@ const FR: Record<string, string> = {
     Syncing: "Synchronisation en cours",
     file: "fichier",
     files: "fichiers",
-    "No device yet: add your phone": "Aucun appareil : ajoutez votre téléphone",
+    "No device yet": "Aucun appareil",
+    "No device yet.": "Aucun appareil pour l'instant.",
+    "Keeps your notes identical on all your devices, directly between them, with no account and no server of ours. It runs on Syncthing (open source), built into Neo Calendar: Windows may name Syncthing when it asks for permission.":
+        "Garde vos notes identiques sur tous vos appareils, directement entre eux, sans compte et sans serveur chez nous. Il repose sur Syncthing (open source), intégré à Neo Calendar : Windows peut nommer Syncthing quand il demande l'autorisation.",
+    "Device ID": "Identifiant de l'appareil",
+    Share: "Partager",
+    "ID copied": "Copié",
+    "Your devices": "Vos appareils",
+    "Add a device": "Ajouter un appareil",
     "Offline: no device connected": "Hors ligne : aucun appareil connecté",
     "Up to date": "À jour",
     Connected: "Connecté",
@@ -598,8 +606,6 @@ const FR: Record<string, string> = {
     "The engine still syncs:": "Le moteur synchronise encore :",
     "Sync the current folder": "Synchroniser le dossier actuel",
     "Try again": "Réessayer",
-    Devices: "Appareils",
-    "Add the phone": "Ajouter le téléphone",
     "Requests to accept": "Demandes à accepter",
     "Only accept a device you recognise.":
         "N'acceptez qu'un appareil que vous reconnaissez.",
@@ -611,7 +617,6 @@ const FR: Record<string, string> = {
     Log: "Journal",
     "The log is empty.": "Le journal est vide.",
     "Learn more": "En savoir plus",
-    "ID of this PC": "Identifiant de ce PC",
     "Scan this QR code with Neo Calendar on your phone.":
         "Scannez ce QR code avec Neo Calendar sur le téléphone.",
     "QR code to pair the phone": "QR code pour appairer le téléphone",
