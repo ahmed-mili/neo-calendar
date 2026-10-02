@@ -94,4 +94,6 @@ val checkSyncthingLibs = tasks.register("checkSyncthingLibs") {
         }
     }
 }
-tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(checkSyncthingLibs) }
+// Accroché à l'étape qui embarque les .so dans l'APK, pas au début de la release : la validation AAPT2 de la CI
+// compile les ressources release (mergeReleaseResources) sans construire le moteur.
+tasks.matching { it.name == "mergeReleaseNativeLibs" }.configureEach { dependsOn(checkSyncthingLibs) }
