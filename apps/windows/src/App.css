@@ -3644,9 +3644,9 @@ body[class*="nc-theme-"] kbd {
     display: none;
 }
 
-/* The user-provided themes are dark palettes, but the three appearance cards
-   must remain functional. Light mode derives a clean neutral shell while
-   preserving the selected theme's accent. */
+/* Neutral light shell: only the fallback. App.tsx (`panelCssProperties`) sets
+   every colour below inline from the theme's official light palette, which
+   wins over this block; the shell shows only until the first effect runs. */
 html.nc-appearance-light,
 body.nc-appearance-light {
     color-scheme: light;

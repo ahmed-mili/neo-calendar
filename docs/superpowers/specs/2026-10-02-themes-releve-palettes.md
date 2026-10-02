@@ -25,8 +25,8 @@ Les lignes citées sont celles des fichiers bruts à la date et au SHA indiqués
 2. Écart : la valeur officielle est adoptée telle quelle (registre, `Themes.kt`, CSS).
 3. Une valeur officielle qui ne tient pas un seuil de lisibilité (Task 5 / 6) reste officielle ; c'est la
    dérivation qui s'adapte (texte sur accent calculé, rouge et vert de texte rapprochés de l'encre jusqu'au seuil).
-4. Aucune exemption de contraste n'est demandée par ce relevé (voir les rapports des Tasks 5 et 6 pour les
-   paires qui l'auraient justifiée).
+4. Cinq paires « accent sur fond ou panneau » restent sous 3:1 parce que la palette officielle est seule en cause
+   (section « Exemptions de contraste » en fin de relevé).
 
 ---
 
@@ -194,3 +194,19 @@ la couleur pleine de l'échelle).
 Les valeurs de l'application (`#006efe`, `#F13342`, `#00AD3A`) sont proches mais pas égales à l'échelle Geist lue :
 écarts, corrigés. Lecture : feuille de style statique (sRGB) au lieu de propriétés calculées dans un navigateur ;
 les mêmes noms de propriétés `--ds-*` que la consigne.
+
+## Exemptions de contraste
+
+Paires du test `themeContrast.test.ts` (PC) et `ThemeContrastTest.kt` (Android) qui restent sous 3:1 avec la
+dérivation commune. Aucune n'est un texte : ce sont la pastille et les icônes d'accent, dont la couleur est celle,
+officielle, du thème.
+
+| Paire | Rapport | Raison |
+|---|---|---|
+| One sombre, accent sur panneau | 2,56 | `#4d78cc` (`button.background`) ne fait que 3,25 sur le fond officiel `#282c34` ; le panneau dérivé est plus clair |
+| Ayu clair, accent sur fond | 2,22 | `#f29718` (`button.background` d'`ayu-light.json`) sur `#fcfcfc` |
+| Ayu clair, accent sur panneau | 1,88 | même couleur sur le panneau dérivé |
+| Rosé Pine Dawn, accent sur fond | 2,60 | `#d7827e` (`dawn.rose`) sur `#faf4ed` |
+| Rosé Pine Dawn, accent sur panneau | 2,19 | même couleur sur le panneau dérivé |
+
+Le texte sur l'accent de ces thèmes, lui, est calculé et tient 4,5:1.

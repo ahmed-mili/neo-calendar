@@ -12,6 +12,7 @@ import {
     pinWallpaperId,
     resolveAppearanceMode,
 } from "./themes/appearancePreferences";
+import { panelColorsFor, panelCssProperties } from "./themes/panelTokens";
 import { getTheme, THEMES } from "./themes/registry";
 import type { ThemeId } from "./themes/types";
 import { getWallpaper } from "./themes/wallpapers";
@@ -55,6 +56,15 @@ const CUSTOM_THEME_PROPERTIES = [
     "--nc-text-secondary",
     "--text-faint",
     "--nc-text-faint",
+    "--nc-bg-crust",
+    "--nc-surface",
+    "--nc-surface-hover",
+    "--nc-accent-strong",
+    "--nc-accent-text",
+    "--text-on-accent",
+    "--text-error",
+    "--nc-danger",
+    "--nc-success",
     "--nc-selected-wallpaper",
     "--nc-selected-wallpaper-overlay",
 ] as const;
@@ -119,6 +129,23 @@ export default function App() {
                 savedThemeId ?? theme.id
             ),
         [appearance, theme, savedThemeId]
+    );
+
+    // Les trois couleurs de tout panneau : celles du thème en sombre, sa palette claire en clair.
+    const colors = useMemo(
+        () => panelColorsFor(theme, effectiveTheme, appearanceMode),
+        [theme, effectiveTheme, appearanceMode]
+    );
+
+    /*
+     * Le `<main>` porte la classe du thème, dont le CSS redéfinit les mêmes
+     * variables : sans cela, il masquerait celles posées sur `html` et `body` et
+     * garderait, en clair, le texte clair du thème sombre. On les repose donc sur
+     * lui, en ligne.
+     */
+    const panelStyle = useMemo(
+        () => panelCssProperties(colors, appearanceMode, theme) as React.CSSProperties,
+        [colors, appearanceMode, theme]
     );
 
     // Sur Android la photo choisie vit dans le dossier de données : tant qu'elle
@@ -188,9 +215,6 @@ export default function App() {
         const roots = [document.documentElement, document.body];
         const themeClasses = THEMES.map((item) => item.className);
         const {
-            accent,
-            surface,
-            ink,
             uiFont,
             codeFont,
             contrast,
@@ -203,25 +227,7 @@ export default function App() {
             "--nc-user-contrast": String(contrast),
             "--nc-ui-font": uiFont,
             "--nc-code-font": codeFont,
-            "--interactive-accent": accent,
-            "--nc-accent": accent,
-            "--nc-theme-accent": accent,
-            "--background-primary": surface,
-            "--nc-bg-primary": surface,
-            "--nc-theme-surface": surface,
-            "--background-secondary": `color-mix(in srgb, ${surface} 88%, ${ink} 12%)`,
-            "--nc-bg-secondary": `color-mix(in srgb, ${surface} 88%, ${ink} 12%)`,
-            "--background-modifier-form-field": `color-mix(in srgb, ${surface} 84%, ${ink} 16%)`,
-            "--background-modifier-hover": `color-mix(in srgb, ${surface} 78%, ${ink} 22%)`,
-            "--background-modifier-border": `color-mix(in srgb, ${ink} 22%, transparent)`,
-            "--background-modifier-border-hover": `color-mix(in srgb, ${accent} 70%, ${ink} 30%)`,
-            "--text-normal": ink,
-            "--nc-text-primary": ink,
-            "--nc-theme-ink": ink,
-            "--text-muted": `color-mix(in srgb, ${ink} 72%, ${surface})`,
-            "--nc-text-secondary": `color-mix(in srgb, ${ink} 72%, ${surface})`,
-            "--text-faint": `color-mix(in srgb, ${ink} 52%, ${surface})`,
-            "--nc-text-faint": `color-mix(in srgb, ${ink} 52%, ${surface})`,
+            ...panelCssProperties(colors, appearanceMode, theme),
         };
 
         if (
@@ -235,7 +241,7 @@ export default function App() {
             properties["--nc-selected-wallpaper-overlay"] =
                 appearanceMode === "light"
                     ? "linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.18))"
-                    : `linear-gradient(color-mix(in srgb, ${surface} 38%, transparent), color-mix(in srgb, ${surface} 38%, transparent))`;
+                    : `linear-gradient(color-mix(in srgb, ${colors.surface} 38%, transparent), color-mix(in srgb, ${colors.surface} 38%, transparent))`;
         } else if (wallpaper.previewStyle === "solid") {
             properties["--nc-selected-wallpaper"] = "none";
             properties["--nc-selected-wallpaper-overlay"] = "none";
@@ -273,7 +279,7 @@ export default function App() {
                 }
             }
         };
-    }, [appearanceMode, effectiveTheme, theme, wallpaperReady]);
+    }, [appearanceMode, effectiveTheme, theme, colors, wallpaperReady]);
 
     // `preferences` stays null until the stored settings have been read. Falling
     // through to the welcome screen would flash t("Choose the folder") on every
@@ -283,12 +289,13 @@ export default function App() {
             <main
                 ref={startupRef}
                 className={`nc-desktop nc-desktop--loading ${theme.className}`}
+                style={panelStyle}
                 aria-busy="true"
             >
                 <WallpaperRenderLayer
                     wallpaperId={effectiveTheme.wallpaperId}
                     appearanceMode={appearanceMode}
-                    surface={effectiveTheme.surface}
+                    surface={colors.surface}
                 />
             </main>
         );
@@ -317,11 +324,12 @@ export default function App() {
                     isCalendarReady ? "" : " nc-desktop--booting"
                 }`}
                 aria-busy={isCalendarReady ? undefined : "true"}
+                style={panelStyle}
             >
                 <WallpaperRenderLayer
                     wallpaperId={effectiveTheme.wallpaperId}
                     appearanceMode={appearanceMode}
-                    surface={effectiveTheme.surface}
+                    surface={colors.surface}
                 />
                 <DesktopErrorBoundary>
                     <DesktopCalendar
@@ -347,7 +355,11 @@ export default function App() {
     }
 
     return (
-        <main ref={startupRef} className={`nc-desktop ${theme.className}`}>
+        <main
+            ref={startupRef}
+            className={`nc-desktop ${theme.className}`}
+            style={panelStyle}
+        >
             <section className="nc-welcome" aria-labelledby="welcome-title">
                 <div className="nc-welcome__mark" aria-hidden="true">
                     <img src={appIcon} alt="" />
