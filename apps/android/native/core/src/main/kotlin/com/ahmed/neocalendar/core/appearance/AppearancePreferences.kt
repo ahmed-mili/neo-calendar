@@ -40,6 +40,8 @@ data class AppearancePreferences(
     val translucentSidebar: Boolean = true,
     val contrast: Int = 50,
     val themeOverrides: Map<String, ThemeCustomization> = emptyMap(),
+    /** Fond d'écran commun à tous les thèmes ; absent : le fond du thème actuel, puis le défaut. */
+    val wallpaperId: String? = null,
 )
 
 /** `getEffectiveThemeAppearance` : les valeurs en vigueur d'un thème, sa personnalisation par-dessus ses défauts. */
@@ -98,6 +100,7 @@ fun normalizeAppearancePreferences(value: JsonElement?): AppearancePreferences {
         translucentSidebar = input["translucentSidebar"].bool() ?: true,
         contrast = clampContrast(input["contrast"].number()),
         themeOverrides = overrides,
+        wallpaperId = input["wallpaperId"].string()?.takeIf { isKnownWallpaperId(it) },
     )
 }
 
@@ -124,20 +127,22 @@ private fun ThemeCustomization.toJson(): JsonObject {
 fun AppearancePreferences.toJsonText(): String {
     val overrides = LinkedHashMap<String, JsonElement>()
     themeOverrides.forEach { (id, custom) -> overrides[id] = custom.toJson() }
-    return JsonObject(
-        linkedMapOf(
-            "mode" to JsonPrimitive(mode.key),
-            "translucentSidebar" to JsonPrimitive(translucentSidebar),
-            "contrast" to JsonPrimitive(contrast),
-            "themeOverrides" to JsonObject(overrides),
-        ),
-    ).toString()
+    val fields = linkedMapOf<String, JsonElement>(
+        "mode" to JsonPrimitive(mode.key),
+        "translucentSidebar" to JsonPrimitive(translucentSidebar),
+        "contrast" to JsonPrimitive(contrast),
+        "themeOverrides" to JsonObject(overrides),
+    )
+    wallpaperId?.let { fields["wallpaperId"] = JsonPrimitive(it) }
+    return JsonObject(fields).toString()
 }
 
 fun effectiveThemeAppearance(
     theme: ThemeDefinition,
     preferences: AppearancePreferences,
     defaultWallpaper: String = DEFAULT_ANDROID_WALLPAPER_ID,
+    /** L'identifiant enregistré tel quel (peut être celui d'un thème retiré, `theme` est alors Catppuccin) : il sert au repli du fond. */
+    savedThemeId: String = theme.id,
 ): EffectiveThemeAppearance {
     val override = preferences.themeOverrides[theme.id] ?: ThemeCustomization()
     return EffectiveThemeAppearance(
@@ -148,13 +153,17 @@ fun effectiveThemeAppearance(
         codeFont = override.codeFont ?: theme.codeFont,
         translucentSidebar = override.translucentSidebar ?: !theme.opaqueWindows,
         contrast = override.contrast ?: theme.contrast,
-        wallpaperId = override.wallpaperId ?: defaultWallpaper,
+        wallpaperId = preferences.resolvedWallpaperId(savedThemeId, defaultWallpaper),
     )
 }
 
-/** `setThemeCustomization` : la personnalisation est normalisée avant d'être rangée. */
-fun AppearancePreferences.withCustomization(themeId: String, customization: ThemeCustomization): AppearancePreferences =
-    copy(themeOverrides = themeOverrides + (themeId to normalizeCustomization(customization.toJson())))
+/** `setThemeCustomization` : normalisée avant d'être rangée ; le fond par thème existant est gardé (il sert de repli tant que le fond global manque). */
+fun AppearancePreferences.withCustomization(themeId: String, customization: ThemeCustomization): AppearancePreferences {
+    val normalized = normalizeCustomization(customization.toJson())
+    val kept = themeOverrides[themeId]?.wallpaperId
+    val result = if (normalized.wallpaperId == null && kept != null) normalized.copy(wallpaperId = kept) else normalized
+    return copy(themeOverrides = themeOverrides + (themeId to result))
+}
 
 /**
  * La personnalisation sans ce qui vaut déjà le défaut du thème : « Enregistrer » sans rien changer ne laisse pas de
@@ -170,12 +179,29 @@ fun ThemeCustomization.withoutThemeDefaults(theme: ThemeDefinition): ThemeCustom
     contrast = contrast?.takeIf { it != theme.contrast },
 )
 
-/** `resetThemeCustomization`. */
-fun AppearancePreferences.withoutCustomization(themeId: String): AppearancePreferences = copy(themeOverrides = themeOverrides - themeId)
+/** `resetThemeCustomization` : les couleurs reviennent au thème, le fond reste (figé en réglage global). */
+fun AppearancePreferences.withoutCustomization(themeId: String): AppearancePreferences =
+    copy(themeOverrides = themeOverrides - themeId, wallpaperId = wallpaperId ?: themeOverrides[themeId]?.wallpaperId)
 
-/** Un seul champ change (le fond choisi, par exemple) : le reste de la personnalisation du thème est gardé. */
-fun AppearancePreferences.withWallpaper(themeId: String, wallpaperId: String): AppearancePreferences =
-    withCustomization(themeId, (themeOverrides[themeId] ?: ThemeCustomization()).copy(wallpaperId = wallpaperId))
+/** Le fond choisi pour tous les thèmes. */
+fun AppearancePreferences.withWallpaper(wallpaperId: String): AppearancePreferences =
+    copy(wallpaperId = wallpaperId.takeIf { isKnownWallpaperId(it) } ?: this.wallpaperId)
+
+/**
+ * Le fond déjà choisi, ou nul : le réglage global, sinon celui que le thème enregistré avait (même retiré depuis), sinon,
+ * pour un thème retiré, celui de Catppuccin vers lequel on retombe. Les fonds des autres thèmes sont ignorés.
+ */
+fun AppearancePreferences.storedWallpaperId(themeId: String): String? =
+    wallpaperId ?: themeOverrides[themeId]?.wallpaperId
+        ?: if (THEMES.none { it.id == themeId }) themeOverrides[DEFAULT_THEME_ID]?.wallpaperId else null
+
+/** Le fond en vigueur : `storedWallpaperId`, sinon le défaut. */
+fun AppearancePreferences.resolvedWallpaperId(themeId: String, default: String = DEFAULT_ANDROID_WALLPAPER_ID): String =
+    storedWallpaperId(themeId) ?: default
+
+/** À appeler AVANT de changer de thème : sans réglage global, le repli relirait le fond du nouveau thème. */
+fun AppearancePreferences.withPinnedWallpaper(themeId: String, default: String = DEFAULT_ANDROID_WALLPAPER_ID): AppearancePreferences =
+    if (wallpaperId != null) this else copy(wallpaperId = resolvedWallpaperId(themeId, default))
 
 // --- Les effets du fond (`wallpaperEffects.ts`) ---
 

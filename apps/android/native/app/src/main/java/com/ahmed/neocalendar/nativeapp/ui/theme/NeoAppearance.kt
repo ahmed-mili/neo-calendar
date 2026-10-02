@@ -27,6 +27,8 @@ import com.ahmed.neocalendar.core.appearance.resolveThemeColors
 import com.ahmed.neocalendar.core.appearance.themeIdOfDesktopPreferences
 import com.ahmed.neocalendar.core.appearance.toJsonText
 import com.ahmed.neocalendar.core.appearance.withCustomization
+import com.ahmed.neocalendar.core.appearance.storedWallpaperId
+import com.ahmed.neocalendar.core.appearance.withPinnedWallpaper
 import com.ahmed.neocalendar.core.appearance.withWallpaper
 import com.ahmed.neocalendar.core.appearance.withoutThemeDefaults
 import com.ahmed.neocalendar.core.appearance.withoutCustomization
@@ -76,6 +78,12 @@ object NeoAppearance {
     var preferences by mutableStateOf(AppearancePreferences())
         private set
 
+    /**
+     * L'identifiant de thème enregistré tel quel : celui d'un thème retiré depuis, alors que `themeId` est déjà Catppuccin.
+     * Il ne sert qu'au repli du fond (le fond que cette personne avait). Un champ simple, lu au même moment que `themeId`.
+     */
+    private var savedThemeId: String = DEFAULT_THEME_ID
+
     var effects by mutableStateOf(WallpaperEffects())
         private set
 
@@ -86,7 +94,7 @@ object NeoAppearance {
     val theme get() = getTheme(themeId)
 
     /** Les valeurs en vigueur du thème courant (personnalisation comprise). */
-    val effective: EffectiveThemeAppearance get() = effectiveThemeAppearance(theme, preferences)
+    val effective: EffectiveThemeAppearance get() = effectiveThemeAppearance(theme, preferences, savedThemeId = savedThemeId)
 
     /** Le fond choisi pour le thème courant (jamais nul : le fond par défaut d'Android sinon). */
     val wallpaperId: String get() = effective.wallpaperId
@@ -107,14 +115,16 @@ object NeoAppearance {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val storedAppearance = prefs.getString("appearance", null)
         preferences = if (storedAppearance != null) parseAppearancePreferences(storedAppearance) else legacyPreferences(prefs)
-        themeId = getTheme(prefs.getString("theme_id", null)).id
+        val storedThemeId = prefs.getString("theme_id", null)
+        themeId = getTheme(storedThemeId).id
+        savedThemeId = storedThemeId ?: DEFAULT_THEME_ID
         effects = if (prefs.contains("effects")) fromValues(parseWallpaperEffects(prefs.getString("effects", null)))
         else WallpaperEffects(prefs.getFloat("brightness", 0.7f), prefs.getFloat("blur", 5f), prefs.getFloat("container_opacity", 0.4f)).normalized()
         AppLanguage.set(prefs.getString("language", null))
         systemDark = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) != android.content.res.Configuration.UI_MODE_NIGHT_NO
         refreshTokens()
         if (!prefs.contains("appearance")) syncFromWebView(context.applicationContext)
-        else if (preferences.themeOverrides[themeId]?.wallpaperId == null) recoverWallpaper(context.applicationContext)
+        else if (!hasWallpaperChoice()) recoverWallpaper(context.applicationContext)
     }
 
     /** Après l'import des réglages d'une ancienne version : reprend le `localStorage` qu'il vient de poser, si rien n'a encore été choisi ici. */
@@ -125,7 +135,7 @@ object NeoAppearance {
     /** Avant le lot 5b : seul le fond du thème Catppuccin était rangé, sous `wallpaper_id`. */
     private fun legacyPreferences(prefs: android.content.SharedPreferences): AppearancePreferences {
         val id = prefs.getString("wallpaper_id", null)?.takeIf { it.isNotEmpty() } ?: return AppearancePreferences()
-        return AppearancePreferences().withWallpaper(DEFAULT_THEME_ID, id)
+        return AppearancePreferences().withWallpaper(id)
     }
 
     fun followSystem(dark: Boolean) {
@@ -136,37 +146,56 @@ object NeoAppearance {
 
     // --- Changements (écrits dans les préférences natives) ---
 
+    /** Un thème retiré dont on ne garde que le fond : on le fige en réglage global dès le premier geste, avant que `savedThemeId` ne soit perdu. */
+    private fun settle() {
+        if (savedThemeId == themeId) return
+        preferences = preferences.withPinnedWallpaper(savedThemeId)
+        savedThemeId = themeId
+    }
+
+    private fun hasWallpaperChoice() = preferences.storedWallpaperId(savedThemeId) != null
+
     fun setTheme(context: Context, id: String) {
+        settle()
+        // Changer de thème ne touche pas au fond : on le fige avant la bascule.
+        preferences = preferences.withPinnedWallpaper(themeId)
         themeId = getTheme(id).id
+        savedThemeId = themeId
         changed(context)
     }
 
     fun setMode(context: Context, mode: AppearanceMode) {
+        settle()
         preferences = preferences.copy(mode = mode)
         changed(context)
     }
 
     fun setCustomization(context: Context, custom: ThemeCustomization) {
+        settle()
         preferences = preferences.withCustomization(themeId, custom.withoutThemeDefaults(theme))
         changed(context)
     }
 
     fun setWallpaper(context: Context, id: String) {
-        preferences = preferences.withWallpaper(themeId, id)
+        settle()
+        preferences = preferences.withWallpaper(id)
         changed(context)
     }
 
     fun resetTheme(context: Context) {
+        settle()
         preferences = preferences.withoutCustomization(themeId)
         changed(context)
     }
 
     fun setEffects(context: Context, newEffects: WallpaperEffects) {
+        settle()
         effects = newEffects.normalized()
         changed(context)
     }
 
     fun setLanguage(context: Context, code: String) {
+        settle()
         AppLanguage.set(code)
         changed(context)
     }
@@ -240,11 +269,11 @@ object NeoAppearance {
         if (listOf("a", "e", "d", "l").all { stored.text(it) == null }) return
         stored.text("a")?.let { preferences = parseAppearancePreferences(it) }
         stored.text("e")?.let { effects = fromValues(parseWallpaperEffects(it)) }
-        stored.text("d")?.let { themeId = themeIdOfDesktopPreferences(it) }
+        stored.text("d")?.let { themeId = themeIdOfDesktopPreferences(it); savedThemeId = themeId }
         stored.text("l")?.let { AppLanguage.set(it) }
         refreshTokens()
         save(context)
-        if (preferences.themeOverrides[themeId]?.wallpaperId == null) recoverWallpaper(context)
+        if (!hasWallpaperChoice()) recoverWallpaper(context)
     }
 
     /**
@@ -257,7 +286,7 @@ object NeoAppearance {
             val files = listing.chunked(2).map { WallpaperFile(it[0] as String, it[1] as Long) }
             val id = recoveredWallpaperId(null, files) ?: return@Thread
             handler.post {
-                if (preferences.themeOverrides[themeId]?.wallpaperId != null) return@post
+                if (hasWallpaperChoice()) return@post
                 setWallpaper(context, id)
             }
         }.start()

@@ -220,7 +220,7 @@ internal fun AppearancePage(openThemeChoice: () -> Unit) {
                 context,
                 ThemeCustomization(
                     accent = draft.accent, surface = draft.surface, ink = draft.ink, uiFont = draft.uiFont, codeFont = draft.codeFont,
-                    translucentSidebar = draft.translucentSidebar, contrast = draft.contrast, wallpaperId = draft.wallpaperId,
+                    translucentSidebar = draft.translucentSidebar, contrast = draft.contrast,
                 ),
             )
             draft = NeoAppearance.effective
@@ -267,7 +267,6 @@ private fun importedDraft(theme: ThemeDefinition, imported: ImportedTheme): com.
         uiFont = imported.uiFont ?: base.uiFont,
         codeFont = imported.codeFont ?: base.codeFont,
         translucentSidebar = imported.translucentSidebar ?: base.translucentSidebar,
-        wallpaperId = imported.wallpaperId ?: base.wallpaperId,
     )
 }
 

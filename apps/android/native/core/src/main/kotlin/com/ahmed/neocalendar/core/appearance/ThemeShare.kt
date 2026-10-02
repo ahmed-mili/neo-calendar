@@ -26,7 +26,6 @@ fun themeShareText(themeId: String, theme: EffectiveThemeAppearance, scheme: Str
                 "ink" to JsonPrimitive(theme.ink),
                 "opaqueWindows" to JsonPrimitive(!theme.translucentSidebar),
                 "surface" to JsonPrimitive(theme.surface),
-                "wallpaperId" to JsonPrimitive(theme.wallpaperId),
             ),
         ),
         "variant" to JsonPrimitive(scheme),
@@ -43,7 +42,6 @@ data class ImportedTheme(
     val uiFont: String? = null,
     val codeFont: String? = null,
     val translucentSidebar: Boolean? = null,
-    val wallpaperId: String? = null,
 )
 
 sealed interface ThemeImport {
@@ -79,7 +77,6 @@ fun parseThemeShare(text: String): ThemeImport {
             uiFont = fonts?.get("ui").str(),
             codeFont = fonts?.get("code").str(),
             translucentSidebar = opaque?.not(),
-            wallpaperId = theme?.get("wallpaperId").str()?.takeIf { isKnownWallpaperId(it) },
         ),
     )
 }

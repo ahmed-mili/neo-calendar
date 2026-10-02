@@ -1,6 +1,7 @@
 package com.ahmed.neocalendar.core.appearance
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -21,8 +22,12 @@ class ThemeShareTest {
         assertEquals("#112233", back.theme.accent)
         assertEquals(20, back.theme.contrast)
         assertEquals(false, back.theme.translucentSidebar)
-        assertEquals("none", back.theme.wallpaperId)
         assertEquals(custom.uiFont, back.theme.uiFont)
+    }
+
+    @Test fun `la copie du theme ne porte plus de fond`() {
+        val text = themeShareText("tokyo-night", effective)
+        assertFalse(text.contains("wallpaperId"))
     }
 
     @Test fun `le prefixe est facultatif`() {
@@ -44,7 +49,6 @@ class ThemeShareTest {
     @Test fun `les champs invalides laissent le brouillon`() {
         val ok = parseThemeShare("""{"codeThemeId":"one","theme":{"contrast":"x","wallpaperId":"inconnu","opaqueWindows":"oui"}}""") as ThemeImport.Ok
         assertNull(ok.theme.contrast)
-        assertNull(ok.theme.wallpaperId)
         assertNull(ok.theme.translucentSidebar)
     }
 }

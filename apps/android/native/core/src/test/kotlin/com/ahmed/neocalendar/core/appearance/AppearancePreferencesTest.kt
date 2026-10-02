@@ -3,6 +3,7 @@ package com.ahmed.neocalendar.core.appearance
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -47,10 +48,89 @@ class AppearancePreferencesTest {
         )
     }
 
-    @Test fun `choisir un fond garde le reste de la personnalisation`() {
-        val p = AppearancePreferences().withCustomization("one", ThemeCustomization(accent = "#445566")).withWallpaper("one", "none")
+    @Test fun `choisir un fond ne touche pas aux personnalisations`() {
+        val p = AppearancePreferences().withCustomization("one", ThemeCustomization(accent = "#445566")).withWallpaper("none")
         assertEquals("#445566", p.themeOverrides.getValue("one").accent)
-        assertEquals("none", p.themeOverrides.getValue("one").wallpaperId)
+        assertEquals("none", p.wallpaperId)
+    }
+
+    @Test fun `sans reglage global le fond est celui du theme actuel puis le defaut`() {
+        val p = AppearancePreferences()
+            .withCustomization("github", ThemeCustomization(wallpaperId = "panorama-valley-portrait"))
+        assertEquals("panorama-valley-portrait", p.resolvedWallpaperId("github"))
+        assertEquals(DEFAULT_ANDROID_WALLPAPER_ID, p.resolvedWallpaperId("one"))
+        assertEquals("panorama-valley-portrait", effectiveThemeAppearance(getTheme("github"), p).wallpaperId)
+    }
+
+    @Test fun `le reglage global l'emporte sur un fond par theme incoherent`() {
+        val p = AppearancePreferences()
+            .withCustomization("github", ThemeCustomization(wallpaperId = "panorama-valley-portrait"))
+            .withWallpaper("none")
+        assertEquals("none", p.resolvedWallpaperId("github"))
+        assertEquals("none", effectiveThemeAppearance(getTheme("github"), p).wallpaperId)
+    }
+
+    @Test fun `un reglage global inconnu est ecarte`() {
+        val p = parseAppearancePreferences("""{"wallpaperId":"inconnu","themeOverrides":{"github":{"wallpaperId":"panorama-valley-portrait"}}}""")
+        assertNull(p.wallpaperId)
+        assertEquals("panorama-valley-portrait", p.resolvedWallpaperId("github"))
+    }
+
+    @Test fun `le JSON d'une version plus ancienne se relit tel quel et se reecrit sans cle globale`() {
+        val old = """{"mode":"dark","translucentSidebar":true,"contrast":50,"themeOverrides":{"catppuccin-mocha":{"wallpaperId":"golden-summit-portrait"}}}"""
+        val p = parseAppearancePreferences(old)
+        assertNull(p.wallpaperId)
+        assertEquals("golden-summit-portrait", p.resolvedWallpaperId("catppuccin-mocha"))
+        assertEquals(old, p.toJsonText())
+    }
+
+    @Test fun `la cle globale est ecrite en dernier et relue`() {
+        val p = AppearancePreferences().withWallpaper("none")
+        assertEquals(
+            """{"mode":"dark","translucentSidebar":true,"contrast":50,"themeOverrides":{},"wallpaperId":"none"}""",
+            p.toJsonText(),
+        )
+        assertEquals(p, parseAppearancePreferences(p.toJsonText()))
+    }
+
+    @Test fun `changer de theme fige le fond tant que rien n'est global`() {
+        val p = AppearancePreferences()
+            .withCustomization("github", ThemeCustomization(wallpaperId = "panorama-valley-portrait"))
+        val pinned = p.withPinnedWallpaper("github")
+        assertEquals("panorama-valley-portrait", pinned.wallpaperId)
+        assertEquals("panorama-valley-portrait", pinned.resolvedWallpaperId("one"))
+        assertSame(pinned, pinned.withPinnedWallpaper("one"))
+    }
+
+    @Test fun `enregistrer les couleurs garde le fond par theme et reinitialiser fige le fond`() {
+        val p = AppearancePreferences()
+            .withCustomization("github", ThemeCustomization(wallpaperId = "panorama-valley-portrait"))
+        val saved = p.withCustomization("github", ThemeCustomization(accent = "#112233"))
+        assertEquals("panorama-valley-portrait", saved.resolvedWallpaperId("github"))
+        val reset = saved.withoutCustomization("github")
+        assertFalse(reset.themeOverrides.containsKey("github"))
+        assertEquals("panorama-valley-portrait", reset.resolvedWallpaperId("github"))
+    }
+
+    @Test fun `un theme retire dans les preferences ne plante rien`() {
+        val p = parseAppearancePreferences("""{"wallpaperId":"none","themeOverrides":{"tokyo-night":{"accent":"#112233"}}}""")
+        assertEquals("none", effectiveThemeAppearance(getTheme("tokyo-night"), p).wallpaperId)
+    }
+
+    @Test fun `un theme retire garde son fond en passant sur Catppuccin, puis le fond de Catppuccin, puis le defaut`() {
+        val own = AppearancePreferences()
+            .withCustomization("theme-retire", ThemeCustomization(wallpaperId = "golden-summit-portrait"))
+        assertEquals("golden-summit-portrait", own.resolvedWallpaperId("theme-retire"))
+        assertEquals(
+            "golden-summit-portrait",
+            effectiveThemeAppearance(getTheme("theme-retire"), own, savedThemeId = "theme-retire").wallpaperId,
+        )
+        val viaCatppuccin = AppearancePreferences()
+            .withCustomization("catppuccin-mocha", ThemeCustomization(wallpaperId = "panorama-valley-portrait"))
+        assertEquals("panorama-valley-portrait", viaCatppuccin.resolvedWallpaperId("theme-retire"))
+        assertEquals(DEFAULT_ANDROID_WALLPAPER_ID, AppearancePreferences().resolvedWallpaperId("theme-retire"))
+        // Un thème conservé sans fond propre ne prend pas celui de Catppuccin.
+        assertEquals(DEFAULT_ANDROID_WALLPAPER_ID, viaCatppuccin.resolvedWallpaperId("github"))
     }
 
     @Test fun `reinitialiser un theme n'efface que lui`() {
