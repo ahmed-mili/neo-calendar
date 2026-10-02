@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.produceState
+import kotlinx.coroutines.delay
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -163,23 +164,55 @@ fun NativeApp(viewModel: NativeViewModel, updates: NativeUpdates) {
         val pickTree = androidx.activity.compose.rememberLauncherForActivityResult(PickTree()) { result ->
             if (result != null) viewModel.onTreePicked(result)
         }
+        // Au lancement : seul le rond tourne, sur l'aplat du splash système (même couleur, aucun saut). Le fond d'écran et la grille
+        // n'apparaissent qu'ensemble, par un fondu : quand les données sont lues ET la photo décodée, ou 150 ms après les données.
+        var wallpaperSettled by remember { mutableStateOf(false) }
+        var graceOver by remember { mutableStateOf(false) }
+        var revealedOnce by rememberSaveable { mutableStateOf(false) }
+        val dataReady = screen !is ScreenState.Loading
+        LaunchedEffect(dataReady) { if (dataReady) { delay(WALLPAPER_GRACE_MS); graceOver = true } }
+        val reveal = revealedOnce || (dataReady && (wallpaperSettled || graceOver))
+        LaunchedEffect(reveal) { if (reveal) revealedOnce = true }
+        val curtain by animateFloatAsState(if (reveal) 0f else 1f, tween(250), label = "curtain")
         Box(Modifier.fillMaxSize().background(Neo.Background)) {
-            WallpaperLayer(reloadKey = screen::class, modifier = Modifier.neoContrast())
+            // La photo se décode PENDANT la lecture du dossier (la couche est composée dès `Loading`, cachée par le rideau) :
+            // la clé ne change qu'entre « pas de dossier » et « dossier » (pas à Loading -> Ready), sinon elle repartirait de zéro.
+            WallpaperLayer(
+                reloadKey = screen is ScreenState.NeedsFolder || screen is ScreenState.Failed,
+                modifier = Modifier.neoContrast(),
+                onSettled = { wallpaperSettled = true },
+            )
             when (val s = screen) {
                 ScreenState.NeedsFolder -> WelcomeScreen { pickTree.launch(Unit) }
-                // Le splash système tient jusqu'à la lecture du dossier (`holdSplashUntilReady`, 1,5 s au plus) : s'il est relâché
-                // avant la fin, un rond tourne sur le fond d'écran, jamais un écran immobile.
-                ScreenState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        color = Neo.Accent,
-                        modifier = Modifier.semantics { contentDescription = tr("Chargement") },
-                    )
-                }
+                // Au lancement, le rideau (plus bas) porte le rond ; une relecture ultérieure (nouveau dossier choisi) le montre sur le fond.
+                ScreenState.Loading -> if (revealedOnce) LoadingSpinner()
                 is ScreenState.Failed -> FailedScreen(s.message, onPick = { pickTree.launch(Unit) }) { viewModel.reload(force = true) }
                 is ScreenState.Ready -> MainScreen(viewModel, s.data, updates)
             }
             NoticeHost()
+            if (curtain > 0f) {
+                // Le rideau : l'aplat du splash système, opaque, avec le rond. Il avale les appuis tant qu'il est là.
+                Box(Modifier.fillMaxSize().graphicsLayer { alpha = curtain }.background(SPLASH_BACKGROUND).pointerInput(Unit) {}) {
+                    LoadingSpinner()
+                }
+            }
         }
+    }
+}
+
+/** La couleur de l'écran de démarrage système (`windowSplashScreenBackground`, `values-v31/themes.xml`) : le rideau la reprend pour un passage sans saut. */
+private val SPLASH_BACKGROUND = Color(0xFF0B1125)
+
+/** Délai maximal, après la lecture des données, pour attendre la photo de fond avant d'afficher la grille sur le fond uni. */
+private const val WALLPAPER_GRACE_MS = 150L
+
+@Composable
+private fun LoadingSpinner() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(
+            color = Neo.Accent,
+            modifier = Modifier.semantics { contentDescription = tr("Chargement") },
+        )
     }
 }
 

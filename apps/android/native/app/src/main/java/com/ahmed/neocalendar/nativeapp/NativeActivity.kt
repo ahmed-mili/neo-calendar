@@ -43,7 +43,6 @@ class NativeActivity : ComponentActivity() {
         }
         updates = NativeUpdates(this)
         setContent { NativeApp(viewModel, updates) }
-        holdSplashUntilReady()
         consumeUpdateRetry(intent)
         // Comme la WebView : on cherche une mise à jour une fois le calendrier à l'écran, pas avant.
         lifecycleScope.launch {
@@ -88,19 +87,6 @@ class NativeActivity : ComponentActivity() {
         if (intent == null || !intent.getBooleanExtra(NativeExtras.UPDATE_RETRY, false)) return
         intent.removeExtra(NativeExtras.UPDATE_RETRY)
         updates.retry()
-    }
-
-    /** Le splash système reste jusqu'à ce que le dossier soit lu (ou 1,5 s au plus) : pas de spinner nu entre le splash et la grille. */
-    private fun holdSplashUntilReady() {
-        val content = findViewById<android.view.View>(android.R.id.content)
-        val deadline = android.os.SystemClock.uptimeMillis() + 1_500
-        content.viewTreeObserver.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
-            override fun onPreDraw(): Boolean {
-                if (viewModel.screen.value is ScreenState.Loading && android.os.SystemClock.uptimeMillis() < deadline) return false
-                content.viewTreeObserver.removeOnPreDrawListener(this)
-                return true
-            }
-        })
     }
 
     override fun onDestroy() {

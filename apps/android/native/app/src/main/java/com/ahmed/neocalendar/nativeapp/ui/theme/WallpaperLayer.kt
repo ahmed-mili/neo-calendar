@@ -2,6 +2,8 @@ package com.ahmed.neocalendar.nativeapp.ui.theme
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -45,10 +47,12 @@ private fun decode(context: Context, name: String, width: Int, height: Int): Ima
  * `#nc-wallpaper-render-layer` : la photo (cover, centrée) sous un voile teinté de la surface (16 % en haut,
  * 24 % en bas), couche étendue de 36 dp de chaque côté puis agrandie de 4 %, assombrie (`brightness`) et floutée.
  * `reloadKey` relance la lecture (le dossier peut n'être choisi qu'après le premier dessin).
+ * `onSettled` : la photo est décodée (ou il n'y en a pas à décoder : fond uni, aucun dossier, fichier absent) ; la photo
+ * apparaît en fondu quand elle arrive après le premier dessin.
  * Sous Android 12 `Modifier.blur` ne fait rien : le fond reste net, la luminosité et le voile s'appliquent.
  */
 @Composable
-fun WallpaperLayer(reloadKey: Any? = null, modifier: Modifier = Modifier) {
+fun WallpaperLayer(reloadKey: Any? = null, modifier: Modifier = Modifier, onSettled: () -> Unit = {}) {
     val context = LocalContext.current
     val tokens = NeoAppearance.tokens
     val effects = NeoAppearance.effects
@@ -57,11 +61,17 @@ fun WallpaperLayer(reloadKey: Any? = null, modifier: Modifier = Modifier) {
     val metrics = context.resources.displayMetrics
     val bitmap by produceState<ImageBitmap?>(null, id, reloadKey) {
         value = if (solid) null else withContext(Dispatchers.IO) {
-            val own = if (id == "theme-default") tokens.themeWallpaperFile else "$id.jpg"
-            decode(context, own, metrics.widthPixels, metrics.heightPixels)
-                ?: decode(context, tokens.themeWallpaperFile, metrics.widthPixels, metrics.heightPixels)
+            try {
+                val own = if (id == "theme-default") tokens.themeWallpaperFile else "$id.jpg"
+                decode(context, own, metrics.widthPixels, metrics.heightPixels)
+                    ?: decode(context, tokens.themeWallpaperFile, metrics.widthPixels, metrics.heightPixels)
+            } catch (e: Exception) {
+                null
+            }
         }
+        onSettled()
     }
+    val photoAlpha by animateFloatAsState(if (bitmap != null) 1f else 0f, tween(300), label = "photo")
     BoxWithConstraints(modifier.fillMaxSize().clipToBounds().background(tokens.background)) {
         val layer = Modifier
             .align(Alignment.Center)
@@ -71,7 +81,7 @@ fun WallpaperLayer(reloadKey: Any? = null, modifier: Modifier = Modifier) {
         Box(layer) {
             Box(Modifier.fillMaxSize().background(tokens.surface))
             if (!solid) {
-                bitmap?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                bitmap?.let { Image(it, null, Modifier.fillMaxSize().graphicsLayer { alpha = photoAlpha }, contentScale = ContentScale.Crop) }
                 Box(
                     Modifier.fillMaxSize().background(
                         Brush.verticalGradient(
