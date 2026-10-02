@@ -72,8 +72,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         opaqueWindows: true,
         contrast: 60,
         semanticColors: {
-            diffAdded: "#8cc265",
-            diffRemoved: "#e05561",
+            diffAdded: "#98c379",
+            diffRemoved: "#e06c75",
             skill: "#c162de",
         },
         light: {

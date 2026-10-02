@@ -86,8 +86,8 @@ val THEMES: List<ThemeDefinition> = listOf(
         palette = ThemePalette(
             secondary = 0xFF2F333CL, hover = 0xFF383C45L,
             border = 0xFF424750L, muted = 0xFF848A95L, faint = 0xFF676C77L,
-            onAccent = 0xFFFFFFFFL, error = 0xFFE05561L, crust = 0xFF1C1F24L,
-            accentStrong = 0xFF6285C9L, success = 0xFF8CC265L,
+            onAccent = 0xFFFFFFFFL, error = 0xFFE06C75L, crust = 0xFF1C1F24L,
+            accentStrong = 0xFF6285C9L, success = 0xFF98C379L,
         ),
         light = ThemeLight(accent = "#5871ef", surface = "#fafafa", ink = "#383a42", error = "#e45649", success = "#50a14f"),
     ),

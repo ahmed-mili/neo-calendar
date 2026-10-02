@@ -113,7 +113,7 @@ body.nc-theme-one {
     --text-muted: #848a95;
     --text-faint: #676c77;
     --text-on-accent: #ffffff;
-    --text-error: #e05561;
+    --text-error: #e06c75;
     --interactive-normal: #2f333c;
     --interactive-hover: #383c45;
     --interactive-accent: #4d78cc;
@@ -130,8 +130,8 @@ body.nc-theme-one {
     --nc-accent: #4d78cc;
     --nc-accent-strong: #6285c9;
     --nc-accent-text: #ffffff;
-    --nc-danger: #e05561;
-    --nc-success: #8cc265;
+    --nc-danger: #e06c75;
+    --nc-success: #98c379;
     --nc-skill: #c162de;
     --nc-ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
     --nc-code-font: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
