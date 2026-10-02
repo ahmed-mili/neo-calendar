@@ -18,6 +18,11 @@ class SyncthingApiTest {
         assertTrue(api.isHealthy())
     }
 
+    @Test fun `la version du moteur est rendue sans son v`() {
+        fake.answer("GET /rest/system/version", """{"version":"v2.1.5","os":"android"}""")
+        assertEquals("2.1.5", api.version())
+    }
+
     @Test fun `un moteur qui ne repond pas n'est pas en bonne sante et ne leve rien`() {
         val broken = object : HttpTransport {
             override fun request(method: String, path: String, body: String?, readTimeoutMs: Int): HttpResult = throw IOException("connexion refusée")

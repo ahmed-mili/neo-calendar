@@ -3,6 +3,9 @@ package com.ahmed.neocalendar.nativeapp.sync
 import android.content.Context
 import com.ahmed.neocalendar.core.sync.ConfiguredFolder
 import com.ahmed.neocalendar.core.sync.FolderLostException
+import com.ahmed.neocalendar.core.sync.PairingFollowUp
+import com.ahmed.neocalendar.core.sync.PairingName
+import com.ahmed.neocalendar.core.sync.PairingPayload
 import com.ahmed.neocalendar.core.sync.PendingDevice
 import com.ahmed.neocalendar.core.sync.PendingFolder
 import com.ahmed.neocalendar.core.sync.ProposalDecision
@@ -35,6 +38,8 @@ data class SyncUi(
     val conflicts: Int = 0,
     /** Une adoption a retiré l'ancien dossier sans pouvoir poser le nouveau : le moteur n'a plus de dossier tant que « Réessayer » n'a pas abouti. */
     val folderLost: PendingFolder? = null,
+    /** La version du moteur intégré (`2.1.5`), lue une fois : la page dit quel Syncthing synchronise le dossier. */
+    val engineVersion: String? = null,
 )
 
 /** Les lectures et les gestes de la page Synchronisation, tous hors du fil principal. */
@@ -46,6 +51,13 @@ class SyncPageModel(context: Context) {
     val ui: StateFlow<SyncUi> = _ui.asStateFlow()
 
     @Volatile private var folderLost: PendingFolder? = null
+
+    @Volatile private var engineVersion: String? = null
+
+    /** Un appairage par QR code est en cours : le PC scanné et l'instant du scan (en mémoire seulement, jamais écrit). */
+    private class PairingSession(val pcId: String, val startedAtMs: Long)
+
+    @Volatile private var pairing: PairingSession? = null
 
     private fun api(): SyncthingApi = controller.engine.api
         ?: throw IllegalStateException("Le moteur de synchronisation démarre : réessayez dans un instant.")
@@ -62,6 +74,7 @@ class SyncPageModel(context: Context) {
         }
         try {
             val me = api.myId()
+            if (engineVersion == null) engineVersion = runCatching { api.version() }.getOrNull()
             val configured = api.devices()
             val connections = api.connections()
             val seen = api.lastSeen()
@@ -84,10 +97,51 @@ class SyncPageModel(context: Context) {
                 folder = folder,
                 conflicts = conflicts,
                 folderLost = folderLost,
+                engineVersion = engineVersion,
             )
+            followUpPairing(_ui.value)
         } catch (e: Exception) {
             _ui.value = _ui.value.copy(conflicts = conflicts, folderLost = folderLost)
         }
+    }
+
+    /**
+     * Après le scan du QR code du PC : rend son vrai nom au téléphone (le code ne doit pas rester dans ce que les autres
+     * appareils voient), puis adopte le dossier que le PC propose sans question quand il n'y a rien à fusionner. Avec des
+     * notes ou des réglages locaux, la carte de confirmation habituelle s'affiche : rien n'est fusionné à l'insu de l'utilisateur.
+     */
+    private suspend fun followUpPairing(ui: SyncUi) {
+        val session = pairing
+        val pcConnected = session != null && ui.devices.any { it.id == session.pcId && it.connected }
+        if (PairingFollowUp.shouldClearName(PairingName.hasCode(ui.myName), session?.startedAtMs, System.currentTimeMillis(), pcConnected)) {
+            runCatching { setup().clearPairingName() }
+        }
+        if (session == null) return
+        val offered = ui.proposals.firstOrNull { it.proposal.offeredBy == session.pcId && it.proposal != ui.folderLost }
+        if (offered != null && PairingFollowUp.shouldAutoAdopt(true, localNoteCount(), hasLocalPreferences())) {
+            // Deux relectures peuvent se croiser : une seule prend la session et adopte.
+            if (endPairing(session)) adopt(offered.proposal)
+        } else if (offered != null || System.currentTimeMillis() - session.startedAtMs > PairingFollowUp.WINDOW_MS) {
+            endPairing(session)
+        }
+    }
+
+    /** Vrai pour le seul appelant qui ferme cette session. */
+    private fun endPairing(session: PairingSession): Boolean = synchronized(this) {
+        if (pairing === session) { pairing = null; true } else false
+    }
+
+    /** Appairage par QR code : `scanned` est le contenu du QR code. Rend le message d'erreur, ou null. */
+    suspend fun pairWithPc(scanned: String): String? = withContext(Dispatchers.IO) {
+        val payload = PairingPayload.parse(scanned)
+            ?: return@withContext "Ce QR code n'est pas celui d'un PC Neo Calendar. Sur le PC : Réglages, Synchronisation, « Ajouter le téléphone »."
+        try {
+            setup().pairWithPc(payload)
+            pairing = PairingSession(payload.deviceId, System.currentTimeMillis())
+            null
+        } catch (e: Exception) {
+            e.message ?: e.toString()
+        }.also { refresh(); controller.refreshNow() }
     }
 
     /** Nombre de notes du dossier privé : pour dire à l'utilisateur ce qui sera fusionné avant d'adopter un dossier. */

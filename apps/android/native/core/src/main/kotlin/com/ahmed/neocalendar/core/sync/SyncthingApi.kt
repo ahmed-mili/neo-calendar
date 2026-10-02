@@ -61,6 +61,9 @@ class SyncthingApi(private val transport: HttpTransport) {
         false
     }
 
+    /** La version du moteur, sans le « v » (`2.1.5`) : la page dit quel Syncthing synchronise le dossier. */
+    fun version(): String = get("/rest/system/version").jsonObject.getValue("version").jsonPrimitive.content.removePrefix("v")
+
     /** L'identifiant de CET appareil. */
     fun myId(): String = get("/rest/system/status").jsonObject.getValue("myID").jsonPrimitive.content
 

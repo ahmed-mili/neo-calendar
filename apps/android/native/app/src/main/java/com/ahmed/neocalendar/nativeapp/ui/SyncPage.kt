@@ -4,7 +4,17 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -90,7 +100,7 @@ private fun ExternalSyncPage(actions: SyncSwitchActions) {
         note = "Vos notes sont dans un dossier que vous avez choisi, synchronisé par un autre outil (Syncthing, stockage en ligne, transfert manuel).\nLa synchronisation intégrée de Neo Calendar est inactive : les deux ne tournent jamais ensemble sur les mêmes notes.",
     ) {
         row(NeoIcons.FolderOpen, "Dossier synchronisé par une autre app", folderName, chevron = false, onClick = null)
-        row(NeoIcons.RefreshCw, "Passer à la synchronisation intégrée", "Recommandé", onClick = actions.onSwitchToIntegrated)
+        row(NeoIcons.RefreshCw, "Passer à la synchronisation intégrée", null, onClick = actions.onSwitchToIntegrated)
         if (leftover) row(NeoIcons.Trash2, "Vider le stockage privé", "Notes d'un passage précédent", chevron = false, onClick = actions.onClearPrivate)
     }
 }
@@ -122,8 +132,18 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
 
     fun report(error: String?) { if (error != null) Notices.show(error) }
 
-    Group("Mode de stockage", note = "Vos notes sont dans le stockage privé de Neo Calendar, synchronisé par le moteur intégré.\nCe mode et un dossier synchronisé par une autre app s'excluent : jamais les deux sur les mêmes notes.") {
-        row(NeoIcons.Check, "Synchronisation intégrée", "Recommandé", chevron = false, onClick = null)
+    // Appairage par QR code : le scan vaut consentement côté téléphone ; le PC accepte tout seul le bon code (fenêtre de 5 minutes).
+    val scanPc = androidx.activity.compose.rememberLauncherForActivityResult(ScanContract()) { result ->
+        result.contents?.let { scanned ->
+            scope.launch {
+                val error = model.pairWithPc(scanned)
+                if (error != null) Notices.show(error) else Notices.show("Appairage lancé : le PC va accepter ce téléphone dans un instant.")
+            }
+        }
+    }
+
+    Group("Mode de stockage", note = "Le dossier de Neo Calendar est synchronisé par Neo Calendar (Syncthing intégré${ui.engineVersion?.let { " v$it" }.orEmpty()})") {
+        row(NeoIcons.Check, "Synchronisation intégrée", null, chevron = false, onClick = null)
         row(NeoIcons.FolderOpen, "Ouvrir un dossier existant", null, onClick = switchActions.onOpenExistingFolder)
         row(NeoIcons.Upload, "Revenir à un dossier externe", null, onClick = switchActions.onBackToExternal)
     }
@@ -156,6 +176,17 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
             row(NeoIcons.ExternalLink, "Partager", null, chevron = false) {
                 val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, id)
                 context.startActivity(Intent.createChooser(send, null))
+            }
+        }
+    }
+
+    Group("Appairer avec un PC", note = "Sur le PC : Réglages, Synchronisation, « Ajouter le téléphone ».") {
+        custom { shape ->
+            PrimaryButtonRow(shape, NeoIcons.QrCode, "Scanner le QR code du PC") {
+                scanPc.launch(
+                    ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setBeepEnabled(false).setOrientationLocked(false)
+                        .setPrompt("Scannez le QR code affiché sur le PC"),
+                )
             }
         }
     }
@@ -224,6 +255,8 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
         row(NeoIcons.ExternalLink, "Partager", null, chevron = false) { scope.launch { shareLog(context, model.logText()) } }
     }
 
+    SyncthingAbout(context)
+
     when (val open = sheet) {
         null -> Unit
         SyncSheet.AddDevice -> AddDeviceSheet(ui.myId, { sheet = null }) { id, name -> model.addDevice(id, name) }
@@ -267,6 +300,41 @@ private fun powerLabel(power: PowerSource) = when (power) {
     PowerSource.Always -> "Secteur et batterie"
     PowerSource.ChargingOnly -> "Secteur seulement"
     PowerSource.BatteryOnly -> "Batterie seulement"
+}
+
+/** Le geste principal d'un groupe : une ligne pleine à la couleur d'accent, libellé sur une ligne. */
+@Composable
+private fun PrimaryButtonRow(shape: androidx.compose.ui.graphics.Shape, icon: ImageVector, label: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().height(52.dp).clip(shape).background(Neo.Accent).clickable(onClick = onClick).padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Icon(icon, null, tint = Neo.OnAccent, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.size(9.dp))
+        SText(label, color = Neo.OnAccent, weight = 600, maxLines = 1)
+    }
+}
+
+/** Le logo de Syncthing (Simple Icons, `syncthing.svg`) : tracé plein à la couleur de la marque, comme les autres logos de marque de l'app. */
+private val SyncthingLogo: ImageVector by lazy {
+    ImageVector.Builder("syncthing", 22.dp, 22.dp, 24f, 24f).apply {
+        addPath(pathData = addPathNodes("M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm0 2.412c3.115 0 5.885 1.5 7.629 3.815a1.834 1.834 0 0 1 1.564 3.162c.23.818.354 1.68.354 2.57a9.504 9.504 0 0 1-2.166 6.05c.128.281.189.595.162.92a1.854 1.854 0 0 1-2.004 1.678 1.86 1.86 0 0 1-.877-.322A9.486 9.486 0 0 1 12 21.505c-3.84 0-7.154-2.277-8.668-5.552-.3-.01-.601-.092-.879-.254-.858-.51-1.144-1.634-.633-2.513.164-.276.39-.493.653-.643a9.62 9.62 0 0 1-.02-.584c0-5.265 4.282-9.547 9.547-9.547zm0 1.227a8.311 8.311 0 0 0-8.31 8.683c.22.036.439.111.644.23.323.2.564.484.713.805l6.984-.644a1.78 1.78 0 0 1 .787-1.08c.288-.19.612-.286.936-.295.34-.01.68.08.978.254l3.51-2.914a1.82 1.82 0 0 1 .317-1.84A8.3 8.3 0 0 0 12 3.638zm7.027 5.98-3.502 2.91a1.829 1.829 0 0 1-.23 1.719l1.904 2.744c.212-.06.436-.085.668-.066.238.024.46.092.66.193a8.285 8.285 0 0 0 1.793-5.16 8.38 8.38 0 0 0-.265-2.092 1.835 1.835 0 0 1-1.028-.248zm-6.886 4.315-6.975.644a1.8 1.8 0 0 1-.66 1.004A8.312 8.312 0 0 0 12 20.279a8.294 8.294 0 0 0 3.938-.986 1.845 1.845 0 0 1-.075-.69c.028-.341.148-.65.332-.908L14.29 14.95a1.839 1.839 0 0 1-2.148-1.015z"), fill = SolidColor(Color(0xFF0891D1)))
+    }.build()
+}
+
+/** Au bas de la page : le logo de Syncthing et un lien vers son site. */
+@Composable
+private fun SyncthingAbout(context: Context) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(SyncthingLogo, "Syncthing", tint = Color.Unspecified, modifier = Modifier.size(22.dp))
+        SText("Syncthing", color = Neo.SettingsNote, size = 13f, maxLines = 1)
+        SText(
+            "En savoir plus",
+            Modifier.clickable { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://syncthing.net"))) }.padding(vertical = 8.dp),
+            color = Neo.Accent, size = 13f, maxLines = 1,
+        )
+    }
 }
 
 @Composable
