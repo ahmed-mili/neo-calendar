@@ -18,6 +18,7 @@ object NoteCacheCodec {
     private const val MAGIC = 0x4E434E43 // « NCNC »
     private const val CRC_BYTES = 8
     private const val MAX_FILES = 1_000_000
+    private const val MIN_FILE_BYTES = 24
 
     fun encode(identity: String, files: Map<String, CachedFile>, version: Int = VERSION): ByteArray {
         val body = ByteArrayOutputStream()
@@ -48,7 +49,9 @@ object NoteCacheCodec {
             if (input.readInt() != MAGIC || input.readInt() != VERSION) return null
             if (readString(input) != identity) return null
             val count = input.readInt()
-            if (count < 0 || count > MAX_FILES) return null
+            // Chaque fichier prend au moins 24 octets (deux longueurs de 4, `lastModified` et `size` de 8) : un compte
+            // plus grand que ce que le corps peut tenir est faux, et on ne réserve rien pour lui.
+            if (count < 0 || count > MAX_FILES || count > bodySize / MIN_FILE_BYTES) return null
             val out = HashMap<String, CachedFile>(count * 2)
             repeat(count) {
                 val path = readString(input) ?: return null

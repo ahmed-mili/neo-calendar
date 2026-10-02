@@ -116,13 +116,15 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : BinaryWo
             DocumentsContract.Document.COLUMN_SIZE,
         )
         context.contentResolver.query(uri, columns, null, null, null)?.use { c ->
+            // Un fournisseur peut ne pas rendre la colonne : taille inconnue (-1), le fichier sera relu.
+            val sizeColumn = c.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
             while (c.moveToNext()) {
                 out += Doc(
                     DocumentsContract.buildDocumentUriUsingTree(parent, c.getString(0)),
                     c.getString(1),
                     c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR,
                     if (c.isNull(3)) 0L else c.getLong(3),
-                    if (c.isNull(4)) -1L else c.getLong(4),
+                    if (sizeColumn < 0 || c.isNull(sizeColumn)) -1L else c.getLong(sizeColumn),
                 )
             }
         }

@@ -105,6 +105,20 @@ class CachedWorkspaceStorageTest {
         assertEquals(1, s.noteReads() - before)
     }
 
+    @Test fun `une copie a date inconnue est relue a la lecture meme si elle colle au listage`() {
+        val s = tree().put("Cal/u.md", "reel123", lastModified = 0L, size = 7L)
+        val copy = mapOf("Cal/u.md" to CachedFile(0L, 7L, "perime"))
+        val loaded = loadWorkspace(CachedWorkspaceStorage(s, copy))
+        assertEquals("reel123", loaded.eventFiles.single { it.relativePath == "Cal/u.md" }.contents)
+    }
+
+    @Test fun `une copie a taille inconnue est relue a la lecture meme si elle colle au listage`() {
+        val s = tree().put("Cal/u.md", "reel123", lastModified = 1000L, size = -1L)
+        val copy = mapOf("Cal/u.md" to CachedFile(1000L, -1L, "perime"))
+        val loaded = loadWorkspace(CachedWorkspaceStorage(s, copy))
+        assertEquals("reel123", loaded.eventFiles.single { it.relativePath == "Cal/u.md" }.contents)
+    }
+
     @Test fun `un fichier disparu sort de la copie`() {
         val s = tree()
         val copy = warm(s)
@@ -171,6 +185,20 @@ class CachedWorkspaceStorageTest {
         } catch (e: IOException) {
             // Ordre de la série : Cal0 avant Cal2.
             assertTrue(e.message, e.message!!.contains("Cal0/n03.md"))
+        }
+    }
+
+    @Test fun `deux lectures en echec en parallele - l'erreur est celle du premier dans l'ordre`() {
+        val s = many(10L)
+        s.failing += "Cal2/n20.md"
+        s.failing += "Cal0/n03.md"
+        for (storage in listOf<WorkspaceStorage>(CachedWorkspaceStorage(s), CachedWorkspaceStorage(s, parallelism = 1))) {
+            try {
+                loadWorkspace(storage)
+                fail("une erreur était attendue")
+            } catch (e: IOException) {
+                assertTrue(e.message, e.message!!.contains("Cal0/n03.md"))
+            }
         }
     }
 

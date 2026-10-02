@@ -14,6 +14,8 @@ internal class CountingStorage(private val readDelayMs: Long = 0L) : WorkspaceSt
     val files = java.util.TreeMap<String, Stamped>()
     /** Chemins listés mais dont la lecture rend null (fichier disparu ou illisible). */
     val unreadable = mutableSetOf<String>()
+    /** Chemins dont la lecture lève une IOException. */
+    val failing = mutableSetOf<String>()
     val reads = ConcurrentHashMap<String, AtomicInteger>()
     val listCalls = AtomicInteger()
     private val running = AtomicInteger()
@@ -49,6 +51,7 @@ internal class CountingStorage(private val readDelayMs: Long = 0L) : WorkspaceSt
         peak.accumulateAndGet(now) { a, b -> maxOf(a, b) }
         try {
             if (readDelayMs > 0) Thread.sleep(readDelayMs)
+            if (relativePath in failing) throw java.io.IOException("Lecture en échec : $relativePath")
             if (relativePath in unreadable) return null
             return files[relativePath]?.text
         } finally {
