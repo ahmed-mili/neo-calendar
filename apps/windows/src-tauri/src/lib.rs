@@ -1796,7 +1796,12 @@ async fn install_pending_update(app: tauri::AppHandle) -> Result<(), String> {
     };
 
     let (update, bytes) = selected;
+    // Le moteur de synchronisation s'arrete avant l'installation : l'installateur ne doit trouver aucun processus
+    // de l'application. Il repart si l'installation echoue.
+    let stopping = app.clone();
+    let _ = tauri::async_runtime::spawn_blocking(move || sync::commands::shutdown(&stopping)).await;
     if let Err(error) = update.install(&bytes) {
+        sync::commands::resume(&app);
         if let Ok(mut held) = app.state::<PendingUpdate>().0.lock() {
             *held = Some((update, bytes));
         }
@@ -1848,6 +1853,16 @@ fn reveal_main_window(app: &tauri::AppHandle) {
     }
 }
 
+/// « Quitter » : le moteur de synchronisation s'arrete proprement (jusqu'a dix secondes), puis l'application.
+/// Sur un fil a part : le menu de l'icone ne gele pas pendant l'arret.
+fn quit_app(app: &tauri::AppHandle) {
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        sync::commands::shutdown(&handle);
+        handle.exit(0);
+    });
+}
+
 /// Vrai des que l'icone de la zone de notification existe.
 ///
 /// C'est elle qui rend une fenetre masquee recuperable. Tant qu'elle n'existe
@@ -1878,7 +1893,7 @@ fn build_tray(app: &tauri::AppHandle) -> Result<(), String> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "open" => reveal_main_window(app),
-            "quit" => app.exit(0),
+            "quit" => quit_app(app),
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
@@ -1915,6 +1930,12 @@ pub fn run() {
                     // Pas fatal : sans icone, la fenetre restera simplement
                     // une fenetre ordinaire, qui se ferme pour de bon.
                     eprintln!("Icone de la zone de notification indisponible : {reason}");
+                }
+
+                // La synchro integree : le controleur est pose ici (une lecture de petit fichier), le moteur
+                // ne demarre qu'apres le premier ecran (`sync_start`, appele par l'interface).
+                if let Err(reason) = sync::commands::setup(app.handle()) {
+                    eprintln!("Synchronisation integree indisponible : {reason}");
                 }
 
                 // La fenetre est declaree invisible dans tauri.conf.json. Sans
@@ -2025,10 +2046,46 @@ pub fn run() {
             install_pending_update,
             check_desktop_updates,
             fetch_desktop_ics,
-            debug_log
+            debug_log,
+            #[cfg(desktop)]
+            sync::commands::sync_start,
+            #[cfg(desktop)]
+            sync::commands::sync_status,
+            #[cfg(desktop)]
+            sync::commands::sync_enable,
+            #[cfg(desktop)]
+            sync::commands::sync_disable,
+            #[cfg(desktop)]
+            sync::commands::sync_retry,
+            #[cfg(desktop)]
+            sync::commands::sync_pairing_start,
+            #[cfg(desktop)]
+            sync::commands::sync_pairing_cancel,
+            #[cfg(desktop)]
+            sync::commands::sync_accept_device,
+            #[cfg(desktop)]
+            sync::commands::sync_reject_device,
+            #[cfg(desktop)]
+            sync::commands::sync_remove_device,
+            #[cfg(desktop)]
+            sync::commands::sync_repoint_folder,
+            #[cfg(desktop)]
+            sync::commands::sync_detect,
+            #[cfg(desktop)]
+            sync::commands::sync_take_over,
+            #[cfg(desktop)]
+            sync::commands::sync_give_back,
+            #[cfg(desktop)]
+            sync::commands::sync_log
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Neo Calendar");
+        .build(tauri::generate_context!())
+        .expect("error while building Neo Calendar")
+        .run(|app, event| {
+            // Quelle que soit la sortie (Quitter, fin de session, arret), le moteur s'arrete proprement.
+            if let tauri::RunEvent::Exit = event {
+                sync::commands::shutdown(app);
+            }
+        });
 }
 
 #[cfg(test)]

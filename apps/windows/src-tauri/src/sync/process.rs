@@ -216,6 +216,8 @@ pub fn kill_stale(home: &Path, bin_dir: &Path) -> Result<Option<u32>, String> {
     Err(format!("Un moteur resté d'un lancement précédent (PID {pid}) n'a pas pu être terminé."))
 }
 
+/// Le programme d'un PID (les essais vérifient que le moteur tourne depuis la copie du dossier d'état).
+#[cfg(test)]
 pub fn image_path(pid: u32) -> Option<String> {
     sys::image_path(pid)
 }

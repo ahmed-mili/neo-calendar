@@ -47,6 +47,7 @@ pub struct Snapshot {
     pub api: Option<SyncthingApi>,
     pub my_id: Option<String>,
     /// L'adresse de l'interface REST (`127.0.0.1:port`), jamais la clé.
+    #[cfg_attr(not(test), allow(dead_code))] // lu par les essais (l'API refuse sans la clé)
     pub gui_address: Option<String>,
     /// Le chemin du dossier du moteur quand il n'est plus le dossier de données de l'app.
     pub mismatch: Option<String>,
