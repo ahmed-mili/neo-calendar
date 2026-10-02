@@ -211,10 +211,10 @@ body.nc-theme-vercel {
     --text-muted: #a6a6a6;
     --text-faint: #727272;
     --text-on-accent: #ffffff;
-    --text-error: #F13342;
+    --text-error: #f13242;
     --interactive-normal: #0d0d0d;
     --interactive-hover: #1c1c1c;
-    --interactive-accent: #006efe;
+    --interactive-accent: #0071f6;
 
     --nc-bg-primary: #000000;
     --nc-bg-secondary: #0d0d0d;
@@ -225,17 +225,17 @@ body.nc-theme-vercel {
     --nc-text-secondary: #a6a6a6;
     --nc-text-faint: #727272;
     --nc-border: #2f2f2f;
-    --nc-accent: #006efe;
+    --nc-accent: #0071f6;
     --nc-accent-strong: #348afa;
     --nc-accent-text: #ffffff;
-    --nc-danger: #F13342;
-    --nc-success: #00AD3A;
+    --nc-danger: #f13242;
+    --nc-success: #00ab3e;
     --nc-skill: #9540D5;
     --nc-ui-font: Geist, Inter;
     --nc-code-font: "Geist Mono", ui-monospace, "SFMono-Regular";
     --nc-theme-surface: #000000;
     --nc-theme-ink: #ededed;
-    --nc-theme-accent: #006efe;
+    --nc-theme-accent: #0071f6;
     --nc-window-opacity: 1;
     --nc-wallpaper-overlay: linear-gradient(transparent, transparent);
     --nc-wallpaper: linear-gradient(#000000, #000000);

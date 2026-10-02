@@ -144,7 +144,7 @@ export const THEMES: readonly ThemeDefinition[] = [
         variantLabel: "Dark",
         className: "nc-theme-vercel",
         colorScheme: "dark",
-        accent: "#006efe",
+        accent: "#0071f6",
         surface: "#000000",
         ink: "#ededed",
         uiFont: '"Geist Variable", Geist, "Inter Variable", Inter, "Segoe UI", system-ui, sans-serif',
@@ -153,8 +153,8 @@ export const THEMES: readonly ThemeDefinition[] = [
         opaqueWindows: true,
         contrast: 50,
         semanticColors: {
-            diffAdded: "#00AD3A",
-            diffRemoved: "#F13342",
+            diffAdded: "#00ab3e",
+            diffRemoved: "#f13242",
             skill: "#9540D5",
         },
         light: {

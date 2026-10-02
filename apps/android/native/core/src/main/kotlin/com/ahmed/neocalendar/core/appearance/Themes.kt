@@ -119,14 +119,14 @@ val THEMES: List<ThemeDefinition> = listOf(
     ),
     ThemeDefinition(
         id = "vercel", label = "Vercel", variantLabel = "Dark",
-        accent = "#006efe", surface = "#000000", ink = "#ededed", contrast = 50, opaqueWindows = true,
+        accent = "#0071f6", surface = "#000000", ink = "#ededed", contrast = 50, opaqueWindows = true,
         uiFont = "\"Geist Variable\", Geist, \"Inter Variable\", Inter, \"Segoe UI\", system-ui, sans-serif",
         codeFont = "\"Geist Mono Variable\", \"Geist Mono\", \"JetBrains Mono Variable\", \"Cascadia Code\", Consolas, monospace",
         palette = ThemePalette(
             secondary = 0xFF0D0D0DL, hover = 0xFF1C1C1CL,
             border = 0xFF2F2F2FL, muted = 0xFFA6A6A6L, faint = 0xFF727272L,
-            onAccent = 0xFFFFFFFFL, error = 0xFFF13342L, crust = 0xFF000000L,
-            accentStrong = 0xFF348AFAL, success = 0xFF00AD3AL,
+            onAccent = 0xFFFFFFFFL, error = 0xFFF13242L, crust = 0xFF000000L,
+            accentStrong = 0xFF348AFAL, success = 0xFF00AB3EL,
         ),
         light = ThemeLight(accent = "#0070f7", surface = "#ffffff", ink = "#171717", error = "#fc0035", success = "#28a948"),
     ),
