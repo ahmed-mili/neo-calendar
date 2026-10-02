@@ -16,9 +16,9 @@ class ThemeColorsTest {
         assertEquals(0xFF181825L, c.secondary)
         assertEquals(0xFF11111BL, c.crust)
         assertEquals(0xFF313244L, c.hover)
-        assertEquals(0xFFC6D0F5L, c.text)
-        assertEquals(0xFF658FF2L, c.accent)
-        assertEquals(0xFF89B4FAL, c.accentStrong)
+        assertEquals(0xFFCDD6F4L, c.text)
+        assertEquals(0xFF89B4FAL, c.accent)
+        assertEquals(0xFFA3C5FBL, c.accentStrong)
     }
 
     @Test fun `le mode systeme suit l'appareil`() {

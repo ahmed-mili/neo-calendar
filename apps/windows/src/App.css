@@ -165,7 +165,7 @@ select {
     inset: auto -52px -64px auto;
     width: 180px;
     height: 180px;
-    border: 1px solid rgba(101, 143, 242, 0.2);
+    border: 1px solid rgba(137, 180, 250, 0.2);
     border-radius: 44px;
     content: "";
     transform: rotate(18deg);

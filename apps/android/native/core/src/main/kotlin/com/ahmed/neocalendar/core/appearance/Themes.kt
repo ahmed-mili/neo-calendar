@@ -54,14 +54,14 @@ const val DEFAULT_THEME_ID = "catppuccin-mocha"
 val THEMES: List<ThemeDefinition> = listOf(
     ThemeDefinition(
         id = "catppuccin-mocha", label = "Catppuccin", variantLabel = "Mocha",
-        accent = "#658ff2", surface = "#1e1e2e", ink = "#c6d0f5", contrast = 60, opaqueWindows = false,
+        accent = "#89b4fa", surface = "#1e1e2e", ink = "#cdd6f4", contrast = 60, opaqueWindows = false,
         uiFont = "\"Inter Variable\", Inter, \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif",
         codeFont = "\"JetBrains Mono Variable\", \"JetBrains Mono\", \"Cascadia Code\", Consolas, monospace",
         palette = ThemePalette(
             secondary = 0xFF181825L, hover = 0xFF313244L,
             border = 0x476C7086L, muted = 0xFFA1A8C9L, faint = 0xFF696D86L,
             onAccent = 0xFF1E1E2EL, error = 0xFFF38BA8L, crust = 0xFF11111BL,
-            accentStrong = 0xFF89B4FAL, success = 0xFFA6E3A1L,
+            accentStrong = 0xFFA3C5FBL, success = 0xFFA6E3A1L,
         ),
         light = ThemeLight(accent = "#1e66f5", surface = "#eff1f5", ink = "#4c4f69", error = "#d20f39", success = "#40a02b"),
     ),

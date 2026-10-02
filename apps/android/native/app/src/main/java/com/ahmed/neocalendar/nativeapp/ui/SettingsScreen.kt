@@ -276,7 +276,7 @@ private fun SettingsHeader(title: String, onBack: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .drawBehind { drawRect(Color(0x16C6D0F5), Offset(0f, size.height - 1.dp.toPx()), Size(size.width, 1.dp.toPx())) }
+            .drawBehind { drawRect(Color(0x16CDD6F4), Offset(0f, size.height - 1.dp.toPx()), Size(size.width, 1.dp.toPx())) }
             .padding(start = 18.dp, end = 8.dp, top = 8.dp, bottom = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -604,7 +604,7 @@ private val SwitchEasing = CubicBezierEasing(0.2f, 0.85f, 0.25f, 1f)
 @Composable
 internal fun SettingsSwitch(checked: Boolean) {
     val knobX by animateDpAsState(if (checked) 21.dp else 3.dp, tween(160, easing = SwitchEasing), label = "switch-knob")
-    val track by animateColorAsState(if (checked) Neo.Accent else Color(0x32C6D0F5), tween(160), label = "switch-track")
+    val track by animateColorAsState(if (checked) Neo.Accent else Color(0x32CDD6F4), tween(160), label = "switch-track")
     val knob by animateColorAsState(if (checked) Color.White else Neo.Text, tween(160), label = "switch-knob-color")
     Box(Modifier.size(width = 44.dp, height = 26.dp).clip(CircleShape).background(track)) {
         Box(Modifier.offset(x = knobX, y = 3.dp).size(20.dp).clip(CircleShape).background(knob))

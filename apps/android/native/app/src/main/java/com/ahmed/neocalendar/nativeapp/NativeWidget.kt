@@ -12,8 +12,8 @@ import java.time.Instant
 
 /** Catppuccin Mocha (inventaire §6) : surface, encre, accent ; le noyau en tire les quatre couleurs du widget. */
 private const val SURFACE = "#1e1e2e"
-private const val INK = "#c6d0f5"
-private const val ACCENT = "#658ff2"
+private const val INK = "#cdd6f4"
+private const val ACCENT = "#89b4fa"
 
 internal fun widgetJson(data: WorkspaceData, events: List<DisplayEvent>, now: Instant): String =
     buildWidgetPayload(

@@ -9,9 +9,9 @@ export const THEMES: readonly ThemeDefinition[] = [
         variantLabel: "Mocha",
         className: "nc-theme-catppuccin-mocha",
         colorScheme: "dark",
-        accent: "#658ff2",
+        accent: "#89b4fa",
         surface: "#1e1e2e",
-        ink: "#c6d0f5",
+        ink: "#cdd6f4",
         uiFont: '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif',
         codeFont:
             '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',

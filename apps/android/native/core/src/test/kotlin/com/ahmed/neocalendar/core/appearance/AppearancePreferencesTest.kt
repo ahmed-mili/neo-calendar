@@ -143,7 +143,7 @@ class AppearancePreferencesTest {
     @Test fun `les valeurs en vigueur suivent le theme sauf personnalisation`() {
         val mocha = getTheme("catppuccin-mocha")
         val plain = effectiveThemeAppearance(mocha, AppearancePreferences())
-        assertEquals("#658ff2", plain.accent)
+        assertEquals("#89b4fa", plain.accent)
         assertEquals(60, plain.contrast)
         assertTrue(plain.translucentSidebar)
         assertEquals(DEFAULT_ANDROID_WALLPAPER_ID, plain.wallpaperId)
