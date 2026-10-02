@@ -6,6 +6,7 @@ import androidx.core.content.FileProvider
 import com.ahmed.neocalendar.core.workspace.BinaryWorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.FileWorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.InstallFacts
+import com.ahmed.neocalendar.core.workspace.NoteCacheFile
 import com.ahmed.neocalendar.core.workspace.StorageMode
 import com.ahmed.neocalendar.core.workspace.isGenuineNewInstall
 import com.ahmed.neocalendar.core.workspace.initNewWorkspace
@@ -100,6 +101,23 @@ object WorkspaceLocation {
             }.getOrDefault(raw)
         }
         null -> "Aucun"
+    }
+
+    /**
+     * Ce que la copie des notes sait du dossier : change dès qu'on change de dossier SAF ou de mode de stockage, de sorte
+     * qu'une copie ne sert jamais pour un autre dossier. Chaîne vide : rien n'est choisi (aucune copie).
+     */
+    fun cacheIdentity(context: Context): String = when (mode(context)) {
+        StorageMode.Integrated -> "private:" + privateRoot(context).absolutePath
+        StorageMode.External -> "saf:" + prefs(context).getString(KEY_TREE, "").orEmpty()
+        null -> ""
+    }
+
+    @Volatile private var noteCacheFile: NoteCacheFile? = null
+
+    /** L'unique `NoteCacheFile` de l'application (son verrou et son temporaire sont partagés : jamais deux instances pour un fichier). */
+    fun noteCache(context: Context): NoteCacheFile = noteCacheFile ?: synchronized(this) {
+        noteCacheFile ?: NoteCacheFile(File(context.applicationContext.filesDir, "note-cache.bin")).also { noteCacheFile = it }
     }
 
     /** Une pièce jointe à ouvrir dans une autre appli : un URI SAF, ou un URI de FileProvider pour le stockage privé. Null si elle n'existe pas. */

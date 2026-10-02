@@ -2,4 +2,6 @@
 <!-- Android 11 et moins : même règle que data_extraction_rules.xml. -->
 <full-backup-content>
     <exclude domain="file" path="syncthing/" />
+    <exclude domain="file" path="note-cache.bin" />
+    <exclude domain="file" path="note-cache.bin.tmp" />
 </full-backup-content>

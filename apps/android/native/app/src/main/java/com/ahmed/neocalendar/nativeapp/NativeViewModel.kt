@@ -49,6 +49,7 @@ import com.ahmed.neocalendar.core.holidays.holidayDisplayEvents
 import com.ahmed.neocalendar.core.holidays.holidaySourcesOf
 import com.ahmed.neocalendar.core.preferences.withSetting
 import com.ahmed.neocalendar.core.workspace.BinaryWorkspaceStorage
+import com.ahmed.neocalendar.core.workspace.CachedWorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.EventWriter
 import com.ahmed.neocalendar.core.workspace.mayPickExternalTree
 import com.ahmed.neocalendar.core.workspace.WorkspaceStorage
@@ -866,8 +867,34 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
     /** Pour ouvrir une pièce jointe dans une autre appli : son URI (SAF, ou FileProvider pour le stockage privé), sans rien écrire. */
     fun attachmentUri(relativePath: String): Uri? = runCatching { WorkspaceLocation.attachmentUri(getApplication(), relativePath) }.getOrNull()
 
-    /** Lit le dossier selon le mode (permission durable contrôlée pour le SAF), puis le noyau fait le reste. */
-    private fun read(): WorkspaceData = readWorkspaceData(openStorage(write = false))
+    /**
+     * Lit le dossier selon le mode (permission durable contrôlée pour le SAF), puis le noyau fait le reste. Les fichiers dont
+     * la date et la taille n'ont pas bougé viennent de la copie des notes (stockage privé, jamais synchronisée, exclue des
+     * sauvegardes) ; le dossier est toujours listé pour de vrai. La copie est chargée ici, hors du fil principal, et réécrite
+     * après coup (jamais avant le retour) seulement si la lecture a changé quelque chose.
+     */
+    private fun read(): WorkspaceData {
+        val app = getApplication<Application>()
+        val identity = WorkspaceLocation.cacheIdentity(app)
+        val storage = openStorage(write = false)
+        // Le dossier ou le mode a pu changer entre l'identité et l'ouverture : sans identité sûre, lecture sans copie.
+        if (identity.isEmpty() || WorkspaceLocation.cacheIdentity(app) != identity) return readWorkspaceData(storage)
+        val noteCache = WorkspaceLocation.noteCache(app)
+        val cached = CachedWorkspaceStorage(storage, noteCache.load(identity))
+        val data = readWorkspaceData(cached)
+        if (cached.changed) {
+            val snapshot = cached.snapshot()
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    noteCache.save(identity, snapshot)
+                } catch (e: Exception) {
+                    // Disque plein ou autre : l'app marche comme sans copie, rien à montrer.
+                    android.util.Log.w("NoteCache", "Copie des notes non écrite", e)
+                }
+            }
+        }
+        return data
+    }
 }
 
 /**
