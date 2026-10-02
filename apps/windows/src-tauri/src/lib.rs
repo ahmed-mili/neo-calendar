@@ -1,3 +1,4 @@
+mod sync;
 #[cfg(windows)]
 mod window_commands;
 
