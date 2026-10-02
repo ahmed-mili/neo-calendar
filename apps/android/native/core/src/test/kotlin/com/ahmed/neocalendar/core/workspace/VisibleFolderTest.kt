@@ -75,6 +75,15 @@ class VisibleFolderTest {
         assertEquals("propre au dossier visible", File(dest, "autre.md").readText())
     }
 
+    @Test fun `une nouvelle tentative ne duplique pas la copie de conflit`() {
+        val src = source()
+        val dest = tmp.newFolder("visible")
+        put(dest, "Travail/rdv.md", "version du dossier visible", 1_800_000_000_000)
+        mergeIntoDirectory(FileWorkspaceStorage(src), dest)
+        mergeIntoDirectory(FileWorkspaceStorage(src), dest)
+        assertEquals(1, files(dest).count { it.contains(".sync-conflict-") })
+    }
+
     @Test fun `un fichier existant plus ancien cede sa place, sa version est gardee en conflit`() {
         val src = source()
         val dest = tmp.newFolder("visible")

@@ -106,8 +106,10 @@ fun mergeIntoDirectory(source: BinaryWorkspaceStorage, destRoot: File): MergeRep
                 holder[item.path] = target
                 replacedOlder++
             } else {
-                val kept = conflictFile(target, item.lastModified)
-                moveInto(temporary, kept)
+                // Déjà gardée par un passage précédent (nouvelle tentative) : pas de doublon.
+                val prefix = target.name.substringBeforeLast('.', target.name) + ".sync-conflict-"
+                val already = target.parentFile.listFiles()?.firstOrNull { it.isFile && it.name.startsWith(prefix) && fingerprint(it).sha == print.sha }
+                val kept = already ?: conflictFile(target, item.lastModified).also { moveInto(temporary, it) }
                 holder[item.path] = kept
                 keptNewer++
             }

@@ -28,6 +28,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -55,7 +57,7 @@ private fun rememberAllFilesRequest(onBack: () -> Unit): () -> Unit {
             try {
                 settings.launch(own)
             } catch (e: ActivityNotFoundException) {
-                settings.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                settings.launch(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + context.packageName)))
             }
         } else {
             legacy.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -63,32 +65,42 @@ private fun rememberAllFilesRequest(onBack: () -> Unit): () -> Unit {
     }
 }
 
-/** Nouvelle installation (ou accès retiré) : une phrase, un bouton. Au retour du réglage, l'app continue. */
+/** Le fond de l'installeur Windows : dégradé crust vers base, halo d'accent derrière le logo. */
+private val Crust = androidx.compose.ui.graphics.Color(0xFF11111B)
+private val Base = androidx.compose.ui.graphics.Color(0xFF1E1E2E)
+
+/** Nouvelle installation (ou accès retiré) : l'accueil de l'installeur, deux étapes, un bouton. Au retour du réglage, l'app continue. */
 @Composable
 fun AllFilesAccessScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
     val request = rememberAllFilesRequest(onBack)
-    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp), contentAlignment = Alignment.Center) {
-        val shape = RoundedCornerShape(Neo.CardRadius)
-        val shadow = Neo.Shadow
-        Column(
-            Modifier
-                .widthIn(max = 440.dp)
-                .fillMaxWidth()
-                .cssShadow(shadow.offsetY, shadow.blur, shadow.color, Neo.CardRadius)
-                .background(Neo.Surface, shape)
-                .border(1.dp, Neo.Border, shape)
-                .padding(24.dp),
-        ) {
-            Icon(NeoIcons.FolderOpen, null, tint = Neo.Accent, modifier = Modifier.size(30.dp))
-            Text(
-                SENTENCE,
-                color = Neo.Text,
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
-                modifier = Modifier.padding(top = 16.dp, bottom = 22.dp),
-            )
+    val granted = com.ahmed.neocalendar.nativeapp.WorkspaceLocation.hasAllFilesAccess(context)
+    val icon = remember {
+        runCatching {
+            val drawable = context.packageManager.getApplicationIcon(context.packageName)
+            val bitmap = android.graphics.Bitmap.createBitmap(186, 186, android.graphics.Bitmap.Config.ARGB_8888)
+            drawable.setBounds(0, 0, 186, 186)
+            drawable.draw(android.graphics.Canvas(bitmap))
+            bitmap.asImageBitmap()
+        }.getOrNull()
+    }
+    Box(
+        Modifier.fillMaxSize()
+            .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Crust, Base)))
+            .background(androidx.compose.ui.graphics.Brush.radialGradient(listOf(Neo.Accent.copy(alpha = 0.22f), androidx.compose.ui.graphics.Color.Transparent), radius = 700f))
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(Modifier.widthIn(max = 420.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (icon != null) androidx.compose.foundation.Image(icon, null, Modifier.size(84.dp))
+            Text("Neo Calendar", color = Neo.Text, fontSize = 28.sp, fontWeight = FontWeight(690), modifier = Modifier.padding(top = 18.dp))
+            Text("Vos notes restent sur ce téléphone, dans un dossier visible.", color = Neo.TextSecondary, fontSize = 15.sp, lineHeight = 22.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 8.dp, bottom = 26.dp))
+            Step(1, "Ouvrir le réglage de l'application", done = false)
+            Step(2, "Activer l'accès à tous les fichiers", done = granted)
             Row(
                 Modifier
+                    .padding(top = 28.dp)
                     .fillMaxWidth()
                     .heightIn(min = 52.dp)
                     .clip(RoundedCornerShape(14.dp))
@@ -98,9 +110,23 @@ fun AllFilesAccessScreen(onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Autoriser", color = Neo.OnAccent, fontSize = 15.sp, fontWeight = FontWeight(650))
+                Text("Autoriser", color = Neo.OnAccent, fontSize = 16.sp, fontWeight = FontWeight(650))
             }
         }
+    }
+}
+
+@Composable
+private fun Step(number: Int, label: String, done: Boolean) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Box(
+            Modifier.size(28.dp).clip(androidx.compose.foundation.shape.CircleShape).background(if (done) Neo.Accent else Neo.Accent.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (done) Icon(NeoIcons.Check, null, tint = Neo.OnAccent, modifier = Modifier.size(16.dp))
+            else Text(number.toString(), color = Neo.Accent, fontSize = 14.sp, fontWeight = FontWeight(650))
+        }
+        Text(label, color = Neo.Text, fontSize = 15.sp)
     }
 }
 
