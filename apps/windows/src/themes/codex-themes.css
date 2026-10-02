@@ -162,7 +162,7 @@ body.nc-theme-rose-pine {
     --text-muted: #a7a5bb;
     --text-faint: #7e7c91;
     --text-on-accent: #232136;
-    --text-error: #908caa;
+    --text-error: #eb6f92;
     --interactive-normal: #2d2b40;
     --interactive-hover: #3a384d;
     --interactive-accent: #ea9a97;
@@ -179,7 +179,7 @@ body.nc-theme-rose-pine {
     --nc-accent: #ea9a97;
     --nc-accent-strong: #e8a9ab;
     --nc-accent-text: #232136;
-    --nc-danger: #908caa;
+    --nc-danger: #eb6f92;
     --nc-success: #9ccfd8;
     --nc-skill: #c4a7e7;
     --nc-ui-font: Inter;

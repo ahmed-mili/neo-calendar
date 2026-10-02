@@ -127,7 +127,7 @@ export const THEMES: readonly ThemeDefinition[] = [
         contrast: 60,
         semanticColors: {
             diffAdded: "#9ccfd8",
-            diffRemoved: "#908caa",
+            diffRemoved: "#eb6f92",
             skill: "#c4a7e7",
         },
         light: {

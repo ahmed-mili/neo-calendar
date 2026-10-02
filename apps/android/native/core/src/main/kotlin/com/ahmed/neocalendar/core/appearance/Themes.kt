@@ -112,7 +112,7 @@ val THEMES: List<ThemeDefinition> = listOf(
         palette = ThemePalette(
             secondary = 0xFF2D2B40L, hover = 0xFF3A384DL,
             border = 0xFF49475CL, muted = 0xFFA7A5BBL, faint = 0xFF7E7C91L,
-            onAccent = 0xFF232136L, error = 0xFF908CAAL, crust = 0xFF181726L,
+            onAccent = 0xFF232136L, error = 0xFFEB6F92L, crust = 0xFF181726L,
             accentStrong = 0xFFE8A9ABL, success = 0xFF9CCFD8L,
         ),
         light = ThemeLight(accent = "#d7827e", surface = "#faf4ed", ink = "#575279", error = "#b4637a", success = "#56949f"),
