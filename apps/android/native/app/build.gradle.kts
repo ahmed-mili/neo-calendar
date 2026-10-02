@@ -30,10 +30,10 @@ android {
   applicationId = "com.ahmedmili.neocalendar"
   minSdk = 26
   targetSdk = 35
-  versionCode = 194
+  versionCode = 195
  buildFeatures { buildConfig = true }
 
-  versionName = "1.87.0"
+  versionName = "1.88.0"
   // Le moteur de synchronisation (libsyncthingnative.so) n'existe que pour ces trois ABI.
   ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
  }
