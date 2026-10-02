@@ -122,18 +122,38 @@ impl InstalledConfig {
 
     /// L'adresse où joindre l'interface : une adresse d'écoute « générique » (`0.0.0.0`, `[::]`, hôte vide) n'est pas
     /// une adresse où se connecter, on passe par la boucle locale.
-    pub fn connect_address(&self) -> String {
+    ///
+    /// `None` pour toute autre adresse (IP du réseau, nom d'hôte, `unix://`) : la clé d'API de l'utilisateur ne part
+    /// jamais ailleurs que sur cette machine, et l'interface n'est alors pas pilotable.
+    pub fn connect_address(&self) -> Option<String> {
         let address = self.gui_address.trim();
         let (host, port) = address.rsplit_once(':').unwrap_or(("", address));
-        if matches!(host, "" | "0.0.0.0" | "[::]" | "::") {
-            format!("127.0.0.1:{port}")
-        } else {
-            address.to_string()
+        match host {
+            "" | "0.0.0.0" | "[::]" | "::" => Some(format!("127.0.0.1:{port}")),
+            "127.0.0.1" | "localhost" | "[::1]" => Some(address.to_string()),
+            _ => None,
         }
     }
 
-    pub fn api(&self) -> SyncthingApi {
-        SyncthingApi::new(Arc::new(UreqTransport::new(&self.connect_address(), &self.api_key)))
+    /// Pourquoi l'interface de ce Syncthing ne peut pas être pilotée par l'app, quand c'est une affaire de configuration.
+    pub fn unreachable_reason(&self) -> Option<String> {
+        if self.gui_tls {
+            return Some("L'interface de ce Syncthing est en HTTPS : l'app ne peut pas la piloter.".to_string());
+        }
+        if self.connect_address().is_none() {
+            return Some(format!(
+                "L'interface de ce Syncthing n'écoute pas sur la machine locale ({}) : l'app ne la pilote pas.",
+                self.gui_address.trim()
+            ));
+        }
+        None
+    }
+
+    pub fn api(&self) -> Result<SyncthingApi, String> {
+        let address = self
+            .connect_address()
+            .ok_or_else(|| self.unreachable_reason().unwrap_or_else(|| "Interface du Syncthing installé injoignable.".to_string()))?;
+        Ok(SyncthingApi::new(Arc::new(UreqTransport::new(&address, &self.api_key))))
     }
 }
 
@@ -192,9 +212,7 @@ pub fn withdraw_folder(
     }
     let folder = config.sharing(data_folder).ok_or("Ce Syncthing ne partage pas le dossier de Neo Calendar.")?;
 
-    fs::create_dir_all(backup_dir).map_err(|e| format!("Sauvegarde impossible : {e}"))?;
-    let backup = backup_dir.join(format!("config.xml.avant-reprise-{stamp}"));
-    fs::copy(config_file, &backup).map_err(|e| format!("Sauvegarde de la configuration impossible : {e}"))?;
+    let backup = write_backup(config_file, backup_dir, stamp)?;
     let copy = fs::read_to_string(&backup).map_err(|e| format!("Sauvegarde illisible : {e}"))?;
     if parse_config(&copy).map(|c| c.folders.len()) != Ok(config.folders.len()) {
         return Err("La sauvegarde de la configuration n'est pas conforme : reprise annulée.".to_string());
@@ -219,19 +237,89 @@ pub fn withdraw_folder(
         taken_at: stamp.to_string(),
     };
 
-    old.remove_folder(&folder.id).map_err(|e| e.to_string())?;
-    let after: Vec<String> = old.folders().map_err(|e| e.to_string())?.into_iter().map(|f| f.id).collect();
-    let expected: Vec<String> = before.iter().filter(|id| **id != folder.id).cloned().collect();
-    if after != expected {
-        let _ = old.put_folder(&takeover.folder);
-        return Err("Le retrait du dossier a touché autre chose que Neo Calendar : le dossier a été remis, reprise annulée.".to_string());
+    // Tout ce qui suit le `DELETE` passe par ici : sur TOUTE erreur (un retrait qui expire alors que Syncthing l'a traité,
+    // une relecture qui échoue, un autre dossier emporté), le dossier est remis (`PUT`, sans effet s'il est encore là).
+    let removal = || -> Result<(), String> {
+        old.remove_folder(&folder.id).map_err(|e| format!("Le retrait du dossier a échoué ({e})."))?;
+        let after: Vec<String> = old
+            .folders()
+            .map_err(|e| format!("Le dossier n'a pas pu être relu après le retrait ({e})."))?
+            .into_iter()
+            .map(|f| f.id)
+            .collect();
+        let expected: Vec<String> = before.iter().filter(|id| **id != folder.id).cloned().collect();
+        if after != expected {
+            return Err("Le retrait du dossier a touché autre chose que Neo Calendar.".to_string());
+        }
+        Ok(())
+    };
+    if let Err(reason) = removal() {
+        return Err(put_back(old, &takeover, &reason));
     }
     Ok(takeover)
 }
 
+/// Remet le dossier et dit la vérité sur le résultat : remis, ou pas remis (avec le chemin de la sauvegarde).
+fn put_back(old: &SyncthingApi, takeover: &Takeover, reason: &str) -> String {
+    match restore_folder(old, takeover) {
+        Ok(()) => format!("{reason} Le dossier a été remis dans votre Syncthing, reprise annulée."),
+        Err(e) => format!(
+            "{reason} Le dossier n'a pas pu être remis dans votre Syncthing ({e}). Sa configuration d'origine est sauvegardée : {}",
+            takeover.backup_path
+        ),
+    }
+}
+
+/// Copie la configuration dans `backup_dir` sans jamais écraser une sauvegarde existante (suffixe `-2`, `-3`…) et relit
+/// la copie : les octets doivent être identiques.
+fn write_backup(config_file: &Path, backup_dir: &Path, stamp: &str) -> Result<PathBuf, String> {
+    use std::io::Write;
+    let original = fs::read(config_file).map_err(|e| format!("Sauvegarde de la configuration impossible : {e}"))?;
+    fs::create_dir_all(backup_dir).map_err(|e| format!("Sauvegarde impossible : {e}"))?;
+    for attempt in 1..=99 {
+        let name = if attempt == 1 {
+            format!("config.xml.avant-reprise-{stamp}")
+        } else {
+            format!("config.xml.avant-reprise-{stamp}-{attempt}")
+        };
+        let path = backup_dir.join(name);
+        let mut file = match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+            Ok(file) => file,
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(format!("Sauvegarde de la configuration impossible : {e}")),
+        };
+        file.write_all(&original).and_then(|_| file.sync_all()).map_err(|e| format!("Sauvegarde de la configuration impossible : {e}"))?;
+        if fs::read(&path).map_err(|e| format!("Sauvegarde illisible : {e}"))? != original {
+            return Err("La sauvegarde de la configuration n'est pas identique à l'original : reprise annulée.".to_string());
+        }
+        return Ok(path);
+    }
+    Err("Trop de sauvegardes portent déjà ce nom : reprise annulée.".to_string())
+}
+
 /// Remet le dossier dans le Syncthing installé, tel qu'il était (« Rendre le dossier à Syncthing »).
 pub fn restore_folder(old: &SyncthingApi, takeover: &Takeover) -> Result<(), String> {
-    old.put_folder(&takeover.folder).map_err(|e| e.to_string())
+    match old.put_folder(&takeover.folder) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            // Un appareil du dossier supprimé depuis dans le Syncthing installé fait refuser la remise : on le nomme.
+            let known: Vec<String> = old.devices().map(|d| d.into_iter().map(|d| d.id).collect()).unwrap_or_default();
+            let missing: Vec<String> = takeover
+                .devices
+                .iter()
+                .filter(|(id, _)| !known.is_empty() && !known.contains(id))
+                .map(|(id, name)| if name.is_empty() { id.chars().take(7).collect() } else { name.clone() })
+                .collect();
+            if missing.is_empty() {
+                Err(error.to_string())
+            } else {
+                Err(format!(
+                    "{error}. Ces appareils partageaient le dossier mais ont été supprimés depuis de votre Syncthing : {}. Ajoutez-les de nouveau dans Syncthing, puis réessayez",
+                    missing.join(", ")
+                ))
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -405,7 +493,99 @@ mod tests {
             ("127.0.0.1:9000", "127.0.0.1:9000"),
         ] {
             let config = InstalledConfig { gui_address: address.to_string(), ..Default::default() };
-            assert_eq!(config.connect_address(), expected, "{address}");
+            assert_eq!(config.connect_address().as_deref(), Some(expected), "{address}");
         }
+    }
+
+    #[test]
+    fn a_failed_listing_after_the_removal_puts_the_folder_back() {
+        let (fake, api) = old_syncthing();
+        let (dir, file) = setup_files();
+        let config = parse_config(CONFIG).unwrap();
+        fake.answer_once("GET /rest/config/folders", r#"[{"id":"neo-old"},{"id":"vault"}]"#);
+        fake.answer_code_once("GET /rest/config/folders", 500, "boum");
+        fake.answer("DELETE /rest/config/folders/neo-old", "");
+        fake.answer("PUT /rest/config/folders/neo-old", "");
+        let error = withdraw_folder(&config, &api, &file, dir.path(), "x", "C:\\Neo Calendar").unwrap_err();
+        assert_eq!(fake.count("PUT", "/rest/config/folders/neo-old"), 1, "remis malgré l'échec de la relecture");
+        assert!(error.contains("a été remis") && error.contains("boum"), "{error}");
+    }
+
+    #[test]
+    fn a_removal_that_times_out_but_was_processed_is_put_back_too() {
+        let (fake, api) = old_syncthing();
+        let (dir, file) = setup_files();
+        let config = parse_config(CONFIG).unwrap();
+        fake.answer("GET /rest/config/folders", r#"[{"id":"neo-old"},{"id":"vault"}]"#);
+        fake.answer_code("DELETE /rest/config/folders/neo-old", 500, "délai dépassé");
+        fake.answer("PUT /rest/config/folders/neo-old", "");
+        let error = withdraw_folder(&config, &api, &file, dir.path(), "x", "C:\\Neo Calendar").unwrap_err();
+        assert_eq!(fake.count("PUT", "/rest/config/folders/neo-old"), 1);
+        assert!(error.contains("a été remis"), "{error}");
+    }
+
+    #[test]
+    fn when_even_the_put_back_fails_the_message_says_so_and_gives_the_backup() {
+        let (fake, api) = old_syncthing();
+        let (dir, file) = setup_files();
+        let config = parse_config(CONFIG).unwrap();
+        fake.answer_once("GET /rest/config/folders", r#"[{"id":"neo-old"},{"id":"vault"}]"#);
+        fake.answer_once("GET /rest/config/folders", "[]");
+        fake.answer("DELETE /rest/config/folders/neo-old", "");
+        fake.answer_code("PUT /rest/config/folders/neo-old", 500, "non");
+        let error = withdraw_folder(&config, &api, &file, dir.path(), "x", "C:\\Neo Calendar").unwrap_err();
+        assert!(error.contains("n'a pas pu être remis") && !error.contains("a été remis"), "{error}");
+        assert!(error.contains("config.xml.avant-reprise-x"), "le chemin de la sauvegarde : {error}");
+    }
+
+    #[test]
+    fn an_existing_backup_is_never_overwritten() {
+        let (fake, api) = old_syncthing();
+        let (dir, file) = setup_files();
+        let config = parse_config(CONFIG).unwrap();
+        fake.answer_once("GET /rest/config/folders", r#"[{"id":"neo-old"},{"id":"vault"}]"#);
+        fake.answer_once("GET /rest/config/folders", r#"[{"id":"vault"}]"#);
+        fake.answer("DELETE /rest/config/folders/neo-old", "");
+        let backups = dir.path().join("sauvegardes");
+        fs::create_dir_all(&backups).unwrap();
+        let earlier = backups.join("config.xml.avant-reprise-20261002-190000");
+        fs::write(&earlier, "la première sauvegarde").unwrap();
+        let takeover = withdraw_folder(&config, &api, &file, &backups, "20261002-190000", "C:\\Neo Calendar").unwrap();
+        assert_eq!(fs::read_to_string(&earlier).unwrap(), "la première sauvegarde");
+        assert!(takeover.backup_path.ends_with("20261002-190000-2"), "{}", takeover.backup_path);
+        assert_eq!(fs::read_to_string(&takeover.backup_path).unwrap(), CONFIG);
+    }
+
+    #[test]
+    fn only_a_local_gui_address_is_ever_used_and_the_key_never_goes_elsewhere() {
+        for address in ["192.168.1.5:8384", "unix:///tmp/st.sock", "pc-de-ahmed:8384", "8.8.8.8:8384"] {
+            let config = InstalledConfig { gui_address: address.to_string(), api_key: "CLE".into(), ..Default::default() };
+            assert_eq!(config.connect_address(), None, "{address}");
+            assert!(config.api().is_err(), "{address}");
+            assert!(config.unreachable_reason().is_some_and(|r| r.contains("locale")), "{address}");
+        }
+        for (address, expected) in [("localhost:8384", "localhost:8384"), ("[::1]:8384", "[::1]:8384"), ("0.0.0.0:1", "127.0.0.1:1")] {
+            let config = InstalledConfig { gui_address: address.to_string(), ..Default::default() };
+            assert_eq!(config.connect_address().as_deref(), Some(expected));
+            assert!(config.api().is_ok() && config.unreachable_reason().is_none());
+        }
+    }
+
+    #[test]
+    fn giving_back_names_the_devices_that_no_longer_exist_in_the_installed_syncthing() {
+        let (fake, api) = old_syncthing();
+        fake.answer_code("PUT /rest/config/folders/neo-old", 400, "device not found");
+        fake.answer("GET /rest/config/devices", r#"[{"deviceID":"OLDPC","name":"DESKTOP-1"},{"deviceID":"PHONE","name":"Pixel"}]"#);
+        let takeover = Takeover {
+            folder_id: "neo-old".into(),
+            folder: serde_json::json!({"id": "neo-old", "devices": [{"deviceID": "OLDPC"}, {"deviceID": "LAPTOP"}, {"deviceID": "PHONE"}]}),
+            devices: vec![("LAPTOP".into(), "Laptop d'Ahmed".into()), ("PHONE".into(), "Pixel".into())],
+            old_device_id: "OLDPC".into(),
+            backup_path: "C:\\sauvegardes\\x".into(),
+            taken_at: String::new(),
+        };
+        let error = restore_folder(&api, &takeover).unwrap_err();
+        assert!(error.contains("Laptop d'Ahmed") && !error.contains("Pixel"), "{error}");
+        assert!(error.contains("supprimé"), "{error}");
     }
 }

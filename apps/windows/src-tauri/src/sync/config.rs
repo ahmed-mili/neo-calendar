@@ -196,8 +196,10 @@ pub fn prepare_config(xml: &str, port: u16, gui_user: &str, gui_password_hash: &
 }
 
 /// Remplace la clé d'API de `config.xml` par une clé neuve que personne ne connaît. La clé d'exécution passe par
-/// l'environnement, mais Syncthing la réécrit dans `config.xml` dès qu'il enregistre un changement : le fichier est donc
-/// nettoyé avant chaque lancement et après chaque arrêt, pour qu'aucune clé valable ne traîne hors de l'exécution.
+/// l'environnement et change à chaque lancement, mais Syncthing la réécrit dans `config.xml` dès qu'il enregistre un
+/// changement : pendant l'exécution le fichier contient donc la clé vivante. Le nettoyage (avant chaque lancement,
+/// après chaque arrêt) ne protège pas cette clé-là : il évite seulement qu'une ancienne clé, de toute façon périmée,
+/// reste lisible dans le fichier. La protection réelle est le dossier d'état, propre au profil de l'utilisateur.
 pub fn scrub_api_key(xml: &str) -> Result<String, String> {
     set_section(xml, "gui", &[("apikey", vec![random_chars(b"abcdefghijklmnopqrstuvwxyzABCDEF", 32)])])
 }

@@ -116,7 +116,7 @@ impl OldSyncthing {
         let config = super::installed::parse_config(&std::fs::read_to_string(home.join("config.xml")).unwrap()).unwrap();
         let mut child = super::process::spawn(exe, &home, &config.gui_address, &config.api_key).unwrap();
         super::process::pump_output(&mut child, &std::sync::Arc::new(super::log::RotatingLog::new(home.join("journal"), 100_000)));
-        let api = config.api();
+        let api = config.api().unwrap();
         for _ in 0..240 {
             if api.is_healthy() {
                 return Self { api, child };

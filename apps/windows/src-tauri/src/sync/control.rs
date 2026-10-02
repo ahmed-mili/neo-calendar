@@ -13,7 +13,7 @@ use super::supervision::{EngineState, RestartPolicy};
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -35,6 +35,8 @@ pub struct Controller {
     heavy: Mutex<()>,
     takeover_running: AtomicBool,
     ticks: AtomicU64,
+    /// Lectures illisibles de la configuration du Syncthing installé, de suite (une seule est tolérée en marche).
+    unreadable_streak: AtomicU32,
     /// `start_if_enabled` a déjà été appelé (par l'interface) : le filet du lancement masqué ne rejoue pas un abandon.
     launched: AtomicBool,
     /// Une demande portant le bon code a été consommée mais n'a pas pu être acceptée : le code est à regénérer.
@@ -102,7 +104,14 @@ pub enum DetectionDto {
     NotInstalled,
     NotSharing,
     #[serde(rename_all = "camelCase")]
-    Shares { folder_id: String, label: String, running: bool, tls: bool, other_folders: usize },
+    Shares { folder_id: String, label: String, running: bool, tls: bool, other_folders: usize, reason: Option<String> },
+}
+
+/// Ce que la configuration du Syncthing installé dit du dossier de données.
+enum Sharing {
+    No,
+    Yes,
+    Unreadable(String),
 }
 
 impl Controller {
@@ -116,6 +125,7 @@ impl Controller {
             heavy: Mutex::new(()),
             takeover_running: AtomicBool::new(false),
             ticks: AtomicU64::new(0),
+            unreadable_streak: AtomicU32::new(0),
             launched: AtomicBool::new(false),
             pairing_error: Mutex::new(None),
             state_dir,
@@ -148,15 +158,38 @@ impl Controller {
         serde_json::from_slice(&fs::read(self.takeover_path()).ok()?).ok()
     }
 
-    /// Un Syncthing installé partage-t-il ce dossier ? Dans le doute (configuration illisible), oui : la fiabilité d'abord.
-    fn installed_shares(&self, data_folder: &str) -> bool {
+    /// Ce que dit la configuration du Syncthing installé du dossier de données (jamais le disque : un `.stfolder`
+    /// orphelin n'est pas un partage).
+    fn installed_sharing(&self, data_folder: &str) -> Sharing {
         match installed::read_config(&self.local_app_data) {
-            Ok(None) => false,
-            Ok(Some(config)) => config.sharing(data_folder).is_some(),
-            Err(e) => {
+            Ok(None) => Sharing::No,
+            Ok(Some(config)) if config.sharing(data_folder).is_some() => Sharing::Yes,
+            Ok(Some(_)) => Sharing::No,
+            Err(e) => Sharing::Unreadable(e),
+        }
+    }
+
+    /// Au lancement : dans le doute (configuration illisible), le moteur ne démarre pas : la fiabilité d'abord.
+    fn installed_shares(&self, data_folder: &str) -> bool {
+        match self.installed_sharing(data_folder) {
+            Sharing::No => false,
+            Sharing::Yes => true,
+            Sharing::Unreadable(e) => {
                 self.engine.log.note(&format!("Configuration du Syncthing installé illisible, par prudence le moteur de l'app ne démarre pas : {e}"));
                 true
             }
+        }
+    }
+
+    /// Le dossier et les appareils à imposer au moteur qui démarre : ceux d'une reprise en cours (`reprise.json`), pour
+    /// qu'une reprise interrompue (Quitter, mise à jour, plantage) ne crée jamais un dossier d'identifiant aléatoire.
+    fn seed_for_start(&self, seed: FolderSeed) -> FolderSeed {
+        if seed.folder_id.is_some() {
+            return seed;
+        }
+        match self.read_takeover() {
+            Some(takeover) => FolderSeed { folder_id: Some(takeover.folder_id), devices: takeover.devices },
+            None => seed,
         }
     }
 
@@ -209,7 +242,7 @@ impl Controller {
                 self.engine.log.note("Un Syncthing installé partage ce dossier : le moteur de l'app ne démarre pas dessus.");
                 return Ok(());
             }
-            // `Engine` copie lui-même le moteur livré dans `<état>\moteurin` et lance la copie.
+            // `Engine` copie lui-même le moteur livré dans `<état>\moteur\bin` et lance la copie.
             EngineParams {
                 exe: self.exe.clone(),
                 version: ENGINE_VERSION.to_string(),
@@ -218,7 +251,7 @@ impl Controller {
                 listen_port: settings.listen_port,
                 gui_user: settings.gui_user.clone().unwrap_or_default(),
                 gui_password_hash: settings.gui_password_hash.clone().unwrap_or_default(),
-                seed,
+                seed: self.seed_for_start(seed),
             }
         };
         let (for_port, for_tick) = (self.clone(), self.clone());
@@ -275,8 +308,17 @@ impl Controller {
         let count = self.ticks.fetch_add(1, Ordering::SeqCst) + 1;
         if count % EXCLUSIVITY_EVERY_TICKS == 0 && !self.takeover_running.load(Ordering::SeqCst) {
             let folder = self.lock_settings().folder_path.clone();
-            if folder.is_some_and(|f| self.installed_shares(&f)) {
-                return false;
+            match folder.map(|f| self.installed_sharing(&f)).unwrap_or(Sharing::No) {
+                Sharing::No => self.unreadable_streak.store(0, Ordering::SeqCst),
+                Sharing::Yes => return false,
+                Sharing::Unreadable(e) => {
+                    // Une lecture ratée peut tomber pendant que Syncthing réécrit son fichier : une seule est tolérée.
+                    if self.unreadable_streak.fetch_add(1, Ordering::SeqCst) + 1 >= 2 {
+                        self.engine.log.note(&format!("Configuration du Syncthing installé illisible deux fois de suite ({e}) : par prudence le moteur de l'app s'arrête."));
+                        return false;
+                    }
+                    self.engine.log.note(&format!("Configuration du Syncthing installé illisible ({e}) : nouvel essai dans 30 secondes."));
+                }
             }
         }
         self.accept_paired(api);
@@ -430,11 +472,20 @@ impl Controller {
 
     pub fn detect(&self, data_folder: &str) -> Result<DetectionDto, String> {
         let config = installed::read_config(&self.local_app_data)?;
-        Ok(match installed::detect(config.as_ref(), data_folder, &|c| c.api().is_healthy()) {
+        let healthy = |c: &installed::InstalledConfig| c.api().map(|api| api.is_healthy()).unwrap_or(false);
+        Ok(match installed::detect(config.as_ref(), data_folder, &healthy) {
             Detection::NotInstalled => DetectionDto::NotInstalled,
             Detection::NotSharing => DetectionDto::NotSharing,
             Detection::Shares { folder_id, label, running, tls, other_folders } => {
-                DetectionDto::Shares { folder_id, label, running, tls, other_folders }
+                // Quand la reprise n'est pas possible, la raison : interface en HTTPS, non locale, ou arrêtée.
+                let reason = if running {
+                    None
+                } else {
+                    config.as_ref().and_then(|c| c.unreachable_reason()).or_else(|| {
+                        Some("Ce Syncthing ne répond pas : lancez-le, puis relancez la détection.".to_string())
+                    })
+                };
+                DetectionDto::Shares { folder_id, label, running, tls, other_folders, reason }
             }
         })
     }
@@ -468,6 +519,16 @@ impl Controller {
         let config = installed::read_config(&self.local_app_data)?.ok_or("Aucun Syncthing n'est installé.")?;
         let folder_id = config.sharing(data_folder).ok_or("Ce Syncthing ne partage pas le dossier de Neo Calendar.")?.id.clone();
 
+        // Avant de toucher à quoi que ce soit : l'interface du Syncthing installé est-elle pilotable, et répond-elle ?
+        // (le moteur de l'app n'est arrêté qu'ensuite : une reprise refusée ne coûte pas la synchro en cours)
+        if let Some(reason) = config.unreachable_reason() {
+            return Err(format!("{reason} Retirez le dossier Neo Calendar dans Syncthing, puis relancez la détection."));
+        }
+        let old = config.api()?;
+        if !old.is_healthy() {
+            return Err("Lancez votre Syncthing, puis réessayez : la reprise passe par son interface locale.".to_string());
+        }
+
         // Le moteur de l'app ne doit avoir aucun autre dossier : jamais deux dossiers synchronisés.
         let engine_config = fs::read_to_string(self.home().join("config.xml")).ok().and_then(|x| installed::parse_config(&x).ok());
         if engine_config.is_some_and(|c| c.folders.iter().any(|f| f.id != folder_id)) {
@@ -475,10 +536,6 @@ impl Controller {
         }
 
         self.engine.stop();
-        let old = config.api();
-        if !old.is_healthy() {
-            return Err("Lancez votre Syncthing, puis réessayez : la reprise passe par son interface locale.".to_string());
-        }
         let takeover = installed::withdraw_folder(
             &config,
             &old,
@@ -488,16 +545,7 @@ impl Controller {
             data_folder,
         )?;
 
-        let give_back = |reason: String| -> String {
-            let _ = fs::remove_file(self.takeover_path());
-            match installed::restore_folder(&old, &takeover) {
-                Ok(()) => format!("{reason} Le dossier a été rendu à votre Syncthing."),
-                Err(e) => format!(
-                    "{reason} Le dossier n'a pas pu être rendu à votre Syncthing ({e}). Sa configuration d'origine est sauvegardée : {}",
-                    takeover.backup_path
-                ),
-            }
-        };
+        let give_back = |reason: String| -> String { Self::rollback(&old, &takeover, &self.takeover_path(), &reason) };
 
         if let Err(e) = fs::create_dir_all(&self.state_dir)
             .and_then(|_| fs::write(self.takeover_path(), serde_json::to_vec_pretty(&takeover).unwrap_or_default()))
@@ -525,6 +573,22 @@ impl Controller {
         Ok(())
     }
 
+    /// Une reprise a échoué : le dossier est remis dans le Syncthing installé. `reprise.json` n'est supprimé que si la
+    /// remise a réussi ; sinon il reste (« Rendre le dossier à Syncthing » reste proposé, et un nouveau lancement
+    /// repart du même identifiant de dossier) et le message donne le chemin de la sauvegarde.
+    fn rollback(old: &SyncthingApi, takeover: &Takeover, takeover_file: &Path, reason: &str) -> String {
+        match installed::restore_folder(old, takeover) {
+            Ok(()) => {
+                let _ = fs::remove_file(takeover_file);
+                format!("{reason} Le dossier a été rendu à votre Syncthing.")
+            }
+            Err(e) => format!(
+                "{reason} Le dossier n'a pas pu être rendu à votre Syncthing ({e}). Il reste repris par l'app : « Rendre le dossier à Syncthing » reste proposé. Sa configuration d'origine est sauvegardée : {}",
+                takeover.backup_path
+            ),
+        }
+    }
+
     /// « Rendre le dossier à Syncthing » : le moteur de l'app lâche le dossier et s'arrête, puis le Syncthing installé le reprend.
     pub fn give_back(self: &Arc<Self>) -> Result<(), String> {
         let _heavy = self.heavy.lock().unwrap_or_else(|e| e.into_inner());
@@ -537,9 +601,12 @@ impl Controller {
     fn give_back_locked(self: &Arc<Self>) -> Result<(), String> {
         let takeover = self.read_takeover().ok_or("Aucune reprise à annuler.")?;
         let config = installed::read_config(&self.local_app_data)?.ok_or("Aucun Syncthing n'est installé.")?;
-        let old = config.api();
-        if config.gui_tls || !old.is_healthy() {
-            return Err("Lancez votre Syncthing (interface en HTTP), puis réessayez : le dossier lui est rendu par son interface locale.".to_string());
+        if let Some(reason) = config.unreachable_reason() {
+            return Err(format!("{reason} Passez-la en HTTP sur cette machine, puis réessayez : le dossier lui est rendu par son interface locale."));
+        }
+        let old = config.api()?;
+        if !old.is_healthy() {
+            return Err("Lancez votre Syncthing, puis réessayez : le dossier lui est rendu par son interface locale.".to_string());
         }
         if !self.engine.is_active() {
             // Même identifiant que la reprise : un moteur qui n'a plus le dossier ne s'en crée pas un autre au hasard.

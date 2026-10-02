@@ -127,7 +127,15 @@ impl SyncSetup<'_> {
         let name = name.as_str();
         let name = if name.is_empty() { id.chars().take(7).collect::<String>() } else { name.to_string() };
         self.api.put_device(&config::device(id, &name))?;
-        self.share_with(id)?;
+        // Un appareil connu sans dossier ne produit plus de demande au prochain scan : un échec du partage est retenté
+        // une fois, puis l'appareil est retiré (et le message dit ce qu'il en est).
+        if let Err(error) = self.share_with(id).or_else(|_| self.share_with(id)) {
+            let advice = match self.api.remove_device(id) {
+                Ok(()) => "L'appareil a été retiré : scannez de nouveau le code, ou acceptez de nouveau sa demande.",
+                Err(_) => "L'appareil n'a pas pu être retiré non plus : retirez l'appareil de la liste, puis rescannez le code.",
+            };
+            return Err(ApiError { code: error.code, message: format!("Le dossier n'a pas pu être partagé avec cet appareil ({}). {advice}", error.message) });
+        }
         let _ = self.api.dismiss_pending_device(id);
         Ok(())
     }
@@ -302,5 +310,47 @@ mod tests {
         let path = dir.path().to_string_lossy().replace('\\', "\\\\");
         fake.answer("GET /rest/config/folders", &format!(r#"[{{"id":"neo-x","label":"N","path":"{path}","devices":[]}}]"#));
         assert!(SyncSetup { api: &api, folder_path: dir.path() }.folder_mismatch().unwrap().is_none());
+    }
+
+    fn existing_folder(fake: &FakeTransport) {
+        fake.answer(
+            "GET /rest/config/folders",
+            &format!(r#"[{{"id":"neo-x","label":"Neo","path":"C:\\N","devices":[{{"deviceID":"{ME}"}}]}}]"#),
+        );
+        fake.answer("PUT /rest/config/devices/*", "");
+        fake.answer("DELETE /rest/cluster/pending/devices*", "");
+    }
+
+    #[test]
+    fn a_failed_share_is_retried_once_before_giving_up() {
+        let (fake, api, dir) = fixture();
+        existing_folder(&fake);
+        fake.answer_code_once("PATCH /rest/config/folders/neo-x", 500, "occupé");
+        fake.answer("PATCH /rest/config/folders/neo-x", "");
+        SyncSetup { api: &api, folder_path: dir.path() }.accept_device(PHONE, "Pixel").unwrap();
+        assert_eq!(fake.count("PATCH", "/rest/config/folders/neo-x"), 2);
+        assert_eq!(fake.count("DELETE", "/rest/config/devices"), 0, "l'appareil reste");
+    }
+
+    #[test]
+    fn a_share_that_keeps_failing_takes_the_device_back_out() {
+        let (fake, api, dir) = fixture();
+        existing_folder(&fake);
+        fake.answer_code("PATCH /rest/config/folders/neo-x", 500, "occupé");
+        fake.answer(&format!("DELETE /rest/config/devices/{PHONE}"), "");
+        let error = SyncSetup { api: &api, folder_path: dir.path() }.accept_device(PHONE, "Pixel").unwrap_err();
+        assert_eq!(fake.count("PATCH", "/rest/config/folders/neo-x"), 2, "un seul nouvel essai");
+        assert_eq!(fake.count("DELETE", &format!("/rest/config/devices/{PHONE}")), 1);
+        assert!(error.message.contains("a été retiré") && error.message.contains("scann"), "{}", error.message);
+    }
+
+    #[test]
+    fn if_the_device_cannot_be_taken_out_either_the_message_says_to_remove_it_and_rescan() {
+        let (fake, api, dir) = fixture();
+        existing_folder(&fake);
+        fake.answer_code("PATCH /rest/config/folders/neo-x", 500, "occupé");
+        fake.answer_code(&format!("DELETE /rest/config/devices/{PHONE}"), 500, "non");
+        let error = SyncSetup { api: &api, folder_path: dir.path() }.accept_device(PHONE, "Pixel").unwrap_err();
+        assert!(error.message.contains("retirez l'appareil") && error.message.contains("rescann"), "{}", error.message);
     }
 }

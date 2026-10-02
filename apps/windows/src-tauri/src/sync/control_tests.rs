@@ -370,3 +370,148 @@ fn the_fallback_starts_the_engine_when_the_interface_never_did() {
     assert!(controller_again.start_if_never_launched().is_err(), "le moteur introuvable prouve qu'il a été demandé");
     assert_eq!(controller_again.status().state, EngineState::Missing);
 }
+
+fn sample_takeover(backup: &str) -> installed::Takeover {
+    installed::Takeover {
+        folder_id: "neo-old".into(),
+        folder: json!({"id": "neo-old", "path": "C:\\Neo Calendar", "devices": [{"deviceID": "OLD"}, {"deviceID": DEVICE_LAPTOP}]}),
+        devices: vec![(DEVICE_LAPTOP.into(), "Laptop".into())],
+        old_device_id: "OLD".into(),
+        backup_path: backup.into(),
+        taken_at: "20261002-190000".into(),
+    }
+}
+
+#[test]
+fn a_rollback_that_works_removes_the_takeover_file() {
+    use crate::sync::testing::FakeTransport;
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("reprise.json");
+    fs::write(&file, "{}").unwrap();
+    let fake = Arc::new(FakeTransport::default());
+    fake.answer("PUT /rest/config/folders/neo-old", "");
+    let message = Controller::rollback(&SyncthingApi::new(fake), &sample_takeover("C:\\sauvegarde"), &file, "Échec.");
+    assert!(message.contains("rendu à votre Syncthing") && !message.contains("pas pu"), "{message}");
+    assert!(!file.exists());
+}
+
+#[test]
+fn a_rollback_that_fails_keeps_the_takeover_file_and_says_where_the_backup_is() {
+    use crate::sync::testing::FakeTransport;
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("reprise.json");
+    fs::write(&file, "{}").unwrap();
+    let fake = Arc::new(FakeTransport::default());
+    fake.answer_code("PUT /rest/config/folders/neo-old", 404, "introuvable");
+    let message = Controller::rollback(&SyncthingApi::new(fake), &sample_takeover("C:\\sauvegarde\\x"), &file, "Le moteur ne démarre pas.");
+    assert!(file.exists(), "reprise.json reste : « Rendre le dossier » reste proposé");
+    assert!(message.contains("n'a pas pu être rendu") && message.contains("C:\\sauvegarde\\x") && message.contains("Rendre le dossier"), "{message}");
+}
+
+#[test]
+fn an_engine_that_cannot_start_during_a_takeover_gives_the_folder_back() {
+    let Some(exe) = real_binary() else { return };
+    let dirs = Dirs::new();
+    let notes = dirs.notes();
+    fs::create_dir_all(&notes).unwrap();
+    fs::create_dir_all(dirs.lad()).unwrap();
+    let old = OldSyncthing::start(&exe, &dirs.lad());
+    let old_id = old.api.my_id().unwrap();
+    old.api.put_device(&config::device(DEVICE_LAPTOP, "Laptop")).unwrap();
+    old.api.put_folder(&config::folder("neo-old", "Neo Calendar", &path_text(&notes), &[old_id.clone(), DEVICE_LAPTOP.into()])).unwrap();
+    let config_file = dirs.lad().join("Syncthing").join("config.xml");
+    while !fs::read_to_string(&config_file).unwrap().contains("neo-old") {
+        std::thread::sleep(Duration::from_millis(200));
+    }
+    // Le moteur de l'app est introuvable : la reprise échoue après le retrait.
+    let controller = dirs.controller(dirs.root.path().join("absent.exe"));
+    let error = controller.take_over(&path_text(&notes), "20261002-190000").unwrap_err();
+    assert!(error.contains("rendu à votre Syncthing"), "{error}");
+    assert!(!dirs.state().join("reprise.json").exists());
+    let back = old.api.folders().unwrap();
+    assert_eq!(back.iter().map(|f| f.id.as_str()).collect::<Vec<_>>(), vec!["neo-old"]);
+    assert_eq!(back[0].device_ids.len(), 2);
+    assert!(dirs.state().join("sauvegardes").join("config.xml.avant-reprise-20261002-190000").is_file());
+}
+
+#[test]
+fn an_interrupted_takeover_restarts_with_the_same_folder_id_and_devices() {
+    let dirs = Dirs::new();
+    let controller = dirs.controller(dirs.root.path().join("absent.exe"));
+    assert_eq!(controller.seed_for_start(FolderSeed::default()), FolderSeed::default(), "sans reprise : rien d'imposé");
+    fs::create_dir_all(dirs.state()).unwrap();
+    fs::write(dirs.state().join("reprise.json"), serde_json::to_vec(&sample_takeover("C:\\x")).unwrap()).unwrap();
+    let seed = controller.seed_for_start(FolderSeed::default());
+    assert_eq!(seed.folder_id.as_deref(), Some("neo-old"));
+    assert_eq!(seed.devices, vec![(DEVICE_LAPTOP.to_string(), "Laptop".to_string())]);
+    let explicit = FolderSeed { folder_id: Some("autre".into()), devices: vec![] };
+    assert_eq!(controller.seed_for_start(explicit.clone()), explicit, "une graine explicite l'emporte");
+}
+
+#[test]
+fn an_installed_gui_that_is_not_local_or_is_https_is_explained() {
+    let dirs = Dirs::new();
+    let xml = installed_config_sharing(&dirs.notes()).replace("127.0.0.1:1", "192.168.1.5:8384");
+    write_installed_config(&dirs.lad(), &xml);
+    let controller = dirs.controller(dirs.root.path().join("absent.exe"));
+    let data = path_text(&dirs.notes());
+    match controller.detect(&data).unwrap() {
+        DetectionDto::Shares { running: false, reason: Some(reason), .. } => assert!(reason.contains("machine locale"), "{reason}"),
+        other => panic!("{other:?}"),
+    }
+    let error = controller.take_over(&data, "x").unwrap_err();
+    assert!(error.contains("machine locale"), "{error}");
+
+    let tls = installed_config_sharing(&dirs.notes()).replace(r#"tls="false""#, r#"tls="true""#);
+    write_installed_config(&dirs.lad(), &tls);
+    let error = controller.take_over(&data, "x").unwrap_err();
+    assert!(error.contains("HTTPS"), "HTTPS annoncé avant toute santé : {error}");
+    assert!(!dirs.state().join("sauvegardes").exists());
+}
+
+#[test]
+fn an_unreachable_installed_syncthing_leaves_the_apps_engine_running() {
+    let Some(exe) = real_binary() else { return };
+    let dirs = Dirs::new();
+    let controller = dirs.controller(exe);
+    let data = path_text(&dirs.notes());
+    controller.enable(&data).unwrap();
+    controller.wait_until_running(Duration::from_secs(90)).unwrap();
+    // Un Syncthing installé (arrêté) apparaît dans la configuration : la reprise est refusée sans toucher au moteur.
+    write_installed_config(&dirs.lad(), &installed_config_sharing(&dirs.root.path().join("Ailleurs")));
+    let xml = installed_config_sharing(&dirs.notes());
+    write_installed_config(&dirs.lad(), &xml);
+    let error = controller.take_over(&data, "x").unwrap_err();
+    assert!(error.contains("Lancez votre Syncthing"), "{error}");
+    assert_eq!(controller.status().state, EngineState::Running, "le moteur de l'app n'a pas été arrêté pour rien");
+    controller.shutdown();
+}
+
+#[test]
+fn one_unreadable_read_of_the_installed_config_is_tolerated_two_in_a_row_are_not() {
+    use crate::sync::testing::FakeTransport;
+    let dirs = Dirs::new();
+    let controller = dirs.controller(dirs.root.path().join("absent.exe"));
+    controller.lock_settings().folder_path = Some(path_text(&dirs.notes()));
+    let api = SyncthingApi::new(Arc::new(FakeTransport::default()));
+    let at_check = || controller.ticks.store(EXCLUSIVITY_EVERY_TICKS - 1, Ordering::SeqCst);
+
+    write_installed_config(&dirs.lad(), "pas du xml <<<");
+    at_check();
+    assert!(controller.tick(&api), "une première lecture illisible est tolérée");
+    assert!(controller.log_text().contains("nouvel essai"));
+    // Une lecture saine remet le compte à zéro.
+    write_installed_config(&dirs.lad(), &installed_config_sharing(&dirs.root.path().join("Ailleurs")));
+    at_check();
+    assert!(controller.tick(&api));
+    write_installed_config(&dirs.lad(), "pas du xml <<<");
+    at_check();
+    assert!(controller.tick(&api), "illisible de nouveau, mais pas deux fois de suite");
+    at_check();
+    assert!(!controller.tick(&api), "deux lectures illisibles de suite bloquent");
+    assert!(controller.log_text().contains("illisible deux fois de suite"));
+    // Un Syncthing qui partage vraiment le dossier bloque tout de suite.
+    write_installed_config(&dirs.lad(), &installed_config_sharing(&dirs.notes()));
+    at_check();
+    assert!(!controller.tick(&api));
+}
