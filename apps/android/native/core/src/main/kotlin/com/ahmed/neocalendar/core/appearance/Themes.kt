@@ -2,7 +2,8 @@ package com.ahmed.neocalendar.core.appearance
 
 /*
  * Les thèmes de `apps/windows/src/themes/registry.ts`, avec la palette que `codex-themes.css` et
- * `catppuccin-mocha.css` donnent à chacun (fond secondaire, survol, bordure, textes, accent fort...).
+ * `catppuccin-mocha.css` donnent à chacun (fond secondaire, survol, bordure, textes, accent fort...) et la palette claire officielle (`light`,
+ * relevé `docs/superpowers/specs/2026-10-02-themes-releve-palettes.md`). `ThemeColors.kt` en tire les couleurs d'un mode.
  * Les couleurs sont en ARGB (`0xAARRGGBB`), les trois principales (accent, surface, encre) en `#rrggbb` comme le registre.
  */
 
@@ -30,6 +31,9 @@ data class ThemePalette(
     val success: Long,
 )
 
+/** La variante claire officielle du thème (relevé du 2026-10-02) : fond, texte, accent, rouge et vert. */
+data class ThemeLight(val accent: String, val surface: String, val ink: String, val error: String, val success: String)
+
 data class ThemeDefinition(
     val id: String,
     val label: String,
@@ -42,6 +46,7 @@ data class ThemeDefinition(
     val uiFont: String,
     val codeFont: String,
     val palette: ThemePalette,
+    val light: ThemeLight,
 )
 
 const val DEFAULT_THEME_ID = "catppuccin-mocha"
@@ -58,6 +63,7 @@ val THEMES: List<ThemeDefinition> = listOf(
             onAccent = 0xFF1E1E2EL, error = 0xFFF38BA8L, crust = 0xFF11111BL,
             accentStrong = 0xFF89B4FAL, success = 0xFFA6E3A1L,
         ),
+        light = ThemeLight(accent = "#1e66f5", surface = "#eff1f5", ink = "#4c4f69", error = "#d20f39", success = "#40a02b"),
     ),
     ThemeDefinition(
         id = "github", label = "GitHub", variantLabel = "Dark",
@@ -70,6 +76,7 @@ val THEMES: List<ThemeDefinition> = listOf(
             onAccent = 0xFFFFFFFFL, error = 0xFFF85149L, crust = 0xFF090C10L,
             accentStrong = 0xFF4B8BEDL, success = 0xFF3FB950L,
         ),
+        light = ThemeLight(accent = "#0969da", surface = "#ffffff", ink = "#1f2328", error = "#cf222e", success = "#1a7f37"),
     ),
     ThemeDefinition(
         id = "one", label = "One", variantLabel = "Dark",
@@ -82,6 +89,7 @@ val THEMES: List<ThemeDefinition> = listOf(
             onAccent = 0xFFFFFFFFL, error = 0xFFE05561L, crust = 0xFF1C1F24L,
             accentStrong = 0xFF6285C9L, success = 0xFF8CC265L,
         ),
+        light = ThemeLight(accent = "#5871ef", surface = "#fafafa", ink = "#383a42", error = "#e45649", success = "#50a14f"),
     ),
     ThemeDefinition(
         id = "ayu", label = "Ayu", variantLabel = "Dark",
@@ -94,6 +102,7 @@ val THEMES: List<ThemeDefinition> = listOf(
             onAccent = 0xFF10141CL, error = 0xFFF26D78L, crust = 0xFF0B0E14L,
             accentStrong = 0xFFDDB666L, success = 0xFF70BF56L,
         ),
+        light = ThemeLight(accent = "#f29718", surface = "#fcfcfc", ink = "#5c6166", error = "#ff7383", success = "#6cbf43"),
     ),
     ThemeDefinition(
         id = "rose-pine", label = "Rose Pine", variantLabel = "Moon",
@@ -106,6 +115,7 @@ val THEMES: List<ThemeDefinition> = listOf(
             onAccent = 0xFF232136L, error = 0xFF908CAAL, crust = 0xFF181726L,
             accentStrong = 0xFFE8A9ABL, success = 0xFF9CCFD8L,
         ),
+        light = ThemeLight(accent = "#d7827e", surface = "#faf4ed", ink = "#575279", error = "#b4637a", success = "#56949f"),
     ),
     ThemeDefinition(
         id = "vercel", label = "Vercel", variantLabel = "Dark",
@@ -118,6 +128,7 @@ val THEMES: List<ThemeDefinition> = listOf(
             onAccent = 0xFFFFFFFFL, error = 0xFFF13342L, crust = 0xFF000000L,
             accentStrong = 0xFF348AFAL, success = 0xFF00AD3AL,
         ),
+        light = ThemeLight(accent = "#0070f7", surface = "#ffffff", ink = "#171717", error = "#fc0035", success = "#28a948"),
     ),
 )
 

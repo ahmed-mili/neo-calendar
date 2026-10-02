@@ -22,6 +22,13 @@ export const THEMES: readonly ThemeDefinition[] = [
             diffRemoved: "#f38ba8",
             skill: "#cba6f7",
         },
+        light: {
+            accent: "#1e66f5",
+            surface: "#eff1f5",
+            ink: "#4c4f69",
+            danger: "#d20f39",
+            success: "#40a02b",
+        },
     },
     {
         id: "github",
@@ -41,6 +48,13 @@ export const THEMES: readonly ThemeDefinition[] = [
             diffAdded: "#3fb950",
             diffRemoved: "#f85149",
             skill: "#bc8cff",
+        },
+        light: {
+            accent: "#0969da",
+            surface: "#ffffff",
+            ink: "#1f2328",
+            danger: "#cf222e",
+            success: "#1a7f37",
         },
     },
     {
@@ -62,6 +76,13 @@ export const THEMES: readonly ThemeDefinition[] = [
             diffRemoved: "#e05561",
             skill: "#c162de",
         },
+        light: {
+            accent: "#5871ef",
+            surface: "#fafafa",
+            ink: "#383a42",
+            danger: "#e45649",
+            success: "#50a14f",
+        },
     },
     {
         id: "ayu",
@@ -81,6 +102,13 @@ export const THEMES: readonly ThemeDefinition[] = [
             diffAdded: "#70bf56",
             diffRemoved: "#f26d78",
             skill: "#d0a1ff",
+        },
+        light: {
+            accent: "#f29718",
+            surface: "#fcfcfc",
+            ink: "#5c6166",
+            danger: "#ff7383",
+            success: "#6cbf43",
         },
     },
     {
@@ -102,6 +130,13 @@ export const THEMES: readonly ThemeDefinition[] = [
             diffRemoved: "#908caa",
             skill: "#c4a7e7",
         },
+        light: {
+            accent: "#d7827e",
+            surface: "#faf4ed",
+            ink: "#575279",
+            danger: "#b4637a",
+            success: "#56949f",
+        },
     },
     {
         id: "vercel",
@@ -121,6 +156,13 @@ export const THEMES: readonly ThemeDefinition[] = [
             diffAdded: "#00AD3A",
             diffRemoved: "#F13342",
             skill: "#9540D5",
+        },
+        light: {
+            accent: "#0070f7",
+            surface: "#ffffff",
+            ink: "#171717",
+            danger: "#fc0035",
+            success: "#28a948",
         },
     },
 ];

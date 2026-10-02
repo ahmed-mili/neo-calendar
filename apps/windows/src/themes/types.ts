@@ -15,6 +15,15 @@ export interface ThemeSemanticColors {
     skill: string;
 }
 
+/** La variante claire officielle du thème (relevé du 2026-10-02, `docs/superpowers/specs/2026-10-02-themes-releve-palettes.md`). */
+export interface ThemeLightPalette {
+    accent: string;
+    surface: string;
+    ink: string;
+    danger: string;
+    success: string;
+}
+
 export interface ThemeDefinition {
     id: ThemeId;
     label: string;
@@ -29,4 +38,5 @@ export interface ThemeDefinition {
     opaqueWindows: boolean;
     contrast: number;
     semanticColors: ThemeSemanticColors;
+    light: ThemeLightPalette;
 }
