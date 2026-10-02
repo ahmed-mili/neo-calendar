@@ -4,9 +4,6 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Scanner le QR code de l'identifiant d'un autre appareil (page Synchronisation). La caméra n'est pas indispensable. -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- A calendar is one of the few kinds of app allowed to ask for exact
          alarms outright: a reminder that drifts by twenty minutes is not a
          reminder. Granted at install, unlike SCHEDULE_EXACT_ALARM. -->
@@ -51,6 +48,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.NeoCalendar"
         android:usesCleartextTraffic="false">
+        <!-- Le scanner de QR code de Google se télécharge à l'installation plutôt qu'au premier scan. -->
+        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui" />
 
         <!-- L'app Compose : l'icône principale, les liens profonds, le widget et les notifications. -->
         <activity

@@ -68,13 +68,7 @@ internal fun rememberStorageSwitch(viewModel: NativeViewModel): SyncSwitchAction
 
     when (val s = step) {
         SwitchStep.None -> Unit
-        is SwitchStep.Confirm -> ConfirmPanel(
-            "Passer à la synchronisation intégrée",
-            "Vos notes vont être copiées dans le stockage privé de Neo Calendar, puis vérifiées fichier par fichier (liste, tailles, empreintes). " +
-                "Votre dossier actuel n'est ni modifié ni supprimé." +
-                if (s.hasStfolder) "\nCe dossier est encore partagé par une autre application Syncthing : une fois le passage fait, retirez-le de cette application, sinon le téléphone le synchroniserait deux fois." else "",
-            "Copier et passer", danger = false, onDismiss = { step = SwitchStep.None },
-        ) {
+        is SwitchStep.Confirm -> SwitchToIntegratedDialog(s.hasStfolder, onDismiss = { step = SwitchStep.None }) {
             val stfolder = s.hasStfolder
             scope.launch {
                 step = SwitchStep.Working("Copie et vérification des notes…")

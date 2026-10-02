@@ -66,6 +66,11 @@ class SyncController private constructor(context: Context) {
     /** La ligne d'état (page Synchronisation, notification). */
     val status: StateFlow<StatusLine> = _status.asStateFlow()
 
+    private val _progress = MutableStateFlow(SyncProgress())
+
+    /** L'avancement et le nombre d'appareils connectés, pour la notification. */
+    val progress: StateFlow<SyncProgress> = _progress.asStateFlow()
+
     @Volatile private var appVisible = false
     @Volatile private var graceUntil = 0L
     private var graceJob: Job? = null
@@ -272,7 +277,10 @@ class SyncController private constructor(context: Context) {
             val folder = api.folders().firstOrNull()
             lastFolderId = folder?.id
             lastFolderState = folder?.let { api.folderState(it.id) }
-            anyDeviceConnected = api.connections().filterKeys { it != me }.any { it.value }
+            val connected = api.connections().filterKeys { it != me }.count { it.value }
+            anyDeviceConnected = connected > 0
+            val percent = folder?.let { runCatching { api.localCompletion(it.id).toInt().coerceIn(0, 100) }.getOrNull() } ?: _progress.value.percent
+            _progress.value = SyncProgress(percent, connected)
             if (devices.isNotEmpty() != settings.value.configured) settings.update { it.copy(configured = devices.isNotEmpty()) }
         } catch (e: CancellationException) {
             throw e
@@ -308,3 +316,6 @@ class SyncController private constructor(context: Context) {
         fun peek(): SyncController? = instance
     }
 }
+
+/** Où en est la synchronisation : pourcentage reçu et appareils connectés. */
+data class SyncProgress(val percent: Int = 100, val connected: Int = 0)

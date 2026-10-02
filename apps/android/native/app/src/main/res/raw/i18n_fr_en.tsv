@@ -725,3 +725,27 @@ Comparaison avec le stockage privé…	Comparing with the private storage…
 Ouvrir ce dossier	Open this folder
 La synchronisation intégrée sera arrêtée ; le stockage privé est conservé et pourra être vidé plus tard.	Built-in sync will be stopped; the private storage is kept and can be cleared later.
 Chargement	Loading
+Le dossier de Neo Calendar est synchronisé par Syncthing intégré	Neo Calendar's folder is synced by built-in Syncthing
+Le dossier de Neo Calendar est synchronisé par une autre application	Neo Calendar's folder is synced by another app
+Synchroniser en arrière-plan	Sync in the background
+Démarrer avec le téléphone	Start with the phone
+Synchroniser sur	Sync on
+Synchroniser sur un Wi-Fi limité	Sync on metered Wi-Fi
+Pause en économie d'énergie	Pause in battery saver
+Réglages avancés	Advanced settings
+Arrêter la synchronisation	Stop syncing
+Wi-Fi et données mobiles	Wi-Fi and mobile data
+Wi-Fi seulement	Wi-Fi only
+Données mobiles seulement	Mobile data only
+Jamais (en pause)	Never (paused)
+Dossier proposé	Proposed folder
+Vos appareils	Your devices
+Vos notes sont copiées dans Neo Calendar. Votre dossier actuel ne change pas.	Your notes are copied into Neo Calendar. Your current folder does not change.
+Retirez ensuite ce dossier de l'autre app Syncthing.	Then remove this folder from the other Syncthing app.
+Passer	Switch
+Le scanner demande les services Google Play, absents ou à mettre à jour sur ce téléphone.	The scanner needs Google Play services, missing or out of date on this phone.
+En savoir plus sur Syncthing	Learn more about Syncthing
+Synchronise : {n} % complet, 1 appareil connecté	Syncing: {n}% complete, 1 device connected
+Synchronise : {n} % complet, {m} appareils connectés	Syncing: {n}% complete, {m} devices connected
+À jour, 1 appareil connecté	Up to date, 1 device connected
+À jour, {n} appareils connectés	Up to date, {n} devices connected

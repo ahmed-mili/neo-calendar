@@ -16,6 +16,10 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -42,6 +46,7 @@ import com.ahmed.neocalendar.core.sync.EngineState
 import com.ahmed.neocalendar.core.sync.PendingDevice
 import com.ahmed.neocalendar.core.sync.PowerSource
 import com.ahmed.neocalendar.core.sync.ProposalDecision
+import com.ahmed.neocalendar.core.sync.RunConditions
 import com.ahmed.neocalendar.core.sync.RunMode
 import com.ahmed.neocalendar.core.sync.lastSeenLabel
 import com.ahmed.neocalendar.core.workspace.StorageMode
@@ -51,8 +56,6 @@ import com.ahmed.neocalendar.nativeapp.sync.ProposalRow
 import com.ahmed.neocalendar.nativeapp.sync.SyncController
 import com.ahmed.neocalendar.nativeapp.sync.SyncPageModel
 import com.ahmed.neocalendar.nativeapp.ui.fields.TextAction
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
 import java.io.File
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
@@ -71,7 +74,7 @@ class SyncSwitchActions(
 private sealed interface SyncSheet {
     data object AddDevice : SyncSheet
     data object Rename : SyncSheet
-    data object Mode : SyncSheet
+    data object Network : SyncSheet
     data object Power : SyncSheet
     data object Log : SyncSheet
     data class Remove(val device: DeviceRow) : SyncSheet
@@ -95,14 +98,28 @@ private fun ExternalSyncPage(actions: SyncSwitchActions) {
     val leftover by androidx.compose.runtime.produceState(false, actions) {
         value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.ahmed.neocalendar.nativeapp.sync.StorageSwitch.privateHasNotes(context) }
     }
-    Group(
-        "Mode de stockage",
-        note = "Vos notes sont dans un dossier que vous avez choisi, synchronisé par un autre outil (Syncthing, stockage en ligne, transfert manuel).\nLa synchronisation intégrée de Neo Calendar est inactive : les deux ne tournent jamais ensemble sur les mêmes notes.",
-    ) {
-        row(NeoIcons.FolderOpen, "Dossier synchronisé par une autre app", folderName, chevron = false, onClick = null)
-        row(NeoIcons.RefreshCw, "Passer à la synchronisation intégrée", null, onClick = actions.onSwitchToIntegrated)
+    SyncHeader("Le dossier de Neo Calendar est synchronisé par une autre application")
+    Group(null) {
+        row(NeoIcons.FolderOpen, "Dossier de notes", folderName, chevron = false, onClick = null)
+        row(null, "Passer à la synchronisation intégrée", null, iconContent = { Icon(SyncthingLogo, null, tint = Color.Unspecified, modifier = Modifier.size(20.dp)) }, onClick = actions.onSwitchToIntegrated)
         if (leftover) row(NeoIcons.Trash2, "Vider le stockage privé", "Notes d'un passage précédent", chevron = false, onClick = actions.onClearPrivate)
     }
+    SyncthingAbout(context)
+}
+
+/** Les réseaux sur lesquels synchroniser : un seul choix pour les deux réglages Wi-Fi et données mobiles. */
+private fun networkChoice(c: RunConditions) = when {
+    c.onWifi && c.onMobileData -> "both"
+    c.onWifi -> "wifi"
+    c.onMobileData -> "mobile"
+    else -> "none"
+}
+
+private fun networkLabel(choice: String) = when (choice) {
+    "both" -> "Wi-Fi et données mobiles"
+    "wifi" -> "Wi-Fi seulement"
+    "mobile" -> "Données mobiles seulement"
+    else -> "Jamais (en pause)"
 }
 
 @Composable
@@ -117,6 +134,7 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
     val scope = rememberCoroutineScope()
     var sheet by remember { mutableStateOf<SyncSheet?>(null) }
     var showQr by remember { mutableStateOf(false) }
+    var advanced by remember { mutableStateOf(false) }
 
     // Le moteur tourne tant que la page est ouverte (appairage), même sans appareil ; relu toutes les 3 s.
     DisposableEffect(Unit) {
@@ -133,34 +151,25 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
     fun report(error: String?) { if (error != null) Notices.show(error) }
 
     // Appairage par QR code : le scan vaut consentement côté téléphone ; le PC accepte tout seul le bon code (fenêtre de 5 minutes).
-    val scanPc = androidx.activity.compose.rememberLauncherForActivityResult(ScanContract()) { result ->
-        result.contents?.let { scanned ->
-            scope.launch {
-                val error = model.pairWithPc(scanned)
-                if (error != null) Notices.show(error) else Notices.show("Appairage lancé : le PC va accepter ce téléphone dans un instant.")
-            }
+    fun scanPc() = scanQrCode(context) { scanned ->
+        scope.launch {
+            val error = model.pairWithPc(scanned)
+            if (error != null) Notices.show(error) else Notices.show("Appairage lancé : le PC va accepter ce téléphone dans un instant.")
         }
     }
 
-    Group("Mode de stockage", note = "Le dossier de Neo Calendar est synchronisé par Neo Calendar (Syncthing intégré${ui.engineVersion?.let { " v$it" }.orEmpty()})") {
-        row(NeoIcons.Check, "Synchronisation intégrée", null, chevron = false, onClick = null)
-        row(NeoIcons.FolderOpen, "Ouvrir un dossier existant", null, onClick = switchActions.onOpenExistingFolder)
-        row(NeoIcons.Upload, "Revenir à un dossier externe", null, onClick = switchActions.onBackToExternal)
-    }
+    SyncHeader("Le dossier de Neo Calendar est synchronisé par Syncthing intégré")
 
-    // Nouvelle installation sans appareil : dire en clair où sont les notes et quoi faire pour en garder une copie.
-    Group("État", note = if (settings.configured) null else "Vos notes ne sont que sur ce téléphone. Ajoutez un appareil pour en garder une copie.") {
+    Group("État") {
         row(NeoIcons.RefreshCw, status.text(), null, chevron = false, onClick = null)
         // Après l'abandon des relances le moteur ne repart plus seul : un geste de l'utilisateur le relance.
         if (engineState is EngineState.Failed) row(NeoIcons.RefreshCw, "Réessayer", null, chevron = false) { controller.retry() }
     }
 
-    Group("Cet appareil", note = "Pour appairer un autre appareil, scannez ce QR code depuis lui, ou saisissez l'identifiant.") {
+    Group("Cet appareil") {
         val id = ui.myId
-        row(NeoIcons.Smartphone, "Nom", ui.myName.ifBlank { "Sans nom" }, onClick = { sheet = SyncSheet.Rename })
-        if (id == null) {
-            row(null, "Identifiant", "Démarrage du moteur…", chevron = false, onClick = null)
-        } else {
+        row(NeoIcons.Smartphone, "Nom", if (isGenericDeviceName(ui.myName)) defaultDeviceName(context) else ui.myName, onClick = { sheet = SyncSheet.Rename })
+        if (id != null) {
             text(id)
             if (showQr) custom { shape ->
                 Column(
@@ -180,45 +189,34 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
         }
     }
 
-    Group("Appairer avec un PC", note = "Sur le PC : Réglages, Synchronisation, « Ajouter le téléphone ».") {
-        custom { shape ->
-            PrimaryButtonRow(shape, NeoIcons.QrCode, "Scanner le QR code du PC") {
-                scanPc.launch(
-                    ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setBeepEnabled(false).setOrientationLocked(false)
-                        .setPrompt("Scannez le QR code affiché sur le PC"),
-                )
-            }
-        }
+    Group("Appairer avec un PC") {
+        custom { shape -> PrimaryButtonRow(shape, NeoIcons.QrCode, "Scanner le QR code du PC") { scanPc() } }
     }
 
-    Group("Appareils") {
+    Group("Vos appareils") {
         for (device in ui.devices) {
             row(NeoIcons.Users, device.name, lastSeenLabel(device.connected, device.lastSeen, Instant.now()), dot = if (device.connected) Neo.Success else Neo.TextFaint) {
                 sheet = SyncSheet.Remove(device)
             }
         }
-        row(NeoIcons.Plus, "Ajouter un appareil", null, onClick = { sheet = SyncSheet.AddDevice })
+        custom { OutlineAddButton("Ajouter un appareil") { sheet = SyncSheet.AddDevice } }
     }
 
-    if (ui.pendingDevices.isNotEmpty()) Group(
-        "Demandes de connexion",
-        note = "Comparez l'identifiant à celui que l'autre appareil affiche avant d'accepter. Rien n'est jamais accepté automatiquement.",
-    ) {
+    if (ui.pendingDevices.isNotEmpty()) Group("Demandes de connexion") {
         for (pending in ui.pendingDevices) custom { shape ->
             PendingDeviceCard(shape, pending, { scope.launch { report(model.accept(pending)) } }, { scope.launch { report(model.reject(pending.id)) } })
         }
     }
 
-    Group("Dossier de notes", note = "Un seul dossier est synchronisé : celui de ce téléphone, partagé automatiquement avec chaque appareil accepté.") {
-        val folder = ui.folder
-        row(NeoIcons.FolderOpen, "Dossier partagé", if (folder == null) "Aucun" else "${folder.deviceIds.size - 1} appareil(s)", chevron = false, onClick = null)
+    // Les dossiers proposés par un appareil, ou le dossier qui n'a pas pu être posé : seulement quand il y a quelque chose à décider.
+    val lost = ui.folderLost
+    val offered = ui.proposals.filter { it.proposal != lost }
+    if (lost != null || offered.isNotEmpty()) Group("Dossier proposé") {
         // Le dossier précédent a été retiré sans que le nouveau ait pu être posé : jamais un moteur muet sans dossier.
-        ui.folderLost?.let { lost ->
-            custom { shape ->
-                FolderLostCard(shape, lost.label.ifBlank { "Neo Calendar" }) { scope.launch { report(model.adopt(lost)) } }
-            }
+        if (lost != null) custom { shape ->
+            FolderLostCard(shape, lost.label.ifBlank { "Neo Calendar" }) { scope.launch { report(model.adopt(lost)) } }
         }
-        for (proposal in ui.proposals) if (proposal.proposal != ui.folderLost) custom { shape ->
+        for (proposal in offered) custom { shape ->
             ProposalCard(
                 shape,
                 proposal,
@@ -234,19 +232,23 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
     }
 
     Group("Fonctionnement") {
-        row(NeoIcons.Clock, "Mode", if (settings.runMode == RunMode.LikeFork) "Comme Syncthing-Fork" else "Seulement quand l'app est ouverte", onClick = { sheet = SyncSheet.Mode })
-        if (settings.runMode == RunMode.LikeFork) toggle(NeoIcons.Timer, "Démarrage automatique", settings.autoStart) { on -> controller.settings.update { it.copy(autoStart = on) } }
-        toggle(NeoIcons.Globe, "Sur Wi-Fi", settings.conditions.onWifi) { on -> controller.settings.update { it.copy(conditions = it.conditions.copy(onWifi = on)) } }
-        toggle(NeoIcons.Globe, "Sur Wi-Fi limité", settings.conditions.onMeteredWifi) { on -> controller.settings.update { it.copy(conditions = it.conditions.copy(onMeteredWifi = on)) } }
-        toggle(NeoIcons.Smartphone, "Sur données mobiles", settings.conditions.onMobileData) { on -> controller.settings.update { it.copy(conditions = it.conditions.copy(onMobileData = on)) } }
-        row(NeoIcons.Bell, "Source d'alimentation", powerLabel(settings.conditions.power), onClick = { sheet = SyncSheet.Power })
-        toggle(NeoIcons.Moon, "Respecter l'économiseur de batterie", settings.conditions.respectBatterySaver) { on ->
-            controller.settings.update { it.copy(conditions = it.conditions.copy(respectBatterySaver = on)) }
+        toggle(NeoIcons.Clock, "Synchroniser en arrière-plan", settings.runMode == RunMode.LikeFork) { on ->
+            controller.settings.update { it.copy(runMode = if (on) RunMode.LikeFork else RunMode.OnlyWhenOpen) }
         }
-        if (settings.runMode == RunMode.LikeFork && !settings.autoStart) row(NeoIcons.Close, "Quitter", "Arrête la synchronisation jusqu'au prochain lancement", chevron = false) { controller.quit() }
+        if (settings.runMode == RunMode.LikeFork) toggle(NeoIcons.Timer, "Démarrer avec le téléphone", settings.autoStart) { on -> controller.settings.update { it.copy(autoStart = on) } }
+        row(NeoIcons.Globe, "Synchroniser", networkLabel(networkChoice(settings.conditions)), onClick = { sheet = SyncSheet.Network })
+        row(NeoIcons.SlidersHorizontal, "Réglages avancés", null, onClick = { advanced = !advanced })
+        if (advanced) {
+            toggle(NeoIcons.Globe, "Synchroniser sur un Wi-Fi limité", settings.conditions.onMeteredWifi) { on -> controller.settings.update { it.copy(conditions = it.conditions.copy(onMeteredWifi = on)) } }
+            row(NeoIcons.Bell, "Synchroniser sur", powerLabel(settings.conditions.power), onClick = { sheet = SyncSheet.Power })
+            toggle(NeoIcons.Moon, "Pause en économie d'énergie", settings.conditions.respectBatterySaver) { on ->
+                controller.settings.update { it.copy(conditions = it.conditions.copy(respectBatterySaver = on)) }
+            }
+        }
+        if (settings.runMode == RunMode.LikeFork && !settings.autoStart) row(NeoIcons.Close, "Arrêter la synchronisation", null, chevron = false) { controller.quit() }
     }
 
-    Group("Conflits", note = "Quand deux appareils modifient la même note en même temps, Syncthing garde une copie. Elle n'est pas affichée comme évènement ; la fusion arrivera plus tard.") {
+    Group("Conflits") {
         row(NeoIcons.TriangleAlert, "Fichiers de conflit", ui.conflicts.toString(), chevron = false, onClick = null)
     }
 
@@ -259,16 +261,20 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
 
     when (val open = sheet) {
         null -> Unit
-        SyncSheet.AddDevice -> AddDeviceSheet(ui.myId, { sheet = null }) { id, name -> model.addDevice(id, name) }
-        SyncSheet.Rename -> RenameSheet(ui.myName, { sheet = null }) { name -> scope.launch { report(model.rename(name)) }; sheet = null }
-        SyncSheet.Mode -> ChoiceDialog(
-            "Fonctionnement", listOf(Option("fork", "Comme Syncthing-Fork"), Option("open", "Seulement quand l'app est ouverte")),
-            if (settings.runMode == RunMode.LikeFork) "fork" else "open",
-            { picked -> controller.settings.update { it.copy(runMode = if (picked == "fork") RunMode.LikeFork else RunMode.OnlyWhenOpen) }; sheet = null },
+        SyncSheet.AddDevice -> AddDeviceDialog(ui.myId, { sheet = null }) { id, name -> model.addDevice(id, name) }
+        SyncSheet.Rename -> RenameSheet(if (isGenericDeviceName(ui.myName)) defaultDeviceName(context) else ui.myName, { sheet = null }) { name -> scope.launch { report(model.rename(name)) }; sheet = null }
+        SyncSheet.Network -> ChoiceDialog(
+            "Synchroniser", listOf("wifi", "both", "mobile", "none").map { Option(it, networkLabel(it)) }, networkChoice(settings.conditions),
+            { picked ->
+                controller.settings.update {
+                    it.copy(conditions = it.conditions.copy(onWifi = picked == "wifi" || picked == "both", onMobileData = picked == "mobile" || picked == "both"))
+                }
+                sheet = null
+            },
             { sheet = null },
         )
         SyncSheet.Power -> ChoiceDialog(
-            "Source d'alimentation", PowerSource.entries.map { Option(it.name, powerLabel(it)) }, settings.conditions.power.name,
+            "Synchroniser sur", PowerSource.entries.map { Option(it.name, powerLabel(it)) }, settings.conditions.power.name,
             { picked -> controller.settings.update { it.copy(conditions = it.conditions.copy(power = PowerSource.valueOf(picked))) }; sheet = null },
             { sheet = null },
         )
@@ -288,6 +294,41 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
             "Synchroniser", danger = false, onDismiss = { sheet = null },
         ) { scope.launch { report(model.adopt(open.row.proposal)) }; sheet = null }
     }
+}
+
+/** Un bouton discret à contour, à gauche, sous la liste d'un groupe : pas pleine largeur, pas de fond plein. */
+@Composable
+private fun OutlineAddButton(label: String, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(10.dp)
+    Row(
+        Modifier.padding(top = 8.dp).height(40.dp).clip(shape).border(1.dp, Neo.Border, shape).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(NeoIcons.Plus, null, tint = Neo.SettingsValue, modifier = Modifier.size(16.dp))
+        SText(label, size = 14f, weight = 500, maxLines = 1)
+    }
+}
+
+/** La phrase du haut de page : qui synchronise le dossier de Neo Calendar, avec le logo de Syncthing. */
+@Composable
+private fun SyncHeader(sentence: String) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Icon(SyncthingLogo, null, tint = Color.Unspecified, modifier = Modifier.size(28.dp))
+        SText(sentence, Modifier.weight(1f), lineHeight = 20f)
+    }
+}
+
+/** Le nom que le moteur se donne sans qu'on lui en demande un (« localhost » ou rien) : il ne dit rien à l'utilisateur. */
+internal fun isGenericDeviceName(name: String?) = name.isNullOrBlank() || name.equals("localhost", ignoreCase = true)
+
+/** Le nom de l'appareil quand l'utilisateur n'en a pas donné : celui des réglages du téléphone, sinon fabricant et modèle. */
+internal fun defaultDeviceName(context: Context): String {
+    val set = runCatching { android.provider.Settings.Global.getString(context.contentResolver, android.provider.Settings.Global.DEVICE_NAME) }.getOrNull()
+    if (!set.isNullOrBlank()) return set.trim()
+    val model = android.os.Build.MODEL.orEmpty()
+    val maker = android.os.Build.MANUFACTURER.orEmpty()
+    return if (model.startsWith(maker, ignoreCase = true) || maker.isBlank()) model else "${maker.replaceFirstChar { it.uppercase() }} $model"
 }
 
 /** Les réglages partagés (`.neo-calendar/.neo-calendar.json`) existent des deux côtés : le fichier de l'autre appareil fait foi. */
@@ -328,9 +369,8 @@ private val SyncthingLogo: ImageVector by lazy {
 private fun SyncthingAbout(context: Context) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(SyncthingLogo, "Syncthing", tint = Color.Unspecified, modifier = Modifier.size(22.dp))
-        SText("Syncthing", color = Neo.SettingsNote, size = 13f, maxLines = 1)
         SText(
-            "En savoir plus",
+            "En savoir plus sur Syncthing",
             Modifier.clickable { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://syncthing.net"))) }.padding(vertical = 8.dp),
             color = Neo.Accent, size = 13f, maxLines = 1,
         )
@@ -374,29 +414,44 @@ private fun FolderLostCard(shape: androidx.compose.ui.graphics.Shape, label: Str
     }
 }
 
+/** Une fenêtre centrée sur fond sombre : la forme de « Ajouter un appareil » et de la confirmation du passage à la synchronisation intégrée. */
 @Composable
-private fun AddDeviceSheet(myId: String?, onDismiss: () -> Unit, onAdd: suspend (String, String) -> String?) {
+internal fun CenteredDialog(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        val shape = RoundedCornerShape(20.dp)
+        Column(
+            Modifier.padding(horizontal = 24.dp).fillMaxWidth().widthIn(max = 420.dp).background(Neo.Surface, shape).border(1.dp, Neo.BorderStrong, shape).padding(top = 18.dp),
+            content = content,
+        )
+    }
+}
+
+/** La confirmation du passage à la synchronisation intégrée : une phrase, et l'avertissement d'une autre app Syncthing seulement s'il y a lieu. */
+@Composable
+internal fun SwitchToIntegratedDialog(hasStfolder: Boolean, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    CenteredDialog(onDismiss) {
+        UiText("Passer à la synchronisation intégrée", size = 17.sp, weight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 18.dp))
+        UiText("Vos notes sont copiées dans Neo Calendar. Votre dossier actuel ne change pas.", color = Neo.TextSecondary, size = 15.sp, modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 10.dp))
+        if (hasStfolder) UiText("Retirez ensuite ce dossier de l'autre app Syncthing.", color = Neo.TextSecondary, size = 15.sp, modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 8.dp))
+        SheetFooter("Annuler", "Passer", onDismiss, onConfirm)
+    }
+}
+
+@Composable
+private fun AddDeviceDialog(myId: String?, onDismiss: () -> Unit, onAdd: suspend (String, String) -> String?) {
+    val context = LocalContext.current
     var id by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    val scan = androidx.activity.compose.rememberLauncherForActivityResult(ScanContract()) { result ->
-        result.contents?.let { id = it.trim(); error = null }
-    }
     val normalized = DeviceIds.normalize(id)
     val valid = normalized != null
     val isSelf = normalized != null && normalized == myId?.let { DeviceIds.normalize(it) }
-    BottomPanel(onDismiss) {
-        UiText("Ajouter un appareil", size = 17.sp, weight = FontWeight.Bold, modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 6.dp))
-        UiText(
-            "Sur l'autre appareil, ouvrez Syncthing et affichez son identifiant (QR code ou texte), ou celui de Neo Calendar.",
-            color = Neo.TextSecondary, size = 14.sp, modifier = Modifier.padding(horizontal = 18.dp),
-        )
+    CenteredDialog(onDismiss) {
+        UiText("Ajouter un appareil", size = 17.sp, weight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 18.dp))
         Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp), horizontalArrangement = Arrangement.End) {
-            TextAction("Scanner un QR code") {
-                scan.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setBeepEnabled(false).setOrientationLocked(false).setPrompt("Scannez l'identifiant de l'appareil"))
-            }
+            TextAction("Scanner un QR code") { scanQrCode(context) { id = it.trim(); error = null } }
         }
         TextInput(id, { id = it; error = null }, "Identifiant de l'appareil", Modifier.padding(horizontal = 18.dp), uri = true)
         if (id.isNotBlank() && !valid) UiText("Cet identifiant n'est pas valide (la somme de contrôle ne correspond pas).", color = Neo.Danger, size = 12.sp, modifier = Modifier.padding(start = 32.dp, end = 32.dp, top = 6.dp))

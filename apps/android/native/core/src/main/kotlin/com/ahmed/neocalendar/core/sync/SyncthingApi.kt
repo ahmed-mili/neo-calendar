@@ -147,6 +147,10 @@ class SyncthingApi(private val transport: HttpTransport) {
     fun completion(folderId: String, deviceId: String): Double =
         get("/rest/db/completion?folder=${q(folderId)}&device=${q(deviceId)}").jsonObject["completion"]?.jsonPrimitive?.doubleOrNull ?: 0.0
 
+    /** Pourcentage (0 à 100) de ce que CE téléphone a reçu du dossier, tous appareils confondus (`/rest/db/completion` sans appareil). */
+    fun localCompletion(folderId: String): Double =
+        get("/rest/db/completion?folder=${q(folderId)}").jsonObject["completion"]?.jsonPrimitive?.doubleOrNull ?: 100.0
+
     fun scan(folderId: String) { call("POST", "/rest/db/scan?folder=${q(folderId)}") }
 
     fun pauseDevice(id: String) { call("POST", "/rest/system/pause?device=${q(id)}") }

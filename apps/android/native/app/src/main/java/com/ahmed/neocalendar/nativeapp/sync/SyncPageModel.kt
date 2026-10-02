@@ -75,7 +75,11 @@ class SyncPageModel(context: Context) {
         try {
             val me = api.myId()
             if (engineVersion == null) engineVersion = runCatching { api.version() }.getOrNull()
-            val configured = api.devices()
+            var configured = api.devices()
+            // Un téléphone sans nom prend celui de ses réglages (ou son modèle) : jamais « Sans nom ».
+            if (com.ahmed.neocalendar.nativeapp.ui.isGenericDeviceName(configured.firstOrNull { it.id == me }?.name) && pairing == null) {
+                runCatching { api.renameDevice(me, com.ahmed.neocalendar.nativeapp.ui.defaultDeviceName(app)) }.onSuccess { configured = api.devices() }
+            }
             val connections = api.connections()
             val seen = api.lastSeen()
             val folder = api.folders().firstOrNull()

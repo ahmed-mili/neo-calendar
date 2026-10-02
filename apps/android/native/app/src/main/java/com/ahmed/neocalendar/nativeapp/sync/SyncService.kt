@@ -14,6 +14,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.ahmed.neocalendar.R
+import com.ahmed.neocalendar.core.sync.StatusLine
 import com.ahmed.neocalendar.nativeapp.NativeActivity
 import com.ahmed.neocalendar.nativeapp.ui.tr
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 /**
@@ -53,7 +55,7 @@ class SyncService : Service() {
             val s = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
             scope = s
             val manager = getSystemService(NotificationManager::class.java)
-            s.launch { controller.status.collect { manager.notify(NOTIFICATION_ID, notification(controller)) } }
+            s.launch { combine(controller.status, controller.progress) { a, b -> a to b }.collect { manager.notify(NOTIFICATION_ID, notification(controller)) } }
         }
         return START_STICKY
     }
@@ -78,8 +80,8 @@ class SyncService : Service() {
         )
         val builder = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(tr("Neo Calendar"))
-            .setContentText(tr(controller.status.value.text()))
+            .setContentTitle(title(controller))
+            .apply { if (controller.status.value !is StatusLine.Syncing && controller.status.value != StatusLine.UpToDate) setContentText(tr(controller.status.value.text())) }
             .setContentIntent(open)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -93,6 +95,20 @@ class SyncService : Service() {
             builder.addAction(Notification.Action.Builder(Icon.createWithResource(this, R.drawable.ic_notification), tr("Quitter"), quit).build())
         }
         return builder.build()
+    }
+
+    /** Le titre de la notification : « Synchronise : 97 % complet, 1 appareil connecté » comme Syncthing-Fork ; « À jour, N appareil(s) connecté(s) » au repos. */
+    private fun title(controller: SyncController): String {
+        val status = controller.status.value
+        val p = controller.progress.value
+        val devices = if (p.connected == 1) "1 appareil connecté" else "${p.connected} appareils connectés"
+        return tr(
+            when (status) {
+                is StatusLine.Syncing -> "Synchronise : ${p.percent} % complet, $devices"
+                StatusLine.UpToDate -> "À jour, $devices"
+                else -> "Neo Calendar"
+            },
+        )
     }
 
     companion object {
