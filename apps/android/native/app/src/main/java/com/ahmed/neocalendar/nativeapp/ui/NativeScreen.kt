@@ -14,6 +14,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.produceState
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.pointer.pointerInput
 import com.ahmed.neocalendar.core.lists.calendarPanelEvents
 import com.ahmed.neocalendar.core.lists.displayEventOfNote
@@ -164,8 +167,14 @@ fun NativeApp(viewModel: NativeViewModel, updates: NativeUpdates) {
             WallpaperLayer(reloadKey = screen::class, modifier = Modifier.neoContrast())
             when (val s = screen) {
                 ScreenState.NeedsFolder -> WelcomeScreen { pickTree.launch(Unit) }
-                // Pas de spinner : le splash système tient jusqu'à la lecture du dossier (`holdSplashUntilReady`), puis la grille arrive remplie.
-                ScreenState.Loading -> Unit
+                // Le splash système tient jusqu'à la lecture du dossier (`holdSplashUntilReady`, 1,5 s au plus) : s'il est relâché
+                // avant la fin, un rond tourne sur le fond d'écran, jamais un écran immobile.
+                ScreenState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        color = Neo.Accent,
+                        modifier = Modifier.semantics { contentDescription = tr("Chargement") },
+                    )
+                }
                 is ScreenState.Failed -> FailedScreen(s.message, onPick = { pickTree.launch(Unit) }) { viewModel.reload(force = true) }
                 is ScreenState.Ready -> MainScreen(viewModel, s.data, updates)
             }
