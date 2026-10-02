@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Compile Syncthing pour Android (libsyncthingnative.so) depuis le tarball source SIGNÉ de la release.
 #
-#   build-syncthing.sh [arm64-v8a] [x86_64]      (sans argument : les deux)
+#   build-syncthing.sh [arm64-v8a] [armeabi-v7a] [x86_64]      (sans argument : les trois)
 #
 # Chaîne de confiance : SHA-256 du tarball épinglé (version.env) ET signature GPG vérifiée avec la clé de
 # release épinglée (release-key.asc, empreinte dans version.env). Compilation sans réseau (`-mod=vendor` : le
@@ -15,7 +15,7 @@ source "$here/version.env"
 work="${SYNCTHING_WORK:-$here/.work}"
 out="${SYNCTHING_OUT:-$here/../app/src/main/jniLibs}"
 abis=("$@")
-[ ${#abis[@]} -gt 0 ] || abis=(arm64-v8a x86_64)
+[ ${#abis[@]} -gt 0 ] || abis=(arm64-v8a armeabi-v7a x86_64)
 
 die() { echo "ERREUR : $*" >&2; exit 1; }
 
@@ -83,13 +83,16 @@ PATH="$(dirname "$GO_BIN"):$PATH"
 for abi in "${abis[@]}"; do
   case "$abi" in
     arm64-v8a) goarch=arm64; triple=aarch64-linux-android ;;
+    armeabi-v7a) goarch=arm; triple=armv7a-linux-androideabi ;;
     x86_64) goarch=amd64; triple=x86_64-linux-android ;;
-    *) die "ABI inconnue : $abi (arm64-v8a ou x86_64)" ;;
+    *) die "ABI inconnue : $abi (arm64-v8a, armeabi-v7a ou x86_64)" ;;
   esac
   cc="$ndk/toolchains/llvm/prebuilt/$host/bin/${triple}${ANDROID_API}-clang${cc_ext}"
   [ -f "$cc" ] || die "compilateur introuvable : $cc"
   echo "== $abi (GOARCH=$goarch)"
   rm -f syncthing
+  # ARMv7 : GOARM=7 (VFPv3), comme Syncthing-Fork ; sans effet ailleurs.
+  if [ "$abi" = armeabi-v7a ]; then export GOARM=7; else unset GOARM; fi
   "$GO_BIN" run build.go -goos android -goarch "$goarch" -cc "$cc" -version "$SYNCTHING_VERSION" -no-upgrade build
   mkdir -p "$out/$abi"
   cp syncthing "$out/$abi/libsyncthingnative.so"

@@ -79,7 +79,7 @@ jobs:
                   path: apps/android/native/app/src/main/jniLibs
                   key: syncthing-libs-${{ hashFiles('apps/android/native/syncthing/version.env', 'apps/android/native/syncthing/build-syncthing.sh', 'apps/android/native/syncthing/release-key.asc') }}
 
-            - name: Compiler Syncthing (arm64-v8a, x86_64)
+            - name: Compiler Syncthing (arm64-v8a, armeabi-v7a, x86_64)
               if: steps.changed.outputs.build == 'true' && steps.syncthing-libs.outputs.cache-hit != 'true'
               run: |
                   source apps/android/native/syncthing/version.env

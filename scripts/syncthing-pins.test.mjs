@@ -97,3 +97,17 @@ test("la validation des PR lance le noyau Kotlin avec le test à deux moteurs", 
     assert.ok(validation.includes("SYNCTHING_BINARY"));
     assert.ok(validation.includes(":core:test"));
 });
+
+test("les trois ABI (arm64-v8a, armeabi-v7a, x86_64) sont compilées, filtrées et vérifiées", async () => {
+    const gradle = await read("apps/android/native/app/build.gradle.kts");
+    for (const abi of ["arm64-v8a", "armeabi-v7a", "x86_64"]) {
+        assert.ok(build.includes(abi), `build-syncthing.sh : ${abi}`);
+        assert.ok(gradle.includes(`"${abi}"`), `build.gradle.kts : ${abi}`);
+    }
+    assert.ok(build.includes("GOARM=7"));
+    assert.ok(build.includes("armv7a-linux-androideabi"));
+    assert.equal((gradle.match(/"armeabi-v7a"/g) ?? []).length, 2);
+    assert.ok(release.includes("jniLibs/armeabi-v7a/libsyncthingnative.so"));
+    assert.ok(release.includes("(arm64-v8a, armeabi-v7a, x86_64)"));
+    assert.ok(validation.includes("(arm64-v8a, armeabi-v7a, x86_64)"));
+});
