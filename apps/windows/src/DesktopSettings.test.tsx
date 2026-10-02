@@ -139,6 +139,20 @@ describe("Windows settings", () => {
         expect(html).toContain("45 minutes, 2 heures avant");
     });
 
+    it("sépare l'apparence en deux sections : Thème puis Fond d'écran", () => {
+        const html = renderToStaticMarkup(
+            <DesktopSettings open initialTab="appearance" {...commonProps} />
+        );
+        const theme = html.indexOf('data-section="theme"');
+        const wallpaper = html.indexOf('data-section="wallpaper"');
+        expect(theme).toBeGreaterThan(-1);
+        expect(wallpaper).toBeGreaterThan(theme);
+        expect(html).toContain("Fond d&#x27;écran");
+        // La barre latérale translucide appartient au thème, les curseurs du fond au fond d'écran.
+        expect(html.indexOf("Barre latérale translucide")).toBeLessThan(wallpaper);
+        expect(html.indexOf("Luminosité du fond")).toBeGreaterThan(wallpaper);
+    });
+
     it("lists every subject on its first page", () => {
         const general = renderToStaticMarkup(
             <DesktopSettings open initialTab="general" {...commonProps} />

@@ -598,6 +598,12 @@ internal fun Group(title: String?, note: String? = null, content: GroupBuilder.(
     }
 }
 
+/** Titre d'une section de page (« Thème », « Fond d'écran ») : plus fort que le titre d'un groupe. */
+@Composable
+internal fun PageSectionTitle(text: String) {
+    SText(text, Modifier.padding(start = 4.dp, top = 8.dp), color = Neo.Text, size = 17f, weight = 650)
+}
+
 private val SwitchEasing = CubicBezierEasing(0.2f, 0.85f, 0.25f, 1f)
 
 /** `.nc-set-switch` : piste 44 x 26, bouton 20 posé à 3, décalé de 18 une fois activé ; 160 ms. */

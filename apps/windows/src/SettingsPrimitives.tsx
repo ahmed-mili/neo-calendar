@@ -35,6 +35,22 @@ export function SettingsGroup({ title, note, children }: SettingsGroupProps) {
     );
 }
 
+interface SettingsPageSectionProps {
+    id: string;
+    title: string;
+    children: React.ReactNode;
+}
+
+/** Un titre de page de réglages qui regroupe plusieurs blocs : « Thème », « Fond d'écran ». */
+export function SettingsSection({ id, title, children }: SettingsPageSectionProps) {
+    return (
+        <section className="nc-set-section" data-section={id} aria-label={title}>
+            <h2 className="nc-set-section__title">{title}</h2>
+            {children}
+        </section>
+    );
+}
+
 export interface SettingsRowProps {
     label: string;
     /** What the setting is currently set to, read at the right edge. */

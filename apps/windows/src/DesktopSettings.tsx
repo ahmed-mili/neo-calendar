@@ -16,6 +16,7 @@ import {
 } from "../../../src/ui/i18n";
 import {
     SettingsGroup,
+    SettingsSection as SettingsPageSection,
     SettingsChoice,
     SettingsChoiceDialog,
     SettingsDialog,
@@ -323,9 +324,7 @@ export default function DesktopSettings({
     const [themeMessage, setThemeMessage] = useState<string | null>(null);
     const [themeDraft, setThemeDraft] = useState<
         Required<Omit<ThemeCustomization, "wallpaperId">>
-    >(
-        () => createThemeDraft(themeId, loadAppearancePreferences())
-    );
+    >(() => createThemeDraft(themeId, loadAppearancePreferences()));
     const [themeDirty, setThemeDirty] = useState(false);
     const [choice, setChoice] = useState<SettingsChoice | null>(null);
     const [reminderOpen, setReminderOpen] = useState(false);
@@ -1417,174 +1416,181 @@ export default function DesktopSettings({
     );
     const renderAppearance = () => (
         <div className="nc-set-groups nc-settings__appearance">
-            <SettingsGroup title={t("Theme")}>
-                {/* Le thème s'ouvre comme n'importe quel autre choix : une page
+            <SettingsPageSection id="theme" title={t("Theme")}>
+                <SettingsGroup>
+                    {/* Le thème s'ouvre comme n'importe quel autre choix : une page
                     qui liste les thèmes, leur aperçu en guise d'icône. Le menu
                     flottant qui était là ne ressemblait à rien d'autre dans
                     l'écran, et il fallait viser un bouton de trois millimètres
                     pour l'ouvrir. */}
-                <SettingsRow
-                    label={t("Theme")}
-                    icon={<ThemePreview theme={currentTheme} />}
-                    value={currentTheme.label}
-                    navigates
-                    onClick={() =>
-                        openChoice({
-                            title: t("Themes"),
-                            value: themeId,
-                            options: THEMES.map((theme) => ({
-                                value: theme.id,
-                                label: theme.label,
-                                icon: <ThemePreview theme={theme} />,
-                            })),
-                            onPick: (next) => {
-                                setThemeDirty(false);
-                                setThemeMessage(null);
-                                void onThemeChange(next as ThemeId);
-                            },
-                        })
-                    }
-                />
-                <SettingsRow
-                    label={t("Import a theme")}
-                    icon={<Upload size={18} />}
-                    onClick={() => importThemeInputRef.current?.click()}
-                />
-                <SettingsRow
-                    label={t("Copy theme")}
-                    icon={<Copy size={18} />}
-                    onClick={() => void copyCurrentTheme()}
-                />
-            </SettingsGroup>
+                    <SettingsRow
+                        label={t("Theme")}
+                        icon={<ThemePreview theme={currentTheme} />}
+                        value={currentTheme.label}
+                        navigates
+                        onClick={() =>
+                            openChoice({
+                                title: t("Themes"),
+                                value: themeId,
+                                options: THEMES.map((theme) => ({
+                                    value: theme.id,
+                                    label: theme.label,
+                                    icon: <ThemePreview theme={theme} />,
+                                })),
+                                onPick: (next) => {
+                                    setThemeDirty(false);
+                                    setThemeMessage(null);
+                                    void onThemeChange(next as ThemeId);
+                                },
+                            })
+                        }
+                    />
+                    <SettingsRow
+                        label={t("Import a theme")}
+                        icon={<Upload size={18} />}
+                        onClick={() => importThemeInputRef.current?.click()}
+                    />
+                    <SettingsRow
+                        label={t("Copy theme")}
+                        icon={<Copy size={18} />}
+                        onClick={() => void copyCurrentTheme()}
+                    />
+                </SettingsGroup>
 
-            <SettingsGroup title={t("Colours")}>
-                <ThemeColorPicker
-                    label={t("Accent")}
-                    value={themeDraft.accent}
-                    emphasized
-                    onChange={(accent) => updateThemeDraft({ accent })}
-                />
-                <ThemeColorPicker
-                    label={t("Background")}
-                    value={themeDraft.surface}
-                    onChange={(surface) => updateThemeDraft({ surface })}
-                />
-                <ThemeColorPicker
-                    label={t("Foreground")}
-                    value={themeDraft.ink}
-                    onChange={(ink) => updateThemeDraft({ ink })}
-                />
-                <SettingsSliderRow
-                    label={t("Contrast")}
-                    icon={<SunMedium size={18} />}
-                    value={themeDraft.contrast}
-                    min={0}
-                    max={100}
-                    step={1}
-                    format={(value) => String(Math.round(value))}
-                    defaultValue={currentTheme.contrast}
-                    onChange={(contrast) => updateThemeDraft({ contrast })}
-                    onReset={() =>
-                        updateThemeDraft({ contrast: currentTheme.contrast })
-                    }
-                />
-            </SettingsGroup>
+                <SettingsGroup title={t("Colours")}>
+                    <ThemeColorPicker
+                        label={t("Accent")}
+                        value={themeDraft.accent}
+                        emphasized
+                        onChange={(accent) => updateThemeDraft({ accent })}
+                    />
+                    <ThemeColorPicker
+                        label={t("Background")}
+                        value={themeDraft.surface}
+                        onChange={(surface) => updateThemeDraft({ surface })}
+                    />
+                    <ThemeColorPicker
+                        label={t("Foreground")}
+                        value={themeDraft.ink}
+                        onChange={(ink) => updateThemeDraft({ ink })}
+                    />
+                    <SettingsSliderRow
+                        label={t("Contrast")}
+                        icon={<SunMedium size={18} />}
+                        value={themeDraft.contrast}
+                        min={0}
+                        max={100}
+                        step={1}
+                        format={(value) => String(Math.round(value))}
+                        defaultValue={currentTheme.contrast}
+                        onChange={(contrast) => updateThemeDraft({ contrast })}
+                        onReset={() =>
+                            updateThemeDraft({
+                                contrast: currentTheme.contrast,
+                            })
+                        }
+                    />
+                    <SettingsToggleRow
+                        label={t("Translucent sidebar")}
+                        icon={<PanelLeft size={18} />}
+                        checked={themeDraft.translucentSidebar}
+                        onChange={(translucentSidebar) =>
+                            updateThemeDraft({ translucentSidebar })
+                        }
+                    />
+                </SettingsGroup>
 
-            <SettingsGroup
-                title={t("Wallpaper")}
-                note={t("The preview and the app update instantly.")}
-            >
-                <ThemeWallpaperPicker
-                    value={currentWallpaperId}
-                    accent={themeDraft.accent}
-                    surface={themeDraft.surface}
-                    onChange={applyWallpaper}
-                />
-                <WallpaperEffectsControls />
-                <SettingsToggleRow
-                    label={t("Translucent sidebar")}
-                    icon={<PanelLeft size={18} />}
-                    checked={themeDraft.translucentSidebar}
-                    onChange={(translucentSidebar) =>
-                        updateThemeDraft({ translucentSidebar })
-                    }
-                />
-            </SettingsGroup>
+                <SettingsGroup title={t("Fonts")}>
+                    <SettingsFieldRow
+                        label={t("Interface font")}
+                        icon={<Type size={18} />}
+                        value={themeDraft.uiFont}
+                        list="nc-ui-fonts"
+                        onChange={(uiFont) => updateThemeDraft({ uiFont })}
+                    >
+                        <datalist id="nc-ui-fonts">
+                            <option
+                                value={'"Inter Variable", Inter, sans-serif'}
+                            />
+                            <option
+                                value={
+                                    '"Geist Variable", Geist, "Inter Variable", sans-serif'
+                                }
+                            />
+                            <option
+                                value={
+                                    'Satoshi, "Inter Variable", Inter, sans-serif'
+                                }
+                            />
+                            <option
+                                value={
+                                    '"JetBrains Mono Variable", "JetBrains Mono", monospace'
+                                }
+                            />
+                            <option
+                                value={
+                                    '"Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif'
+                                }
+                            />
+                        </datalist>
+                    </SettingsFieldRow>
+                    <SettingsFieldRow
+                        label={t("Monospace font")}
+                        icon={<Code2 size={18} />}
+                        value={themeDraft.codeFont}
+                        list="nc-code-fonts"
+                        onChange={(codeFont) => updateThemeDraft({ codeFont })}
+                    >
+                        <datalist id="nc-code-fonts">
+                            <option
+                                value={
+                                    '"JetBrains Mono Variable", "JetBrains Mono", monospace'
+                                }
+                            />
+                            <option
+                                value={
+                                    '"Geist Mono Variable", "Geist Mono", "JetBrains Mono Variable", monospace'
+                                }
+                            />
+                            <option
+                                value={'"Cascadia Code", Consolas, monospace'}
+                            />
+                        </datalist>
+                    </SettingsFieldRow>
+                </SettingsGroup>
 
-            <SettingsGroup title={t("Fonts")}>
-                <SettingsFieldRow
-                    label={t("Interface font")}
-                    icon={<Type size={18} />}
-                    value={themeDraft.uiFont}
-                    list="nc-ui-fonts"
-                    onChange={(uiFont) => updateThemeDraft({ uiFont })}
-                >
-                    <datalist id="nc-ui-fonts">
-                        <option value={'"Inter Variable", Inter, sans-serif'} />
-                        <option
-                            value={
-                                '"Geist Variable", Geist, "Inter Variable", sans-serif'
-                            }
-                        />
-                        <option
-                            value={
-                                'Satoshi, "Inter Variable", Inter, sans-serif'
-                            }
-                        />
-                        <option
-                            value={
-                                '"JetBrains Mono Variable", "JetBrains Mono", monospace'
-                            }
-                        />
-                        <option
-                            value={
-                                '"Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif'
-                            }
-                        />
-                    </datalist>
-                </SettingsFieldRow>
-                <SettingsFieldRow
-                    label={t("Monospace font")}
-                    icon={<Code2 size={18} />}
-                    value={themeDraft.codeFont}
-                    list="nc-code-fonts"
-                    onChange={(codeFont) => updateThemeDraft({ codeFont })}
-                >
-                    <datalist id="nc-code-fonts">
-                        <option
-                            value={
-                                '"JetBrains Mono Variable", "JetBrains Mono", monospace'
-                            }
-                        />
-                        <option
-                            value={
-                                '"Geist Mono Variable", "Geist Mono", "JetBrains Mono Variable", monospace'
-                            }
-                        />
-                        <option
-                            value={'"Cascadia Code", Consolas, monospace'}
-                        />
-                    </datalist>
-                </SettingsFieldRow>
-            </SettingsGroup>
-
-            {/* Le fond s'applique tout de suite ; une couleur ou une police
+                {/* Le fond s'applique tout de suite ; une couleur ou une police
                 attend d'être enregistrée. La ligne le dit plutôt que de laisser
                 un bouton grisé le sous-entendre. */}
-            <SettingsGroup note={themeMessage ?? undefined}>
-                <SettingsRow
-                    label={t("Save")}
-                    icon={<Save size={18} />}
-                    value={themeDirty ? t("Unsaved changes") : undefined}
-                    disabled={!themeDirty}
-                    onClick={saveThemeChanges}
-                />
-                <SettingsRow
-                    label={t("Reset this theme")}
-                    icon={<RotateCcw size={18} />}
-                    onClick={resetCurrentTheme}
-                />
-            </SettingsGroup>
+                <SettingsGroup note={themeMessage ?? undefined}>
+                    <SettingsRow
+                        label={t("Save")}
+                        icon={<Save size={18} />}
+                        value={themeDirty ? t("Unsaved changes") : undefined}
+                        disabled={!themeDirty}
+                        onClick={saveThemeChanges}
+                    />
+                    <SettingsRow
+                        label={t("Reset this theme")}
+                        icon={<RotateCcw size={18} />}
+                        onClick={resetCurrentTheme}
+                    />
+                </SettingsGroup>
+            </SettingsPageSection>
+
+            <SettingsPageSection id="wallpaper" title={t("Screen wallpaper")}>
+                <SettingsGroup
+                    note={t("The preview and the app update instantly.")}
+                >
+                    <ThemeWallpaperPicker
+                        value={currentWallpaperId}
+                        accent={themeDraft.accent}
+                        surface={themeDraft.surface}
+                        onChange={applyWallpaper}
+                    />
+                    <WallpaperEffectsControls />
+                </SettingsGroup>
+            </SettingsPageSection>
 
             <input
                 ref={importThemeInputRef}

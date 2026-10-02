@@ -601,6 +601,7 @@ const FR: Record<string, string> = {
     "Theme default": "Par défaut du thème",
     "Pick a colour": "Choisir une couleur",
     Wallpaper: "Image de fond",
+    "Screen wallpaper": "Fond d'écran",
     "Tap to set as default, double-tap to rename":
         "Cliquer pour définir par défaut, double-cliquer pour renommer",
     "Read-only calendar; double-tap to rename":

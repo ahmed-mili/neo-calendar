@@ -4557,6 +4557,20 @@ body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
     -webkit-user-select: text;
 }
 
+.nc-set-section {
+    display: grid;
+    gap: 26px;
+    align-content: start;
+}
+
+.nc-set-section__title {
+    margin: 0;
+    padding: 0 4px;
+    font-size: 15px;
+    font-weight: 650;
+    color: var(--nc-text-primary, var(--text-normal));
+}
+
 /* A group title names its block without competing with it: quiet, small, in
    sentence case. It used to be set in capitals at heading size, which made
    "PRÉFÉRENCES DU CALENDRIER" the loudest thing on a screen of settings. */

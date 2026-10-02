@@ -147,7 +147,8 @@ internal fun AppearancePage(openThemeChoice: () -> Unit) {
         }
     }
 
-    Group("Thème") {
+    PageSectionTitle("Thème")
+    Group(null) {
         row(
             null, "Thème", theme.label, iconContent = { ThemePreview(theme) }, onClick = openThemeChoice,
         )
@@ -171,35 +172,6 @@ internal fun AppearancePage(openThemeChoice: () -> Unit) {
                 shape, NeoIcons.SunMedium, "Contraste", draft.contrast.toFloat(), 0f, 100f, 1f, { it.roundToInt().toString() },
                 theme.contrast.toFloat(), onChange = { edit { d -> d.copy(contrast = it.roundToInt()) } },
                 onReset = { edit { d -> d.copy(contrast = theme.contrast) } },
-            )
-        }
-    }
-
-    Group("Image de fond", note = "L’aperçu et l’application se mettent à jour instantanément.") {
-        row(
-            null, "Image de fond", wallpaperLabel(draft.wallpaperId), iconContent = { WallpaperThumb(draft.wallpaperId, draft.accent, draft.surface, 30, 22, 5) },
-            iconWidth = 30, onClick = { wallpaperDialog = true },
-        )
-        val effects = NeoAppearance.effects
-        custom { shape ->
-            SliderRow(
-                shape, NeoIcons.Contrast, "Luminosité du fond", effects.brightness, 0f, 1f, 0.05f, { "%.2f".format(java.util.Locale.ROOT, it) },
-                0.7f, onChange = { NeoAppearance.setEffects(context, effects.copy(brightness = it)) },
-                onReset = { NeoAppearance.setEffects(context, effects.copy(brightness = 0.7f)) },
-            )
-        }
-        custom { shape ->
-            SliderRow(
-                shape, NeoIcons.Droplets, "Flou du fond", effects.blur, 0f, 20f, 1f, { it.roundToInt().toString() },
-                5f, onChange = { NeoAppearance.setEffects(context, effects.copy(blur = it)) },
-                onReset = { NeoAppearance.setEffects(context, effects.copy(blur = 5f)) },
-            )
-        }
-        custom { shape ->
-            SliderRow(
-                shape, NeoIcons.Layers, "Opacité des conteneurs", effects.containerOpacity, 0f, 1f, 0.05f, { "%.2f".format(java.util.Locale.ROOT, it) },
-                0.4f, onChange = { NeoAppearance.setEffects(context, effects.copy(containerOpacity = it)) },
-                onReset = { NeoAppearance.setEffects(context, effects.copy(containerOpacity = 0.4f)) },
             )
         }
         toggle(NeoIcons.PanelLeft, "Barre latérale translucide", draft.translucentSidebar) { checked -> edit { it.copy(translucentSidebar = checked) } }
@@ -232,6 +204,36 @@ internal fun AppearancePage(openThemeChoice: () -> Unit) {
             draft = NeoAppearance.effective
             dirty = false
             message = "Thème réinitialisé"
+        }
+    }
+
+    PageSectionTitle("Fond d’écran")
+    Group(null, note = "L’aperçu et l’application se mettent à jour instantanément.") {
+        row(
+            null, "Image de fond", wallpaperLabel(draft.wallpaperId), iconContent = { WallpaperThumb(draft.wallpaperId, draft.accent, draft.surface, 30, 22, 5) },
+            iconWidth = 30, onClick = { wallpaperDialog = true },
+        )
+        val effects = NeoAppearance.effects
+        custom { shape ->
+            SliderRow(
+                shape, NeoIcons.Contrast, "Luminosité du fond", effects.brightness, 0f, 1f, 0.05f, { "%.2f".format(java.util.Locale.ROOT, it) },
+                0.7f, onChange = { NeoAppearance.setEffects(context, effects.copy(brightness = it)) },
+                onReset = { NeoAppearance.setEffects(context, effects.copy(brightness = 0.7f)) },
+            )
+        }
+        custom { shape ->
+            SliderRow(
+                shape, NeoIcons.Droplets, "Flou du fond", effects.blur, 0f, 20f, 1f, { it.roundToInt().toString() },
+                5f, onChange = { NeoAppearance.setEffects(context, effects.copy(blur = it)) },
+                onReset = { NeoAppearance.setEffects(context, effects.copy(blur = 5f)) },
+            )
+        }
+        custom { shape ->
+            SliderRow(
+                shape, NeoIcons.Layers, "Opacité des conteneurs", effects.containerOpacity, 0f, 1f, 0.05f, { "%.2f".format(java.util.Locale.ROOT, it) },
+                0.4f, onChange = { NeoAppearance.setEffects(context, effects.copy(containerOpacity = it)) },
+                onReset = { NeoAppearance.setEffects(context, effects.copy(containerOpacity = 0.4f)) },
+            )
         }
     }
 
