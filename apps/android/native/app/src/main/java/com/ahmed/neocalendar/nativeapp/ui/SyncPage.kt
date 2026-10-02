@@ -128,7 +128,8 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
         row(NeoIcons.Upload, "Revenir à un dossier externe", null, onClick = switchActions.onBackToExternal)
     }
 
-    Group("État") {
+    // Nouvelle installation sans appareil : dire en clair où sont les notes et quoi faire pour en garder une copie.
+    Group("État", note = if (settings.configured) null else "Vos notes ne sont que sur ce téléphone. Ajoutez un appareil pour en garder une copie.") {
         row(NeoIcons.RefreshCw, status.text(), null, chevron = false, onClick = null)
         // Après l'abandon des relances le moteur ne repart plus seul : un geste de l'utilisateur le relance.
         if (engineState is EngineState.Failed) row(NeoIcons.RefreshCw, "Réessayer", null, chevron = false) { controller.retry() }
