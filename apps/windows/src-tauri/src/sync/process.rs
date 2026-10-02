@@ -121,18 +121,37 @@ pub fn spawn(exe: &Path, home: &Path, gui_address: &str, api_key: &str) -> io::R
         .spawn()
 }
 
+/// Copie une sortie dans le journal, coupée sur les fins de ligne : un code d'appairage coupé en deux par deux
+/// lectures ne se glisse jamais dans le journal (la rédaction du journal voit le code en entier).
+pub fn pump_lines(mut source: impl Read, log: &RotatingLog) {
+    const KEEP: usize = 32;
+    let mut buffer = [0u8; 4096];
+    let mut pending: Vec<u8> = Vec::new();
+    while let Ok(n) = source.read(&mut buffer) {
+        if n == 0 {
+            break;
+        }
+        pending.extend_from_slice(&buffer[..n]);
+        // Jusqu'à la dernière fin de ligne ; sans fin de ligne, tout sauf la queue (plus longue qu'un marqueur de code).
+        let cut = match pending.iter().rposition(|b| *b == b'\n') {
+            Some(last) => last + 1,
+            None if pending.len() > 8192 => pending.len() - KEEP,
+            None => 0,
+        };
+        if cut > 0 {
+            log.write(&pending[..cut]);
+            pending.drain(..cut);
+        }
+    }
+    if !pending.is_empty() {
+        log.write(&pending);
+    }
+}
+
 /// Vide la sortie du processus dans le journal (un tuyau qui n'est pas lu bloque le moteur).
 pub fn pump_output(child: &mut Child, log: &Arc<RotatingLog>) {
-    fn pump(mut source: impl Read + Send + 'static, log: Arc<RotatingLog>) {
-        std::thread::spawn(move || {
-            let mut buffer = [0u8; 4096];
-            while let Ok(n) = source.read(&mut buffer) {
-                if n == 0 {
-                    break;
-                }
-                log.write(&buffer[..n]);
-            }
-        });
+    fn pump(source: impl Read + Send + 'static, log: Arc<RotatingLog>) {
+        std::thread::spawn(move || pump_lines(source, &log));
     }
     if let Some(out) = child.stdout.take() {
         pump(out, log.clone());
@@ -461,5 +480,26 @@ mod tests {
         let started = Instant::now();
         let error = ensure_generated(&exe, &dir.path().join("etat"), &stop).unwrap_err();
         assert!(started.elapsed() < Duration::from_secs(5), "{error}");
+    }
+
+    #[test]
+    fn output_is_cut_on_lines_so_a_pairing_code_split_across_reads_is_still_hidden() {
+        struct Chunks(Vec<&'static [u8]>);
+        impl Read for Chunks {
+            fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+                if self.0.is_empty() {
+                    return Ok(0);
+                }
+                let chunk = self.0.remove(0);
+                buffer[..chunk.len()].copy_from_slice(chunk);
+                Ok(chunk.len())
+            }
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let log = Arc::new(RotatingLog::new(dir.path().to_path_buf(), 10_000));
+        pump_lines(Chunks(vec![b"remote.name=\"Pixel [NC:Q67", b"C64KRPE]\" ok\n", b"derniere ligne"]), &log);
+        let text = log.read_all();
+        assert!(!text.contains("Q67") && !text.contains("C64KRPE"), "{text}");
+        assert!(text.contains("[NC:**********]\" ok\n") && text.ends_with("derniere ligne"), "{text}");
     }
 }

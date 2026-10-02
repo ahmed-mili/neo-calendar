@@ -195,6 +195,13 @@ pub fn prepare_config(xml: &str, port: u16, gui_user: &str, gui_password_hash: &
     )
 }
 
+/// Remplace la clé d'API de `config.xml` par une clé neuve que personne ne connaît. La clé d'exécution passe par
+/// l'environnement, mais Syncthing la réécrit dans `config.xml` dès qu'il enregistre un changement : le fichier est donc
+/// nettoyé avant chaque lancement et après chaque arrêt, pour qu'aucune clé valable ne traîne hors de l'exécution.
+pub fn scrub_api_key(xml: &str) -> Result<String, String> {
+    set_section(xml, "gui", &[("apikey", vec![random_chars(b"abcdefghijklmnopqrstuvwxyzABCDEF", 32)])])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -238,6 +245,15 @@ mod tests {
         assert_eq!(body["listenAddresses"][0], "tcp://0.0.0.0:22001");
         assert_eq!(body["listenAddresses"][1], "quic://0.0.0.0:22001");
         assert_eq!(body["listenAddresses"][2], RELAY_POOL);
+    }
+
+    #[test]
+    fn scrubbing_replaces_the_api_key_and_keeps_the_rest() {
+        let out = scrub_api_key(GENERATED).unwrap();
+        assert!(!out.contains("GC36hTWQs7j2N9csTHm9NWuNKSYsrFzi"));
+        assert_eq!(count(&out, "<apikey>"), 1);
+        assert!(out.contains("<user>ancien</user>") && out.contains(r#"name="PC d'Ahmed &amp; fils""#));
+        assert_ne!(out, scrub_api_key(GENERATED).unwrap(), "chaque clé est tirée au hasard");
     }
 
     #[test]

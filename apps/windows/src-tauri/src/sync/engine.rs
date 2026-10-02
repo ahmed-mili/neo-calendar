@@ -163,7 +163,10 @@ fn supervise(
     let set = |state: EngineState| snapshot.lock().unwrap_or_else(|e| e.into_inner()).state = state;
     while !stop.load(Ordering::SeqCst) {
         set(EngineState::Starting);
-        match run_once(&params, &hooks, &snapshot, &stop, &log) {
+        let outcome = run_once(&params, &hooks, &snapshot, &stop, &log);
+        // Le moteur est terminé : la clé d'API d'exécution, que Syncthing a réécrite dans `config.xml`, n'y reste pas.
+        scrub_stale_key(&params.home);
+        match outcome {
             Outcome::Stopped => break,
             Outcome::Blocked => {
                 log.note("Un Syncthing installé partage maintenant le dossier : le moteur de l'app s'arrête.");
@@ -193,6 +196,17 @@ fn supervise(
     *snapshot.lock().unwrap_or_else(|e| e.into_inner()) = Snapshot::idle(EngineState::Stopped);
 }
 
+/// Remplace la clé d'API de `config.xml` (voir `config::scrub_api_key`). Sans effet si le fichier manque ou est illisible.
+fn scrub_stale_key(home: &Path) {
+    let path = home.join("config.xml");
+    let Ok(xml) = fs::read_to_string(&path) else { return };
+    let Ok(clean) = config::scrub_api_key(&xml) else { return };
+    let temporary = home.join("config.xml.neo-tmp");
+    if fs::write(&temporary, clean).is_ok() && fs::rename(&temporary, &path).is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+}
+
 /// Réécrit `config.xml` avec les options imposées (écriture atomique). Appelé avant CHAQUE `serve` : le port d'écoute
 /// gardé est revérifié, et un autre est tiré s'il n'est plus libre.
 fn prepare_home(params: &EngineParams, hooks: &Hooks, run_exe: &Path, stop: &AtomicBool) -> Result<u16, String> {
@@ -207,7 +221,7 @@ fn prepare_home(params: &EngineParams, hooks: &Hooks, run_exe: &Path, stop: &Ato
     };
     let path = params.home.join("config.xml");
     let xml = fs::read_to_string(&path).map_err(|e| format!("config.xml illisible : {e}"))?;
-    let prepared = config::prepare_config(&xml, port, &params.gui_user, &params.gui_password_hash)?;
+    let prepared = config::scrub_api_key(&config::prepare_config(&xml, port, &params.gui_user, &params.gui_password_hash)?)?;
     let temporary = params.home.join("config.xml.neo-tmp");
     fs::write(&temporary, prepared).map_err(|e| format!("config.xml impossible à écrire : {e}"))?;
     fs::rename(&temporary, &path).map_err(|e| format!("config.xml impossible à remplacer : {e}"))?;

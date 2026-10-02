@@ -91,3 +91,52 @@ pub fn real_binary() -> Option<std::path::PathBuf> {
     }
     found
 }
+
+/// Un « Syncthing installé » de test : un vrai moteur dont le dossier d'état est `<lad>/Syncthing` (là où l'app cherche
+/// `%LOCALAPPDATA%\Syncthing\config.xml`), sur des ports tirés au hasard, SANS découverte locale (l'UDP 21027 est celui
+/// du vrai Syncthing de l'utilisateur : un essai n'y touche jamais).
+pub struct OldSyncthing {
+    pub api: super::api::SyncthingApi,
+    child: std::process::Child,
+}
+
+impl OldSyncthing {
+    pub fn config_only(exe: &std::path::Path, local_app_data: &std::path::Path) -> std::path::PathBuf {
+        let home = local_app_data.join("Syncthing");
+        super::process::ensure_generated(exe, &home, &std::sync::atomic::AtomicBool::new(false)).unwrap();
+        let xml = std::fs::read_to_string(home.join("config.xml")).unwrap();
+        let port = super::ports::pick_listen_port().unwrap();
+        let quiet = super::config::prepare_config(&xml, port, "essai", &bcrypt::hash("essai", 4).unwrap()).unwrap();
+        std::fs::write(home.join("config.xml"), quiet).unwrap();
+        home
+    }
+
+    pub fn start(exe: &std::path::Path, local_app_data: &std::path::Path) -> Self {
+        let home = Self::config_only(exe, local_app_data);
+        let config = super::installed::parse_config(&std::fs::read_to_string(home.join("config.xml")).unwrap()).unwrap();
+        let mut child = super::process::spawn(exe, &home, &config.gui_address, &config.api_key).unwrap();
+        super::process::pump_output(&mut child, &std::sync::Arc::new(super::log::RotatingLog::new(home.join("journal"), 100_000)));
+        let api = config.api();
+        for _ in 0..240 {
+            if api.is_healthy() {
+                return Self { api, child };
+            }
+            std::thread::sleep(Duration::from_millis(250));
+        }
+        panic!("le Syncthing de test ne répond pas");
+    }
+}
+
+impl Drop for OldSyncthing {
+    fn drop(&mut self) {
+        let _ = self.api.shutdown();
+        for _ in 0..100 {
+            if matches!(self.child.try_wait(), Ok(Some(_))) {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}

@@ -1,5 +1,6 @@
 pub mod api;
 pub mod config;
+pub mod control;
 pub mod engine;
 pub mod installed;
 pub mod log;

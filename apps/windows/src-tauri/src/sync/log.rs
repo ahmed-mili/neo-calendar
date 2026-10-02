@@ -7,6 +7,28 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+/// Le code d'appairage voyage dans le nom d'appareil (`Pixel 8 [NC:K7Q2M9XPAB]`) et Syncthing écrit ce nom dans sa
+/// sortie à la connexion : le journal (que la page peut afficher) n'en garde jamais le code.
+pub fn redact_pairing_codes(bytes: &[u8]) -> Vec<u8> {
+    const MARKER: &[u8] = b"[NC:";
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        if bytes[index..].starts_with(MARKER) {
+            out.extend_from_slice(MARKER);
+            index += MARKER.len();
+            while index < bytes.len() && bytes[index].is_ascii_alphanumeric() {
+                out.push(b'*');
+                index += 1;
+            }
+        } else {
+            out.push(bytes[index]);
+            index += 1;
+        }
+    }
+    out
+}
+
 pub struct RotatingLog {
     current: PathBuf,
     previous: PathBuf,
@@ -41,8 +63,9 @@ impl RotatingLog {
     /// Ne rend jamais d'erreur : un journal qui ne peut pas écrire (disque plein, dossier disparu) perd la
     /// ligne, mais celui qui vide la sortie du processus doit continuer, sinon le moteur se bloque sur son tuyau.
     pub fn write(&self, bytes: &[u8]) {
+        let bytes = redact_pairing_codes(bytes);
         let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        if self.write_locked(&mut inner, bytes).is_err() {
+        if self.write_locked(&mut inner, &bytes).is_err() {
             inner.out = None;
         }
     }
@@ -127,5 +150,16 @@ mod tests {
         let log = RotatingLog::new(blocked.join("sous"), 100);
         log.note("perdue");
         assert_eq!(log.read_all(), "");
+    }
+
+    #[test]
+    fn a_pairing_code_never_reaches_the_journal() {
+        let dir = tempfile::tempdir().unwrap();
+        let log = RotatingLog::new(dir.path().to_path_buf(), 10_000);
+        log.write(b"INF New device connection (remote.name=\"Pixel 8 [NC:Q67C64KRPE]\" log.pkg=model)\n");
+        log.note("nom [NC:abcdefghij] fin");
+        let text = log.read_all();
+        assert!(!text.contains("Q67C64KRPE") && !text.contains("abcdefghij"), "{text}");
+        assert!(text.contains("Pixel 8 [NC:**********]") && text.contains("log.pkg=model"), "le reste de la ligne est intact : {text}");
     }
 }
