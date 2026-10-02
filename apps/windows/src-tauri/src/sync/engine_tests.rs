@@ -16,6 +16,7 @@ fn hooks(keep_running: Arc<AtomicBool>) -> Arc<Hooks> {
 fn params(dir: &Path, exe: PathBuf) -> EngineParams {
     EngineParams {
         exe,
+        version: "2.1.5".into(),
         home: dir.join("etat"),
         folder_path: dir.join("Neo Calendar"),
         listen_port: None,
@@ -118,6 +119,30 @@ fn the_real_engine_runs_with_the_imposed_configuration_and_stops_cleanly() {
     assert!(written.contains("<localAnnounceEnabled>false</localAnnounceEnabled>"));
     assert!(home.join("engine.pid").is_file());
 
+    // Le moteur tourne depuis la COPIE du dossier d'état (`<home>\bin`), jamais depuis l'exe livré.
+    let pid: u32 = fs::read_to_string(home.join("engine.pid")).unwrap().trim().parse().unwrap();
+    let image = crate::sync::process::image_path(pid).expect("le moteur tourne");
+    assert!(crate::sync::process::is_our_engine(Some(&image), &home.join("bin")), "{image}");
+    assert!(image.to_lowercase().ends_with("syncthing-2.1.5.exe"), "{image}");
+
+    // L'interface REST refuse tout appel sans clé ou avec une mauvaise clé ; seule la sonde de santé est ouverte.
+    let address = snapshot.gui_address.clone().unwrap();
+    let status = |path: &str, key: Option<&str>| -> u16 {
+        let request = ureq::get(&format!("http://{address}{path}"));
+        let request = match key {
+            Some(key) => request.set("X-API-Key", key),
+            None => request,
+        };
+        match request.call() {
+            Ok(response) => response.status(),
+            Err(ureq::Error::Status(code, _)) => code,
+            Err(other) => panic!("{other}"),
+        }
+    };
+    assert!([401, 403].contains(&status("/rest/system/status", None)));
+    assert!([401, 403].contains(&status("/rest/system/status", Some("mauvaise-cle"))));
+    assert_eq!(status("/rest/noauth/health", None), 200);
+
     engine.stop();
     assert!(!home.join("engine.pid").exists(), "le fichier de PID est retiré à l'arrêt propre");
     assert_eq!(engine.snapshot().state, EngineState::Stopped);
@@ -141,4 +166,43 @@ fn the_real_engine_stops_itself_when_the_exclusivity_hook_says_so() {
     keep.store(false, Ordering::SeqCst);
     wait_for(&engine, "blocage", |s| *s == EngineState::BlockedByInstalled, 30);
     engine.stop();
+}
+
+#[cfg(windows)]
+#[test]
+fn a_start_racing_a_stop_never_leaves_two_supervisors() {
+    let dir = tempfile::tempdir().unwrap();
+    let (engine, log) = new_engine(dir.path());
+    let engine = Arc::new(engine);
+    let exe = failing_engine(dir.path());
+    let p = params(dir.path(), exe);
+    let endless = || RestartPolicy::new(100_000, Duration::from_millis(20), Duration::from_millis(50), Duration::from_secs(60));
+    for _ in 0..15 {
+        let _ = engine.start(p.clone(), hooks(Arc::new(AtomicBool::new(true))), endless());
+        let stopper = {
+            let engine = engine.clone();
+            std::thread::spawn(move || engine.stop())
+        };
+        let _ = engine.start(p.clone(), hooks(Arc::new(AtomicBool::new(true))), endless());
+        stopper.join().unwrap();
+    }
+    engine.stop();
+    assert!(!engine.is_active());
+    // Un superviseur oublié continuerait de relancer le moteur et d'écrire dans le journal.
+    let before = log.read_all();
+    std::thread::sleep(Duration::from_millis(600));
+    assert_eq!(log.read_all(), before, "un superviseur tourne encore après stop()");
+}
+
+#[cfg(windows)]
+#[test]
+fn the_exe_that_runs_is_always_the_copy_under_the_state_dir() {
+    let dir = tempfile::tempdir().unwrap();
+    let (engine, _) = new_engine(dir.path());
+    let exe = failing_engine(dir.path());
+    let p = params(dir.path(), exe);
+    engine.start(p.clone(), hooks(Arc::new(AtomicBool::new(true))), fast_policy()).unwrap();
+    wait_for(&engine, "abandon", |s| matches!(s, EngineState::Failed { .. }), 20);
+    engine.stop();
+    assert!(p.home.join("bin").join("syncthing-2.1.5.exe").is_file(), "la copie est faite par Engine, pas par l'appelant");
 }

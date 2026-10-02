@@ -18,7 +18,11 @@ use std::time::{Duration, Instant};
 
 #[derive(Clone)]
 pub struct EngineParams {
+    /// Le `syncthing.exe` livré avec l'app. Le moteur ne tourne JAMAIS depuis lui : `run_once` le copie dans
+    /// `<home>\bin\syncthing-<version>.exe` et lance la copie (l'installateur ne trouve jamais le fichier verrouillé).
     pub exe: PathBuf,
+    /// La version du moteur (nom de la copie).
+    pub version: String,
     /// Le dossier d'état du moteur (clé, certificat, `config.xml`, index, journal) : jamais dans le dossier de notes.
     pub home: PathBuf,
     /// Le dossier synchronisé : le dossier de données choisi dans l'app, directement.
@@ -42,20 +46,26 @@ pub struct Snapshot {
     pub state: EngineState,
     pub api: Option<SyncthingApi>,
     pub my_id: Option<String>,
+    /// L'adresse de l'interface REST (`127.0.0.1:port`), jamais la clé.
+    pub gui_address: Option<String>,
     /// Le chemin du dossier du moteur quand il n'est plus le dossier de données de l'app.
     pub mismatch: Option<String>,
 }
 
 impl Snapshot {
     fn idle(state: EngineState) -> Self {
-        Self { state, api: None, my_id: None, mismatch: None }
+        Self { state, api: None, my_id: None, gui_address: None, mismatch: None }
     }
 }
 
 pub struct Engine {
     snapshot: Arc<Mutex<Snapshot>>,
-    stop: Arc<AtomicBool>,
+    /// Le drapeau d'arrêt du superviseur EN COURS : un drapeau neuf à chaque `start`, pour qu'un `start` qui suit un
+    /// `stop` ne rende jamais la main à un ancien superviseur qui n'a pas encore vu l'arrêt.
+    stop: Mutex<Arc<AtomicBool>>,
     thread: Mutex<Option<JoinHandle<()>>>,
+    /// Sérialise `start` et `stop` (`stop` attend la fin du fil : `thread` n'est pas gardé pendant ce temps).
+    lifecycle: Mutex<()>,
     pub log: Arc<RotatingLog>,
 }
 
@@ -72,8 +82,9 @@ impl Engine {
     pub fn new(log: Arc<RotatingLog>) -> Self {
         Self {
             snapshot: Arc::new(Mutex::new(Snapshot::idle(EngineState::Stopped))),
-            stop: Arc::new(AtomicBool::new(false)),
+            stop: Mutex::new(Arc::new(AtomicBool::new(false))),
             thread: Mutex::new(None),
+            lifecycle: Mutex::new(()),
             log,
         }
     }
@@ -93,6 +104,7 @@ impl Engine {
 
     /// Lance le superviseur, sans attendre le moteur. Un superviseur qui a abandonné se relance ici (« Réessayer »).
     pub fn start(&self, params: EngineParams, hooks: Arc<Hooks>, policy: RestartPolicy) -> Result<(), String> {
+        let _lifecycle = self.lifecycle.lock().unwrap_or_else(|e| e.into_inner());
         let mut slot = self.thread.lock().unwrap_or_else(|e| e.into_inner());
         if slot.as_ref().is_some_and(|t| !t.is_finished()) {
             return Err("Le moteur de synchronisation est déjà lancé.".to_string());
@@ -104,9 +116,10 @@ impl Engine {
             self.set_state(EngineState::Missing);
             return Err(format!("Le moteur de synchronisation est introuvable : {}", params.exe.display()));
         }
-        self.stop.store(false, Ordering::SeqCst);
+        let stop = Arc::new(AtomicBool::new(false));
+        *self.stop.lock().unwrap_or_else(|e| e.into_inner()) = stop.clone();
         self.set_state(EngineState::Starting);
-        let (snapshot, stop, log) = (self.snapshot.clone(), self.stop.clone(), self.log.clone());
+        let (snapshot, log) = (self.snapshot.clone(), self.log.clone());
         *slot = Some(
             std::thread::Builder::new()
                 .name("syncthing-supervisor".into())
@@ -118,7 +131,8 @@ impl Engine {
 
     /// Arrêt propre (`/rest/system/shutdown`, puis fin du processus) : bloque jusqu'à 10 s.
     pub fn stop(&self) {
-        self.stop.store(true, Ordering::SeqCst);
+        let _lifecycle = self.lifecycle.lock().unwrap_or_else(|e| e.into_inner());
+        self.stop.lock().unwrap_or_else(|e| e.into_inner()).store(true, Ordering::SeqCst);
         let handle = self.thread.lock().unwrap_or_else(|e| e.into_inner()).take();
         if let Some(handle) = handle {
             let _ = handle.join();
@@ -181,8 +195,8 @@ fn supervise(
 
 /// Réécrit `config.xml` avec les options imposées (écriture atomique). Appelé avant CHAQUE `serve` : le port d'écoute
 /// gardé est revérifié, et un autre est tiré s'il n'est plus libre.
-fn prepare_home(params: &EngineParams, hooks: &Hooks) -> Result<u16, String> {
-    process::ensure_generated(&params.exe, &params.home)?;
+fn prepare_home(params: &EngineParams, hooks: &Hooks, run_exe: &Path, stop: &AtomicBool) -> Result<u16, String> {
+    process::ensure_generated(run_exe, &params.home, stop)?;
     let port = match params.listen_port {
         Some(port) if ports::binds_tcp_and_udp(port) => port,
         _ => {
@@ -209,10 +223,19 @@ fn run_once(
 ) -> Outcome {
     let failed = |error: String| Outcome::Exited { answered_at: None, error };
     log.note("Démarrage du moteur de synchronisation");
-    if let Some(pid) = process::kill_stale(&params.home, &params.exe) {
-        log.note(&format!("Moteur resté d'un lancement précédent terminé (PID {pid})"));
+    // D'abord le nettoyage d'un orphelin (de n'importe quelle version de notre copie), ensuite la copie : un orphelin
+    // vivant verrouillerait la copie à remplacer.
+    let bin_dir = params.home.join("bin");
+    match process::kill_stale(&params.home, &bin_dir) {
+        Ok(Some(pid)) => log.note(&format!("Moteur resté d'un lancement précédent terminé (PID {pid})")),
+        Ok(None) => {}
+        Err(e) => return failed(e),
     }
-    let port = match prepare_home(params, hooks) {
+    let run_exe = match process::ensure_engine_copy(&params.exe, &bin_dir, &params.version) {
+        Ok(copy) => copy,
+        Err(e) => return failed(e),
+    };
+    let port = match prepare_home(params, hooks, &run_exe, stop) {
         Ok(port) => port,
         Err(e) => return failed(e),
     };
@@ -222,11 +245,24 @@ fn run_once(
     };
     let key = config::random_chars(b"abcdefghijklmnopqrstuvwxyzABCDEF", 32);
     let address = format!("127.0.0.1:{gui_port}");
-    let mut child = match process::spawn(&params.exe, &params.home, &address, &key) {
+    let mut child = match process::spawn(&run_exe, &params.home, &address, &key) {
         Ok(child) => child,
         Err(e) => return failed(format!("Syncthing ne se lance pas : {e}")),
     };
-    let _ = process::write_pidfile(&params.home, child.id());
+    // Sans fichier de PID, un plantage de l'app laisserait un orphelin introuvable : on n'avance pas sans lui.
+    if let Err(e) = process::write_pidfile(&params.home, child.id()) {
+        let _ = child.kill();
+        let _ = child.wait();
+        return failed(format!("Fichier de PID impossible à écrire : {e}"));
+    }
+    // Le Job Object emporte le moteur si l'app meurt ; sans lui, le nettoyage par PID au lancement suivant prend le relais.
+    let _job = match process::bind_to_job(&child) {
+        Ok(job) => Some(job),
+        Err(e) => {
+            log.note(&format!("Avertissement : {e}"));
+            None
+        }
+    };
     process::pump_output(&mut child, log);
     let api = SyncthingApi::new(Arc::new(UreqTransport::new(&address, &key)));
 
@@ -255,7 +291,7 @@ fn run_once(
     let my_id = match configure(&api, params, port) {
         Ok((id, mismatch)) => {
             let mut shared = snapshot.lock().unwrap_or_else(|e| e.into_inner());
-            *shared = Snapshot { state: EngineState::Running, api: Some(api.clone()), my_id: Some(id.clone()), mismatch };
+            *shared = Snapshot { state: EngineState::Running, api: Some(api.clone()), my_id: Some(id.clone()), gui_address: Some(address.clone()), mismatch };
             id
         }
         Err(e) => {

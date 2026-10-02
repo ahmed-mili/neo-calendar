@@ -15,7 +15,7 @@ pub struct Call {
 pub struct FakeTransport {
     pub calls: Mutex<Vec<Call>>,
     answers: Mutex<Vec<(String, u16, String)>>,
-    once: Mutex<Vec<(String, String)>>,
+    once: Mutex<Vec<(String, u16, String)>>,
 }
 
 impl FakeTransport {
@@ -31,7 +31,11 @@ impl FakeTransport {
 
     /// Une réponse consommée au premier appel qui correspond (avant les réponses permanentes) : pour une lecture qui change.
     pub fn answer_once(&self, key: &str, body: &str) {
-        self.once.lock().unwrap().push((key.to_string(), body.to_string()));
+        self.answer_code_once(key, 200, body);
+    }
+
+    pub fn answer_code_once(&self, key: &str, code: u16, body: &str) {
+        self.once.lock().unwrap().push((key.to_string(), code, body.to_string()));
     }
 
     pub fn sent(&self, method: &str, path: &str) -> Option<String> {
@@ -59,9 +63,9 @@ impl HttpTransport for FakeTransport {
         let key = format!("{method} {path}");
         {
             let mut once = self.once.lock().unwrap();
-            if let Some(index) = once.iter().position(|(k, _)| *k == key) {
-                let (_, text) = once.remove(index);
-                return Ok(HttpResult { code: 200, body: text });
+            if let Some(index) = once.iter().position(|(k, _, _)| *k == key) {
+                let (_, code, text) = once.remove(index);
+                return Ok(HttpResult { code, body: text });
             }
         }
         let answers = self.answers.lock().unwrap();

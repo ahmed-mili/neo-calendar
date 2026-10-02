@@ -28,6 +28,11 @@ pub struct SyncSetup<'a> {
     pub folder_path: &'a Path,
 }
 
+/// Un nom d'appareil vient d'un tiers (il le présente au moteur) : sans caractères de contrôle, 64 caractères au plus.
+fn clean_name(name: &str) -> String {
+    name.chars().filter(|c| !c.is_control()).collect::<String>().trim().chars().take(64).collect::<String>().trim().to_string()
+}
+
 fn local_error(message: String) -> ApiError {
     ApiError { code: 0, message }
 }
@@ -76,13 +81,30 @@ impl SyncSetup<'_> {
     /// Remet le dossier du moteur sur le dossier de données actuel, au même identifiant : retiré puis reposé, pour
     /// repartir d'un index vide (recréer `.stfolder` à la main sur un index ancien désactiverait la sécurité de
     /// Syncthing, qui prendrait les fichiers « absents » pour des suppressions à propager).
+    ///
+    /// Jamais un moteur sans dossier : la configuration brute est lue avant le retrait, et si la remise échoue elle
+    /// est reposée telle quelle (l'erreur d'origine est rendue).
     pub fn repoint_folder(&self) -> ApiResult<()> {
         let Some(old) = self.api.folders()?.into_iter().next() else {
             return Ok(());
         };
+        let raw = self.api.folder_config(&old.id)?;
         self.ensure_marker()?;
         self.api.remove_folder(&old.id)?;
-        self.api.put_folder(&config::folder(&old.id, &old.label, &self.path_text(), &old.device_ids))
+        let moved = config::folder(&old.id, &old.label, &self.path_text(), &old.device_ids);
+        match self.api.put_folder(&moved) {
+            Ok(()) => Ok(()),
+            Err(error) => match self.api.put_folder(&raw) {
+                Ok(()) => Err(ApiError {
+                    code: error.code,
+                    message: format!("{} Le dossier d'origine a été remis tel quel.", error.message),
+                }),
+                Err(_) => Err(ApiError {
+                    code: error.code,
+                    message: format!("{} Le dossier n'a pas pu être remis : relancez la synchronisation.", error.message),
+                }),
+            },
+        }
     }
 
     fn share_with(&self, device_id: &str) -> ApiResult<()> {
@@ -101,7 +123,8 @@ impl SyncSetup<'_> {
         if id == self.api.my_id()? {
             return Err(local_error("C'est l'identifiant de ce PC.".to_string()));
         }
-        let name = name.trim();
+        let name = clean_name(name);
+        let name = name.as_str();
         let name = if name.is_empty() { id.chars().take(7).collect::<String>() } else { name.to_string() };
         self.api.put_device(&config::device(id, &name))?;
         self.share_with(id)?;
@@ -226,6 +249,7 @@ mod tests {
             "GET /rest/config/folders",
             &format!(r#"[{{"id":"neo-x","label":"N","path":"C:\\Ancien","devices":[{{"deviceID":"{ME}"}}]}}]"#),
         );
+        fake.answer("GET /rest/config/folders/neo-x", r#"{"id":"neo-x","path":"C:\\Ancien"}"#);
         fake.answer("DELETE /rest/config/folders/neo-x", "");
         fake.answer("PUT /rest/config/folders/neo-x", "");
         let setup = SyncSetup { api: &api, folder_path: dir.path() };
@@ -235,6 +259,41 @@ mod tests {
         assert!(put.contains("\"id\":\"neo-x\""));
         let path = dir.path().to_string_lossy().replace('\\', "\\\\");
         assert!(put.contains(&path), "{put}");
+    }
+
+    #[test]
+    fn a_failed_repoint_puts_the_original_folder_back() {
+        let (fake, api, dir) = fixture();
+        let listing = format!(r#"[{{"id":"neo-x","label":"N","path":"C:\\Ancien","devices":[{{"deviceID":"{ME}"}}]}}]"#);
+        fake.answer("GET /rest/config/folders", &listing);
+        fake.answer(
+            "GET /rest/config/folders/neo-x",
+            &format!(r#"{{"id":"neo-x","label":"N","path":"C:\\Ancien","type":"sendreceive","devices":[{{"deviceID":"{ME}"}}]}}"#),
+        );
+        fake.answer("DELETE /rest/config/folders/neo-x", "");
+        fake.answer_code_once("PUT /rest/config/folders/neo-x", 500, "disque plein");
+        fake.answer("PUT /rest/config/folders/neo-x", "");
+        let error = SyncSetup { api: &api, folder_path: dir.path() }.repoint_folder().unwrap_err();
+        assert!(error.message.contains("remis tel quel"), "{}", error.message);
+        let puts: Vec<_> = fake.calls.lock().unwrap().iter().filter(|c| c.method == "PUT").cloned().collect();
+        assert_eq!(puts.len(), 2, "la remise a été tentée");
+        assert!(puts[1].body.as_ref().unwrap().contains("Ancien"), "le dossier d'origine est reposé");
+    }
+
+    #[test]
+    fn a_device_name_from_a_third_party_is_cleaned_and_truncated() {
+        let (fake, api, dir) = fixture();
+        fake.answer("GET /rest/config/folders", &format!(r#"[{{"id":"neo-x","label":"N","path":"C:\\N","devices":[{{"deviceID":"{ME}"}}]}}]"#));
+        fake.answer("PUT /rest/config/devices/*", "");
+        fake.answer("PATCH /rest/config/folders/*", "");
+        fake.answer("DELETE /rest/cluster/pending/devices*", "");
+        let name = format!("\u{7}Pixel\n\u{1b}[31m{}", "x".repeat(200));
+        SyncSetup { api: &api, folder_path: dir.path() }.accept_device(PHONE, &name).unwrap();
+        let body = fake.sent("PUT", &format!("/rest/config/devices/{PHONE}")).unwrap();
+        let sent: serde_json::Value = serde_json::from_str(&body).unwrap();
+        let sent_name = sent["name"].as_str().unwrap();
+        assert!(sent_name.starts_with("Pixel[31m"), "{sent_name:?}");
+        assert!(sent_name.chars().count() <= 64 && !sent_name.chars().any(char::is_control));
     }
 
     #[test]

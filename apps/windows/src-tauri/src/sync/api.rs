@@ -43,7 +43,9 @@ impl HttpTransport for UreqTransport {
         body: Option<&str>,
         read_timeout: Duration,
     ) -> Result<HttpResult, String> {
+        // Jamais de redirection : la clé d'API ne doit pas suivre une réponse vers une autre adresse.
         let agent = ureq::AgentBuilder::new()
+            .redirects(0)
             .timeout_connect(Duration::from_secs(2))
             .timeout_read(read_timeout)
             .timeout_write(Duration::from_secs(5))
