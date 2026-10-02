@@ -65,8 +65,16 @@ object VisibleMigration {
             _state.value = State.NeedsAccess
             return null
         }
-        _state.value = State.Running
         val visible = WorkspaceLocation.visibleRoot()
+        // Un `.stfolder` déjà là, avant toute copie de l'app (elle ne le pose qu'après une fusion vérifiée) : un autre Syncthing
+        // (Syncthing-Fork…) partage ce dossier. Y verser les notes les enverrait chez ses appareils, et deux moteurs se
+        // disputeraient le même dossier : on n'y touche pas.
+        if (java.io.File(visible, ".stfolder").exists()) {
+            android.util.Log.i("NeoMigration", "Dossier visible déjà synchronisé par un autre Syncthing : pas de migration.")
+            _state.value = State.Kept
+            return null
+        }
+        _state.value = State.Running
         val source: BinaryWorkspaceStorage?
         when (mode) {
             StorageMode.Integrated -> source = FileWorkspaceStorage(WorkspaceLocation.privateRoot(context))
