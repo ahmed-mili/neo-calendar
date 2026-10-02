@@ -76,3 +76,14 @@ impl HttpTransport for FakeTransport {
         }
     }
 }
+
+/// Le vrai `syncthing.exe` de la version épinglée (`scripts/fetch-syncthing-windows.mjs` donne son chemin).
+pub fn real_binary() -> Option<std::path::PathBuf> {
+    let found = std::env::var_os("SYNCTHING_BINARY").map(std::path::PathBuf::from).filter(|p| p.is_file());
+    // En CI le moteur réel est toujours fourni : son absence serait un test sauté en silence.
+    assert!(found.is_some() || std::env::var_os("CI").is_none(), "SYNCTHING_BINARY manque en CI");
+    if found.is_none() {
+        eprintln!("SKIP : SYNCTHING_BINARY non défini (voir scripts/fetch-syncthing-windows.mjs)");
+    }
+    found
+}
