@@ -138,6 +138,9 @@ sealed interface ScreenState {
 
     /** Aucun dossier de notes choisi (premier lancement) : rien n'est lu ni écrit avant ce choix. */
     data object NeedsFolder : ScreenState
+
+    /** Vraie nouvelle installation, ou accès retiré : le dossier « Neo Calendar » du téléphone attend l'autorisation « Accès à tous les fichiers ». */
+    data object NeedsAccess : ScreenState
     data class Failed(val message: String) : ScreenState
     data class Ready(val data: WorkspaceData) : ScreenState
 }
@@ -460,7 +463,7 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 val data = result?.data
                 if (data == null) {
-                    _screen.value = ScreenState.NeedsFolder
+                    _screen.value = if (WorkspaceLocation.awaitingAccess(getApplication())) ScreenState.NeedsAccess else ScreenState.NeedsFolder
                     return@launch
                 }
                 // Les calendriers masqués sont ceux du fichier (le PC a pu en changer).
@@ -481,11 +484,35 @@ class NativeViewModel(app: Application) : AndroidViewModel(app) {
                 syncIcsDue()
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
+            } catch (e: NeedsAllFilesAccess) {
+                // Accès retiré : on ne montre pas un dossier qui se verrait vide ; l'écran demande l'autorisation.
+                _screen.value = ScreenState.NeedsAccess
             } catch (e: Exception) {
                 val message = e.message ?: e.toString()
                 if (_screen.value is ScreenState.Ready) _reloadError.value = message
                 else _screen.value = ScreenState.Failed(message)
             }
+        }
+    }
+
+    /**
+     * Passe l'installation existante au dossier visible (copie vérifiée, original intact), APRÈS la grille et hors du fil principal.
+     * Sans l'autorisation d'accès à tous les fichiers, rien ne bouge et le dialogue la demande ([VisibleMigration.state]).
+     * Rend quand c'est fini ; la grille est relue depuis le nouveau dossier.
+     */
+    suspend fun migrateToVisibleIfNeeded() {
+        val app = getApplication<Application>()
+        if (!VisibleMigration.pending(app)) return
+        if (!WorkspaceLocation.hasAllFilesAccess(app)) {
+            VisibleMigration.run(app)
+            return
+        }
+        val error = switchStorage { VisibleMigration.run(app) }
+        // Une écriture en cours : la migration reprendra au prochain retour dans l'app, sans bruit.
+        if (error != null && !error.startsWith("Une écriture est en cours") && !error.startsWith("Un changement de stockage")) _notices.tryEmit(error)
+        else if (error == null) {
+            val done = VisibleMigration.state.value as? VisibleMigration.State.Done
+            if (done != null) _notices.tryEmit("Notes copiées dans le dossier « Neo Calendar » du téléphone. Les anciennes sont conservées.")
         }
     }
 

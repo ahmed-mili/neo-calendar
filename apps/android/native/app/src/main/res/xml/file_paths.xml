@@ -3,4 +3,6 @@
     <cache-path name="updates" path="updates/" />
     <!-- Les pièces jointes du stockage privé, ouvertes dans une autre appli par un URI temporaire. -->
     <files-path name="notes" path="Neo Calendar/" />
+    <!-- Et celles du dossier visible (/storage/emulated/0/Neo Calendar). -->
+    <external-path name="notes_visible" path="Neo Calendar/" />
 </paths>

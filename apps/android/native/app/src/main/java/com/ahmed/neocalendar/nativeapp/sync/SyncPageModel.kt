@@ -62,11 +62,11 @@ class SyncPageModel(context: Context) {
     private fun api(): SyncthingApi = controller.engine.api
         ?: throw IllegalStateException("Le moteur de synchronisation démarre : réessayez dans un instant.")
 
-    private fun setup() = SyncSetup(api(), WorkspaceLocation.privateRoot(app).absolutePath)
+    private fun setup() = SyncSetup(api(), WorkspaceLocation.integratedRoot(app).absolutePath)
 
     /** Relit tout. Sans moteur qui répond, la page garde ce qu'elle montrait. */
     suspend fun refresh() = withContext(Dispatchers.IO) {
-        val conflicts = runCatching { conflictFiles(FileWorkspaceStorage(WorkspaceLocation.privateRoot(app))).size }.getOrDefault(0)
+        val conflicts = runCatching { conflictFiles(FileWorkspaceStorage(WorkspaceLocation.integratedRoot(app))).size }.getOrDefault(0)
         val api = controller.engine.api
         if (api == null) {
             _ui.value = _ui.value.copy(conflicts = conflicts)
@@ -146,12 +146,12 @@ class SyncPageModel(context: Context) {
 
     /** Nombre de notes du dossier privé : pour dire à l'utilisateur ce qui sera fusionné avant d'adopter un dossier. */
     suspend fun localNoteCount(): Int = withContext(Dispatchers.IO) {
-        runCatching { loadWorkspace(FileWorkspaceStorage(WorkspaceLocation.privateRoot(app))).eventFiles.size }.getOrDefault(0)
+        runCatching { loadWorkspace(FileWorkspaceStorage(WorkspaceLocation.integratedRoot(app))).eventFiles.size }.getOrDefault(0)
     }
 
     /** Le dossier de notes a-t-il son propre fichier de réglages partagés ? (adopter un dossier le mettrait de côté.) */
     suspend fun hasLocalPreferences(): Boolean = withContext(Dispatchers.IO) {
-        runCatching { com.ahmed.neocalendar.core.workspace.hasLocalPreferences(WorkspaceLocation.privateRoot(app)) }.getOrDefault(false)
+        runCatching { com.ahmed.neocalendar.core.workspace.hasLocalPreferences(WorkspaceLocation.integratedRoot(app)) }.getOrDefault(false)
     }
 
     /**
@@ -159,7 +159,7 @@ class SyncPageModel(context: Context) {
      * qui apporte un autre dossier : le PC fait foi, jamais deux fichiers créés chacun de leur côté qui se disputent.
      */
     private fun setAsidePreferences() {
-        val root = WorkspaceLocation.privateRoot(app)
+        val root = WorkspaceLocation.integratedRoot(app)
         val aside = java.io.File(root.parentFile, "reglages-mis-de-cote")
         val stamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
         val moved = com.ahmed.neocalendar.nativeapp.StorageGate.writing { com.ahmed.neocalendar.core.workspace.setAsideLocalPreferences(root, aside, stamp) }

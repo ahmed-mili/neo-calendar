@@ -178,18 +178,21 @@ fun NativeApp(viewModel: NativeViewModel, updates: NativeUpdates) {
             // La photo se décode PENDANT la lecture du dossier (la couche est composée dès `Loading`, cachée par le rideau) :
             // la clé ne change qu'entre « pas de dossier » et « dossier » (pas à Loading -> Ready), sinon elle repartirait de zéro.
             WallpaperLayer(
-                reloadKey = screen is ScreenState.NeedsFolder || screen is ScreenState.Failed,
+                reloadKey = screen is ScreenState.NeedsFolder || screen is ScreenState.NeedsAccess || screen is ScreenState.Failed,
                 modifier = Modifier.neoContrast(),
                 onSettled = { wallpaperSettled = true },
             )
             when (val s = screen) {
                 ScreenState.NeedsFolder -> WelcomeScreen { pickTree.launch(Unit) }
+                ScreenState.NeedsAccess -> AllFilesAccessScreen { viewModel.reload(force = true) }
                 // Au lancement, le rideau (plus bas) porte le rond ; une relecture ultérieure (nouveau dossier choisi) le montre sur le fond.
                 ScreenState.Loading -> if (revealedOnce) LoadingSpinner()
                 is ScreenState.Failed -> FailedScreen(s.message, onPick = { pickTree.launch(Unit) }) { viewModel.reload(force = true) }
                 is ScreenState.Ready -> MainScreen(viewModel, s.data, updates)
             }
             NoticeHost()
+            // Installation existante : la grille reste utilisable, l'autorisation est demandée en dialogue (« Plus tard » la repousse au prochain lancement).
+            if (screen is ScreenState.Ready) AllFilesAccessDialog()
             if (curtain > 0f) {
                 // Le rideau : l'aplat du splash système, opaque, avec le rond. Il avale les appuis tant qu'il est là.
                 Box(Modifier.fillMaxSize().graphicsLayer { alpha = curtain }.background(SPLASH_BACKGROUND).pointerInput(Unit) {}) {

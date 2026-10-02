@@ -46,10 +46,12 @@ class NativeActivity : ComponentActivity() {
         consumeUpdateRetry(intent)
         // Comme la WebView : on cherche une mise à jour une fois le calendrier à l'écran, pas avant.
         lifecycleScope.launch {
-            viewModel.screen.first { it !is ScreenState.Loading }
+            viewModel.screen.first { it !is ScreenState.Loading && it !is ScreenState.NeedsAccess }
             // Un arrêt en pleine copie a pu laisser un dossier temporaire : nettoyé ici, une fois la grille affichée, jamais au lancement.
             withContext(Dispatchers.IO) { runCatching { com.ahmed.neocalendar.nativeapp.sync.StorageSwitch.cleanLeftovers(applicationContext) } }
             updates.checkOnLaunch()
+            // Une installation d'avant le dossier visible y est copiée (vérifiée, original intact) : après la grille, avant le moteur.
+            viewModel.migrateToVisibleIfNeeded()
             // Le moteur de synchronisation démarre APRÈS la grille, hors du fil principal ; jamais avec un dossier externe.
             if (WorkspaceLocation.mode(applicationContext) == StorageMode.Integrated) {
                 withContext(Dispatchers.Default) {
@@ -133,6 +135,10 @@ class NativeActivity : ComponentActivity() {
         super.onResume()
         viewModel.refreshOldApp()
         viewModel.reload()
+        // Retour de l'écran « Accès à tous les fichiers » : la copie en attente reprend.
+        if (VisibleMigration.state.value is VisibleMigration.State.NeedsAccess && WorkspaceLocation.hasAllFilesAccess(this)) {
+            lifecycleScope.launch { viewModel.migrateToVisibleIfNeeded() }
+        }
         updates.onResume()
     }
 }

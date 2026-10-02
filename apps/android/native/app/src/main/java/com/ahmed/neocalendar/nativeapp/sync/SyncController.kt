@@ -85,7 +85,7 @@ class SyncController private constructor(context: Context) {
         engine.beforeLaunch = { ensureListenPort() }
         engine.listenPort = { settings.value.listenPort }
         engine.onReady = { api ->
-            val setup = SyncSetup(api, WorkspaceLocation.privateRoot(app).absolutePath)
+            val setup = SyncSetup(api, WorkspaceLocation.integratedRoot(app).absolutePath)
             setup.applyOptions(settings.value.listenPort)
             // Notes recopiées après « Vider » : le dossier déjà déclaré repart d'un index vide, et c'est Syncthing qui réécrit
             // .stfolder. Jamais de marqueur recréé à l'aveugle ici : sur un index ancien, il propagerait des suppressions au PC.

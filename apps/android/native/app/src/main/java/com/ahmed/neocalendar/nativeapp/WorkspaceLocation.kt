@@ -2,12 +2,16 @@ package com.ahmed.neocalendar.nativeapp
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
 import androidx.core.content.FileProvider
 import com.ahmed.neocalendar.core.workspace.BinaryWorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.FileWorkspaceStorage
 import com.ahmed.neocalendar.core.workspace.InstallFacts
 import com.ahmed.neocalendar.core.workspace.NoteCacheFile
 import com.ahmed.neocalendar.core.workspace.StorageMode
+import com.ahmed.neocalendar.core.workspace.VISIBLE_FOLDER_NAME
+import com.ahmed.neocalendar.core.workspace.prepareVisibleFolderForEngine
 import com.ahmed.neocalendar.core.workspace.isGenuineNewInstall
 import com.ahmed.neocalendar.core.workspace.initNewWorkspace
 import com.ahmed.neocalendar.core.workspace.resolveStorageMode
@@ -22,7 +26,34 @@ object WorkspaceLocation {
     private const val KEY_TREE = "tree_uri"
     private const val KEY_MODE = "storage_mode"
 
+    private const val KEY_ROOT = "integrated_root"
+    private const val ROOT_VISIBLE = "visible"
+
+    /** L'ancien stockage privé de l'app : n'est plus créé ; reste lu tant que la copie vers le dossier visible n'est pas faite, jamais supprimé. */
     fun privateRoot(context: Context): File = File(context.filesDir, "Neo Calendar")
+
+    /** Le dossier de notes visible dans le gestionnaire de fichiers : `/storage/emulated/0/Neo Calendar`. */
+    fun visibleRoot(): File = File(Environment.getExternalStorageDirectory(), VISIBLE_FOLDER_NAME)
+
+    /** Le dossier visible est-il le dossier de notes ? (Faux pour une installation qui n'a pas encore migré.) */
+    fun isVisible(context: Context): Boolean =
+        mode(context) == StorageMode.Integrated && prefs(context).getString(KEY_ROOT, null) == ROOT_VISIBLE
+
+    /** Le dossier de notes du mode intégré : le dossier visible une fois la copie faite et vérifiée, l'ancien stockage privé avant. */
+    fun integratedRoot(context: Context): File = if (isVisible(context)) visibleRoot() else privateRoot(context)
+
+    /** « Accès à tous les fichiers » (Android 11+), ou l'autorisation d'écrire (avant) : un appel instantané, sans disque. */
+    fun hasAllFilesAccess(context: Context): Boolean =
+        if (Build.VERSION.SDK_INT >= 30) Environment.isExternalStorageManager()
+        else context.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Le dossier visible devient le dossier de notes, en une seule édition atomique (mode intégré + racine). À n'appeler
+     * qu'APRÈS une copie vérifiée. Hors du fil principal (`commit`).
+     */
+    fun adoptVisible(context: Context) {
+        prefs(context).edit().putString(KEY_ROOT, ROOT_VISIBLE).putString(KEY_MODE, StorageMode.Integrated.name).commit()
+    }
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -47,11 +78,19 @@ object WorkspaceLocation {
     fun prepareNewInstall(context: Context) {
         // Les faits ne sont réunis que dans la branche « aucun mode » : rien de plus pour une installation saine.
         if (!isNewInstall(context) || !isGenuineNewInstall(installFacts(context))) return
-        val root = privateRoot(context)
+        // Sans l'accès à tous les fichiers, rien n'est créé : l'écran « Autoriser » s'affiche (`awaitingAccess`).
+        if (!hasAllFilesAccess(context)) return
+        // Un dossier visible qui a déjà des notes (réinstallation) est repris tel quel : initNewWorkspace n'écrase rien.
+        val root = visibleRoot()
         root.mkdirs()
         initNewWorkspace(FileWorkspaceStorage(root))
-        setMode(context, StorageMode.Integrated)
+        prepareVisibleFolderForEngine(root)
+        adoptVisible(context)
     }
+
+    /** Vraie nouvelle installation qui attend l'autorisation d'accès à tous les fichiers pour créer son dossier. */
+    fun awaitingAccess(context: Context): Boolean =
+        isNewInstall(context) && isGenuineNewInstall(installFacts(context)) && !hasAllFilesAccess(context)
 
     private fun installFacts(context: Context): InstallFacts {
         val p = prefs(context)
@@ -86,14 +125,18 @@ object WorkspaceLocation {
 
     /** Le stockage du dossier de notes, selon le mode. Lève une exception au message lisible si le dossier n'est pas utilisable. */
     fun open(context: Context, write: Boolean): BinaryWorkspaceStorage = when (mode(context)) {
-        StorageMode.Integrated -> FileWorkspaceStorage(privateRoot(context))
+        StorageMode.Integrated -> {
+            // Accès retiré : jamais de lecture d'un dossier qui se verrait vide (la grille croirait n'avoir plus de notes).
+            if (isVisible(context) && !hasAllFilesAccess(context)) throw NeedsAllFilesAccess()
+            FileWorkspaceStorage(integratedRoot(context))
+        }
         StorageMode.External -> SafWorkspaceStorage(context, externalTreeUri(context, write))
         null -> throw Exception("Sélectionnez d'abord un dossier de notes.")
     }
 
     /** Le nom du dossier pour les Réglages. */
     fun displayName(context: Context): String = when (mode(context)) {
-        StorageMode.Integrated -> "Stockage privé de l'application"
+        StorageMode.Integrated -> if (isVisible(context)) VISIBLE_FOLDER_NAME else "Stockage privé de l'application"
         StorageMode.External -> {
             val raw = prefs(context).getString(KEY_TREE, "").orEmpty()
             runCatching {
@@ -108,7 +151,7 @@ object WorkspaceLocation {
      * qu'une copie ne sert jamais pour un autre dossier. Chaîne vide : rien n'est choisi (aucune copie).
      */
     fun cacheIdentity(context: Context): String = when (mode(context)) {
-        StorageMode.Integrated -> "private:" + privateRoot(context).absolutePath
+        StorageMode.Integrated -> "private:" + integratedRoot(context).absolutePath
         StorageMode.External -> "saf:" + prefs(context).getString(KEY_TREE, "").orEmpty()
         null -> ""
     }
@@ -123,11 +166,15 @@ object WorkspaceLocation {
     /** Une pièce jointe à ouvrir dans une autre appli : un URI SAF, ou un URI de FileProvider pour le stockage privé. Null si elle n'existe pas. */
     fun attachmentUri(context: Context, relativePath: String): Uri? = when (mode(context)) {
         StorageMode.Integrated -> {
-            val file = File(privateRoot(context), relativePath)
-            val inside = file.canonicalPath.startsWith(privateRoot(context).canonicalPath + File.separator)
+            val root = integratedRoot(context)
+            val file = File(root, relativePath)
+            val inside = file.canonicalPath.startsWith(root.canonicalPath + File.separator)
             if (inside && file.isFile) FileProvider.getUriForFile(context, "${context.packageName}.updates", file) else null
         }
         StorageMode.External -> (open(context, write = false) as SafWorkspaceStorage).uriOf(relativePath)
         null -> null
     }
 }
+
+/** Le dossier visible est le dossier de notes mais l'accès à tous les fichiers a été retiré : rien n'est lu ni écrit avant qu'il soit rendu. */
+class NeedsAllFilesAccess : Exception("L'accès à tous les fichiers est nécessaire pour lire le dossier « Neo Calendar ». Autorisez-le pour retrouver vos notes.")
