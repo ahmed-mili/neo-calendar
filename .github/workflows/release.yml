@@ -276,6 +276,12 @@ jobs:
                   npm install --no-audit --no-fund
                   npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
 
+            # Le moteur de synchronisation intégré : le syncthing.exe officiel, vérifié (SHA-256 de l'archive lu dans
+            # sha256sum.txt.asc, signé par la clé de release épinglée, puis SHA-256 de l'exécutable). Tauri l'embarque
+            # comme sidecar (`bundle.externalBin`) : sans lui le build échoue, et un écart de vérification l'arrête.
+            - name: Poser le moteur Syncthing vérifié
+              run: node scripts/fetch-syncthing-windows.mjs
+
             - name: Préparer la configuration updater
               run: node scripts/configure-tauri-updater.mjs
             # `package` compile le front, puis Tauri, puis rend à l'installateur

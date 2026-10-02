@@ -6,6 +6,8 @@ on:
             - "apps/windows/src-tauri/icons/**"
             - "apps/windows/src-tauri/tauri.conf.json"
             - "scripts/windows-icon-format.test.mjs"
+            - "scripts/fetch-syncthing-windows.mjs"
+            - "apps/android/native/syncthing/version.env"
             - ".github/workflows/windows-tauri-package-validation.yml"
     workflow_dispatch:
 
@@ -43,6 +45,9 @@ jobs:
               run: |
                   npm install --no-audit --no-fund
                   npm --prefix apps/windows install --ignore-scripts --no-audit --no-fund
+
+            - name: Poser le moteur Syncthing vérifié
+              run: node scripts/fetch-syncthing-windows.mjs
 
             - name: Préparer la configuration updater
               run: node scripts/configure-tauri-updater.mjs

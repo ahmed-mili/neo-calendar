@@ -114,3 +114,6 @@ docs/PROCHAINE_VERSION.md
 # Le moteur de synchronisation : les .so se compilent (apps/android/native/syncthing/build-syncthing.sh) et se mettent en cache en CI.
 apps/android/native/app/src/main/jniLibs/
 apps/android/native/syncthing/.work/
+
+# Le syncthing.exe du moteur intégré (sidecar Tauri) : posé et vérifié par scripts/fetch-syncthing-windows.mjs, jamais commité.
+apps/windows/src-tauri/binaries/

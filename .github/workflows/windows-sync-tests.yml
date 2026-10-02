@@ -1,0 +1,53 @@
+name: Windows sync tests
+
+# Le moteur de synchronisation intégré de l'app PC (Rust) : les tests unitaires ET ceux qui lancent de vrais
+# Syncthing (reprise depuis un Syncthing installé, appairage par QR code, synchro dans les deux sens).
+# Le binaire est le syncthing.exe officiel de la version épinglée, vérifié par scripts/fetch-syncthing-windows.mjs.
+on:
+    pull_request:
+        paths:
+            - "apps/windows/src-tauri/**"
+            - "scripts/fetch-syncthing-windows.mjs"
+            - "apps/android/native/syncthing/version.env"
+            - ".github/workflows/windows-sync-tests.yml"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    rust:
+        name: Moteur de synchronisation (Rust)
+        runs-on: windows-latest
+        env:
+            # Les tests à vrai moteur refusent de se sauter eux-mêmes quand CI est posé et que le binaire manque.
+            CI: "true"
+        steps:
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+              with:
+                  node-version: "20"
+
+            - name: Réutiliser le cache Rust
+              uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+              with:
+                  path: |
+                      ~/.cargo/registry
+                      ~/.cargo/git
+                      apps/windows/src-tauri/target
+                  key: cargo-${{ runner.os }}-sync-${{ github.run_id }}
+                  restore-keys: cargo-${{ runner.os }}-
+
+            - name: Poser le moteur Syncthing vérifié
+              id: engine
+              shell: bash
+              run: echo "binary=$(node scripts/fetch-syncthing-windows.mjs)" >> "$GITHUB_OUTPUT"
+
+            - name: Tester le moteur de synchronisation
+              working-directory: apps/windows/src-tauri
+              env:
+                  SYNCTHING_BINARY: ${{ steps.engine.outputs.binary }}
+              run: cargo test --lib

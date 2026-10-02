@@ -53,6 +53,9 @@
                 "startMenuFolder": "Neo Calendar"
             }
         },
+        "externalBin": [
+            "binaries/syncthing"
+        ],
         "createUpdaterArtifacts": true
     },
     "plugins": {

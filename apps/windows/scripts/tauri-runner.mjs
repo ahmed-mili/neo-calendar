@@ -15,6 +15,7 @@ import {
 } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { fetchSyncthingWindows } from "../../../scripts/fetch-syncthing-windows.mjs";
 import { renameInstaller } from "./rename-installer.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -47,6 +48,17 @@ if (!existsSync(tauriCli)) {
         `Tauri CLI introuvable : ${tauriCli}\n` +
         `Exécute d'abord : npm install`
     );
+    process.exit(1);
+}
+
+/*
+ * Le moteur de synchronisation (sidecar Tauri, `bundle.externalBin`) doit exister avant tout
+ * `tauri dev` ou `tauri build`. Déjà posé et conforme à l'épinglage : instantané, sans réseau.
+ */
+try {
+    await fetchSyncthingWindows();
+} catch (error) {
+    console.error(`\nMoteur Syncthing indisponible : ${error.message}`);
     process.exit(1);
 }
 
