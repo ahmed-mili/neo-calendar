@@ -45,28 +45,14 @@ const declarationsFor = (selector: string): Record<string, string> => {
 };
 
 describe("hidden calendar identity", () => {
-    it("stays invisible at rest and reappears on hover or keyboard focus", () => {
-        expect(
-            declarationsFor(".nc-calendar-hidden .nc-calendar-visibility")
-                .opacity
-        ).toBe("0");
-        expect(
-            declarationsFor(".nc-calendar-hidden .nc-calendar-name").opacity
-        ).toBe("0");
-        expect(
-            declarationsFor(".nc-calendar-hidden .nc-calendar-default-label")
-                .opacity
-        ).toBe("0");
-
-        for (const selector of [
-            ".nc-calendar-hidden:hover",
-            ".nc-calendar-hidden:has(:focus-visible)",
+    it("stays visible but paler in the list", () => {
+        for (const part of [
+            ".nc-calendar-visibility",
+            ".nc-calendar-name",
+            ".nc-calendar-default-label",
         ]) {
             expect(
-                declarationsFor(`${selector} .nc-calendar-visibility`).opacity
-            ).toBe("0.45");
-            expect(
-                declarationsFor(`${selector} .nc-calendar-name`).opacity
+                declarationsFor(`.nc-calendar-hidden ${part}`).opacity
             ).toBe("0.45");
         }
         expect(css).not.toContain(".nc-calendar-hidden:focus-within");
@@ -280,7 +266,7 @@ describe("la barre du haut de la colonne", () => {
         host.remove();
     };
 
-    it("moves hidden calendars into the header menu and restores them", () => {
+    it("keeps hidden calendars in the list, paler, and restores them with the eye", () => {
         const sources = [
             {
                 id: "local",
@@ -327,47 +313,31 @@ describe("la barre du haut de la colonne", () => {
             act(() => {
                 ReactDOM.render(React.createElement(Harness), host);
             });
-            expect(host.querySelectorAll(".nc-calendar-item")).toHaveLength(0);
-            act(() => {
-                (
-                    host.querySelector(
-                        `button[aria-label="${t("More options")}"]`
-                    ) as HTMLButtonElement
-                ).click();
-            });
-            const restoreButtons = Array.from(
-                document.querySelectorAll<HTMLButtonElement>(
-                    ".nc-cal-menu-item"
-                )
-            );
-            for (const source of sources) {
-                expect(
-                    restoreButtons.some(
-                        (button) =>
-                            button.textContent ===
-                            `${t("Show")} : ${source.name}`
-                    )
-                ).toBe(true);
+            const items = () =>
+                Array.from(host.querySelectorAll<HTMLElement>(".nc-calendar-item"));
+            expect(items()).toHaveLength(3);
+            for (const item of items()) {
+                expect(item.classList.contains("nc-calendar-hidden")).toBe(true);
             }
-            act(() => {
-                restoreButtons
-                    .find((button) =>
-                        button.textContent?.includes("Personnel")
-                    )!
-                    .click();
-            });
-            expect(host.querySelectorAll(".nc-calendar-item")).toHaveLength(1);
-            expect(
-                host.querySelector(".nc-calendar-item")!.textContent
-            ).toContain("Personnel");
+            const personnel = items().find((item) =>
+                item.textContent?.includes("Personnel")
+            )!;
             act(() => {
                 (
-                    host.querySelector(
-                        `.nc-calendar-item button[aria-label="${t("Hide")}"]`
+                    personnel.querySelector(
+                        `button[aria-label="${t("Show")}"]`
                     ) as HTMLButtonElement
                 ).click();
             });
-            expect(host.querySelectorAll(".nc-calendar-item")).toHaveLength(0);
+            const after = items();
+            expect(after).toHaveLength(3);
+            const restored = after.find((item) =>
+                item.textContent?.includes("Personnel")
+            )!;
+            expect(restored.classList.contains("nc-calendar-hidden")).toBe(false);
+            expect(
+                after.filter((item) => item.classList.contains("nc-calendar-hidden"))
+            ).toHaveLength(2);
         } finally {
             unmount(host);
         }

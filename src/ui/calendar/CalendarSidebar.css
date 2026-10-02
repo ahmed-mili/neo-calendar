@@ -366,16 +366,10 @@
    is hovered. The original name and swatch colors stay untouched; reduced
    opacity alone conveys the disabled state. Keyboard focus reveals the same
    state so the invisible swatch remains usable without a pointer. */
+/* Un calendrier masqué reste visible dans la liste, plus pâle (demande d'Ahmed). */
 .nc-calendar-hidden .nc-calendar-visibility,
 .nc-calendar-hidden .nc-calendar-name,
 .nc-calendar-hidden .nc-calendar-default-label {
-    opacity: 0;
-}
-
-.nc-calendar-hidden:hover .nc-calendar-visibility,
-.nc-calendar-hidden:hover .nc-calendar-name,
-.nc-calendar-hidden:has(:focus-visible) .nc-calendar-visibility,
-.nc-calendar-hidden:has(:focus-visible) .nc-calendar-name {
     opacity: 0.45;
 }
 

@@ -172,24 +172,14 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
         if (rect) setColorPicker({ id, color, rect });
     };
 
-    const visibleSources = calendarSources.filter(
-        (source) => !hiddenCalendars.has(source.id)
-    );
-    const hiddenSources = calendarSources.filter((source) =>
-        hiddenCalendars.has(source.id)
-    );
+    // Un calendrier masqué reste à sa place dans la liste, plus pâle (`nc-calendar-hidden`) : l'œil barré le réaffiche.
+    const visibleSources = calendarSources;
 
-    // Reorder visible rows, retaining hidden calendars in their stored slots.
     const reorder = useSidebarReorder(visibleSources.length, (from, to) => {
         const ids = visibleSources.map((source) => source.id);
         const [moved] = ids.splice(from, 1);
         ids.splice(to, 0, moved);
-        let visibleIndex = 0;
-        onReorderCalendars(
-            calendarSources.map((source) =>
-                hiddenCalendars.has(source.id) ? source.id : ids[visibleIndex++]
-            )
-        );
+        onReorderCalendars(ids);
     });
     const startRename = (source: CalendarSource) => {
         setEditingId(source.id);
@@ -930,12 +920,6 @@ export default function CalendarSidebar(props: CalendarSidebarProps) {
                             icon: <FolderIcon />,
                             onClick: onOpenRootFolder,
                         },
-                        ...hiddenSources.map((source) => ({
-                            key: `show-${source.id}`,
-                            label: `${t("Show")} : ${source.name}`,
-                            swatchColor: source.color,
-                            onClick: () => onToggleCalendar(source.id),
-                        })),
                     ]}
                     anchorRect={headerMenuAnchor}
                     onClose={() => setHeaderMenuAnchor(null)}
