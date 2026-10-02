@@ -24,6 +24,7 @@ import com.ahmed.neocalendar.core.appearance.parseAppearancePreferences
 import com.ahmed.neocalendar.core.appearance.parseWallpaperEffects
 import com.ahmed.neocalendar.core.appearance.recoveredWallpaperId
 import com.ahmed.neocalendar.core.appearance.resolveThemeColors
+import com.ahmed.neocalendar.core.appearance.storedThemeIdOfDesktopPreferences
 import com.ahmed.neocalendar.core.appearance.themeIdOfDesktopPreferences
 import com.ahmed.neocalendar.core.appearance.toJsonText
 import com.ahmed.neocalendar.core.appearance.withCustomization
@@ -269,7 +270,7 @@ object NeoAppearance {
         if (listOf("a", "e", "d", "l").all { stored.text(it) == null }) return
         stored.text("a")?.let { preferences = parseAppearancePreferences(it) }
         stored.text("e")?.let { effects = fromValues(parseWallpaperEffects(it)) }
-        stored.text("d")?.let { themeId = themeIdOfDesktopPreferences(it); savedThemeId = themeId }
+        stored.text("d")?.let { themeId = themeIdOfDesktopPreferences(it); savedThemeId = storedThemeIdOfDesktopPreferences(it) ?: themeId }
         stored.text("l")?.let { AppLanguage.set(it) }
         refreshTokens()
         save(context)

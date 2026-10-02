@@ -167,7 +167,7 @@ fun AppearancePreferences.withCustomization(themeId: String, customization: Them
 
 /**
  * La personnalisation sans ce qui vaut déjà le défaut du thème : « Enregistrer » sans rien changer ne laisse pas de
- * personnalisation (l'ancienne range tous les champs ; lue, c'est la même chose). Le fond choisi est toujours gardé.
+ * personnalisation (l'ancienne range tous les champs ; lue, c'est la même chose). Le fond par thème n'est plus choisi ici (le réglage global le remplace) : il passe tel quel, et `withCustomization` garde celui qui existe.
  */
 fun ThemeCustomization.withoutThemeDefaults(theme: ThemeDefinition): ThemeCustomization = copy(
     accent = accent?.takeIf { it != theme.accent },
@@ -245,6 +245,10 @@ fun themeIdOfDesktopPreferences(text: String?): String {
     val id = try { (Json.parseToJsonElement(text ?: "null") as? JsonObject)?.get("themeId").string() } catch (_: Exception) { null }
     return getTheme(id ?: DEFAULT_THEME_ID).id
 }
+
+/** Le `themeId` tel qu'il est écrit, même d'un thème retiré ; nul si absent ou illisible (sert au repli du fond). */
+fun storedThemeIdOfDesktopPreferences(text: String?): String? =
+    try { (Json.parseToJsonElement(text ?: "null") as? JsonObject)?.get("themeId").string()?.takeIf { it.isNotBlank() } } catch (_: Exception) { null }
 
 /**
  * Le texte de préférences de bureau avec `themeId` changé, tout le reste gardé tel quel (dossier, coffres...).

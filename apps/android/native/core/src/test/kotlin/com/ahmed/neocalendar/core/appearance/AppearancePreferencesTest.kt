@@ -188,6 +188,12 @@ class AppearancePreferencesTest {
         }
     }
 
+    @Test fun `l'identifiant brut du theme enregistre est lisible, meme retire`() {
+        assertEquals("tokyo-night", storedThemeIdOfDesktopPreferences("""{"themeId":"tokyo-night"}"""))
+        assertNull(storedThemeIdOfDesktopPreferences("""{"themeId":""}"""))
+        assertNull(storedThemeIdOfDesktopPreferences("pas du json"))
+    }
+
     @Test fun `un theme retire garde son fond d'avant en passant sur Catppuccin`() {
         val p = parseAppearancePreferences("""{"themeOverrides":{"tokyo-night":{"wallpaperId":"golden-summit-portrait"}}}""")
         assertEquals(
