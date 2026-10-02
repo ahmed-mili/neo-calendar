@@ -5,7 +5,7 @@ import ThemeColorPicker from "./ThemeColorPicker";
 import ThemeWallpaperPicker from "./ThemeWallpaperPicker";
 import WallpaperEffectsControls from "./WallpaperEffectsControls";
 import ConfirmDialog from "./ConfirmDialog";
-import { isWallpaperId, type WallpaperId } from "./themes/wallpapers";
+import type { WallpaperId } from "./themes/wallpapers";
 import { ThemeId } from "./themes/types";
 import {
     getLanguage,
@@ -38,8 +38,10 @@ import {
     getEffectiveThemeAppearance,
     loadAppearancePreferences,
     resetThemeCustomization,
+    resolveWallpaperId,
     saveAppearancePreferences,
     setThemeCustomization,
+    setWallpaperId,
 } from "./themes/appearancePreferences";
 import { folderName, readableFolderPath } from "./platform/documentPath";
 import {
@@ -239,7 +241,7 @@ const WEEKDAYS = [
 function createThemeDraft(
     themeId: ThemeId,
     preferences: AppearancePreferences
-): Required<ThemeCustomization> {
+): Required<Omit<ThemeCustomization, "wallpaperId">> {
     const effective = getEffectiveThemeAppearance(
         getTheme(themeId),
         preferences
@@ -252,7 +254,6 @@ function createThemeDraft(
         codeFont: effective.codeFont,
         translucentSidebar: effective.translucentSidebar,
         contrast: effective.contrast,
-        wallpaperId: effective.wallpaperId,
     };
 }
 
@@ -316,7 +317,9 @@ export default function DesktopSettings({
         loadAppearancePreferences()
     );
     const [themeMessage, setThemeMessage] = useState<string | null>(null);
-    const [themeDraft, setThemeDraft] = useState<Required<ThemeCustomization>>(
+    const [themeDraft, setThemeDraft] = useState<
+        Required<Omit<ThemeCustomization, "wallpaperId">>
+    >(
         () => createThemeDraft(themeId, loadAppearancePreferences())
     );
     const [themeDirty, setThemeDirty] = useState(false);
@@ -500,9 +503,7 @@ export default function DesktopSettings({
      * another, so there is nothing to confirm.
      */
     const applyWallpaper = (wallpaperId: WallpaperId) => {
-        const draft = { ...themeDraft, wallpaperId };
-        setThemeDraft(draft);
-        setAppearance(setThemeCustomization(appearance, themeId, draft));
+        setAppearance(setWallpaperId(appearance, wallpaperId));
         setThemeMessage(null);
     };
 
@@ -546,7 +547,6 @@ export default function DesktopSettings({
                     opaqueWindows: !themeDraft.translucentSidebar,
                     semanticColors: currentTheme.semanticColors,
                     surface: themeDraft.surface,
-                    wallpaperId: themeDraft.wallpaperId,
                 },
                 variant: currentTheme.colorScheme,
             });
@@ -575,7 +575,6 @@ export default function DesktopSettings({
                     ink?: unknown;
                     opaqueWindows?: unknown;
                     surface?: unknown;
-                    wallpaperId?: unknown;
                 };
             };
             const importedTheme = THEMES.find(
@@ -603,9 +602,6 @@ export default function DesktopSettings({
                 nextDraft.codeFont = imported.fonts.code;
             if (typeof imported.opaqueWindows === "boolean") {
                 nextDraft.translucentSidebar = !imported.opaqueWindows;
-            }
-            if (isWallpaperId(imported.wallpaperId)) {
-                nextDraft.wallpaperId = imported.wallpaperId;
             }
             setThemeDraft(nextDraft);
             setThemeDirty(true);
@@ -1407,6 +1403,7 @@ export default function DesktopSettings({
      * curseur, une pile de polices) prend la seconde ligne en entier plutôt que
      * de se serrer dans la colonne de droite.
      */
+    const currentWallpaperId = resolveWallpaperId(appearance, currentTheme.id);
     const renderAppearance = () => (
         <div className="nc-set-groups nc-settings__appearance">
             <SettingsGroup title={t("Theme")}>
@@ -1487,7 +1484,7 @@ export default function DesktopSettings({
                 note={t("The preview and the app update instantly.")}
             >
                 <ThemeWallpaperPicker
-                    value={themeDraft.wallpaperId}
+                    value={currentWallpaperId}
                     accent={themeDraft.accent}
                     surface={themeDraft.surface}
                     onChange={applyWallpaper}

@@ -9,9 +9,11 @@ import {
     AppearancePreferences,
     getEffectiveThemeAppearance,
     loadAppearancePreferences,
+    pinWallpaperId,
     resolveAppearanceMode,
 } from "./themes/appearancePreferences";
 import { getTheme, THEMES } from "./themes/registry";
+import type { ThemeId } from "./themes/types";
 import { getWallpaper } from "./themes/wallpapers";
 import { useWallpaperReady } from "./themes/useWallpaperReady";
 import WallpaperRenderLayer from "./WallpaperRenderLayer";
@@ -78,6 +80,15 @@ export default function App() {
         readStringProperty(preferences, "themeId") ??
         readStringProperty(preferences, "theme");
     const theme = getTheme(savedThemeId);
+    // Changer de thème ne touche pas au fond : on fige le fond en vigueur
+    // avant la bascule, sinon le repli relirait celui du nouveau thème.
+    const changeTheme = useCallback(
+        async (next: ThemeId) => {
+            pinWallpaperId(loadAppearancePreferences(), savedThemeId ?? theme.id);
+            await setTheme(next);
+        },
+        [setTheme, savedThemeId, theme.id]
+    );
     const dataFolder = readStringProperty(preferences, "dataFolder");
     const [appearance, setAppearance] = useState<AppearancePreferences>(() =>
         loadAppearancePreferences()
@@ -97,8 +108,13 @@ export default function App() {
         [appearance.mode]
     );
     const effectiveTheme = useMemo(
-        () => getEffectiveThemeAppearance(theme, appearance),
-        [appearance, theme]
+        () =>
+            getEffectiveThemeAppearance(
+                theme,
+                appearance,
+                savedThemeId ?? theme.id
+            ),
+        [appearance, theme, savedThemeId]
     );
 
     // Sur Android la photo choisie vit dans le dossier de données : tant qu'elle
@@ -318,7 +334,7 @@ export default function App() {
                         isChoosingVaultFolder={isChoosingVaultFolder}
                         isScanningVaults={isScanningVaults}
                         themeId={theme.id}
-                        onThemeChange={setTheme}
+                        onThemeChange={changeTheme}
                     />
                 </DesktopErrorBoundary>
             </main>

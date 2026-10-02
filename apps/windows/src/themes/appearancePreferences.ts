@@ -1,4 +1,5 @@
-import type { ThemeDefinition, ThemeId } from "./types";
+import { DEFAULT_THEME_ID } from "./registry";
+import { THEME_IDS, type ThemeDefinition, type ThemeId } from "./types";
 import {
     DEFAULT_WALLPAPER_ID,
     getRuntimeDefaultWallpaperId,
@@ -24,6 +25,8 @@ export interface AppearancePreferences {
     translucentSidebar: boolean;
     contrast: number;
     themeOverrides: Partial<Record<ThemeId, ThemeCustomization>>;
+    /** Fond d'écran commun à tous les thèmes. Absent : le fond du thème actuel, puis le défaut. */
+    wallpaperId?: WallpaperId;
 }
 
 export interface EffectiveThemeAppearance {
@@ -134,6 +137,9 @@ export function normalizeAppearancePreferences(
                 : DEFAULT_APPEARANCE.translucentSidebar,
         contrast: clampContrast(input.contrast, DEFAULT_APPEARANCE.contrast),
         themeOverrides,
+        ...(isWallpaperId(input.wallpaperId)
+            ? { wallpaperId: input.wallpaperId }
+            : {}),
     };
 }
 
@@ -173,9 +179,57 @@ export function resolveAppearanceMode(mode: AppearanceMode): "light" | "dark" {
         : "light";
 }
 
+/**
+ * Le fond en vigueur : le réglage global s'il existe, sinon le fond que le
+ * thème enregistré avait déjà (lecture de repli pour les préférences d'avant le
+ * fond global, même si ce thème a été retiré depuis), sinon, pour un thème
+ * retiré, celui de Catppuccin vers lequel on retombe, sinon le défaut. Les fonds
+ * des autres thèmes sont ignorés.
+ */
+export function resolveWallpaperId(
+    preferences: AppearancePreferences,
+    themeId: string
+): WallpaperId {
+    const retired = !(THEME_IDS as readonly string[]).includes(themeId);
+    return (
+        preferences.wallpaperId ??
+        preferences.themeOverrides[themeId as ThemeId]?.wallpaperId ??
+        (retired
+            ? preferences.themeOverrides[DEFAULT_THEME_ID]?.wallpaperId
+            : undefined) ??
+        getRuntimeDefaultWallpaperId()
+    );
+}
+
+export function setWallpaperId(
+    preferences: AppearancePreferences,
+    wallpaperId: WallpaperId
+): AppearancePreferences {
+    return saveAppearancePreferences({ ...preferences, wallpaperId });
+}
+
+/**
+ * Écrit le fond en vigueur comme réglage global quand il n'y en a pas encore.
+ * À appeler AVANT de changer de thème : sans cela le repli relirait le fond du
+ * NOUVEAU thème et l'image sauterait, alors que changer de thème ne doit plus
+ * toucher au fond.
+ */
+export function pinWallpaperId(
+    preferences: AppearancePreferences,
+    themeId: string
+): AppearancePreferences {
+    if (preferences.wallpaperId !== undefined) return preferences;
+    return setWallpaperId(preferences, resolveWallpaperId(preferences, themeId));
+}
+
+/**
+ * `savedThemeId` : l'identifiant enregistré tel quel, qui peut être celui d'un
+ * thème retiré (alors `theme` est Catppuccin) ; il sert au repli du fond.
+ */
 export function getEffectiveThemeAppearance(
     theme: ThemeDefinition,
-    preferences: AppearancePreferences
+    preferences: AppearancePreferences,
+    savedThemeId: string = theme.id
 ): EffectiveThemeAppearance {
     const override = preferences.themeOverrides[theme.id] ?? {};
     return {
@@ -186,7 +240,7 @@ export function getEffectiveThemeAppearance(
         codeFont: override.codeFont ?? theme.codeFont ?? DEFAULT_CODE_FONT,
         translucentSidebar: override.translucentSidebar ?? !theme.opaqueWindows,
         contrast: override.contrast ?? theme.contrast,
-        wallpaperId: override.wallpaperId ?? getRuntimeDefaultWallpaperId(),
+        wallpaperId: resolveWallpaperId(preferences, savedThemeId),
     };
 }
 
@@ -195,12 +249,14 @@ export function setThemeCustomization(
     themeId: ThemeId,
     customization: ThemeCustomization
 ): AppearancePreferences {
+    const normalized = normalizeThemeCustomization(customization);
+    // Le fond par thème n'est plus choisi ici, mais tant que le réglage global
+    // manque il sert de repli : l'effacer ferait sauter l'image.
+    const kept = preferences.themeOverrides[themeId]?.wallpaperId;
+    if (kept && !normalized.wallpaperId) normalized.wallpaperId = kept;
     return saveAppearancePreferences({
         ...preferences,
-        themeOverrides: {
-            ...preferences.themeOverrides,
-            [themeId]: normalizeThemeCustomization(customization),
-        },
+        themeOverrides: { ...preferences.themeOverrides, [themeId]: normalized },
     });
 }
 
@@ -209,6 +265,13 @@ export function resetThemeCustomization(
     themeId: ThemeId
 ): AppearancePreferences {
     const themeOverrides = { ...preferences.themeOverrides };
+    // Réinitialiser les couleurs ne touche pas au fond : on le fige.
+    const pinned =
+        preferences.wallpaperId ?? themeOverrides[themeId]?.wallpaperId;
     delete themeOverrides[themeId];
-    return saveAppearancePreferences({ ...preferences, themeOverrides });
+    return saveAppearancePreferences({
+        ...preferences,
+        themeOverrides,
+        ...(pinned ? { wallpaperId: pinned } : {}),
+    });
 }
