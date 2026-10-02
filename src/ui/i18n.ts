@@ -576,8 +576,7 @@ const FR: Record<string, string> = {
     Syncing: "Synchronisation en cours",
     file: "fichier",
     files: "fichiers",
-    "No device yet: add your phone":
-        "Aucun appareil : ajoutez votre téléphone",
+    "No device yet: add your phone": "Aucun appareil : ajoutez votre téléphone",
     "Offline: no device connected": "Hors ligne : aucun appareil connecté",
     "Up to date": "À jour",
     Connected: "Connecté",

@@ -148,7 +148,9 @@ describe("Windows settings", () => {
         expect(wallpaper).toBeGreaterThan(theme);
         expect(html).toContain("Fond d&#x27;écran");
         // La barre latérale translucide appartient au thème, les curseurs du fond au fond d'écran.
-        expect(html.indexOf("Barre latérale translucide")).toBeLessThan(wallpaper);
+        expect(html.indexOf("Barre latérale translucide")).toBeLessThan(
+            wallpaper
+        );
         expect(html.indexOf("Luminosité du fond")).toBeGreaterThan(wallpaper);
     });
 

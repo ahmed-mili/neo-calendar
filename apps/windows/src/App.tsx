@@ -99,7 +99,10 @@ export default function App() {
     // avant la bascule, sinon le repli relirait celui du nouveau thème.
     const changeTheme = useCallback(
         async (next: ThemeId) => {
-            pinWallpaperId(loadAppearancePreferences(), savedThemeId ?? theme.id);
+            pinWallpaperId(
+                loadAppearancePreferences(),
+                savedThemeId ?? theme.id
+            );
             await setTheme(next);
         },
         [setTheme, savedThemeId, theme.id]
@@ -150,7 +153,12 @@ export default function App() {
      * lui, en ligne.
      */
     const panelStyle = useMemo(
-        () => panelCssProperties(colors, appearanceMode, theme) as React.CSSProperties,
+        () =>
+            panelCssProperties(
+                colors,
+                appearanceMode,
+                theme
+            ) as React.CSSProperties,
         [colors, appearanceMode, theme]
     );
 
@@ -220,13 +228,8 @@ export default function App() {
     useEffect(() => {
         const roots = [document.documentElement, document.body];
         const themeClasses = THEMES.map((item) => item.className);
-        const {
-            uiFont,
-            codeFont,
-            contrast,
-            translucentSidebar,
-            wallpaperId,
-        } = effectiveTheme;
+        const { uiFont, codeFont, contrast, translucentSidebar, wallpaperId } =
+            effectiveTheme;
         const wallpaper = getWallpaper(wallpaperId);
 
         const properties: Record<string, string> = {

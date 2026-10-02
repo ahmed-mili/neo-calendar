@@ -1394,7 +1394,10 @@ export default function DesktopSettings({
                     </SettingsGroup>
 
                     <SettingsGroup title={t("Possible methods")}>
-                        <SettingsRow label="Syncthing" value={t("Recommended")} />
+                        <SettingsRow
+                            label="Syncthing"
+                            value={t("Recommended")}
+                        />
                         <SettingsRow
                             label={t("Online storage")}
                             value={t("OneDrive, Google Drive, Dropbox")}
