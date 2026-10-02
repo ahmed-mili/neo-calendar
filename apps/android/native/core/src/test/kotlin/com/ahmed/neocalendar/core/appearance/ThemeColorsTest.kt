@@ -21,6 +21,16 @@ class ThemeColorsTest {
         assertEquals(0xFFA3C5FBL, c.accentStrong)
     }
 
+    @Test fun `le texte discret de Catppuccin sombre se lit sur le survol et correspond aux constantes de NeoTokens`() {
+        val c = resolveThemeColors(mocha, null, AppearanceMode.Dark, systemDark = false)
+        // `CatppuccinMocha` (NeoTokens.kt) reprend ces valeurs : textSecondary, textFaint, settingsValue, settingsNote.
+        assertEquals(0xFFA1A8C9L, c.muted)
+        assertEquals(0xFF80859DL, c.faint)
+        assertEquals(0xFF9BA2C1L, settingsValueColor(c))
+        assertEquals(0xFF878DA7L, settingsNoteColor(c))
+        assertTrue(contrastRatio(c.faint, c.hover) >= 3.0)
+    }
+
     @Test fun `le mode systeme suit l'appareil`() {
         assertFalse(resolveThemeColors(mocha, null, AppearanceMode.System, systemDark = true).light)
         assertTrue(resolveThemeColors(mocha, null, AppearanceMode.System, systemDark = false).light)
@@ -28,12 +38,44 @@ class ThemeColorsTest {
         assertFalse(resolveThemeColors(mocha, null, AppearanceMode.Dark, systemDark = false).light)
     }
 
-    @Test fun `le clair est la coque neutre avec l'accent du theme`() {
-        val c = resolveThemeColors(getTheme("ayu"), null, AppearanceMode.Light, systemDark = true)
-        assertEquals(0xFFF5F5F6L, c.primary)
-        assertEquals(0xFFFFFFFFL, c.secondary)
-        assertEquals(0xFF242428L, c.text)
-        assertEquals(0xFFE6B450L, c.accent)
+    @Test fun `le clair est la palette claire du theme, derivee comme le PC`() {
+        val ayu = getTheme("ayu")
+        val c = resolveThemeColors(ayu, null, AppearanceMode.Light, systemDark = true)
+        assertTrue(c.light)
+        assertEquals(argbOfHex(ayu.light.surface), c.primary)
+        assertEquals(argbOfHex(ayu.light.ink), c.text)
+        assertEquals(argbOfHex(ayu.light.accent), c.accent)
+        assertEquals(mixColors(c.primary, c.text, 0.12), c.secondary)
+        assertEquals(mixColors(c.primary, c.text, 0.08), c.crust)
+        assertEquals(accentTextOn(c.accent, c.primary), c.onAccent)
+    }
+
+    @Test fun `un accent personnalise reste en clair`() {
+        val c = resolveThemeColors(mocha, ThemeCustomization(accent = "#ff0000"), AppearanceMode.Light, false)
+        assertEquals(0xFFFF0000L, c.accent)
+    }
+
+    @Test fun `les textes attenues se rapprochent de l'encre quand la palette ne les tient pas`() {
+        // Latte : avec les proportions d'origine (72 % / 52 %), le secondaire ne fait que 3,63 sur le fond.
+        val c = resolveThemeColors(mocha, null, AppearanceMode.Light, false)
+        for (bg in listOf(c.primary, c.secondary, c.hover)) {
+            assertTrue(contrastRatio(c.muted, bg) >= 4.5)
+            assertTrue(contrastRatio(c.faint, bg) >= 3.0)
+        }
+    }
+
+    @Test fun `le texte sur accent garde la surface quand elle se lit, sinon noir ou blanc`() {
+        assertEquals(argbOfHex("#1e1e2e"), accentTextOn(argbOfHex("#89b4fa"), argbOfHex("#1e1e2e")))
+        assertEquals(0xFF000000L, accentTextOn(argbOfHex("#4d78cc"), argbOfHex("#282c34")))
+    }
+
+    @Test fun `un rouge qui se lit est intact, un rouge pale est rapproche de l'encre`() {
+        val black = 0xFF000000L
+        val white = 0xFFFFFFFFL
+        assertEquals(argbOfHex("#aa0000"), readableColor(argbOfHex("#aa0000"), white, black, TEXT_CONTRAST))
+        val weak = readableColor(argbOfHex("#ff7383"), white, black, TEXT_CONTRAST)
+        assertNotEquals(argbOfHex("#ff7383"), weak)
+        assertTrue(contrastRatio(weak, white) >= 4.5)
     }
 
     @Test fun `une surface personnalisee recalcule les fonds comme App tsx`() {
@@ -59,7 +101,7 @@ class ThemeColorsTest {
         for (theme in THEMES) for (mode in AppearanceMode.entries) {
             val c = resolveThemeColors(theme, null, mode, true)
             assertEquals(0xFF, alphaOf(c.primary))
-            assertEquals(argbOfHex(theme.accent), c.accent)
+            assertEquals(argbOfHex(if (c.light) theme.light.accent else theme.accent), c.accent)
         }
     }
 

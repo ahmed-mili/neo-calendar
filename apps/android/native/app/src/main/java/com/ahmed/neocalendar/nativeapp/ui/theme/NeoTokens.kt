@@ -6,6 +6,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ahmed.neocalendar.core.appearance.ThemeColors
 import com.ahmed.neocalendar.core.appearance.mixColors
+import com.ahmed.neocalendar.core.appearance.settingsNoteColor
+import com.ahmed.neocalendar.core.appearance.settingsValueColor
 
 /** `0 offsetY blur color`, l'ombre de `--nc-shadow` ; le thème n'a ni décalage horizontal ni étalement. */
 @Immutable
@@ -114,10 +116,10 @@ val CatppuccinMocha = NeoTokens(
     borderStrong = Color(0x38CDD6F4),
     text = Color(0xFFCDD6F4),
     textSecondary = Color(0xFFA1A8C9),
-    textFaint = Color(0xFF696D86),
+    textFaint = Color(0xFF80859D),
     label = Color(0xFFDDE3F7),
-    settingsValue = Color(0xFF979EBD),
-    settingsNote = Color(0xFF757B95),
+    settingsValue = Color(0xFF9BA2C1),
+    settingsNote = Color(0xFF878DA7),
     accent = Color(0xFF89B4FA),
     accentStrong = Color(0xFFA3C5FB),
     onAccent = Color(0xFF1E1E2E),
@@ -128,9 +130,9 @@ val CatppuccinMocha = NeoTokens(
     success = Color(0xFFA6E3A1),
     taskTodo = Color(0xFFE9973F),
     taskDone = Color(0xFF2F9E44),
-    gridLine = Color(0x2B9BA0B9),
+    gridLine = Color(0x2B9EA5C5),
     allDayGutterBorder = Color(0x59808080),
-    allDayCellBorder = Color(0x3D696D86),
+    allDayCellBorder = Color(0x3D80859D),
     draft = Color(0xFF4AABE0),
     draftFill = Color(0x2E4AABE0),
     veil = Color(0xB8080912),
@@ -186,8 +188,8 @@ fun deriveTokens(id: String, colors: ThemeColors, themeWallpaperFile: String): N
         textSecondary = c(colors.muted),
         textFaint = c(colors.faint),
         label = if (light) ink else mix(colors.text, 0xFFFFFFFFL, 0.25),
-        settingsValue = mix(colors.muted, colors.faint, 0.18),
-        settingsNote = mix(colors.muted, colors.faint, 0.78),
+        settingsValue = c(settingsValueColor(colors)),
+        settingsNote = c(settingsNoteColor(colors)),
         accent = c(colors.accent),
         accentStrong = c(colors.accentStrong),
         onAccent = c(colors.onAccent),

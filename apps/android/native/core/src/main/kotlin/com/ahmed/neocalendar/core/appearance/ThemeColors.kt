@@ -44,19 +44,6 @@ fun mixColors(a: Long, b: Long, t: Double): Long {
 private const val WHITE = 0xFFFFFFFFL
 private const val BLACK = 0xFF000000L
 
-/** La coque claire de `App.css:3650` (fond, surface, encre, bordure) ; l'accent et les états viennent du thème. */
-private object LightShell {
-    const val PRIMARY = 0xFFF5F5F6L
-    const val SECONDARY = 0xFFFFFFFFL
-    const val CRUST = 0xFFE9E9ECL
-    const val HOVER = 0xFFEDEDF0L
-    const val BORDER = 0x1F18181BL
-    const val TEXT = 0xFF242428L
-    const val MUTED = 0xFF6D6D75L
-    const val FAINT = 0xFF9A9AA3L
-    const val ON_ACCENT = 0xFFFFFFFFL
-}
-
 /**
  * Résout les couleurs. Sombre : la palette du thème ; une surface, une encre ou un accent personnalisés remplacent
  * les couleurs qui en dépendent (formules de `App.tsx`). Clair : la coque neutre, l'accent du thème (ou le choisi).
@@ -71,27 +58,108 @@ fun resolveThemeColors(theme: ThemeDefinition, custom: ThemeCustomization?, mode
     val accent = argbOfHex(custom?.accent ?: theme.accent)
     val accentStrong = if (custom?.accent != null) mixColors(accent, WHITE, 0.22) else p.accentStrong
     if (light) {
+        val l = theme.light
+        val primary = argbOfHex(l.surface)
+        val text = argbOfHex(l.ink)
+        val lightAccent = argbOfHex(custom?.accent ?: l.accent)
+        val tones = deriveTones(primary, text)
         return ThemeColors(
-            light = true, primary = LightShell.PRIMARY, secondary = LightShell.SECONDARY, crust = LightShell.CRUST,
-            hover = LightShell.HOVER, border = LightShell.BORDER, text = LightShell.TEXT, muted = LightShell.MUTED,
-            faint = LightShell.FAINT, onAccent = LightShell.ON_ACCENT, error = p.error, success = p.success,
-            accent = accent, accentStrong = mixColors(accent, BLACK, 0.12),
+            light = true, primary = primary,
+            secondary = mixColors(primary, text, 0.12), crust = mixColors(primary, text, 0.08),
+            hover = mixColors(primary, text, tones.hoverMix), border = withAlpha(text, 0x38),
+            text = text, muted = mixColors(primary, text, tones.mutedMix), faint = mixColors(primary, text, tones.faintMix),
+            onAccent = accentTextOn(lightAccent, primary),
+            error = readableColor(argbOfHex(l.error), primary, text, TEXT_CONTRAST),
+            success = readableColor(argbOfHex(l.success), primary, text, GRAPHIC_CONTRAST),
+            accent = lightAccent, accentStrong = mixColors(lightAccent, BLACK, 0.12),
         )
     }
     val surface = custom?.surface?.let { argbOfHex(it) }
     val ink = custom?.ink?.let { argbOfHex(it) }
     val primary = surface ?: argbOfHex(theme.surface)
     val text = ink ?: argbOfHex(theme.ink)
+    val secondary = if (surface != null) mixColors(primary, text, SECONDARY_MIX) else p.secondary
+    val customized = surface != null || ink != null
+    // Personnalisé : proportions dérivées, comme le PC. Sinon la palette du thème, corrigée seulement là où elle ne
+    // se lit pas : le survol si l'encre ne s'y lit pas, puis chaque texte atténué, rapproché de l'encre au minimum.
+    val derived = if (customized) deriveTones(primary, text) else null
+    val hover = when {
+        derived != null -> mixColors(primary, text, derived.hoverMix)
+        contrastRatio(text, p.hover) >= TEXT_CONTRAST -> p.hover
+        else -> mixColors(primary, text, deriveTones(primary, text).hoverMix)
+    }
+    val surfaces = listOf(primary, secondary, mixColors(primary, text, FIELD_MIX), hover)
+    fun tone(palette: Long, derivedMix: Double?, from: Double, min: Double): Long = when {
+        derivedMix != null -> mixColors(primary, text, derivedMix)
+        surfaces.all { contrastRatio(palette, it) >= min } -> palette
+        else -> mixColors(primary, text, reachMix(primary, text, from, min, surfaces) ?: 1.0)
+    }
     return ThemeColors(
         light = false,
         primary = primary,
-        secondary = if (surface != null) mixColors(primary, text, 0.12) else p.secondary,
+        secondary = secondary,
         crust = if (surface != null) mixColors(primary, BLACK, 0.43) else p.crust,
-        hover = if (surface != null) mixColors(primary, text, 0.22) else p.hover,
+        hover = hover,
         border = if (ink != null) withAlpha(text, 0x38) else p.border,
         text = text,
-        muted = if (ink != null || surface != null) mixColors(primary, text, 0.72) else p.muted,
-        faint = if (ink != null || surface != null) mixColors(primary, text, 0.52) else p.faint,
-        onAccent = p.onAccent, error = p.error, success = p.success, accent = accent, accentStrong = accentStrong,
+        muted = tone(p.muted, derived?.mutedMix, MUTED_MIX, TEXT_CONTRAST),
+        faint = tone(p.faint, derived?.faintMix, FAINT_MIX, GRAPHIC_CONTRAST),
+        onAccent = accentTextOn(accent, primary),
+        error = readableColor(p.error, primary, text, TEXT_CONTRAST),
+        success = readableColor(p.success, primary, text, GRAPHIC_CONTRAST),
+        accent = accent, accentStrong = accentStrong,
     )
 }
+
+/** Seuils de lisibilité (spec §3.3) : texte 4,5 ; icônes, pastilles et texte discret 3. */
+const val TEXT_CONTRAST = 4.5
+const val GRAPHIC_CONTRAST = 3.0
+
+/** Valeurs des réglages (titres, valeurs de droite) : entre le texte secondaire et le texte discret. */
+fun settingsValueColor(c: ThemeColors): Long = mixColors(c.muted, c.faint, 0.18)
+
+/** Notes et chevrons des réglages : plus près du texte discret. */
+fun settingsNoteColor(c: ThemeColors): Long = mixColors(c.muted, c.faint, 0.78)
+
+private const val SECONDARY_MIX = 0.12
+private const val FIELD_MIX = 0.16
+private const val HOVER_MIX = 0.22
+private const val MUTED_MIX = 0.72
+private const val FAINT_MIX = 0.52
+
+/** Le survol et les deux textes atténués : proportions d'encre dans la surface (mêmes règles que `panelTokens.ts`). */
+class Tones(val hoverMix: Double, val mutedMix: Double, val faintMix: Double)
+
+/** La plus petite proportion d'encre, à partir de `from`, dont le mélange avec la surface tient `min` sur chaque fond (`null` si aucune). */
+fun reachMix(surface: Long, ink: Long, from: Double, min: Double, backgrounds: List<Long>): Double? {
+    for (step in Math.round(from * 100).toInt()..100) {
+        val color = mixColors(surface, ink, step / 100.0)
+        if (backgrounds.all { contrastRatio(color, it) >= min }) return step / 100.0
+    }
+    return null
+}
+
+/**
+ * Départ : les proportions d'origine (survol 22 %, secondaire 72 %, discret 52 % d'encre). Une palette peu contrastée
+ * ne les tient pas : on rapproche d'abord le texte de l'encre (jusqu'à 100 %), puis, si l'encre elle-même ne se lit pas
+ * sur le survol, on éclaircit moins le survol (jusqu'au niveau du champ). Une palette qui tient déjà garde les
+ * proportions d'origine.
+ */
+fun deriveTones(surface: Long, ink: Long): Tones {
+    val fixed = listOf(surface, mixColors(surface, ink, SECONDARY_MIX), mixColors(surface, ink, FIELD_MIX))
+    for (hover in Math.round(HOVER_MIX * 100).toInt() downTo Math.round(FIELD_MIX * 100).toInt()) {
+        val surfaces = fixed + mixColors(surface, ink, hover / 100.0)
+        val muted = reachMix(surface, ink, MUTED_MIX, TEXT_CONTRAST, surfaces) ?: continue
+        val faint = reachMix(surface, ink, FAINT_MIX, GRAPHIC_CONTRAST, surfaces) ?: muted
+        return Tones(hover / 100.0, muted, minOf(faint, muted))
+    }
+    return Tones(FIELD_MIX, 1.0, 1.0)
+}
+
+/** Texte sur accent : la couleur de la surface si elle se lit (4,5), sinon le noir ou le blanc le plus lisible. */
+fun accentTextOn(accent: Long, surface: Long): Long =
+    if (contrastRatio(surface, accent) >= TEXT_CONTRAST) surface else readableOn(accent)
+
+/** Un rouge ou un vert rapproché de l'encre juste ce qu'il faut pour se lire sur le fond et sur le panneau. */
+fun readableColor(color: Long, surface: Long, ink: Long, min: Double): Long =
+    ensureContrast(color, listOf(surface, mixColors(surface, ink, SECONDARY_MIX)), min, ink)
