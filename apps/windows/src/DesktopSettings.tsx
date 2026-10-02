@@ -5,6 +5,7 @@ import ThemeColorPicker from "./ThemeColorPicker";
 import ThemeWallpaperPicker from "./ThemeWallpaperPicker";
 import WallpaperEffectsControls from "./WallpaperEffectsControls";
 import ConfirmDialog from "./ConfirmDialog";
+import DesktopSyncPage from "./DesktopSyncPage";
 import type { WallpaperId } from "./themes/wallpapers";
 import { ThemeId } from "./themes/types";
 import {
@@ -1367,34 +1368,45 @@ export default function DesktopSettings({
         </div>
     );
 
-    const renderSync = () => (
-        <div className="nc-set-groups">
-            <SettingsGroup
-                note={t(
-                    "Neo Calendar keeps its data in the folder you choose. Syncing is done by whichever tool you settle on."
-                )}
-            >
-                <SettingsRow
-                    label={t("Data folder")}
-                    icon={<FolderOpen size={18} />}
-                    value={folderName(dataFolder)}
-                    navigates
-                    onClick={() => openPage({ kind: "section", id: "folder" })}
-                />
-            </SettingsGroup>
+    const syncDataFolderRow = (
+        <SettingsRow
+            label={t("Data folder")}
+            icon={<FolderOpen size={18} />}
+            value={folderName(dataFolder)}
+            navigates
+            onClick={() => openPage({ kind: "section", id: "folder" })}
+        />
+    );
 
-            <SettingsGroup title={t("Possible methods")}>
-                <SettingsRow label="Syncthing" value={t("Recommended")} />
-                <SettingsRow
-                    label={t("Online storage")}
-                    value={t("OneDrive, Google Drive, Dropbox")}
-                />
-                <SettingsRow
-                    label={t("Manual transfer")}
-                    value={t("Over USB")}
-                />
-            </SettingsGroup>
-        </div>
+    // Le moteur intégré n'existe que sur le bureau : ailleurs (coque Android), la page garde ses trois méthodes.
+    const renderSync = () => (
+        <DesktopSyncPage
+            dataFolder={dataFolder}
+            dataFolderRow={syncDataFolderRow}
+            fallback={
+                <div className="nc-set-groups">
+                    <SettingsGroup
+                        note={t(
+                            "Neo Calendar keeps its data in the folder you choose. Syncing is done by whichever tool you settle on."
+                        )}
+                    >
+                        {syncDataFolderRow}
+                    </SettingsGroup>
+
+                    <SettingsGroup title={t("Possible methods")}>
+                        <SettingsRow label="Syncthing" value={t("Recommended")} />
+                        <SettingsRow
+                            label={t("Online storage")}
+                            value={t("OneDrive, Google Drive, Dropbox")}
+                        />
+                        <SettingsRow
+                            label={t("Manual transfer")}
+                            value={t("Over USB")}
+                        />
+                    </SettingsGroup>
+                </div>
+            }
+        />
     );
 
     /*

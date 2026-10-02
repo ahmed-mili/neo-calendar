@@ -83,17 +83,16 @@ describe("Windows settings", () => {
         expect(html).toBe("");
     });
 
-    it("keeps synchronization guidance on the sync page", () => {
+    // Le moteur intégré se lit après le premier rendu : jusqu'à sa réponse, la page ne montre que la ligne du
+    // dossier de données. Le contenu complet, et la page de repli de la coque Android, sont dans
+    // DesktopSyncPage.test.tsx.
+    it("opens the sync page on the data folder row while the engine is read", () => {
         const html = renderToStaticMarkup(
             <DesktopSettings open initialTab="sync" {...commonProps} />
         );
 
         expect(html).toContain('data-settings-page="sync"');
-        expect(html).toContain("Syncthing");
-        expect(html).toContain("Recommandé");
-        expect(html).toContain("OneDrive");
-        expect(html).toContain("Google Drive");
-        expect(html).toContain("Dropbox");
+        expect(html).toContain("Dossier de données");
     });
 
     it("marks a section opened directly in the desktop navigation", () => {
@@ -113,7 +112,7 @@ describe("Windows settings", () => {
         );
 
         expect(html).toContain("nc-settings__desktop-page");
-        expect(html).toContain("Syncthing");
+        expect(html).toContain("Dossier de données");
         expect(html).not.toContain("nc-choice-dialog");
         expect(html).not.toContain("nc-settings__page--buried");
     });

@@ -4593,6 +4593,106 @@ body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
     line-height: 1.45;
 }
 
+/* Page Synchronisation : un libellé tient sur une ligne, quitte à finir par une
+   ellipse (un message d'erreur long reste lisible en entier dans le journal). */
+.nc-sync-page .nc-set-row__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* La phrase qui dit qui synchronise le dossier : une ligne, en tête de page. */
+.nc-sync-statement {
+    margin: 0 4px;
+    color: var(--nc-text-secondary, var(--text-muted));
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* Le geste principal de la page, à la couleur d'accent comme les autres boutons pleins. */
+.nc-sync-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    justify-self: start;
+    padding: 10px 18px;
+    border: 0;
+    border-radius: 12px;
+    color: var(--nc-accent-text);
+    background: var(--nc-accent);
+    font-weight: 650;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: filter 100ms ease;
+}
+
+.nc-sync-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+.nc-sync-primary:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+/* Le logo de Syncthing et le lien vers son site, tout en bas. */
+.nc-sync-about {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 4px;
+    color: var(--nc-text-faint, var(--text-faint));
+    font-size: 13px;
+}
+
+.nc-sync-about a {
+    color: var(--nc-accent);
+    cursor: pointer;
+}
+
+.nc-sync-logo {
+    flex: 0 0 auto;
+}
+
+.nc-sync-id {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Le contenu de la fenêtre d'appairage : aligné sur le titre, centré. */
+.nc-sync-pairing {
+    padding: 0 16px 16px;
+    text-align: center;
+}
+
+.nc-sync-pairing p {
+    margin: 0;
+}
+
+.nc-sync-remaining {
+    white-space: nowrap;
+}
+
+/* Le QR code d'appairage : noir sur blanc quel que soit le thème (un lecteur ne lit pas un QR sombre). */
+.nc-sync-qr {
+    display: block;
+    margin: 12px auto;
+    padding: 12px;
+    border-radius: 10px;
+    background: #fff;
+}
+
+/* Le journal du moteur de synchronisation. */
+.nc-sync-log {
+    max-height: 320px;
+    margin: 0;
+    overflow: auto;
+    color: var(--nc-text-secondary, inherit);
+    font: 12px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 .nc-set-group__rows {
     display: grid;
     overflow: hidden;

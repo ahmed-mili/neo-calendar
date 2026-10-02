@@ -564,6 +564,67 @@ const FR: Record<string, string> = {
     "Over USB": "Par USB",
     "Close settings": "Fermer les paramètres",
 
+    // ── Synchronisation intégrée (Syncthing embarqué) ────────
+    "Built-in sync is off": "La synchronisation intégrée est désactivée",
+    "The sync engine is missing from this version":
+        "Le moteur de synchronisation est absent de cette version",
+    "An installed Syncthing already syncs this folder":
+        "Un Syncthing installé synchronise déjà ce dossier",
+    "Starting…": "Démarrage…",
+    Error: "Erreur",
+    "retrying in": "nouvel essai dans",
+    Syncing: "Synchronisation en cours",
+    file: "fichier",
+    files: "fichiers",
+    "No device yet: add your phone":
+        "Aucun appareil : ajoutez votre téléphone",
+    "Offline: no device connected": "Hors ligne : aucun appareil connecté",
+    "Up to date": "À jour",
+    Connected: "Connecté",
+    "Never connected": "Jamais connecté",
+    "Last seen": "Dernière connexion",
+    "The Neo Calendar folder is synced by the Syncthing installed on this PC":
+        "Le dossier de Neo Calendar est synchronisé par le Syncthing installé sur ce PC",
+    "The Neo Calendar folder is synced by Neo Calendar (built-in Syncthing v{version})":
+        "Le dossier de Neo Calendar est synchronisé par Neo Calendar (Syncthing intégré v{version})",
+    "Built-in sync": "Synchronisation intégrée",
+    "Your Syncthing's web interface uses HTTPS: remove the Neo Calendar folder in Syncthing yourself, then check again.":
+        "L'interface de votre Syncthing est en HTTPS : retirez vous-même le dossier Neo Calendar dans Syncthing, puis vérifiez à nouveau.",
+    "Only the Neo Calendar folder leaves your Syncthing, after a backup of its configuration.":
+        "Seul le dossier Neo Calendar quitte votre Syncthing, après une sauvegarde de sa configuration.",
+    "Start your Syncthing to take the folder over.":
+        "Lancez votre Syncthing pour reprendre le dossier.",
+    "Take the folder over": "Reprendre le dossier",
+    "Check again": "Vérifier à nouveau",
+    "The engine still syncs:": "Le moteur synchronise encore :",
+    "Sync the current folder": "Synchroniser le dossier actuel",
+    "Try again": "Réessayer",
+    Devices: "Appareils",
+    "Add the phone": "Ajouter le téléphone",
+    "Requests to accept": "Demandes à accepter",
+    "Only accept a device you recognise.":
+        "N'acceptez qu'un appareil que vous reconnaissez.",
+    "wants to connect": "demande à se connecter",
+    Accept: "Accepter",
+    Refuse: "Refuser",
+    "Remove this device": "Retirer cet appareil",
+    "Give the folder back": "Rendre le dossier à Syncthing",
+    Log: "Journal",
+    "The log is empty.": "Le journal est vide.",
+    "Learn more": "En savoir plus",
+    "ID of this PC": "Identifiant de ce PC",
+    "Scan this QR code with Neo Calendar on your phone.":
+        "Scannez ce QR code avec Neo Calendar sur le téléphone.",
+    "QR code to pair the phone": "QR code pour appairer le téléphone",
+    "This code works once and expires in":
+        "Ce code ne sert qu'une fois et expire dans",
+    "Neo Calendar will back up your Syncthing configuration, then remove only the Neo Calendar folder from it. Your other folders and devices are not touched. Your phone will have to accept this PC again (with the QR code).":
+        "Neo Calendar sauvegardera la configuration de votre Syncthing, puis n'en retirera que le dossier Neo Calendar. Vos autres dossiers et appareils ne sont pas touchés. Votre téléphone devra de nouveau accepter ce PC (avec le QR code).",
+    "Take over": "Reprendre",
+    "Your installed Syncthing takes the folder back, as it was before. It must be running.":
+        "Votre Syncthing installé reprend le dossier, tel qu'il était avant. Il doit être lancé.",
+    "Give back": "Rendre",
+
     // ── Themes, wallpapers and dialogs ───────────────────────
     Background: "Arrière-plan",
     Foreground: "Avant-plan",

@@ -20,6 +20,7 @@ import { useWallpaperReady } from "./themes/useWallpaperReady";
 import WallpaperRenderLayer from "./WallpaperRenderLayer";
 import "./themes/wallpaperEffects";
 import { useStartupReveal } from "./useStartupReveal";
+import { startSyncSoon } from "./platform/desktopSync";
 import appIcon from "./assets/app-icon.png";
 import { WINDOWS_PLATFORM_CLASS } from "../../../src/ui/calendar/shortcutRegistry";
 import { t } from "../../../src/ui/i18n";
@@ -116,6 +117,11 @@ export default function App() {
     const startupRef = useStartupReveal(
         !!preferences && (!dataFolder || isCalendarReady)
     );
+    // La synchro intégrée démarre APRÈS le premier écran, jamais avant : rien de l'affichage n'attend le moteur.
+    useEffect(() => {
+        if (!dataFolder || !isCalendarReady) return;
+        return startSyncSoon(dataFolder);
+    }, [dataFolder, isCalendarReady]);
 
     const appearanceMode = useMemo(
         () => resolveAppearanceMode(appearance.mode),
