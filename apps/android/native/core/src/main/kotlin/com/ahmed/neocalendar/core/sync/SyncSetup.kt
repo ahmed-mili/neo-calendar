@@ -120,6 +120,19 @@ class SyncSetup(
         throw FolderLostException(oldId, last!!)
     }
 
+    /**
+     * Repart d'un index vide pour le dossier déjà déclaré dans le moteur (re-bascule après « Vider ») : le retire puis le remet au
+     * MÊME identifiant. Recréer `.stfolder` à la main sur un index ancien désactiverait la sécurité de Syncthing (le dossier recopié
+     * « a perdu » des fichiers : suppressions propagées au PC) ; retiré, le dossier perd son index, et c'est Syncthing qui réécrit
+     * le marqueur à la remise. Rend false quand aucun dossier n'est déclaré.
+     */
+    fun resetFolderIndex(): Boolean {
+        val local = api.folders().firstOrNull() ?: return false
+        api.removeFolder(local.id)
+        putFolderOrLose(EngineConfig.folder(local.id, local.label, folderPath, local.deviceIds), local.id)
+        return true
+    }
+
     fun refuseFolder(proposal: PendingFolder) = api.dismissPendingFolder(proposal.id, proposal.offeredBy)
 
     private fun shareFolderWith(me: String, deviceId: String) {

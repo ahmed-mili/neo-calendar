@@ -12,6 +12,11 @@ data class SyncSettings(
     val configured: Boolean = false,
     /** « Quitter » appuyé : le moteur reste arrêté jusqu'au prochain lancement de l'app. */
     val quit: Boolean = false,
+    /**
+     * Les notes viennent d'être recopiées dans le stockage privé (re-bascule après « Vider ») : au prochain démarrage du moteur,
+     * son dossier déjà déclaré repart d'un index vide ([SyncSetup.resetFolderIndex]) avant de synchroniser.
+     */
+    val resetFolderIndex: Boolean = false,
 )
 
 /** Le moteur repart à l'allumage (ou après une mise à jour de l'app) : appareil appairé, démarrage automatique, mode « Comme Syncthing-Fork », pas de « Quitter ». */

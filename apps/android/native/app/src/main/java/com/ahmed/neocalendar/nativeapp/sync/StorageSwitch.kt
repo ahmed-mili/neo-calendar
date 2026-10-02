@@ -78,6 +78,9 @@ object StorageSwitch {
         try {
             val source = SafWorkspaceStorage(context, WorkspaceLocation.externalTreeUri(context, write = false))
             copyToPrivateAtomically(source, WorkspaceLocation.privateRoot(context))
+            // Le moteur peut déjà avoir ce dossier dans sa configuration (passage précédent) : à son prochain démarrage il le
+            // retire et le remet au même identifiant (index vidé) au lieu de croire que les fichiers recopiés sont « nouveaux ».
+            SyncController.get(context).settings.update { it.copy(resetFolderIndex = true) }
             WorkspaceLocation.setMode(context, StorageMode.Integrated)
             if (WorkspaceLocation.mode(context) != StorageMode.Integrated) {
                 return "La copie est faite, mais le mode n'a pas pu être enregistré. Vos notes d'origine n'ont pas bougé ; videz le stockage privé (Réglages, Synchronisation) puis recommencez."

@@ -187,4 +187,34 @@ class SyncSetupTest {
         assertEquals(ProposalDecision.Replace("neo-1"), decision)
         assertEquals(2, flaky.puts)
     }
+
+    // --- re-bascule après « Vider » : l'index ancien ne doit pas rencontrer un marqueur recréé à l'aveugle ---------------
+
+    @Test fun `repartir d'un index vide retire le dossier puis le remet au meme identifiant, sans toucher au marqueur`() {
+        val notes = tmp.newFolder("Neo Calendar")
+        val withMarker = SyncSetup(SyncthingApi(fake), notes.absolutePath, retryDelayMs = 0)
+        folder("neo-1", me, pc)
+        fake.answer("DELETE /rest/config/folders/neo-1", "")
+        fake.answer("PUT /rest/config/folders/neo-1", "")
+        assertTrue(withMarker.resetFolderIndex())
+        val order = fake.calls.filter { it.method != "GET" }.map { "${it.method} ${it.path}" }
+        assertEquals(listOf("DELETE /rest/config/folders/neo-1", "PUT /rest/config/folders/neo-1"), order)
+        val body = fake.sent("PUT", "/rest/config/folders/neo-1")!!
+        assertTrue(body.contains("\"id\":\"neo-1\"") && body.contains(me) && body.contains(pc))
+        assertTrue(body.contains(notes.absolutePath.replace("\\", "\\\\")))
+        assertTrue("le marqueur est réécrit par Syncthing, pas par l'app", !java.io.File(notes, ".stfolder").exists())
+    }
+
+    @Test fun `repartir d'un index vide sans dossier declare ne fait rien`() {
+        noFolders()
+        assertTrue(!setup.resetFolderIndex())
+        assertTrue(fake.calls.none { it.method != "GET" })
+    }
+
+    @Test fun `si le dossier ne peut pas etre remis, l'echec est signale comme un dossier perdu`() {
+        folder("neo-1", me, pc)
+        fake.answer("DELETE /rest/config/folders/neo-1", "")
+        fake.answer("PUT /rest/config/folders/neo-1", "boum", code = 500)
+        try { setup.resetFolderIndex(); fail() } catch (e: FolderLostException) { assertEquals("neo-1", e.oldId) }
+    }
 }

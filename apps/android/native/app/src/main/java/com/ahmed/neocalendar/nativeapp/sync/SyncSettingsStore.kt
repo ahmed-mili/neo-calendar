@@ -33,6 +33,7 @@ class SyncSettingsStore(context: Context) {
             listenPort = prefs.getInt("listenPort", d.listenPort),
             configured = prefs.getBoolean("configured", d.configured),
             quit = prefs.getBoolean("quit", d.quit),
+            resetFolderIndex = prefs.getBoolean("resetFolderIndex", d.resetFolderIndex),
         )
     }
 
@@ -51,6 +52,7 @@ class SyncSettingsStore(context: Context) {
             .putInt("listenPort", next.listenPort)
             .putBoolean("configured", next.configured)
             .putBoolean("quit", next.quit)
+            .putBoolean("resetFolderIndex", next.resetFolderIndex)
             .commit()
         _settings.value = next
     }
