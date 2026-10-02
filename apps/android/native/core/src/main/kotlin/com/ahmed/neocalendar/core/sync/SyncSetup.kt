@@ -60,6 +60,36 @@ class SyncSetup(
         shareFolderWith(me, id)
     }
 
+    /**
+     * Appairage par QR code (le téléphone scanne le QR code du PC) : CET appareil se présente sous le nom
+     * `Nom [NC:code]` (le PC lit ce nom dans sa demande entrante), puis ajoute le PC. Rien n'est partagé d'ici : le PC
+     * accepte la demande qui porte le bon code (fenêtre de 5 minutes), puis partage son dossier, que ce téléphone adopte
+     * ensuite. Le nom est posé AVANT l'ajout du PC (il part dans le message de bienvenue de la première connexion) ;
+     * si l'ajout échoue, le nom d'origine est rendu. Rend le nom d'origine.
+     */
+    fun pairWithPc(payload: PairingPayload, pcName: String = "PC"): String {
+        val me = api.myId()
+        if (payload.deviceId == me) {
+            throw IllegalArgumentException("C'est l'identifiant de cet appareil : scannez le QR code affiché sur le PC.")
+        }
+        val original = PairingName.strip(api.devices().firstOrNull { it.id == me }?.name.orEmpty())
+        api.renameDevice(me, PairingName.withCode(original, payload.code))
+        try {
+            api.putDevice(payload.deviceId, pcName)
+        } catch (e: Exception) {
+            runCatching { api.renameDevice(me, original) }
+            throw e
+        }
+        return original
+    }
+
+    /** Rend à cet appareil son vrai nom : le code d'appairage ne doit pas rester dans ce que les autres appareils voient. Sans effet si le nom n'en porte pas. */
+    fun clearPairingName() {
+        val me = api.myId()
+        val name = api.devices().firstOrNull { it.id == me }?.name ?: return
+        if (PairingName.hasCode(name)) api.renameDevice(me, PairingName.strip(name))
+    }
+
     /** Accepte une demande entrante : jamais appelé sans geste de l'utilisateur. */
     fun acceptDevice(pending: PendingDevice) {
         val me = api.myId()
