@@ -98,3 +98,28 @@ fun clearPrivateMessage(c: PrivateComparison?): String {
     }
     return "$subject : $names$more. Le stockage privé contient ${plural(c.totalFiles, "fichier", "fichiers")} au total.$tail" + extra
 }
+
+/**
+ * Le texte de confirmation de « Ouvrir un dossier existant » : le stockage privé n'est jamais touché, mais ses notes absentes
+ * du dossier choisi (ou qui y diffèrent) ne seront plus visibles. `null` : le dossier choisi n'a pas pu être comparé.
+ */
+fun openExistingMessage(c: PrivateComparison?): String {
+    val ending = "La synchronisation intégrée sera arrêtée ; le stockage privé est conservé et pourra être vidé plus tard."
+    if (c == null) {
+        return "Le dossier choisi n'a pas pu être comparé au stockage privé : si des notes du stockage privé n'y existent pas, " +
+            "elles ne seront plus visibles. Elles restent dans le stockage privé. $ending"
+    }
+    if (c.onlyInPrivate.isEmpty()) return "Les notes seront lues dans ce dossier, qui contient déjà tout le stockage privé. $ending"
+    val n = c.onlyInPrivate.size
+    val names = c.onlyInPrivate.take(5).joinToString(", ")
+    val more = if (n > 5) " et ${n - 5} autres" else ""
+    val subject = if (c.onlyInPrivateNotes == n) {
+        if (n == 1) "1 note du stockage privé n'existe pas ou diffère dans ce dossier"
+        else "$n notes du stockage privé n'existent pas ou diffèrent dans ce dossier"
+    } else {
+        if (n == 1) "1 fichier du stockage privé n'existe pas ou diffère dans ce dossier"
+        else "$n fichiers du stockage privé n'existent pas ou diffèrent dans ce dossier"
+    }
+    return "$subject : $names$more. ${if (n == 1) "Elle ne sera plus visible" else "Elles ne seront plus visibles"} dans Neo Calendar " +
+        "(elles restent dans le stockage privé). $ending"
+}

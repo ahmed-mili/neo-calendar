@@ -100,25 +100,50 @@ object StorageSwitch {
     }
 
     /**
-     * « Ouvrir un dossier existant » : le dossier n'est accepté que s'il porte le marqueur. Le moteur est arrêté, les notes
-     * du dossier externe sont lues telles quelles. Le stockage privé est conservé.
+     * Un dossier accepté pour « Ouvrir un dossier existant », avec son autorisation prise ; à passer à [openExisting] (confirmé)
+     * ou à [cancelExisting] (refusé), qui rend l'autorisation si ce passage vient de la prendre. `comparison` : ce que le stockage
+     * privé a en plus de ce dossier (null : la comparaison n'a pas pu être faite).
      */
-    suspend fun openExisting(context: Context, picked: Intent): String? {
-        val uri = picked.data ?: return "Aucun dossier choisi."
-        if (WorkspaceLocation.mode(context) != StorageMode.Integrated) return "Les notes sont déjà dans un dossier externe."
+    class ExistingPlan internal constructor(internal val grant: Grant, val comparison: PrivateComparison?)
+
+    /** Le dossier n'est accepté que s'il porte le marqueur ; rien ne change. Hors du fil principal. Rend le plan, ou le message d'erreur. */
+    fun planOpenExisting(context: Context, picked: Intent): Pair<ExistingPlan?, String?> {
+        val uri = picked.data ?: return null to "Aucun dossier choisi."
+        if (WorkspaceLocation.mode(context) != StorageMode.Integrated) return null to "Les notes sont déjà dans un dossier externe."
         // Écriture exigée comme pour le retour : un dossier en lecture seule ne ferait que casser l'app à la première note.
         val grant = takeGrant(context, picked, uri, needWrite = true)
-        if (grant.error != null) return grant.error
+        if (grant.error != null) return null to grant.error
+        val external = SafWorkspaceStorage(context, uri)
         val marked = try {
-            isNeoCalendarFolder(SafWorkspaceStorage(context, uri))
+            isNeoCalendarFolder(external)
         } catch (e: Exception) {
             grant.undo(context)
-            return "Dossier illisible : ${e.message ?: e}. Rien n'a changé."
+            return null to "Dossier illisible : ${e.message ?: e}. Rien n'a changé."
         }
         if (!marked) {
             grant.undo(context)
-            return "Ce dossier n'est pas un dossier Neo Calendar : il ne contient ni .neo-calendar.json ni le sous-dossier .neo-calendar. Rien n'a changé."
+            return null to "Ce dossier n'est pas un dossier Neo Calendar : il ne contient ni .neo-calendar.json ni le sous-dossier .neo-calendar. Rien n'a changé."
         }
+        // Lecture seule : ce que le stockage privé a en plus de ce dossier ne sera plus visible une fois celui-ci ouvert.
+        val comparison = try {
+            comparePrivateWithExternal(FileWorkspaceStorage(WorkspaceLocation.privateRoot(context)), external)
+        } catch (e: Exception) {
+            null
+        }
+        return ExistingPlan(grant, comparison) to null
+    }
+
+    /** Le passage est refusé à la confirmation : l'autorisation prise pour la comparaison est rendue. */
+    fun cancelExisting(context: Context, plan: ExistingPlan) = plan.grant.undo(context)
+
+    /**
+     * « Ouvrir un dossier existant » (après [planOpenExisting] et confirmation). Le moteur est arrêté, les notes du dossier
+     * externe sont lues telles quelles. Le stockage privé est conservé.
+     */
+    suspend fun openExisting(context: Context, plan: ExistingPlan): String? {
+        val grant = plan.grant
+        val uri = grant.uri
+        if (WorkspaceLocation.mode(context) != StorageMode.Integrated) { grant.undo(context); return "Les notes sont déjà dans un dossier externe." }
         SyncController.storageSwitching = true
         try {
             SyncController.peek()?.holdForStorageSwitch()
@@ -174,7 +199,7 @@ object StorageSwitch {
     }
 
     /** L'autorisation durable d'un dossier choisi ; `undo` ne la rend que si ce passage vient de la prendre (jamais celle d'un dossier déjà autorisé). */
-    private class Grant(val uri: Uri, val flags: Int, val newlyTaken: Boolean, val error: String? = null) {
+    internal class Grant(val uri: Uri, val flags: Int, val newlyTaken: Boolean, val error: String? = null) {
         fun undo(context: Context) {
             if (newlyTaken) runCatching { context.contentResolver.releasePersistableUriPermission(uri, flags) }
         }

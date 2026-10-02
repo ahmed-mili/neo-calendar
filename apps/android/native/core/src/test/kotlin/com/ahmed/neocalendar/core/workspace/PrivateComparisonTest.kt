@@ -75,4 +75,32 @@ class PrivateComparisonTest {
         val text = clearPrivateMessage(null)
         assertTrue(text, text.contains("n'a pas pu être lu") && text.contains("définitivement"))
     }
+
+    // --- « Ouvrir un dossier existant » : ce que l'utilisateur ne verra plus ----------------------------------------------
+
+    @Test fun `ouvrir un dossier existant dit combien de notes du prive ne seront plus visibles`() {
+        val c = PrivateComparison(totalFiles = 4, onlyInPrivate = listOf("Perso/a.md", "Perso/b.md"), onlyInPrivateNotes = 2, trashFiles = 0, conflictCopies = 0)
+        val text = openExistingMessage(c)
+        assertTrue(text, text.contains("2 notes du stockage privé n'existent pas ou diffèrent dans ce dossier"))
+        assertTrue(text, text.contains("ne seront plus visibles"))
+        assertTrue(text, text.contains("restent dans le stockage privé"))
+        assertTrue(text, text.contains("Perso/a.md"))
+    }
+
+    @Test fun `ouvrir un dossier existant au singulier`() {
+        val c = PrivateComparison(1, listOf("a.md"), 1, 0, 0)
+        assertTrue(openExistingMessage(c).contains("1 note du stockage privé n'existe pas ou diffère dans ce dossier"))
+    }
+
+    @Test fun `ouvrir un dossier existant sans difference est une confirmation simple`() {
+        val text = openExistingMessage(PrivateComparison(3, emptyList(), 0, 0, 0))
+        assertTrue(text, !text.contains("ne seront plus visibles"))
+        assertTrue(text, text.contains("synchronisation intégrée"))
+    }
+
+    @Test fun `ouvrir un dossier existant sans comparaison possible previent quand meme`() {
+        val text = openExistingMessage(null)
+        assertTrue(text, text.contains("n'a pas pu être comparé"))
+        assertTrue(text, text.contains("restent dans le stockage privé"))
+    }
 }

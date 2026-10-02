@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.ahmed.neocalendar.core.workspace.PrivateStorageInUse
 import com.ahmed.neocalendar.core.workspace.clearPrivateMessage
+import com.ahmed.neocalendar.core.workspace.openExistingMessage
 import com.ahmed.neocalendar.nativeapp.NativeViewModel
 import com.ahmed.neocalendar.nativeapp.sync.StorageSwitch
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,7 @@ private sealed interface SwitchStep {
     data class Working(val message: String) : SwitchStep
     data class Reminder(val message: String) : SwitchStep
     data class ConfirmClear(val message: String) : SwitchStep
+    data class ConfirmOpen(val plan: StorageSwitch.ExistingPlan, val message: String, val loses: Boolean) : SwitchStep
 }
 
 /**
@@ -50,8 +52,11 @@ internal fun rememberStorageSwitch(viewModel: NativeViewModel): SyncSwitchAction
 
     val openExisting = rememberLauncherForActivityResult(PickTree()) { picked ->
         if (picked != null) scope.launch {
-            step = SwitchStep.Working("Ouverture du dossier…")
-            finish(viewModel.switchStorage { StorageSwitch.openExisting(context, picked) }, "Dossier ouvert : la synchronisation intégrée est arrêtée.")
+            // Lecture seule d'abord : ce que le stockage privé a en plus de ce dossier est dit avant d'appliquer.
+            step = SwitchStep.Working("Comparaison avec le stockage privé…")
+            val (plan, error) = withContext(Dispatchers.IO) { StorageSwitch.planOpenExisting(context, picked) }
+            if (plan == null) finish(error, "")
+            else step = SwitchStep.ConfirmOpen(plan, openExistingMessage(plan.comparison), loses = plan.comparison == null || plan.comparison.onlyInPrivate.isNotEmpty())
         }
     }
     val backToExternal = rememberLauncherForActivityResult(PickTree()) { picked ->
@@ -84,6 +89,16 @@ internal fun rememberStorageSwitch(viewModel: NativeViewModel): SyncSwitchAction
             SText("Ne fermez pas l'application. Rien n'est écrit dans vos notes pendant la copie.", color = Neo.TextSecondary, size = 13f, lineHeight = 18f)
         }
         is SwitchStep.Reminder -> ConfirmPanel("Passage terminé", s.message, "OK", danger = false, onDismiss = { step = SwitchStep.None }) { step = SwitchStep.None }
+        is SwitchStep.ConfirmOpen -> ConfirmPanel(
+            "Ouvrir ce dossier",
+            s.message,
+            "Ouvrir ce dossier", danger = s.loses, onDismiss = { StorageSwitch.cancelExisting(context, s.plan); step = SwitchStep.None },
+        ) {
+            scope.launch {
+                step = SwitchStep.Working("Ouverture du dossier…")
+                finish(viewModel.switchStorage { StorageSwitch.openExisting(context, s.plan) }, "Dossier ouvert : la synchronisation intégrée est arrêtée.")
+            }
+        }
         is SwitchStep.ConfirmClear -> ConfirmPanel(
             "Vider le stockage privé",
             s.message,
