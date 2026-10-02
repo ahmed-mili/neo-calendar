@@ -18,11 +18,11 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : BinaryWo
     private val root: Uri =
         DocumentsContract.buildDocumentUriUsingTree(treeUri, DocumentsContract.getTreeDocumentId(treeUri))
 
-    private class Doc(val uri: Uri, val name: String, val isDirectory: Boolean, val lastModified: Long)
+    private class Doc(val uri: Uri, val name: String, val isDirectory: Boolean, val lastModified: Long, val size: Long)
 
     override fun list(relativeDir: String): List<WorkspaceStorage.Entry> {
         val dir = findPath(relativeDir) ?: return emptyList()
-        return children(dir).map { WorkspaceStorage.Entry(it.name, it.isDirectory, it.lastModified) }
+        return children(dir).map { WorkspaceStorage.Entry(it.name, it.isDirectory, it.lastModified, it.size) }
     }
 
     override fun readText(relativePath: String): String? {
@@ -100,7 +100,8 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : BinaryWo
         return current
     }
 
-    private val listings = HashMap<Uri, List<Doc>>()
+    // Concurrent : `readTexts` du stockage en copie lit en parallèle, et chaque lecture remonte le chemin par `children`.
+    private val listings = java.util.concurrent.ConcurrentHashMap<Uri, List<Doc>>()
 
     private fun children(parent: Uri): List<Doc> = listings.getOrPut(parent) { query(parent) }
 
@@ -112,6 +113,7 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : BinaryWo
             DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_MIME_TYPE,
             DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+            DocumentsContract.Document.COLUMN_SIZE,
         )
         context.contentResolver.query(uri, columns, null, null, null)?.use { c ->
             while (c.moveToNext()) {
@@ -120,6 +122,7 @@ class SafWorkspaceStorage(private val context: Context, treeUri: Uri) : BinaryWo
                     c.getString(1),
                     c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR,
                     if (c.isNull(3)) 0L else c.getLong(3),
+                    if (c.isNull(4)) -1L else c.getLong(4),
                 )
             }
         }

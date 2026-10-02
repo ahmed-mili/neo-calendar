@@ -8,8 +8,17 @@ interface WorkspaceStorage {
     /** Texte UTF-8 d'un fichier, ou null s'il n'existe pas. */
     fun readText(relativePath: String): String?
 
-    /** `lastModified` en ms depuis 1970 quand le stockage le sait (0 sinon). */
-    data class Entry(val name: String, val isDirectory: Boolean, val lastModified: Long = 0L)
+    /**
+     * Les textes de plusieurs fichiers : même longueur et même ordre que `relativePaths`, null pour un absent.
+     * Par défaut en série ; un stockage peut les lire en parallèle sans changer l'ordre ni le résultat.
+     */
+    fun readTexts(relativePaths: List<String>): List<String?> = relativePaths.map { readText(it) }
+
+    /**
+     * `lastModified` en ms depuis 1970 quand le stockage le sait (0 sinon) ; `size` en octets quand il le sait
+     * (-1 sinon, et pour un dossier).
+     */
+    data class Entry(val name: String, val isDirectory: Boolean, val lastModified: Long = 0L, val size: Long = -1L)
 }
 
 /**

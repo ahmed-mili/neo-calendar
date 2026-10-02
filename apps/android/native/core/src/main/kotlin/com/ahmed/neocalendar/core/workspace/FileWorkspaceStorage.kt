@@ -46,7 +46,7 @@ class FileWorkspaceStorage(private val root: File) : BinaryWorkspaceStorage {
 
     override fun list(relativeDir: String): List<WorkspaceStorage.Entry> =
         (resolve(relativeDir).listFiles() ?: emptyArray())
-            .map { WorkspaceStorage.Entry(it.name, it.isDirectory, it.lastModified()) }
+            .map { WorkspaceStorage.Entry(it.name, it.isDirectory, it.lastModified(), if (it.isDirectory) -1L else it.length()) }
             .sortedBy { it.name.lowercase(Locale.ROOT) }
 
     override fun readText(relativePath: String): String? {

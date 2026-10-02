@@ -33,45 +33,49 @@ fun loadWorkspace(storage: WorkspaceStorage, keepConflictCopies: Boolean = false
     val ignored = { name: String -> isSyncArtifact(name) && !(keepConflictCopies && isConflictCopy(name)) }
     val children = storage.list("").filterNot { ignored(it.name) }
     val calendars = ArrayList<WorkspaceCalendar>()
-    val events = ArrayList<WorkspaceEventFile>()
+    val notes = ArrayList<PendingNote>()
     for (d in children) {
         if (!d.isDirectory || d.name.startsWith(".")) continue
         calendars += WorkspaceCalendar(d.name, d.name)
-        collectEvents(storage, d.name, d.name, events, ignored)
+        collectNotes(storage, d.name, d.name, notes, ignored)
     }
     if (calendars.isEmpty()) {
         calendars += WorkspaceCalendar("", "Default")
         for (f in children) {
             if (f.isDirectory || !isNote(f.name)) continue
-            events += WorkspaceEventFile(f.name, "", f.name, read(storage, f.name))
+            notes += PendingNote(f.name, "", f.name)
         }
+    }
+    // Tout est listé d'abord, puis toutes les notes sont lues en un appel : un stockage peut les lire en parallèle.
+    val texts = storage.readTexts(notes.map { it.path })
+    val events = notes.mapIndexed { i, n ->
+        WorkspaceEventFile(n.path, n.calendarPath, n.fileName, texts[i] ?: throw java.io.IOException("Lecture impossible : ${n.path}"))
     }
     return LoadedWorkspace(calendars, events, readPreferences(storage))
 }
 
 private fun isNote(name: String) = name.lowercase(java.util.Locale.ROOT).endsWith(".md")
 
-/** Un fichier listé mais illisible est une erreur, pas un texte vide. */
-private fun read(storage: WorkspaceStorage, path: String): String =
-    storage.readText(path) ?: throw java.io.IOException("Lecture impossible : $path")
+/** Une note listée, pas encore lue. */
+private class PendingNote(val path: String, val calendarPath: String, val fileName: String)
 
 /** Toutes les notes d'un calendrier, sous-dossiers compris ; le calendrier reste celui du dossier de tête. */
-private fun collectEvents(
+private fun collectNotes(
     storage: WorkspaceStorage,
     calendarPath: String,
     directory: String,
-    out: MutableList<WorkspaceEventFile>,
+    out: MutableList<PendingNote>,
     ignored: (String) -> Boolean,
 ) {
     for (f in storage.list(directory).filterNot { ignored(it.name) }) {
         val path = "$directory/${f.name}"
         if (f.isDirectory) {
             if (f.name.startsWith(".")) continue
-            collectEvents(storage, calendarPath, path, out, ignored)
+            collectNotes(storage, calendarPath, path, out, ignored)
             continue
         }
         if (!isNote(f.name)) continue
-        out += WorkspaceEventFile(path, calendarPath, f.name, read(storage, path))
+        out += PendingNote(path, calendarPath, f.name)
     }
 }
 
