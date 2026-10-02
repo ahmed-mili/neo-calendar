@@ -749,3 +749,12 @@ Synchronise : {n} % complet, 1 appareil connecté	Syncing: {n}% complete, 1 devi
 Synchronise : {n} % complet, {m} appareils connectés	Syncing: {n}% complete, {m} devices connected
 À jour, 1 appareil connecté	Up to date, 1 device connected
 À jour, {n} appareils connectés	Up to date, {n} devices connected
+Autoriser	Allow
+Plus tard	Later
+Dossier Neo Calendar	Neo Calendar folder
+Neo Calendar garde vos notes dans le dossier « Neo Calendar » du téléphone, visible dans vos fichiers : autorisez l'accès à tous les fichiers pour le lire.	Neo Calendar keeps your notes in the "Neo Calendar" folder of the phone, visible in your files: allow access to all files to read it.
+Vos notes actuelles sont copiées puis vérifiées, les originaux ne sont pas touchés.	Your current notes are copied then verified; the originals are not touched.
+Notes copiées dans le dossier « Neo Calendar » du téléphone. Les anciennes sont conservées.	Notes copied to the phone's "Neo Calendar" folder. The old ones are kept.
+Vos notes restent sur ce téléphone, dans un dossier visible.	Your notes stay on this phone, in a visible folder.
+Ouvrir le réglage de l'application	Open the app's setting
+Activer l'accès à tous les fichiers	Turn on access to all files
