@@ -266,10 +266,12 @@ fn qr_pairing_accepts_only_the_right_code_and_syncs_both_ways() {
     present(&bad_api, &bad_id, "Intrus [NC:AAAAAAAAAA]");
     present(&good_api, &good_id, &format!("Pixel 8 [NC:{code}]"));
 
-    // Le bon code est accepté sans question, avec le nom propre (sans code), et le dossier lui est partagé.
+    // Le bon code est accepté sans question, avec le nom propre (sans code), et le dossier lui est partagé. L'acceptation
+    // fait deux appels au moteur (l'appareil, puis le partage du dossier) : on attend les deux, pas seulement le premier.
     let end = Instant::now() + Duration::from_secs(90);
     loop {
-        if pc_api.devices().unwrap().iter().any(|d| d.id == good_id) {
+        let known = pc_api.devices().unwrap().iter().any(|d| d.id == good_id);
+        if known && pc_api.folders().unwrap()[0].device_ids.contains(&good_id) {
             break;
         }
         assert!(Instant::now() < end, "le téléphone n'a pas été accepté");
