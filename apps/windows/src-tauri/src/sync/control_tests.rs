@@ -632,10 +632,27 @@ fn changes_cross_within_seconds_and_the_interface_hears_of_each_received_file() 
     fs::remove_file(phone_notes.join("cree-par-le-tel.md")).unwrap();
     let watched_delete = timed("suppression téléphone (surveillant) -> PC", &|| !dirs.notes().join("cree-par-le-tel.md").exists());
 
+    // Une note ancienne supprimée hors de l'app : sans évènement récent sur elle, le surveillant la retient comme un
+    // possible renommage (`fsWatcherTimeoutS`), ce que l'app ramène au délai ordinaire.
+    fs::write(phone_notes.join("ancienne.md"), "ancienne").unwrap();
+    timed("note ancienne arrivée sur le PC", &|| dirs.notes().join("ancienne.md").is_file());
+    std::thread::sleep(Duration::from_secs(8));
+    fs::remove_file(phone_notes.join("ancienne.md")).unwrap();
+    let old_delete = timed("suppression d'une note ancienne (surveillant) -> PC", &|| !dirs.notes().join("ancienne.md").exists());
+    // Comme une vraie note : dans le dossier d'un calendrier.
+    fs::create_dir_all(dirs.notes().join("Divers")).unwrap();
+    fs::write(dirs.notes().join("Divers").join("ancienne-pc.md"), "ancienne").unwrap();
+    timed("note ancienne du PC arrivée sur le téléphone", &|| phone_notes.join("Divers").join("ancienne-pc.md").is_file());
+    std::thread::sleep(Duration::from_secs(10));
+    fs::remove_file(dirs.notes().join("Divers").join("ancienne-pc.md")).unwrap();
+    let old_pc_delete = timed("suppression d'une note ancienne du PC (surveillant) -> téléphone", &|| !phone_notes.join("Divers").join("ancienne-pc.md").exists());
+
     phone.stop();
     controller.shutdown();
     assert!(created < Duration::from_secs(1), "création par l'app : {created:?}");
     assert!(deleted < Duration::from_secs(1), "suppression par l'app : {deleted:?}");
     assert!(watched < Duration::from_millis(2_500), "création hors de l'app : {watched:?}");
     assert!(watched_delete < Duration::from_millis(2_500), "suppression hors de l'app : {watched_delete:?}");
+    assert!(old_delete < Duration::from_millis(2_500), "suppression d'une note ancienne hors de l'app : {old_delete:?}");
+    assert!(old_pc_delete < Duration::from_millis(2_500), "suppression d'une note ancienne du PC hors de l'app : {old_pc_delete:?}");
 }

@@ -44,6 +44,8 @@ class EngineConfigTest {
         assertEquals(0, f.getValue("pullerDelayS").jsonPrimitive.int)
         assertEquals(1, EngineConfig.fastWatch().getValue("fsWatcherDelayS").jsonPrimitive.int)
         assertEquals(0, EngineConfig.fastWatch().getValue("pullerDelayS").jsonPrimitive.int)
+        assertEquals(1, f.getValue("fsWatcherTimeoutS").jsonPrimitive.int)
+        assertEquals(1, EngineConfig.fastWatch().getValue("fsWatcherTimeoutS").jsonPrimitive.int)
         assertTrue(f.getValue("ignorePerms").jsonPrimitive.boolean)
         val versioning = f.getValue("versioning").jsonObject
         assertEquals("trashcan", versioning.getValue("type").jsonPrimitive.content)

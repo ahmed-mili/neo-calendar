@@ -13,6 +13,9 @@ pub const FOLDER_LABEL: &str = "Neo Calendar";
 /// Une modification faite hors de l'app (éditeur, explorateur) part au bout d'une seconde, pas des 10 s par défaut ;
 /// Syncthing retient une suppression six fois ce délai (60 s par défaut) pour reconnaître un renommage.
 pub const WATCH_DELAY_S: u64 = 1;
+/// Une suppression faite hors de l'app part aussi au bout d'une seconde : sans plafond, le surveillant la retient six
+/// fois `WATCH_DELAY_S` pour reconnaître un renommage (6,1 s mesurées le 2026-10-03 sur une note ancienne du PC).
+pub const WATCH_TIMEOUT_S: u64 = 1;
 /// Un fichier annoncé par un autre appareil est récupéré tout de suite : par défaut le moteur attend 1 s
 /// (`sync-waiting`) pour regrouper les annonces, ce qui faisait l'essentiel du délai d'une note créée sur l'autre appareil.
 pub const PULLER_DELAY_S: u64 = 0;
@@ -82,6 +85,7 @@ pub fn folder(id: &str, label: &str, path: &str, device_ids: &[String]) -> Value
         "type": "sendreceive",
         "fsWatcherEnabled": true,
         "fsWatcherDelayS": WATCH_DELAY_S,
+        "fsWatcherTimeoutS": WATCH_TIMEOUT_S,
         "pullerDelayS": PULLER_DELAY_S,
         "ignorePerms": true,
         "rescanIntervalS": 3600,
@@ -92,7 +96,7 @@ pub fn folder(id: &str, label: &str, path: &str, device_ids: &[String]) -> Value
 
 /// Le PATCH qui remet un dossier déjà déclaré (installation d'avant, dossier repris) aux délais de l'app.
 pub fn fast_watch() -> Value {
-    json!({ "fsWatcherDelayS": WATCH_DELAY_S, "pullerDelayS": PULLER_DELAY_S })
+    json!({ "fsWatcherDelayS": WATCH_DELAY_S, "fsWatcherTimeoutS": WATCH_TIMEOUT_S, "pullerDelayS": PULLER_DELAY_S })
 }
 
 /// La liste `devices` d'un dossier, sans doublon.
@@ -326,6 +330,8 @@ mod tests {
         assert_eq!(body["pullerDelayS"], 0, "un fichier annoncé est récupéré sans attendre");
         assert_eq!(fast_watch()["fsWatcherDelayS"], 1);
         assert_eq!(fast_watch()["pullerDelayS"], 0);
+        assert_eq!(body["fsWatcherTimeoutS"], 1, "une suppression n'est pas retenue six secondes");
+        assert_eq!(fast_watch()["fsWatcherTimeoutS"], 1);
         assert_eq!(body["versioning"]["type"], "trashcan");
         assert_eq!(body["versioning"]["params"]["cleanoutDays"], "30");
         assert_eq!(body["devices"].as_array().unwrap().len(), 2, "pas de doublon");

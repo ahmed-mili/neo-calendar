@@ -20,6 +20,9 @@ object EngineConfig {
     /** Une modification faite hors de l'app part au bout d'une seconde, pas des 10 s par défaut (suppression comprise). */
     const val WATCH_DELAY_S = 1
 
+    /** Sans plafond, une suppression faite hors de l'app est retenue six fois [WATCH_DELAY_S] (détection des renommages). */
+    const val WATCH_TIMEOUT_S = 1
+
     /**
      * Un fichier annoncé par un autre appareil est récupéré tout de suite : par défaut le moteur attend 1 s (`sync-waiting`)
      * pour regrouper les annonces, ce qui faisait l'essentiel du délai d'une note créée sur l'autre appareil.
@@ -69,6 +72,7 @@ object EngineConfig {
         put("type", "sendreceive")
         put("fsWatcherEnabled", true)
         put("fsWatcherDelayS", WATCH_DELAY_S)
+        put("fsWatcherTimeoutS", WATCH_TIMEOUT_S)
         put("pullerDelayS", PULLER_DELAY_S)
         put("ignorePerms", true)
         put("rescanIntervalS", 3600)
@@ -82,6 +86,7 @@ object EngineConfig {
     /** Le PATCH qui remet un dossier déjà déclaré (installation d'avant, dossier adopté) aux délais de l'app. */
     fun fastWatch(): JsonObject = buildJsonObject {
         put("fsWatcherDelayS", WATCH_DELAY_S)
+        put("fsWatcherTimeoutS", WATCH_TIMEOUT_S)
         put("pullerDelayS", PULLER_DELAY_S)
     }
 
