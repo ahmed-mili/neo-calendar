@@ -1,6 +1,7 @@
 package com.ahmed.neocalendar.nativeapp.ui.theme
 
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.BitmapFactory
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -24,23 +25,30 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ahmed.neocalendar.WallpaperStore
 import kotlinx.coroutines.Dispatchers
+import java.io.InputStream
 import kotlinx.coroutines.withContext
 
 /** Les photos vivent dans `.neo-calendar/wallpapers/` du dossier de notes (`WallpaperStore`), pas dans l'APK. */
 private fun decode(context: Context, name: String, width: Int, height: Int): ImageBitmap? {
     val store = WallpaperStore(context)
+    return decode({ store.open(name) }, width, height)
+}
+
+/** Décodée à la taille de l'écran ACTUEL (relue à chaque rotation : en paysage, la largeur est celle du grand côté). */
+private fun decode(open: () -> InputStream?, width: Int, height: Int): ImageBitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    val stream = store.open(name) ?: return null
+    val stream = open() ?: return null
     stream.use { BitmapFactory.decodeStream(it, null, bounds) }
     if (bounds.outWidth <= 0) return null
     var sample = 1
     while (bounds.outWidth / (sample * 2) >= width && bounds.outHeight / (sample * 2) >= height) sample *= 2
     val options = BitmapFactory.Options().apply { inSampleSize = sample }
-    return store.open(name)?.use { BitmapFactory.decodeStream(it, null, options) }?.asImageBitmap()
+    return open()?.use { BitmapFactory.decodeStream(it, null, options) }?.asImageBitmap()
 }
 
 /**
@@ -50,6 +58,8 @@ private fun decode(context: Context, name: String, width: Int, height: Int): Ima
  * `onSettled` : la photo est décodée (ou il n'y en a pas à décoder : fond uni, aucun dossier, fichier absent) ; la photo
  * apparaît en fondu quand elle arrive après le premier dessin.
  * Sous Android 12 `Modifier.blur` ne fait rien : le fond reste net, la luminosité et le voile s'appliquent.
+ * Tablette en paysage (un téléphone reste en portrait) : la version paysage du fond, téléchargée une fois en arrière-plan ;
+ * en attendant, le portrait recadré, pour que le premier écran n'attende jamais le réseau.
  */
 @Composable
 fun WallpaperLayer(reloadKey: Any? = null, modifier: Modifier = Modifier, onSettled: () -> Unit = {}) {
@@ -58,18 +68,28 @@ fun WallpaperLayer(reloadKey: Any? = null, modifier: Modifier = Modifier, onSett
     val effects = NeoAppearance.effects
     val id = NeoAppearance.wallpaperId
     val solid = id == "none"
-    val metrics = context.resources.displayMetrics
-    val bitmap by produceState<ImageBitmap?>(null, id, reloadKey) {
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val bitmap by produceState<ImageBitmap?>(null, id, reloadKey, landscape) {
+        val own = if (id == "theme-default") tokens.themeWallpaperFile else "$id.jpg"
+        val metrics = context.resources.displayMetrics
+        val width = metrics.widthPixels
+        val height = metrics.heightPixels
         value = if (solid) null else withContext(Dispatchers.IO) {
             try {
-                val own = if (id == "theme-default") tokens.themeWallpaperFile else "$id.jpg"
-                decode(context, own, metrics.widthPixels, metrics.heightPixels)
-                    ?: decode(context, tokens.themeWallpaperFile, metrics.widthPixels, metrics.heightPixels)
+                val wide = if (landscape) WallpaperDownloads.landscapeLocal(context, own) else null
+                wide?.let { file -> decode({ file.inputStream() }, width, height) }
+                    ?: decode(context, own, width, height)
+                    ?: decode(context, tokens.themeWallpaperFile, width, height)
             } catch (e: Exception) {
                 null
             }
         }
         onSettled()
+        // Première rotation en paysage avec ce fond : la version paysage arrive après coup et remplace le portrait recadré.
+        if (!solid && landscape && WallpaperDownloads.landscapeLocal(context, own) == null) {
+            val fetched = withContext(Dispatchers.IO) { WallpaperDownloads.landscape(context, own) }
+            if (fetched != null) withContext(Dispatchers.IO) { decode({ fetched.inputStream() }, width, height) }?.let { value = it }
+        }
     }
     val photoAlpha by animateFloatAsState(if (bitmap != null) 1f else 0f, tween(300), label = "photo")
     BoxWithConstraints(modifier.fillMaxSize().clipToBounds().background(tokens.background)) {

@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.ahmed.neocalendar.WallpaperStore
+import java.io.File
 import org.json.JSONObject
 
 /**
@@ -36,6 +37,36 @@ object WallpaperDownloads {
         null
     } catch (e: Exception) {
         e.message ?: "failed"
+    }
+
+    /** `x-portrait.jpg` -> `x.jpg` : la version paysage du même fond (le dépôt livre les deux), ou null. */
+    fun landscapeOf(file: String): String? = if (file.endsWith("-portrait.jpg")) file.removeSuffix("-portrait.jpg") + ".jpg" else null
+
+    private fun landscapeDir(context: Context) = File(context.filesDir, "wallpapers-landscape")
+
+    /** La version paysage déjà téléchargée, ou null (disque seulement : jamais de réseau sur le chemin du premier écran). */
+    fun landscapeLocal(context: Context, portraitFile: String): File? =
+        landscapeOf(portraitFile)?.let { File(landscapeDir(context), it) }?.takeIf { it.isFile }
+
+    /**
+     * Télécharge la version paysage d'un fond, pour une tablette tournée. Gardée dans le stockage privé de l'app, jamais
+     * dans le dossier de notes : elle ne sert qu'à cet appareil et n'a pas à voyager vers le téléphone et le PC. Empreinte
+     * vérifiée comme pour les portraits. Hors du fil principal ; null si rien n'a pu être téléchargé.
+     */
+    @Synchronized
+    fun landscape(context: Context, portraitFile: String): File? {
+        landscapeLocal(context, portraitFile)?.let { return it }
+        val name = landscapeOf(portraitFile) ?: return null
+        return try {
+            val body = WallpaperStore(context).fetchVerified(SOURCE + name, shaOf(context, name))
+            val dir = landscapeDir(context).apply { mkdirs() }
+            val tmp = File(dir, "$name.tmp")
+            tmp.writeBytes(body)
+            val target = File(dir, name)
+            if (tmp.renameTo(target)) target else { tmp.delete(); null }
+        } catch (_: Exception) {
+            null
+        }
     }
 
     /** La vignette livrée dans l'APK (`thumbs/<fichier>`), décodée une fois. */

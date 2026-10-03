@@ -74,10 +74,16 @@ class WallpaperStore(private val context: Context) {
         } catch (e: Exception) {
             throw IOException("no-folder")
         }
+        val body = fetchVerified(url, sha256)
+        StorageGate.writing { publish(name, body) }
+    }
+
+    /** Télécharge et vérifie l'empreinte ; rien n'est écrit. Sert aussi aux versions paysage gardées hors du dossier de notes. */
+    fun fetchVerified(url: String, sha256: String?): ByteArray {
         val body = fetch(url)
         val actual = MessageDigest.getInstance("SHA-256").digest(body).joinToString("") { "%02x".format(it) }
         if (!sha256.isNullOrEmpty() && !actual.equals(sha256, ignoreCase = true)) throw IOException("checksum")
-        StorageGate.writing { publish(name, body) }
+        return body
     }
 
     /** Écrit le fond dans le stockage courant ; appelé dans la porte d'écriture (jamais pendant un changement de stockage). */

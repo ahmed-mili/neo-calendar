@@ -30,6 +30,7 @@ class NativeActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        lockPortraitOnPhones()
         com.ahmed.neocalendar.nativeapp.ui.Translator.load(this)
         NeoAppearance.load(this)
         // Barres transparentes sur le fond d'écran, icônes claires, contraste forcé coupé.
