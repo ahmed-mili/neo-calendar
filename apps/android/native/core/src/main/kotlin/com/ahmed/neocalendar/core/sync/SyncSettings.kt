@@ -3,8 +3,11 @@ package com.ahmed.neocalendar.core.sync
 /** Les réglages de la synchronisation intégrée, sur cet appareil seulement (jamais dans le dossier de notes). */
 data class SyncSettings(
     val runMode: RunMode = RunMode.LikeFork,
-    /** Démarrer aussi à l'allumage du téléphone (mode LikeFork). Désactivé par défaut, comme Syncthing-Fork. */
-    val autoStart: Boolean = false,
+    /**
+     * Démarrer aussi à l'allumage du téléphone (mode LikeFork). Activé par défaut depuis la 1.91.11 : la synchro doit être
+     * en temps réel, y compris après un redémarrage, sans attendre qu'on rouvre l'app.
+     */
+    val autoStart: Boolean = true,
     val conditions: RunConditions = RunConditions(),
     /** Le port d'écoute (TCP et QUIC), choisi à la première mise en route et gardé ; 0 = pas encore choisi. */
     val listenPort: Int = 0,

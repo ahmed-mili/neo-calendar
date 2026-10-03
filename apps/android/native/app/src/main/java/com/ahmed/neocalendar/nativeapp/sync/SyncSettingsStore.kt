@@ -11,6 +11,15 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /** Les réglages de synchro dans `SharedPreferences` (`neo_sync`), lus une fois et suivis par un flux. */
 class SyncSettingsStore(context: Context) {
+    private companion object {
+        /**
+         * Le démarrage automatique, sous une clé neuve : chaque modification de la synchro réécrivait tous les réglages, donc
+         * `autoStart = false` (l'ancien défaut) figure chez tout le monde sans distinguer un choix. L'ancienne clé est
+         * ignorée : chaque appareil repart une fois avec le démarrage automatique activé, et tout choix fait ensuite est gardé.
+         */
+        const val AUTO_START_KEY = "autoStartOn"
+    }
+
     private val prefs = context.applicationContext.getSharedPreferences("neo_sync", Context.MODE_PRIVATE)
     private val _settings = MutableStateFlow(read())
     val settings: StateFlow<SyncSettings> = _settings.asStateFlow()
@@ -22,7 +31,7 @@ class SyncSettingsStore(context: Context) {
         val c = d.conditions
         return SyncSettings(
             runMode = RunMode.entries.firstOrNull { it.name == prefs.getString("runMode", null) } ?: d.runMode,
-            autoStart = prefs.getBoolean("autoStart", d.autoStart),
+            autoStart = prefs.getBoolean(AUTO_START_KEY, d.autoStart),
             conditions = RunConditions(
                 onWifi = prefs.getBoolean("onWifi", c.onWifi),
                 onMeteredWifi = prefs.getBoolean("onMeteredWifi", c.onMeteredWifi),
@@ -43,7 +52,7 @@ class SyncSettingsStore(context: Context) {
         if (next == _settings.value) return
         prefs.edit()
             .putString("runMode", next.runMode.name)
-            .putBoolean("autoStart", next.autoStart)
+            .putBoolean(AUTO_START_KEY, next.autoStart)
             .putBoolean("onWifi", next.conditions.onWifi)
             .putBoolean("onMeteredWifi", next.conditions.onMeteredWifi)
             .putBoolean("onMobileData", next.conditions.onMobileData)
