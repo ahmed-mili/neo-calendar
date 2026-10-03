@@ -234,7 +234,7 @@ class SyncController private constructor(context: Context) {
     private suspend fun reconcileLocked() {
         val s = settings.value
         val integrated = WorkspaceLocation.mode(app) == StorageMode.Integrated
-        val decision = decideRun(s.conditions, monitor.snapshot())
+        val decision = decideRun(s.conditions, monitor.snapshot(), pairing = pairingHeld || (pageOpen && appVisible))
         _decision.value = decision
         val running = decision is RunDecision.Run
         val open = appVisible || SystemClock.elapsedRealtime() < graceUntil

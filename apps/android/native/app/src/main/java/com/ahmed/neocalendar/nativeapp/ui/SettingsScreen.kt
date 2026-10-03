@@ -511,9 +511,11 @@ internal class GroupBuilder {
                         if (value != null) SText(value, color = Neo.TextFaint, size = 12f, maxLines = 1)
                     }
                 } else {
-                    SText(label, Modifier.weight(1f), lineHeight = 19.5f)
+                    // Avec une valeur, le libellé garde sa largeur (il ne se coupe jamais au milieu d'un mot) et la valeur prend le reste, tronquée.
+                    val hasValue = !value.isNullOrEmpty()
+                    SText(label, if (hasValue) Modifier else Modifier.weight(1f), lineHeight = 19.5f)
                     // La grille de l'ancienne a quatre colonnes (`auto 1fr auto auto`, gap 12) : une colonne vide garde son espacement.
-                    if (!value.isNullOrEmpty()) SText(value, Modifier.widthIn(max = 200.dp), color = Neo.SettingsValue, size = valueSize, maxLines = 1, align = TextAlign.End)
+                    if (hasValue) SText(value, Modifier.weight(1f), color = Neo.SettingsValue, size = valueSize, maxLines = 1, align = TextAlign.End)
                     else Spacer(Modifier.width(0.dp))
                 }
                 // Le chevron de l'ancienne (`navigates`) : toutes les lignes qui mènent quelque part, y compris celles qui ne mènent encore à rien.

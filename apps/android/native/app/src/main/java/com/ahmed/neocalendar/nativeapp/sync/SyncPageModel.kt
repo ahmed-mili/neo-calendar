@@ -3,6 +3,7 @@ package com.ahmed.neocalendar.nativeapp.sync
 import android.content.Context
 import com.ahmed.neocalendar.core.sync.ConfiguredFolder
 import com.ahmed.neocalendar.core.sync.EngineState
+import com.ahmed.neocalendar.core.sync.RunDecision
 import com.ahmed.neocalendar.core.sync.FolderLostException
 import com.ahmed.neocalendar.core.sync.PairingFollowUp
 import com.ahmed.neocalendar.core.sync.PairingName
@@ -144,6 +145,11 @@ class SyncPageModel(context: Context) {
     suspend fun pairWithPc(scanned: String): String? = withContext(Dispatchers.IO) {
         val payload = PairingPayload.parse(scanned)
             ?: return@withContext "Ce QR code n'est pas celui d'un PC Neo Calendar. Sur le PC : Réglages, Synchronisation, « Ajouter le téléphone »."
+        // Pause pour une raison réseau : inutile d'attendre 30 s, on dit laquelle et où la changer.
+        if (controller.engine.api == null) {
+            val paused = controller.decision.value as? RunDecision.Pause
+            if (paused != null && paused.reason.network) return@withContext "En pause : ${paused.reason.label}. Changez « Synchroniser » dans Fonctionnement."
+        }
         // Le moteur peut encore démarrer (retour du scanner) : on l'attend au lieu d'échouer aussitôt.
         if (controller.engine.api == null) {
             withTimeoutOrNull(ENGINE_WAIT_MS) { controller.engine.state.first { it is EngineState.Running && controller.engine.api != null } }

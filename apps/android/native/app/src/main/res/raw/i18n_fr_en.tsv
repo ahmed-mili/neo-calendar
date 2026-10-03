@@ -621,7 +621,7 @@ Ce fuseau est inconnu. Écrivez un nom comme Europe/Paris ou America/New_York.	U
 Quitter	Quit
 Démarrage…	Starting…
 À jour	Up to date
-Aucun appareil : la synchronisation est arrêtée	No device: synchronization is stopped
+Aucun appareil : appairez le PC pour synchroniser	No device: pair your PC to sync
 Synchronisation en cours (1 fichier)	Syncing (1 file)
 Synchronisation en cours ({n} fichiers)	Syncing ({n} files)
 Hors ligne : aucun appareil connecté	Offline: no device connected
@@ -758,3 +758,7 @@ Notes copiées dans le dossier « Neo Calendar » du téléphone. Les anciennes 
 Vos notes restent sur ce téléphone, dans un dossier visible.	Your notes stay on this phone, in a visible folder.
 Ouvrir le réglage de l'application	Open the app's setting
 Activer l'accès à tous les fichiers	Turn on access to all files
+En pause : hors ligne. Changez « Synchroniser » dans Fonctionnement.	Paused: offline. Change "Sync" in Operation.
+En pause : Wi-Fi non autorisé. Changez « Synchroniser » dans Fonctionnement.	Paused: Wi-Fi not allowed. Change "Sync" in Operation.
+En pause : Wi-Fi limité non autorisé. Changez « Synchroniser » dans Fonctionnement.	Paused: metered Wi-Fi not allowed. Change "Sync" in Operation.
+En pause : données mobiles non autorisées. Changez « Synchroniser » dans Fonctionnement.	Paused: mobile data not allowed. Change "Sync" in Operation.
