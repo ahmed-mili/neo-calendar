@@ -12,7 +12,8 @@ class StatusLineTest {
         decision: RunDecision = RunDecision.Run,
         folder: FolderState? = idle,
         connected: Boolean = true,
-    ) = summarize(hasDevices, engine, decision, folder, connected)
+        offered: Boolean = false,
+    ) = summarize(hasDevices, engine, decision, folder, connected, offered)
 
     @Test fun `a jour`() { assertEquals(StatusLine.UpToDate, line()); assertEquals("À jour", line().text()) }
 
@@ -44,7 +45,17 @@ class StatusLineTest {
 
     @Test fun `demarrage tant que le moteur ne repond pas`() {
         assertEquals(StatusLine.Starting, line(engine = EngineState.Starting, folder = null))
-        assertEquals(StatusLine.Starting, line(folder = null))
+        assertEquals(StatusLine.Starting, line(engine = EngineState.Starting, folder = null, offered = true))
+    }
+
+    @Test fun `moteur pret sans dossier, proposition en attente`() {
+        assertEquals(StatusLine.FolderOffered, line(folder = null, offered = true))
+        assertEquals("Le PC propose le dossier Neo Calendar : acceptez-le dans Synchronisation", line(folder = null, offered = true).text())
+    }
+
+    @Test fun `moteur pret sans dossier ni proposition, attente du PC`() {
+        assertEquals(StatusLine.WaitingForPc, line(folder = null))
+        assertEquals("En attente du PC : acceptez ce téléphone sur le PC", line(folder = null).text())
     }
 
     @Test fun `binaire absent`() {

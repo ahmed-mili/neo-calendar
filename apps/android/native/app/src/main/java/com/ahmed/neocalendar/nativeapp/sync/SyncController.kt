@@ -82,6 +82,9 @@ class SyncController private constructor(context: Context) {
     @Volatile var lastFolderState: FolderState? = null
         private set
     @Volatile var anyDeviceConnected: Boolean = false
+
+    /** Un appareil propose un dossier que le téléphone n'a pas encore accepté. */
+    @Volatile var folderOffered: Boolean = false
         private set
 
     /** Un fichier est arrivé d'un autre appareil : regroupé sur 1 s avant de relire le dossier (une rafale de fichiers = une relecture). */
@@ -255,6 +258,7 @@ class SyncController private constructor(context: Context) {
         eventJob = null
         lastFolderState = null
         anyDeviceConnected = false
+        folderOffered = false
     }
 
     private fun startEventLoop() {
@@ -301,6 +305,7 @@ class SyncController private constructor(context: Context) {
             lastFolderState = folder?.let { api.folderState(it.id) }
             val connected = api.connections().filterKeys { it != me }.count { it.value }
             anyDeviceConnected = connected > 0
+            folderOffered = folder == null && devices.any { api.pendingFolders(it.id).isNotEmpty() }
             val percent = folder?.let { runCatching { api.localCompletion(it.id).toInt().coerceIn(0, 100) }.getOrNull() } ?: _progress.value.percent
             _progress.value = SyncProgress(percent, connected)
             if (devices.isNotEmpty() != settings.value.configured) settings.update { it.copy(configured = devices.isNotEmpty()) }
@@ -320,7 +325,7 @@ class SyncController private constructor(context: Context) {
 
     internal fun publishStatus() {
         val s = settings.value
-        _status.value = summarize(s.configured, engine.state.value, _decision.value, lastFolderState, anyDeviceConnected)
+        _status.value = summarize(s.configured, engine.state.value, _decision.value, lastFolderState, anyDeviceConnected, folderOffered)
     }
 
     companion object {
