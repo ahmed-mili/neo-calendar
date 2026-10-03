@@ -4,10 +4,12 @@ import {
     Copy,
     FileText,
     FolderSync,
+    Monitor,
     Plus,
     Power,
     QrCode,
     RefreshCw,
+    Share2,
     Smartphone,
     Undo2,
 } from "lucide-react";
@@ -131,6 +133,96 @@ function ShareIdButton({
             {copied ? <Check size={16} /> : <Copy size={16} />}
             {copied ? t("ID copied") : t("Copy")}
         </button>
+    );
+}
+
+/** Le partage natif, seulement s'il existe vraiment dans cette WebView (WebView2 ne l'offre pas toujours). */
+const canShareNatively = () =>
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function" &&
+    (typeof navigator.canShare !== "function" ||
+        navigator.canShare({ text: "x" }));
+
+/** Le contenu de « Mon ID » : le QR à gauche avec son compte à rebours, l'identité de ce PC à droite. */
+export function PairingBody({
+    pairing,
+    id,
+    deviceName,
+    copy,
+}: {
+    pairing: SyncPairingDto;
+    id: string;
+    deviceName: string | null;
+    copy: (id: string) => Promise<boolean>;
+}) {
+    const seconds = Math.max(1, Math.round(pairing.refreshInMs / 1000));
+    const share = canShareNatively();
+    const groups = id.split("-");
+    return (
+        <div className="nc-sync-pairing">
+            <div className="nc-sync-pairing__qr">
+                <img
+                    className="nc-sync-qr"
+                    src={svgDataUrl(pairing.qrSvg)}
+                    alt={t("QR code to pair the phone")}
+                    width={280}
+                    height={280}
+                />
+                <span
+                    className="nc-sync-timer__bar"
+                    role="presentation"
+                    aria-hidden="true"
+                >
+                    <span
+                        key={pairing.qrSvg}
+                        style={{
+                            animationDuration: `${pairing.refreshInMs}ms`,
+                        }}
+                    />
+                </span>
+            </div>
+            <div className="nc-sync-pairing__info">
+                {deviceName && (
+                    <p className="nc-sync-pc-name">
+                        <Monitor size={18} aria-hidden="true" />
+                        {deviceName}
+                    </p>
+                )}
+                <code className="nc-sync-id nc-sync-id--full">
+                    {groups.map((group, index) => (
+                        <span key={index}>
+                            {group}
+                            {index < groups.length - 1 ? "-" : ""}
+                            <wbr />
+                        </span>
+                    ))}
+                </code>
+                <div className="nc-sync-actions">
+                    <ShareIdButton id={id} copy={copy} />
+                    {share && (
+                        <button
+                            type="button"
+                            className="nc-sync-share"
+                            onClick={() =>
+                                void navigator
+                                    .share({ title: "Neo Calendar", text: id })
+                                    .catch(() => undefined)
+                            }
+                        >
+                            <Share2 size={16} />
+                            {t("Share")}
+                        </button>
+                    )}
+                </div>
+                <p className="nc-sync-scan">
+                    {t("Scan this QR code with Neo Calendar on your phone.")}{" "}
+                    {t("The code changes every {n} seconds.").replace(
+                        "{n}",
+                        String(seconds)
+                    )}
+                </p>
+            </div>
+        </div>
     );
 }
 
@@ -433,32 +525,12 @@ export function SyncPageView({
                     title={t("My ID")}
                     onClose={actions.closePairing}
                 >
-                    <div className="nc-sync-pairing">
-                        {status.deviceName && (
-                            <p className="nc-sync-pc-name">
-                                {status.deviceName}
-                            </p>
-                        )}
-                        <code className="nc-sync-id nc-sync-id--full">
-                            {status.myId ?? pairing.myId}
-                        </code>
-                        <ShareIdButton
-                            id={status.myId ?? pairing.myId}
-                            copy={actions.copyId}
-                        />
-                        <img
-                            className="nc-sync-qr"
-                            src={svgDataUrl(pairing.qrSvg)}
-                            alt={t("QR code to pair the phone")}
-                            width={220}
-                            height={220}
-                        />
-                        <p>
-                            {t(
-                                "Scan this QR code with Neo Calendar on your phone. It changes every 25 seconds."
-                            )}
-                        </p>
-                    </div>
+                    <PairingBody
+                        pairing={pairing}
+                        id={status.myId ?? pairing.myId}
+                        deviceName={status.deviceName}
+                        copy={actions.copyId}
+                    />
                 </SettingsDialog>
             )}
 

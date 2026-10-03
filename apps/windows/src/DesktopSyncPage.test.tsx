@@ -222,13 +222,16 @@ describe("page Synchronisation du PC", () => {
             status: status({ pairingRemainingMs: 90_000 }),
         });
         expect(html).toContain("Mon ID");
-        expect(html).toContain("7ZSUPCU-MIU3GEY");
+        expect(html.replace(/<[^>]+>/g, "")).toContain(
+            "7ZSUPCU-MIU3GEY-RKFNTSV"
+        );
         expect(html).toContain("nc-sync-id--full");
         expect(html).toContain("Copier");
         expect(html).toContain("<img");
         expect(html).toContain("data:image/svg+xml");
         expect(html).not.toContain("<script");
-        expect(html).toContain("change toutes les 25 secondes");
+        expect(html).toContain("Le code change toutes les 25 secondes.");
+        expect(html).toContain("animation-duration:25000ms");
         expect(html).not.toContain("expire dans");
     });
 
