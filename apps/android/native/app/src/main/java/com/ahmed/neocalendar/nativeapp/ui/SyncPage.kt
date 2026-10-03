@@ -83,14 +83,14 @@ private sealed interface SyncSheet {
 
 /** La page Synchronisation (Réglages). Stockage externe : seulement le choix du mode ; stockage privé : tout le reste. */
 @Composable
-internal fun SyncPage(switchActions: SyncSwitchActions) {
+internal fun SyncPage(switchActions: SyncSwitchActions, onPickFolder: () -> Unit = {}) {
     val context = LocalContext.current
     if (WorkspaceLocation.mode(context) == StorageMode.Integrated) IntegratedSyncPage(switchActions)
-    else ExternalSyncPage(switchActions)
+    else ExternalSyncPage(switchActions, onPickFolder)
 }
 
 @Composable
-private fun ExternalSyncPage(actions: SyncSwitchActions) {
+private fun ExternalSyncPage(actions: SyncSwitchActions, onPickFolder: () -> Unit) {
     val context = LocalContext.current
     val folderName = WorkspaceLocation.displayName(context)
     // Des notes restées dans le stockage privé d'un passage précédent : on propose de les vider (jamais automatiquement).
@@ -100,7 +100,7 @@ private fun ExternalSyncPage(actions: SyncSwitchActions) {
     }
     SyncHeader("Le dossier de Neo Calendar est synchronisé par une autre application")
     Group(null) {
-        row(NeoIcons.FolderOpen, "Dossier de notes", folderName, chevron = false, onClick = null)
+        row(NeoIcons.FolderOpen, "Dossier de notes", folderName, onClick = onPickFolder)
         row(null, "Passer à la synchronisation intégrée", null, iconContent = { Icon(SyncthingLogo, null, tint = Color.Unspecified, modifier = Modifier.size(20.dp)) }, onClick = actions.onSwitchToIntegrated)
         if (leftover) row(NeoIcons.Trash2, "Vider le stockage privé", "Notes d'un passage précédent", chevron = false, onClick = actions.onClearPrivate)
     }

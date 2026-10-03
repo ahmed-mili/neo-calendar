@@ -180,7 +180,7 @@ fun SettingsScreen(version: String, data: WorkspaceData, hiddenIds: Set<String>,
 
     Column(Modifier.fillMaxSize().background(Neo.Mantle)) {
         SettingsHeader(
-            when (page) { "calendars" -> "Calendriers"; "folder" -> "Dossier de données"; "appearance" -> "Apparence"; "timezones" -> "Fuseaux horaires"; "vaults" -> "Coffres Obsidian"; "sync" -> "Synchronisation"; else -> "Paramètres" },
+            when (page) { "calendars" -> "Calendriers"; "appearance" -> "Apparence"; "timezones" -> "Fuseaux horaires"; "sync" -> "Synchronisation"; else -> "Paramètres" },
             onBack = { if (page.isNotEmpty()) page = "" else onBack() },
         )
         // La page racine garde son défilement ; une sous-page s'ouvre toujours en haut (chaque `.nc-settings__page` a son propre défilement).
@@ -211,9 +211,7 @@ fun SettingsScreen(version: String, data: WorkspaceData, hiddenIds: Set<String>,
                 when (shown) {
                     "calendars" -> CalendarsPage(data, hiddenIds, actions, { choice = it }, { confirm = "applyIcs" })
                     "timezones" -> TimezonesPage(data, actions)
-                    "folder" -> FolderPage(actions)
-                    "vaults" -> VaultsPage()
-                    "sync" -> SyncPage(actions.sync)
+                    "sync" -> SyncPage(actions.sync, actions.onPickFolder)
                     "appearance" -> AppearancePage { choice = "theme" }
                     else -> RootPage(data, actions, version, misfiled, converted, { page = it }, { choice = it }, { converted = null; confirm = "convert" })
                 }
@@ -312,33 +310,25 @@ private fun RootPage(
         // Offerte seulement s'il y a quelque chose à réparer : une ligne qui dit « 0 » invite à l'appuyer pour rien.
         if (misfiled > 0) row(NeoIcons.Check, "Reconvertir les tâches horaires en événements", misfiled.toString(), onClick = openConvert)
     }
+    Group("Synchronisation") {
+        row(NeoIcons.RefreshCw, "Synchronisation", null) { openPage("sync") }
+    }
+    Group("Calendriers") {
+        row(NeoIcons.CalendarDays, "Calendriers", data.calendars.size.toString()) { openPage("calendars") }
+    }
     Group("Apparence") {
         row(NeoIcons.Palette, "Thème", NeoAppearance.theme.label) { openPage("appearance") }
         row(NeoIcons.Moon, "Mode de couleur", MODES.label(NeoAppearance.preferences.mode.key)) { openChoice("mode") }
         row(NeoIcons.Languages, "Langue", LANGUAGE_OPTIONS.label(AppLanguage.code)) { openChoice("language") }
     }
-    Group("Intégrations") {
-        row(NeoIcons.CalendarDays, "Calendriers", data.calendars.size.toString()) { openPage("calendars") }
+    Group("Fuseaux horaires") {
         row(NeoIcons.Globe, "Fuseaux horaires", if (data.secondaryTimezones.isEmpty()) "Aucun" else data.secondaryTimezones.size.toString()) { openPage("timezones") }
-    }
-    Group("Données") {
-        row(NeoIcons.FolderOpen, "Dossier de données", actions.folderName) { openPage("folder") }
-        // Coffres Obsidian : la page de l'ancienne s'ouvre, mais ajouter un dossier est sans effet sur téléphone.
-        row(NeoIcons.Library, "Coffres Obsidian", "Aucun dossier") { openPage("vaults") }
-        row(NeoIcons.RefreshCw, "Synchronisation", null) { openPage("sync") }
     }
     // Seule l'ancienne version (autre paquet) y figure, et seulement tant qu'elle est installée.
     if (actions.oldAppInstalled) Group("Application") {
         row(NeoIcons.Trash2, "Ancienne version encore installée", "Désinstaller", chevron = false, onClick = actions.onUninstallOldApp)
     }
     SText(version, Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp), color = Neo.TextFaint, size = 12f, align = TextAlign.Center)
-}
-
-@Composable
-private fun VaultsPage() {
-    Group(null, note = "Ajoutez le dossier qui contient vos coffres Obsidian. Ceux qui s'y trouvent directement et possèdent un dossier .obsidian sont détectés.") {
-        row(null, "Ajouter un dossier", null, chevron = false, onClick = null)
-    }
 }
 
 private fun List<Option>.label(value: String) = firstOrNull { it.value == value }?.label.orEmpty()
@@ -489,20 +479,6 @@ private fun ZoneRow(shape: Shape, zone: String, onRemove: () -> Unit) {
             Modifier.size(38.dp).pressFill(RoundedCornerShape(10.dp), Neo.Hover, onClick = onRemove).semantics { contentDescription = "Retirer $zone"; role = Role.Button },
             contentAlignment = Alignment.Center,
         ) { Icon(NeoIcons.Close, null, tint = Neo.TextSecondary, modifier = Modifier.size(16.dp)) }
-    }
-}
-
-@Composable
-private fun FolderPage(actions: SettingsActions) {
-    if (actions.integratedStorage) {
-        Group(null, note = "Vos notes sont dans le stockage privé de Neo Calendar, que les autres applications ne peuvent pas lire.\nElles se synchronisent avec la synchronisation intégrée (Réglages, Synchronisation).") {
-            text(actions.folderName)
-        }
-        return
-    }
-    Group(null, note = "Neo Calendar range ses fichiers de calendrier dans ce dossier. Chaque sous-dossier direct est un calendrier.") {
-        text(actions.folderName)
-        row(NeoIcons.FolderOpen, "Changer de dossier", null, chevron = false, onClick = actions.onPickFolder)
     }
 }
 
