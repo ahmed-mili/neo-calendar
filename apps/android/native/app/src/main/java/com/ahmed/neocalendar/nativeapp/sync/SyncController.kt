@@ -106,6 +106,13 @@ class SyncController private constructor(context: Context) {
      * = une relecture ; la relecture ne réanalyse que les notes changées, grâce à la copie des notes lues).
      */
     private val remoteChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    /**
+     * L'état du moteur est à relire (ligne d'état, notification). Hors de la boucle d'écoute : cette relecture (une dizaine de
+     * requêtes, dont la complétion du dossier) prend 1 à 2 s sur un téléphone, et faite DANS la boucle elle retenait d'autant le
+     * `ItemFinished` du fichier reçu, donc son affichage.
+     */
+    private val refreshRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
     /** L'app vient d'écrire dans le dossier de notes : un scan pendant qu'un autre tourne se réduit à un scan de plus. */
     private val localChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private var eventJob: Job? = null
@@ -313,22 +320,28 @@ class SyncController private constructor(context: Context) {
                 // Le moteur n'est pas prêt : la boucle réessaie plus bas.
             }
             refreshFromEngine(api)
-            while (isActive && engine.api === api) {
-                try {
-                    val events = api.events(since, 30, ENGINE_EVENT_TYPES)
-                    val folderId = lastFolderId
-                    for (event in events) {
-                        since = maxOf(since, event.id)
-                        if (isRemoteChange(event, folderId)) remoteChanges.tryEmit(Unit)
+            val refresher = launch { refreshRequests.collect { refreshFromEngine(api) } }
+            try {
+                while (isActive && engine.api === api) {
+                    try {
+                        val events = api.events(since, 30, ENGINE_EVENT_TYPES)
+                        val folderId = lastFolderId
+                        for (event in events) {
+                            since = maxOf(since, event.id)
+                            if (isRemoteChange(event, folderId)) remoteChanges.tryEmit(Unit)
+                        }
+                        // La boucle repart aussitôt écouter : un fichier reçu pendant la relecture de l'état est vu sans attendre.
+                        refreshRequests.tryEmit(Unit)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        // Flux coupé (moteur qui redémarre, erreur de lecture) : on reprend, à intervalle espacé.
+                        if (engine.api !== api) break
+                        delay(2_000)
                     }
-                    refreshFromEngine(api)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    // Flux coupé (moteur qui redémarre, erreur de lecture) : on reprend, à intervalle espacé.
-                    if (engine.api !== api) break
-                    delay(2_000)
                 }
+            } finally {
+                refresher.cancel()
             }
         }
     }
