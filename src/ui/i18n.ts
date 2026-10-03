@@ -623,10 +623,9 @@ const FR: Record<string, string> = {
     Log: "Journal",
     "The log is empty.": "Le journal est vide.",
     "Learn more": "En savoir plus",
-    "Scan this QR code with Neo Calendar on your phone.":
-        "Scannez ce QR code avec Neo Calendar sur votre téléphone.",
-    "The code changes every {n} seconds.":
-        "Le code change toutes les {n} secondes.",
+    "On your other device, open Neo Calendar, then Settings, Synchronization, Add a device: scan this QR code or paste the ID.":
+        "Sur votre autre appareil, ouvrez Neo Calendar, puis Réglages, Synchronisation, Ajouter un appareil : scannez ce QR code ou collez l'ID.",
+    "New QR code in {n} s": "Nouveau QR code dans {n} s",
     "QR code to pair the phone": "QR code pour appairer le téléphone",
     "Neo Calendar will back up your Syncthing configuration, then remove only the Neo Calendar folder from it. Your other folders and devices are not touched. Your phone will have to accept this PC again (with the QR code).":
         "Neo Calendar sauvegardera la configuration de votre Syncthing, puis n'en retirera que le dossier Neo Calendar. Vos autres dossiers et appareils ne sont pas touchés. Votre téléphone devra de nouveau accepter ce PC (avec le QR code).",

@@ -143,6 +143,22 @@ const canShareNatively = () =>
     (typeof navigator.canShare !== "function" ||
         navigator.canShare({ text: "x" }));
 
+/** Secondes avant le prochain QR : décompte depuis `refreshInMs`, recalé à chaque nouveau QR (`key`). */
+function useCountdown(key: string, periodMs: number) {
+    const [, tick] = useState(0);
+    const end = useRef(0);
+    const seen = useRef<string | null>(null);
+    if (seen.current !== key) {
+        seen.current = key;
+        end.current = Date.now() + periodMs;
+    }
+    useEffect(() => {
+        const handle = setInterval(() => tick((n) => n + 1), 250);
+        return () => clearInterval(handle);
+    }, [key]);
+    return Math.max(1, Math.ceil((end.current - Date.now()) / 1000));
+}
+
 /** Le contenu de « Mon ID » : le QR à gauche avec son compte à rebours, l'identité de ce PC à droite. */
 export function PairingBody({
     pairing,
@@ -155,7 +171,7 @@ export function PairingBody({
     deviceName: string | null;
     copy: (id: string) => Promise<boolean>;
 }) {
-    const seconds = Math.max(1, Math.round(pairing.refreshInMs / 1000));
+    const secondsLeft = useCountdown(pairing.qrSvg, pairing.refreshInMs);
     const share = canShareNatively();
     const groups = id.split("-");
     return (
@@ -165,8 +181,8 @@ export function PairingBody({
                     className="nc-sync-qr"
                     src={svgDataUrl(pairing.qrSvg)}
                     alt={t("QR code to pair the phone")}
-                    width={280}
-                    height={280}
+                    width={240}
+                    height={240}
                 />
                 <span
                     className="nc-sync-timer__bar"
@@ -214,11 +230,15 @@ export function PairingBody({
                         </button>
                     )}
                 </div>
-                <p className="nc-sync-scan">
-                    {t("Scan this QR code with Neo Calendar on your phone.")}{" "}
-                    {t("The code changes every {n} seconds.").replace(
+                <p className="nc-sync-countdown">
+                    {t("New QR code in {n} s").replace(
                         "{n}",
-                        String(seconds)
+                        String(secondsLeft)
+                    )}
+                </p>
+                <p className="nc-sync-scan">
+                    {t(
+                        "On your other device, open Neo Calendar, then Settings, Synchronization, Add a device: scan this QR code or paste the ID."
                     )}
                 </p>
             </div>

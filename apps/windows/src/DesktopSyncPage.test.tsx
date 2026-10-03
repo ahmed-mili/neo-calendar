@@ -230,7 +230,7 @@ describe("page Synchronisation du PC", () => {
         expect(html).toContain("<img");
         expect(html).toContain("data:image/svg+xml");
         expect(html).not.toContain("<script");
-        expect(html).toContain("Le code change toutes les 25 secondes.");
+        expect(html).toContain("Nouveau QR code dans 25 s");
         expect(html).toContain("animation-duration:25000ms");
         expect(html).not.toContain("expire dans");
     });

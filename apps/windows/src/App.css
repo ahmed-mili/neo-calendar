@@ -4790,13 +4790,13 @@ body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
 
 /* « Mon ID » : un rectangle paysage, le QR à gauche, l'identité de ce PC à droite ; en colonne sous 600 px. */
 .nc-choice-dialog:has(.nc-sync-pairing) {
-    width: min(720px, 100%);
+    width: min(680px, calc(100vw - 32px));
 }
 
 .nc-sync-pairing {
     display: flex;
     align-items: center;
-    gap: 28px;
+    gap: 24px;
     padding: 4px 20px 16px;
 }
 
@@ -4804,7 +4804,7 @@ body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
     display: grid;
     flex: 0 0 auto;
     gap: 10px;
-    justify-items: center;
+    width: 240px;
     max-width: 100%;
 }
 
@@ -4831,7 +4831,14 @@ body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 17px;
+    font-size: 16px;
+}
+
+.nc-sync-countdown {
+    color: var(--nc-accent);
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 
 .nc-sync-scan {
@@ -4858,17 +4865,22 @@ body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
 
 @keyframes nc-sync-countdown {
     from {
-        transform: scaleX(1);
+        transform: scaleX(0);
     }
     to {
-        transform: scaleX(0);
+        transform: scaleX(1);
     }
 }
 
 @media (max-width: 600px) {
     .nc-sync-pairing {
         flex-direction: column;
+        align-items: stretch;
         gap: 18px;
+    }
+
+    .nc-sync-pairing__qr {
+        align-self: center;
     }
 
     .nc-sync-pairing .nc-sync-qr {
