@@ -42,9 +42,17 @@ interface SettingsPageSectionProps {
 }
 
 /** Un titre de page de réglages qui regroupe plusieurs blocs : « Thème », « Fond d'écran ». */
-export function SettingsSection({ id, title, children }: SettingsPageSectionProps) {
+export function SettingsSection({
+    id,
+    title,
+    children,
+}: SettingsPageSectionProps) {
     return (
-        <section className="nc-set-section" data-section={id} aria-label={title}>
+        <section
+            className="nc-set-section"
+            data-section={id}
+            aria-label={title}
+        >
             <h2 className="nc-set-section__title">{title}</h2>
             {children}
         </section>
@@ -273,10 +281,12 @@ export function SettingsFieldRow({
  */
 export function SettingsDialog({
     title,
+    icon,
     onClose,
     children,
 }: {
     title: string;
+    icon?: React.ReactNode;
     onClose: () => void;
     children: React.ReactNode;
 }) {
@@ -306,7 +316,17 @@ export function SettingsDialog({
                 aria-modal="true"
                 aria-label={title}
             >
-                <h2 className="nc-choice-dialog__title">{title}</h2>
+                <h2 className="nc-choice-dialog__title">
+                    {icon && (
+                        <span
+                            className="nc-choice-dialog__title-icon"
+                            aria-hidden="true"
+                        >
+                            {icon}
+                        </span>
+                    )}
+                    {title}
+                </h2>
                 <div className="nc-choice-dialog__body">{children}</div>
             </section>
         </div>

@@ -1,0 +1,1 @@
+Copiés octet pour octet depuis Neo Quiz (src/assets/fonts/jetbrains-mono/), eux-mêmes issus de @fontsource/jetbrains-mono 5.3.0. Licence OFL-1.1 (LICENSE à côté). Sous-ensembles latin et latin-ext, 400 normal.

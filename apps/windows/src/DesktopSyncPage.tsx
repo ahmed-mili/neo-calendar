@@ -12,6 +12,7 @@ import {
     Share2,
     Smartphone,
     Undo2,
+    X,
 } from "lucide-react";
 import { t } from "../../../src/ui/i18n";
 import ConfirmDialog from "./ConfirmDialog";
@@ -110,32 +111,6 @@ const messageOf = (reason: unknown) =>
         ? reason.message
         : String(reason);
 
-/** « Copier » : copie l'identifiant, et le dit un instant sur le bouton. */
-function ShareIdButton({
-    id,
-    copy,
-}: {
-    id: string;
-    copy: (id: string) => Promise<boolean>;
-}) {
-    const [copied, setCopied] = useState(false);
-    useEffect(() => {
-        if (!copied) return;
-        const handle = setTimeout(() => setCopied(false), 1800);
-        return () => clearTimeout(handle);
-    }, [copied]);
-    return (
-        <button
-            type="button"
-            className="nc-sync-share"
-            onClick={() => void copy(id).then((ok) => ok && setCopied(true))}
-        >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-            {copied ? t("ID copied") : t("Copy")}
-        </button>
-    );
-}
-
 /** Le partage natif, seulement s'il existe vraiment dans cette WebView (WebView2 ne l'offre pas toujours). */
 const canShareNatively = () =>
     typeof navigator !== "undefined" &&
@@ -143,46 +118,77 @@ const canShareNatively = () =>
     (typeof navigator.canShare !== "function" ||
         navigator.canShare({ text: "x" }));
 
-/** Secondes avant le prochain QR : décompte depuis `refreshInMs`, recalé à chaque nouveau QR (`key`). */
-function useCountdown(key: string, periodMs: number) {
-    const [, tick] = useState(0);
-    const end = useRef(0);
-    const seen = useRef<string | null>(null);
-    if (seen.current !== key) {
-        seen.current = key;
-        end.current = Date.now() + periodMs;
-    }
+/**
+ * Le bloc de l'identifiant : le code sur une ligne, l'icône Copier en haut à droite, toujours visible. Une fois
+ * copié, une coche verte 1,5 s ; un second clic pendant la coche recopie et relance les 1,5 s.
+ */
+function IdCodeBlock({
+    id,
+    copy,
+}: {
+    id: string;
+    copy: (id: string) => Promise<boolean>;
+}) {
+    const [copied, setCopied] = useState(false);
+    const [tick, setTick] = useState(0);
     useEffect(() => {
-        const handle = setInterval(() => tick((n) => n + 1), 250);
-        return () => clearInterval(handle);
-    }, [key]);
-    return Math.max(1, Math.ceil((end.current - Date.now()) / 1000));
+        if (!copied) return;
+        const handle = setTimeout(() => setCopied(false), 1500);
+        return () => clearTimeout(handle);
+    }, [copied, tick]);
+    return (
+        <div className="nc-sync-code">
+            <pre>
+                <code>{id}</code>
+            </pre>
+            <button
+                type="button"
+                className="nc-sync-code__copy"
+                data-copied={copied ? "1" : undefined}
+                onClick={() =>
+                    void copy(id).then((ok) => {
+                        if (!ok) return;
+                        setCopied(true);
+                        setTick((n) => n + 1);
+                    })
+                }
+            >
+                <span
+                    key={`${copied}-${tick}`}
+                    className="nc-sync-icon-in"
+                    aria-hidden="true"
+                >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                </span>
+                <span className="nc-sync-sr-only">
+                    {copied ? t("ID copied") : t("Copy")}
+                </span>
+            </button>
+        </div>
+    );
 }
 
-/** Le contenu de « Mon ID » : le QR à gauche avec son compte à rebours, l'identité de ce PC à droite. */
+/** Le contenu de « Identifiant de l'appareil » : l'ID, le QR avec sa barre qui se remplit, Partager. */
 export function PairingBody({
     pairing,
     id,
-    deviceName,
     copy,
 }: {
     pairing: SyncPairingDto;
     id: string;
-    deviceName: string | null;
     copy: (id: string) => Promise<boolean>;
 }) {
-    const secondsLeft = useCountdown(pairing.qrSvg, pairing.refreshInMs);
     const share = canShareNatively();
-    const groups = id.split("-");
     return (
         <div className="nc-sync-pairing">
+            <IdCodeBlock id={id} copy={copy} />
             <div className="nc-sync-pairing__qr">
                 <img
                     className="nc-sync-qr"
                     src={svgDataUrl(pairing.qrSvg)}
                     alt={t("QR code to pair the phone")}
-                    width={240}
-                    height={240}
+                    width={260}
+                    height={260}
                 />
                 <span
                     className="nc-sync-timer__bar"
@@ -197,56 +203,25 @@ export function PairingBody({
                     />
                 </span>
             </div>
-            <div className="nc-sync-pairing__info">
-                {deviceName && (
-                    <p className="nc-sync-pc-name">
-                        <Monitor size={18} aria-hidden="true" />
-                        {deviceName}
-                    </p>
-                )}
-                <code className="nc-sync-id nc-sync-id--full">
-                    {groups.map((group, index) => (
-                        <span key={index}>
-                            {group}
-                            {index < groups.length - 1 ? "-" : ""}
-                            <wbr />
-                        </span>
-                    ))}
-                </code>
-                <div className="nc-sync-actions">
-                    <ShareIdButton id={id} copy={copy} />
-                    {share && (
-                        <button
-                            type="button"
-                            className="nc-sync-share"
-                            onClick={() =>
-                                void navigator
-                                    .share({ title: "Neo Calendar", text: id })
-                                    .catch(() => undefined)
-                            }
-                        >
-                            <Share2 size={16} />
-                            {t("Share")}
-                        </button>
-                    )}
-                </div>
-                <p className="nc-sync-countdown">
-                    {t("New QR code in {n} s").replace(
-                        "{n}",
-                        String(secondsLeft)
-                    )}
-                </p>
-                <p className="nc-sync-scan">
-                    {t(
-                        "On your other device, open Neo Calendar, then Settings, Synchronization, Add a device: scan this QR code or paste the ID."
-                    )}
-                </p>
-            </div>
+            {share && (
+                <button
+                    type="button"
+                    className="nc-sync-primary nc-sync-share-id"
+                    onClick={() =>
+                        void navigator
+                            .share({ title: "Neo Calendar", text: id })
+                            .catch(() => undefined)
+                    }
+                >
+                    <Share2 size={14} />
+                    {t("Share")}
+                </button>
+            )}
         </div>
     );
 }
 
-/** « Ajouter un appareil » : l'identifiant tapé sur cet écran, sans QR code (celui-ci est dans « Mon ID »). */
+/** « Ajouter un appareil » : la phrase d'aide, l'identifiant de l'autre appareil, Annuler et Ajouter (sans scan, réservé au téléphone). */
 function AddDeviceDialog({
     onClose,
     onAdd,
@@ -255,7 +230,6 @@ function AddDeviceDialog({
     onAdd: (id: string, name: string) => Promise<void>;
 }) {
     const [id, setId] = useState("");
-    const [name, setName] = useState("");
     const [failure, setFailure] = useState<string | null>(null);
     const [working, setWorking] = useState(false);
     const submit = (event: React.FormEvent) => {
@@ -263,7 +237,7 @@ function AddDeviceDialog({
         if (!id.trim() || working) return;
         setWorking(true);
         setFailure(null);
-        onAdd(id, name.trim()).catch((reason) => {
+        onAdd(id, "").catch((reason) => {
             setFailure(messageOf(reason));
             setWorking(false);
         });
@@ -271,49 +245,43 @@ function AddDeviceDialog({
     return (
         <SettingsDialog title={t("Add a device")} onClose={onClose}>
             <form className="nc-sync-form" onSubmit={submit}>
-                <label className="nc-sync-field">
-                    <span>{t("Device ID")}</span>
-                    <input
-                        className="nc-sync-input nc-sync-input--mono"
-                        value={id}
-                        onChange={(event) => setId(event.target.value)}
-                        spellCheck={false}
-                        autoComplete="off"
-                        autoFocus
-                    />
-                    <small>
-                        {t(
-                            "On the other device: Sync > Show my ID. Spaces and dashes are ignored."
-                        )}
-                    </small>
-                </label>
-                <label className="nc-sync-field">
-                    <span>{t("Name (optional)")}</span>
-                    <input
-                        className="nc-sync-input"
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                        autoComplete="off"
-                    />
-                </label>
-                {failure && <p className="nc-sync-error">{failure}</p>}
-                <p className="nc-sync-note">
-                    {t("The other device must also accept this PC.")}
+                <p className="nc-sync-help">
+                    {t(
+                        "On the other device, open Settings, Sync, Show my ID. Then paste its ID here, or scan its QR code."
+                    )}
                 </p>
+                <input
+                    className="nc-sync-input nc-sync-input--mono"
+                    value={id}
+                    onChange={(event) => setId(event.target.value)}
+                    placeholder={t("ID of the other device")}
+                    aria-label={t("ID of the other device")}
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoFocus
+                />
+                {failure && (
+                    <p className="nc-sync-error" role="alert">
+                        {failure}
+                    </p>
+                )}
                 <div className="nc-sync-actions">
-                    <button
-                        type="submit"
-                        className="nc-sync-primary"
-                        disabled={!id.trim() || working}
-                    >
-                        {t("Add")}
-                    </button>
+                    <span className="nc-sync-spacer" />
                     <button
                         type="button"
                         className="nc-sync-share"
                         onClick={onClose}
                     >
+                        <X size={16} />
                         {t("Cancel")}
+                    </button>
+                    <button
+                        type="submit"
+                        className="nc-sync-primary"
+                        disabled={!id.trim() || working}
+                    >
+                        <Check size={16} />
+                        {t("Add")}
                     </button>
                 </div>
             </form>
@@ -410,7 +378,7 @@ export function SyncPageView({
 
             {live && (
                 <section className="nc-sync-section">
-                    <h3 className="nc-sync-title">{t("Your devices")}</h3>
+                    <h3 className="nc-sync-title">{t("My devices")}</h3>
                     {status.devices.length === 0 ? (
                         <div className="nc-sync-empty">
                             {t("No device yet.")}
@@ -542,13 +510,20 @@ export function SyncPageView({
 
             {pairing && (
                 <SettingsDialog
-                    title={t("My ID")}
+                    title={
+                        status.deviceName
+                            ? t("Device ID - {name}").replace(
+                                  "{name}",
+                                  status.deviceName
+                              )
+                            : t("Device ID")
+                    }
+                    icon={<Monitor size={20} />}
                     onClose={actions.closePairing}
                 >
                     <PairingBody
                         pairing={pairing}
                         id={status.myId ?? pairing.myId}
-                        deviceName={status.deviceName}
                         copy={actions.copyId}
                     />
                 </SettingsDialog>

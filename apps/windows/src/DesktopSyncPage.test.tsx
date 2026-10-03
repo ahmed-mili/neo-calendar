@@ -89,7 +89,7 @@ describe("page Synchronisation du PC", () => {
         expect(html).not.toContain("7ZSUPCU-MIU3GEY");
         expect(html).not.toContain("Partager");
         expect(html).toContain("Ajouter un appareil");
-        expect(html).toContain("Vos appareils");
+        expect(html).toContain("Mes appareils");
         expect(html).toContain("Pixel 8");
         expect(html).toContain("Connecté");
         expect(html).toContain("LIGNE-DOSSIER");
@@ -122,7 +122,7 @@ describe("page Synchronisation du PC", () => {
         expect(html).toContain("désactivée");
         expect(html).toContain("Synchronisation intégrée");
         expect(html).not.toContain("Ajouter un appareil");
-        expect(html).not.toContain("Vos appareils");
+        expect(html).not.toContain("Mes appareils");
         expect(html).not.toContain("Afficher mon ID");
     });
 
@@ -212,38 +212,47 @@ describe("page Synchronisation du PC", () => {
         expect(html).not.toContain("[NC:");
     });
 
-    it("« Mon ID » montre le nom du PC, l'identifiant en entier, Copier et le QR en image (jamais du SVG inséré tel quel)", () => {
+    it("« Identifiant de l'appareil » : titre avec le nom, l'ID sur une ligne, QR en image, barre, aucune phrase d'aide", () => {
         const html = view({
             pairing: {
                 qrSvg: "<svg><script>alert(1)</script></svg>",
                 myId: "7ZSUPCU-MIU3GEY",
                 refreshInMs: 25_000,
             },
-            status: status({ pairingRemainingMs: 90_000 }),
+            status: status({
+                pairingRemainingMs: 90_000,
+                deviceName: "DESKTOP-1U89520",
+            }),
         });
-        expect(html).toContain("Mon ID");
-        expect(html.replace(/<[^>]+>/g, "")).toContain(
-            "7ZSUPCU-MIU3GEY-RKFNTSV"
+        expect(html).toContain(
+            "Identifiant de l&#x27;appareil - DESKTOP-1U89520"
         );
-        expect(html).toContain("nc-sync-id--full");
+        expect(html).toContain("nc-choice-dialog__title-icon");
+        expect(html).toContain("<code>7ZSUPCU-MIU3GEY-RKFNTSV");
         expect(html).toContain("Copier");
         expect(html).toContain("<img");
         expect(html).toContain("data:image/svg+xml");
         expect(html).not.toContain("<script");
-        expect(html).toContain("Nouveau QR code dans 25 s");
         expect(html).toContain("animation-duration:25000ms");
-        expect(html).not.toContain("expire dans");
+        expect(html).not.toContain("Nouveau QR code");
+        expect(html).not.toContain("Sur votre autre appareil");
+        expect(html).not.toContain("nc-sync-pc-name");
     });
 
-    it("« Ajouter un appareil » ouvre un formulaire : ID, nom facultatif, Ajouter, Annuler", () => {
+    it("sans nom connu, le titre est « Identifiant de l'appareil » tout court", () => {
+        const html = view({
+            pairing: { qrSvg: "<svg/>", myId: "A-B", refreshInMs: 2000 },
+        });
+        expect(html).toContain(">Identifiant de l&#x27;appareil</h2>");
+    });
+
+    it("« Ajouter un appareil » : phrase d'aide, un champ, Annuler et Ajouter, sans nom ni scan", () => {
         const html = view({ adding: true });
-        expect(html).toContain("ID de l&#x27;appareil");
-        expect(html).toContain("Espaces et tirets ignorés");
-        expect(html).toContain("Nom (facultatif)");
-        expect(html).toContain(
-            "L&#x27;autre appareil doit aussi accepter ce PC."
-        );
+        expect(html).toContain("Sur l&#x27;autre appareil, ouvre Réglages");
+        expect(html).toContain("Identifiant de l&#x27;autre appareil");
+        expect(html).not.toContain("Nom (facultatif)");
         expect(html).toContain("Annuler");
+        expect(html).toContain("Ajouter</button>");
         expect(html).not.toContain("<img");
     });
 
