@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 export interface ContextMenuItem {
     label: string;
@@ -54,14 +54,35 @@ export default function ContextMenu({
         };
     }, [visible, onDismiss]);
 
-    if (!visible) return null;
+    // Placed from the menu's real size, before it is painted. A fixed guess of
+    // 400 px high flipped a five-item menu (~200 px) 400 px above the cursor as
+    // soon as the click was in the lower part of the window.
+    useLayoutEffect(() => {
+        const menu = menuRef.current;
+        if (!visible || !menu) return;
+        const place = () => {
+            // Layout size, not getBoundingClientRect: the opening animation
+            // scales the menu down for its first frames.
+            const width = menu.offsetWidth;
+            const height = menu.offsetHeight;
+            const margin = 8;
+            let left = x;
+            let top = y;
+            if (left + width > window.innerWidth - margin) left = x - width;
+            if (top + height > window.innerHeight - margin) top = y - height;
+            menu.style.left = `${Math.max(margin, left)}px`;
+            menu.style.top = `${Math.max(margin, top)}px`;
+        };
+        place();
+        // An item can drop out after the first paint (the empty-slot menu loses
+        // one): placed once, the menu would then float above the cursor.
+        if (typeof ResizeObserver === "undefined") return;
+        const observer = new ResizeObserver(place);
+        observer.observe(menu);
+        return () => observer.disconnect();
+    }, [visible, x, y, items]);
 
-    const MENU_WIDTH = 200;
-    const MENU_MAX_HEIGHT = 400;
-    let left = x;
-    let top = y;
-    if (x + MENU_WIDTH > window.innerWidth - 8) left = x - MENU_WIDTH;
-    if (y + MENU_MAX_HEIGHT > window.innerHeight - 8) top = y - MENU_MAX_HEIGHT;
+    if (!visible) return null;
 
     // Portaled to <body> so its position:fixed uses viewport coords (the click's
     // clientX/clientY). Rendered inline it would sit inside the calendar's
@@ -71,7 +92,7 @@ export default function ContextMenu({
         <div
             ref={menuRef}
             className="nc-context-menu"
-            style={{ left, top }}
+            style={{ left: x, top: y }}
             role="menu"
         >
             {items.map((item, i) =>
