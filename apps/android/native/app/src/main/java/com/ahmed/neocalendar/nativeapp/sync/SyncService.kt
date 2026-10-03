@@ -97,7 +97,7 @@ class SyncService : Service() {
         return builder.build()
     }
 
-    /** Le titre de la notification : « Synchronise : 97 % complet, 1 appareil connecté » comme Syncthing-Fork ; « À jour, N appareil(s) connecté(s) » au repos. */
+    /** Le titre de la notification : « Synchronise : 97 % complet, 1 appareil connecté » comme Syncthing-Fork ; « À jour, N appareil(s) connecté(s) » au repos ; sinon la ligne d'état elle-même. */
     private fun title(controller: SyncController): String {
         val status = controller.status.value
         val p = controller.progress.value
@@ -106,7 +106,7 @@ class SyncService : Service() {
             when (status) {
                 is StatusLine.Syncing -> "Synchronise : ${p.percent} % complet, $devices"
                 StatusLine.UpToDate -> "À jour, $devices"
-                else -> "Neo Calendar"
+                else -> status.text()
             },
         )
     }
