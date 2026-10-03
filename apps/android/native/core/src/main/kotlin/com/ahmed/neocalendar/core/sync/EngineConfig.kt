@@ -90,6 +90,9 @@ object EngineConfig {
         put("pullerDelayS", PULLER_DELAY_S)
     }
 
+    /** Le PATCH qui coupe ou rétablit la surveillance des fichiers d'un dossier (chaque changement redémarre le dossier). */
+    fun watcher(enabled: Boolean): JsonObject = buildJsonObject { put("fsWatcherEnabled", enabled) }
+
     /** La liste `devices` d'un dossier (PATCH `/rest/config/folders/{id}` pour ajouter ou retirer un appareil). */
     fun folderDevices(deviceIds: List<String>): JsonArray =
         JsonArray(deviceIds.distinct().map { buildJsonObject { put("deviceID", it) } })

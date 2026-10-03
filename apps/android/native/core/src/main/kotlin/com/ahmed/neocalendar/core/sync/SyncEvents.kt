@@ -21,3 +21,15 @@ fun isRemoteChange(event: SyncEvent, folderId: String?): Boolean {
         else -> false
     }
 }
+
+/**
+ * Un dossier vient d'être créé ici par la synchro (reçu d'un autre appareil) : sur Android, le surveillant de fichiers du
+ * moteur ne le suit pas (mesuré le 2026-10-03 : un fichier posé dedans hors de l'app n'est vu qu'au scan suivant, une heure
+ * plus tard), alors qu'il suit les dossiers créés sur le téléphone. L'app relance alors la surveillance du dossier de notes.
+ */
+fun isNewRemoteDir(event: SyncEvent, folderId: String?): Boolean {
+    if (event.type != "ItemFinished") return false
+    val d = event.data
+    if (folderId != null && d.text("folder") != folderId) return false
+    return d["error"].let { it == null || it is JsonNull } && d.text("type") == "dir" && d.text("action") == "update"
+}

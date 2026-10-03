@@ -3,6 +3,7 @@ package com.ahmed.neocalendar.nativeapp.sync
 import android.content.Context
 import android.os.SystemClock
 import com.ahmed.neocalendar.core.sync.ENGINE_EVENT_TYPES
+import com.ahmed.neocalendar.core.sync.EngineConfig
 import com.ahmed.neocalendar.core.sync.EngineState
 import com.ahmed.neocalendar.core.sync.FolderState
 import com.ahmed.neocalendar.core.sync.RunDecision
@@ -19,6 +20,7 @@ import com.ahmed.neocalendar.core.sync.SyncSettings
 import com.ahmed.neocalendar.core.sync.bindsTcpAndUdp
 import com.ahmed.neocalendar.core.sync.decideRun
 import com.ahmed.neocalendar.core.sync.engineWanted
+import com.ahmed.neocalendar.core.sync.isNewRemoteDir
 import com.ahmed.neocalendar.core.sync.isRemoteChange
 import com.ahmed.neocalendar.core.sync.pickFreePort
 import com.ahmed.neocalendar.core.sync.summarize
@@ -113,6 +115,9 @@ class SyncController private constructor(context: Context) {
      */
     private val refreshRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
+    /** Un dossier est arrivé d'un autre appareil : la surveillance des fichiers est relancée (voir `isNewRemoteDir`). */
+    private val newRemoteDirs = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
     /** L'app vient d'écrire dans le dossier de notes : un scan pendant qu'un autre tourne se réduit à un scan de plus. */
     private val localChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private var eventJob: Job? = null
@@ -150,6 +155,23 @@ class SyncController private constructor(context: Context) {
                     throw e
                 } catch (e: Exception) {
                     // Une relecture ratée ne doit pas arrêter l'écoute des suivantes.
+                }
+            }
+        }
+        @OptIn(FlowPreview::class)
+        scope.launch(Dispatchers.IO) {
+            // Une rafale de dossiers reçus (un calendrier et ses liens ICS) = une seule relance. Désactiver puis réactiver la
+            // surveillance redémarre le dossier dans le moteur, qui pose alors une surveillance sur chacun de ses sous-dossiers.
+            newRemoteDirs.debounce(REMOTE_DIR_SETTLE_MS).collect {
+                val api = engine.api ?: return@collect
+                try {
+                    val folder = api.folders().firstOrNull() ?: return@collect
+                    api.patchFolder(folder.id, EngineConfig.watcher(enabled = false))
+                    api.patchFolder(folder.id, EngineConfig.watcher(enabled = true))
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Le moteur s'arrête : il reposera toutes ses surveillances au prochain démarrage.
                 }
             }
         }
@@ -329,6 +351,7 @@ class SyncController private constructor(context: Context) {
                         for (event in events) {
                             since = maxOf(since, event.id)
                             if (isRemoteChange(event, folderId)) remoteChanges.tryEmit(Unit)
+                            if (isNewRemoteDir(event, folderId)) newRemoteDirs.tryEmit(Unit)
                         }
                         // La boucle repart aussitôt écouter : un fichier reçu pendant la relecture de l'état est vu sans attendre.
                         refreshRequests.tryEmit(Unit)
@@ -435,6 +458,7 @@ class SyncController private constructor(context: Context) {
     companion object {
         private const val GRACE_MS = 60_000L
         private const val REMOTE_SETTLE_MS = 100L
+        private const val REMOTE_DIR_SETTLE_MS = 1_000L
         private const val PAIRING_HOLD_MAX_MS = 180_000L
 
         /** Vrai pendant un changement de stockage (même sans contrôleur créé : un contrôleur né pendant ce temps ne lance rien). */

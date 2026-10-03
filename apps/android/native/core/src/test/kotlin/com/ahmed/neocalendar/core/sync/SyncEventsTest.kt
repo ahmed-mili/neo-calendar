@@ -15,6 +15,15 @@ class SyncEventsTest {
         assertTrue(isRemoteChange(event("ItemFinished", """{"folder":"f","item":"a.md","error":null,"type":"file","action":"delete"}"""), "f"))
     }
 
+    @Test fun `un dossier recu relance la surveillance, rien d'autre`() {
+        assertTrue(isNewRemoteDir(event("ItemFinished", """{"folder":"f","item":"Nouveau","error":null,"type":"dir","action":"update"}"""), "f"))
+        assertFalse(isNewRemoteDir(event("ItemFinished", """{"folder":"f","item":"Nouveau","error":null,"type":"dir","action":"delete"}"""), "f"))
+        assertFalse(isNewRemoteDir(event("ItemFinished", """{"folder":"f","item":"a.md","error":null,"type":"file","action":"update"}"""), "f"))
+        assertFalse(isNewRemoteDir(event("ItemFinished", """{"folder":"f","item":"Nouveau","error":"refusé","type":"dir","action":"update"}"""), "f"))
+        assertFalse(isNewRemoteDir(event("ItemFinished", """{"folder":"autre","item":"Nouveau","error":null,"type":"dir","action":"update"}"""), "f"))
+        assertFalse(isNewRemoteDir(event("StateChanged", """{"folder":"f","from":"syncing","to":"idle"}"""), "f"))
+    }
+
     @Test fun `une erreur, un dossier, des metadonnees ou un autre dossier ne comptent pas`() {
         assertFalse(isRemoteChange(event("ItemFinished", """{"folder":"f","item":"a.md","error":"disque plein","type":"file","action":"update"}"""), "f"))
         assertFalse(isRemoteChange(event("ItemFinished", """{"folder":"f","item":"d","error":null,"type":"dir","action":"update"}"""), "f"))
