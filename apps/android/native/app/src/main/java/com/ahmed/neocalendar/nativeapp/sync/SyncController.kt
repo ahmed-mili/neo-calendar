@@ -13,6 +13,7 @@ import com.ahmed.neocalendar.core.sync.SyncSetup
 import com.ahmed.neocalendar.core.sync.SyncSettings
 import com.ahmed.neocalendar.core.sync.bindsTcpAndUdp
 import com.ahmed.neocalendar.core.sync.decideRun
+import com.ahmed.neocalendar.core.sync.engineWanted
 import com.ahmed.neocalendar.core.sync.isRemoteChange
 import com.ahmed.neocalendar.core.sync.pickFreePort
 import com.ahmed.neocalendar.core.sync.summarize
@@ -75,6 +76,8 @@ class SyncController private constructor(context: Context) {
     @Volatile private var graceUntil = 0L
     private var graceJob: Job? = null
     @Volatile private var pageOpen = false
+    @Volatile private var pairingHeld = false
+    private var pairingHoldJob: Job? = null
 
     @Volatile var lastFolderState: FolderState? = null
         private set
@@ -188,6 +191,25 @@ class SyncController private constructor(context: Context) {
     /** La page Synchronisation est ouverte ET visible : le moteur tourne (appairage) même sans appareil ; app en arrière-plan, la page ne le retient plus. */
     fun setPageOpen(open: Boolean) { pageOpen = open; reconcile() }
 
+    /**
+     * Maintien pour appairage : le scanner de QR code est une autre activité plein écran, l'app y est masquée et le moteur
+     * s'arrêterait avant la fin de l'appairage. Pris avant le scan, relâché après la tentative ; relâché tout seul au bout de
+     * [PAIRING_HOLD_MAX_MS] si le retour ne vient jamais.
+     */
+    fun holdForPairing(on: Boolean) {
+        synchronized(this) {
+            pairingHoldJob?.cancel()
+            pairingHoldJob = null
+            pairingHeld = on
+            if (on) pairingHoldJob = scope.launch {
+                delay(PAIRING_HOLD_MAX_MS)
+                pairingHeld = false
+                reconcile()
+            }
+        }
+        reconcile()
+    }
+
     /** « Quitter » (mode Comme Syncthing-Fork, sans démarrage automatique) : moteur et service s'arrêtent jusqu'au prochain lancement de l'app. */
     fun quit() = settings.update { it.copy(quit = true) }
 
@@ -218,7 +240,7 @@ class SyncController private constructor(context: Context) {
         val open = appVisible || SystemClock.elapsedRealtime() < graceUntil
         val background = s.configured && !s.quit && (s.runMode == RunMode.LikeFork || open)
         // Un changement de stockage est en cours : le moteur reste arrêté, quoi que disent les conditions.
-        val wanted = !storageSwitching && integrated && running && ((pageOpen && appVisible) || background)
+        val wanted = engineWanted(storageSwitching, integrated, running, pageOpen, appVisible, pairingHeld, background)
         val state = engine.state.value
         if (wanted && state is EngineState.Stopped) engine.start()
         // `engine.isActive` : une marche tout juste lancée a encore l'état Stopped, il ne faut pas la laisser passer.
@@ -303,6 +325,7 @@ class SyncController private constructor(context: Context) {
 
     companion object {
         private const val GRACE_MS = 60_000L
+        private const val PAIRING_HOLD_MAX_MS = 180_000L
 
         /** Vrai pendant un changement de stockage (même sans contrôleur créé : un contrôleur né pendant ce temps ne lance rien). */
         @Volatile internal var storageSwitching = false

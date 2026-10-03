@@ -151,10 +151,20 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
     fun report(error: String?) { if (error != null) Notices.show(error) }
 
     // Appairage par QR code : le scan vaut consentement côté téléphone ; le PC accepte tout seul le bon code (fenêtre de 5 minutes).
-    fun scanPc() = scanQrCode(context) { scanned ->
-        scope.launch {
-            val error = model.pairWithPc(scanned)
-            if (error != null) Notices.show(error) else Notices.show("Appairage lancé : le PC va accepter ce téléphone dans un instant.")
+    // Le scanner masque l'app : le moteur est maintenu en vie jusqu'à la fin de la tentative d'appairage.
+    val scanner = rememberQrScanner()
+    fun scanPc() {
+        controller.holdForPairing(true)
+        scanner { scanned ->
+            if (scanned == null) { controller.holdForPairing(false); return@scanner }
+            scope.launch {
+                try {
+                    val error = model.pairWithPc(scanned)
+                    if (error != null) Notices.show(error) else Notices.show("Appairage lancé : le PC va accepter ce téléphone dans un instant.")
+                } finally {
+                    controller.holdForPairing(false)
+                }
+            }
         }
     }
 
@@ -445,13 +455,21 @@ private fun AddDeviceDialog(myId: String?, onDismiss: () -> Unit, onAdd: suspend
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val scanner = rememberQrScanner()
     val normalized = DeviceIds.normalize(id)
     val valid = normalized != null
     val isSelf = normalized != null && normalized == myId?.let { DeviceIds.normalize(it) }
     CenteredDialog(onDismiss) {
         UiText("Ajouter un appareil", size = 17.sp, weight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 18.dp))
         Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp), horizontalArrangement = Arrangement.End) {
-            TextAction("Scanner un QR code") { scanQrCode(context) { id = it.trim(); error = null } }
+            TextAction("Scanner un QR code") {
+                val controller = SyncController.get(context)
+                controller.holdForPairing(true)
+                scanner { scanned ->
+                    controller.holdForPairing(false)
+                    scanned?.let { id = it.trim(); error = null }
+                }
+            }
         }
         TextInput(id, { id = it; error = null }, "Identifiant de l'appareil", Modifier.padding(horizontal = 18.dp), uri = true)
         if (id.isNotBlank() && !valid) UiText("Cet identifiant n'est pas valide (la somme de contrôle ne correspond pas).", color = Neo.Danger, size = 12.sp, modifier = Modifier.padding(start = 32.dp, end = 32.dp, top = 6.dp))

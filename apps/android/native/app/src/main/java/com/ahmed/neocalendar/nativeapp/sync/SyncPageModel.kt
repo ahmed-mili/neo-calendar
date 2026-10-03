@@ -2,6 +2,7 @@ package com.ahmed.neocalendar.nativeapp.sync
 
 import android.content.Context
 import com.ahmed.neocalendar.core.sync.ConfiguredFolder
+import com.ahmed.neocalendar.core.sync.EngineState
 import com.ahmed.neocalendar.core.sync.FolderLostException
 import com.ahmed.neocalendar.core.sync.PairingFollowUp
 import com.ahmed.neocalendar.core.sync.PairingName
@@ -18,6 +19,8 @@ import com.ahmed.neocalendar.core.workspace.loadWorkspace
 import com.ahmed.neocalendar.nativeapp.WorkspaceLocation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
@@ -41,6 +44,8 @@ data class SyncUi(
     /** La version du moteur intégré (`2.1.5`), lue une fois : la page dit quel Syncthing synchronise le dossier. */
     val engineVersion: String? = null,
 )
+
+private const val ENGINE_WAIT_MS = 30_000L
 
 /** Les lectures et les gestes de la page Synchronisation, tous hors du fil principal. */
 class SyncPageModel(context: Context) {
@@ -139,6 +144,11 @@ class SyncPageModel(context: Context) {
     suspend fun pairWithPc(scanned: String): String? = withContext(Dispatchers.IO) {
         val payload = PairingPayload.parse(scanned)
             ?: return@withContext "Ce QR code n'est pas celui d'un PC Neo Calendar. Sur le PC : Réglages, Synchronisation, « Ajouter le téléphone »."
+        // Le moteur peut encore démarrer (retour du scanner) : on l'attend au lieu d'échouer aussitôt.
+        if (controller.engine.api == null) {
+            withTimeoutOrNull(ENGINE_WAIT_MS) { controller.engine.state.first { it is EngineState.Running && controller.engine.api != null } }
+        }
+        if (controller.engine.api == null) return@withContext "Le moteur de synchronisation n'a pas démarré après 30 secondes. Vérifiez les conditions de fonctionnement, puis scannez de nouveau."
         try {
             setup().pairWithPc(payload)
             pairing = PairingSession(payload.deviceId, System.currentTimeMillis())

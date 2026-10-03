@@ -39,6 +39,10 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="geo" />
         </intent>
+        <!-- Le scanner de QR code natif de Xiaomi / HyperOS (com.xiaomi.scanner). -->
+        <intent>
+            <action android:name="miui.intent.action.scanbarcode" />
+        </intent>
     </queries>
 
     <application
