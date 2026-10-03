@@ -46,6 +46,16 @@ pub fn is_remote_change(event: &serde_json::Value, folder_id: Option<&str>) -> b
     }
 }
 
+/// Le dossier revient au repos : le lot reçu est entièrement sur le disque. Un renommage arrive en deux fichiers (le
+/// nouveau, puis la suppression de l'ancien) : relire entre les deux montrait l'évènement en double un instant.
+pub fn is_folder_idle(event: &serde_json::Value, folder_id: Option<&str>) -> bool {
+    let data = &event["data"];
+    let field = |key: &str| data.get(key).and_then(serde_json::Value::as_str);
+    event["type"].as_str() == Some("StateChanged")
+        && (folder_id.is_none() || field("folder") == folder_id)
+        && field("to") == Some("idle")
+}
+
 pub struct Controller {
     state_dir: PathBuf,
     local_app_data: PathBuf,
@@ -374,16 +384,21 @@ impl Controller {
         std::thread::spawn(move || {
             let address = me.engine.snapshot().gui_address;
             let mut since = api.events(0, 0, REMOTE_EVENT_TYPES, 1).ok().and_then(|list| list.last().and_then(|e| e["id"].as_u64())).unwrap_or(0);
+            // Des fichiers reçus attendent d'être annoncés : à la fin du lot (dossier au repos), ou au bout d'une seconde
+            // sans nouvel évènement si le repos ne vient pas.
+            let mut pending = false;
             while address.is_some() && me.engine.snapshot().gui_address == address {
-                match api.events(since, 30, REMOTE_EVENT_TYPES, 0) {
+                match api.events(since, if pending { 1 } else { 30 }, REMOTE_EVENT_TYPES, 0) {
                     Ok(events) => {
                         let folder = api.folders().ok().and_then(|f| f.into_iter().next()).map(|f| f.id);
-                        let mut changed = false;
+                        let mut settled = pending && events.is_empty();
                         for event in &events {
                             since = since.max(event["id"].as_u64().unwrap_or(0));
-                            changed |= is_remote_change(event, folder.as_deref());
+                            pending |= is_remote_change(event, folder.as_deref());
+                            settled |= is_folder_idle(event, folder.as_deref());
                         }
-                        if changed {
+                        if pending && settled {
+                            pending = false;
                             if let Some(callback) = me.on_remote_change.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
                                 callback();
                             }

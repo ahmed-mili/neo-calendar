@@ -33,3 +33,11 @@ fun isNewRemoteDir(event: SyncEvent, folderId: String?): Boolean {
     if (folderId != null && d.text("folder") != folderId) return false
     return d["error"].let { it == null || it is JsonNull } && d.text("type") == "dir" && d.text("action") == "update"
 }
+
+/**
+ * Le dossier revient au repos : le lot reçu est entièrement sur le disque. Un renommage arrive en deux fichiers (le nouveau,
+ * puis la suppression de l'ancien, séparés par le temps du réseau) : relire entre les deux montrait l'évènement en double.
+ * Même règle que le PC (`is_folder_idle`).
+ */
+fun isFolderIdle(event: SyncEvent, folderId: String?): Boolean =
+    event.type == "StateChanged" && (folderId == null || event.data.text("folder") == folderId) && event.data.text("to") == "idle"

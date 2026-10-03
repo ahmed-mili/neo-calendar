@@ -531,6 +531,9 @@ fn a_remote_change_is_reported_only_for_a_file_received_into_our_folder() {
     let state = |from: &str, to: &str| json!({ "id": 2, "type": "StateChanged", "data": { "folder": "neo", "from": from, "to": to } });
     assert!(is_remote_change(&state("syncing", "idle"), Some("neo")));
     assert!(!is_remote_change(&state("scanning", "idle"), Some("neo")), "un scan local n'apporte rien à relire");
+    assert!(is_folder_idle(&state("sync-preparing", "idle"), Some("neo")), "la fin d'un lot reçu");
+    assert!(!is_folder_idle(&state("idle", "syncing"), Some("neo")));
+    assert!(!is_folder_idle(&finished("neo", "file", "update", json!(null)), Some("neo")));
 }
 
 /// Deux vrais moteurs reliés en local : ce que l'app écrit part sans attendre le surveillant de fichiers, une
@@ -542,8 +545,15 @@ fn changes_cross_within_seconds_and_the_interface_hears_of_each_received_file() 
     let controller = dirs.controller(exe.clone());
     let heard = Arc::new(AtomicU32::new(0));
     let counter = heard.clone();
+    // Pendant un renommage : ce que le disque montre au moment où l'interface est prévenue (ancien nom présent ?, nouveau ?).
+    let watched_rename: Arc<Mutex<Option<(PathBuf, PathBuf)>>> = Arc::new(Mutex::new(None));
+    let seen_at_notice: Arc<Mutex<Vec<(bool, bool)>>> = Arc::new(Mutex::new(Vec::new()));
+    let (rename_paths, notices) = (watched_rename.clone(), seen_at_notice.clone());
     controller.set_on_remote_change(Box::new(move || {
         counter.fetch_add(1, Ordering::SeqCst);
+        if let Some((old, new)) = rename_paths.lock().unwrap().as_ref() {
+            notices.lock().unwrap().push((old.exists(), new.exists()));
+        }
     }));
     controller.enable(&path_text(&dirs.notes())).unwrap();
     let pc_api = controller.wait_until_running(Duration::from_secs(90)).unwrap();
@@ -647,8 +657,20 @@ fn changes_cross_within_seconds_and_the_interface_hears_of_each_received_file() 
     fs::remove_file(dirs.notes().join("Divers").join("ancienne-pc.md")).unwrap();
     let old_pc_delete = timed("suppression d'une note ancienne du PC (surveillant) -> téléphone", &|| !phone_notes.join("Divers").join("ancienne-pc.md").exists());
 
+    // Un renommage fait sur le « téléphone » : le PC n'est prévenu qu'une fois les deux moitiés arrivées.
+    fs::write(phone_notes.join("avant.md"), "renommée").unwrap();
+    timed("note à renommer arrivée sur le PC", &|| dirs.notes().join("avant.md").is_file());
+    std::thread::sleep(Duration::from_secs(2));
+    *watched_rename.lock().unwrap() = Some((dirs.notes().join("avant.md"), dirs.notes().join("après.md")));
+    fs::rename(phone_notes.join("avant.md"), phone_notes.join("après.md")).unwrap();
+    timed("renommage arrivé sur le PC", &|| dirs.notes().join("après.md").is_file() && !dirs.notes().join("avant.md").exists());
+    std::thread::sleep(Duration::from_secs(2));
+    let notices = seen_at_notice.lock().unwrap().clone();
+
     phone.stop();
     controller.shutdown();
+    assert!(!notices.is_empty(), "l'interface n'a pas été prévenue du renommage");
+    assert!(notices.iter().all(|&(old, new)| !old && new), "relecture entre les deux moitiés du renommage : {notices:?}");
     assert!(created < Duration::from_secs(1), "création par l'app : {created:?}");
     assert!(deleted < Duration::from_secs(1), "suppression par l'app : {deleted:?}");
     assert!(watched < Duration::from_millis(2_500), "création hors de l'app : {watched:?}");

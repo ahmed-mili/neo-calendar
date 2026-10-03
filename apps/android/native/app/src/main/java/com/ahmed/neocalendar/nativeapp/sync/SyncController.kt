@@ -20,6 +20,7 @@ import com.ahmed.neocalendar.core.sync.SyncSettings
 import com.ahmed.neocalendar.core.sync.bindsTcpAndUdp
 import com.ahmed.neocalendar.core.sync.decideRun
 import com.ahmed.neocalendar.core.sync.engineWanted
+import com.ahmed.neocalendar.core.sync.isFolderIdle
 import com.ahmed.neocalendar.core.sync.isNewRemoteDir
 import com.ahmed.neocalendar.core.sync.isRemoteChange
 import com.ahmed.neocalendar.core.sync.pickFreePort
@@ -343,15 +344,24 @@ class SyncController private constructor(context: Context) {
             }
             refreshFromEngine(api)
             val refresher = launch { refreshRequests.collect { refreshFromEngine(api) } }
+            // Des fichiers reçus attendent la relecture : à la fin du lot (dossier au repos), ou au bout d'une seconde sans
+            // nouvel évènement si le repos ne vient pas. Jamais entre les deux moitiés d'un renommage.
+            var pendingRemote = false
             try {
                 while (isActive && engine.api === api) {
                     try {
-                        val events = api.events(since, 30, ENGINE_EVENT_TYPES)
+                        val events = api.events(since, if (pendingRemote) 1 else 30, ENGINE_EVENT_TYPES)
                         val folderId = lastFolderId
+                        var settled = pendingRemote && events.isEmpty()
                         for (event in events) {
                             since = maxOf(since, event.id)
-                            if (isRemoteChange(event, folderId)) remoteChanges.tryEmit(Unit)
+                            if (isRemoteChange(event, folderId)) pendingRemote = true
+                            if (isFolderIdle(event, folderId)) settled = true
                             if (isNewRemoteDir(event, folderId)) newRemoteDirs.tryEmit(Unit)
+                        }
+                        if (pendingRemote && settled) {
+                            pendingRemote = false
+                            remoteChanges.tryEmit(Unit)
                         }
                         // La boucle repart aussitôt écouter : un fichier reçu pendant la relecture de l'état est vu sans attendre.
                         refreshRequests.tryEmit(Unit)

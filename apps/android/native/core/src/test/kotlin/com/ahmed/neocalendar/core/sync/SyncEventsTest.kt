@@ -15,6 +15,13 @@ class SyncEventsTest {
         assertTrue(isRemoteChange(event("ItemFinished", """{"folder":"f","item":"a.md","error":null,"type":"file","action":"delete"}"""), "f"))
     }
 
+    @Test fun `la fin d'un lot recu est le retour au repos du dossier`() {
+        assertTrue(isFolderIdle(event("StateChanged", """{"folder":"f","from":"sync-preparing","to":"idle"}"""), "f"))
+        assertFalse(isFolderIdle(event("StateChanged", """{"folder":"f","from":"idle","to":"syncing"}"""), "f"))
+        assertFalse(isFolderIdle(event("StateChanged", """{"folder":"autre","from":"syncing","to":"idle"}"""), "f"))
+        assertFalse(isFolderIdle(event("ItemFinished", """{"folder":"f","item":"a.md","error":null,"type":"file","action":"update"}"""), "f"))
+    }
+
     @Test fun `un dossier recu relance la surveillance, rien d'autre`() {
         assertTrue(isNewRemoteDir(event("ItemFinished", """{"folder":"f","item":"Nouveau","error":null,"type":"dir","action":"update"}"""), "f"))
         assertFalse(isNewRemoteDir(event("ItemFinished", """{"folder":"f","item":"Nouveau","error":null,"type":"dir","action":"delete"}"""), "f"))
