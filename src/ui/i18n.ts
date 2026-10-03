@@ -429,7 +429,6 @@ const FR: Record<string, string> = {
     "Clear search": "Effacer la recherche",
     "Search settings": "Rechercher dans les paramètres",
     "Settings sections": "Rubriques des paramètres",
-    "Data and integrations": "Données et intégrations",
     "No settings found": "Aucun paramètre trouvé",
     "Open command menu": "Ouvrir le menu de commandes",
     "Keyboard shortcuts": "Raccourcis clavier",

@@ -188,8 +188,15 @@ describe("Windows settings", () => {
 
         expect(html).toContain('placeholder="Search"');
         expect(html).toContain("General");
-        expect(html).toContain("Data and integrations");
-        expect(html).not.toContain("Données et intégrations");
+        // Un seul groupe : « Sync » juste sous « General », plus de « Data and integrations ».
+        expect(html).not.toContain("Data and integrations");
+        expect(html).not.toContain("Obsidian vaults");
+        expect(html.indexOf("Sync</span>")).toBeGreaterThan(
+            html.indexOf("General</span>")
+        );
+        expect(html.indexOf("Sync</span>")).toBeLessThan(
+            html.indexOf("Calendars</span>")
+        );
     });
 
     it("shows calendar management behind its own page", () => {

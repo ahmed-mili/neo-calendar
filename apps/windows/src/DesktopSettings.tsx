@@ -1658,49 +1658,31 @@ export default function DesktopSettings({
         id: DesktopNavigationId;
         label: string;
         icon: React.ReactNode;
-        group: "settings" | "data";
     }> = [
         {
             id: "general",
             label: t("General"),
             icon: <SettingsIcon size={17} />,
-            group: "settings",
-        },
-        {
-            id: "calendars",
-            label: t("Calendars"),
-            icon: <CalendarDays size={17} />,
-            group: "settings",
-        },
-        {
-            id: "appearance",
-            label: t("Appearance"),
-            icon: <Palette size={17} />,
-            group: "settings",
-        },
-        {
-            id: "timezones",
-            label: t("Time zones"),
-            icon: <Globe size={17} />,
-            group: "settings",
-        },
-        {
-            id: "folder",
-            label: t("Data folder"),
-            icon: <FolderOpen size={17} />,
-            group: "data",
-        },
-        {
-            id: "vaults",
-            label: t("Obsidian vaults"),
-            icon: <Library size={17} />,
-            group: "data",
         },
         {
             id: "sync",
             label: t("Sync"),
             icon: <RefreshCw size={17} />,
-            group: "data",
+        },
+        {
+            id: "calendars",
+            label: t("Calendars"),
+            icon: <CalendarDays size={17} />,
+        },
+        {
+            id: "appearance",
+            label: t("Appearance"),
+            icon: <Palette size={17} />,
+        },
+        {
+            id: "timezones",
+            label: t("Time zones"),
+            icon: <Globe size={17} />,
         },
     ];
 
@@ -1713,8 +1695,13 @@ export default function DesktopSettings({
     const visibleDesktopNavigation = desktopNavigation.filter((item) =>
         normalizeSearch(item.label).includes(normalizedSettingsSearch)
     );
+    // « Dossier de données » n'a plus d'entrée au menu : on y arrive depuis la page Synchronisation, qui reste allumée.
     const activeDesktopNavigation: DesktopNavigationId =
-        currentPage.kind === "section" ? currentPage.id : "general";
+        currentPage.kind === "section"
+            ? currentPage.id === "folder"
+                ? "sync"
+                : currentPage.id
+            : "general";
 
     const navigateDesktop = (id: DesktopNavigationId) => {
         setLeaving(null);
@@ -1728,13 +1715,8 @@ export default function DesktopSettings({
     const desktopTitle =
         currentPage.kind === "root" ? t("General") : pageTitle(currentPage);
 
-    const renderDesktopNavigationGroup = (
-        group: "settings" | "data",
-        title: string
-    ) => {
-        const items = visibleDesktopNavigation.filter(
-            (item) => item.group === group
-        );
+    const renderDesktopNavigationGroup = (title: string) => {
+        const items = visibleDesktopNavigation;
         if (items.length === 0) return null;
         return (
             <div className="nc-settings__nav-group">
@@ -1848,14 +1830,7 @@ export default function DesktopSettings({
                                 className="nc-settings__navigation"
                                 aria-label={t("Settings sections")}
                             >
-                                {renderDesktopNavigationGroup(
-                                    "settings",
-                                    t("Settings")
-                                )}
-                                {renderDesktopNavigationGroup(
-                                    "data",
-                                    t("Data and integrations")
-                                )}
+                                {renderDesktopNavigationGroup(t("Settings"))}
                                 {visibleDesktopNavigation.length === 0 && (
                                     <p className="nc-settings__nav-empty">
                                         {t("No settings found")}
