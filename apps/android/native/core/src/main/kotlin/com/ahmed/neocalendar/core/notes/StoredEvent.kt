@@ -32,6 +32,18 @@ fun calendarIdFromPath(relativePath: String): String =
 /** `fileName.replace(/\.md$/i, "")`. */
 private fun markdownTitle(fileName: String): String = fileName.replace(Regex("""\.md\z""", RegexOption.IGNORE_CASE), "")
 
+/**
+ * Un titre vide se lit dans le nom du fichier (note écrite à la main : « Rendez-vous.md »), sauf quand ce nom n'est que le
+ * préfixe que l'app y met elle-même : un évènement laissé sans nom est écrit « 2026-10-03.md » (ou « 2026-10-03 (1).md ») et
+ * reste sans titre (« Sans titre » à l'écran) au lieu de s'appeler par sa date. Même règle que `desktopEventFormat.ts`.
+ */
+private fun titleFromFileName(fileName: String, event: NeoEvent): String {
+    val stem = markdownTitle(fileName)
+    val prefix = baseNameForEvent(event.withTitle("")).trim()
+    val bare = stem.replace(Regex(""" \(\d+\)\z"""), "")
+    return if (prefix.isNotEmpty() && bare == prefix) "" else stem
+}
+
 fun parseStoredEvent(file: EventFile, knownCalendarIds: Set<String>): StoredEvent? {
     val raw = parseFrontmatter(file.contents) ?: return null
     val parsed = validateEvent(raw) ?: return null
@@ -39,7 +51,7 @@ fun parseStoredEvent(file: EventFile, knownCalendarIds: Set<String>): StoredEven
     val calendarId = calendarIdFromPath(file.calendarPath)
     if (calendarId !in knownCalendarIds) return null
 
-    val event = parsed.withTitle(parsed.title.ifEmpty { markdownTitle(file.fileName) })
+    val event = parsed.withTitle(parsed.title.ifEmpty { titleFromFileName(file.fileName, parsed) })
     val managed = managedMetadataFromMarkdown(file.contents)
 
     val eventId = event.id

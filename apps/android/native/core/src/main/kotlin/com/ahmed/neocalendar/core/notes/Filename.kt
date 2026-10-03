@@ -25,7 +25,7 @@ internal fun sanitizeForFilename(name: String): String {
     return cleaned.ifEmpty { "Untitled" }
 }
 
-private fun baseNameForEvent(event: NeoEvent): String = when (event) {
+internal fun baseNameForEvent(event: NeoEvent): String = when (event) {
     is NeoEvent.Single -> "${event.date} ${event.title}"
     is NeoEvent.Recurring -> "(Every ${event.daysOfWeek.joinToString(",")}) ${event.title}"
     // Une règle que le port ne sait pas lire retombe sur "Recurring", comme le

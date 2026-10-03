@@ -172,6 +172,20 @@ function markdownTitle(fileName: string): string {
     return fileName.replace(/\.md$/i, "");
 }
 
+/**
+ * A blank title is read from the file name (a note written by hand,
+ * "Rendez-vous.md"), except when that name is only the prefix the app itself
+ * puts there: an event left unnamed is saved as "2026-10-03.md" (or
+ * "2026-10-03 (1).md"), and it stays untitled ("Untitled" on screen) instead
+ * of being called by its date on the next read.
+ */
+function titleFromFileName(fileName: string, event: NeoEvent): string {
+    const stem = markdownTitle(fileName);
+    const prefix = baseNameForEvent({ ...event, title: "" } as NeoEvent).trim();
+    const bare = stem.replace(/ \(\d+\)$/, "");
+    return prefix !== "" && bare === prefix ? "" : stem;
+}
+
 export function calendarIdFromPath(relativePath: string): string {
     return `local::${relativePath || "."}`;
 }
@@ -191,7 +205,7 @@ export function parseStoredEvent(
 
     const event = {
         ...parsed,
-        title: parsed.title || markdownTitle(file.fileName),
+        title: parsed.title || titleFromFileName(file.fileName, parsed),
     } as NeoEvent;
 
     // A note carrying a valid managed marker set is owned by a generator (an
