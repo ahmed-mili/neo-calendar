@@ -13,7 +13,7 @@ use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
 /// Toutes les combien la page demande un nouveau code.
-pub const REFRESH: Duration = Duration::from_secs(25);
+pub const REFRESH: Duration = Duration::from_secs(2);
 /// Combien de temps un code reste valable après avoir été tiré (affiché `REFRESH`, puis une minute de grâce).
 pub const CODE_LIFE: Duration = Duration::from_secs(90);
 /// Au-delà, la fenêtre se ferme : un code de 50 bits ne se devine pas, mais rien n'oblige à laisser essayer.
@@ -283,13 +283,14 @@ mod tests {
         let t0 = Instant::now();
         let mut pairing = open_at(t0);
         let mut now = t0;
-        for i in 0..4 {
+        let mut last = String::new();
+        while now.saturating_duration_since(t0) <= CODE_LIFE {
             now += REFRESH;
-            assert!(pairing.rotate(now, format!("ZZZZZZZZZ{}", i + 2)));
+            last = new_code();
+            assert!(pairing.rotate(now, last.clone()));
         }
-        assert!(now.saturating_duration_since(t0) > CODE_LIFE);
         assert_eq!(pairing.judge(now, "photo", "Pixel [NC:K7Q2M9XPAB]"), Verdict::Wrong);
-        assert_eq!(pairing.judge(now, "tel", "Pixel [NC:ZZZZZZZZZ5]"), Verdict::Accept);
+        assert_eq!(pairing.judge(now, "tel", &format!("Pixel [NC:{last}]")), Verdict::Accept);
     }
 
     #[test]
