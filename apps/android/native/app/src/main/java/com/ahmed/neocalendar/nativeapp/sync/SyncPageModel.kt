@@ -44,6 +44,8 @@ data class SyncUi(
     val folderLost: PendingFolder? = null,
     /** La version du moteur intégré (`2.1.5`), lue une fois : la page dit quel Syncthing synchronise le dossier. */
     val engineVersion: String? = null,
+    /** L'application automatique d'une proposition de dossier a échoué : le message reste visible. */
+    val adoptError: String? = null,
 )
 
 private const val ENGINE_WAIT_MS = 30_000L
@@ -55,8 +57,6 @@ class SyncPageModel(context: Context) {
 
     private val _ui = MutableStateFlow(SyncUi())
     val ui: StateFlow<SyncUi> = _ui.asStateFlow()
-
-    @Volatile private var folderLost: PendingFolder? = null
 
     @Volatile private var engineVersion: String? = null
 
@@ -90,7 +90,7 @@ class SyncPageModel(context: Context) {
             val seen = api.lastSeen()
             val folder = api.folders().firstOrNull()
             // Un dossier est revenu (réessai, ou posé autrement) : plus rien à rattraper.
-            if (folder != null) folderLost = null
+            if (folder != null) controller.folderLost = null
             val devices = configured.filter { it.id != me }.map {
                 DeviceRow(it.id, it.name.ifBlank { it.id.take(7) }, connections[it.id] == true, seen[it.id])
             }
@@ -106,12 +106,13 @@ class SyncPageModel(context: Context) {
                 proposals = proposals,
                 folder = folder,
                 conflicts = conflicts,
-                folderLost = folderLost,
+                folderLost = controller.folderLost,
+                adoptError = controller.adoptError,
                 engineVersion = engineVersion,
             )
             followUpPairing(_ui.value)
         } catch (e: Exception) {
-            _ui.value = _ui.value.copy(conflicts = conflicts, folderLost = folderLost)
+            _ui.value = _ui.value.copy(conflicts = conflicts, folderLost = controller.folderLost, adoptError = controller.adoptError)
         }
     }
 
@@ -126,14 +127,7 @@ class SyncPageModel(context: Context) {
         if (PairingFollowUp.shouldClearName(PairingName.hasCode(ui.myName), session?.startedAtMs, System.currentTimeMillis(), pcConnected)) {
             runCatching { setup().clearPairingName() }
         }
-        if (session == null) return
-        val offered = ui.proposals.firstOrNull { it.proposal.offeredBy == session.pcId && it.proposal != ui.folderLost }
-        if (offered != null && PairingFollowUp.shouldAutoAdopt(true, localNoteCount(), hasLocalPreferences())) {
-            // Deux relectures peuvent se croiser : une seule prend la session et adopte.
-            if (endPairing(session)) adopt(offered.proposal)
-        } else if (offered != null || System.currentTimeMillis() - session.startedAtMs > PairingFollowUp.WINDOW_MS) {
-            endPairing(session)
-        }
+        if (session != null && System.currentTimeMillis() - session.startedAtMs > PairingFollowUp.WINDOW_MS) endPairing(session)
     }
 
     /** Vrai pour le seul appelant qui ferme cette session. */
@@ -174,18 +168,6 @@ class SyncPageModel(context: Context) {
         runCatching { com.ahmed.neocalendar.core.workspace.hasLocalPreferences(WorkspaceLocation.integratedRoot(app)) }.getOrDefault(false)
     }
 
-    /**
-     * Le fichier de réglages local est mis de côté (stockage privé, hors du dossier synchronisé, nom horodaté) avant une adoption
-     * qui apporte un autre dossier : le PC fait foi, jamais deux fichiers créés chacun de leur côté qui se disputent.
-     */
-    private fun setAsidePreferences() {
-        val root = WorkspaceLocation.integratedRoot(app)
-        val aside = java.io.File(root.parentFile, "reglages-mis-de-cote")
-        val stamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
-        val moved = com.ahmed.neocalendar.nativeapp.StorageGate.writing { com.ahmed.neocalendar.core.workspace.setAsideLocalPreferences(root, aside, stamp) }
-        if (moved != null) controller.engine.note("Adoption : réglages locaux mis de côté dans ${moved.name}")
-    }
-
     /** Le journal du moteur (lecture de fichiers : jamais sur le fil principal). */
     suspend fun logText(): String = withContext(Dispatchers.IO) { controller.engine.logText() }
 
@@ -212,20 +194,7 @@ class SyncPageModel(context: Context) {
      * la page garde l'état d'erreur (`SyncUi.folderLost`) avec « Réessayer » ; le moteur n'est jamais laissé sans dossier en silence.
      */
     suspend fun adopt(proposal: PendingFolder): String? = withContext(Dispatchers.IO) {
-        var message: String? = null
-        try {
-            val setup = setup()
-            val planned = setup.decide(proposal)
-            if (planned == ProposalDecision.Adopt || planned is ProposalDecision.Replace) setAsidePreferences()
-            val decision = setup.adopt(proposal)
-            if (decision is ProposalDecision.Refuse) message = decision.reason else folderLost = null
-        } catch (e: FolderLostException) {
-            folderLost = proposal
-            controller.engine.note("Adoption : ${e.message}")
-            message = e.message
-        } catch (e: Exception) {
-            message = e.message ?: e.toString()
-        }
+        val message = controller.adoptProposal(proposal)
         refresh()
         controller.refreshNow()
         message

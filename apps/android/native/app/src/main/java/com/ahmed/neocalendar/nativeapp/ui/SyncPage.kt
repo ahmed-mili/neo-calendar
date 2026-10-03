@@ -78,7 +78,6 @@ private sealed interface SyncSheet {
     data object Power : SyncSheet
     data object Log : SyncSheet
     data class Remove(val device: DeviceRow) : SyncSheet
-    data class Adopt(val row: ProposalRow, val notes: Int, val replacesPreferences: Boolean) : SyncSheet
 }
 
 /** La page Synchronisation (Réglages). Stockage externe : seulement le choix du mode ; stockage privé : tout le reste. */
@@ -218,7 +217,7 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
         }
     }
 
-    // Les dossiers proposés par un appareil, ou le dossier qui n'a pas pu être posé : seulement quand il y a quelque chose à décider.
+    // Un dossier proposé s'applique tout seul : restent ici un refus, une application ratée, ou le dossier qui n'a pas pu être posé.
     val lost = ui.folderLost
     val offered = ui.proposals.filter { it.proposal != lost }
     if (lost != null || offered.isNotEmpty()) Group("Dossier proposé") {
@@ -230,12 +229,8 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
             ProposalCard(
                 shape,
                 proposal,
-                onAdopt = {
-                    scope.launch {
-                        val brings = proposal.decision == ProposalDecision.Adopt || proposal.decision is ProposalDecision.Replace
-                        sheet = SyncSheet.Adopt(proposal, model.localNoteCount(), brings && model.hasLocalPreferences())
-                    }
-                },
+                ui.adoptError,
+                onAdopt = { scope.launch { report(model.adopt(proposal.proposal)) } },
                 onIgnore = { scope.launch { report(model.refuseFolder(proposal.proposal)) } },
             )
         }
@@ -294,15 +289,6 @@ private fun IntegratedSyncPage(switchActions: SyncSwitchActions) {
             "Retirer « ${open.device.name} » ? Vos notes restent sur ce téléphone ; elles ne seront plus synchronisées avec lui.",
             "Retirer", danger = true, onDismiss = { sheet = null },
         ) { scope.launch { report(model.remove(open.device.id)) }; sheet = null }
-        is SyncSheet.Adopt -> ConfirmPanel(
-            "Synchroniser ce dossier",
-            "${open.row.proposerName.ifBlank { "Cet appareil" }} propose le dossier « ${open.row.proposal.label.ifBlank { "Neo Calendar" }} ». " +
-                (if (open.notes == 0) "Vous n'avez pas encore de note locale : celles de cet appareil arriveront sur ce téléphone. Aucune note n'est supprimée"
-                else "Vos ${open.notes} notes locales seront fusionnées avec celles de cet appareil ; aucune note n'est supprimée") +
-                " (une note écrasée reste récupérable dans la corbeille de synchronisation pendant 30 jours)." +
-                (if (open.replacesPreferences) PREFERENCES_WARNING else ""),
-            "Synchroniser", danger = false, onDismiss = { sheet = null },
-        ) { scope.launch { report(model.adopt(open.row.proposal)) }; sheet = null }
     }
 }
 
@@ -402,15 +388,16 @@ private fun PendingDeviceCard(shape: androidx.compose.ui.graphics.Shape, pending
 }
 
 @Composable
-private fun ProposalCard(shape: androidx.compose.ui.graphics.Shape, row: ProposalRow, onAdopt: () -> Unit, onIgnore: () -> Unit) {
+private fun ProposalCard(shape: androidx.compose.ui.graphics.Shape, row: ProposalRow, error: String?, onAdopt: () -> Unit, onIgnore: () -> Unit) {
     Column(Modifier.fillMaxWidth().background(Neo.SettingRow, shape).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         SText("${row.proposerName.ifBlank { "Un appareil" }} propose un dossier", weight = 500, lineHeight = 19.5f)
         SText("« ${row.proposal.label.ifBlank { row.proposal.id }} »", color = Neo.TextSecondary, size = 13f)
         val refused = row.decision as? ProposalDecision.Refuse
         if (refused != null) SText(refused.reason, color = Neo.Danger, size = 12f, lineHeight = 16f)
+        if (refused == null && error != null) SText(error, color = Neo.Danger, size = 12f, lineHeight = 16f)
         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
             TextAction("Ignorer", color = Neo.TextSecondary, onClick = onIgnore)
-            if (refused == null) TextAction("Synchroniser…", onClick = onAdopt)
+            if (refused == null) TextAction("Réessayer", onClick = onAdopt)
         }
     }
 }

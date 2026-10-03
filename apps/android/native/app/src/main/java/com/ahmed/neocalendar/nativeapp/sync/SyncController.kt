@@ -8,7 +8,12 @@ import com.ahmed.neocalendar.core.sync.FolderState
 import com.ahmed.neocalendar.core.sync.RunDecision
 import com.ahmed.neocalendar.core.sync.RunMode
 import com.ahmed.neocalendar.core.sync.StatusLine
+import com.ahmed.neocalendar.core.sync.FolderLostException
+import com.ahmed.neocalendar.core.sync.PendingFolder
+import com.ahmed.neocalendar.core.sync.ProposalDecision
 import com.ahmed.neocalendar.core.sync.SyncthingApi
+import com.ahmed.neocalendar.core.sync.decideProposal
+import com.ahmed.neocalendar.core.sync.shouldAutoApply
 import com.ahmed.neocalendar.core.sync.SyncSetup
 import com.ahmed.neocalendar.core.sync.SyncSettings
 import com.ahmed.neocalendar.core.sync.bindsTcpAndUdp
@@ -82,6 +87,15 @@ class SyncController private constructor(context: Context) {
     @Volatile var lastFolderState: FolderState? = null
         private set
     @Volatile var anyDeviceConnected: Boolean = false
+
+    /** Une adoption a retiré l'ancien dossier sans pouvoir poser le nouveau : « Réessayer » dans la page. */
+    @Volatile var folderLost: PendingFolder? = null
+
+    /** Le message de la dernière application ratée d'une proposition de dossier (visible dans la page). */
+    @Volatile var adoptError: String? = null
+
+    private val adoptLock = Any()
+    private val triedProposals = mutableSetOf<String>()
 
     /** Un appareil propose un dossier que le téléphone n'a pas encore accepté. */
     @Volatile var folderOffered: Boolean = false
@@ -259,6 +273,7 @@ class SyncController private constructor(context: Context) {
         lastFolderState = null
         anyDeviceConnected = false
         folderOffered = false
+        synchronized(adoptLock) { triedProposals.clear() }
     }
 
     private fun startEventLoop() {
@@ -300,7 +315,9 @@ class SyncController private constructor(context: Context) {
         try {
             val me = api.myId()
             val devices = api.devices().filter { it.id != me }
+            autoApplyProposals(api, me, devices)
             val folder = api.folders().firstOrNull()
+            if (folder != null) folderLost = null
             lastFolderId = folder?.id
             lastFolderState = folder?.let { api.folderState(it.id) }
             val connected = api.connections().filterKeys { it != me }.count { it.value }
@@ -315,6 +332,57 @@ class SyncController private constructor(context: Context) {
             // Une lecture ratée garde l'état précédent.
         }
         publishStatus()
+    }
+
+    /**
+     * Un dossier proposé par un appareil déjà accepté est appliqué sans question (un seul dossier, toujours « Neo Calendar ») ;
+     * seul un refus reste à l'écran. Une tentative par proposition et par lancement du moteur : une erreur ne boucle pas.
+     */
+    private fun autoApplyProposals(api: SyncthingApi, me: String, devices: List<com.ahmed.neocalendar.core.sync.ConfiguredDevice>) {
+        if (storageSwitching) return
+        val local = api.folders().firstOrNull()
+        for (device in devices) for (proposal in api.pendingFolders(device.id)) {
+            if (proposal == folderLost) continue
+            val key = "${proposal.offeredBy}/${proposal.id}"
+            val apply = synchronized(adoptLock) {
+                shouldAutoApply(decideProposal(local, me, proposal.offeredBy, proposal.id), key in triedProposals).also { if (it) triedProposals += key }
+            }
+            if (apply) { adoptProposal(proposal); return }
+        }
+    }
+
+    /**
+     * Adopte le dossier proposé (une application à la fois). Rend le message d'erreur, ou null. Les notes locales ne sont ni vidées
+     * ni déplacées : le moteur fusionne, un même chemin différent devient un fichier de conflit. Seul le fichier de réglages partagés
+     * local est mis de côté quand le dossier du PC en apporte un.
+     */
+    fun adoptProposal(proposal: PendingFolder): String? = synchronized(adoptLock) {
+        val api = engine.api ?: return@synchronized "Le moteur de synchronisation démarre : réessayez dans un instant."
+        var message: String? = null
+        try {
+            val setup = SyncSetup(api, WorkspaceLocation.integratedRoot(app).absolutePath)
+            val planned = setup.decide(proposal)
+            if (planned == ProposalDecision.Adopt || planned is ProposalDecision.Replace) setAsidePreferences()
+            val decision = setup.adopt(proposal)
+            if (decision is ProposalDecision.Refuse) message = decision.reason else folderLost = null
+        } catch (e: FolderLostException) {
+            folderLost = proposal
+            engine.note("Adoption : ${e.message}")
+            message = e.message
+        } catch (e: Exception) {
+            message = e.message ?: e.toString()
+        }
+        adoptError = message
+        message
+    }
+
+    /** Le fichier de réglages local est mis de côté (stockage privé, hors du dossier synchronisé, nom horodaté) : le PC fait foi. */
+    private fun setAsidePreferences() {
+        val root = WorkspaceLocation.integratedRoot(app)
+        val aside = java.io.File(root.parentFile, "reglages-mis-de-cote")
+        val stamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
+        val moved = com.ahmed.neocalendar.nativeapp.StorageGate.writing { com.ahmed.neocalendar.core.workspace.setAsideLocalPreferences(root, aside, stamp) }
+        if (moved != null) engine.note("Adoption : réglages locaux mis de côté dans ${moved.name}")
     }
 
     /** Relit l'état maintenant (la page Synchronisation après un geste de l'utilisateur). */

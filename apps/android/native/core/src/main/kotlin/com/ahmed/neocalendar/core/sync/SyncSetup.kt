@@ -34,6 +34,12 @@ fun decideProposal(local: ConfiguredFolder?, selfId: String, proposerId: String,
     else -> ProposalDecision.Refuse(REFUSE_SECOND_FOLDER)
 }
 
+/**
+ * Une proposition d'un appareil déjà accepté s'applique sans question (il n'y a qu'un dossier, « Neo Calendar ») : seul un refus
+ * reste affiché, et une seule tentative par proposition et par lancement du moteur (`alreadyTried`), pour ne pas boucler sur une erreur.
+ */
+fun shouldAutoApply(decision: ProposalDecision, alreadyTried: Boolean): Boolean = decision !is ProposalDecision.Refuse && !alreadyTried
+
 /** Les gestes de l'utilisateur sur les appareils et le dossier, traduits en appels à l'API. `folderPath` : le dossier de notes privé. */
 class SyncSetup(
     private val api: SyncthingApi,
