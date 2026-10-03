@@ -6664,3 +6664,79 @@ body:not(.nc-platform-android).nc-settings-closing
     cursor: default;
     opacity: 0.6;
 }
+
+/* Une demande d'appairage : une notification ambre, ses boutons dedans. */
+.nc-sync-request {
+    --nc-sync-warn: var(--nc-warning, #f0a23b);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid color-mix(in srgb, var(--nc-sync-warn) 45%, transparent);
+    border-left: 4px solid var(--nc-sync-warn);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--nc-sync-warn) 12%, transparent);
+}
+
+.nc-sync-request__icon {
+    flex: 0 0 auto;
+    color: var(--nc-sync-warn);
+}
+
+.nc-sync-request__body {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 4px;
+    min-width: 0;
+}
+
+.nc-sync-request__text {
+    overflow-wrap: anywhere;
+}
+
+.nc-sync-request__actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+}
+
+.nc-sync-request__btn {
+    padding: 7px 14px;
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.nc-sync-request__btn:hover:not(:disabled) {
+    background: var(--nc-bg-hover, var(--background-modifier-hover));
+}
+
+.nc-sync-request__btn--primary {
+    border-color: transparent;
+    background: var(--nc-sync-warn);
+    color: #1b1300;
+    font-weight: 650;
+}
+
+.nc-sync-request__btn--primary:hover:not(:disabled) {
+    background: var(--nc-sync-warn);
+    filter: brightness(1.1);
+}
+
+.nc-sync-request__btn:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+@media (max-width: 520px) {
+    .nc-sync-request {
+        flex-wrap: wrap;
+    }
+
+    .nc-sync-request__actions {
+        flex: 1 1 100%;
+        justify-content: flex-end;
+    }
+}

@@ -23,7 +23,8 @@ const actions: SyncPageActions = {
     addDevice: () => Promise.resolve(),
     closePairing: noop,
     askDevice: noop,
-    askRequest: noop,
+    acceptRequest: () => Promise.resolve(),
+    rejectRequest: () => Promise.resolve(),
     retry: noop,
     repoint: noop,
     recheck: noop,
@@ -206,9 +207,12 @@ describe("page Synchronisation du PC", () => {
                 ],
             }),
         });
-        expect(html).toContain("Demandes à accepter");
-        expect(html).toContain("Pixel 8");
-        expect(html).toContain("demande à se connecter");
+        expect(html).toContain("nc-sync-request");
+        expect(html).toContain(
+            "« Pixel 8 » veut se synchroniser avec cet appareil"
+        );
+        expect(html).toContain("Accepter</button>");
+        expect(html).toContain("Ignorer</button>");
         expect(html).not.toContain("[NC:");
     });
 

@@ -68,6 +68,75 @@ function SyncthingMark() {
     );
 }
 
+/**
+ * Une demande d'appairage, en notification : un encadré ambre avec ses deux gestes dedans, sans fenêtre intermédiaire.
+ * Les deux boutons se bloquent le temps de l'appel ; l'erreur du moteur s'affiche dans l'encadré.
+ */
+function RequestCallout({
+    id,
+    name,
+    accept,
+    reject,
+}: {
+    id: string;
+    name: string;
+    accept: (id: string) => Promise<void>;
+    reject: (id: string) => Promise<void>;
+}) {
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const mounted = useRef(true);
+    useEffect(() => {
+        mounted.current = true;
+        return () => {
+            mounted.current = false;
+        };
+    }, []);
+    const go = async (action: (id: string) => Promise<void>) => {
+        setBusy(true);
+        setError(null);
+        try {
+            await action(id);
+        } catch (reason) {
+            if (mounted.current) setError(messageOf(reason));
+        } finally {
+            if (mounted.current) setBusy(false);
+        }
+    };
+    return (
+        <div className="nc-sync-request" role="group">
+            <Smartphone size={20} className="nc-sync-request__icon" />
+            <div className="nc-sync-request__body">
+                <span className="nc-sync-request__text">
+                    {t("“{name}” wants to sync with this device").replace(
+                        "{name}",
+                        name
+                    )}
+                </span>
+                {error && <span className="nc-sync-error">{error}</span>}
+            </div>
+            <div className="nc-sync-request__actions">
+                <button
+                    type="button"
+                    className="nc-sync-request__btn"
+                    disabled={busy}
+                    onClick={() => void go(reject)}
+                >
+                    {t("Ignore")}
+                </button>
+                <button
+                    type="button"
+                    className="nc-sync-request__btn nc-sync-request__btn--primary"
+                    disabled={busy}
+                    onClick={() => void go(accept)}
+                >
+                    {t("Accept")}
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export interface SyncPageActions {
     toggle: (enabled: boolean) => void;
     startPairing: () => void;
@@ -77,7 +146,10 @@ export interface SyncPageActions {
     /** Ajoute un appareil par son identifiant ; rejette avec le message du moteur si l'identifiant est refusé. */
     addDevice: (id: string, name: string) => Promise<void>;
     askDevice: (id: string, name: string) => void;
-    askRequest: (id: string, name: string) => void;
+    /** Accepte la demande d'un appareil ; rejette avec le message du moteur. */
+    acceptRequest: (id: string) => Promise<void>;
+    /** Ignore la demande d'un appareil ; rejette avec le message du moteur. */
+    rejectRequest: (id: string) => Promise<void>;
     retry: () => void;
     repoint: () => void;
     recheck: () => void;
@@ -361,19 +433,18 @@ export function SyncPageView({
             )}
 
             {live && status.pending.length > 0 && (
-                <SettingsGroup title={t("Requests to accept")}>
+                <section className="nc-sync-section">
+                    <h3 className="nc-sync-title">{t("Requests")}</h3>
                     {status.pending.map((request) => (
-                        <SettingsRow
+                        <RequestCallout
                             key={request.id}
-                            label={request.name || request.id.slice(0, 7)}
-                            icon={<Smartphone size={18} />}
-                            value={t("wants to connect")}
-                            onClick={() =>
-                                actions.askRequest(request.id, request.name)
-                            }
+                            id={request.id}
+                            name={request.name || request.id.slice(0, 7)}
+                            accept={actions.acceptRequest}
+                            reject={actions.rejectRequest}
                         />
                     ))}
-                </SettingsGroup>
+                </section>
             )}
 
             {live && (
@@ -694,21 +765,22 @@ export default function DesktopSyncPage({
                 options: [{ value: "remove", label: t("Remove this device") }],
                 onPick: () => void run(() => syncCommands.removeDevice(id)),
             }),
-        askRequest: (id, name) =>
-            setChoice({
-                title: name || id.slice(0, 7),
-                value: "",
-                options: [
-                    { value: "accept", label: t("Accept") },
-                    { value: "refuse", label: t("Refuse") },
-                ],
-                onPick: (value) =>
-                    void run(() =>
-                        value === "accept"
-                            ? syncCommands.acceptDevice(id)
-                            : syncCommands.rejectDevice(id)
-                    ),
-            }),
+        acceptRequest: async (id) => {
+            try {
+                await syncCommands.acceptDevice(id);
+            } finally {
+                void refresh();
+                void detect();
+            }
+        },
+        rejectRequest: async (id) => {
+            try {
+                await syncCommands.rejectDevice(id);
+            } finally {
+                void refresh();
+                void detect();
+            }
+        },
         retry: () => void run(() => syncCommands.retry()),
         repoint: () => void run(() => syncCommands.repointFolder()),
         recheck: () => void detect(),

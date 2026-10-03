@@ -610,12 +610,13 @@ const FR: Record<string, string> = {
     "The engine still syncs:": "Le moteur synchronise encore :",
     "Sync the current folder": "Synchroniser le dossier actuel",
     "Try again": "Réessayer",
-    "Requests to accept": "Demandes à accepter",
+    Requests: "Demandes",
     "Only accept a device you recognise.":
         "N'acceptez qu'un appareil que vous reconnaissez.",
-    "wants to connect": "demande à se connecter",
+    "“{name}” wants to sync with this device":
+        "« {name} » veut se synchroniser avec cet appareil",
     Accept: "Accepter",
-    Refuse: "Refuser",
+    Ignore: "Ignorer",
     "Remove this device": "Retirer cet appareil",
     "Give the folder back": "Rendre le dossier à Syncthing",
     Log: "Journal",
