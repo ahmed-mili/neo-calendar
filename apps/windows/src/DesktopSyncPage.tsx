@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     Check,
+    Copy,
     FileText,
     FolderSync,
     Plus,
     Power,
+    QrCode,
     RefreshCw,
-    Share2,
     Smartphone,
     Undo2,
 } from "lucide-react";
@@ -24,7 +25,6 @@ import {
     createStatusReader,
     deviceLine,
     loadSyncStatus,
-    remainingLabel,
     statusLine,
     svgDataUrl,
     syncCommands,
@@ -69,6 +69,10 @@ export interface SyncPageActions {
     toggle: (enabled: boolean) => void;
     startPairing: () => void;
     closePairing: () => void;
+    openAdd: () => void;
+    closeAdd: () => void;
+    /** Ajoute un appareil par son identifiant ; rejette avec le message du moteur si l'identifiant est refusé. */
+    addDevice: (id: string, name: string) => Promise<void>;
     askDevice: (id: string, name: string) => void;
     askRequest: (id: string, name: string) => void;
     retry: () => void;
@@ -85,7 +89,10 @@ export interface SyncPageActions {
 export interface SyncPageViewProps {
     status: SyncStatusDto;
     detection: SyncDetectionDto | null;
+    /** Non nul : la fenêtre « Mon ID » est ouverte et montre ce QR. */
     pairing: SyncPairingDto | null;
+    /** La fenêtre « Ajouter un appareil » est ouverte. */
+    adding: boolean;
     startup: boolean;
     busy: boolean;
     error: string | null;
@@ -94,7 +101,14 @@ export interface SyncPageViewProps {
     actions: SyncPageActions;
 }
 
-/** « Partager » : copie l'identifiant, et le dit un instant sur le bouton. */
+const messageOf = (reason: unknown) =>
+    typeof reason === "string"
+        ? reason
+        : reason instanceof Error
+        ? reason.message
+        : String(reason);
+
+/** « Copier » : copie l'identifiant, et le dit un instant sur le bouton. */
 function ShareIdButton({
     id,
     copy,
@@ -114,9 +128,84 @@ function ShareIdButton({
             className="nc-sync-share"
             onClick={() => void copy(id).then((ok) => ok && setCopied(true))}
         >
-            {copied ? <Check size={16} /> : <Share2 size={16} />}
-            {copied ? t("ID copied") : t("Share")}
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+            {copied ? t("ID copied") : t("Copy")}
         </button>
+    );
+}
+
+/** « Ajouter un appareil » : l'identifiant tapé sur cet écran, sans QR code (celui-ci est dans « Mon ID »). */
+function AddDeviceDialog({
+    onClose,
+    onAdd,
+}: {
+    onClose: () => void;
+    onAdd: (id: string, name: string) => Promise<void>;
+}) {
+    const [id, setId] = useState("");
+    const [name, setName] = useState("");
+    const [failure, setFailure] = useState<string | null>(null);
+    const [working, setWorking] = useState(false);
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        if (!id.trim() || working) return;
+        setWorking(true);
+        setFailure(null);
+        onAdd(id, name.trim()).catch((reason) => {
+            setFailure(messageOf(reason));
+            setWorking(false);
+        });
+    };
+    return (
+        <SettingsDialog title={t("Add a device")} onClose={onClose}>
+            <form className="nc-sync-form" onSubmit={submit}>
+                <label className="nc-sync-field">
+                    <span>{t("Device ID")}</span>
+                    <input
+                        className="nc-sync-input nc-sync-input--mono"
+                        value={id}
+                        onChange={(event) => setId(event.target.value)}
+                        spellCheck={false}
+                        autoComplete="off"
+                        autoFocus
+                    />
+                    <small>
+                        {t(
+                            "On the other device: Sync > Show my ID. Spaces and dashes are ignored."
+                        )}
+                    </small>
+                </label>
+                <label className="nc-sync-field">
+                    <span>{t("Name (optional)")}</span>
+                    <input
+                        className="nc-sync-input"
+                        value={name}
+                        onChange={(event) => setName(event.target.value)}
+                        autoComplete="off"
+                    />
+                </label>
+                {failure && <p className="nc-sync-error">{failure}</p>}
+                <p className="nc-sync-note">
+                    {t("The other device must also accept this PC.")}
+                </p>
+                <div className="nc-sync-actions">
+                    <button
+                        type="submit"
+                        className="nc-sync-primary"
+                        disabled={!id.trim() || working}
+                    >
+                        {t("Add")}
+                    </button>
+                    <button
+                        type="button"
+                        className="nc-sync-share"
+                        onClick={onClose}
+                    >
+                        {t("Cancel")}
+                    </button>
+                </div>
+            </form>
+        </SettingsDialog>
     );
 }
 
@@ -125,6 +214,7 @@ export function SyncPageView({
     status,
     detection,
     pairing,
+    adding,
     startup,
     busy,
     error,
@@ -179,24 +269,15 @@ export function SyncPageView({
             </section>
 
             {live && (
-                <section className="nc-sync-section">
-                    <h3 className="nc-sync-title">
-                        {status.deviceName
-                            ? `${t("Device ID")} - ${status.deviceName}`
-                            : t("Device ID")}
-                    </h3>
-                    <div className="nc-sync-me">
-                        <code className="nc-sync-id" title={status.myId ?? ""}>
-                            {status.myId ?? "-"}
-                        </code>
-                        {status.myId && (
-                            <ShareIdButton
-                                id={status.myId}
-                                copy={actions.copyId}
-                            />
-                        )}
-                    </div>
-                </section>
+                <button
+                    type="button"
+                    className="nc-sync-primary nc-sync-show-id"
+                    onClick={actions.startPairing}
+                    disabled={busy}
+                >
+                    <QrCode size={20} />
+                    {t("Show my ID")}
+                </button>
             )}
 
             {live && status.pending.length > 0 && (
@@ -243,7 +324,7 @@ export function SyncPageView({
                     <button
                         type="button"
                         className="nc-sync-share nc-sync-add"
-                        onClick={actions.startPairing}
+                        onClick={actions.openAdd}
                         disabled={busy}
                     >
                         <Plus size={16} />
@@ -349,15 +430,22 @@ export function SyncPageView({
 
             {pairing && (
                 <SettingsDialog
-                    title={t("Add a device")}
+                    title={t("My ID")}
                     onClose={actions.closePairing}
                 >
                     <div className="nc-sync-pairing">
-                        <p>
-                            {t(
-                                "Scan this QR code with Neo Calendar on your phone."
-                            )}
-                        </p>
+                        {status.deviceName && (
+                            <p className="nc-sync-pc-name">
+                                {status.deviceName}
+                            </p>
+                        )}
+                        <code className="nc-sync-id nc-sync-id--full">
+                            {status.myId ?? pairing.myId}
+                        </code>
+                        <ShareIdButton
+                            id={status.myId ?? pairing.myId}
+                            copy={actions.copyId}
+                        />
                         <img
                             className="nc-sync-qr"
                             src={svgDataUrl(pairing.qrSvg)}
@@ -366,23 +454,23 @@ export function SyncPageView({
                             height={220}
                         />
                         <p>
-                            {t("This code works once and expires in")}{" "}
-                            <span className="nc-sync-remaining">
-                                {remainingLabel(
-                                    status.pairingRemainingMs ??
-                                        pairing.expiresInMs
-                                )}
-                            </span>
+                            {t(
+                                "Scan this QR code with Neo Calendar on your phone. It changes every 25 seconds."
+                            )}
                         </p>
                     </div>
                 </SettingsDialog>
             )}
+
+            {adding && (
+                <AddDeviceDialog
+                    onClose={actions.closeAdd}
+                    onAdd={actions.addDevice}
+                />
+            )}
         </div>
     );
 }
-
-const messageOf = (reason: unknown) =>
-    reason instanceof Error ? reason.message : String(reason);
 
 interface DesktopSyncPageProps {
     dataFolder: string;
@@ -406,6 +494,7 @@ export default function DesktopSyncPage({
     );
     const [detection, setDetection] = useState<SyncDetectionDto | null>(null);
     const [pairing, setPairing] = useState<SyncPairingDto | null>(null);
+    const [adding, setAdding] = useState(false);
     const [startup, setStartup] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -449,6 +538,26 @@ export default function DesktopSyncPage({
             clearInterval(timer);
         };
     }, [refresh, detect, pairing]);
+
+    // Tant que « Mon ID » est ouverte, le QR est remplacé toutes les `refreshInMs` ; si le moteur refuse le suivant
+    // (code servi, trop d'essais), le renouvellement s'arrête et la fermeture ci-dessous prend le relais.
+    const refreshInMs = pairing?.refreshInMs;
+    useEffect(() => {
+        if (refreshInMs === undefined) return;
+        let stopped = false;
+        const handle = setTimeout(() => {
+            syncCommands.pairingNext().then(
+                (next) => {
+                    if (!stopped) setPairing(next);
+                },
+                () => undefined
+            );
+        }, refreshInMs);
+        return () => {
+            stopped = true;
+            clearTimeout(handle);
+        };
+    }, [refreshInMs, pairing]);
 
     // La fenêtre se ferme d'elle-même quand le code a servi ou expiré.
     useEffect(() => {
@@ -504,6 +613,13 @@ export default function DesktopSyncPage({
             void syncCommands.pairingCancel().catch(() => undefined);
             setPairing(null);
         },
+        openAdd: () => setAdding(true),
+        closeAdd: () => setAdding(false),
+        addDevice: async (id, name) => {
+            await syncCommands.addDevice(id, name);
+            setAdding(false);
+            void refresh();
+        },
         askDevice: (id, name) =>
             setChoice({
                 title: name,
@@ -551,6 +667,7 @@ export default function DesktopSyncPage({
                 status={status}
                 detection={detection}
                 pairing={pairing}
+                adding={adding}
                 startup={startup}
                 busy={busy}
                 error={error}

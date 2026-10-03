@@ -10,7 +10,6 @@ jest.mock(
 import {
     deviceLine,
     loadSyncStatus,
-    remainingLabel,
     startSyncSoon,
     statusLine,
     svgDataUrl,
@@ -239,13 +238,5 @@ describe("deviceLine", () => {
                 lastSeen: "2026-10-02T10:30:00Z",
             })
         ).toMatch(/^Dernière connexion 02\/10\/2026/);
-    });
-});
-
-describe("remainingLabel", () => {
-    it("écrit minutes et secondes, jamais négatif", () => {
-        expect(remainingLabel(300_000)).toBe("5 min 00 s");
-        expect(remainingLabel(252_300)).toBe("4 min 13 s");
-        expect(remainingLabel(-5)).toBe("0 min 00 s");
     });
 });

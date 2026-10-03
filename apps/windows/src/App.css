@@ -4687,22 +4687,34 @@ body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
     font-weight: 650;
 }
 
-/* L'identifiant de ce PC et « Partager » : la ligne tient, l'identifiant passe à la ligne si besoin. */
-.nc-sync-me {
-    display: flex;
+/* « Afficher mon ID » : le bouton principal de la page, large, en couleur d'accent. */
+.nc-sync-primary {
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 12px;
-    border: 1px solid var(--nc-border, var(--background-modifier-border));
-    border-radius: 12px;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 18px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--nc-accent);
+    color: var(--nc-accent-text);
+    font-weight: 650;
+    cursor: pointer;
 }
 
-.nc-sync-me .nc-sync-id {
-    min-width: 0;
-    font: 12.5px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace;
-    overflow-wrap: anywhere;
-    user-select: all;
+.nc-sync-primary:hover {
+    filter: brightness(1.08);
+}
+
+.nc-sync-primary:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.nc-sync-show-id {
+    width: 100%;
+    padding: 13px 18px;
+    font-size: 15px;
 }
 
 .nc-sync-share {
@@ -4763,6 +4775,19 @@ body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
     font-variant-numeric: tabular-nums;
 }
 
+/* L'identifiant en entier dans « Mon ID » : en mono, sélectionnable, à la ligne sans jamais être coupé. */
+.nc-sync-id--full {
+    display: block;
+    margin: 4px 0 10px;
+    font: 13px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.nc-sync-pc-name {
+    font-weight: 650;
+}
+
 /* Le contenu de la fenêtre d'appairage : aligné sur le titre, centré. */
 .nc-sync-pairing {
     padding: 0 16px 16px;
@@ -4773,8 +4798,53 @@ body:not(.nc-platform-android) .nc-choice-dialog .nc-wallpaper-option__failed {
     margin: 0;
 }
 
-.nc-sync-remaining {
-    white-space: nowrap;
+/* « Ajouter un appareil » : deux champs, une phrase, deux boutons. */
+.nc-sync-form {
+    display: grid;
+    gap: 14px;
+    padding: 0 16px 16px;
+}
+
+.nc-sync-field {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.nc-sync-field small,
+.nc-sync-note {
+    margin: 0;
+    color: var(--nc-text-faint, var(--text-faint));
+    font-size: 12.5px;
+    font-weight: 400;
+}
+
+.nc-sync-input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--nc-border, var(--background-modifier-border));
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 400;
+}
+
+.nc-sync-input:focus-visible {
+    outline: 2px solid var(--nc-accent);
+    outline-offset: 1px;
+}
+
+.nc-sync-input--mono {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 12.5px;
+}
+
+.nc-sync-actions {
+    display: flex;
+    gap: 8px;
 }
 
 /* Le QR code d'appairage : noir sur blanc quel que soit le thème (un lecteur ne lit pas un QR sombre). */

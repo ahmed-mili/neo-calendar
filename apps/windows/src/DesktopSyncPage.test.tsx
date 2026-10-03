@@ -18,6 +18,9 @@ const noop = () => undefined;
 const actions: SyncPageActions = {
     toggle: noop,
     startPairing: noop,
+    openAdd: noop,
+    closeAdd: noop,
+    addDevice: () => Promise.resolve(),
     closePairing: noop,
     askDevice: noop,
     askRequest: noop,
@@ -62,6 +65,7 @@ const view = (
             status={status()}
             detection={null}
             pairing={null}
+            adding={false}
             startup={true}
             busy={false}
             error={null}
@@ -75,13 +79,15 @@ beforeEach(() => applyLanguage("fr"));
 afterEach(() => applyLanguage("fr"));
 
 describe("page Synchronisation du PC", () => {
-    it("montre l'état, l'identifiant avec Partager, Ajouter un appareil, Vos appareils, et garde le lien Syncthing en bas", () => {
+    it("montre l'état, le bouton Afficher mon ID, Ajouter un appareil, Vos appareils, et garde le lien Syncthing en bas", () => {
         const html = view();
         expect(html).toContain("À jour");
         expect(html).toContain("Garde vos notes identiques");
-        expect(html).toContain("Identifiant de l&#x27;appareil");
-        expect(html).toContain("7ZSUPCU-MIU3GEY");
-        expect(html).toContain("Partager");
+        expect(html).toContain("Afficher mon ID");
+        expect(html).toContain("nc-sync-show-id");
+        // L'identifiant n'est plus sur la page : il vit dans la fenêtre « Mon ID ».
+        expect(html).not.toContain("7ZSUPCU-MIU3GEY");
+        expect(html).not.toContain("Partager");
         expect(html).toContain("Ajouter un appareil");
         expect(html).toContain("Vos appareils");
         expect(html).toContain("Pixel 8");
@@ -109,7 +115,7 @@ describe("page Synchronisation du PC", () => {
         expect(html).toContain("nc-sync-empty");
     });
 
-    it("désactivée : ni identifiant, ni bouton d'ajout, ni appareils, mais l'interrupteur reste", () => {
+    it("désactivée : ni « Afficher mon ID », ni bouton d'ajout, ni appareils, mais l'interrupteur reste", () => {
         const html = view({
             status: status({ enabled: false, state: { kind: "stopped" } }),
         });
@@ -117,7 +123,7 @@ describe("page Synchronisation du PC", () => {
         expect(html).toContain("Synchronisation intégrée");
         expect(html).not.toContain("Ajouter un appareil");
         expect(html).not.toContain("Vos appareils");
-        expect(html).not.toContain("Identifiant de l&#x27;appareil");
+        expect(html).not.toContain("Afficher mon ID");
     });
 
     it("propose la reprise d'un Syncthing installé qui tourne, jamais automatiquement", () => {
@@ -206,19 +212,36 @@ describe("page Synchronisation du PC", () => {
         expect(html).not.toContain("[NC:");
     });
 
-    it("la fenêtre d'appairage montre le QR en image (jamais du SVG inséré tel quel) et le temps restant", () => {
+    it("« Mon ID » montre le nom du PC, l'identifiant en entier, Copier et le QR en image (jamais du SVG inséré tel quel)", () => {
         const html = view({
             pairing: {
                 qrSvg: "<svg><script>alert(1)</script></svg>",
-                expiresInMs: 300_000,
+                myId: "7ZSUPCU-MIU3GEY",
+                refreshInMs: 25_000,
             },
-            status: status({ pairingRemainingMs: 252_000 }),
+            status: status({ pairingRemainingMs: 90_000 }),
         });
+        expect(html).toContain("Mon ID");
+        expect(html).toContain("7ZSUPCU-MIU3GEY");
+        expect(html).toContain("nc-sync-id--full");
+        expect(html).toContain("Copier");
         expect(html).toContain("<img");
         expect(html).toContain("data:image/svg+xml");
         expect(html).not.toContain("<script");
-        expect(html).toContain("4 min 12 s");
-        expect(html).toContain("ne sert qu&#x27;une fois");
+        expect(html).toContain("change toutes les 25 secondes");
+        expect(html).not.toContain("expire dans");
+    });
+
+    it("« Ajouter un appareil » ouvre un formulaire : ID, nom facultatif, Ajouter, Annuler", () => {
+        const html = view({ adding: true });
+        expect(html).toContain("ID de l&#x27;appareil");
+        expect(html).toContain("Espaces et tirets ignorés");
+        expect(html).toContain("Nom (facultatif)");
+        expect(html).toContain(
+            "L&#x27;autre appareil doit aussi accepter ce PC."
+        );
+        expect(html).toContain("Annuler");
+        expect(html).not.toContain("<img");
     });
 
     it("un dossier de données changé propose de synchroniser le dossier actuel", () => {

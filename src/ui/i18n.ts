@@ -580,9 +580,15 @@ const FR: Record<string, string> = {
     "No device yet.": "Aucun appareil pour l'instant.",
     "Keeps your notes identical on all your devices, directly between them, with no account and no server of ours. It runs on Syncthing (open source), built into Neo Calendar: Windows may name Syncthing when it asks for permission.":
         "Garde vos notes identiques sur tous vos appareils, directement entre eux, sans compte et sans serveur chez nous. Il repose sur Syncthing (open source), intégré à Neo Calendar : Windows peut nommer Syncthing quand il demande l'autorisation.",
-    "Device ID": "Identifiant de l'appareil",
-    Share: "Partager",
-    "ID copied": "Copié",
+    "Device ID": "ID de l'appareil",
+    "ID copied": "ID copié",
+    "Show my ID": "Afficher mon ID",
+    "My ID": "Mon ID",
+    "Name (optional)": "Nom (facultatif)",
+    "On the other device: Sync > Show my ID. Spaces and dashes are ignored.":
+        "Sur l'autre appareil : Synchronisation > Afficher mon ID. Espaces et tirets ignorés.",
+    "The other device must also accept this PC.":
+        "L'autre appareil doit aussi accepter ce PC.",
     "Your devices": "Vos appareils",
     "Add a device": "Ajouter un appareil",
     "Offline: no device connected": "Hors ligne : aucun appareil connecté",
@@ -617,11 +623,9 @@ const FR: Record<string, string> = {
     Log: "Journal",
     "The log is empty.": "Le journal est vide.",
     "Learn more": "En savoir plus",
-    "Scan this QR code with Neo Calendar on your phone.":
-        "Scannez ce QR code avec Neo Calendar sur le téléphone.",
+    "Scan this QR code with Neo Calendar on your phone. It changes every 25 seconds.":
+        "Scannez ce QR code avec Neo Calendar sur votre téléphone. Il change toutes les 25 secondes.",
     "QR code to pair the phone": "QR code pour appairer le téléphone",
-    "This code works once and expires in":
-        "Ce code ne sert qu'une fois et expire dans",
     "Neo Calendar will back up your Syncthing configuration, then remove only the Neo Calendar folder from it. Your other folders and devices are not touched. Your phone will have to accept this PC again (with the QR code).":
         "Neo Calendar sauvegardera la configuration de votre Syncthing, puis n'en retirera que le dossier Neo Calendar. Vos autres dossiers et appareils ne sont pas touchés. Votre téléphone devra de nouveau accepter ce PC (avec le QR code).",
     "Take over": "Reprendre",

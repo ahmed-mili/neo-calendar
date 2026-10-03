@@ -73,7 +73,10 @@ export type SyncDetectionDto =
 
 export interface SyncPairingDto {
     qrSvg: string;
-    expiresInMs: number;
+    /** L'identifiant de ce PC, tel que le code le porte. */
+    myId: string;
+    /** Au bout de ce délai, la page demande le code suivant. */
+    refreshInMs: number;
 }
 
 /**
@@ -141,7 +144,10 @@ export const syncCommands = {
     disable: () => invoke<void>("sync_disable"),
     retry: () => invoke<void>("sync_retry"),
     pairingStart: () => invoke<SyncPairingDto>("sync_pairing_start"),
+    pairingNext: () => invoke<SyncPairingDto>("sync_pairing_next"),
     pairingCancel: () => invoke<void>("sync_pairing_cancel"),
+    addDevice: (deviceId: string, name: string) =>
+        invoke<void>("sync_add_device", { deviceId, name }),
     acceptDevice: (deviceId: string) =>
         invoke<void>("sync_accept_device", { deviceId }),
     rejectDevice: (deviceId: string) =>
@@ -222,10 +228,4 @@ export function deviceLine(device: SyncDeviceDto): string {
         getLanguage() === "fr" ? "fr-FR" : "en-GB",
         { dateStyle: "short", timeStyle: "short" }
     )}`;
-}
-
-/** Le temps restant d'une fenêtre d'appairage, en « 4 min 12 s ». */
-export function remainingLabel(ms: number): string {
-    const seconds = Math.max(0, Math.ceil(ms / 1000));
-    return `${Math.floor(seconds / 60)} min ${pad(seconds % 60)} s`;
 }
