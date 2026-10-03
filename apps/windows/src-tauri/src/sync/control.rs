@@ -22,6 +22,29 @@ pub const ENGINE_VERSION: &str = "2.1.5";
 const TAKEOVER_FILE: &str = "reprise.json";
 /// L'exclusivité est revérifiée toutes les 30 secondes : un Syncthing installé qui reprendrait le dossier plus tard ne doit pas coexister.
 const EXCLUSIVITY_EVERY_TICKS: u64 = 30;
+/// Les évènements qui disent qu'un fichier est arrivé d'un autre appareil (voir `is_remote_change`).
+const REMOTE_EVENT_TYPES: &str = "ItemFinished,StateChanged";
+
+/// Cet évènement dit-il qu'un fichier du dossier vient d'être écrit (ou supprimé) par un autre appareil, donc que
+/// l'interface doit relire le dossier ? `ItemFinished` d'un fichier, sans erreur ; et le retour au repos d'une synchro
+/// (`StateChanged` de `syncing` à `idle`), filet pour ce qu'un `ItemFinished` n'aurait pas dit. Même règle que l'Android
+/// (`isRemoteChange`). Les écritures de l'app elle-même ne donnent ni l'un ni l'autre : pas de relecture en boucle.
+pub fn is_remote_change(event: &serde_json::Value, folder_id: Option<&str>) -> bool {
+    let data = &event["data"];
+    let field = |key: &str| data.get(key).and_then(serde_json::Value::as_str);
+    if folder_id.is_some() && field("folder") != folder_id {
+        return false;
+    }
+    match event["type"].as_str() {
+        Some("ItemFinished") => {
+            data.get("error").map_or(true, serde_json::Value::is_null)
+                && field("type") == Some("file")
+                && matches!(field("action"), Some("update" | "delete"))
+        }
+        Some("StateChanged") => field("from") == Some("syncing") && field("to") == Some("idle"),
+        _ => false,
+    }
+}
 
 pub struct Controller {
     state_dir: PathBuf,
@@ -41,6 +64,12 @@ pub struct Controller {
     launched: AtomicBool,
     /// Une demande portant le bon code a été consommée mais n'a pas pu être acceptée : le code est à regénérer.
     pairing_error: Mutex<Option<String>>,
+    /// Un scan demandé par une écriture de l'app n'a pas encore commencé : les suivantes s'y joignent.
+    scan_pending: AtomicBool,
+    /// Le fil qui écoute les évènements du moteur (fichiers reçus) tourne.
+    watching: AtomicBool,
+    /// Prévient l'interface qu'un fichier est arrivé d'un autre appareil (posé par `commands::setup`).
+    on_remote_change: Mutex<Option<Box<dyn Fn() + Send + Sync>>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -133,6 +162,9 @@ impl Controller {
             unreadable_streak: AtomicU32::new(0),
             launched: AtomicBool::new(false),
             pairing_error: Mutex::new(None),
+            scan_pending: AtomicBool::new(false),
+            watching: AtomicBool::new(false),
+            on_remote_change: Mutex::new(None),
             state_dir,
             local_app_data,
             exe,
@@ -307,9 +339,68 @@ impl Controller {
         self.engine.stop();
     }
 
+    // ----- Temps réel -----
+
+    pub fn set_on_remote_change(&self, callback: Box<dyn Fn() + Send + Sync>) {
+        *self.on_remote_change.lock().unwrap_or_else(|e| e.into_inner()) = Some(callback);
+    }
+
+    /// L'app vient d'écrire dans le dossier de données : scan immédiat, sur un fil à part (l'écriture n'attend pas le
+    /// moteur). Une rafale (renommage puis écriture, plusieurs notes d'un lien ICS) ne donne qu'un scan, ou deux.
+    pub fn request_scan(self: &Arc<Self>) {
+        if self.scan_pending.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        let me = self.clone();
+        std::thread::spawn(move || {
+            me.scan_pending.store(false, Ordering::SeqCst);
+            let Some(api) = me.engine.snapshot().api else { return };
+            if let Ok(Some(folder)) = api.folders().map(|f| f.into_iter().next()) {
+                if let Err(e) = api.scan(&folder.id) {
+                    me.engine.log.note(&format!("Scan après une écriture de l'app refusé : {e}"));
+                }
+            }
+        });
+    }
+
+    /// Écoute les évènements du moteur qui tourne (longue requête) et prévient l'interface à chaque fichier reçu. Un
+    /// seul fil à la fois ; il s'arrête quand le moteur s'arrête ou est relancé (autre adresse).
+    fn ensure_watching(self: &Arc<Self>, api: &SyncthingApi) {
+        if self.watching.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        let me = self.clone();
+        let api = api.clone();
+        std::thread::spawn(move || {
+            let address = me.engine.snapshot().gui_address;
+            let mut since = api.events(0, 0, REMOTE_EVENT_TYPES, 1).ok().and_then(|list| list.last().and_then(|e| e["id"].as_u64())).unwrap_or(0);
+            while address.is_some() && me.engine.snapshot().gui_address == address {
+                match api.events(since, 30, REMOTE_EVENT_TYPES, 0) {
+                    Ok(events) => {
+                        let folder = api.folders().ok().and_then(|f| f.into_iter().next()).map(|f| f.id);
+                        let mut changed = false;
+                        for event in &events {
+                            since = since.max(event["id"].as_u64().unwrap_or(0));
+                            changed |= is_remote_change(event, folder.as_deref());
+                        }
+                        if changed {
+                            if let Some(callback) = me.on_remote_change.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+                                callback();
+                            }
+                        }
+                    }
+                    // Moteur qui redémarre ou s'arrête : la condition de la boucle le verra.
+                    Err(_) => std::thread::sleep(Duration::from_secs(1)),
+                }
+            }
+            me.watching.store(false, Ordering::SeqCst);
+        });
+    }
+
     // ----- Chaque seconde, fil du moteur -----
 
-    fn tick(&self, api: &SyncthingApi) -> bool {
+    fn tick(self: &Arc<Self>, api: &SyncthingApi) -> bool {
+        self.ensure_watching(api);
         let count = self.ticks.fetch_add(1, Ordering::SeqCst) + 1;
         if count % EXCLUSIVITY_EVERY_TICKS == 0 && !self.takeover_running.load(Ordering::SeqCst) {
             let folder = self.lock_settings().folder_path.clone();

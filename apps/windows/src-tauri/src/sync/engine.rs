@@ -341,7 +341,10 @@ fn run_once(
 fn configure(api: &SyncthingApi, params: &EngineParams, port: u16) -> Result<(String, Option<String>), String> {
     api.patch_options(&config::options_json(port)).map_err(|e| e.to_string())?;
     let setup = SyncSetup { api, folder_path: Path::new(&params.folder_path) };
-    setup.ensure_folder_seeded(&params.seed).map_err(|e| e.to_string())?;
+    let folder = setup.ensure_folder_seeded(&params.seed).map_err(|e| e.to_string())?;
+    // Un dossier déclaré avant ce réglage (ou repris d'un Syncthing installé) garderait ses 10 s par défaut. Un refus
+    // ne bloque pas le moteur : la synchro marche, seulement moins vite.
+    let _ = api.patch_folder(&folder.id, &config::fast_watch());
     let mismatch = setup.folder_mismatch().map_err(|e| e.to_string())?.map(|f| f.path);
     Ok((api.my_id().map_err(|e| e.to_string())?, mismatch))
 }

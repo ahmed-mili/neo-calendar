@@ -17,6 +17,15 @@ object EngineConfig {
 
     const val TRASHCAN_DAYS = "30"
 
+    /** Une modification faite hors de l'app part au bout d'une seconde, pas des 10 s par défaut (suppression comprise). */
+    const val WATCH_DELAY_S = 1
+
+    /**
+     * Un fichier annoncé par un autre appareil est récupéré tout de suite : par défaut le moteur attend 1 s (`sync-waiting`)
+     * pour regrouper les annonces, ce qui faisait l'essentiel du délai d'une note créée sur l'autre appareil.
+     */
+    const val PULLER_DELAY_S = 0
+
     fun listenAddresses(port: Int): List<String> = listOf("tcp://0.0.0.0:$port", "quic://0.0.0.0:$port", RELAY_POOL)
 
     /**
@@ -59,6 +68,8 @@ object EngineConfig {
         put("path", path)
         put("type", "sendreceive")
         put("fsWatcherEnabled", true)
+        put("fsWatcherDelayS", WATCH_DELAY_S)
+        put("pullerDelayS", PULLER_DELAY_S)
         put("ignorePerms", true)
         put("rescanIntervalS", 3600)
         put("devices", folderDevices(deviceIds))
@@ -66,6 +77,12 @@ object EngineConfig {
             put("type", "trashcan")
             put("params", buildJsonObject { put("cleanoutDays", TRASHCAN_DAYS) })
         })
+    }
+
+    /** Le PATCH qui remet un dossier déjà déclaré (installation d'avant, dossier adopté) aux délais de l'app. */
+    fun fastWatch(): JsonObject = buildJsonObject {
+        put("fsWatcherDelayS", WATCH_DELAY_S)
+        put("pullerDelayS", PULLER_DELAY_S)
     }
 
     /** La liste `devices` d'un dossier (PATCH `/rest/config/folders/{id}` pour ajouter ou retirer un appareil). */

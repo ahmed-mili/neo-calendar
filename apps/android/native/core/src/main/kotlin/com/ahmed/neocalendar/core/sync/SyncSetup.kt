@@ -54,6 +54,15 @@ class SyncSetup(
     /** Le moteur refuse un dossier sans `.stfolder` : une copie fraîche (bascule après « Vider ») ne l'emporte pas. */
     private fun ensureMarker() = ensureFolderMarker(java.io.File(folderPath))
 
+    /**
+     * À chaque démarrage : le dossier déjà déclaré (avant ces réglages, ou adopté tel que le PC l'a proposé) reprend les délais
+     * de l'app. Un refus ne bloque rien : la synchro marche, seulement moins vite.
+     */
+    fun applyFolderTiming() {
+        val folder = runCatching { api.folders().firstOrNull() }.getOrNull() ?: return
+        runCatching { api.patchFolder(folder.id, EngineConfig.fastWatch()) }
+    }
+
     /** Premier démarrage : options du moteur (port d'écoute, découvertes, pas de statistiques). */
     fun applyOptions(port: Int) = api.patchOptions(EngineConfig.options(port))
 

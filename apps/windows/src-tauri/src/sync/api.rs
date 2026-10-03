@@ -235,6 +235,29 @@ impl SyncthingApi {
             .map(|_| ())
     }
 
+    pub fn patch_folder(&self, id: &str, patch: &Value) -> ApiResult<()> {
+        self.call("PATCH", &format!("/rest/config/folders/{}", urlencode(id)), Some(patch), 15_000).map(|_| ())
+    }
+
+    /// Scan immédiat du dossier : ce que l'app vient d'écrire part sans attendre le surveillant de fichiers. Rend la
+    /// main une fois le scan fini.
+    pub fn scan(&self, folder_id: &str) -> ApiResult<()> {
+        self.call("POST", &format!("/rest/db/scan?folder={}", urlencode(folder_id)), None, 60_000).map(|_| ())
+    }
+
+    /// Longue requête (`/rest/events`) : les évènements de numéro supérieur à `since`, ou une liste vide au bout de
+    /// `timeout_s` (`limit` > 0 : seulement les plus récents).
+    pub fn events(&self, since: u64, timeout_s: u64, types: &str, limit: u32) -> ApiResult<Vec<Value>> {
+        let mut path = format!("/rest/events?since={since}&timeout={timeout_s}&events={}", urlencode(types));
+        if limit > 0 {
+            path.push_str(&format!("&limit={limit}"));
+        }
+        let body = self.call("GET", &path, None, (timeout_s + 15) * 1000)?;
+        let list: Value = serde_json::from_str(&body)
+            .map_err(|e| ApiError { code: 0, message: format!("Réponse illisible pour /rest/events : {e}") })?;
+        Ok(list.as_array().cloned().unwrap_or_default())
+    }
+
     pub fn remove_folder(&self, id: &str) -> ApiResult<()> {
         self.call("DELETE", &format!("/rest/config/folders/{}", urlencode(id)), None, 15_000).map(|_| ())
     }

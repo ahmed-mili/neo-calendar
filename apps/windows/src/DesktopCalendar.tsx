@@ -1481,6 +1481,50 @@ export default function DesktopCalendar({
         };
     }, [reloadWorkspace]);
 
+    // The built-in sync engine reports each file another device just wrote:
+    // the change has to appear right away, window in front or not (reminders
+    // read the same data). A burst of files while a read is running gives one
+    // more read once it ends, never two reads racing each other.
+    useEffect(() => {
+        if (isAndroid) return;
+        let alive = true;
+        let dispose: (() => void) | undefined;
+        let running = false;
+        let again = false;
+
+        const reloadForRemote = async () => {
+            if (running) {
+                again = true;
+                return;
+            }
+            running = true;
+            try {
+                do {
+                    again = false;
+                    await reloadWorkspace();
+                } while (again && alive);
+            } finally {
+                running = false;
+            }
+        };
+
+        void listen("nc://sync-remote-change", () => {
+            if (alive) void reloadForRemote();
+        })
+            .then((unlisten) => {
+                if (alive) dispose = unlisten;
+                else unlisten();
+            })
+            .catch(() => {
+                // Without the native bridge there is no engine to listen to.
+            });
+
+        return () => {
+            alive = false;
+            dispose?.();
+        };
+    }, [reloadWorkspace]);
+
     // A minute-level wake rather than a fixed interval synchronizing every
     // link: `refreshIcsFeeds` already filters to what `dueIcsFeeds` reports
     // due, so a link on a long frequency is simply a no-op most minutes

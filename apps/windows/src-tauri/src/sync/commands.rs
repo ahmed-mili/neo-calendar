@@ -7,7 +7,10 @@ use super::process::engine_exe_beside;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
+
+/// Annoncé à l'interface quand un fichier est arrivé d'un autre appareil : elle relit le dossier aussitôt.
+pub const REMOTE_CHANGE_EVENT: &str = "nc://sync-remote-change";
 
 pub struct SyncState(pub Arc<Controller>);
 
@@ -23,7 +26,12 @@ pub fn setup(app: &AppHandle) -> Result<(), String> {
     let state_dir = app.path().app_local_data_dir().map_err(|e| e.to_string())?.join("syncthing");
     let local_app_data = std::env::var_os("LOCALAPPDATA").map(PathBuf::from).ok_or("LOCALAPPDATA est absent")?;
     let exe = engine_exe_beside(&std::env::current_exe().map_err(|e| e.to_string())?);
-    app.manage(SyncState(Controller::new(state_dir, local_app_data, exe)));
+    let controller_handle = Controller::new(state_dir, local_app_data, exe);
+    let emitter = app.clone();
+    controller_handle.set_on_remote_change(Box::new(move || {
+        let _ = emitter.emit(REMOTE_CHANGE_EVENT, ());
+    }));
+    app.manage(SyncState(controller_handle));
 
     let fallback = controller(app)?;
     std::thread::spawn(move || {
@@ -31,6 +39,13 @@ pub fn setup(app: &AppHandle) -> Result<(), String> {
         let _ = fallback.start_if_never_launched();
     });
     Ok(())
+}
+
+/// L'app vient d'écrire dans le dossier de données : le moteur scanne tout de suite (rien si la synchro est arrêtée).
+pub fn local_changed(app: &AppHandle) {
+    if let Some(state) = app.try_state::<SyncState>() {
+        state.0.request_scan();
+    }
 }
 
 /// Arrêt propre du moteur avant « Quitter », une mise à jour ou la fin du processus.

@@ -9,8 +9,11 @@ import kotlin.concurrent.withLock
  * écritures en cours et retient les suivantes jusqu'à [endSwitch]. Pas de verrou lié à un fil : un changement de stockage peut
  * se poursuivre sur un autre fil (coroutines). Une écriture imbriquée dans une écriture déjà admise passe toujours (sinon un
  * changement en attente et une écriture qui en appelle une autre se bloqueraient l'un l'autre).
+ *
+ * [afterWrite] est appelé à la fin de chaque écriture de premier niveau, réussie ou non (une partie a pu être écrite), hors du
+ * verrou : la synchro y demande un scan immédiat. Son échec ne touche jamais l'écriture.
  */
-class ExclusiveGate {
+class ExclusiveGate(private val afterWrite: () -> Unit = {}) {
     private val lock = ReentrantLock()
     private val changed = lock.newCondition()
     private var writers = 0
@@ -30,9 +33,12 @@ class ExclusiveGate {
             return block()
         } finally {
             depth.set(depth.get() - 1)
-            if (!nested) lock.withLock {
-                writers--
-                changed.signalAll()
+            if (!nested) {
+                lock.withLock {
+                    writers--
+                    changed.signalAll()
+                }
+                runCatching(afterWrite)
             }
         }
     }

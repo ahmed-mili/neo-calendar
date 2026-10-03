@@ -517,3 +517,125 @@ fn one_unreadable_read_of_the_installed_config_is_tolerated_two_in_a_row_are_not
     at_check();
     assert!(!controller.tick(&api));
 }
+
+#[test]
+fn a_remote_change_is_reported_only_for_a_file_received_into_our_folder() {
+    let finished = |folder: &str, kind: &str, action: &str, error: serde_json::Value| {
+        json!({ "id": 1, "type": "ItemFinished", "data": { "folder": folder, "type": kind, "action": action, "error": error } })
+    };
+    assert!(is_remote_change(&finished("neo", "file", "update", json!(null)), Some("neo")));
+    assert!(is_remote_change(&finished("neo", "file", "delete", json!(null)), Some("neo")));
+    assert!(!is_remote_change(&finished("autre", "file", "update", json!(null)), Some("neo")));
+    assert!(!is_remote_change(&finished("neo", "dir", "update", json!(null)), Some("neo")));
+    assert!(!is_remote_change(&finished("neo", "file", "update", json!("refusé")), Some("neo")));
+    let state = |from: &str, to: &str| json!({ "id": 2, "type": "StateChanged", "data": { "folder": "neo", "from": from, "to": to } });
+    assert!(is_remote_change(&state("syncing", "idle"), Some("neo")));
+    assert!(!is_remote_change(&state("scanning", "idle"), Some("neo")), "un scan local n'apporte rien à relire");
+}
+
+/// Deux vrais moteurs reliés en local : ce que l'app écrit part sans attendre le surveillant de fichiers, une
+/// suppression aussi, et l'interface est prévenue de chaque fichier reçu.
+#[test]
+fn changes_cross_within_seconds_and_the_interface_hears_of_each_received_file() {
+    let Some(exe) = real_binary() else { return };
+    let dirs = Dirs::new();
+    let controller = dirs.controller(exe.clone());
+    let heard = Arc::new(AtomicU32::new(0));
+    let counter = heard.clone();
+    controller.set_on_remote_change(Box::new(move || {
+        counter.fetch_add(1, Ordering::SeqCst);
+    }));
+    controller.enable(&path_text(&dirs.notes())).unwrap();
+    let pc_api = controller.wait_until_running(Duration::from_secs(90)).unwrap();
+    let pc_id = pc_api.my_id().unwrap();
+    let folder_id = controller.status().folder.unwrap().id;
+    assert_eq!(pc_api.folder_config(&folder_id).unwrap()["fsWatcherDelayS"].as_f64(), Some(1.0));
+    let pc_port = loop {
+        if let Some(port) = controller.lock_settings().listen_port {
+            break port;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    };
+
+    let base = dirs.root.path().join("tel");
+    let phone_notes = base.join("notes");
+    fs::create_dir_all(&phone_notes).unwrap();
+    let phone_port = Arc::new(Mutex::new(None));
+    let port_slot = phone_port.clone();
+    let phone = Engine::new(Arc::new(RotatingLog::new(base.join("journal"), 100_000)));
+    let params = EngineParams {
+        exe,
+        version: "2.1.5".into(),
+        home: base.join("etat"),
+        folder_path: phone_notes.clone(),
+        listen_port: None,
+        gui_user: "essai".into(),
+        gui_password_hash: bcrypt::hash("essai", 4).unwrap(),
+        seed: FolderSeed { folder_id: Some(folder_id.clone()), devices: Vec::new() },
+    };
+    let hooks = Arc::new(Hooks { on_listen_port: Box::new(move |p| *port_slot.lock().unwrap() = Some(p)), on_tick: Box::new(|_| true) });
+    phone.start(params, hooks, RestartPolicy::default()).unwrap();
+    let end = Instant::now() + Duration::from_secs(90);
+    let phone_api = loop {
+        let snapshot = phone.snapshot();
+        if let (EngineState::Running, Some(api)) = (snapshot.state, snapshot.api) {
+            break api;
+        }
+        assert!(Instant::now() < end, "le moteur du téléphone ne démarre pas");
+        std::thread::sleep(Duration::from_millis(200));
+    };
+    let phone_id = phone_api.my_id().unwrap();
+    let phone_port = phone_port.lock().unwrap().unwrap();
+
+    let mut pc = config::device(&pc_id, "PC");
+    pc["addresses"] = json!([format!("tcp://127.0.0.1:{pc_port}")]);
+    phone_api.put_device(&pc).unwrap();
+    phone_api.set_folder_devices(&folder_id, &[phone_id.clone(), pc_id.clone()]).unwrap();
+    let mut tel = config::device(&phone_id, "Téléphone");
+    tel["addresses"] = json!([format!("tcp://127.0.0.1:{phone_port}")]);
+    pc_api.put_device(&tel).unwrap();
+    pc_api.set_folder_devices(&folder_id, &[pc_id.clone(), phone_id.clone()]).unwrap();
+    let end = Instant::now() + Duration::from_secs(90);
+    while !pc_api.connections().unwrap().get(&phone_id).copied().unwrap_or(false) {
+        assert!(Instant::now() < end, "les deux moteurs ne se connectent pas");
+        std::thread::sleep(Duration::from_millis(200));
+    }
+    // Les deux index échangés : la première note part de deux moteurs au repos.
+    fs::write(dirs.notes().join("amorce.md"), "amorce").unwrap();
+    controller.request_scan();
+    assert!(wait_for_file(&phone_notes.join("amorce.md"), 60), "amorce");
+
+    let timed = |what: &str, done: &dyn Fn() -> bool| -> Duration {
+        let start = Instant::now();
+        while !done() {
+            assert!(start.elapsed() < Duration::from_secs(90), "{what} : jamais arrivé");
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let took = start.elapsed();
+        eprintln!("LATENCE {what} : {took:?}");
+        took
+    };
+
+    // Écrit par l'app du PC (scan demandé), puis supprimé par elle.
+    fs::write(dirs.notes().join("cree-par-le-pc.md"), "PC").unwrap();
+    controller.request_scan();
+    let created = timed("création PC (app) -> téléphone", &|| phone_notes.join("cree-par-le-pc.md").is_file());
+    fs::remove_file(dirs.notes().join("cree-par-le-pc.md")).unwrap();
+    controller.request_scan();
+    let deleted = timed("suppression PC (app) -> téléphone", &|| !phone_notes.join("cree-par-le-pc.md").exists());
+
+    // Écrit hors de toute app sur le « téléphone » : seul son surveillant de fichiers (1 s) le voit, suppression comprise.
+    let before = heard.load(Ordering::SeqCst);
+    fs::write(phone_notes.join("cree-par-le-tel.md"), "tel").unwrap();
+    let watched = timed("création téléphone (surveillant) -> PC", &|| dirs.notes().join("cree-par-le-tel.md").is_file());
+    timed("interface du PC prévenue", &|| heard.load(Ordering::SeqCst) > before);
+    fs::remove_file(phone_notes.join("cree-par-le-tel.md")).unwrap();
+    let watched_delete = timed("suppression téléphone (surveillant) -> PC", &|| !dirs.notes().join("cree-par-le-tel.md").exists());
+
+    phone.stop();
+    controller.shutdown();
+    assert!(created < Duration::from_secs(1), "création par l'app : {created:?}");
+    assert!(deleted < Duration::from_secs(1), "suppression par l'app : {deleted:?}");
+    assert!(watched < Duration::from_millis(2_500), "création hors de l'app : {watched:?}");
+    assert!(watched_delete < Duration::from_millis(2_500), "suppression hors de l'app : {watched_delete:?}");
+}

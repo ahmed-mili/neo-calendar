@@ -40,6 +40,10 @@ class EngineConfigTest {
         val f = EngineConfig.folder("neo-aaaaa-bbbbb", "Neo Calendar", "/data/user/0/x/files/Neo Calendar", listOf(self, "AUTRE"))
         assertEquals("sendreceive", f.getValue("type").jsonPrimitive.content)
         assertTrue(f.getValue("fsWatcherEnabled").jsonPrimitive.boolean)
+        assertEquals(1, f.getValue("fsWatcherDelayS").jsonPrimitive.int)
+        assertEquals(0, f.getValue("pullerDelayS").jsonPrimitive.int)
+        assertEquals(1, EngineConfig.fastWatch().getValue("fsWatcherDelayS").jsonPrimitive.int)
+        assertEquals(0, EngineConfig.fastWatch().getValue("pullerDelayS").jsonPrimitive.int)
         assertTrue(f.getValue("ignorePerms").jsonPrimitive.boolean)
         val versioning = f.getValue("versioning").jsonObject
         assertEquals("trashcan", versioning.getValue("type").jsonPrimitive.content)

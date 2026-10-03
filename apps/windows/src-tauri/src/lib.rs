@@ -362,8 +362,19 @@ fn load_desktop_workspace(data_folder: String) -> Result<DesktopWorkspaceSnapsho
     })
 }
 
+/// Une commande qui écrit dans le dossier de données : à sa sortie (réussie ou non, une partie a pu être écrite), le
+/// moteur de synchro scanne tout de suite au lieu d'attendre son surveillant de fichiers.
+struct ScanAfterWrite(tauri::AppHandle);
+
+impl Drop for ScanAfterWrite {
+    fn drop(&mut self) {
+        sync::commands::local_changed(&self.0);
+    }
+}
+
 #[tauri::command(rename_all = "camelCase", async)]
-fn save_desktop_preferences(data_folder: String, preferences: Value) -> Result<(), String> {
+fn save_desktop_preferences(app: tauri::AppHandle, data_folder: String, preferences: Value) -> Result<(), String> {
+    let _scan = ScanAfterWrite(app);
     let root = root_path(&data_folder)?;
     write_preferences(&root, &preferences)
 }
@@ -395,12 +406,14 @@ fn unique_markdown_path(directory: &Path, requested_name: &str, current: Option<
 
 #[tauri::command(rename_all = "camelCase", async)]
 fn write_desktop_event_file(
+    app: tauri::AppHandle,
     data_folder: String,
     calendar_path: String,
     previous_relative_path: Option<String>,
     file_name: String,
     contents: String,
 ) -> Result<String, String> {
+    let _scan = ScanAfterWrite(app);
     let root = root_path(&data_folder)?;
     let directory = safe_join(&root, &calendar_path)?;
     if !directory.is_dir() {
@@ -446,7 +459,8 @@ fn write_desktop_event_file(
 }
 
 #[tauri::command(rename_all = "camelCase", async)]
-fn delete_desktop_event_file(data_folder: String, relative_path: String) -> Result<(), String> {
+fn delete_desktop_event_file(app: tauri::AppHandle, data_folder: String, relative_path: String) -> Result<(), String> {
+    let _scan = ScanAfterWrite(app);
     let root = root_path(&data_folder)?;
     let path = safe_join(&root, &relative_path)?;
     if !is_markdown_file(&path) {
@@ -468,10 +482,12 @@ fn delete_desktop_event_file(data_folder: String, relative_path: String) -> Resu
 /// whatever that is.
 #[tauri::command(rename_all = "camelCase", async)]
 fn ensure_desktop_ics_folder(
+    app: tauri::AppHandle,
     data_folder: String,
     calendar_path: String,
     name: String,
 ) -> Result<String, String> {
+    let _scan = ScanAfterWrite(app);
     let root = root_path(&data_folder)?;
     let calendar_directory = safe_join(&root, &calendar_path)?;
     if !calendar_directory.is_dir() {
@@ -498,7 +514,8 @@ fn ensure_desktop_ics_folder(
 }
 
 #[tauri::command(rename_all = "camelCase", async)]
-fn create_desktop_calendar_folder(data_folder: String, name: String) -> Result<String, String> {
+fn create_desktop_calendar_folder(app: tauri::AppHandle, data_folder: String, name: String) -> Result<String, String> {
+    let _scan = ScanAfterWrite(app);
     let root = root_path(&data_folder)?;
     let validated_name = validate_single_name(&name, "calendar")?;
     let path = root.join(&validated_name);
@@ -512,10 +529,12 @@ fn create_desktop_calendar_folder(data_folder: String, name: String) -> Result<S
 
 #[tauri::command(rename_all = "camelCase", async)]
 fn rename_desktop_calendar_folder(
+    app: tauri::AppHandle,
     data_folder: String,
     relative_path: String,
     new_name: String,
 ) -> Result<String, String> {
+    let _scan = ScanAfterWrite(app);
     if relative_path.trim().is_empty() {
         return Err("The data-folder calendar itself cannot be renamed here.".to_string());
     }
@@ -549,7 +568,8 @@ fn rename_desktop_calendar_folder(
 }
 
 #[tauri::command(rename_all = "camelCase", async)]
-fn delete_desktop_calendar_folder(data_folder: String, relative_path: String) -> Result<(), String> {
+fn delete_desktop_calendar_folder(app: tauri::AppHandle, data_folder: String, relative_path: String) -> Result<(), String> {
+    let _scan = ScanAfterWrite(app);
     if relative_path.trim().is_empty() {
         return Err("The data folder itself cannot be removed as a calendar.".to_string());
     }
@@ -1021,10 +1041,12 @@ fn unique_attachment_path(directory: &Path, file_name: &str) -> PathBuf {
 
 #[tauri::command(rename_all = "camelCase", async)]
 fn copy_desktop_attachment(
+    app: tauri::AppHandle,
     data_folder: String,
     event_relative_path: String,
     source_path: String,
 ) -> Result<DesktopAttachmentDto, String> {
+    let _scan = ScanAfterWrite(app);
     let root = root_path(&data_folder)?;
     let event_path = safe_join(&root, &event_relative_path)?;
     if !is_markdown_file(&event_path) || !event_path.is_file() {
@@ -1147,11 +1169,13 @@ fn attachment_dto(
 /// qu'une pièce jointe collée est une pièce jointe comme une autre.
 #[tauri::command(rename_all = "camelCase", async)]
 fn write_desktop_attachment(
+    app: tauri::AppHandle,
     data_folder: String,
     event_relative_path: String,
     file_name: String,
     contents: Vec<u8>,
 ) -> Result<DesktopAttachmentDto, String> {
+    let _scan = ScanAfterWrite(app);
     if contents.is_empty() {
         return Err("The pasted attachment is empty.".to_string());
     }

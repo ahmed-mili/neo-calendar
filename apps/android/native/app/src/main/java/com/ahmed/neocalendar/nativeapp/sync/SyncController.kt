@@ -101,8 +101,13 @@ class SyncController private constructor(context: Context) {
     @Volatile var folderOffered: Boolean = false
         private set
 
-    /** Un fichier est arrivé d'un autre appareil : regroupé sur 1 s avant de relire le dossier (une rafale de fichiers = une relecture). */
+    /**
+     * Un fichier est arrivé d'un autre appareil : regroupé sur [REMOTE_SETTLE_MS] avant de relire le dossier (une rafale de fichiers
+     * = une relecture ; la relecture ne réanalyse que les notes changées, grâce à la copie des notes lues).
+     */
     private val remoteChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    /** L'app vient d'écrire dans le dossier de notes : un scan pendant qu'un autre tourne se réduit à un scan de plus. */
+    private val localChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private var eventJob: Job? = null
     @Volatile private var lastFolderId: String? = null
 
@@ -112,6 +117,7 @@ class SyncController private constructor(context: Context) {
         engine.onReady = { api ->
             val setup = SyncSetup(api, WorkspaceLocation.integratedRoot(app).absolutePath)
             setup.applyOptions(settings.value.listenPort)
+            setup.applyFolderTiming()
             // Notes recopiées après « Vider » : le dossier déjà déclaré repart d'un index vide, et c'est Syncthing qui réécrit
             // .stfolder. Jamais de marqueur recréé à l'aveugle ici : sur un index ancien, il propagerait des suppressions au PC.
             if (settings.value.resetFolderIndex) {
@@ -130,7 +136,7 @@ class SyncController private constructor(context: Context) {
         @OptIn(FlowPreview::class)
         scope.launch {
             // Hors du fil principal ; les relectures se suivent, jamais deux à la fois.
-            remoteChanges.debounce(1_000).collect {
+            remoteChanges.debounce(REMOTE_SETTLE_MS).collect {
                 try {
                     RemoteRefresh.run(app)
                 } catch (e: CancellationException) {
@@ -140,7 +146,24 @@ class SyncController private constructor(context: Context) {
                 }
             }
         }
+        scope.launch(Dispatchers.IO) {
+            localChanges.collect {
+                val api = engine.api ?: return@collect
+                try {
+                    api.folders().firstOrNull()?.let { api.scan(it.id) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Moteur arrêté ou qui redémarre : son surveillant de fichiers verra la modification (1 s).
+                }
+            }
+        }
         reconcile()
+    }
+
+    /** L'app vient d'écrire dans le dossier de notes : le moteur scanne tout de suite, sans attendre son surveillant de fichiers. */
+    fun localChanged() {
+        localChanges.tryEmit(Unit)
     }
 
     /** Le port d'écoute reste celui d'avant tant qu'il est libre ; sinon un nouveau port libre est choisi et gardé. */
@@ -398,6 +421,7 @@ class SyncController private constructor(context: Context) {
 
     companion object {
         private const val GRACE_MS = 60_000L
+        private const val REMOTE_SETTLE_MS = 100L
         private const val PAIRING_HOLD_MAX_MS = 180_000L
 
         /** Vrai pendant un changement de stockage (même sans contrôleur créé : un contrôleur né pendant ce temps ne lance rien). */

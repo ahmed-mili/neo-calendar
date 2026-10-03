@@ -96,6 +96,8 @@ class SyncthingApi(private val transport: HttpTransport) {
         call("PUT", "/rest/config/folders/${q(folder.getValue("id").jsonPrimitive.content)}", folder)
     }
 
+    fun patchFolder(folderId: String, patch: JsonObject) { call("PATCH", "/rest/config/folders/${q(folderId)}", patch) }
+
     fun setFolderDevices(folderId: String, deviceIds: List<String>) {
         call("PATCH", "/rest/config/folders/${q(folderId)}", JsonObject(mapOf("devices" to EngineConfig.folderDevices(deviceIds))))
     }

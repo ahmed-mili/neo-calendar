@@ -10,6 +10,12 @@ use std::io::Cursor;
 pub const RELAY_POOL: &str = "dynamic+https://relays.syncthing.net/endpoint";
 pub const TRASHCAN_DAYS: &str = "30";
 pub const FOLDER_LABEL: &str = "Neo Calendar";
+/// Une modification faite hors de l'app (éditeur, explorateur) part au bout d'une seconde, pas des 10 s par défaut ;
+/// Syncthing retient une suppression six fois ce délai (60 s par défaut) pour reconnaître un renommage.
+pub const WATCH_DELAY_S: u64 = 1;
+/// Un fichier annoncé par un autre appareil est récupéré tout de suite : par défaut le moteur attend 1 s
+/// (`sync-waiting`) pour regrouper les annonces, ce qui faisait l'essentiel du délai d'une note créée sur l'autre appareil.
+pub const PULLER_DELAY_S: u64 = 0;
 
 pub enum Opt {
     Bool(bool),
@@ -75,11 +81,18 @@ pub fn folder(id: &str, label: &str, path: &str, device_ids: &[String]) -> Value
         "path": path,
         "type": "sendreceive",
         "fsWatcherEnabled": true,
+        "fsWatcherDelayS": WATCH_DELAY_S,
+        "pullerDelayS": PULLER_DELAY_S,
         "ignorePerms": true,
         "rescanIntervalS": 3600,
         "devices": folder_devices(device_ids),
         "versioning": { "type": "trashcan", "params": { "cleanoutDays": TRASHCAN_DAYS } }
     })
+}
+
+/// Le PATCH qui remet un dossier déjà déclaré (installation d'avant, dossier repris) aux délais de l'app.
+pub fn fast_watch() -> Value {
+    json!({ "fsWatcherDelayS": WATCH_DELAY_S, "pullerDelayS": PULLER_DELAY_S })
 }
 
 /// La liste `devices` d'un dossier, sans doublon.
@@ -309,6 +322,10 @@ mod tests {
         assert_eq!(body["type"], "sendreceive");
         assert_eq!(body["path"], "C:\\Neo Calendar");
         assert_eq!(body["fsWatcherEnabled"], true);
+        assert_eq!(body["fsWatcherDelayS"], 1, "une modification part au bout d'une seconde");
+        assert_eq!(body["pullerDelayS"], 0, "un fichier annoncé est récupéré sans attendre");
+        assert_eq!(fast_watch()["fsWatcherDelayS"], 1);
+        assert_eq!(fast_watch()["pullerDelayS"], 0);
         assert_eq!(body["versioning"]["type"], "trashcan");
         assert_eq!(body["versioning"]["params"]["cleanoutDays"], "30");
         assert_eq!(body["devices"].as_array().unwrap().len(), 2, "pas de doublon");
