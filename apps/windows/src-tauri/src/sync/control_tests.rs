@@ -218,7 +218,7 @@ fn qr_pairing_accepts_only_the_right_code_and_syncs_both_ways() {
     };
 
     let pairing = controller.pairing_start().unwrap();
-    assert!(pairing.qr_svg.contains("<svg") && pairing.expires_in_ms == 300_000);
+    assert!(pairing.qr_svg.contains("<svg") && pairing.refresh_in_ms == 25_000 && !pairing.my_id.is_empty());
     let code = controller.pairing.lock().unwrap().current_code().unwrap();
 
     // Deux « téléphones » : le bon (il a scanné) et un intrus qui présente un mauvais code.

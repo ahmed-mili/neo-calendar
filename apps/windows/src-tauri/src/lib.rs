@@ -2060,6 +2060,10 @@ pub fn run() {
             #[cfg(desktop)]
             sync::commands::sync_pairing_start,
             #[cfg(desktop)]
+            sync::commands::sync_pairing_next,
+            #[cfg(desktop)]
+            sync::commands::sync_add_device,
+            #[cfg(desktop)]
             sync::commands::sync_pairing_cancel,
             #[cfg(desktop)]
             sync::commands::sync_accept_device,

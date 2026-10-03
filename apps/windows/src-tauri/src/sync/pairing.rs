@@ -1,14 +1,21 @@
-//! L'appairage par QR code : un code à usage unique, valable 5 minutes, que le téléphone annonce au PC dans le
-//! nom d'appareil qu'il présente (`Pixel 8 [NC:K7Q2M9XPAB]`) : le seul canal que l'API REST de la v2.1.5 expose
-//! pour un appareil encore inconnu (`/rest/cluster/pending/devices` rend son `name`, vérifié sur deux vrais moteurs).
+//! L'appairage par QR code : un code à usage unique que le téléphone annonce au PC dans le nom d'appareil qu'il
+//! présente (`Pixel 8 [NC:K7Q2M9XPAB]`) : le seul canal que l'API REST de la v2.1.5 expose pour un appareil encore
+//! inconnu (`/rest/cluster/pending/devices` rend son `name`, vérifié sur deux vrais moteurs).
 //!
-//! Règle : rien n'est accepté tout seul, sauf la demande qui porte le bon code pendant la fenêtre ouverte.
+//! Le QR code change toutes les `REFRESH` tant que la fenêtre est ouverte : une photo prise par-dessus l'épaule ne
+//! sert plus longtemps. Chaque code reste pourtant valable `CODE_LIFE` après avoir été tiré, parce que le téléphone
+//! ne le présente qu'une fois connecté au PC, ce qui prend de quelques secondes à quelques dizaines de secondes.
+//!
+//! Règle : rien n'est accepté tout seul, sauf la demande qui porte un code valable de la fenêtre ouverte.
 
 use super::config::random_chars;
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
-pub const WINDOW: Duration = Duration::from_secs(5 * 60);
+/// Toutes les combien la page demande un nouveau code.
+pub const REFRESH: Duration = Duration::from_secs(25);
+/// Combien de temps un code reste valable après avoir été tiré (affiché `REFRESH`, puis une minute de grâce).
+pub const CODE_LIFE: Duration = Duration::from_secs(90);
 /// Au-delà, la fenêtre se ferme : un code de 50 bits ne se devine pas, mais rien n'oblige à laisser essayer.
 pub const MAX_WRONG: u32 = 10;
 pub const CODE_LEN: usize = 10;
@@ -17,6 +24,26 @@ const MARKER_OPEN: &str = "[NC:";
 
 pub fn new_code() -> String {
     random_chars(CODE_ALPHABET, CODE_LEN)
+}
+
+/// Un identifiant d'appareil Syncthing tapé ou collé, remis à la forme que le moteur écrit (`AAAAAAA-BBBBBBB-...`) :
+/// espaces, tirets et casse ignorés, et les chiffres que la base 32 ne contient pas (0, 1, 8) lus comme les lettres
+/// qu'ils imitent, comme le fait Syncthing. La somme de contrôle reste au moteur, qui refuse un identifiant faux.
+pub fn normalize_device_id(raw: &str) -> Option<String> {
+    let chars: Vec<char> = raw
+        .chars()
+        .filter(|c| !c.is_whitespace() && *c != '-')
+        .map(|c| match c.to_ascii_uppercase() {
+            '0' => 'O',
+            '1' => 'I',
+            '8' => 'B',
+            other => other,
+        })
+        .collect();
+    if chars.len() != 56 || !chars.iter().all(|c| c.is_ascii_uppercase() || ('2'..='7').contains(c)) {
+        return None;
+    }
+    Some(chars.chunks(7).map(|group| group.iter().collect::<String>()).collect::<Vec<_>>().join("-"))
 }
 
 /// Ce que contient le QR code : le schéma `neo-calendar://` est déjà celui de l'app.
@@ -53,22 +80,29 @@ pub fn split_name(name: &str) -> (String, Option<String>) {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Verdict {
-    /// Le bon code, dans la fenêtre : la demande s'accepte sans question.
+    /// Un code valable de la fenêtre ouverte : la demande s'accepte sans question.
     Accept,
     /// Pas de code dans le nom : demande ordinaire, à accepter à la main.
     NotACode,
-    /// Un code, mais pas le bon.
+    /// Un code, mais aucun de ceux qui sont valables.
     Wrong,
-    /// Un code, mais aucune fenêtre ouverte (jamais ouverte, expirée, déjà utilisée, ou trop d'essais).
+    /// Un code, mais aucune fenêtre ouverte (jamais ouverte, codes expirés, déjà servie, ou trop d'essais).
     Closed,
 }
 
 struct Session {
-    code: String,
-    opened: Instant,
+    /// Les codes tirés depuis l'ouverture, avec l'instant du tirage ; les expirés sont oubliés au tirage suivant.
+    codes: Vec<(String, Instant)>,
     /// Les appareils qui ont présenté un mauvais code : chacun compte une fois, même s'il se reconnecte chaque seconde.
+    /// Le compte survit aux changements de code : sinon le renouvellement remettrait les essais à zéro.
     wrong: HashSet<String>,
     used: bool,
+}
+
+impl Session {
+    fn live_codes(&self, now: Instant) -> impl Iterator<Item = &(String, Instant)> {
+        self.codes.iter().filter(move |(_, issued)| now.saturating_duration_since(*issued) <= CODE_LIFE)
+    }
 }
 
 #[derive(Default)]
@@ -81,15 +115,27 @@ fn same_code(a: &str, b: &str) -> bool {
 }
 
 impl Pairing {
-    /// Ouvre une fenêtre (la précédente, s'il y en avait une, est fermée).
+    /// Ouvre une fenêtre avec son premier code (la précédente, s'il y en avait une, est fermée).
     pub fn start(&mut self, now: Instant, code: String) {
-        self.session = Some(Session { code, opened: now, wrong: HashSet::new(), used: false });
+        self.session = Some(Session { codes: vec![(code, now)], wrong: HashSet::new(), used: false });
     }
 
-    /// Le code de la fenêtre en cours (les tests jouent le téléphone avec).
+    /// Ajoute un nouveau code à la fenêtre ouverte ; les précédents restent valables jusqu'au bout de leur durée.
+    /// Refusé sans fenêtre utilisable (jamais ouverte, déjà servie, trop d'essais) : il faut en rouvrir une.
+    pub fn rotate(&mut self, now: Instant, code: String) -> bool {
+        let Some(session) = self.session.as_mut() else { return false };
+        if session.used || (session.wrong.len() as u32) >= MAX_WRONG {
+            return false;
+        }
+        session.codes.retain(|(_, issued)| now.saturating_duration_since(*issued) <= CODE_LIFE);
+        session.codes.push((code, now));
+        true
+    }
+
+    /// Le dernier code tiré (les tests jouent le téléphone avec).
     #[cfg(test)]
     pub fn current_code(&self) -> Option<String> {
-        self.session.as_ref().map(|s| s.code.clone())
+        self.session.as_ref().and_then(|s| s.codes.last()).map(|(code, _)| code.clone())
     }
 
     pub fn cancel(&mut self) {
@@ -99,16 +145,19 @@ impl Pairing {
     fn open(&self, now: Instant) -> Option<&Session> {
         self.session
             .as_ref()
-            .filter(|s| !s.used && (s.wrong.len() as u32) < MAX_WRONG && now.saturating_duration_since(s.opened) <= WINDOW)
+            .filter(|s| !s.used && (s.wrong.len() as u32) < MAX_WRONG && s.live_codes(now).next().is_some())
     }
 
-    /// Le temps qu'il reste à la fenêtre ouverte, s'il y en a une.
+    /// Le temps qu'il reste au code valable le plus récent, s'il y en a un.
     pub fn remaining(&self, now: Instant) -> Option<Duration> {
-        self.open(now).map(|s| WINDOW.saturating_sub(now.saturating_duration_since(s.opened)))
+        self.open(now)?
+            .live_codes(now)
+            .map(|(_, issued)| CODE_LIFE.saturating_sub(now.saturating_duration_since(*issued)))
+            .max()
     }
 
-    /// Juge une demande entrante (l'identifiant de l'appareil et le nom qu'il présente). Un code correct est consommé :
-    /// le même ne passe jamais deux fois.
+    /// Juge une demande entrante (l'identifiant de l'appareil et le nom qu'il présente). Un code correct ferme la
+    /// fenêtre et tous ses codes : aucun code montré sur cet écran ne passe deux fois.
     pub fn judge(&mut self, now: Instant, device_id: &str, device_name: &str) -> Verdict {
         let (_, presented) = split_name(device_name);
         let Some(presented) = presented else {
@@ -118,8 +167,11 @@ impl Pairing {
             return Verdict::Closed;
         }
         let session = self.session.as_mut().expect("fenêtre ouverte");
-        if same_code(&session.code, &presented) {
+        // Tous les codes valables sont comparés, sans s'arrêter au premier qui correspond.
+        let matched = session.live_codes(now).fold(false, |found, (code, _)| found | same_code(code, &presented));
+        if matched {
             session.used = true;
+            session.codes.clear();
             Verdict::Accept
         } else {
             session.wrong.insert(device_id.to_string());
@@ -147,6 +199,18 @@ mod tests {
             qr_payload(ID, "K7Q2M9XPAB"),
             "neo-calendar://pair?device=7ZSUPCU-MIU3GEY-RKFNTSV-LN2G6Y4-QEHRT7P-4MRWEY7-UNMY3TG-YKFZEQX&code=K7Q2M9XPAB"
         );
+    }
+
+    #[test]
+    fn a_typed_device_id_is_put_back_in_the_engine_form() {
+        let typed = "7zsupcu miu3gey rkfntsv ln2g6y4 qehrt7p 4mrwey7 unmy3tg ykfzeqx";
+        assert_eq!(normalize_device_id(typed).as_deref(), Some(ID));
+        assert_eq!(normalize_device_id(&ID.replace('-', "")).as_deref(), Some(ID));
+        assert_eq!(normalize_device_id(&format!("  {ID}\n")).as_deref(), Some(ID));
+        assert_eq!(normalize_device_id(&ID.replace('I', "1")).as_deref(), Some(ID), "1 se lit I");
+        for bad in ["", "7ZSUPCU", &ID[..62], &format!("{ID}A"), &ID.replace('Z', "9"), &ID.replace('Z', "/")] {
+            assert_eq!(normalize_device_id(bad), None, "{bad}");
+        }
     }
 
     #[test]
@@ -188,13 +252,68 @@ mod tests {
     }
 
     #[test]
-    fn the_window_lasts_five_minutes() {
+    fn a_code_lives_ninety_seconds() {
         let t0 = Instant::now();
         let mut pairing = open_at(t0);
-        assert_eq!(pairing.remaining(t0), Some(WINDOW));
-        assert_eq!(pairing.judge(t0 + WINDOW, "tel", "Pixel [NC:K7Q2M9XPAB]"), Verdict::Accept);
+        assert_eq!(pairing.remaining(t0), Some(CODE_LIFE));
+        assert_eq!(pairing.judge(t0 + CODE_LIFE, "tel", "Pixel [NC:K7Q2M9XPAB]"), Verdict::Accept);
         let mut late = open_at(t0);
-        assert_eq!(late.judge(t0 + WINDOW + Duration::from_millis(1), "tel", "Pixel [NC:K7Q2M9XPAB]"), Verdict::Closed);
+        let after = t0 + CODE_LIFE + Duration::from_millis(1);
+        assert_eq!(late.judge(after, "tel", "Pixel [NC:K7Q2M9XPAB]"), Verdict::Closed);
+        assert!(late.remaining(after).is_none());
+    }
+
+    #[test]
+    fn after_a_rotation_the_new_code_and_the_previous_one_both_work() {
+        let t0 = Instant::now();
+        let mut pairing = open_at(t0);
+        assert!(pairing.rotate(t0 + REFRESH, "ZZZZZZZZZZ".to_string()));
+        assert_eq!(pairing.current_code().as_deref(), Some("ZZZZZZZZZZ"));
+        assert_eq!(pairing.remaining(t0 + REFRESH), Some(CODE_LIFE), "le plus récent compte");
+        // Le téléphone a lu l'ancien juste avant le changement et se connecte 30 s plus tard.
+        let later = t0 + REFRESH + Duration::from_secs(30);
+        assert_eq!(pairing.judge(later, "tel", "Pixel [NC:K7Q2M9XPAB]"), Verdict::Accept);
+        let mut fresh = open_at(t0);
+        assert!(fresh.rotate(t0 + REFRESH, "ZZZZZZZZZZ".to_string()));
+        assert_eq!(fresh.judge(t0 + REFRESH, "tel", "Pixel [NC:ZZZZZZZZZZ]"), Verdict::Accept);
+    }
+
+    #[test]
+    fn an_old_code_dies_at_the_end_of_its_life_even_while_the_window_rotates() {
+        let t0 = Instant::now();
+        let mut pairing = open_at(t0);
+        let mut now = t0;
+        for i in 0..4 {
+            now += REFRESH;
+            assert!(pairing.rotate(now, format!("ZZZZZZZZZ{}", i + 2)));
+        }
+        assert!(now.saturating_duration_since(t0) > CODE_LIFE);
+        assert_eq!(pairing.judge(now, "photo", "Pixel [NC:K7Q2M9XPAB]"), Verdict::Wrong);
+        assert_eq!(pairing.judge(now, "tel", "Pixel [NC:ZZZZZZZZZ5]"), Verdict::Accept);
+    }
+
+    #[test]
+    fn an_accepted_code_closes_the_window_and_every_code_shown_on_it() {
+        let t0 = Instant::now();
+        let mut pairing = open_at(t0);
+        assert!(pairing.rotate(t0, "ZZZZZZZZZZ".to_string()));
+        assert_eq!(pairing.judge(t0, "tel", "Pixel [NC:ZZZZZZZZZZ]"), Verdict::Accept);
+        assert_eq!(pairing.judge(t0, "autre", "Autre [NC:K7Q2M9XPAB]"), Verdict::Closed);
+        assert!(!pairing.rotate(t0, "YYYYYYYYYY".to_string()), "une fenêtre servie ne se renouvelle pas");
+        assert!(pairing.remaining(t0).is_none());
+    }
+
+    #[test]
+    fn rotation_needs_an_open_window_and_keeps_the_wrong_attempts() {
+        let t0 = Instant::now();
+        assert!(!Pairing::default().rotate(t0, "ZZZZZZZZZZ".to_string()));
+        let mut pairing = open_at(t0);
+        for i in 0..MAX_WRONG {
+            assert!(pairing.rotate(t0, new_code()));
+            assert_eq!(pairing.judge(t0, &format!("intrus-{i}"), "Intrus [NC:AAAAAAAAAA]"), Verdict::Wrong);
+        }
+        assert!(!pairing.rotate(t0, "ZZZZZZZZZZ".to_string()), "les essais ne repartent pas de zéro");
+        assert_eq!(pairing.judge(t0, "tel", "Pixel [NC:K7Q2M9XPAB]"), Verdict::Closed);
     }
 
     #[test]

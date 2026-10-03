@@ -97,7 +97,10 @@ pub struct StatusDto {
 #[serde(rename_all = "camelCase")]
 pub struct PairingDto {
     pub qr_svg: String,
-    pub expires_in_ms: u64,
+    /// L'identifiant de ce PC, montré en entier au-dessus du QR code.
+    pub my_id: String,
+    /// Dans combien de temps la page doit demander le code suivant.
+    pub refresh_in_ms: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -422,14 +425,29 @@ impl Controller {
 
     // ----- Appairage par QR code -----
 
+    /// Ouvre la fenêtre d'appairage avec son premier code.
     pub fn pairing_start(&self) -> Result<PairingDto, String> {
+        self.pairing_code(true)
+    }
+
+    /// Le code suivant, que la page demande toutes les `REFRESH` ; les précédents restent valables `CODE_LIFE`.
+    pub fn pairing_next(&self) -> Result<PairingDto, String> {
+        self.pairing_code(false)
+    }
+
+    fn pairing_code(&self, open: bool) -> Result<PairingDto, String> {
         let snapshot = self.engine.snapshot();
         let my_id = snapshot.my_id.ok_or("Le moteur de synchronisation démarre : réessayez dans un instant.")?;
         let code = pairing::new_code();
         let svg = pairing::qr_svg(&pairing::qr_payload(&my_id, &code))?;
-        self.pairing.lock().unwrap_or_else(|e| e.into_inner()).start(Instant::now(), code);
-        *self.pairing_error.lock().unwrap_or_else(|e| e.into_inner()) = None;
-        Ok(PairingDto { qr_svg: svg, expires_in_ms: pairing::WINDOW.as_millis() as u64 })
+        let mut session = self.pairing.lock().unwrap_or_else(|e| e.into_inner());
+        if open {
+            session.start(Instant::now(), code);
+            *self.pairing_error.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        } else if !session.rotate(Instant::now(), code) {
+            return Err("La fenêtre d'appairage est fermée.".to_string());
+        }
+        Ok(PairingDto { qr_svg: svg, my_id, refresh_in_ms: pairing::REFRESH.as_millis() as u64 })
     }
 
     pub fn pairing_cancel(&self) {
@@ -456,6 +474,13 @@ impl Controller {
             .map(|p| pairing::split_name(&p.name).0)
             .ok_or("Cette demande n'existe plus.")?;
         self.with_setup(|setup| setup.accept_device(id, &name))
+    }
+
+    /// « Ajouter un appareil » : l'identifiant d'un autre appareil, tapé ou collé. Le dossier lui est partagé tout de
+    /// suite ; l'autre appareil doit encore accepter ce PC de son côté.
+    pub fn add_device(&self, id: &str, name: &str) -> Result<(), String> {
+        let id = pairing::normalize_device_id(id).ok_or("Cet identifiant d'appareil n'est pas valable.")?;
+        self.with_setup(|setup| setup.accept_device(&id, name))
     }
 
     pub fn reject_device(&self, id: &str) -> Result<(), String> {

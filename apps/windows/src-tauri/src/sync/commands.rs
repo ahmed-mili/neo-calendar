@@ -78,6 +78,16 @@ pub fn sync_pairing_start(app: AppHandle) -> Result<PairingDto, String> {
 }
 
 #[tauri::command(rename_all = "camelCase", async)]
+pub fn sync_pairing_next(app: AppHandle) -> Result<PairingDto, String> {
+    controller(&app)?.pairing_next()
+}
+
+#[tauri::command(rename_all = "camelCase", async)]
+pub fn sync_add_device(app: AppHandle, device_id: String, name: String) -> Result<(), String> {
+    controller(&app)?.add_device(&device_id, &name)
+}
+
+#[tauri::command(rename_all = "camelCase", async)]
 pub fn sync_pairing_cancel(app: AppHandle) -> Result<(), String> {
     controller(&app)?.pairing_cancel();
     Ok(())
@@ -146,7 +156,7 @@ mod tests {
             assert!(attribute.contains("async"), "{}", &source[index..index + 40]);
             checked += 1;
         }
-        assert_eq!(checked, 15);
+        assert_eq!(checked, 17);
     }
 
     #[test]
