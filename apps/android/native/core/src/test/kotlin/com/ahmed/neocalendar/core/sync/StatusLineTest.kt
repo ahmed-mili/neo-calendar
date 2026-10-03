@@ -50,4 +50,11 @@ class StatusLineTest {
     @Test fun `binaire absent`() {
         assertEquals(StatusLine.Error("moteur de synchronisation absent de cette version"), line(engine = EngineState.Missing, folder = null))
     }
+
+    @Test fun `sans appareil, une pause ou une erreur du moteur reste visible`() {
+        assertEquals(StatusLine.Paused(PauseReason.MobileDataNotAllowed), line(hasDevices = false, engine = EngineState.Stopped, decision = RunDecision.Pause(PauseReason.MobileDataNotAllowed)))
+        assertEquals(StatusLine.Error("boom"), line(hasDevices = false, engine = EngineState.Failed("boom")))
+        assertEquals(StatusLine.Error("moteur de synchronisation absent de cette version"), line(hasDevices = false, engine = EngineState.Missing, folder = null))
+        assertEquals(StatusLine.NotConfigured, line(hasDevices = false, engine = EngineState.Running, folder = null))
+    }
 }

@@ -11,7 +11,7 @@ sealed interface StatusLine {
     data class Error(val message: String) : StatusLine
 
     fun text(): String = when (this) {
-        NotConfigured -> "Aucun appareil : la synchronisation est arrêtée"
+        NotConfigured -> "Aucun appareil : appairez le PC pour synchroniser"
         Starting -> "Démarrage…"
         UpToDate -> "À jour"
         is Syncing -> if (files == 1) "Synchronisation en cours (1 fichier)" else "Synchronisation en cours ($files fichiers)"
@@ -22,7 +22,7 @@ sealed interface StatusLine {
 }
 
 /**
- * Priorité : pas d'appareil, erreur du moteur, pause (condition non remplie), démarrage, erreur du dossier,
+ * Priorité : erreur du moteur, pause (condition non remplie), pas d'appareil, démarrage, erreur du dossier,
  * synchro en cours, hors ligne (aucun appareil connecté), à jour.
  */
 fun summarize(
@@ -32,11 +32,11 @@ fun summarize(
     folder: FolderState?,
     anyDeviceConnected: Boolean,
 ): StatusLine = when {
-    !hasDevices -> StatusLine.NotConfigured
     engine is EngineState.Missing -> StatusLine.Error("moteur de synchronisation absent de cette version")
     engine is EngineState.Failed -> StatusLine.Error(engine.error)
     engine is EngineState.Backoff -> StatusLine.Error("${engine.error} (nouvel essai dans ${engine.retryInMs / 1000} s)")
     decision is RunDecision.Pause -> StatusLine.Paused(decision.reason)
+    !hasDevices -> StatusLine.NotConfigured
     engine !is EngineState.Running || folder == null -> StatusLine.Starting
     folder.error.isNotEmpty() -> StatusLine.Error(folder.error)
     folder.needFiles > 0 || folder.state == "syncing" || folder.state == "scanning" -> StatusLine.Syncing(folder.needFiles)
