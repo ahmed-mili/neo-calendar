@@ -1023,16 +1023,42 @@ function CalendarAppInner(props: CalendarAppProps) {
         calendarVisibilityTransitions,
     ]);
 
+    // The title typed in the panel, ahead of the note on disk (written once the
+    // typing pauses). Only honoured for the event the panel still shows.
+    const [liveTitle, setLiveTitle] = useState<{
+        id: string;
+        title: string;
+    } | null>(null);
+    const handleLiveTitle = useCallback((id: string, title: string) => {
+        setLiveTitle((prev) =>
+            prev && prev.id === id && prev.title === title
+                ? prev
+                : { id, title }
+        );
+    }, []);
+
     // Flag the event currently open in the panel so its block can render in its
-    // full ribbon color. Only the (de)selected objects change identity.
+    // full ribbon color, and give it the title being typed. Only the touched
+    // objects change identity.
     const eventsWithSelection = useMemo(() => {
         if (!panelEventId && selectedIds.size === 0) return visibleEvents;
-        return visibleEvents.map((e) =>
-            e.id === panelEventId || selectedIds.has(e.id)
-                ? { ...e, selected: true }
-                : e
-        );
-    }, [visibleEvents, panelEventId, selectedIds]);
+        const live =
+            liveTitle &&
+            liveTitle.id === panelEventId &&
+            liveTitle.title.trim() !== ""
+                ? liveTitle
+                : null;
+        return visibleEvents.map((e) => {
+            const selected = e.id === panelEventId || selectedIds.has(e.id);
+            const retitled = live !== null && e.id === live.id && e.title !== live.title;
+            if (!selected && !retitled) return e;
+            return {
+                ...e,
+                ...(selected ? { selected: true } : {}),
+                ...(retitled ? { title: live.title } : {}),
+            };
+        });
+    }, [visibleEvents, panelEventId, selectedIds, liveTitle]);
 
     const handleCalendarVisibilityAnimationEnd = useCallback(
         (event: React.AnimationEvent<HTMLDivElement>) => {
@@ -1594,6 +1620,7 @@ function CalendarAppInner(props: CalendarAppProps) {
                         if (draftSlot) discardDraft();
                     }}
                     onDraftCommit={handleDraftCommit}
+                    onLiveTitle={handleLiveTitle}
                     onOpenFile={(id) => props.onOpenFile(id)}
                     /* La vue suit la fiche : ouvrir la date voisine d'une serie
                        sans deplacer le calendrier laisserait le panneau parler

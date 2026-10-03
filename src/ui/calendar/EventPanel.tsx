@@ -139,6 +139,10 @@ interface EventPanelProps {
         nextTarget?: string
     ) => Promise<void>;
     onOpenEventLink?: (item: EventLinkedItem) => Promise<void> | void;
+    /** The title as it is being typed, letter by letter: the grid shows it on
+     *  the event's block right away, while the note itself is written once the
+     *  typing pauses (see `debouncedAutoSave`). */
+    onLiveTitle?: (eventId: string, title: string) => void;
     /** Ouvre le lieu d'un évènement dans la carte du système. */
     /** L'adresse réglée sur le lien ICS dont vient l'évènement, quand il en
      *  vient d'un : c'est elle qui mène au campus, faute de quoi le flux ne le
@@ -273,6 +277,7 @@ export default function EventPanel({
     onRemoveEventLink,
     onRenameEventLink,
     onOpenEventLink,
+    onLiveTitle,
     linkAddress,
     travelMode,
     mapsApp,
@@ -1142,6 +1147,13 @@ export default function EventPanel({
             autoSave();
         }
     });
+
+    // The grid follows the title field on every keystroke; the debounced write
+    // above only decides when the note on disk catches up.
+    useEffect(() => {
+        if (!onLiveTitle || !visible || isDraft || !eventId) return;
+        onLiveTitle(eventId, form.title);
+    }, [onLiveTitle, visible, isDraft, eventId, form.title]);
 
     // ── Auto-commit named grid drafts ─────────────────────────
 

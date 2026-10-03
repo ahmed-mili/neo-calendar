@@ -2383,6 +2383,36 @@ export default function DesktopCalendar({
         visibleDates,
     ]);
 
+    // The title typed in the event panel, ahead of the note on disk (written
+    // once the typing pauses): the block follows every keystroke. A light pass
+    // over the built list, so a keystroke never rebuilds every event. Without a
+    // multi-selection, the selected blocks are exactly the panel's event.
+    const [liveTitle, setLiveTitle] = useState<{
+        id: string;
+        title: string;
+    } | null>(null);
+    const handleLiveTitle = useCallback((id: string, title: string) => {
+        setLiveTitle((prev) =>
+            prev && prev.id === id && prev.title === title
+                ? prev
+                : { id, title }
+        );
+    }, []);
+    const displayEventsLive = useMemo(() => {
+        const live =
+            liveTitle &&
+            liveTitle.id === panelEventId &&
+            liveTitle.title.trim() !== ""
+                ? liveTitle.title
+                : null;
+        if (live === null || selectedIds.size > 0) return displayEvents;
+        return displayEvents.map((event) =>
+            event.selected && event.title !== live
+                ? { ...event, title: live }
+                : event
+        );
+    }, [displayEvents, liveTitle, panelEventId, selectedIds]);
+
     const somedayEvents = useMemo(
         () =>
             storedEvents.flatMap((record) => {
@@ -4334,7 +4364,7 @@ export default function DesktopCalendar({
                     onShiftDays={shiftDays}
                     onShiftMonths={shiftMonths}
                     onNewEvent={() => openNewEvent()}
-                    events={displayEvents}
+                    events={displayEventsLive}
                     calendarSources={calendarSources}
                     visibleDates={visibleDates}
                     firstDay={preferences.firstDay}
@@ -4560,6 +4590,7 @@ export default function DesktopCalendar({
                     committingDraft
                 }
                 eventId={panelEventId}
+                onLiveTitle={handleLiveTitle}
                 draft={
                     draftSlot && !committingDraft
                         ? {
