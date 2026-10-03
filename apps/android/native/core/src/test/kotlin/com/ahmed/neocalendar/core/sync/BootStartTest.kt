@@ -13,8 +13,8 @@ class BootStartTest {
     }
 
     @Test
-    fun `le demarrage automatique est desactive par defaut`() {
-        assertFalse(SyncSettings(configured = true).startsAtBoot())
+    fun `le demarrage automatique est active par defaut`() {
+        assertTrue(SyncSettings(configured = true).startsAtBoot())
     }
 
     @Test
