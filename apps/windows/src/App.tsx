@@ -74,16 +74,9 @@ export default function App() {
     const {
         preferences,
         chooseDataFolder,
-        detectedVaults,
-        enabledVaults,
-        chooseVaultFolder,
-        removeVaultFolder,
-        setVaultEnabled,
         setTheme,
         error,
         isChoosingFolder,
-        isChoosingVaultFolder,
-        isScanningVaults,
         route,
     } = useDesktopBridge();
 
@@ -311,21 +304,6 @@ export default function App() {
     }
 
     if (dataFolder) {
-        const preferenceRecord =
-            preferences && typeof preferences === "object"
-                ? (preferences as unknown as Record<string, unknown>)
-                : {};
-        const vaultFolders = Array.isArray(preferenceRecord.vaultFolders)
-            ? preferenceRecord.vaultFolders.filter(
-                  (value): value is string => typeof value === "string"
-              )
-            : [];
-        const disabledVaults = Array.isArray(preferenceRecord.disabledVaults)
-            ? preferenceRecord.disabledVaults.filter(
-                  (value): value is string => typeof value === "string"
-              )
-            : [];
-
         return (
             <main
                 ref={startupRef}
@@ -345,15 +323,6 @@ export default function App() {
                         onReady={handleCalendarReady}
                         dataFolder={dataFolder}
                         onChangeDataFolder={chooseDataFolder}
-                        linkedVaults={enabledVaults.map((vault) => vault.path)}
-                        vaultFolders={vaultFolders}
-                        detectedVaults={detectedVaults}
-                        disabledVaults={disabledVaults}
-                        onAddVaultFolder={chooseVaultFolder}
-                        onRemoveVaultFolder={removeVaultFolder}
-                        onSetVaultEnabled={setVaultEnabled}
-                        isChoosingVaultFolder={isChoosingVaultFolder}
-                        isScanningVaults={isScanningVaults}
                         themeId={theme.id}
                         legacyThemeId={legacyThemeId}
                         onThemeChange={changeTheme}

@@ -1,7 +1,4 @@
-import {
-    normalizeDesktopPreferences,
-    withChosenTheme,
-} from "./preferences";
+import { normalizeDesktopPreferences, withChosenTheme } from "./preferences";
 import {
     normalizeAppearancePreferences,
     resolveWallpaperId,
@@ -18,8 +15,6 @@ describe("normalizeDesktopPreferences", () => {
         expect(normalizeDesktopPreferences(null)).toEqual({
             dataFolder: null,
             themeId: "catppuccin-mocha",
-            vaultFolders: [],
-            disabledVaults: [],
             startupDefaultApplied: false,
             trayHintSeen: false,
         });
@@ -54,8 +49,6 @@ describe("normalizeDesktopPreferences", () => {
         ).toEqual({
             dataFolder: "C:\\Neo Calendar",
             themeId: "catppuccin-mocha",
-            vaultFolders: [],
-            disabledVaults: [],
             startupDefaultApplied: false,
             trayHintSeen: false,
         });
@@ -71,8 +64,6 @@ describe("normalizeDesktopPreferences", () => {
             dataFolder: null,
             themeId: "catppuccin-mocha",
             legacyThemeId: "unknown",
-            vaultFolders: [],
-            disabledVaults: [],
             startupDefaultApplied: false,
             trayHintSeen: false,
         });
@@ -85,15 +76,13 @@ describe("normalizeDesktopPreferences", () => {
         expect(
             normalizeDesktopPreferences({ themeId: "github" }).legacyThemeId
         ).toBeUndefined();
-        expect(
-            "legacyThemeId" in normalizeDesktopPreferences({})
-        ).toBe(false);
+        expect("legacyThemeId" in normalizeDesktopPreferences({})).toBe(false);
     });
 
     it("de bout en bout : le fond de l'ancien thème survit à la lecture et à une sauvegarde", () => {
         const stored = {
             themeId: "tokyo-night",
-            dataFolder: "C:\data",
+            dataFolder: "C:data",
         };
         const appearance = normalizeAppearancePreferences({
             themeOverrides: {
@@ -108,7 +97,7 @@ describe("normalizeDesktopPreferences", () => {
         );
         // Sauvegarde d'un autre réglage (comme useDesktopBridge), puis relecture.
         const afterSave = normalizeDesktopPreferences(
-            JSON.parse(JSON.stringify({ ...read, dataFolder: "D:\autre" }))
+            JSON.parse(JSON.stringify({ ...read, dataFolder: "D:autre" }))
         );
         expect(afterSave.legacyThemeId).toBe("tokyo-night");
         expect(
@@ -122,25 +111,28 @@ describe("normalizeDesktopPreferences", () => {
     it("choisir un thème efface l'id d'origine", () => {
         const read = normalizeDesktopPreferences({ themeId: "lobster" });
         const chosen = normalizeDesktopPreferences(
-            JSON.parse(JSON.stringify(withChosenTheme(read, "catppuccin-mocha")))
+            JSON.parse(
+                JSON.stringify(withChosenTheme(read, "catppuccin-mocha"))
+            )
         );
         expect(chosen.legacyThemeId).toBeUndefined();
         expect(chosen.themeId).toBe("catppuccin-mocha");
     });
 
-    it("keeps the vaults that were configured", () => {
+    // Un ancien fichier de préférences porte encore les champs des coffres Obsidian : ils se lisent sans erreur
+    // et ne reviennent pas à la sauvegarde.
+    it("reads an old file that still holds the Obsidian vault fields, and drops them", () => {
         expect(
             normalizeDesktopPreferences({
                 dataFolder: null,
                 themeId: "catppuccin-mocha",
-                vaultFolders: ["C:\\obsidian-vaults"],
-                disabledVaults: ["C:\\obsidian-vaults\\Troubleshooting"],
+                vaultFolders: ["C:obsidian-vaults"],
+                disabledVaults: ["C:obsidian-vaultsTroubleshooting"],
+                linkedVaults: ["C:obsidian-vaultsPerso"],
             })
         ).toEqual({
             dataFolder: null,
             themeId: "catppuccin-mocha",
-            vaultFolders: ["C:\\obsidian-vaults"],
-            disabledVaults: ["C:\\obsidian-vaults\\Troubleshooting"],
             startupDefaultApplied: false,
             trayHintSeen: false,
         });

@@ -169,44 +169,10 @@ export async function openDesktopLinkedPath(
     });
 }
 
-export interface DesktopDetectedVaultDto {
-    path: string;
-    name: string;
-}
-
-export async function discoverDesktopObsidianVaults(
-    rootPaths: string[]
-): Promise<DesktopDetectedVaultDto[]> {
-    return invoke<DesktopDetectedVaultDto[]>(
-        "discover_desktop_obsidian_vaults",
-        { rootPaths }
-    );
-}
-
-export interface DesktopVaultNoteDto {
-    vaultPath: string;
-    vaultName: string;
-    relativePath: string;
-    fileName: string;
-    title: string;
-}
-
 export interface DesktopAttachmentDto {
     fileName: string;
     relativePath: string;
     markdownPath: string;
-}
-
-export async function searchDesktopVaultNotes(
-    vaultPaths: string[],
-    query: string,
-    limit = 40
-): Promise<DesktopVaultNoteDto[]> {
-    return invoke<DesktopVaultNoteDto[]>("search_desktop_vault_notes", {
-        vaultPaths,
-        query,
-        limit,
-    });
 }
 
 export async function copyDesktopAttachment(

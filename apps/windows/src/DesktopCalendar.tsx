@@ -38,7 +38,6 @@ import ContextMenu, {
 } from "../../../src/ui/calendar/ContextMenu";
 import EventPanel, {
     type EventLinkedItem,
-    type EventLinkTarget,
 } from "../../../src/ui/calendar/EventPanel";
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -157,7 +156,6 @@ import {
     openDesktopLinkedPath,
     openDesktopPath,
     writeDesktopClipboardText,
-    searchDesktopVaultNotes,
     renameDesktopCalendarFolder,
     saveDesktopPreferences,
     writeDesktopEventFile,
@@ -179,7 +177,6 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { setStartupEnabled } from "./platform/desktopAutostart";
 import { useHourlyEpoch } from "./platform/useHourlyEpoch";
-import type { DesktopDetectedVaultDto } from "./platform/desktopCalendarStore";
 import {
     DesktopCacheController,
     DesktopCalendarModel,
@@ -193,7 +190,6 @@ import {
     filenameForEvent,
     findStoredEvent,
     markdownLinkForAttachment,
-    markdownLinkForVaultNote,
     parseStoredEvent,
     recordOwnership,
     removeMarkdownTargetFromEventBody,
@@ -234,15 +230,6 @@ import "./DesktopCalendar.css";
 export interface DesktopCalendarProps {
     dataFolder: string;
     onChangeDataFolder: () => Promise<void>;
-    linkedVaults: string[];
-    vaultFolders: string[];
-    detectedVaults: DesktopDetectedVaultDto[];
-    disabledVaults: string[];
-    onAddVaultFolder: () => Promise<void>;
-    onRemoveVaultFolder: (folderPath: string) => Promise<void>;
-    onSetVaultEnabled: (vaultPath: string, enabled: boolean) => Promise<void>;
-    isChoosingVaultFolder: boolean;
-    isScanningVaults: boolean;
     themeId: ThemeId;
     /** Identifiant d'un thème retiré, pour retrouver son fond. */
     legacyThemeId?: string;
@@ -659,15 +646,6 @@ function saveAndroidNavigation(viewType: ViewType, dayCount: number): void {
 export default function DesktopCalendar({
     dataFolder,
     onChangeDataFolder,
-    linkedVaults,
-    vaultFolders,
-    detectedVaults,
-    disabledVaults,
-    onAddVaultFolder,
-    onRemoveVaultFolder,
-    onSetVaultEnabled,
-    isChoosingVaultFolder,
-    isScanningVaults,
     themeId,
     legacyThemeId,
     onThemeChange,
@@ -1963,33 +1941,6 @@ export default function DesktopCalendar({
             }
         },
         [dataFolder]
-    );
-
-    const searchEventLinks = useCallback(
-        async (
-            query: string,
-            requestedVaultPath?: string
-        ): Promise<EventLinkTarget[]> => {
-            const paths = requestedVaultPath
-                ? linkedVaults.filter(
-                      (path) =>
-                          path.replace(/\\/g, "/").toLowerCase() ===
-                          requestedVaultPath.replace(/\\/g, "/").toLowerCase()
-                  )
-                : linkedVaults;
-            if (!paths.length) return [];
-            const notes = await searchDesktopVaultNotes(paths, query, 40);
-            return notes.map((note) => ({
-                id: `${note.vaultPath}::${note.relativePath}`,
-                vaultPath: note.vaultPath,
-                vaultName: note.vaultName,
-                title: note.title,
-                relativePath: note.relativePath,
-                detail: note.relativePath,
-                markdown: markdownLinkForVaultNote(note),
-            }));
-        },
-        [linkedVaults]
     );
 
     const pickEventAttachments = useCallback(
@@ -4619,11 +4570,6 @@ export default function DesktopCalendar({
                     void requestDeleteEvents([eventId])
                 }
                 firstDay={preferences.firstDay}
-                linkVaults={linkedVaults.map((path) => ({
-                    path,
-                    name: folderName(path),
-                }))}
-                onSearchEventLinks={searchEventLinks}
                 onFetchPage={fetchDesktopPage}
                 onResolveUrl={resolveDesktopUrl}
                 linkedItems={panelLinkedItems}
@@ -4731,11 +4677,6 @@ export default function DesktopCalendar({
             <DesktopSettings
                 open={settingsOpen}
                 dataFolder={dataFolder}
-                vaultFolders={vaultFolders}
-                detectedVaults={detectedVaults}
-                disabledVaults={disabledVaults}
-                isChoosingVaultFolder={isChoosingVaultFolder}
-                isScanningVaults={isScanningVaults}
                 preferences={preferences}
                 calendars={settingsCalendars}
                 misfiledEventCount={misfiledEvents.length}
@@ -4751,9 +4692,6 @@ export default function DesktopCalendar({
                 }}
                 onChangeDataFolder={onChangeDataFolder}
                 onOpenDataFolder={() => openDesktopPath(dataFolder)}
-                onAddVaultFolder={onAddVaultFolder}
-                onRemoveVaultFolder={onRemoveVaultFolder}
-                onSetVaultEnabled={onSetVaultEnabled}
                 onAddCalendar={() => {
                     setSettingsOpen(false);
                     if (isAndroid) setSidebarVisible(false);

@@ -1434,24 +1434,6 @@
     outline: none;
 }
 
-.nc-description-mention-popover {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.nc-description-mention-query {
-    flex: 0 0 auto;
-}
-
-.nc-description-mention-popover .nc-link-search-input {
-    pointer-events: none;
-}
-
-.nc-description-mention-popover .nc-link-result {
-    flex: 0 0 auto;
-}
-
 /* A phone keeps the 44px touch targets, so the same eight commands become two
    rows of four. This follows the platform, not the viewport width: landscape
    Android is still tactile and must not fall back to the compact desktop row. */

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getTheme, THEMES } from "./themes/registry";
 import ThemeColorPicker from "./ThemeColorPicker";
@@ -47,10 +47,7 @@ import {
     setWallpaperId,
 } from "./themes/appearancePreferences";
 import { folderName, readableFolderPath } from "./platform/documentPath";
-import {
-    writeDesktopClipboardText,
-    type DesktopDetectedVaultDto,
-} from "./platform/desktopCalendarStore";
+import { writeDesktopClipboardText } from "./platform/desktopCalendarStore";
 import type {
     DesktopInitialView,
     DesktopWorkspacePreferences,
@@ -81,7 +78,6 @@ import {
     FolderOpen,
     Globe,
     Languages,
-    Library,
     List as ListIcon,
     Moon,
     Monitor,
@@ -119,7 +115,6 @@ type SettingsSection =
     | "calendars"
     | "appearance"
     | "sync"
-    | "vaults"
     | "timezones"
     | "folder";
 
@@ -133,7 +128,7 @@ type SettingsPage = { kind: "root" } | { kind: "section"; id: SettingsSection };
  *
  * The test is what the section holds, not how many lines it happens to show
  * today: a fixed handful of rows can be a dialog, a list that grows with use
- * cannot. Calendars, Obsidian vaults and time zones each grow — and time zones
+ * cannot. Calendars and time zones each grow — and time zones
  * carries a text field, which on a phone means a keyboard covering half of
  * whatever it is drawn over. Appearance is a whole screen of its own.
  */
@@ -150,7 +145,6 @@ const SECTION_TITLES: Record<SettingsSection, string> = {
     calendars: t("Calendars"),
     appearance: t("Appearance"),
     sync: t("Sync"),
-    vaults: t("Obsidian vaults"),
     timezones: t("Time zones"),
     folder: t("Data folder"),
 };
@@ -188,11 +182,6 @@ export interface DesktopSettingsProps {
     open: boolean;
     initialTab?: SettingsTab;
     dataFolder: string;
-    vaultFolders: string[];
-    detectedVaults: DesktopDetectedVaultDto[];
-    disabledVaults: string[];
-    isChoosingVaultFolder?: boolean;
-    isScanningVaults?: boolean;
     themeId: ThemeId;
     /** Identifiant d'un thème retiré (`themeId` est alors Catppuccin) : il sert au fond hérité. */
     legacyThemeId?: string;
@@ -209,9 +198,6 @@ export interface DesktopSettingsProps {
     onClose: () => void;
     onChangeDataFolder: () => Promise<void>;
     onOpenDataFolder: () => Promise<void>;
-    onAddVaultFolder: () => Promise<void>;
-    onRemoveVaultFolder: (folderPath: string) => Promise<void>;
-    onSetVaultEnabled: (vaultPath: string, enabled: boolean) => Promise<void>;
     onAddCalendar: () => void;
     onRenameCalendar: (calendarId: string, name: string) => Promise<void>;
     onDeleteCalendar: (calendarId: string) => Promise<void>;
@@ -274,11 +260,6 @@ export default function DesktopSettings({
     open,
     initialTab = "general",
     dataFolder,
-    vaultFolders,
-    detectedVaults,
-    disabledVaults,
-    isChoosingVaultFolder = false,
-    isScanningVaults = false,
     themeId,
     legacyThemeId,
     preferences,
@@ -290,9 +271,6 @@ export default function DesktopSettings({
     onClose,
     onChangeDataFolder,
     onOpenDataFolder,
-    onAddVaultFolder,
-    onRemoveVaultFolder,
-    onSetVaultEnabled,
     onAddCalendar,
     onRenameCalendar,
     onDeleteCalendar,
@@ -416,14 +394,6 @@ export default function DesktopSettings({
         setThemeDirty(false);
         setThemeMessage(null);
     }, [open, themeId]);
-
-    const disabledKeys = useMemo(
-        () =>
-            disabledVaults.map((path) =>
-                path.replace(/\\/g, "/").toLowerCase()
-            ),
-        [disabledVaults]
-    );
 
     // The panel outlives `open` by the length of its exit: React would
     // otherwise unmount it on the spot and the closing animation would have
@@ -646,9 +616,6 @@ export default function DesktopSettings({
         setTimezone("");
     };
 
-    const isVaultEnabled = (vaultPath: string) =>
-        !disabledKeys.includes(vaultPath.replace(/\\/g, "/").toLowerCase());
-
     const submitCalendarRename = async (calendarId: string) => {
         const name = calendarName.trim();
         if (!name) return;
@@ -658,9 +625,6 @@ export default function DesktopSettings({
     };
 
     const secondaryTimezoneCount = preferences.secondaryTimezones.length;
-    const enabledVaultCount = detectedVaults.filter((vault) =>
-        isVaultEnabled(vault.path)
-    ).length;
 
     /** The first page: everything the app can be set to, in one column. */
     const renderRoot = (desktop = false) => (
@@ -971,19 +935,6 @@ export default function DesktopSettings({
                             }
                         />
                         <SettingsRow
-                            label={t("Obsidian vaults")}
-                            icon={<Library size={18} />}
-                            value={
-                                vaultFolders.length === 0
-                                    ? t("No folder")
-                                    : String(enabledVaultCount)
-                            }
-                            navigates
-                            onClick={() =>
-                                openPage({ kind: "section", id: "vaults" })
-                            }
-                        />
-                        <SettingsRow
                             label={t("Sync")}
                             icon={<RefreshCw size={18} />}
                             navigates
@@ -1082,117 +1033,6 @@ export default function DesktopSettings({
                     onClick={() => void onOpenDataFolder()}
                 />
             </SettingsGroup>
-        </div>
-    );
-
-    const renderVaults = () => (
-        <div className="nc-set-groups">
-            <SettingsGroup
-                note={t(
-                    "Add the folder that holds your Obsidian vaults. Those sitting directly inside it with an .obsidian folder are detected."
-                )}
-            >
-                <SettingsRow
-                    label={
-                        isChoosingVaultFolder
-                            ? t("Choosing…")
-                            : t("Add a folder")
-                    }
-                    disabled={isChoosingVaultFolder}
-                    onClick={() => void onAddVaultFolder()}
-                />
-            </SettingsGroup>
-
-            {vaultFolders.length > 0 && (
-                <SettingsGroup title={t("Folders added")}>
-                    {vaultFolders.map((folderPath) => (
-                        <div
-                            className="nc-set-row nc-set-row--path"
-                            key={folderPath}
-                        >
-                            <span className="nc-set-row__icon">
-                                <FolderOpen size={18} />
-                            </span>
-                            <span className="nc-set-row__text">
-                                <span className="nc-set-row__label">
-                                    {folderName(folderPath)}
-                                </span>
-                                <code>{readableFolderPath(folderPath)}</code>
-                            </span>
-                            <span className="nc-set-row__trailing">
-                                <button
-                                    type="button"
-                                    className="nc-set-row__icon-button"
-                                    onClick={() =>
-                                        void onRemoveVaultFolder(folderPath)
-                                    }
-                                    aria-label={`${t("Remove")} ${folderPath}`}
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </span>
-                        </div>
-                    ))}
-                </SettingsGroup>
-            )}
-
-            {vaultFolders.length > 0 && (
-                <SettingsGroup
-                    title={
-                        isScanningVaults
-                            ? t("Vaults detected — scanning…")
-                            : t("Vaults detected")
-                    }
-                    note={t("Turn a vault off to leave it out of note search.")}
-                >
-                    {detectedVaults.length === 0 ? (
-                        <div className="nc-set-row">
-                            <span className="nc-set-row__label">
-                                Aucun coffre détecté
-                            </span>
-                        </div>
-                    ) : (
-                        detectedVaults.map((vault) => {
-                            const enabled = isVaultEnabled(vault.path);
-                            return (
-                                <button
-                                    className="nc-set-row nc-set-row--action nc-set-row--path"
-                                    key={vault.path}
-                                    type="button"
-                                    role="switch"
-                                    aria-checked={enabled}
-                                    onClick={() =>
-                                        void onSetVaultEnabled(
-                                            vault.path,
-                                            !enabled
-                                        )
-                                    }
-                                >
-                                    <span className="nc-set-row__icon">
-                                        <Library size={18} />
-                                    </span>
-                                    <span className="nc-set-row__text">
-                                        <span className="nc-set-row__label">
-                                            {vault.name}
-                                        </span>
-                                        <code>
-                                            {readableFolderPath(vault.path)}
-                                        </code>
-                                    </span>
-                                    <span className="nc-set-row__trailing">
-                                        <span
-                                            className="nc-set-switch"
-                                            aria-hidden="true"
-                                        >
-                                            <span className="nc-set-switch__knob" />
-                                        </span>
-                                    </span>
-                                </button>
-                            );
-                        })
-                    )}
-                </SettingsGroup>
-            )}
         </div>
     );
 
@@ -1627,8 +1467,6 @@ export default function DesktopSettings({
                 return renderCalendars();
             case "sync":
                 return renderSync();
-            case "vaults":
-                return renderVaults();
             case "timezones":
                 return renderTimezones();
             case "folder":

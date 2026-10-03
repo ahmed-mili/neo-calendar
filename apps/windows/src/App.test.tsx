@@ -18,16 +18,9 @@ const mockUseDesktopBridge = useDesktopBridge as jest.MockedFunction<
 
 const bridgeDefaults = {
     chooseDataFolder: jest.fn(),
-    detectedVaults: [],
-    enabledVaults: [],
-    chooseVaultFolder: jest.fn(),
-    removeVaultFolder: jest.fn(),
-    setVaultEnabled: jest.fn(),
     setTheme: jest.fn(),
     error: null,
     isChoosingFolder: false,
-    isChoosingVaultFolder: false,
-    isScanningVaults: false,
     route: null,
 };
 

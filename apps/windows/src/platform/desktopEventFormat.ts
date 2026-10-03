@@ -702,22 +702,6 @@ function strictEncodeURIComponent(value: string): string {
     );
 }
 
-export function markdownLinkForVaultNote(note: {
-    vaultName: string;
-    relativePath: string;
-    title: string;
-    fileName: string;
-}): string {
-    const vault = strictEncodeURIComponent(note.vaultName);
-    const file = strictEncodeURIComponent(
-        note.relativePath.replace(/\\/g, "/")
-    );
-    // Use the real filename as the Markdown label. This keeps newly created
-    // links correct even when an older renderer falls back to the label.
-    const label = note.fileName.replace(/[\[\]]/g, "").trim() || note.title;
-    return `[${label}](obsidian://open?vault=${vault}&file=${file})`;
-}
-
 export function markdownLinkForAttachment(attachment: {
     fileName: string;
     markdownPath: string;

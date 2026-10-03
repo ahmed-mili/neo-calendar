@@ -4,7 +4,6 @@ mod window_commands;
 
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::HashSet;
 use std::env;
 use std::ffi::OsStr;
 use std::fs;
@@ -60,23 +59,6 @@ struct DesktopWorkspaceSnapshotDto {
     /// means "never had any", and the two must not be confused: adopting empty
     /// defaults over real preferences is what wiped the calendar colours.
     preferences_found: bool,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct DesktopDetectedVaultDto {
-    path: String,
-    name: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct DesktopVaultNoteDto {
-    vault_path: String,
-    vault_name: String,
-    relative_path: String,
-    file_name: String,
-    title: String,
 }
 
 #[derive(Serialize)]
@@ -1013,236 +995,6 @@ fn open_desktop_linked_path(
     Ok(())
 }
 
-fn add_detected_vault(
-    path: &Path,
-    seen: &mut HashSet<String>,
-    output: &mut Vec<DesktopDetectedVaultDto>,
-) {
-    if !path.join(".obsidian").is_dir() {
-        return;
-    }
-
-    let normalized = fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
-    let display_path = normalized.to_string_lossy().to_string();
-    let key = display_path.replace('\\', "/").to_lowercase();
-    if !seen.insert(key) {
-        return;
-    }
-
-    let name = normalized
-        .file_name()
-        .and_then(OsStr::to_str)
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or("Obsidian")
-        .to_string();
-
-    output.push(DesktopDetectedVaultDto {
-        path: display_path,
-        name,
-    });
-}
-
-#[tauri::command(rename_all = "camelCase", async)]
-fn discover_desktop_obsidian_vaults(
-    root_paths: Vec<String>,
-) -> Result<Vec<DesktopDetectedVaultDto>, String> {
-    let mut seen = HashSet::new();
-    let mut output = Vec::new();
-
-    for root_path in root_paths {
-        let root_path = root_path.trim();
-        if root_path.is_empty() {
-            continue;
-        }
-
-        let root = PathBuf::from(root_path);
-        if !root.is_dir() {
-            continue;
-        }
-
-        // Also accept selecting a vault itself, while the normal case is a
-        // parent folder whose direct children are vaults.
-        add_detected_vault(&root, &mut seen, &mut output);
-
-        let entries = fs::read_dir(&root).map_err(|error| {
-            format!(
-                "Unable to scan the Obsidian vault folder '{}': {error}",
-                root.display()
-            )
-        })?;
-
-        for entry in entries {
-            let entry = entry.map_err(|error| {
-                format!(
-                    "Unable to read an entry in '{}': {error}",
-                    root.display()
-                )
-            })?;
-            let file_type = entry.file_type().map_err(|error| {
-                format!(
-                    "Unable to inspect '{}': {error}",
-                    entry.path().display()
-                )
-            })?;
-            if file_type.is_symlink() || !file_type.is_dir() {
-                continue;
-            }
-
-            let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with('.') {
-                continue;
-            }
-
-            add_detected_vault(&entry.path(), &mut seen, &mut output);
-        }
-    }
-
-    output.sort_by(|left, right| {
-        left.name
-            .to_lowercase()
-            .cmp(&right.name.to_lowercase())
-            .then_with(|| left.path.to_lowercase().cmp(&right.path.to_lowercase()))
-    });
-    Ok(output)
-}
-
-fn collect_vault_notes(
-    vault_root: &Path,
-    directory: &Path,
-    vault_path: &str,
-    vault_name: &str,
-    query: &str,
-    output: &mut Vec<(u8, DesktopVaultNoteDto)>,
-    limit: usize,
-) -> Result<(), String> {
-    if output.len() >= limit.saturating_mul(4).max(limit) {
-        return Ok(());
-    }
-
-    let entries = fs::read_dir(directory)
-        .map_err(|error| format!("Unable to search '{}': {error}", directory.display()))?;
-    for entry in entries {
-        let entry = entry.map_err(|error| format!("Unable to read a vault entry: {error}"))?;
-        let path = entry.path();
-        let file_type = entry
-            .file_type()
-            .map_err(|error| format!("Unable to inspect '{}': {error}", path.display()))?;
-
-        if file_type.is_symlink() {
-            continue;
-        }
-        if file_type.is_dir() {
-            let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with('.') || name.eq_ignore_ascii_case("node_modules") {
-                continue;
-            }
-            collect_vault_notes(
-                vault_root,
-                &path,
-                vault_path,
-                vault_name,
-                query,
-                output,
-                limit,
-            )?;
-            continue;
-        }
-        if !file_type.is_file() || !is_markdown_file(&path) {
-            continue;
-        }
-
-        let relative = path
-            .strip_prefix(vault_root)
-            .map(normalized_relative)
-            .map_err(|_| format!("'{}' is outside its vault.", path.display()))?;
-        let file_name = path
-            .file_name()
-            .and_then(OsStr::to_str)
-            .unwrap_or("Note.md")
-            .to_string();
-        let title = path
-            .file_stem()
-            .and_then(OsStr::to_str)
-            .unwrap_or("Note")
-            .to_string();
-        let title_lower = title.to_lowercase();
-        let relative_lower = relative.to_lowercase();
-        let score = if query.is_empty() {
-            3
-        } else if title_lower == query {
-            0
-        } else if title_lower.starts_with(query) {
-            1
-        } else if title_lower.contains(query) {
-            2
-        } else if relative_lower.contains(query) {
-            3
-        } else {
-            continue;
-        };
-
-        output.push((
-            score,
-            DesktopVaultNoteDto {
-                vault_path: vault_path.to_string(),
-                vault_name: vault_name.to_string(),
-                relative_path: relative,
-                file_name,
-                title,
-            },
-        ));
-    }
-    Ok(())
-}
-
-#[tauri::command(rename_all = "camelCase", async)]
-fn search_desktop_vault_notes(
-    vault_paths: Vec<String>,
-    query: String,
-    limit: Option<usize>,
-) -> Result<Vec<DesktopVaultNoteDto>, String> {
-    let query = query.trim().to_lowercase();
-    let limit = limit.unwrap_or(40).clamp(1, 100);
-    let mut matches: Vec<(u8, DesktopVaultNoteDto)> = Vec::new();
-
-    for vault_path in vault_paths {
-        let root = PathBuf::from(vault_path.trim());
-        if !root.join(".obsidian").is_dir() {
-            continue;
-        }
-        let vault_name = root
-            .file_name()
-            .and_then(OsStr::to_str)
-            .filter(|value| !value.trim().is_empty())
-            .unwrap_or("Obsidian")
-            .to_string();
-        let normalized_vault_path = root.to_string_lossy().to_string();
-        collect_vault_notes(
-            &root,
-            &root,
-            &normalized_vault_path,
-            &vault_name,
-            &query,
-            &mut matches,
-            limit,
-        )?;
-    }
-
-    matches.sort_by(|left, right| {
-        left.0
-            .cmp(&right.0)
-            .then_with(|| left.1.title.to_lowercase().cmp(&right.1.title.to_lowercase()))
-            .then_with(|| {
-                left.1
-                    .relative_path
-                    .to_lowercase()
-                    .cmp(&right.1.relative_path.to_lowercase())
-            })
-    });
-    matches.truncate(limit);
-    Ok(matches.into_iter().map(|(_, note)| note).collect())
-}
-
 fn unique_attachment_path(directory: &Path, file_name: &str) -> PathBuf {
     let requested = directory.join(file_name);
     if !requested.exists() {
@@ -2038,8 +1790,6 @@ pub fn run() {
             open_desktop_linked_path,
             write_desktop_clipboard_text,
             copy_desktop_path,
-            discover_desktop_obsidian_vaults,
-            search_desktop_vault_notes,
             copy_desktop_attachment,
             write_desktop_attachment,
             read_desktop_attachment,
@@ -2150,10 +1900,6 @@ mod tests {
             "fn create_desktop_calendar_folder",
             "fn rename_desktop_calendar_folder",
             "fn delete_desktop_calendar_folder",
-            // Les coffres Obsidian : une recherche qui parcourt des milliers
-            // de notes pendant que l'on tape.
-            "fn discover_desktop_obsidian_vaults",
-            "fn search_desktop_vault_notes",
             // Les pieces jointes, qui se comptent en megaoctets.
             "fn copy_desktop_attachment",
             "fn write_desktop_attachment",

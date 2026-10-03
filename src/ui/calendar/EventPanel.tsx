@@ -86,21 +86,6 @@ export interface DraftInfo {
     defaultAsTask: boolean;
 }
 
-export interface EventLinkVault {
-    path: string;
-    name: string;
-}
-
-export interface EventLinkTarget {
-    id: string;
-    vaultPath: string;
-    vaultName: string;
-    title: string;
-    relativePath: string;
-    detail: string;
-    markdown: string;
-}
-
 export interface EventLinkedItem {
     id: string;
     label: string;
@@ -140,15 +125,10 @@ interface EventPanelProps {
     onDuplicate?: (id: string) => void;
     onDelete: (id: string) => void;
     firstDay: number;
-    linkVaults?: EventLinkVault[];
     /** Fetches a page's source so a link can be named after it. */
     onFetchPage?: (url: string) => Promise<string>;
     /** Suit les redirections d'un lien de partage jusqu'à sa destination. */
     onResolveUrl?: (url: string) => Promise<string>;
-    onSearchEventLinks?: (
-        query: string,
-        vaultPath?: string
-    ) => Promise<EventLinkTarget[]>;
     linkedItems?: EventLinkedItem[];
     onRemoveEventLink?: (eventId: string, target: string) => Promise<void>;
     /** Renomme un lien : le libellé est du texte, pas une donnée du site. */
@@ -289,8 +269,6 @@ export default function EventPanel({
     onDuplicate,
     onDelete,
     firstDay,
-    linkVaults = [],
-    onSearchEventLinks,
     linkedItems = [],
     onRemoveEventLink,
     onRenameEventLink,
@@ -1646,9 +1624,7 @@ export default function EventPanel({
                         setDescription={form.setDescription}
                         onCommit={onTitleCommit}
                         eventId={eventId}
-                        vaults={linkVaults}
                         items={linkedItems}
-                        onSearch={onSearchEventLinks}
                         onRemoveLink={onRemoveEventLink}
                         onRenameLink={onRenameEventLink}
                         onOpenLink={onOpenEventLink}

@@ -18,9 +18,6 @@ import { applyLanguage } from "../../../src/ui/i18n";
 
 const commonProps = {
     dataFolder: String.raw`C:\Calendar data`,
-    vaultFolders: [] as string[],
-    detectedVaults: [],
-    disabledVaults: [] as string[],
     themeId: "catppuccin-mocha" as const,
     preferences: defaultDesktopWorkspacePreferences(),
     calendars: [],
@@ -31,9 +28,6 @@ const commonProps = {
     onClose: () => {},
     onChangeDataFolder: async () => {},
     onOpenDataFolder: async () => {},
-    onAddVaultFolder: async () => {},
-    onRemoveVaultFolder: async () => {},
-    onSetVaultEnabled: async () => {},
     onAddCalendar: () => {},
     onRenameCalendar: async () => {},
     onDeleteCalendar: async () => {},

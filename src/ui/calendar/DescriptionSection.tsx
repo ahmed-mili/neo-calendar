@@ -10,8 +10,7 @@ import {
     RemoveFormatting,
     Underline,
 } from "lucide-react";
-import { BrandIcon } from "./BrandIcons";
-import { CopyIcon, PencilIcon, SearchIcon, XIcon } from "./Icons";
+import { CopyIcon, PencilIcon, XIcon } from "./Icons";
 import { LinesIcon } from "./EventPanelIcons";
 import {
     DescriptionFocusRequest,
@@ -27,12 +26,7 @@ import {
     inlineLinkTouching,
     readInlineLinks,
 } from "./descriptionInlineLinks";
-import {
-    DescriptionMention,
-    descriptionMentionAt,
-    labelFor,
-    urlMarkdown,
-} from "./linkInput";
+import { labelFor, urlMarkdown } from "./linkInput";
 import { replaceLine, taskPrefixLength } from "./descriptionChecklist";
 import {
     applyDescriptionFormat,
@@ -40,21 +34,6 @@ import {
 } from "./descriptionFormatting";
 import { DescriptionAddLinkDialog } from "./DescriptionAddLinkDialog";
 import { t } from "../i18n";
-
-export interface DescriptionVaultOption {
-    path: string;
-    name: string;
-}
-
-export interface DescriptionSearchTarget {
-    id: string;
-    vaultPath: string;
-    vaultName: string;
-    title: string;
-    relativePath: string;
-    detail: string;
-    markdown: string;
-}
 
 export interface DescriptionLinkedItem {
     id: string;
@@ -69,12 +48,9 @@ interface DescriptionSectionProps {
     setDescription: (value: string) => void;
     onCommit: () => void;
     eventId: string | null;
-    vaults: DescriptionVaultOption[];
+    /** Ignorée : la recherche de notes dans des coffres Obsidian n'existe plus. Gardée pour que les appelants de apps/android compilent encore. */
+    vaults?: ReadonlyArray<unknown>;
     items: DescriptionLinkedItem[];
-    onSearch?: (
-        query: string,
-        vaultPath?: string
-    ) => Promise<DescriptionSearchTarget[]>;
     onRemoveLink?: (eventId: string, target: string) => Promise<void>;
     onRenameLink?: (
         eventId: string,
@@ -119,13 +95,6 @@ function inlineLinkKind(target: string): DescriptionLinkedItem["kind"] {
     return "attachment";
 }
 
-interface PickerPosition {
-    top: number;
-    left: number;
-    width: number;
-    maxHeight: number;
-}
-
 function portalTarget(): HTMLElement {
     const android =
         document.documentElement.classList.contains("nc-platform-android") ||
@@ -159,17 +128,6 @@ export function editableDescriptionLinkLabel(
         return "";
     }
     return current;
-}
-
-function splitSearchPath(relativePath: string): {
-    fileName: string;
-    parentPath: string;
-} {
-    const normalized = relativePath.replace(/\\/g, "/").replace(/^\/+/, "");
-    const parts = normalized.split("/").filter(Boolean);
-    const fileName = parts.pop() || normalized || "Untitled";
-    const parents = parts.length > 3 ? ["…", ...parts.slice(-3)] : parts;
-    return { fileName, parentPath: parents.join("/") };
 }
 
 function checklistSnapshot(
@@ -587,9 +545,7 @@ export function DescriptionSection({
     setDescription,
     onCommit,
     eventId,
-    vaults,
     items,
-    onSearch,
     onRemoveLink,
     onRenameLink,
     onOpenLink,
@@ -605,15 +561,7 @@ export function DescriptionSection({
     const focusRevisionRef = React.useRef(0);
     const [focusRequest, setFocusRequest] =
         React.useState<DescriptionFocusRequest | null>(null);
-    const [mention, setMention] = React.useState<DescriptionMention | null>(
-        null
-    );
-    const [results, setResults] = React.useState<DescriptionSearchTarget[]>([]);
-    const [highlighted, setHighlighted] = React.useState(0);
-    const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
-    const [pickerPosition, setPickerPosition] =
-        React.useState<PickerPosition | null>(null);
     const [attaching, setAttaching] = React.useState(false);
     const [attachmentError, setAttachmentError] = React.useState<string | null>(
         null
@@ -677,95 +625,6 @@ export function DescriptionSection({
         return () => document.removeEventListener("pointerdown", close);
     }, [linkEdit]);
 
-    const closeMention = React.useCallback(() => {
-        setMention(null);
-        setResults([]);
-        setHighlighted(0);
-        setLoading(false);
-        setError(null);
-        setPickerPosition(null);
-    }, []);
-
-    const updateMention = React.useCallback(
-        (field: HTMLTextAreaElement) => {
-            activeFieldRef.current = field;
-            const snapshot = snapshotForField(field, descriptionRef.current);
-            if (!snapshot || !editable || !onSearch) {
-                closeMention();
-                return;
-            }
-            const next = descriptionMentionAt(snapshot.text, snapshot.start);
-            if (!next) {
-                closeMention();
-                return;
-            }
-            descriptionRef.current = snapshot.text;
-            setMention(next);
-        },
-        [closeMention, editable, onSearch]
-    );
-
-    React.useEffect(() => {
-        if (!mention || !onSearch) return;
-        let active = true;
-        const timer = window.setTimeout(
-            () => {
-                setLoading(true);
-                setError(null);
-                void onSearch(mention.query.trim())
-                    .then((next) => {
-                        if (!active) return;
-                        setResults(next);
-                        setHighlighted(0);
-                    })
-                    .catch((reason) => {
-                        if (!active) return;
-                        setResults([]);
-                        setError(
-                            reason instanceof Error
-                                ? reason.message
-                                : String(reason)
-                        );
-                    })
-                    .finally(() => {
-                        if (active) setLoading(false);
-                    });
-            },
-            mention.query.trim() ? 120 : 0
-        );
-        return () => {
-            active = false;
-            window.clearTimeout(timer);
-        };
-    }, [mention, onSearch]);
-
-    React.useEffect(() => {
-        if (!mention) return;
-        const field = activeFieldRef.current;
-        if (!field) return;
-        const rect = field.getBoundingClientRect();
-        const gap = 8;
-        const width = Math.min(
-            Math.max(rect.width, 500),
-            window.innerWidth - gap * 2
-        );
-        const left = Math.max(
-            gap,
-            Math.min(rect.left, window.innerWidth - width - gap)
-        );
-        const roomBelow = window.innerHeight - rect.bottom - gap;
-        const roomAbove = rect.top - gap;
-        const maxHeight = Math.max(
-            150,
-            Math.min(300, Math.max(roomBelow, roomAbove))
-        );
-        const top =
-            roomBelow < 180 && roomAbove > roomBelow
-                ? Math.max(gap, rect.top - maxHeight - 4)
-                : rect.bottom + 4;
-        setPickerPosition({ top, left, width, maxHeight });
-    }, [mention]);
-
     /**
      * Écrire un lien là où le curseur est.
      *
@@ -819,23 +678,6 @@ export function DescriptionSection({
             return inserted;
         },
         [onCommit, setDescription]
-    );
-
-    const pickResult = React.useCallback(
-        (result: DescriptionSearchTarget) => {
-            if (!mention) return;
-            const field = activeFieldRef.current;
-            const snapshot = field
-                ? snapshotForField(field, descriptionRef.current)
-                : null;
-            insertMarkdown(result.markdown, {
-                text: snapshot?.text ?? descriptionRef.current,
-                start: mention.start,
-                end: mention.end,
-            });
-            closeMention();
-        },
-        [closeMention, insertMarkdown, mention]
     );
 
     const handlePaste = (
@@ -1028,26 +870,6 @@ export function DescriptionSection({
                 }
             }
         }
-        if (!mention) return;
-        if (event.key === "ArrowDown") {
-            event.preventDefault();
-            event.stopPropagation();
-            setHighlighted((current) =>
-                Math.min(current + 1, Math.max(0, results.length - 1))
-            );
-        } else if (event.key === "ArrowUp") {
-            event.preventDefault();
-            event.stopPropagation();
-            setHighlighted((current) => Math.max(0, current - 1));
-        } else if (event.key === "Enter" && results.length > 0) {
-            event.preventDefault();
-            event.stopPropagation();
-            void pickResult(results[highlighted] ?? results[0]);
-        } else if (event.key === "Escape") {
-            event.preventDefault();
-            event.stopPropagation();
-            closeMention();
-        }
     };
 
     const attach = async () => {
@@ -1106,22 +928,6 @@ export function DescriptionSection({
         <div
             ref={sectionRef}
             className="nc-description-section nc-panel-section"
-            onInput={(event) => {
-                const field = event.target;
-                if (!(field instanceof HTMLTextAreaElement)) return;
-                // Mention bookkeeping must not re-render a controlled
-                // textarea during the native input event. WebView2 can
-                // otherwise restore the previous controlled value before
-                // React receives the change, making physical keystrokes
-                // look as if they were ignored.
-                window.requestAnimationFrame(() => {
-                    if (field.isConnected) updateMention(field);
-                });
-            }}
-            onSelect={(event) => {
-                const field = event.target;
-                if (field instanceof HTMLTextAreaElement) updateMention(field);
-            }}
             onFocusCapture={(event) => {
                 const field = event.target;
                 if (field instanceof HTMLTextAreaElement) {
@@ -1169,7 +975,7 @@ export function DescriptionSection({
                     {attachmentError}
                 </div>
             )}
-            {error && !mention && (
+            {error && (
                 <div className="nc-description-link-error" role="alert">
                     {error}
                 </div>
@@ -1303,7 +1109,7 @@ export function DescriptionSection({
                                 const field = event.target;
                                 const value = field.value;
                                 // Keep the imperative snapshot in lockstep with
-                                // native typing; toolbar/mention logic reads it
+                                // native typing; toolbar logic reads it
                                 // before the next React render on some WebViews.
                                 descriptionRef.current = value;
                                 setDescription(value);
@@ -1453,102 +1259,6 @@ export function DescriptionSection({
                                 {t("Remove link")}
                             </button>
                         </div>
-                    </div>,
-                    portalTarget()
-                )}
-
-            {mention &&
-                pickerPosition &&
-                ReactDOM.createPortal(
-                    <div
-                        className="nc-link-results-popover nc-description-mention-popover"
-                        data-nc-popup-portal="true"
-                        role="listbox"
-                        style={pickerPosition}
-                        onMouseDown={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }}
-                    >
-                        <div className="nc-link-search-shell nc-description-mention-query">
-                            <span
-                                className="nc-link-search-icon"
-                                aria-hidden="true"
-                            >
-                                <SearchIcon />
-                            </span>
-                            <input
-                                className="nc-link-search-input"
-                                value={mention.query}
-                                readOnly
-                                tabIndex={-1}
-                                aria-label={t(
-                                    "Search a document or paste a link"
-                                )}
-                                placeholder={t(
-                                    "Search a document or paste a link"
-                                )}
-                            />
-                        </div>
-                        {vaults.length === 0 ? (
-                            <div className="nc-link-empty">
-                                {t(
-                                    "Add Obsidian vaults in Settings to search notes."
-                                )}
-                            </div>
-                        ) : results.length > 0 ? (
-                            results.map((result, index) => {
-                                const { fileName, parentPath } =
-                                    splitSearchPath(result.relativePath);
-                                return (
-                                    <button
-                                        type="button"
-                                        role="option"
-                                        aria-selected={index === highlighted}
-                                        className={`nc-link-result${
-                                            index === highlighted
-                                                ? " is-highlighted"
-                                                : ""
-                                        }`}
-                                        key={result.id}
-                                        onMouseEnter={() =>
-                                            setHighlighted(index)
-                                        }
-                                        onClick={() => void pickResult(result)}
-                                    >
-                                        <span className="nc-link-result-content">
-                                            <span className="nc-link-result-name">
-                                                {fileName}
-                                            </span>
-                                            {parentPath && (
-                                                <span className="nc-link-result-parent">
-                                                    {parentPath}
-                                                </span>
-                                            )}
-                                        </span>
-                                        {vaults.length > 1 && (
-                                            <span className="nc-link-result-vault">
-                                                <span className="nc-link-result-vault-icon">
-                                                    <BrandIcon brand="obsidian" />
-                                                </span>
-                                                <span className="nc-link-result-vault-name">
-                                                    {result.vaultName}
-                                                </span>
-                                            </span>
-                                        )}
-                                    </button>
-                                );
-                            })
-                        ) : loading ? null : (
-                            <div className="nc-link-empty">
-                                {t("No matching notes")}
-                            </div>
-                        )}
-                        {error && (
-                            <div className="nc-link-picker-error" role="alert">
-                                {error}
-                            </div>
-                        )}
                     </div>,
                     portalTarget()
                 )}
