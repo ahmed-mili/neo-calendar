@@ -136,6 +136,16 @@ fn is_markdown_file(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+/// Une copie de conflit Syncthing (`note.sync-conflict-20260101-120000-ABCDEFG.md`) :
+/// meme regle que Syncthing et qu'Android (`IgnoredFiles.kt`), le nom contient
+/// `.sync-conflict-`. Lue comme une note, elle dedoublerait l'evenement.
+fn is_sync_conflict_copy(path: &Path) -> bool {
+    path.file_name()
+        .and_then(OsStr::to_str)
+        .map(|name| name.contains(".sync-conflict-"))
+        .unwrap_or(false)
+}
+
 /// Reads the preference file, falling back to the pre-Android file name.
 ///
 /// A missing file is fine (first run), but a file that exists and cannot be
@@ -307,7 +317,7 @@ fn read_event_files(
                 directories.push(path);
                 continue;
             }
-            if !file_type.is_file() || !is_markdown_file(&path) {
+            if !file_type.is_file() || !is_markdown_file(&path) || is_sync_conflict_copy(&path) {
                 continue;
             }
 
@@ -2116,6 +2126,24 @@ mod tests {
         write_preferences(&root, &json!({"a": 1})).unwrap();
 
         assert_eq!(fs::read_dir(root.join(PREFERENCES_DIRECTORY_NAME)).unwrap().count(), 1);
+    }
+
+    /// Une copie de conflit Syncthing n'est pas un evenement : lue comme une
+    /// note, chaque cours en conflit s'affichait deux fois cote a cote
+    /// (2026-10-04). Android l'ecarte deja (`IgnoredFiles.kt`).
+    #[test]
+    fn sync_conflict_copies_are_not_read_as_events() {
+        let root = temporary_root("sync-conflict");
+        let calendar = root.join("Cours");
+        fs::create_dir_all(calendar.join("sous")).unwrap();
+        fs::write(calendar.join("rdv.md"), "a").unwrap();
+        fs::write(calendar.join("rdv.sync-conflict-20261001-064048-BCCIRJ4.md"), "b").unwrap();
+        fs::write(calendar.join("sous/n.sync-conflict-20261001-064048-BCCIRJ4.md"), "c").unwrap();
+
+        let files = read_event_files(&root, "Cours", &calendar).unwrap();
+
+        let names: Vec<_> = files.iter().map(|file| file.file_name.as_str()).collect();
+        assert_eq!(names, vec!["rdv.md"]);
     }
     #[test]
     fn concurrent_preference_saves_preserve_every_colour() {
