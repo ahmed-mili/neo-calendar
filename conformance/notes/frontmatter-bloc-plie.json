@@ -1,0 +1,6 @@
+{
+  "name": "bloc > : lignes consécutives pliées en espace, ligne vide en saut",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: >-\n  a\n  b\n\n  c\n---\n"},
+  "expected": {"description":"a b\nc"}
+}

@@ -1,0 +1,6 @@
+{
+  "name": "bloc |+ : les lignes vides finales sont gardées",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: |+\n  a\n\n\n---\n"},
+  "expected": {"description":"a\n\n\n"}
+}

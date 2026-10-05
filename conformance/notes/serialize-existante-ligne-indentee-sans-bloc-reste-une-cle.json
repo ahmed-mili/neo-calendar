@@ -1,0 +1,6 @@
+{
+  "name": "note existante : une ligne indentée hors d'un bloc reste lue comme avant",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02"},"previousContents":"---\n  title: Ancien\ntype: single\nallDay: true\ndate: 2026-10-02\n---\nCorps\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\nendDate: null\n---\nCorps\n"}
+}

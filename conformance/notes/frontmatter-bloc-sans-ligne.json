@@ -1,0 +1,6 @@
+{
+  "name": "bloc sans ligne : texte vide",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: |-\ntitle: T\n---\n"},
+  "expected": {"description":"","title":"T"}
+}

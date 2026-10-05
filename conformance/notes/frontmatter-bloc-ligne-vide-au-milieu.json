@@ -1,0 +1,6 @@
+{
+  "name": "bloc : ligne vide entre deux lignes",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: |-\n  a\n\n  b\n---\n"},
+  "expected": {"description":"a\n\nb"}
+}

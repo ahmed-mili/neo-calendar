@@ -1,0 +1,6 @@
+{
+  "name": "bloc > : une ligne plus indentée garde ses sauts",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: >\n  a\n    b\n  c\n---\n"},
+  "expected": {"description":"a\n  b\nc\n"}
+}

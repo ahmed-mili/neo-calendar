@@ -1,0 +1,6 @@
+{
+  "name": "bloc : commentaire après l'indicateur ignoré",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: |- # note\n  a\n---\n"},
+  "expected": {"description":"a"}
+}

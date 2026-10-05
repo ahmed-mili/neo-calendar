@@ -1,0 +1,6 @@
+{
+  "name": "bloc : une ligne indentée à deux-points n'est jamais une clé",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ntitle: T\ndescription: |-\n  title: pas moi\n  - c: d\ndate: 2026-10-02\n---\n"},
+  "expected": {"title":"T","description":"title: pas moi\n- c: d","date":"2026-10-02"}
+}

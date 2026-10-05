@@ -1,0 +1,6 @@
+{
+  "name": "bloc |2- : l'indicateur garde l'espace de tête de la première ligne",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: |2-\n   a\n  b\n---\n"},
+  "expected": {"description":" a\nb"}
+}

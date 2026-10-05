@@ -1,0 +1,6 @@
+{
+  "name": "description citée sur une ligne avec \\n (note existante) lue telle quelle",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ntitle: Dentiste\ntype: single\nallDay: true\ndate: 2026-10-02\ndescription: \"- [ ] [Elgato Wave Mic Arm LP (99,99 €)](https://www.elgato.com/fr/fr/p/wave-mic-arm-lp)\\n- [ ] \\n- [ ] \\nTotal : environ 1400 €\"\n---\nCorps\n"},
+  "expected": {"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"- [ ] [Elgato Wave Mic Arm LP (99,99 €)](https://www.elgato.com/fr/fr/p/wave-mic-arm-lp)\n- [ ] \n- [ ] \nTotal : environ 1400 €"}
+}

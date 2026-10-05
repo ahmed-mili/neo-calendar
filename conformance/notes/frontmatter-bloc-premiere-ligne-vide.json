@@ -1,0 +1,6 @@
+{
+  "name": "bloc : première ligne faite de l'indentation",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: |-\n  \n  a\n---\n"},
+  "expected": {"description":"\na"}
+}

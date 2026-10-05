@@ -1,0 +1,6 @@
+{
+  "name": "bloc : une tabulation après l'indentation est du texte",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: |-\n  \ta\n  b\n---\n"},
+  "expected": {"description":"\ta\nb"}
+}

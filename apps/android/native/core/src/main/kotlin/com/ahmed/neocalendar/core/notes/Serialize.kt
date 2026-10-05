@@ -62,7 +62,15 @@ private fun yamlAtom(value: JsonElement): String = when {
     else -> value.toString()
 }
 
-private fun yamlLine(key: String, value: JsonElement): String = "$key: ${yamlAtom(value)}"
+private fun yamlLine(key: String, value: JsonElement): String {
+    // Un texte de plusieurs lignes s'écrit en bloc littéral, comme Obsidian ;
+    // sans saut de ligne il garde sa forme citée sur une ligne.
+    if (value is JsonPrimitive && value.isString) {
+        val block = blockScalarLines(value.content)
+        if (block != null) return "$key: ${block.joinToString("\n")}"
+    }
+    return "$key: ${yamlAtom(value)}"
+}
 
 private fun lineKey(line: String): String? {
     val colon = line.indexOf(':')
@@ -83,17 +91,27 @@ fun serializeEventMarkdown(event: NeoEvent, previousContents: String = ""): Stri
     val output = mutableListOf<String>()
     val handled = mutableSetOf<String>()
 
-    for (line in existing.lines) {
+    var index = 0
+    while (index < existing.lines.size) {
+        val line = existing.lines[index]
         val key = lineKey(line)
         if (key == null) {
+            index += 1
             if (line.jsTrim().isNotEmpty()) output.add(line)
             continue
         }
+        // Une clé qui ouvre un bloc possède les lignes indentées dessous : elles
+        // partent (ou restent) avec elle et ne sont jamais lues comme des clés.
+        val header = parseBlockHeader(line.substring(line.indexOf(':') + 1))
+        val groupEnd =
+            if (header != null) blockGroupEnd(existing.lines, index, header.chomp == BlockChomp.KEEP) else index + 1
+        val group = existing.lines.subList(index, groupEnd)
+        index = groupEnd
         val value = source[key]
         if (value == null) {
             if ((event.allDay && (key == "startTime" || key == "endTime")) || key in KEYS_DROPPED_WHEN_ABSENT) continue
             // Une clé que le modèle ne possède pas reste octet pour octet.
-            output.add(line)
+            output.addAll(group)
             continue
         }
         handled.add(key)

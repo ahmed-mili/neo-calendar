@@ -1,0 +1,6 @@
+{
+  "name": "bloc sur une clé autre que description",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\nnotes: |-\n  a: b\ntitle: T\n---\n"},
+  "expected": {"notes":"a: b","title":"T"}
+}

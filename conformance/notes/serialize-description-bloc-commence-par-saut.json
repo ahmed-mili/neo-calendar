@@ -1,0 +1,6 @@
+{
+  "name": "description commençant par un saut de ligne : première ligne faite de l'indentation",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"\na"}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ndescription: |-\n  \n  a\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

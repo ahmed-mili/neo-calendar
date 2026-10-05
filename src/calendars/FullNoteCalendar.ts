@@ -9,6 +9,11 @@ import {
     KEYS_DROPPED_WHEN_ABSENT,
 } from "../types";
 import { EditableCalendar, EditableEventResponse } from "./EditableCalendar";
+import {
+    blockGroupEnd,
+    blockScalarLines,
+    parseBlockHeader,
+} from "./yamlBlockScalar";
 
 /**
  * A calendar where each event is its own note, with the event data living in
@@ -171,7 +176,15 @@ function stringifyYamlAtom(v: PrintableAtom, inList = false): string {
 const stringifyYamlLine = (
     key: string | number | symbol,
     value: PrintableAtom
-): string => `${String(key)}: ${stringifyYamlAtom(value)}`;
+): string => {
+    // A multi-line text is a literal block, written the way Obsidian writes
+    // it; when a block would not be safe it is quoted on one line instead.
+    if (typeof value === "string" && value.includes("\n")) {
+        const block = blockScalarLines(value);
+        return `${String(key)}: ${block ? block.join("\n") : JSON.stringify(value)}`;
+    }
+    return `${String(key)}: ${stringifyYamlAtom(value)}`;
+};
 
 /** A complete frontmatter block for a brand-new note. */
 function newFrontmatter(fields: Partial<NeoEvent>): string {
@@ -200,6 +213,9 @@ export function modifyFrontmatterString(
     event: Partial<NeoEvent>
 ): string {
     const existing = extractFrontmatter(page)?.split("\n");
+    // The text before the closing fence ends with a line break: the empty
+    // element it leaves is not a line of the block above it.
+    if (existing && existing[existing.length - 1] === "") existing.pop();
 
     // No frontmatter yet: emit every field and push the old page down.
     if (!existing) {
@@ -212,7 +228,8 @@ export function modifyFrontmatterString(
     const lines: string[] = [];
     const handled = new Set<string | number | symbol>();
 
-    for (const line of existing) {
+    for (let index = 0; index < existing.length; index += 1) {
+        const line = existing[index];
         const parsed: Record<string, any> | null = parseYaml(line);
         if (!parsed) {
             continue;
@@ -224,6 +241,15 @@ export function modifyFrontmatterString(
         const key = keys[0];
         const keyName = key as string;
         handled.add(key);
+
+        // A key that opens a block scalar owns the indented lines below it:
+        // they leave or stay with it, and are never parsed as keys.
+        const header = parseBlockHeader(line.slice(line.indexOf(":") + 1));
+        const groupEnd = header
+            ? blockGroupEnd(existing, index, header.chomp === "keep")
+            : index + 1;
+        const group = existing.slice(index, groupEnd);
+        index = groupEnd - 1;
 
         // An all-day event has no times: drop any startTime/endTime a previously
         // timed version left behind. Without this the merge would keep the stale
@@ -245,7 +271,7 @@ export function modifyFrontmatterString(
             continue;
         } else {
             // A key we don't own — leave it exactly as it was.
-            lines.push(line);
+            lines.push(...group);
         }
     }
 

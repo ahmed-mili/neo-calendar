@@ -1,0 +1,6 @@
+{
+  "name": "retour chariot : repli entre guillemets",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"a\r\nb"}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ndescription: \"a\\r\\nb\"\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

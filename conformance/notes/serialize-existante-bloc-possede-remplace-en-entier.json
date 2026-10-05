@@ -1,0 +1,6 @@
+{
+  "name": "note existante : le bloc d'une clé possédée est remplacé avec toutes ses lignes",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"neuf"},"previousContents":"---\ntitle: Ancien\ndescription: |-\n  ancien: 1\n  titre: pas moi\n\n  - c: d\ntype: single\nallDay: true\ndate: 2026-09-01\n---\nCorps\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ndescription: \"neuf\"\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\nendDate: null\n---\nCorps\n"}
+}

@@ -1,0 +1,6 @@
+{
+  "name": "description finie par un seul saut de ligne : bloc |",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"a\n"}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ndescription: |\n  a\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

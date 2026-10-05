@@ -1,0 +1,6 @@
+{
+  "name": "description sans saut de ligne : écriture entre guillemets inchangée",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"Salle 4: étage # 2"}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ndescription: \"Salle 4: étage # 2\"\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

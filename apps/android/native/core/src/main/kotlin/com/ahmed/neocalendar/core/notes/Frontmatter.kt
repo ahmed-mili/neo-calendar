@@ -152,7 +152,10 @@ fun parseFrontmatter(contents: String): JsonObject? {
     val document = extractFrontmatter(contents) ?: return null
 
     val result = LinkedHashMap<String, JsonElement>()
-    for (rawLine in document.lines) {
+    var index = 0
+    while (index < document.lines.size) {
+        val rawLine = document.lines[index]
+        index += 1
         val line = rawLine.jsTrim()
         if (line.isEmpty() || line.startsWith("#")) continue
         val colon = rawLine.indexOf(':')
@@ -161,6 +164,19 @@ fun parseFrontmatter(contents: String): JsonObject? {
         if (key.isEmpty()) continue
 
         val rawValue = rawLine.substring(colon + 1)
+
+        // Un bloc (`|-`, `>`...) possède les lignes indentées qui le suivent :
+        // c'est son texte, jamais des clés.
+        val header = parseBlockHeader(rawValue)
+        if (header != null) {
+            val end = blockGroupEnd(document.lines, index - 1, header.chomp == BlockChomp.KEEP)
+            result[key] = JsonPrimitive(
+                decodeBlockScalar(header, keyIndentOf(rawLine), document.lines.subList(index, end)),
+            )
+            index = end
+            continue
+        }
+
         result[key] = if (key.lowercase(Locale.US) == "description") {
             JsonPrimitive(parseTextScalar(rawValue))
         } else {

@@ -1,0 +1,6 @@
+{
+  "name": "espace en fin de ligne gardée (case vide d'une liste)",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"- [ ] \n- [ ] \nTotal"}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ndescription: |-\n  - [ ] \n  - [ ] \n  Total\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

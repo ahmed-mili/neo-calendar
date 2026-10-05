@@ -1,0 +1,6 @@
+{
+  "name": "bloc : s'arrête à la clé suivante de premier niveau",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: |-\n  a\ntitle: T\n---\n"},
+  "expected": {"description":"a","title":"T"}
+}

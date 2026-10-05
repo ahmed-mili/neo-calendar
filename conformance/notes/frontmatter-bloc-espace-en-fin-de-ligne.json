@@ -1,0 +1,6 @@
+{
+  "name": "bloc : espace en fin de ligne gardée",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: |-\n  - [ ] \n  b\n---\n"},
+  "expected": {"description":"- [ ] \nb"}
+}

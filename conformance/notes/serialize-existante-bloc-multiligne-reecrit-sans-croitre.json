@@ -1,0 +1,6 @@
+{
+  "name": "note existante : un bloc |+ réécrit à l'identique ne gagne pas de ligne vide",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"a\n\n"},"previousContents":"---\ntitle: Dentiste\ndescription: |+\n  a\n\ntype: single\nallDay: true\ndate: 2026-10-02\n---\nCorps\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ndescription: |+\n  a\n\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\nendDate: null\n---\nCorps\n"}
+}

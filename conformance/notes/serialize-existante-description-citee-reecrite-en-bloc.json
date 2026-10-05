@@ -1,0 +1,6 @@
+{
+  "name": "note existante : description citée multiligne réécrite en bloc littéral",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"- [ ] [Elgato Wave Mic Arm LP (99,99 €)](https://www.elgato.com/fr/fr/p/wave-mic-arm-lp)\n- [ ] \n- [ ] \nTotal : environ 1400 €"},"previousContents":"---\ntitle: Dentiste\ntype: single\nallDay: true\ndate: 2026-10-02\ndescription: \"- [ ] [Elgato Wave Mic Arm LP (99,99 €)](https://www.elgato.com/fr/fr/p/wave-mic-arm-lp)\\n- [ ] \\n- [ ] \\nTotal : environ 1400 €\"\n---\nCorps\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\ndescription: |-\n  - [ ] [Elgato Wave Mic Arm LP (99,99 €)](https://www.elgato.com/fr/fr/p/wave-mic-arm-lp)\n  - [ ] \n  - [ ] \n  Total : environ 1400 €\nendDate: null\n---\nCorps\n"}
+}

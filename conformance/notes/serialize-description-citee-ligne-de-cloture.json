@@ -1,0 +1,6 @@
+{
+  "name": "ligne qui ne fait que --- : repli entre guillemets (sinon elle fermerait l'en-tête)",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"a\n---\nb"}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ndescription: \"a\\n---\\nb\"\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

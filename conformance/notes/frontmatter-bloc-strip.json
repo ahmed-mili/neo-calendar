@@ -1,0 +1,6 @@
+{
+  "name": "bloc |- : lignes jointes par des sauts, sans saut final",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: |-\n  a\n  b\n---\n"},
+  "expected": {"description":"a\nb"}
+}

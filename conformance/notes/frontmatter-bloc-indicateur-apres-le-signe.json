@@ -1,0 +1,6 @@
+{
+  "name": "bloc |-2 : indicateur et signe dans l'autre ordre",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\ndescription: |-2\n   a\n  b\n---\n"},
+  "expected": {"description":" a\nb"}
+}

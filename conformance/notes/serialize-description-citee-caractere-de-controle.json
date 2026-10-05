@@ -1,0 +1,6 @@
+{
+  "name": "caractère de contrôle : repli entre guillemets",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"a\u0001\nb"}},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\ndescription: \"a\\u0001\\nb\"\nallDay: true\ntype: \"single\"\ndate: \"2026-10-02\"\nendDate: null\n---\n"}
+}

@@ -5,6 +5,13 @@ import {
     validateEvent,
 } from "../../../../src/types";
 import { labelFor } from "../../../../src/ui/calendar/linkInput";
+import {
+    blockGroupEnd,
+    blockScalarLines,
+    decodeBlockScalar,
+    keyIndentOf,
+    parseBlockHeader,
+} from "../../../../src/calendars/yamlBlockScalar";
 import type { DesktopEventFileDto } from "./desktopCalendarStore";
 import { managedMetadataFromMarkdown } from "./managedEventNote";
 
@@ -151,7 +158,8 @@ export function parseFrontmatter(
     if (!document) return null;
 
     const result: Record<string, unknown> = {};
-    for (const rawLine of document.lines) {
+    for (let index = 0; index < document.lines.length; index += 1) {
+        const rawLine = document.lines[index];
         const line = rawLine.trim();
         if (!line || line.startsWith("#")) continue;
         const colon = rawLine.indexOf(":");
@@ -160,6 +168,25 @@ export function parseFrontmatter(
         if (!key) continue;
 
         const rawValue = rawLine.slice(colon + 1);
+
+        // A block scalar (`|-`, `>`...) owns the indented lines below it: they
+        // are its text, never keys of their own.
+        const header = parseBlockHeader(rawValue);
+        if (header) {
+            const end = blockGroupEnd(
+                document.lines,
+                index,
+                header.chomp === "keep"
+            );
+            result[key] = decodeBlockScalar(
+                header,
+                keyIndentOf(rawLine),
+                document.lines.slice(index + 1, end)
+            );
+            index = end - 1;
+            continue;
+        }
+
         result[key] =
             key.toLocaleLowerCase("en-US") === "description"
                 ? parseTextScalar(rawValue)
@@ -280,6 +307,12 @@ function stringifyYamlAtom(value: PrintableAtom): string {
 }
 
 function stringifyYamlLine(key: string, value: PrintableAtom): string {
+    // A multi-line text is written as a literal block, the way Obsidian does;
+    // a text without a line break keeps its quoted one-line form.
+    if (typeof value === "string") {
+        const block = blockScalarLines(value);
+        if (block) return `${key}: ${block.join("\n")}`;
+    }
     return `${key}: ${stringifyYamlAtom(value)}`;
 }
 
@@ -319,12 +352,22 @@ export function serializeEventMarkdown(
     const output: string[] = [];
     const handled = new Set<string>();
 
-    for (const line of existing.lines) {
+    for (let index = 0; index < existing.lines.length; index += 1) {
+        const line = existing.lines[index];
         const key = lineKey(line);
         if (!key) {
             if (line.trim()) output.push(line);
             continue;
         }
+
+        // A key that opens a block scalar owns the lines indented below it;
+        // they travel (or go) with it and are never read as keys.
+        const header = parseBlockHeader(line.slice(line.indexOf(":") + 1));
+        const groupEnd = header
+            ? blockGroupEnd(existing.lines, index, header.chomp === "keep")
+            : index + 1;
+        const group = existing.lines.slice(index, groupEnd);
+        index = groupEnd - 1;
 
         if (!(key in source)) {
             if (
@@ -335,7 +378,7 @@ export function serializeEventMarkdown(
                 continue;
             }
             // A key the event model does not own is preserved byte-for-byte.
-            output.push(line);
+            output.push(...group);
             continue;
         }
 
