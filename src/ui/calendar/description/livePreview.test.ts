@@ -133,7 +133,7 @@ describe("bullets, numbers, text (4.1)", () => {
         const seen = inspect("1. a", 0);
         expect(seen.widgets).toEqual([]);
         expect(seen.hidden).toEqual([]);
-        expect(seen.marks).toContainEqual([0, 2, "nc-desc-number"]);
+        expect(seen.marks).toContainEqual([0, 3, "nc-desc-number"]);
     });
     test("a Total line under a list is plain text", () => {
         const seen = inspect("- [ ] a\nTotal", 0);
@@ -266,5 +266,50 @@ describe("numbered task and quote", () => {
     });
     test("the quote marker is hidden on its own line too", () => {
         expect(inspect("> a", 2).hidden).toEqual([[0, 2]]);
+    });
+});
+
+describe("hanging indent", () => {
+    /** The `style` of the line decoration at the start of `doc`. */
+    function lineStyle(doc: string, caret = doc.length): string {
+        let style = "";
+        buildDecorations(stateAt(doc, caret), () => ({})).between(
+            0,
+            0,
+            (from, to, value) => {
+                const spec = value.spec as {
+                    attributes?: { style?: string };
+                };
+                if (from === to && spec.attributes?.style) {
+                    style = spec.attributes.style;
+                }
+            }
+        );
+        return style;
+    }
+
+    test.each([
+        ["- [ ] a", 21, 0],
+        ["- a", 21, 0],
+        ["1. a", 0, 3],
+        ["10. a", 0, 4],
+        ["1. [ ] a", 21, 3],
+        ["\t- [ ] a", 49, 0],
+        ["\t\t- a", 77, 0],
+        ["  - [ ] a", 35, 0],
+    ])("%j hangs by %ipx + %ich", (doc, px, ch) => {
+        const width = `calc(${px}px + ${ch}ch)`;
+        expect(lineStyle(doc)).toBe(
+            `padding-left:${width};text-indent:calc(-1 * ${width})`
+        );
+    });
+
+    test("the hang does not change when the marker is revealed raw", () => {
+        expect(lineStyle("- [ ] a", 2)).toBe(lineStyle("- [ ] a", 7));
+    });
+
+    test("plain text and quotes do not hang", () => {
+        expect(lineStyle("plain")).toBe("");
+        expect(lineStyle("> q")).toBe("");
     });
 });

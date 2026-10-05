@@ -169,6 +169,38 @@ class BulletWidget extends WidgetType {
 
 /* ── decorations ───────────────────────────────────────────────────────── */
 
+/*
+ * Hanging indent. A wrapped line of a list item starts under the first
+ * character of the item's TEXT, never under its marker. Each piece in front
+ * of the text has a width that is known exactly (the indent and the number
+ * are inline-blocks of a set width, the box and the dot are 14 px + 7 px), so
+ * the line takes `padding-left: W` and `text-indent: -W` with W their sum.
+ * W does not depend on whether the marker is drawn or revealed raw: focus
+ * entering never moves the first line, the raw marker just wraps as text.
+ */
+const INDENT_TAB_PX = 28;
+const INDENT_SPACE_PX = 7;
+const MARKER_WIDGET_PX = 21;
+
+function indentWidthPx(indent: string): number {
+    let width = 0;
+    for (const ch of indent) {
+        width += ch === "	" ? INDENT_TAB_PX : INDENT_SPACE_PX;
+    }
+    return width;
+}
+
+/** The line decoration of a list item: its class and its hanging indent. */
+export function hangingLine(cls: string, px: number, ch: number): Decoration {
+    const width = `calc(${px}px + ${ch}ch)`;
+    return Decoration.line({
+        attributes: {
+            class: cls,
+            style: `padding-left:${width};text-indent:calc(-1 * ${width})`,
+        },
+    });
+}
+
 const HIDDEN = Decoration.replace({});
 
 const INLINE_MARKS: Record<string, { cls: string; marks: string }> = {
@@ -375,13 +407,37 @@ export function buildDecorations(
                     ? prefix.boxAt
                     : prefix.indent.length);
             const markerTo = line.from + prefix.length;
+            if (prefix.indent.length > 0) {
+                out.push(
+                    Decoration.mark({
+                        class: "nc-desc-indent",
+                        attributes: {
+                            style: `width:${indentWidthPx(prefix.indent)}px`,
+                        },
+                    }).range(line.from, line.from + prefix.indent.length)
+                );
+            }
+            if (prefix.kind === "task" && !prefix.bullet) {
+                // "1. " of a numbered task stays text, at a set width.
+                const numberFrom = line.from + prefix.indent.length;
+                out.push(
+                    Decoration.mark({
+                        class: "nc-desc-number",
+                        attributes: {
+                            style: `width:${markerFrom - numberFrom}ch`,
+                        },
+                    }).range(numberFrom, markerFrom)
+                );
+            }
 
             if (prefix.kind === "task") {
                 const done = prefix.mark === "x" || prefix.mark === "X";
                 out.push(
-                    Decoration.line({
-                        class: "nc-desc-line nc-desc-task",
-                    }).range(line.from)
+                    hangingLine(
+                        "nc-desc-line nc-desc-task",
+                        indentWidthPx(prefix.indent) + MARKER_WIDGET_PX,
+                        prefix.bullet ? 0 : prefix.boxAt - prefix.indent.length
+                    ).range(line.from)
                 );
                 if (!touchesMarker(markerFrom, markerTo)) {
                     out.push(
@@ -404,9 +460,11 @@ export function buildDecorations(
                 }
             } else if (prefix.kind === "bullet") {
                 out.push(
-                    Decoration.line({
-                        class: "nc-desc-line nc-desc-bulleted",
-                    }).range(line.from)
+                    hangingLine(
+                        "nc-desc-line nc-desc-bulleted",
+                        indentWidthPx(prefix.indent) + MARKER_WIDGET_PX,
+                        0
+                    ).range(line.from)
                 );
                 out.push(
                     Decoration.replace({ widget: new BulletWidget() }).range(
@@ -416,15 +474,19 @@ export function buildDecorations(
                 );
             } else if (prefix.kind === "number") {
                 out.push(
-                    Decoration.line({
-                        class: "nc-desc-line nc-desc-numbered",
-                    }).range(line.from)
+                    hangingLine(
+                        "nc-desc-line nc-desc-numbered",
+                        indentWidthPx(prefix.indent),
+                        markerTo - markerFrom
+                    ).range(line.from)
                 );
                 out.push(
-                    Decoration.mark({ class: "nc-desc-number" }).range(
-                        markerFrom,
-                        markerTo - 1
-                    )
+                    Decoration.mark({
+                        class: "nc-desc-number",
+                        attributes: {
+                            style: `width:${markerTo - markerFrom}ch`,
+                        },
+                    }).range(markerFrom, markerTo)
                 );
             } else {
                 out.push(
@@ -509,6 +571,21 @@ const theme = EditorView.theme({
         display: "inline-grid",
         verticalAlign: "-2px",
         marginRight: "7px",
+    },
+    // Inline-blocks of a set width: the hanging indent counts on them. They
+    // must not inherit the line's negative text-indent.
+    ".nc-desc-indent": {
+        display: "inline-block",
+        whiteSpace: "pre",
+        textIndent: "0",
+        overflow: "hidden",
+        verticalAlign: "bottom",
+    },
+    ".nc-desc-number": {
+        display: "inline-block",
+        whiteSpace: "pre",
+        textIndent: "0",
+        verticalAlign: "bottom",
     },
     ".nc-desc-done": {
         textDecoration: "line-through",
