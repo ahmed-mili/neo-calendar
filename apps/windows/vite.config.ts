@@ -21,7 +21,16 @@ export default defineConfig({
     plugins: [react()],
     clearScreen: false,
     resolve: {
-        dedupe: ["react", "react-dom"],
+        // One instance of each CodeMirror core package: two copies of
+        // @codemirror/state break `instanceof` checks inside the editor.
+        dedupe: [
+            "react",
+            "react-dom",
+            "@codemirror/state",
+            "@codemirror/view",
+            "@codemirror/language",
+            "@lezer/common",
+        ],
         alias: [
             {
                 find: "obsidian",
