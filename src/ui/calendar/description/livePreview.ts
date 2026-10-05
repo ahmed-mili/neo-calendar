@@ -584,7 +584,13 @@ export function livePreview(handlers: () => LivePreviewHandlers): Extension {
     });
 
     return [
-        markdown({ base: markdownLanguage, extensions: [Highlight] }),
+        // No markdown keymap: its Backspace swallows a whole list marker (
+        // "- [ ] |a" became "|a"); Obsidian deletes one character.
+        markdown({
+            base: markdownLanguage,
+            extensions: [Highlight],
+            addKeymap: false,
+        }),
         focused,
         field,
         theme,

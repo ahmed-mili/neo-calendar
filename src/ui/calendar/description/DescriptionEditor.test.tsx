@@ -212,6 +212,23 @@ describe("DescriptionEditor", () => {
         expect(view.state.doc.toString()).toBe("- **[** ] a\n\t- [ ] ");
     });
 
+    test("Backspace deletes one character, never a whole list marker (4.3)", () => {
+        const ref = mount({ value: "- [ ] Tache" });
+        const view = ref.current!.getView()!;
+        act(() => ref.current!.setSelection(6));
+        act(() => {
+            view.contentDOM.dispatchEvent(
+                new KeyboardEvent("keydown", {
+                    key: "Backspace",
+                    keyCode: 8,
+                    bubbles: true,
+                    cancelable: true,
+                })
+            );
+        });
+        expect(view.state.doc.toString()).toBe("- [ ]Tache");
+    });
+
     test("Ctrl+A selects everything, across lines", () => {
         const ref = mount({ value: DOC });
         const view = ref.current!.getView()!;
