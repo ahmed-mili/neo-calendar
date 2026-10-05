@@ -109,19 +109,38 @@ function findAvailablePath(
 
 const FENCE = "---";
 
-/** Does the page open with a frontmatter block? */
-function hasFrontmatter(page: string): boolean {
-    return page.indexOf(FENCE) === 0 && page.slice(3).indexOf(FENCE) !== -1;
+/**
+ * Splits a page at its frontmatter fences. The closing fence is the first
+ * later line that trims to `---` (as the desktop reader does), never a `---`
+ * inside a line: a block line such as `foo---bar` must not end the block.
+ * `front` is the text between the fences, `body` what follows the closing one.
+ */
+function splitPage(page: string): { front: string; body: string } | null {
+    if (page.indexOf(FENCE) !== 0) return null;
+    let offset = page.indexOf("\n");
+    while (offset !== -1) {
+        const start = offset + 1;
+        const next = page.indexOf("\n", start);
+        const line = page.slice(start, next === -1 ? page.length : next);
+        if (line.trim() === FENCE) {
+            return {
+                front: page.slice(3, start),
+                body: page.slice(start + line.indexOf(FENCE) + 3),
+            };
+        }
+        offset = next;
+    }
+    return null;
 }
 
 /** The raw frontmatter block (between the first two fences), if any. */
 function extractFrontmatter(page: string): string | null {
-    return hasFrontmatter(page) ? page.split(FENCE)[1] : null;
+    return splitPage(page)?.front ?? null;
 }
 
 /** Everything after the frontmatter block — the note body, kept verbatim. */
 function extractBody(page: string): string {
-    return hasFrontmatter(page) ? page.split(FENCE).slice(2).join(FENCE) : page;
+    return splitPage(page)?.body ?? page;
 }
 
 function withFrontmatter(page: string, frontmatter: string): string {
@@ -212,7 +231,12 @@ export function modifyFrontmatterString(
     page: string,
     event: Partial<NeoEvent>
 ): string {
-    const existing = extractFrontmatter(page)?.split("\n");
+    // Windows line ends: a stray "\r" must neither hide a block header nor leak
+    // into a block's text, so lines are read without it (the rewrite is LF, as
+    // it always was).
+    const existing = extractFrontmatter(page)
+        ?.split("\n")
+        .map((line) => line.replace(/\r$/, ""));
     // The text before the closing fence ends with a line break: the empty
     // element it leaves is not a line of the block above it.
     if (existing && existing[existing.length - 1] === "") existing.pop();

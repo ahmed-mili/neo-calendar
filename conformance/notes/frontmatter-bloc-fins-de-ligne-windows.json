@@ -1,0 +1,6 @@
+{
+  "name": "bloc |- dans une note aux fins de ligne Windows : lu sans retour chariot",
+  "fn": "notes.frontmatter",
+  "input": {"text":"---\r\ntitle: T\r\ndescription: |-\r\n  a: b\r\n  c\r\ndate: 2026-10-02\r\n---\r\n"},
+  "expected": {"title":"T","description":"a: b\nc","date":"2026-10-02"}
+}

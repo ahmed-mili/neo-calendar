@@ -214,3 +214,39 @@ function validateEventFrom(contents: string): NeoEvent {
     const parsed = parseEvent(parseFrontmatter(contents) as any);
     return parsed;
 }
+
+describe("the plugin writer on Windows line ends and fences", () => {
+    const crlf =
+        "---\r\ntitle: T\r\nnotes: |-\r\n  a\r\n  - c: d\r\ndescription: |-\r\n  x\r\n  y: z\r\n---\r\nbody\r\n";
+
+    it("keeps a block and leaks no carriage return into it", () => {
+        const after = modifyFrontmatterString(crlf, {
+            title: "T2",
+            description: "n\nm",
+        } as Partial<NeoEvent>);
+        expect(after).toBe(
+            "---\ntitle: T2\nnotes: |-\n  a\n  - c: d\ndescription: |-\n  n\n  m\n---\r\nbody\r\n"
+        );
+    });
+
+    it("drops the owned block with its lines when the event has no description", () => {
+        const after = modifyFrontmatterString(crlf, {
+            title: "T2",
+        } as Partial<NeoEvent>);
+        expect(after).toBe(
+            "---\ntitle: T2\nnotes: |-\n  a\n  - c: d\n---\r\nbody\r\n"
+        );
+    });
+
+    it("closes the frontmatter at a line of dashes, not at dashes in a line", () => {
+        const before =
+            "---\ntitle: T\ndescription: |-\n  foo---bar\n  baz\nnotes: |-\n  x---y\n---\nbody---kept\n";
+        const after = modifyFrontmatterString(before, {
+            title: "T2",
+            description: "foo---bar\nbaz",
+        } as Partial<NeoEvent>);
+        expect(after).toBe(
+            "---\ntitle: T2\ndescription: |-\n  foo---bar\n  baz\nnotes: |-\n  x---y\n---\nbody---kept\n"
+        );
+    });
+});

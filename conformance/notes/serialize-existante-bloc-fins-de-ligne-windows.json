@@ -1,0 +1,6 @@
+{
+  "name": "note existante aux fins de ligne Windows : bloc d'une clé inconnue gardé, bloc possédé remplacé, sans retour chariot",
+  "fn": "notes.serialize",
+  "input": {"event":{"title":"Dentiste","type":"single","allDay":true,"date":"2026-10-02","description":"neuf\nligne"},"previousContents":"---\r\ntitle: Ancien\r\nnotes: |-\r\n  garde: ceci\r\n  et cela\r\ndescription: |-\r\n  ancien: 1\r\n  - c: d\r\ntype: single\r\nallDay: true\r\ndate: 2026-09-01\r\n---\r\nCorps\r\n"},
+  "expected": {"text":"---\ntitle: \"Dentiste\"\nnotes: |-\n  garde: ceci\n  et cela\ndescription: |-\n  neuf\n  ligne\ntype: \"single\"\nallDay: true\ndate: \"2026-10-02\"\nendDate: null\n---\nCorps\n"}
+}
