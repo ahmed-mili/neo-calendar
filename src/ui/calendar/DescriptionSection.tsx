@@ -491,6 +491,8 @@ export function DescriptionSection({
     /** Whether the person has put the caret in the text at least once: before
      *  that, a toolbar or dialog insert goes to the end, not to offset 0. */
     const touchedRef = React.useRef(false);
+    /** La dernière pression sur la rangée est-elle partie du texte ? */
+    const pressedInTextRef = React.useRef(false);
     const descriptionRef = React.useRef(description);
     descriptionRef.current = description;
     const [error, setError] = React.useState<string | null>(null);
@@ -737,6 +739,23 @@ export function DescriptionSection({
                 hostRef={sectionRef}
                 editable={editable}
                 items={[...items, ...readInlineLinks(description)]}
+                onEditExisting={() => {
+                    const editor = editorRef.current;
+                    if (!editor) return false;
+                    const { from, to } = editor.getSelection();
+                    /* Dedans, pas contre : juste avant `[` ou juste après `)`,
+                       Ctrl+K ajoute un lien à côté. */
+                    const link = readInlineLinks(descriptionRef.current).find(
+                        (candidate) =>
+                            candidate.start <= from &&
+                            to <= candidate.end &&
+                            from < candidate.end &&
+                            to > candidate.start
+                    );
+                    if (!link) return false;
+                    editInlineLink(link);
+                    return true;
+                }}
                 onInsert={(markdown) => {
                     const inserted = insertMarkdown(markdown);
                     if (inserted) editInlineLink(inserted);
@@ -781,8 +800,18 @@ export function DescriptionSection({
                         ? " nc-panel-row-desc--silent"
                         : ""
                 }`}
+                onMouseDownCapture={(event) => {
+                    const target = event.target;
+                    pressedInTextRef.current =
+                        target instanceof Element &&
+                        target.closest(".cm-editor") !== null;
+                }}
                 onClick={(event) => {
                     if (!editable) return;
+                    /* Une sélection tirée depuis le texte et lâchée à côté
+                       finit en clic sur la rangée : ce clic-là n'est pas un
+                       clic à côté du texte, et la sélection doit rester. */
+                    if (pressedInTextRef.current) return;
                     const target = event.target;
                     if (!(target instanceof Element)) return;
                     // The toolbar made the visual Description surface much

@@ -139,6 +139,37 @@ describe("DescriptionSection around the editor", () => {
         expect(container.querySelector(".nc-desc-link")).not.toBeNull();
     });
 
+    it("puts the caret at the end on a click beside the text", () => {
+        const view = mount({ initial: "- [ ] a\nb" });
+        const row = container.querySelector(
+            ".nc-description-composer"
+        ) as HTMLElement;
+        act(() => {
+            row.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+            row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        const { from, to } = view.state.selection.main;
+        expect([from, to]).toEqual([9, 9]);
+    });
+
+    it("keeps a selection dragged out of the text and released beside it", () => {
+        const view = mount({ initial: "- [ ] a\nb" });
+        const row = container.querySelector(
+            ".nc-description-composer"
+        ) as HTMLElement;
+        // The press lands in the text, the drag selects, the release lands on
+        // the row: the click then goes to the row, the selection must stay.
+        act(() => {
+            view.contentDOM.dispatchEvent(
+                new MouseEvent("mousedown", { bubbles: true })
+            );
+            view.dispatch({ selection: { anchor: 7, head: 2 } });
+            row.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        const { anchor, head } = view.state.selection.main;
+        expect([anchor, head]).toEqual([7, 2]);
+    });
+
     it("says nothing at all when locked and empty", () => {
         mount({ editable: false });
         expect(container.querySelector(".cm-placeholder")).toBeNull();

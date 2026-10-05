@@ -16,6 +16,9 @@ interface DescriptionAddLinkDialogProps {
     items: readonly DescriptionLinkItem[];
     /** Écrit le lien dans la description, là où le curseur était. */
     onInsert?: (markdown: string) => void;
+    /** Ctrl+K avec le curseur dans un lien : ce lien s'ouvre à la place, et
+     *  rend vrai. Sans quoi le nouveau lien s'écrivait au milieu de l'ancien. */
+    onEditExisting?: () => boolean;
 }
 
 function markdownTarget(markdown: string): string | null {
@@ -31,6 +34,7 @@ export function DescriptionAddLinkDialog({
     editable,
     items,
     onInsert,
+    onEditExisting,
 }: DescriptionAddLinkDialogProps) {
     const [open, setOpen] = React.useState(false);
     const [label, setLabel] = React.useState("");
@@ -48,6 +52,7 @@ export function DescriptionAddLinkDialog({
         if (!host) return;
         const show = () => {
             if (!editable || !onInsert) return;
+            if (onEditExisting?.()) return;
             setLabel("");
             setTarget("");
             setError(null);
@@ -56,7 +61,7 @@ export function DescriptionAddLinkDialog({
         host.addEventListener(OPEN_DESCRIPTION_LINK_DIALOG_EVENT, show);
         return () =>
             host.removeEventListener(OPEN_DESCRIPTION_LINK_DIALOG_EVENT, show);
-    }, [editable, hostRef, onInsert]);
+    }, [editable, hostRef, onInsert, onEditExisting]);
 
     React.useEffect(() => {
         if (!open) return;
