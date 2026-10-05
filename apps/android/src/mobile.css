@@ -765,29 +765,6 @@ body.nc-platform-android .nc-sheet-handle--bar svg {
  * feuille tenue a bout de bras. Une grande boite autour d'une petite marque ne
  * sert a rien : on vise ce qu'on voit, donc les deux grandissent ensemble.
  */
-/* Une case a cocher se vise au doigt, pas a la souris : la marque garde sa
-   taille de note, la zone qui l'attrape fait 44 px de haut comme le reste. */
-body.nc-platform-android .nc-panel-checklist-line {
-    padding: 6px 0;
-}
-
-body.nc-platform-android .nc-panel-checklist-line input {
-    position: relative;
-    width: 18px;
-    height: 18px;
-    margin: 1px 0 0;
-}
-
-body.nc-platform-android .nc-panel-checklist-line input::after {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 44px;
-    height: 44px;
-    content: "";
-    transform: translate(-50%, -50%);
-}
-
 /* L'ecran de recurrence commence sous la barre d'etat.
    Il couvre tout, y compris ce que le systeme dessine en haut : sans cette
    marge, son titre se superposait a l'heure et a la batterie. */
@@ -923,7 +900,6 @@ body.nc-platform-android
 
 body.nc-platform-android .nc-panel-text-input,
 body.nc-platform-android .nc-panel-select,
-body.nc-platform-android .nc-panel-textarea,
 body.nc-platform-android .nc-panel-time-input,
 body.nc-platform-android .nc-panel-date-btn,
 body.nc-platform-android .nc-panel-date-trigger {
@@ -931,11 +907,9 @@ body.nc-platform-android .nc-panel-date-trigger {
     font-size: 16px;
 }
 
-/* Sauf la description : sa hauteur est écrite ligne à ligne par la rangée
-   elle-même, et un plancher de 44px lui donnait quatre lignes de vide à
-   remplir. Déclarée après le groupe qu'elle corrige, à spécificité égale. */
-body.nc-platform-android .nc-panel-textarea {
-    min-height: 0;
+/* The description editor keeps the plain 15px of a note and no 44px floor: its
+   height follows the text, line by line. */
+body.nc-platform-android .nc-desc-editor {
     font-size: 15px;
 }
 

@@ -67,7 +67,10 @@ describe("the description editing toolbar", () => {
 
         expect(html).toContain('role="toolbar"');
         expect(html).toContain('aria-label="Pièce jointe"');
-        expect(html).toContain("nc-panel-checklist");
+        // One editor in every state: a checklist no longer swaps the field
+        // for line rows, so the same toolbar sits over the same editor.
+        expect(html).toContain("nc-desc-editor");
+        expect(html).not.toContain("<textarea");
     });
 
     it("keeps formatting available on drafts while disabling attachments", () => {

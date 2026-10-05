@@ -1,9 +1,18 @@
 /** @jest-environment jsdom */
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import { act, Simulate } from "react-dom/test-utils";
+import { act } from "react-dom/test-utils";
 import { DescriptionSection } from "./DescriptionSection";
 import { applyLanguage } from "../i18n";
+import {
+    docOf,
+    editorViewIn,
+    selectIn,
+    stubEditorLayout,
+    typeInto,
+} from "./description/editorTestSupport";
+
+beforeAll(stubEditorLayout);
 
 const NOTE = "- [ ] Micro (99 €)\n- [ ] Plateau (229 €)\nTotal : environ 328 €";
 
@@ -22,7 +31,9 @@ function Harness({ initial }: { initial: string }) {
     );
 }
 
-describe("Ctrl+A dans une description lue ligne par ligne", () => {
+/* Ctrl+A is the editor's own: ONE selection over the whole text, across lines,
+   boxes and links, with nothing to swap in or out. */
+describe("Ctrl+A in a description", () => {
     let container: HTMLDivElement;
 
     beforeEach(() => {
@@ -41,58 +52,43 @@ describe("Ctrl+A dans une description lue ligne par ligne", () => {
         container.remove();
     });
 
-    /** Ouvre la dernière ligne, celle de prose, et y appuie Ctrl+A. */
-    const selectAll = () => {
-        const lines = container.querySelectorAll(".nc-panel-checklist-text");
-        act(() => Simulate.click(lines[lines.length - 1] as HTMLElement));
-        const line = container.querySelector(
-            ".nc-panel-checklist-edit"
-        ) as HTMLTextAreaElement;
-        expect(line).toBeTruthy();
-        act(() => Simulate.keyDown(line, { key: "a", ctrlKey: true }));
+    /** Puts the caret in the prose line and presses Ctrl+A. */
+    const pressSelectAll = () => {
+        const view = editorViewIn(container);
+        act(() => selectIn(view, NOTE.length));
+        act(() => {
+            view.contentDOM.dispatchEvent(
+                new KeyboardEvent("keydown", {
+                    key: "a",
+                    ctrlKey: true,
+                    bubbles: true,
+                    cancelable: true,
+                })
+            );
+        });
+        return view;
     };
 
-    it("sélectionne toute la description, pas la seule ligne ouverte", () => {
-        selectAll();
-
-        const whole = container.querySelector(
-            ".nc-panel-textarea"
-        ) as HTMLTextAreaElement;
-        expect(whole).toBeTruthy();
-        expect(whole.value).toBe(NOTE);
-        expect(document.activeElement).toBe(whole);
-        expect(whole.selectionStart).toBe(0);
-        expect(whole.selectionEnd).toBe(NOTE.length);
-        expect(container.querySelector(".nc-panel-checklist-edit")).toBeNull();
+    it("selects the whole description, not just the line the caret is on", () => {
+        const view = pressSelectAll();
+        const { from, to } = view.state.selection.main;
+        expect(from).toBe(0);
+        expect(to).toBe(NOTE.length);
     });
 
-    it("rend les lignes rendues dès qu'on quitte le champ entier", () => {
-        selectAll();
-        const whole = container.querySelector(
-            ".nc-panel-textarea"
-        ) as HTMLTextAreaElement;
-        act(() => Simulate.blur(whole));
-
-        expect(container.querySelector(".nc-panel-textarea")).toBeNull();
-        expect(
-            container.querySelectorAll(".nc-panel-checklist-checkbox").length
-        ).toBe(2);
+    it("stays one editor: no whole-text field takes its place, and the lines draw again once the selection is left", () => {
+        const view = pressSelectAll();
+        expect(container.querySelector("textarea")).toBeNull();
+        expect(container.querySelectorAll(".cm-editor")).toHaveLength(1);
+        act(() => selectIn(view, NOTE.length));
+        expect(container.querySelectorAll(".nc-desc-checkbox").length).toBe(2);
     });
 
-    it("remplace tout ce qui est sélectionné par ce qu'on tape", () => {
-        selectAll();
-        const whole = container.querySelector(
-            ".nc-panel-textarea"
-        ) as HTMLTextAreaElement;
-        whole.value = "- [ ] repartir de zéro";
-        whole.selectionStart = whole.selectionEnd = whole.value.length;
-        act(() => Simulate.change(whole));
-        act(() => Simulate.keyDown(whole, { key: "Escape" }));
-
-        expect(container.querySelector(".nc-panel-textarea")).toBeNull();
-        expect(
-            container.querySelectorAll(".nc-panel-checklist-checkbox").length
-        ).toBe(1);
+    it("replaces everything selected by what is typed", () => {
+        const view = pressSelectAll();
+        act(() => typeInto(view, "- [ ] repartir de zéro"));
+        expect(docOf(view)).toBe("- [ ] repartir de zéro");
+        expect(container.querySelectorAll(".nc-desc-checkbox").length).toBe(1);
         expect(container.textContent).toContain("repartir de zéro");
     });
 });

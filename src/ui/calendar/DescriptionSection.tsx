@@ -12,26 +12,18 @@ import {
 } from "lucide-react";
 import { CopyIcon, PencilIcon, XIcon } from "./Icons";
 import { LinesIcon } from "./EventPanelIcons";
-import {
-    DescriptionFocusRequest,
-    DescriptionLinkActions,
-    DescriptionRow,
-    LinksAttachmentsRow,
-    readsAsNote,
-} from "./EventPanelRows";
+import { LinksAttachmentsRow } from "./EventPanelRows";
 import {
     InlineLink,
-    inlineLinkEndingAt,
     inlineLinkMarkdown,
-    inlineLinkTouching,
     readInlineLinks,
 } from "./descriptionInlineLinks";
 import { labelFor, urlMarkdown } from "./linkInput";
-import { replaceLine, taskPrefixLength } from "./descriptionChecklist";
 import {
-    applyDescriptionFormat,
-    DescriptionFormatCommand,
-} from "./descriptionFormatting";
+    DescriptionEditor,
+    DescriptionEditorHandle,
+} from "./description/DescriptionEditor";
+import { DescriptionFormatCommand } from "./descriptionFormatting";
 import { DescriptionAddLinkDialog } from "./DescriptionAddLinkDialog";
 import { t } from "../i18n";
 
@@ -65,12 +57,6 @@ interface DescriptionSectionProps {
         eventId: string,
         target: string
     ) => Promise<string | null>;
-}
-
-interface FieldSnapshot {
-    text: string;
-    start: number;
-    end: number;
 }
 
 /** Une petite barre posée sur un lien du texte. */
@@ -128,59 +114,6 @@ export function editableDescriptionLinkLabel(
         return "";
     }
     return current;
-}
-
-function checklistSnapshot(
-    field: HTMLTextAreaElement,
-    description: string
-): FieldSnapshot | null {
-    const checklist = field.closest(".nc-panel-checklist");
-    if (!(checklist instanceof HTMLElement)) return null;
-    const lineElement = field.closest(".nc-panel-checklist-line") ?? field;
-    const index = Array.from(checklist.children).indexOf(lineElement);
-    if (index < 0) return null;
-
-    const lines = description.split("\n");
-    const raw = lines[index] ?? "";
-    const prefix = taskPrefixLength(raw) ?? 0;
-    const text = replaceLine(
-        description,
-        index,
-        raw.slice(0, prefix) + field.value
-    );
-    const lineStart = lines
-        .slice(0, index)
-        .reduce((total, line) => total + line.length + 1, 0);
-    return {
-        text,
-        start: lineStart + prefix + field.selectionStart,
-        end: lineStart + prefix + field.selectionEnd,
-    };
-}
-
-function snapshotForField(
-    field: HTMLTextAreaElement,
-    description: string
-): FieldSnapshot | null {
-    if (field.dataset.descriptionInput === "true") {
-        return {
-            text: field.value,
-            start: field.selectionStart,
-            end: field.selectionEnd,
-        };
-    }
-    if (field.classList.contains("nc-panel-checklist-edit")) {
-        return checklistSnapshot(field, description);
-    }
-    return null;
-}
-
-function replaceSelection(snapshot: FieldSnapshot, inserted: string): string {
-    return (
-        snapshot.text.slice(0, snapshot.start) +
-        inserted +
-        snapshot.text.slice(snapshot.end)
-    );
 }
 
 function DescriptionToolbar({
@@ -554,13 +487,12 @@ export function DescriptionSection({
     onReadAttachment,
 }: DescriptionSectionProps) {
     const sectionRef = React.useRef<HTMLDivElement>(null);
-    const fieldRef = React.useRef<HTMLTextAreaElement>(null);
-    const activeFieldRef = React.useRef<HTMLTextAreaElement | null>(null);
+    const editorRef = React.useRef<DescriptionEditorHandle>(null);
+    /** Whether the person has put the caret in the text at least once: before
+     *  that, a toolbar or dialog insert goes to the end, not to offset 0. */
+    const touchedRef = React.useRef(false);
     const descriptionRef = React.useRef(description);
     descriptionRef.current = description;
-    const focusRevisionRef = React.useRef(0);
-    const [focusRequest, setFocusRequest] =
-        React.useState<DescriptionFocusRequest | null>(null);
     const [error, setError] = React.useState<string | null>(null);
     const [attaching, setAttaching] = React.useState(false);
     const [attachmentError, setAttachmentError] = React.useState<string | null>(
@@ -568,9 +500,6 @@ export function DescriptionSection({
     );
     const links = items.filter((item) => item.kind !== "attachment");
     const attachments = items.filter((item) => item.kind === "attachment");
-    /* Une description qui porte une étape ou un lien se lit ligne par ligne :
-       ni la case ni le lien ne se dessinent dans un champ de texte nu. */
-    const asNote = readsAsNote(description);
     /** Le lien dont la petite barre est ouverte, et où elle est posée. */
     const [linkMenu, setLinkMenu] = React.useState<InlineLinkPopup | null>(
         null
@@ -578,15 +507,6 @@ export function DescriptionSection({
     /** Le lien en cours de renommage, tel que la fenêtre le tient. */
     const [linkEdit, setLinkEdit] = React.useState<InlineLinkEdit | null>(null);
     const [linkCopied, setLinkCopied] = React.useState(false);
-
-    const resizeField = React.useCallback(() => {
-        const field = fieldRef.current;
-        if (!field) return;
-        field.style.height = "auto";
-        field.style.height = `${field.scrollHeight}px`;
-    }, []);
-
-    React.useEffect(resizeField, [description, resizeField]);
 
     /* Un appui ailleurs referme la petite barre — elle est posee sur le lien,
        pas ancree a lui : rien d'autre ne la ferait disparaitre. */
@@ -625,75 +545,38 @@ export function DescriptionSection({
         return () => document.removeEventListener("pointerdown", close);
     }, [linkEdit]);
 
+    /** The caret goes to the end the first time something is written before
+     *  the person has ever clicked into the text. */
+    const ensureCaret = () => {
+        if (touchedRef.current) return;
+        touchedRef.current = true;
+        const end = descriptionRef.current.length;
+        editorRef.current?.setSelection(end, end);
+    };
+
     /**
-     * Écrire un lien là où le curseur est.
-     *
-     * Un lien ajouté partait dans le corps de la note, hors de la description :
-     * il se dessinait au-dessus du champ, qui restait vide et continuait de
-     * proposer qu'on le remplisse, et il n'y avait nulle part où poser le
-     * curseur pour écrire avant lui. Un lien est du texte, `[nom](adresse)`,
-     * comme dans n'importe quelle note Obsidian — il compte donc dans la
-     * description, et une case ou une puce se met devant lui comme devant
-     * n'importe quelle ligne.
+     * A link is text, `[name](address)`, written where the caret is. Returns
+     * the written link with its offsets in the whole text.
      */
-    const insertMarkdown = React.useCallback(
-        (
-            markdown: string,
-            snapshot: FieldSnapshot | null,
-            focusAfterInsert = true
-        ): InlineLink | null => {
-            const source = snapshot ?? {
-                text: descriptionRef.current,
-                start: descriptionRef.current.length,
-                end: descriptionRef.current.length,
-            };
-            const next = replaceSelection(source, markdown);
-            const caret = source.start + markdown.length;
-            const parsed = readInlineLinks(markdown)[0];
-            const inserted = parsed
-                ? {
-                      ...parsed,
-                      start: source.start + parsed.start,
-                      end: source.start + parsed.end,
-                  }
-                : null;
-            descriptionRef.current = next;
-            setDescription(next);
-            onCommit();
-            if (!focusAfterInsert) return inserted;
+    const insertMarkdown = (markdown: string): InlineLink | null => {
+        const editor = editorRef.current;
+        if (!editor) return null;
+        ensureCaret();
+        const { from } = editor.getSelection();
+        const parsed = readInlineLinks(markdown)[0];
+        editor.replaceSelection(markdown);
+        onCommit();
+        return parsed
+            ? { ...parsed, start: from + parsed.start, end: from + parsed.end }
+            : null;
+    };
 
-            setFocusRequest({
-                revision: ++focusRevisionRef.current,
-                selectionStart: caret,
-                selectionEnd: caret,
-            });
-            // Le champ simple garde ce ref ; la vue ligne à ligne, elle, monte
-            // un autre champ et suit la demande de focus ci-dessus.
-            window.requestAnimationFrame(() => {
-                const field = fieldRef.current;
-                if (!field?.isConnected) return;
-                field.focus();
-                field.setSelectionRange(caret, caret);
-            });
-            return inserted;
-        },
-        [onCommit, setDescription]
-    );
-
-    const handlePaste = (
-        event: React.ClipboardEvent<HTMLDivElement | HTMLTextAreaElement>
-    ) => {
-        const field = event.target as HTMLTextAreaElement;
-        if (!(field instanceof HTMLTextAreaElement)) return;
-        if (!editable) return;
-        const pasted = event.clipboardData.getData("text/plain");
-        const markdown = urlMarkdown(pasted);
-        if (!markdown) return;
-        const snapshot = snapshotForField(field, descriptionRef.current);
-        if (!snapshot) return;
-        event.preventDefault();
-        activeFieldRef.current = field;
-        insertMarkdown(markdown, snapshot);
+    /** A bare address pasted over the caret becomes a titled link. */
+    const handlePaste = (text: string): boolean => {
+        if (!editable) return false;
+        const markdown = urlMarkdown(text);
+        if (!markdown) return false;
+        return insertMarkdown(markdown) !== null;
     };
 
     /* Le texte avec un lien réécrit ou retiré. Pas de curseur à replacer : la
@@ -736,20 +619,6 @@ export function DescriptionSection({
             target: link.target,
             error: null,
         });
-    };
-
-    /**
-     * Un clic à côté d'un lien ouvre sa fenêtre.
-     *
-     * Ouvrir la ligne montrerait `[nom](adresse)`, alors qu'un clic contre le
-     * lien vise ses réglages. La ligne reste donc rendue, même à la fermeture.
-     */
-    const touchInlineLink = (caret: number): boolean => {
-        if (!editable) return false;
-        const link = inlineLinkTouching(descriptionRef.current, caret);
-        if (!link) return false;
-        editInlineLink(link);
-        return true;
     };
 
     const dismissInlineLink = () => setLinkEdit(null);
@@ -830,48 +699,6 @@ export function DescriptionSection({
         setLinkEdit(null);
     };
 
-    const linkActions: DescriptionLinkActions = {
-        open: openInlineLink,
-        menu: showInlineLinkMenu,
-        touch: touchInlineLink,
-    };
-
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-        /*
-         * Un retour arrière contre un lien ouvre sa fenêtre.
-         *
-         * Effacer `[nom](adresse)` caractère par caractère commence par le
-         * défaire en syntaxe : la parenthèse part, le lien redevient du texte,
-         * et il faut vingt appuis pour finir ce qu'on voulait faire d'un.
-         * Personne n'a jamais voulu supprimer une parenthèse.
-         */
-        if (
-            event.key === "Backspace" &&
-            editable &&
-            !event.ctrlKey &&
-            !event.metaKey &&
-            !event.altKey
-        ) {
-            const field = event.target;
-            if (field instanceof HTMLTextAreaElement) {
-                const snapshot = snapshotForField(
-                    field,
-                    descriptionRef.current
-                );
-                const link =
-                    snapshot && snapshot.start === snapshot.end
-                        ? inlineLinkEndingAt(snapshot.text, snapshot.start)
-                        : null;
-                if (link) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    editInlineLink(link);
-                    return;
-                }
-            }
-        }
-    };
-
     const attach = async () => {
         if (!eventId || !onPickAttachment || attaching) return;
         setAttaching(true);
@@ -888,40 +715,11 @@ export function DescriptionSection({
     };
 
     const formatDescription = (command: DescriptionFormatCommand) => {
-        const rememberedField = activeFieldRef.current;
-        const activeField = rememberedField?.isConnected
-            ? rememberedField
-            : fieldRef.current;
-        const snapshot = activeField
-            ? snapshotForField(activeField, descriptionRef.current)
-            : null;
-        const source = snapshot ?? {
-            text: descriptionRef.current,
-            start: descriptionRef.current.length,
-            end: descriptionRef.current.length,
-        };
-        const next = applyDescriptionFormat(
-            source.text,
-            source.start,
-            source.end,
-            command
-        );
-        descriptionRef.current = next.text;
-        setDescription(next.text);
-        setFocusRequest({
-            revision: ++focusRevisionRef.current,
-            selectionStart: next.selectionStart,
-            selectionEnd: next.selectionEnd,
-        });
-        window.requestAnimationFrame(() => {
-            // The plain composer owns this ref. A checklist command replaces
-            // that textarea with DescriptionRow, whose focusRequest performs
-            // the hand-off to the newly mounted line editor instead.
-            const field = fieldRef.current;
-            if (!field?.isConnected) return;
-            field.focus();
-            field.setSelectionRange(next.selectionStart, next.selectionEnd);
-        });
+        const editor = editorRef.current;
+        if (!editor) return;
+        ensureCaret();
+        editor.applyFormat(command);
+        editor.focus();
     };
 
     return (
@@ -929,27 +727,18 @@ export function DescriptionSection({
             ref={sectionRef}
             className="nc-description-section nc-panel-section"
             onFocusCapture={(event) => {
-                const field = event.target;
-                if (field instanceof HTMLTextAreaElement) {
-                    activeFieldRef.current = field;
+                const target = event.target;
+                if (target instanceof Element && target.closest(".cm-editor")) {
+                    touchedRef.current = true;
                 }
             }}
-            onPasteCapture={handlePaste}
-            onKeyDownCapture={handleKeyDown}
         >
             <DescriptionAddLinkDialog
                 hostRef={sectionRef}
                 editable={editable}
                 items={[...items, ...readInlineLinks(description)]}
                 onInsert={(markdown) => {
-                    const field = activeFieldRef.current;
-                    const inserted = insertMarkdown(
-                        markdown,
-                        field?.isConnected
-                            ? snapshotForField(field, descriptionRef.current)
-                            : null,
-                        false
-                    );
+                    const inserted = insertMarkdown(markdown);
                     if (inserted) editInlineLink(inserted);
                 }}
             />
@@ -981,31 +770,54 @@ export function DescriptionSection({
                 </div>
             )}
 
-            {asNote ? (
-                <>
-                    <DescriptionRow
-                        description={description}
-                        editable={editable}
-                        setDescription={setDescription}
-                        onCommit={onCommit}
-                        focusRequest={focusRequest}
-                        linkActions={linkActions}
-                        toolbar={
-                            editable ? (
-                                <DescriptionToolbar
-                                    attachmentDisabled={
-                                        !eventId ||
-                                        !onPickAttachment ||
-                                        attaching
-                                    }
-                                    onAttach={() => void attach()}
-                                    onFormat={formatDescription}
-                                />
-                            ) : undefined
-                        }
-                    />
+            <div
+                /* Locked and empty, the row has nothing to offer: no prompt
+                   (the placeholder only exists when editable) and no hover
+                   outline. An event from an ICS link nearly always carries a
+                   description, but when it has none the row must not present
+                   itself as a field to fill in. */
+                className={`nc-panel-row nc-panel-row-desc nc-description-composer${
+                    !editable && !description
+                        ? " nc-panel-row-desc--silent"
+                        : ""
+                }`}
+                onClick={(event) => {
+                    if (!editable) return;
+                    const target = event.target;
+                    if (!(target instanceof Element)) return;
+                    // The toolbar made the visual Description surface much
+                    // taller than the text itself. Treat the whole
+                    // non-interactive surface as the field so a real
+                    // click/tap always activates keyboard input.
+                    if (
+                        target.closest(
+                            ".cm-editor, button, a, input, textarea, select, [role='button'], [role='link']"
+                        )
+                    ) {
+                        return;
+                    }
+                    const editor = editorRef.current;
+                    if (!editor) return;
+                    const end = descriptionRef.current.length;
+                    editor.focus();
+                    editor.setSelection(end, end);
+                }}
+            >
+                <span className="nc-panel-row-icon">
+                    <LinesIcon />
+                </span>
+                <div className="nc-panel-row-content">
+                    {editable && (
+                        <DescriptionToolbar
+                            attachmentDisabled={
+                                !eventId || !onPickAttachment || attaching
+                            }
+                            onAttach={() => void attach()}
+                            onFormat={formatDescription}
+                        />
+                    )}
                     {links.length > 0 && (
-                        <div className="nc-description-links nc-description-links-checklist">
+                        <div className="nc-description-links">
                             {links.map((item) => (
                                 <DescriptionLinkRow
                                     key={item.id}
@@ -1020,120 +832,27 @@ export function DescriptionSection({
                             ))}
                         </div>
                     )}
-                </>
-            ) : (
-                <div
-                    /* Verrouillée et vide, la ligne n'a rien à proposer : ni
-                       texte d'invite (le placeholder est retiré plus bas), ni
-                       contour au survol. Un évènement venu d'un lien ICS
-                       porte presque toujours une description — celle du
-                       module, des enseignants —, mais quand il n'en a pas, la
-                       ligne ne doit pas se présenter comme un champ à
-                       remplir. */
-                    className={`nc-panel-row nc-panel-row-desc nc-description-composer${
-                        !editable && !description
-                            ? " nc-panel-row-desc--silent"
-                            : ""
-                    }`}
-                    onClick={(event) => {
-                        if (!editable) return;
-                        const target = event.target;
-                        if (!(target instanceof Element)) return;
-                        // The toolbar made the visual Description surface much
-                        // taller than the textarea itself. Treat the whole
-                        // non-interactive surface as the text field so a real
-                        // click/tap always activates keyboard input.
-                        if (
-                            target.closest(
-                                "button, a, input, textarea, select, [role='button'], [role='link']"
-                            )
-                        ) {
-                            return;
+                    <DescriptionEditor
+                        ref={editorRef}
+                        value={description}
+                        editable={editable}
+                        placeholder={
+                            editable ? t("Add a description") : undefined
                         }
-                        const field = fieldRef.current;
-                        if (!field?.isConnected) return;
-                        activeFieldRef.current = field;
-                        field.focus();
-                        const caret = field.value.length;
-                        field.setSelectionRange(caret, caret);
-                    }}
-                >
-                    <span className="nc-panel-row-icon">
-                        <LinesIcon />
-                    </span>
-                    <div className="nc-panel-row-content">
-                        {editable && (
-                            <DescriptionToolbar
-                                attachmentDisabled={
-                                    !eventId || !onPickAttachment || attaching
-                                }
-                                onAttach={() => void attach()}
-                                onFormat={formatDescription}
-                            />
-                        )}
-                        {links.length > 0 && (
-                            <div className="nc-description-links">
-                                {links.map((item) => (
-                                    <DescriptionLinkRow
-                                        key={item.id}
-                                        item={item}
-                                        eventId={eventId}
-                                        editable={editable}
-                                        onRenameLink={onRenameLink}
-                                        onRemoveLink={onRemoveLink}
-                                        onOpenLink={onOpenLink}
-                                        onCopyLink={onCopyLink}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                        <textarea
-                            ref={fieldRef}
-                            rows={1}
-                            className="nc-panel-textarea"
-                            data-description-input="true"
-                            value={description}
-                            /* Rien à ajouter sur un évènement qu'on ne peut pas
-                               modifier : « Ajouter une description » y invitait
-                               à une chose impossible, sur les évènements venus
-                               d'un lien ICS notamment. Le champ vide et
-                               verrouillé ne dit donc plus rien, et son survol
-                               ne répond pas non plus (voir
-                               .nc-panel-textarea[readonly] dans
-                               CalendarPanel.css) — comme les autres champs
-                               verrouillés de la fiche. */
-                            placeholder={
-                                editable ? t("Add a description") : undefined
-                            }
-                            onChange={(event) => {
-                                const field = event.target;
-                                const value = field.value;
-                                // Keep the imperative snapshot in lockstep with
-                                // native typing; toolbar logic reads it
-                                // before the next React render on some WebViews.
-                                descriptionRef.current = value;
-                                setDescription(value);
-                                // Écrire « - », « - [ ] » ou un lien fait
-                                // passer ce champ unique à la vue ligne par
-                                // ligne, qui monte un autre champ. Sans
-                                // demande de focus le curseur n'a nulle part
-                                // où aller et le champ se lit comme
-                                // désélectionné — la même passation que
-                                // formatDescription() fait pour les boutons.
-                                if (readsAsNote(value)) {
-                                    setFocusRequest({
-                                        revision: ++focusRevisionRef.current,
-                                        selectionStart: field.selectionStart,
-                                        selectionEnd: field.selectionEnd,
-                                    });
-                                }
-                            }}
-                            onBlur={onCommit}
-                            readOnly={!editable}
-                        />
-                    </div>
+                        onChange={(text) => {
+                            // Keep the imperative copy in lockstep with typing:
+                            // dialogs read it before the next React render.
+                            descriptionRef.current = text;
+                            setDescription(text);
+                        }}
+                        onBlur={onCommit}
+                        onToggle={onCommit}
+                        onOpenLink={openInlineLink}
+                        onLinkMenu={showInlineLinkMenu}
+                        onPaste={handlePaste}
+                    />
                 </div>
-            )}
+            </div>
 
             {linkCopied && (
                 <span className="nc-description-link-status" role="status">

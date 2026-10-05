@@ -18,13 +18,14 @@ data class DescriptionFormatResult(val text: String, val selectionStart: Int, va
 
 private val INLINE_MARKS = mapOf(
     DescriptionFormatCommand.Bold to ("**" to "**"),
-    DescriptionFormatCommand.Italic to ("_" to "_"),
+    DescriptionFormatCommand.Italic to ("*" to "*"),
     DescriptionFormatCommand.Underline to ("<u>" to "</u>"),
 )
 
 private val LINE_PREFIX = Regex("""^(\s*)(?:(?:- \[[ xX]\] )|(?:[-*+] )|(?:\d+[.)] ))?(.*)$""")
 private val UNDERLINE_TAGS = Regex("""<u>([\s\S]*?)</u>""")
 private val BOLD_MARKS = Regex("""\*\*([\s\S]*?)\*\*""")
+private val ITALIC_STARS = Regex("""\*([^*\n]+)\*""")
 private val ITALIC_MARKS = Regex("""_([^_\n]+)_""")
 
 private fun clearInlineFormatting(text: String): String {
@@ -32,7 +33,7 @@ private fun clearInlineFormatting(text: String): String {
     var previous = ""
     while (next != previous) {
         previous = next
-        next = next.replace(UNDERLINE_TAGS, "$1").replace(BOLD_MARKS, "$1").replace(ITALIC_MARKS, "$1")
+        next = next.replace(UNDERLINE_TAGS, "$1").replace(BOLD_MARKS, "$1").replace(ITALIC_STARS, "$1").replace(ITALIC_MARKS, "$1")
     }
     return next
 }

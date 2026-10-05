@@ -7,6 +7,14 @@ import {
     DescriptionLinkedItem,
 } from "./DescriptionSection";
 import { applyLanguage } from "../i18n";
+import {
+    docOf,
+    editorViewIn,
+    selectIn,
+    stubEditorLayout,
+} from "./description/editorTestSupport";
+
+beforeAll(stubEditorLayout);
 
 function Harness({
     initial,
@@ -35,7 +43,9 @@ function Harness({
     );
 }
 
-describe("les liens écrits dans la description", () => {
+const LINK = "[Elgato](https://example.com/mic)";
+
+describe("links written in the description", () => {
     let container: HTMLDivElement;
 
     beforeEach(() => {
@@ -56,22 +66,49 @@ describe("les liens écrits dans la description", () => {
             ReactDOM.render(<Harness {...props} />, container);
         });
     };
-
-    it("compte dans la description plutôt que de se poser au-dessus d'elle", () => {
-        render({ initial: "[Elgato](https://example.com/mic)" });
-
-        const link = container.querySelector(
-            ".nc-description-inline-link"
+    const link = () => container.querySelector(".nc-desc-link") as HTMLElement;
+    const press = (element: Element, button = 0) =>
+        act(() => {
+            element.dispatchEvent(
+                new MouseEvent("mousedown", {
+                    bubbles: true,
+                    cancelable: true,
+                    button,
+                })
+            );
+        });
+    const rightClick = (element: Element) =>
+        act(() => {
+            element.dispatchEvent(
+                new MouseEvent("contextmenu", {
+                    bubbles: true,
+                    cancelable: true,
+                })
+            );
+        });
+    /** Right click, then the pencil of the small bar: the edit dialog. */
+    const openEditDialog = () => {
+        rightClick(link());
+        const edit = document.querySelector(
+            '.nc-description-inline-actions [aria-label="Modifier le lien"]'
+        ) as HTMLButtonElement;
+        act(() => Simulate.click(edit));
+        return document.querySelector(
+            ".nc-description-inline-link-dialog"
         ) as HTMLElement;
-        expect(link).toBeTruthy();
-        expect(link.textContent).toBe("Elgato");
-        // Plus de champ vide sous le lien qui proposerait de le remplir.
-        expect(container.querySelector(".nc-panel-textarea")).toBeNull();
+    };
+
+    it("counts in the description instead of sitting above it", () => {
+        render({ initial: LINK });
+        expect(link().textContent).toBe("Elgato");
+        // No empty field under the link offering to be filled in.
+        expect(container.querySelector("textarea")).toBeNull();
         expect(container.textContent).not.toContain("Ajouter une description");
     });
 
-    it("se laisse précéder de la case circulaire des tâches", () => {
-        render({ initial: "- [ ] [Elgato](https://example.com/mic)" });
+    it("can be preceded by the round task box", () => {
+        const onWrite = jest.fn();
+        render({ initial: `- [ ] ${LINK}`, onWrite });
 
         const box = container.querySelector(
             ".nc-panel-checklist-checkbox"
@@ -80,22 +117,22 @@ describe("les liens écrits dans la description", () => {
         expect(box.getAttribute("role")).toBe("checkbox");
         expect(box.getAttribute("aria-checked")).toBe("false");
         expect(box.querySelector("svg")).toBeTruthy();
-        expect(
-            container.querySelector(".nc-description-inline-link")?.textContent
-        ).toBe("Elgato");
+        expect(link().textContent).toBe("Elgato");
 
-        act(() => Simulate.click(box));
-        expect(box.getAttribute("aria-checked")).toBe("true");
+        press(box);
+        expect(onWrite).toHaveBeenLastCalledWith(`- [x] ${LINK}`);
+        expect(
+            container
+                .querySelector(".nc-panel-checklist-checkbox")
+                ?.getAttribute("aria-checked")
+        ).toBe("true");
     });
 
-    it("s'ouvre d'un seul clic", () => {
+    it("opens with a single click", () => {
         const onOpenLink = jest.fn();
-        render({ initial: "[Elgato](https://example.com/mic)", onOpenLink });
+        render({ initial: LINK, onOpenLink });
 
-        const link = container.querySelector(
-            ".nc-description-inline-link"
-        ) as HTMLElement;
-        act(() => Simulate.click(link));
+        press(link());
 
         expect(onOpenLink).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -105,16 +142,13 @@ describe("les liens écrits dans la description", () => {
         );
     });
 
-    it("rend ses commandes au clic droit, et à lui seul", () => {
-        render({ initial: "[Elgato](https://example.com/mic)" });
+    it("gives its commands on a right click, and only then", () => {
+        render({ initial: LINK });
         expect(
             document.querySelector(".nc-description-inline-actions")
         ).toBeNull();
 
-        const link = container.querySelector(
-            ".nc-description-inline-link"
-        ) as HTMLElement;
-        act(() => Simulate.contextMenu(link));
+        rightClick(link());
 
         const actions = document.querySelector(
             ".nc-description-inline-actions"
@@ -128,33 +162,62 @@ describe("les liens écrits dans la description", () => {
         ).toBeTruthy();
     });
 
-    it("ouvre sa fenêtre d'un clic à côté de lui, sans montrer son markdown", () => {
-        render({ initial: "[Elgato](https://example.com/mic)" });
+    /* Removed on purpose, Obsidian does neither: a click BESIDE a link used to
+       open its dialog, and Backspace against it as well. */
+    it("opens no dialog from a click beside it", () => {
+        render({ initial: `${LINK} fin` });
+        const view = editorViewIn(container);
 
-        const link = container.querySelector(
-            ".nc-description-inline-link"
-        ) as HTMLElement;
-        act(() => Simulate.click(link.parentElement as HTMLElement));
+        press(container.querySelector(".cm-line") as HTMLElement);
+        act(() => selectIn(view, docOf(view).length));
 
-        const dialog = document.querySelector(
-            ".nc-description-inline-link-dialog"
-        ) as HTMLElement;
-        expect(dialog).toBeTruthy();
-        expect(dialog.textContent).toContain("Modifier le lien");
-        // La ligne n'est pas ouverte : pas de `[Elgato](…)` sous la fenêtre.
-        expect(container.querySelector(".nc-panel-checklist-edit")).toBeNull();
+        expect(
+            document.querySelector(".nc-description-inline-link-dialog")
+        ).toBeNull();
+        expect(docOf(view)).toBe(`${LINK} fin`);
     });
 
-    it("garde le lien rendu après fermeture par la croix", () => {
-        render({ initial: "[Elgato](https://example.com/mic)" });
+    it("opens no dialog on Backspace against it, and edits the text instead", () => {
+        render({ initial: LINK });
+        const view = editorViewIn(container);
+        act(() => view.focus());
+        act(() => selectIn(view, LINK.length));
 
-        const link = container.querySelector(
-            ".nc-description-inline-link"
-        ) as HTMLElement;
-        act(() => Simulate.click(link.parentElement as HTMLElement));
-        const dialog = document.querySelector(
-            ".nc-description-inline-link-dialog"
-        ) as HTMLElement;
+        act(() => {
+            view.contentDOM.dispatchEvent(
+                new KeyboardEvent("keydown", {
+                    key: "Backspace",
+                    bubbles: true,
+                    cancelable: true,
+                })
+            );
+        });
+
+        expect(
+            document.querySelector(".nc-description-inline-link-dialog")
+        ).toBeNull();
+        expect(docOf(view)).toBe(LINK.slice(0, -1));
+    });
+
+    it("opens its dialog from the small bar, with its name and address", () => {
+        render({ initial: LINK });
+
+        const dialog = openEditDialog();
+
+        expect(dialog).toBeTruthy();
+        expect(dialog.textContent).toContain("Modifier le lien");
+        const fields = dialog.querySelectorAll("input");
+        expect((fields[0] as HTMLInputElement).value).toBe("Elgato");
+        expect((fields[1] as HTMLInputElement).value).toBe(
+            "https://example.com/mic"
+        );
+        // The text is not opened: no `[Elgato](...)` shows under the dialog.
+        expect(link().textContent).toBe("Elgato");
+    });
+
+    it("keeps the link drawn after the cross closes the dialog", () => {
+        render({ initial: LINK });
+        const dialog = openEditDialog();
         act(() =>
             Simulate.click(
                 dialog.querySelector(
@@ -166,83 +229,85 @@ describe("les liens écrits dans la description", () => {
         expect(
             document.querySelector(".nc-description-inline-link-dialog")
         ).toBeNull();
-        expect(container.querySelector(".nc-panel-checklist-edit")).toBeNull();
-        expect(
-            container.querySelector(".nc-description-inline-link")?.textContent
-        ).toBe("Elgato");
+        expect(link().textContent).toBe("Elgato");
     });
 
-    it("garde le lien rendu après fermeture par Échap", () => {
-        render({ initial: "[Elgato](https://example.com/mic)" });
-
-        const link = container.querySelector(
-            ".nc-description-inline-link"
-        ) as HTMLElement;
-        act(() => Simulate.click(link.parentElement as HTMLElement));
-        const dialog = document.querySelector(
-            ".nc-description-inline-link-dialog"
-        ) as HTMLElement;
+    it("keeps the link drawn after Escape closes the dialog", () => {
+        render({ initial: LINK });
+        const dialog = openEditDialog();
         act(() => Simulate.keyDown(dialog, { key: "Escape" }));
 
         expect(
             document.querySelector(".nc-description-inline-link-dialog")
         ).toBeNull();
-        expect(container.querySelector(".nc-panel-checklist-edit")).toBeNull();
-        expect(
-            container.querySelector(".nc-description-inline-link")?.textContent
-        ).toBe("Elgato");
+        expect(link().textContent).toBe("Elgato");
     });
 
-    it("referme sa fenêtre d'un appui hors d'elle, pas d'un appui dedans", () => {
-        render({ initial: "[Elgato](https://example.com/mic)" });
-
-        const link = container.querySelector(
-            ".nc-description-inline-link"
-        ) as HTMLElement;
-        act(() => Simulate.click(link.parentElement as HTMLElement));
-        const dialog = document.querySelector(
-            ".nc-description-inline-link-dialog"
-        ) as HTMLElement;
-        const press = () => new Event("pointerdown", { bubbles: true });
+    it("closes its dialog on a press outside it, not on a press inside", () => {
+        render({ initial: LINK });
+        const dialog = openEditDialog();
+        const pointerdown = () => new Event("pointerdown", { bubbles: true });
 
         act(() => {
-            dialog.querySelector("input")?.dispatchEvent(press());
+            dialog.querySelector("input")?.dispatchEvent(pointerdown());
         });
         expect(
             document.querySelector(".nc-description-inline-link-dialog")
         ).toBeTruthy();
 
         act(() => {
-            document.body.dispatchEvent(press());
+            document.body.dispatchEvent(pointerdown());
         });
         expect(
             document.querySelector(".nc-description-inline-link-dialog")
         ).toBeNull();
-        expect(container.querySelector(".nc-panel-checklist-edit")).toBeNull();
-        expect(
-            container.querySelector(".nc-description-inline-link")?.textContent
-        ).toBe("Elgato");
+        expect(link().textContent).toBe("Elgato");
     });
 
-    it("retire le lien d'un coup depuis sa fenêtre", () => {
+    it("rewrites the link from its dialog", () => {
         const onWrite = jest.fn();
-        render({ initial: "[Elgato](https://example.com/mic)", onWrite });
+        render({ initial: LINK, onWrite });
+        const dialog = openEditDialog();
+        const [label, address] = Array.from(dialog.querySelectorAll("input"));
 
-        const link = container.querySelector(
-            ".nc-description-inline-link"
-        ) as HTMLElement;
-        act(() => Simulate.click(link.parentElement as HTMLElement));
+        act(() =>
+            Simulate.change(label, { target: { value: "Micro" } as any })
+        );
+        act(() =>
+            Simulate.change(address, {
+                target: { value: "https://example.com/new" } as any,
+            })
+        );
+        act(() =>
+            Simulate.click(
+                dialog.querySelector(
+                    ".nc-description-link-confirm"
+                ) as HTMLButtonElement
+            )
+        );
 
-        const dialog = document.querySelector(
-            ".nc-description-inline-link-dialog"
-        ) as HTMLElement;
-        expect(dialog).toBeTruthy();
+        expect(onWrite).toHaveBeenLastCalledWith(
+            "[Micro](https://example.com/new)"
+        );
+        expect(docOf(editorViewIn(container))).toBe(
+            "[Micro](https://example.com/new)"
+        );
+    });
 
-        const remove = dialog.querySelector(
-            ".nc-description-link-remove"
-        ) as HTMLButtonElement;
-        act(() => Simulate.click(remove));
+    it("removes the link in one go from its dialog", () => {
+        const onWrite = jest.fn();
+        render({ initial: LINK, onWrite });
+        const dialog = openEditDialog();
+
+        act(() =>
+            Simulate.click(
+                dialog.querySelector(
+                    ".nc-description-link-remove"
+                ) as HTMLButtonElement
+            )
+        );
 
         expect(onWrite).toHaveBeenLastCalledWith("");
+        expect(docOf(editorViewIn(container))).toBe("");
     });
 });

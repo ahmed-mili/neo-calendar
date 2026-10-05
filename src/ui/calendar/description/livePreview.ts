@@ -28,6 +28,7 @@ import {
     EditorState,
     Extension,
     Range,
+    StateEffect,
     StateField,
     Transaction,
 } from "@codemirror/state";
@@ -196,12 +197,14 @@ function linkMark(link: InlineLink): Decoration {
 
 export function buildDecorations(
     state: EditorState,
-    handlers: () => LivePreviewHandlers
+    handlers: () => LivePreviewHandlers,
+    /** False while the editor does not hold the focus: nothing is revealed. */
+    revealing = true
 ): DecorationSet {
     const doc = state.doc;
     const tree = ensureSyntaxTree(state, doc.length, 200) ?? syntaxTree(state);
     const out: Range<Decoration>[] = [];
-    const selections = state.selection.ranges;
+    const selections = revealing ? state.selection.ranges : [];
     const editable = handlers().isEditable?.() ?? true;
 
     const touchesInline = (from: number, to: number) =>
@@ -546,16 +549,34 @@ const theme = EditorView.theme({
  * can hand over fresh callbacks each render without rebuilding the editor.
  */
 export function livePreview(handlers: () => LivePreviewHandlers): Extension {
+    // A caret that is not being used reveals nothing: a panel opened on a
+    // description that starts with a task or a link must show the box and the
+    // name, not `- [ ]` and `[name](address)` because the caret rests at 0.
+    const setFocused = StateEffect.define<boolean>();
+    const focused = StateField.define<boolean>({
+        create: () => false,
+        update(value, tr) {
+            for (const effect of tr.effects) {
+                if (effect.is(setFocused)) return effect.value;
+            }
+            return value;
+        },
+    });
     const field = StateField.define<DecorationSet>({
-        create: (state) => buildDecorations(state, handlers),
+        create: (state) => buildDecorations(state, handlers, false),
         update(value, tr: Transaction) {
             if (
                 tr.docChanged ||
                 tr.selection ||
+                tr.effects.some((effect) => effect.is(setFocused)) ||
                 syntaxTree(tr.state) !== syntaxTree(tr.startState) ||
                 tr.reconfigured
             ) {
-                return buildDecorations(tr.state, handlers);
+                return buildDecorations(
+                    tr.state,
+                    handlers,
+                    tr.state.field(focused)
+                );
             }
             return value;
         },
@@ -564,10 +585,19 @@ export function livePreview(handlers: () => LivePreviewHandlers): Extension {
 
     return [
         markdown({ base: markdownLanguage, extensions: [Highlight] }),
+        focused,
         field,
         theme,
         EditorView.lineWrapping,
         EditorView.domEventHandlers({
+            focus(_event, view) {
+                view.dispatch({ effects: setFocused.of(true) });
+                return false;
+            },
+            blur(_event, view) {
+                view.dispatch({ effects: setFocused.of(false) });
+                return false;
+            },
             mousedown(event, view) {
                 const hit = readLinkElement(event.target);
                 if (!hit) return false;

@@ -485,11 +485,7 @@
 }
 
 .nc-panel-text-input,
-.nc-panel-select,
-.nc-panel-textarea {
-    /* One line to start with, and exactly as many as are typed after that: the
-       height is written by the row itself (see DescriptionRow), so nothing here
-       may set a floor it cannot go under. */
+.nc-panel-select {
     min-height: 0;
     resize: none;
     overflow: hidden;
@@ -507,14 +503,12 @@
 }
 
 .nc-panel-text-input:hover,
-.nc-panel-select:hover,
-.nc-panel-textarea:hover {
+.nc-panel-select:hover {
     background: var(--nc-bg-hover);
 }
 
 .nc-panel-text-input:focus,
-.nc-panel-select:focus,
-.nc-panel-textarea:focus {
+.nc-panel-select:focus {
     background: var(--nc-bg-secondary);
     border-color: var(--nc-border);
 }
@@ -992,32 +986,32 @@
     width: 100%;
 }
 
-/* Seamless description field: fully transparent, no chrome, no resize grabber —
-   the highlight is carried by the whole value block (label + field) below.
-   !important beats Obsidian's `.theme-dark textarea` (0,1,1) default surface
-   (filled background + border + inset shadow) which would otherwise show. */
-.nc-panel-textarea {
+/* The description editor (CodeMirror, see description/livePreview.ts) takes the
+   place the plain field had: same font, size and colour, no chrome. Its height
+   follows the content (the scroller never scrolls, see the editor theme), and a
+   long word wraps instead of pushing the panel sideways. */
+.nc-desc-editor {
     width: 100%;
-    /* Auto-size to content (Chromium 123+): compact one line when empty, grows
-       as you type — Notion's compact height, no fixed 40px void below "Empty". */
-    field-sizing: content;
-    min-height: 20px;
-    resize: none;
-    line-height: 1.45;
-    padding: 0;
+    min-width: 0;
+    max-width: 100%;
     margin: 0;
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    /* Blue blinking caret (theme accent). */
-    caret-color: var(--nc-accent);
+    padding: 0;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--nc-text-primary);
+    overflow-wrap: anywhere;
 }
 
-.nc-panel-textarea:hover,
-.nc-panel-textarea:focus {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+.nc-desc-editor .cm-editor {
+    min-width: 0;
+    max-width: 100%;
+    background: transparent;
+}
+
+.nc-desc-editor .cm-content {
+    min-height: 20px;
+    caret-color: var(--nc-accent);
 }
 
 /* Notion-style description box: the hover/focus highlight wraps the WHOLE row
@@ -1175,11 +1169,6 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 3px;
-}
-
-.nc-description-links-checklist {
-    width: auto;
-    margin: -2px 18px 8px 50px;
 }
 
 .nc-description-link-wrap {
@@ -1448,11 +1437,6 @@ body.nc-platform-android .nc-description-toolbar .nc-description-tool {
 }
 
 @media (max-width: 420px) {
-    .nc-description-links-checklist {
-        margin-right: 12px;
-        margin-left: 44px;
-    }
-
     .nc-description-link-dialog {
         padding: 16px;
     }
@@ -1747,59 +1731,6 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     font-weight: 600;
 }
 
-/* ── La description, une fois lue ────────────────────────────
-   Hors edition, une ligne qui commence par `- [ ]` est une etape, comme partout
-   dans Obsidian. Le bloc entier ouvre l'edition au clic ; la case, elle, ne
-   fait que cocher — ouvrir l'editeur sous le doigt reprendrait la coche qu'on
-   vient de donner. Meme metrique que le champ qu'il remplace, pour que passer
-   de l'un a l'autre ne fasse pas sauter la ligne. */
-.nc-panel-checklist {
-    padding: 4px 6px;
-    font-size: 13px;
-    line-height: 1.45;
-    color: var(--nc-text-primary);
-    cursor: text;
-}
-
-.nc-panel-checklist-text {
-    margin: 0;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-}
-
-.nc-panel-checklist-line {
-    display: flex;
-    align-items: flex-start;
-    gap: 7px;
-    cursor: pointer;
-}
-
-/* La ligne en cours d'écriture, montrée telle qu'elle est écrite.
-   Mêmes métriques que la ligne rendue qu'elle remplace : passer de l'une à
-   l'autre ne doit pas faire sauter le texte d'un pixel. */
-.nc-panel-checklist-edit {
-    width: 100%;
-    min-height: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--nc-text-primary);
-    font: inherit;
-    line-height: inherit;
-    outline: none;
-    resize: none;
-    overflow: hidden;
-}
-
-/* Le champ d'une etape vit a cote de sa case, dans la meme rangee flex : il
-   prend ce qui reste, et `min-width: 0` l'autorise a etre plus etroit que son
-   contenu, sans quoi une ligne longue pousserait la case hors du panneau. */
-.nc-panel-checklist-line .nc-panel-checklist-edit {
-    flex: 1;
-    width: auto;
-    min-width: 0;
-}
-
 /* Le rond d'une puce occupe exactement la place d'une case, sur la meme
    colonne : passer de l'une a l'autre en tapant deux crochets ne doit pas
    decaler le texte d'un pixel. */
@@ -1818,10 +1749,6 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     height: 5px;
     border-radius: 999px;
     background: var(--nc-text-secondary, var(--text-muted));
-}
-
-.nc-panel-checklist-bulleted {
-    cursor: text;
 }
 
 .nc-panel-checklist-checkbox {
@@ -1888,14 +1815,6 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     cursor: default;
 }
 
-/* Faite, donc plus a lire : barree et en retrait de l'attention, comme dans une
-   note. Le texte reste selectionnable, il n'est pas efface. */
-.nc-panel-checklist-line.nc-done span,
-.nc-panel-checklist-line.nc-done .nc-panel-checklist-edit {
-    text-decoration: line-through;
-    color: var(--nc-text-faint);
-}
-
 /* ── Le lieu ──────────────────────────────────────────────────────────
  *
  * Une rangee comme les autres : la punaise dans la colonne d'icones, le texte
@@ -1956,8 +1875,7 @@ body:not(.nc-platform-android) .nc-recur-end-line input[type="radio"] {
     color: var(--nc-text-primary);
 }
 
-.nc-panel-text-input::placeholder,
-.nc-panel-textarea::placeholder {
+.nc-panel-text-input::placeholder {
     color: var(--nc-text-faint);
 }
 /* Day picker (recurring) */

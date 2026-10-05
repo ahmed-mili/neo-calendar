@@ -25,11 +25,6 @@ export interface InlineLink {
     target: string;
 }
 
-/** Un morceau de ligne : du texte nu, ou un lien. */
-export type InlineSegment =
-    | { kind: "text"; text: string; start: number; end: number }
-    | ({ kind: "link" } & InlineLink);
-
 /** `\]` et `\\` sont des caractères, pas de la syntaxe : ils se lisent nus. */
 function unescapeLabel(value: string): string {
     return value.replace(/\\([\\\]])/g, "$1");
@@ -126,91 +121,6 @@ export function readInlineLinks(source: string): InlineLink[] {
     }
 
     return links;
-}
-
-/** Le texte donné, coupé en morceaux à dessiner tels quels. */
-export function splitInlineLinks(source: string): InlineSegment[] {
-    const links = readInlineLinks(source);
-    if (!links.length) {
-        return source
-            ? [{ kind: "text", text: source, start: 0, end: source.length }]
-            : [];
-    }
-
-    const segments: InlineSegment[] = [];
-    let cursor = 0;
-    for (const link of links) {
-        if (link.start > cursor) {
-            segments.push({
-                kind: "text",
-                text: source.slice(cursor, link.start),
-                start: cursor,
-                end: link.start,
-            });
-        }
-        segments.push({ kind: "link", ...link });
-        cursor = link.end;
-    }
-    if (cursor < source.length) {
-        segments.push({
-            kind: "text",
-            text: source.slice(cursor),
-            start: cursor,
-            end: source.length,
-        });
-    }
-    return segments;
-}
-
-/** Y a-t-il un lien là-dedans ? */
-export function hasInlineLink(source: string): boolean {
-    return readInlineLinks(source).length > 0;
-}
-
-/**
- * Le lien qui finit juste avant le curseur, s'il y en a un.
- *
- * C'est ce que vise un retour arrière : effacer un lien caractère par caractère
- * le défait en syntaxe avant de l'effacer, et on n'a jamais voulu supprimer une
- * parenthèse. La fiche ouvre donc sa fenêtre, où « Supprimer le lien » l'enlève
- * d'un coup.
- */
-export function inlineLinkEndingAt(
-    source: string,
-    caret: number
-): InlineLink | null {
-    return readInlineLinks(source).find((link) => link.end === caret) ?? null;
-}
-
-/**
- * Le lien que le curseur touche, s'il y en a un : dedans, ou collé à l'un de
- * ses bords.
- *
- * Un clic à côté d'un lien ouvrait la ligne sur son markdown, et c'est ce
- * qu'on cherchait le moins à voir. Le curseur posé contre un lien vise le
- * lien ; sa fenêtre est ce qu'il y a à ouvrir.
- */
-export function inlineLinkTouching(
-    source: string,
-    caret: number
-): InlineLink | null {
-    return (
-        readInlineLinks(source).find(
-            (link) => link.start <= caret && caret <= link.end
-        ) ?? null
-    );
-}
-
-/** Le lien qui tient cette position dans le texte, s'il y en a un. */
-export function inlineLinkAt(
-    source: string,
-    position: number
-): InlineLink | null {
-    return (
-        readInlineLinks(source).find(
-            (link) => link.start <= position && position < link.end
-        ) ?? null
-    );
 }
 
 /** Le markdown à écrire pour un lien nommé. */

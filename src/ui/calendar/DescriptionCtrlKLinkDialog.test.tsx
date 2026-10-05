@@ -5,6 +5,13 @@ import { act, Simulate } from "react-dom/test-utils";
 import { DescriptionSection } from "./DescriptionSection";
 import { OPEN_DESCRIPTION_LINK_DIALOG_EVENT } from "./descriptionLinkShortcut";
 import { applyLanguage } from "../i18n";
+import {
+    docOf,
+    editorViewIn,
+    stubEditorLayout,
+} from "./description/editorTestSupport";
+
+beforeAll(stubEditorLayout);
 
 function Harness({ onWrite }: { onWrite: (value: string) => void }) {
     const [description, setDescription] = React.useState("");
@@ -130,13 +137,20 @@ describe("Ctrl+K description link dialog", () => {
             document.querySelector(".nc-description-add-link-dialog")
         ).toBeNull();
 
-        const written = container.querySelector(
-            ".nc-description-inline-link"
-        ) as HTMLElement;
+        // The link is text in the editor; the caret sits right after it, so
+        // its syntax shows (bounds included) until the caret moves away.
+        const view = editorViewIn(container);
+        expect(docOf(view)).toBe("[OpenAI](https://example.com/path)");
+        expect(container.querySelector("textarea")).toBeNull();
+        act(() => {
+            view.dispatch({
+                changes: { from: view.state.doc.length, insert: " fin" },
+                selection: { anchor: view.state.doc.length + 4 },
+            });
+        });
+        const written = container.querySelector(".nc-desc-link") as HTMLElement;
         expect(written).toBeTruthy();
         expect(written.textContent).toBe("OpenAI");
-        expect(container.querySelector(".nc-panel-checklist-edit")).toBeNull();
-        expect(container.querySelector(".nc-panel-textarea")).toBeNull();
 
         const editDialog = document.querySelector(
             ".nc-description-inline-link-dialog"

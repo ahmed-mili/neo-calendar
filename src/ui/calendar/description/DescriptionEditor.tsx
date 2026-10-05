@@ -24,6 +24,7 @@ import {
     placeholder as placeholderExt,
 } from "@codemirror/view";
 import { InlineLink } from "../descriptionInlineLinks";
+import { DESCRIPTION_EDITOR_CHANGE_EVENT } from "../descriptionLinkShortcut";
 import {
     applyDescriptionFormat,
     DescriptionFormatCommand,
@@ -164,10 +165,16 @@ export function formatSelection(
         applyResult(view, toggleBold(text, from, to));
     } else if (command === "italic") {
         applyResult(view, toggleItalic(text, from, to));
+    } else if (command === "checklist") {
+        // The button is Ctrl+L: the same cycle, the same caret.
+        applyResult(view, toggleChecklist(text, from, to));
     } else {
         const result = applyDescriptionFormat(text, from, to, command);
+        // A bare caret stays a caret (at the end of what was written), so the
+        // next keystroke continues the line instead of replacing it.
+        const caret = from === to && command !== "clear";
         applyText(view, result.text, {
-            from: result.selectionStart,
+            from: caret ? result.selectionEnd : result.selectionStart,
             to: result.selectionEnd,
         });
     }
@@ -225,6 +232,13 @@ export const DescriptionEditor = React.forwardRef<
                         spellcheck: "true",
                     }),
                     EditorView.updateListener.of((update) => {
+                        if (update.docChanged) {
+                            update.view.dom.dispatchEvent(
+                                new Event(DESCRIPTION_EDITOR_CHANGE_EVENT, {
+                                    bubbles: true,
+                                })
+                            );
+                        }
                         if (
                             update.docChanged &&
                             !update.transactions.some((tr) =>

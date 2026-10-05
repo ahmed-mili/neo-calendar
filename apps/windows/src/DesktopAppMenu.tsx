@@ -7,6 +7,9 @@ import { DesktopCommandId, DesktopCommands } from "./desktopCommands";
 import {
     EditTargetSnapshot,
     captureEditTarget,
+    EDITOR_COMMAND_IDS,
+    editorOwnsCommand,
+    runEditorCommand,
     restoreEditTarget,
 } from "./desktopEditCommands";
 import {
@@ -370,6 +373,18 @@ export default function DesktopAppMenu({
 
     itemRefs.current.length = levels.length;
 
+    /* The commands a focused description editor answers itself are enabled
+       whatever the calendar says about them (see `activate`). */
+    const shownCommands: DesktopCommands = { ...commands };
+    for (const id of EDITOR_COMMAND_IDS) {
+        if (editorOwnsCommand(editTarget.current, id)) {
+            shownCommands[id] = {
+                enabled: true,
+                run: () => {},
+            };
+        }
+    }
+
     const openSubmenu = (
         level: number,
         id: string,
@@ -407,6 +422,14 @@ export default function DesktopAppMenu({
             return;
         }
         if (entry.kind !== "action") return;
+        // A description editor holding the focus answers Undo, Cut, Select
+        // all... itself, on its own history, not the calendar's.
+        if (editorOwnsCommand(editTarget.current, entry.id)) {
+            const snapshot = editTarget.current;
+            close(false);
+            runEditorCommand(snapshot, entry.id);
+            return;
+        }
         const command = commands[entry.id];
         if (!command || !command.enabled) return;
         // Fermer, RENDRE la cible, puis agir : une commande native appliquee
@@ -601,7 +624,7 @@ export default function DesktopAppMenu({
                                 key={level}
                                 level={entryLevel}
                                 depth={level}
-                                commands={commands}
+                                commands={shownCommands}
                                 appliedScale={appliedScale}
                                 openPath={path}
                                 register={(index, node) => {

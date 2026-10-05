@@ -1,6 +1,6 @@
 /*
  * Description stays visually quiet until the user actually enters it.
- * The existing LinesIcon occupies the same slot throughout; when the textarea
+ * The existing LinesIcon occupies the same slot throughout; when the editor
  * receives focus it transforms away while the + grows into that slot. This is
  * deliberately a transform transition rather than an instant icon swap so the
  * control reads as one thing changing jobs.

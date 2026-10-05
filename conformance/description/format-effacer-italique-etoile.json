@@ -1,0 +1,15 @@
+{
+  "name": "format effacer italique etoile",
+  "fn": "description.format",
+  "input": {
+    "text": "*ital* et _autre_",
+    "start": 0,
+    "end": 17,
+    "command": "clear"
+  },
+  "expected": {
+    "text": "ital et autre",
+    "selectionStart": 0,
+    "selectionEnd": 13
+  }
+}

@@ -1,3 +1,10 @@
+import {
+    deleteCharForward,
+    redo,
+    selectAll,
+    undo,
+} from "@codemirror/commands";
+import { EditorView } from "@codemirror/view";
 import { addDays, startOfDay } from "../../../src/ui/calendar/CalendarUtils";
 import { visibleColumnRange } from "../../../src/ui/calendar/gridColumns";
 import { DisplayEvent } from "../../../src/ui/types";
@@ -181,4 +188,121 @@ export function restoreEditTarget(
     selection.removeAllRanges();
     selection.addRange(snapshot.range);
     return true;
+}
+
+/** The edit commands the description editor answers to itself. */
+export type EditorCommandId =
+    | "undo"
+    | "redo"
+    | "cut"
+    | "copy"
+    | "paste"
+    | "paste-plain"
+    | "delete"
+    | "select-all";
+
+export const EDITOR_COMMAND_IDS: readonly EditorCommandId[] = [
+    "undo",
+    "redo",
+    "cut",
+    "copy",
+    "paste",
+    "paste-plain",
+    "delete",
+    "select-all",
+];
+const EDITOR_COMMANDS: ReadonlySet<string> = new Set(EDITOR_COMMAND_IDS);
+
+/** The CodeMirror view the captured target lives in, if any. */
+function editorViewOf(snapshot: EditTargetSnapshot | null): EditorView | null {
+    if (!snapshot || snapshot.kind !== "contenteditable") return null;
+    const host = snapshot.element.closest<HTMLElement>(".cm-editor");
+    return host ? EditorView.findFromDOM(host) : null;
+}
+
+/** True when the Edit menu command belongs to the editor holding the focus. */
+export function editorOwnsCommand(
+    snapshot: EditTargetSnapshot | null,
+    id: string
+): boolean {
+    return EDITOR_COMMANDS.has(id) && editorViewOf(snapshot) !== null;
+}
+
+/**
+ * Runs an Edit menu command on the description editor.
+ *
+ * Undo and redo must go through CodeMirror's own history: the app-wide undo is
+ * the deletion history (an event brought back), which has nothing to do with
+ * the text the person is typing. Returns false when the target is not a
+ * CodeMirror editor, so the caller falls back to the calendar command.
+ */
+export function runEditorCommand(
+    snapshot: EditTargetSnapshot | null,
+    id: string
+): boolean {
+    const view = editorViewOf(snapshot);
+    if (!view || !EDITOR_COMMANDS.has(id)) return false;
+    view.focus();
+    const { from, to } = view.state.selection.main;
+    const selected = view.state.doc.sliceString(from, to);
+    const readOnly = view.state.readOnly;
+    switch (id as EditorCommandId) {
+        case "undo":
+            if (!readOnly) undo(view);
+            break;
+        case "redo":
+            if (!readOnly) redo(view);
+            break;
+        case "select-all":
+            selectAll(view);
+            break;
+        case "copy":
+            if (selected) void navigator.clipboard?.writeText(selected);
+            break;
+        case "cut":
+            if (selected && !readOnly) {
+                void navigator.clipboard?.writeText(selected);
+                deleteCharForward(view); // deletes a non-empty selection
+            }
+            break;
+        case "delete":
+            if (!readOnly) {
+                deleteCharForward(view);
+            }
+            break;
+        case "paste":
+        case "paste-plain":
+            if (!readOnly) void pasteInto(view);
+            break;
+    }
+    return true;
+}
+
+/** Pastes through the editor's own paste handlers (a bare URL becomes a link). */
+async function pasteInto(view: EditorView): Promise<void> {
+    let text = "";
+    try {
+        text = (await navigator.clipboard?.readText()) ?? "";
+    } catch {
+        return;
+    }
+    if (!text) return;
+    if (typeof DataTransfer === "function" && typeof ClipboardEvent === "function") {
+        const data = new DataTransfer();
+        data.setData("text/plain", text);
+        const event = new ClipboardEvent("paste", {
+            clipboardData: data,
+            bubbles: true,
+            cancelable: true,
+        });
+        view.contentDOM.dispatchEvent(event);
+        if (event.defaultPrevented) return;
+    }
+    const { from, to } = view.state.selection.main;
+    view.dispatch({
+        changes: { from, to, insert: text },
+        selection: { anchor: from + text.length },
+        userEvent: "input.paste",
+        scrollIntoView: true,
+    });
 }

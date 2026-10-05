@@ -16,7 +16,7 @@ describe("description toolbar formatting", () => {
         },
         {
             command: "italic",
-            expected: "Un _mot_ utile",
+            expected: "Un *mot* utile",
             selection: [4, 7],
         },
         {
@@ -73,7 +73,7 @@ describe("description toolbar formatting", () => {
 
     it("clears inline and list formatting from the selection", () => {
         const formatted =
-            "**Fort** et _vite_\n- [ ] Vérifier\n2. Fin\n<u>ligne</u>";
+            "**Fort** et *vite* et _lui_\n- [ ] Vérifier\n2. Fin\n<u>ligne</u>";
         const result = applyDescriptionFormat(
             formatted,
             0,
@@ -81,6 +81,6 @@ describe("description toolbar formatting", () => {
             "clear"
         );
 
-        expect(result.text).toBe("Fort et vite\nVérifier\nFin\nligne");
+        expect(result.text).toBe("Fort et vite et lui\nVérifier\nFin\nligne");
     });
 });

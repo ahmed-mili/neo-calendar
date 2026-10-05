@@ -1,11 +1,5 @@
 import {
-    markerEnd,
-    markerPrefixLength,
-    mergeLine,
     readChecklist,
-    taskPrefixLength,
-    replaceLine,
-    splitLine,
     toggleLine,
     withStepsAppended,
 } from "./descriptionChecklist";
@@ -88,30 +82,6 @@ describe("reading a description as lines", () => {
     });
 });
 
-describe("markerPrefixLength / markerEnd", () => {
-    it("mesure la case, espace facultatif compris", () => {
-        expect(markerPrefixLength("- [ ] Étape")).toBe(6);
-        expect(markerPrefixLength("- [x]")).toBe(5);
-    });
-
-    it("mesure la puce", () => {
-        expect(markerPrefixLength("- Courses")).toBe(2);
-        expect(markerPrefixLength("   + Courses")).toBe(5);
-    });
-
-    it("ne mesure rien sur de la prose", () => {
-        expect(markerPrefixLength("Courses")).toBe(0);
-        expect(markerEnd("Courses")).toBe(0);
-    });
-
-    it("pose le curseur derrière le dernier caractère du marqueur", () => {
-        // Derrière le `]`, et non derrière l'espace qui le suit.
-        expect(markerEnd("- [ ] Étape")).toBe(5);
-        expect(markerEnd("- [x]")).toBe(5);
-        expect(markerEnd("- Courses")).toBe(1);
-    });
-});
-
 describe("ticking one line", () => {
     const text = "Avant\n- [ ] Première\n- [x] Seconde\nAprès";
 
@@ -167,104 +137,3 @@ describe("bringing the old steps into the description", () => {
     });
 });
 
-describe("editing one line without touching the others", () => {
-    const text = "Titre\n- [ ] Première\n- [x] Seconde";
-
-    it("puts the new wording where the old one was", () => {
-        expect(replaceLine(text, 1, "- [ ] Autre")).toBe(
-            "Titre\n- [ ] Autre\n- [x] Seconde"
-        );
-    });
-
-    it("laisse le texte tel quel pour une ligne qui n'existe pas", () => {
-        expect(replaceLine(text, 9, "x")).toBe(text);
-    });
-});
-
-describe("pressing Enter in the middle of a line", () => {
-    it("coupe la ligne en deux et passe sur la seconde", () => {
-        expect(splitLine("Bonjour tout le monde", 0, 7)).toEqual({
-            text: "Bonjour\n tout le monde",
-            focus: 1,
-            caret: 0,
-        });
-    });
-
-    /*
-     * Une liste continue d'elle-même : la ligne suivante d'une étape est une
-     * étape. C'est ce que fait tout éditeur Markdown, et devoir retaper `- [ ]`
-     * à chaque ligne est ce qui décourage d'en écrire.
-     */
-    it("continue la liste quand on était sur une étape", () => {
-        expect(splitLine("- [ ] Première", 0, 14)).toEqual({
-            text: "- [ ] Première\n- [ ] ",
-            focus: 1,
-            caret: 6,
-        });
-    });
-
-    it("garde le retrait et la puce de l'étape qu'on prolonge", () => {
-        expect(splitLine("    * [x] Faite", 0, 15).text).toBe(
-            "    * [x] Faite\n    * [ ] "
-        );
-    });
-
-    /*
-     * Sauf sur une étape vide : c'est la façon de sortir d'une liste, et sans
-     * cela on ne peut plus écrire de prose après.
-     */
-    it("sort de la liste quand on valide une étape vide", () => {
-        expect(splitLine("- [ ] Faite\n- [ ] ", 1, 6)).toEqual({
-            text: "- [ ] Faite\n",
-            focus: 1,
-            caret: 0,
-        });
-    });
-});
-
-describe("pressing Backspace at the start of a line", () => {
-    it("recolle la ligne à celle du dessus, curseur à la jointure", () => {
-        expect(mergeLine("Bonjour\n tout le monde", 1)).toEqual({
-            text: "Bonjour tout le monde",
-            focus: 0,
-            caret: 7,
-        });
-    });
-
-    // Une étape effacée redevient une ligne ordinaire avant de disparaître :
-    // c'est le geste par lequel on retire une case sans perdre son texte.
-    it("retire d'abord la case, sans toucher au texte", () => {
-        expect(mergeLine("Titre\n- [ ] Première", 1)).toEqual({
-            text: "Titre\nPremière",
-            focus: 1,
-            caret: 0,
-        });
-    });
-
-    it("ne fait rien sur la première ligne", () => {
-        expect(mergeLine("Seule", 0)).toEqual({
-            text: "Seule",
-            focus: 0,
-            caret: 0,
-        });
-    });
-});
-
-describe("taskPrefixLength", () => {
-    it("mesure la case, espace facultatif compris", () => {
-        expect(taskPrefixLength("- [ ] Acheter du pain")).toBe(6);
-        expect(taskPrefixLength("    * [x] Poster")).toBe(10);
-    });
-
-    it("compte la case seule quand rien ne la suit", () => {
-        // La ligne qu'on vient de commencer : la case est là, le titre pas
-        // encore. `- [ ]` fait cinq caractères, l'espace n'y est pas.
-        expect(taskPrefixLength("- [ ]")).toBe(5);
-        expect(taskPrefixLength("- [ ] ")).toBe(6);
-    });
-
-    it("ne mesure rien sur une ligne qui n'est pas une étape", () => {
-        expect(taskPrefixLength("Du texte")).toBeNull();
-        expect(taskPrefixLength("- [] pas de case")).toBeNull();
-    });
-});

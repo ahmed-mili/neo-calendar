@@ -110,7 +110,8 @@ export function installDesktopDescriptionEditor(): void {
     document.addEventListener(
         "focusin",
         (event) => {
-            if (!(event.target instanceof HTMLTextAreaElement)) return;
+            if (!(event.target instanceof Element)) return;
+            if (!event.target.closest(".cm-editor")) return;
             const section = event.target.closest(".nc-description-section");
             if (!section) return;
             const row = descriptionRow(event.target);

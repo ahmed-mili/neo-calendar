@@ -1,10 +1,4 @@
-import {
-    hasInlineLink,
-    inlineLinkEndingAt,
-    inlineLinkMarkdown,
-    readInlineLinks,
-    splitInlineLinks,
-} from "./descriptionInlineLinks";
+import { inlineLinkMarkdown, readInlineLinks } from "./descriptionInlineLinks";
 
 describe("readInlineLinks", () => {
     it("finds a link written in the middle of a line", () => {
@@ -39,7 +33,7 @@ describe("readInlineLinks", () => {
         expect(readInlineLinks("[début\nfin](https://example.com)")).toEqual(
             []
         );
-        expect(hasInlineLink("- [ ] une étape")).toBe(false);
+        expect(readInlineLinks("- [ ] une étape")).toEqual([]);
     });
 
     it("ignores a link with no address", () => {
@@ -54,38 +48,6 @@ describe("readInlineLinks", () => {
             "https://a.test",
             "https://b.test",
         ]);
-    });
-});
-
-describe("splitInlineLinks", () => {
-    it("cuts the line into what has to be drawn", () => {
-        expect(
-            splitInlineLinks("avant [nom](https://example.com) après")
-        ).toEqual([
-            { kind: "text", text: "avant ", start: 0, end: 6 },
-            {
-                kind: "link",
-                start: 6,
-                end: 32,
-                label: "nom",
-                target: "https://example.com",
-            },
-            { kind: "text", text: " après", start: 32, end: 38 },
-        ]);
-    });
-
-    it("says nothing about an empty line", () => {
-        expect(splitInlineLinks("")).toEqual([]);
-    });
-});
-
-describe("inlineLinkEndingAt", () => {
-    it("finds the link a backspace would start to unmake", () => {
-        const text = "a\n[nom](https://example.com)";
-        expect(inlineLinkEndingAt(text, text.length)?.target).toBe(
-            "https://example.com"
-        );
-        expect(inlineLinkEndingAt(text, text.length - 1)).toBeNull();
     });
 });
 

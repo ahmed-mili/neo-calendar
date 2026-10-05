@@ -1,4 +1,9 @@
-import { OPEN_DESCRIPTION_LINK_DIALOG_EVENT } from "../../../src/ui/calendar/descriptionLinkShortcut";
+import { redo, redoDepth, undo, undoDepth } from "@codemirror/commands";
+import { EditorView } from "@codemirror/view";
+import {
+    DESCRIPTION_EDITOR_CHANGE_EVENT,
+    OPEN_DESCRIPTION_LINK_DIALOG_EVENT,
+} from "../../../src/ui/calendar/descriptionLinkShortcut";
 
 const ACCESSORY_ID = "nc-description-android-accessory";
 const ACTIVE_CLASS = "nc-description-android-active";
@@ -14,8 +19,6 @@ type HistoryCommand = "undo" | "redo";
 let activeSection: HTMLElement | null = null;
 let expanded = false;
 let swallowCompatibilityClick = false;
-let fallbackCanUndo = false;
-let fallbackCanRedo = false;
 
 function iconSvg(body: string): string {
     return `<svg class="nc-description-android-icon" width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">${body}</svg>`;
@@ -77,33 +80,19 @@ function realCommandButton(
     );
 }
 
-function activeTextArea(): HTMLTextAreaElement | null {
+/** The description's CodeMirror view: its own undo history lives there. */
+function activeEditor(): EditorView | null {
     if (!activeSection) return null;
-    const focused = document.activeElement;
-    if (
-        focused instanceof HTMLTextAreaElement &&
-        activeSection.contains(focused)
-    ) {
-        return focused;
-    }
-    return activeSection.querySelector<HTMLTextAreaElement>(
-        "textarea[data-description-input='true'], .nc-panel-checklist-edit"
-    );
-}
-
-function nativeHistoryEnabled(command: HistoryCommand): boolean | null {
-    if (typeof document.queryCommandEnabled !== "function") return null;
-    try {
-        return document.queryCommandEnabled(command);
-    } catch {
-        return null;
-    }
+    const host = activeSection.querySelector<HTMLElement>(".cm-editor");
+    return host ? EditorView.findFromDOM(host) : null;
 }
 
 function historyEnabled(command: HistoryCommand): boolean {
-    const native = nativeHistoryEnabled(command);
-    if (native !== null) return native;
-    return command === "undo" ? fallbackCanUndo : fallbackCanRedo;
+    const view = activeEditor();
+    if (!view || view.state.readOnly) return false;
+    return command === "undo"
+        ? undoDepth(view.state) > 0
+        : redoDepth(view.state) > 0;
 }
 
 function accessoryRoot(): HTMLDivElement {
@@ -216,18 +205,12 @@ function syncAccessory(): void {
     placeAccessory();
 }
 
-function resetFallbackHistory(): void {
-    fallbackCanUndo = false;
-    fallbackCanRedo = false;
-}
-
 function deactivate(): void {
     if (activeSection) {
         activeSection.classList.remove(ACTIVE_CLASS, EXPANDED_CLASS);
     }
     activeSection = null;
     expanded = false;
-    resetFallbackHistory();
     const root = document.getElementById(ACCESSORY_ID) as HTMLDivElement | null;
     if (root) {
         root.hidden = true;
@@ -239,7 +222,6 @@ function activate(section: HTMLElement): void {
     if (activeSection && activeSection !== section) {
         activeSection.classList.remove(ACTIVE_CLASS, EXPANDED_CLASS);
         expanded = false;
-        resetFallbackHistory();
     }
     activeSection = section;
     syncAccessory();
@@ -251,6 +233,10 @@ function toggleFormatting(): void {
     syncAccessory();
 }
 
+function inEditor(target: EventTarget | null): boolean {
+    return target instanceof Element && target.closest(".cm-editor") !== null;
+}
+
 function descriptionControl(target: Element): HTMLElement | null {
     return target.closest<HTMLElement>(
         "[data-nc-description-accessory], [data-nc-description-command], [data-nc-description-history]"
@@ -258,27 +244,12 @@ function descriptionControl(target: Element): HTMLElement | null {
 }
 
 function runHistory(command: HistoryCommand): void {
-    const field = activeTextArea();
-    if (!field) return;
+    const view = activeEditor();
+    if (!view || view.state.readOnly) return;
 
-    field.focus();
-    let applied = false;
-    if (typeof document.execCommand === "function") {
-        try {
-            applied = document.execCommand(command);
-        } catch {
-            applied = false;
-        }
-    }
-
-    if (applied) {
-        if (command === "undo") fallbackCanRedo = true;
-        else fallbackCanUndo = true;
-    } else if (command === "undo") {
-        fallbackCanUndo = false;
-    } else {
-        fallbackCanRedo = false;
-    }
+    view.focus();
+    if (command === "undo") undo(view);
+    else redo(view);
     syncCommandAvailability(accessoryRoot());
 }
 
@@ -322,7 +293,7 @@ export function installAndroidDescriptionEditor(): void {
     document.addEventListener(
         "focusin",
         (event) => {
-            if (!(event.target instanceof HTMLTextAreaElement)) return;
+            if (!inEditor(event.target)) return;
             const section = descriptionSection(event.target);
             if (!section) return;
             activate(section);
@@ -350,23 +321,13 @@ export function installAndroidDescriptionEditor(): void {
         true
     );
 
+    // CodeMirror's history decides what can be undone; the editor says when its
+    // text changed (typed, undone, redone, or by a format command).
     document.addEventListener(
-        "input",
+        DESCRIPTION_EDITOR_CHANGE_EVENT,
         (event) => {
-            if (!(event.target instanceof HTMLTextAreaElement)) return;
             const section = descriptionSection(event.target);
             if (!section || section !== activeSection) return;
-
-            const inputType =
-                event instanceof InputEvent ? event.inputType : "";
-            if (inputType === "historyUndo") {
-                fallbackCanRedo = true;
-            } else if (inputType === "historyRedo") {
-                fallbackCanUndo = true;
-            } else {
-                fallbackCanUndo = true;
-                fallbackCanRedo = false;
-            }
             syncCommandAvailability(accessoryRoot());
         },
         true
@@ -378,7 +339,7 @@ export function installAndroidDescriptionEditor(): void {
             const target = event.target;
             if (!(target instanceof Element)) return;
             if (!descriptionControl(target)) return;
-            // Keeping the textarea focused is what keeps the Android keyboard
+            // Keeping the editor focused is what keeps the Android keyboard
             // open. The command itself runs on pointerup so a real touch does
             // not depend on a compatibility click surviving preventDefault().
             event.preventDefault();

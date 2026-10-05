@@ -73,6 +73,8 @@ describe("DescriptionEditor", () => {
     test("the caret on a link shows its raw syntax", () => {
         const ref = mount({ value: DOC });
         const at = DOC.indexOf("[lien]");
+        // Only a focused editor reveals anything.
+        act(() => ref.current!.focus());
         act(() => ref.current!.setSelection(at));
         expect(host.querySelector(".cm-content")?.textContent).toContain(
             "[lien](https://a.b)"
@@ -248,5 +250,34 @@ describe("DescriptionEditor", () => {
         });
         expect(seen).toEqual(["https://a.b"]);
         expect(event.defaultPrevented).toBe(true);
+    });
+    test("an editor without the focus reveals nothing, even with the caret on a marker", () => {
+        // The caret rests at 0, inside the first task marker and link bounds:
+        // a panel opened on such a description must still show box and name.
+        const ref = mount({ value: "- [ ] a [lien](https://a.b)" });
+        expect(host.querySelector(".nc-desc-checkbox")).not.toBeNull();
+        act(() => ref.current!.focus());
+        expect(host.querySelector(".nc-desc-checkbox")).toBeNull();
+        act(() => (ref.current!.getView()!.contentDOM as HTMLElement).blur());
+        expect(host.querySelector(".nc-desc-checkbox")).not.toBeNull();
+    });
+
+    test("the bar's checklist button is Ctrl+L, caret after the marker", () => {
+        const ref = mount({ value: "" });
+        act(() => ref.current!.applyFormat("checklist"));
+        const view = ref.current!.getView()!;
+        expect(view.state.doc.toString()).toBe("- [ ] ");
+        expect(view.state.selection.main.head).toBe(6);
+        act(() => ref.current!.applyFormat("checklist"));
+        expect(view.state.doc.toString()).toBe("- [x] ");
+    });
+
+    test("a list button on a bare caret leaves a caret to keep typing", () => {
+        const ref = mount({ value: "" });
+        act(() => ref.current!.applyFormat("bullet-list"));
+        const view = ref.current!.getView()!;
+        expect(view.state.doc.toString()).toBe("- ");
+        expect(view.state.selection.main.empty).toBe(true);
+        expect(view.state.selection.main.head).toBe(2);
     });
 });

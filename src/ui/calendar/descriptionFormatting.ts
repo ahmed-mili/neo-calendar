@@ -17,7 +17,7 @@ const INLINE_MARKS: Partial<
     Record<DescriptionFormatCommand, [string, string]>
 > = {
     bold: ["**", "**"],
-    italic: ["_", "_"],
+    italic: ["*", "*"],
     underline: ["<u>", "</u>"],
 };
 
@@ -55,6 +55,7 @@ function clearInlineFormatting(text: string): string {
         next = next
             .replace(/<u>([\s\S]*?)<\/u>/g, "$1")
             .replace(/\*\*([\s\S]*?)\*\*/g, "$1")
+            .replace(/\*([^*\n]+)\*/g, "$1")
             .replace(/_([^_\n]+)_/g, "$1");
     }
     return next;
