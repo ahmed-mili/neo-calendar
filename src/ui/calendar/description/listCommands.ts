@@ -27,21 +27,26 @@ export interface LinePrefix {
     delimiter: string;
     /** The character inside `[ ]` of a task. */
     mark: string;
+    /** Offset in the line of the `[` of a task's box (after its bullet or number). */
+    boxAt: number;
 }
 
-const LINE_PREFIX = /^([ \t]*)(?:([-*+]) \[(.)\] |([-*+]) |(\d+)([.)]) |(>) )/;
+const LINE_PREFIX =
+    /^([ \t]*)(?:([-*+]|\d+[.)]) \[(.)\] |([-*+]) |(\d+)([.)]) |(>) )/;
 
 export function readLinePrefix(line: string): LinePrefix | null {
     const m = LINE_PREFIX.exec(line);
     if (!m) return null;
-    const base = { indent: m[1], length: m[0].length };
+    const base = { indent: m[1], length: m[0].length, boxAt: 0 };
     if (m[2]) {
+        const numbered = /^\d/.test(m[2]);
         return {
             ...base,
+            boxAt: m[1].length + m[2].length + 1,
             kind: "task",
-            bullet: m[2],
-            number: 0,
-            delimiter: "",
+            bullet: numbered ? "" : m[2],
+            number: numbered ? parseInt(m[2], 10) : 0,
+            delimiter: numbered ? m[2].slice(-1) : "",
             mark: m[3],
         };
     }
@@ -211,8 +216,11 @@ export function enter(text: string, from: number, to: number): EditResult {
     }
 
     let marker: string;
-    if (prefix.kind === "task") marker = `${prefix.bullet} [ ] `;
-    else if (prefix.kind === "bullet") marker = `${prefix.bullet} `;
+    if (prefix.kind === "task") {
+        marker = prefix.bullet
+            ? `${prefix.bullet} [ ] `
+            : `${prefix.number + 1}${prefix.delimiter} [ ] `;
+    } else if (prefix.kind === "bullet") marker = `${prefix.bullet} `;
     else if (prefix.kind === "number") {
         marker = `${prefix.number + 1}${prefix.delimiter} `;
     } else marker = "> ";
@@ -297,10 +305,10 @@ export function toggleChecklist(
         if (prefix?.kind === "task") {
             if (multi) {
                 // task -> bullet
-                edits.push({ at: at + lead + 2, del: 4, ins: "" });
+                edits.push({ at: at + prefix.boxAt, del: 4, ins: "" });
             } else {
                 edits.push({
-                    at: at + lead + 3,
+                    at: at + prefix.boxAt + 1,
                     del: 1,
                     ins: prefix.mark === " " ? "x" : " ",
                 });
@@ -308,11 +316,7 @@ export function toggleChecklist(
         } else if (prefix?.kind === "bullet") {
             edits.push({ at: at + lead + 2, del: 0, ins: "[ ] " });
         } else if (prefix?.kind === "number") {
-            edits.push({
-                at: at + lead,
-                del: prefix.length - lead,
-                ins: "- [ ] ",
-            });
+            edits.push({ at: at + prefix.length, del: 0, ins: "[ ] " });
         } else if (!multi || line.trim() !== "") {
             edits.push({ at: at + lead, del: 0, ins: "- [ ] " });
         }

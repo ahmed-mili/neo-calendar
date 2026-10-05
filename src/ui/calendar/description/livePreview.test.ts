@@ -256,3 +256,15 @@ describe("native deletions (4.3)", () => {
         expect(apply(doc, caret, command)).toBe(expected);
     });
 });
+
+describe("numbered task and quote", () => {
+    test("1. [ ] a draws the number and a box", () => {
+        const seen = inspect("1. [ ] a\nz", 10);
+        expect(seen.widgets).toEqual([[3, 7, "CheckboxWidget"]]);
+        const raw = inspect("1. [ ] a", 4);
+        expect(raw.widgets).toEqual([]);
+    });
+    test("the quote marker is hidden on its own line too", () => {
+        expect(inspect("> a", 2).hidden).toEqual([[0, 2]]);
+    });
+});

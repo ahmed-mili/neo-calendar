@@ -97,7 +97,7 @@ function toggleTaskAt(view: EditorView, dom: HTMLElement): boolean {
     const line = view.state.doc.lineAt(pos);
     const prefix = readLinePrefix(line.text);
     if (!prefix || prefix.kind !== "task") return false;
-    const index = line.from + prefix.indent.length + 3;
+    const index = line.from + prefix.boxAt + 1;
     view.dispatch({
         changes: {
             from: index,
@@ -366,7 +366,11 @@ export function buildDecorations(
 
         const prefix = readLinePrefix(text);
         if (prefix) {
-            const markerFrom = line.from + prefix.indent.length;
+            const markerFrom =
+                line.from +
+                (prefix.kind === "task" && !prefix.bullet
+                    ? prefix.boxAt
+                    : prefix.indent.length);
             const markerTo = line.from + prefix.length;
 
             if (prefix.kind === "task") {
@@ -423,9 +427,8 @@ export function buildDecorations(
                 out.push(
                     Decoration.line({ class: "nc-desc-quote" }).range(line.from)
                 );
-                if (!touchesLine(line.from, line.to)) {
-                    out.push(HIDDEN.range(markerFrom, markerTo));
-                }
+                // Never visible, on its own line either: the bar stands for it.
+                out.push(HIDDEN.range(markerFrom, markerTo));
             }
         }
 
