@@ -81,7 +81,7 @@ dependencies {
  implementation("com.google.zxing:core:3.4.1")
  implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
  // Le scanner de Google tire fragment 1.0.0 ; `registerForActivityResult` exige au moins 1.3.0 (lint de la version signée).
- implementation("androidx.fragment:fragment:1.8.9")
+ implementation("androidx.fragment:fragment:1.9.1")
 }
 
 // Une release sans le moteur ne doit pas partir : les .so se compilent avec syncthing/build-syncthing.sh (cache en CI).
