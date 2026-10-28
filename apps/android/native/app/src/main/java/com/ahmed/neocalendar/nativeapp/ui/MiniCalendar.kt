@@ -1,5 +1,7 @@
 package com.ahmed.neocalendar.nativeapp.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -21,8 +23,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -33,6 +40,8 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
+import com.ahmed.neocalendar.core.grid.HighlightSegment
+import com.ahmed.neocalendar.core.grid.highlightSegments
 import com.ahmed.neocalendar.nativeapp.AppLocale
 
 /** `firstDay` compte comme `Date.getDay()` : 0 dimanche, 1 lundi ... 6 samedi. */
@@ -44,8 +53,8 @@ fun monthTitle(month: YearMonth): String =
 
 /**
  * Sept colonnes, six semaines. Un appui saute à la date ; un glissé horizontal
- * change de mois. La semaine en cours est une bande continue, aujourd'hui une
- * pastille rouge posée dessus.
+ * change de mois. Les jours affichés dans la grille de l'agenda forment une
+ * bande (un tronçon par rangée), aujourd'hui une pastille rouge posée dessus.
  */
 @Composable
 fun MiniCalendar(
@@ -55,12 +64,14 @@ fun MiniCalendar(
     modifier: Modifier = Modifier,
     showHeader: Boolean = true,
     cellHeight: Dp = 39.dp,
+    highlightFirst: LocalDate = anchor,
+    highlightCount: Int = 1,
 ) {
     var month by remember(YearMonth.from(anchor)) { mutableStateOf(YearMonth.from(anchor)) }
     val today = LocalDate.now()
     val weekStartDay = firstDayOfWeek(firstDay)
     val gridStart = month.atDay(1).with(TemporalAdjusters.previousOrSame(weekStartDay))
-    val currentWeekStart = today.with(TemporalAdjusters.previousOrSame(weekStartDay))
+    val segments = highlightSegments(gridStart, 6, highlightFirst, highlightCount).associateBy { it.row }
 
     // Le même écart de 3 dp entre toutes les rangées, l'en-tête des jours compris (`gap: 3px 2px`).
     Column(
@@ -119,19 +130,42 @@ fun MiniCalendar(
         }
         for (week in 0 until 6) {
             val weekStart = gridStart.plusDays(week * 7L)
-            val isCurrentWeek = weekStart == currentWeekStart
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .then(if (isCurrentWeek) Modifier.background(Neo.HighlightWeek, RoundedCornerShape(9.dp)) else Modifier),
-            ) {
-                for (d in 0 until 7) {
-                    val day = weekStart.plusDays(d.toLong())
-                    DayCell(day, today, anchor, inMonth = YearMonth.from(day) == month, cellHeight, Modifier.weight(1f)) { onSelect(day) }
+            Box(Modifier.fillMaxWidth()) {
+                HighlightBand(segments[week], cellHeight)
+                Row(Modifier.fillMaxWidth()) {
+                    for (d in 0 until 7) {
+                        val day = weekStart.plusDays(d.toLong())
+                        DayCell(day, today, anchor, inMonth = YearMonth.from(day) == month, cellHeight, Modifier.weight(1f)) { onSelect(day) }
+                    }
                 }
             }
         }
     }
+}
+
+/** Tronçon d'une rangée, derrière les cellules : bords animés, fondu à l'apparition et à la disparition. */
+@Composable
+private fun HighlightBand(segment: HighlightSegment?, height: Dp) {
+    // On garde le dernier tronçon pour qu'il s'efface en place au lieu de disparaître d'un coup.
+    var last by remember { mutableStateOf(segment) }
+    if (segment != null) last = segment
+    val shown = last ?: return
+    val spec = tween<Float>(120)
+    val left by animateFloatAsState(shown.fromCol / 7f, spec, label = "bandeGauche")
+    val right by animateFloatAsState((shown.toCol + 1) / 7f, spec, label = "bandeDroite")
+    val alpha by animateFloatAsState(if (segment != null) 1f else 0f, spec, label = "bandeFondu")
+    val radius = with(LocalDensity.current) { 9.dp.toPx() }
+    Box(
+        Modifier.fillMaxWidth().height(height).drawBehind {
+            drawRoundRect(
+                Neo.HighlightWeek,
+                topLeft = Offset(size.width * left, 0f),
+                size = Size(size.width * (right - left), size.height),
+                cornerRadius = CornerRadius(radius),
+                alpha = alpha,
+            )
+        },
+    )
 }
 
 @Composable
