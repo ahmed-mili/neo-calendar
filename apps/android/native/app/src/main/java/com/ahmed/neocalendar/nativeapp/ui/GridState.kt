@@ -3,7 +3,9 @@ package com.ahmed.neocalendar.nativeapp.ui
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDecay
+import androidx.compose.animation.core.calculateTargetValue
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.OverscrollEffect
@@ -27,7 +29,11 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.unit.Velocity
 import com.ahmed.neocalendar.core.grid.nearestDay
-import com.ahmed.neocalendar.core.grid.snapTargetDay
+import com.ahmed.neocalendar.core.grid.SNAP_VELOCITY_DAYS_PER_SECOND
+import com.ahmed.neocalendar.core.grid.flingTargetDay
+import com.ahmed.neocalendar.core.grid.glideDurationMs
+import com.ahmed.neocalendar.core.grid.glideProgress
+import com.ahmed.neocalendar.core.grid.glideSlope
 import com.ahmed.neocalendar.core.layout.MAX_HOUR_HEIGHT
 import com.ahmed.neocalendar.core.layout.MIN_HOUR_HEIGHT
 import java.time.LocalDate
@@ -119,11 +125,70 @@ class GridState(
         scrollY = ((hourOfDay - before) * hourPx).coerceIn(0f, maxScroll)
     }
 
-    /** Au lâcher hors défilement libre : un jour exactement, dans le sens du geste. */
-    fun settleToDay(scope: CoroutineScope, startIdx: Long, startOffset: Float, velocityPxPerSec: Float) {
-        val velocityDays = -velocityPxPerSec / columnWidthPx
-        val target = snapTargetDay(startIdx, (offsetDays - startOffset).toDouble(), velocityDays.toDouble())
-        animateOffsetTo(scope, target.toFloat(), velocityDays)
+    /** Vitesse (jours/s) de la glisse à élan en cours, 0 hors glisse. Le glissé la reprend au DOWN. */
+    private var glideVelocityDays = 0f
+
+    /** À appeler au DOWN avant `cancelAnimations()` : l'élan que le doigt va peut-être prolonger. */
+    fun takeCarriedVelocity(): Float {
+        val v = if (horizontalJob?.isActive == true) glideVelocityDays else 0f
+        glideVelocityDays = 0f
+        return v
+    }
+
+    /**
+     * Au lâcher hors défilement libre : l'élan du doigt (plus celui d'une glisse reprise, s'il va dans le même sens)
+     * est projeté par la décroissance du défilement ; la grille glisse jusqu'à un jour entier, jusqu'à
+     * `FLING_MAX_DAYS` plus loin, sans rebond. Trop lent, c'est l'ancien calage sur le jour voisin.
+     */
+    fun settleToDay(
+        scope: CoroutineScope,
+        startIdx: Long,
+        startOffset: Float,
+        velocityPxPerSec: Float,
+        decay: DecayAnimationSpec<Float>,
+        carriedDaysPerSec: Float,
+    ) {
+        var v = -velocityPxPerSec / columnWidthPx
+        val keepsMomentum = carriedDaysPerSec != 0f && (carriedDaysPerSec > 0f) == (v > 0f) &&
+            abs(v) >= SNAP_VELOCITY_DAYS_PER_SECOND
+        if (keepsMomentum) v += carriedDaysPerSec
+        // La décroissance est réglée pour des pixels : on projette en pixels puis on revient en jours.
+        val projected = decay.calculateTargetValue(offsetDays * columnWidthPx, v * columnWidthPx) / columnWidthPx
+        val target = flingTargetDay(startIdx, offsetDays.toDouble(), projected.toDouble(), v.toDouble()).toFloat()
+        if (abs(v) >= SNAP_VELOCITY_DAYS_PER_SECOND) glideTo(scope, target, v)
+        else animateOffsetTo(scope, target)
+    }
+
+    /** Doigt levé sans élan ou geste interrompu : jamais entre deux jours. */
+    fun settleToNearest(scope: CoroutineScope) {
+        if (abs(offsetDays - Math.round(offsetDays)) <= 0.001f) return
+        animateOffsetTo(scope, nearestDay(offsetDays.toDouble()).toFloat())
+    }
+
+    /** Glisse vers `target` en gardant la vitesse de départ, et s'y pose à vitesse nulle (pas de rebond). */
+    private fun glideTo(scope: CoroutineScope, target: Float, velocityDays: Float) {
+        horizontalJob?.cancel()
+        glideVelocityDays = 0f
+        val start = offsetDays
+        val d = target - start
+        val durationMs = glideDurationMs(d.toDouble(), velocityDays.toDouble())
+        if (abs(d) < 0.001f || durationMs < 16) {
+            offsetDays = target
+            return
+        }
+        val seconds = durationMs / 1000.0
+        val m0 = velocityDays * seconds / d
+        horizontalJob = scope.launch {
+            try {
+                animate(0f, 1f, animationSpec = tween(durationMillis = durationMs, easing = LinearEasing)) { s, _ ->
+                    offsetDays = start + d * glideProgress(s.toDouble(), m0).toFloat()
+                    glideVelocityDays = (d / seconds * glideSlope(s.toDouble(), m0)).toFloat()
+                }
+                offsetDays = target
+            } finally {
+                glideVelocityDays = 0f
+            }
+        }
     }
 
     fun flingFree(scope: CoroutineScope, velocityPxPerSec: Float, decay: DecayAnimationSpec<Float>) {
@@ -175,6 +240,7 @@ class GridState(
 
     fun animateOffsetTo(scope: CoroutineScope, targetIdx: Float, velocityDays: Float = 0f) {
         horizontalJob?.cancel()
+        glideVelocityDays = 0f
         horizontalJob = scope.launch {
             animate(
                 initialValue = offsetDays,
@@ -202,7 +268,9 @@ class GridState(
 
 /**
  * Le glissé de la grille. Le premier mouvement qui dépasse le seuil choisit
- * l'axe et le garde jusqu'au lâcher. Horizontal : un jour exactement, ou
+ * l'axe et le garde jusqu'au lâcher. Horizontal : un lancer garde l'élan du
+ * doigt, parcourt plusieurs jours selon sa force et se pose sur un jour entier
+ * sans rebond ; un lancer enchaîné reprend l'élan de la glisse en cours ; ou
  * défilement libre (les préférences). Vertical : défilement avec élan.
  *
  * Un appui sans mouvement n'est pas consommé : les évènements le reçoivent.
@@ -217,6 +285,8 @@ fun Modifier.gridDrag(
 ): Modifier = pointerInput(state, freeScroll, vertical, overscroll) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
+        // L'élan se lit avant l'arrêt net : un lancer enchaîné s'y ajoute.
+        val carried = state.takeCarriedVelocity()
         state.cancelAnimations()
         val startOffset = state.offsetDays
         val startIdx = nearestDay(startOffset.toDouble())
@@ -226,10 +296,16 @@ fun Modifier.gridDrag(
             overSlop = over
             if (abs(over.x) > abs(over.y) || vertical) change.consume() else ignored = true
         }
-        if (slop == null || ignored) return@awaitEachGesture
+        if (slop == null || ignored) {
+            // Un doigt posé sur une glisse ne la laisse pas entre deux jours.
+            if (!freeScroll) state.settleToNearest(scope)
+            return@awaitEachGesture
+        }
         val horizontal = abs(overSlop.x) > abs(overSlop.y)
         val tracker = VelocityTracker()
         tracker.addPosition(slop.uptimeMillis, slop.position)
+        // Une glisse horizontale interrompue par un geste vertical se pose sur son jour.
+        if (!horizontal && !freeScroll) state.settleToNearest(scope)
         if (horizontal) state.dragX(overSlop.x) else state.pullY(overSlop.y, overscroll)
         val released = drag(slop.id) { change ->
             tracker.addPosition(change.uptimeMillis, change.position)
@@ -242,7 +318,7 @@ fun Modifier.gridDrag(
             if (freeScroll) {
                 if (velocity != null) state.flingFree(scope, velocity.x, decay)
             } else {
-                state.settleToDay(scope, startIdx, startOffset, velocity?.x ?: 0f)
+                state.settleToDay(scope, startIdx, startOffset, velocity?.x ?: 0f, decay, carried)
             }
         } else {
             state.flingY(scope, velocity?.y ?: 0f, decay, overscroll)
