@@ -530,6 +530,17 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                 Modifier.matchParentSize().pointerInput(Unit) { detectTapGestures { closeSheet() } },
             )
             }
+            // Le sélecteur de mois, dans le flux : sur le même verre que la barre, il repousse la grille.
+            MonthSheet(
+                visible = monthOpen,
+                anchor = anchor,
+                firstDay = data.firstDay,
+                highlightCount = dayCount,
+                onSelect = { date ->
+                    grid.goTo(scope, date)
+                    monthOpen = false
+                },
+            )
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 TimeGridArea(
                     state = grid,
@@ -578,21 +589,6 @@ private fun MainScreen(viewModel: NativeViewModel, data: WorkspaceData, updates:
                         },
                     contentAlignment = Alignment.Center,
                 ) { Icon(NeoIcons.Plus, "Nouvel événement", tint = Neo.OnAccent, modifier = Modifier.size(24.dp)) }
-            }
-        }
-
-        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-            Box(Modifier.padding(top = Neo.TopBarHeight)) {
-                MonthSheet(
-                    visible = monthOpen,
-                    anchor = anchor,
-                    firstDay = data.firstDay,
-                    onSelect = { date ->
-                        grid.goTo(scope, date)
-                        monthOpen = false
-                    },
-                    onDismiss = { monthOpen = false },
-                )
             }
         }
 

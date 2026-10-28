@@ -64,8 +64,8 @@ fun MiniCalendar(
     modifier: Modifier = Modifier,
     showHeader: Boolean = true,
     cellHeight: Dp = 39.dp,
-    highlightFirst: LocalDate = anchor,
-    highlightCount: Int = 1,
+    highlightFirst: LocalDate,
+    highlightCount: Int,
 ) {
     var month by remember(YearMonth.from(anchor)) { mutableStateOf(YearMonth.from(anchor)) }
     val today = LocalDate.now()
