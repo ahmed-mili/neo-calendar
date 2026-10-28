@@ -10,6 +10,7 @@ import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GridTest {
@@ -94,5 +95,37 @@ class GridTest {
         val night = segmentForDay(at(2026, 3, 28, 23), at(2026, 3, 29, 4), LocalDate.of(2026, 3, 29), paris)!!
         assertEquals(0.0, night.topHours, 1e-9)
         assertEquals(4.0, night.durationHours, 1e-9)
+    }
+
+    @Test fun flingWithoutMomentumKeepsOneDayRule() {
+        assertEquals(11L, flingTargetDay(10, 10.3, 10.3, 0.5))
+        assertEquals(10L, flingTargetDay(10, 10.1, 10.1, 0.0))
+        // Un long glisser lent se cale sur le jour le plus proche : pas de recul de 0,6 jour.
+        assertEquals(12L, flingTargetDay(10, 11.6, 11.6, 0.0))
+    }
+    @Test fun flingFollowsProjectionAndNeverRecoils() {
+        assertEquals(13L, flingTargetDay(10, 11.6, 13.2, 8.0))
+        assertEquals(12L, flingTargetDay(10, 11.6, 11.7, 3.0))
+        assertEquals(8L, flingTargetDay(10, 9.6, 8.4, -6.0))
+        assertEquals(9L, flingTargetDay(10, 9.6, 9.5, -2.0))
+        assertEquals(11L, flingTargetDay(10, 10.05, 10.1, 2.0))
+    }
+    @Test fun flingIsCappedAtSevenDaysFromRelease() {
+        assertEquals(18L, flingTargetDay(10, 11.6, 40.0, 30.0))
+        assertEquals(3L, flingTargetDay(10, 9.4, -30.0, -30.0))
+    }
+    @Test fun glideCurveStartsAtFingerSpeedAndStopsFlat() {
+        assertEquals(0.0, glideProgress(0.0, 2.0), 1e-9)
+        assertEquals(1.0, glideProgress(1.0, 2.0), 1e-9)
+        assertEquals(2.0, glideSlope(0.0, 2.0), 1e-9)
+        assertEquals(0.0, glideSlope(1.0, 2.0), 1e-9)
+        // Monotone pour m0 entre 0 et 3 : jamais de dépassement.
+        for (m0 in listOf(0.0, 1.0, 2.0, 3.0)) for (i in 0..100) assertTrue(glideSlope(i / 100.0, m0) >= -1e-9)
+    }
+    @Test fun glideDurationStaysBounded() {
+        assertEquals(500, glideDurationMs(3.0, 12.0))
+        assertEquals(900, glideDurationMs(1.0, 1.3))
+        assertTrue(glideDurationMs(0.2, 30.0) <= 150)
+        assertEquals(260, glideDurationMs(0.0, 5.0))
     }
 }
