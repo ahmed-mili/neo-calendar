@@ -171,7 +171,7 @@ class GridState(
         glideVelocityDays = 0f
         val start = offsetDays
         val d = target - start
-        val durationMs = glideDurationMs(d.toDouble(), velocityDays.toDouble())
+        val durationMs = glideDurationMs(abs(d).toDouble(), abs(velocityDays).toDouble())
         if (abs(d) < 0.001f || durationMs < 16) {
             offsetDays = target
             return
