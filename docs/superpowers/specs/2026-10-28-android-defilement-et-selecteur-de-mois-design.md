@@ -90,9 +90,9 @@ Avec le même protocole qu'au-dessus (glisser de 600 px, vue 3 jours) :
 
 | Geste | Attendu |
 |---|---|
-| 600 px en 300 ms | 1 à 2 jours, aucun recul |
-| 600 px en 150 ms | 2 à 4 jours |
-| 600 px en 40 ms | 7 jours (plafond) |
+| 600 px en 300 ms (la grille est à 1,6 jour au lâcher) | 2 à 3 jours, aucun recul |
+| 600 px en 150 ms | 3 à 5 jours |
+| 600 px le plus vite possible | au plus 8 jours (1,6 sous le doigt + 7 de plafond, arrondi vers le bas) |
 | Doigt posé 100 ms après un lancer, levé sans bouger | Position finale multiple d'une colonne |
 | 5 lancers à 150 ms d'intervalle | Plus de jours qu'avant, sans arrêt visible entre deux lancers |
 | Glisser lent de 0,3 colonne puis lâcher | +1 jour (inchangé) |
