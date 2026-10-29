@@ -1,3 +1,4 @@
+import { Settings } from "luxon";
 import { neoEventToDisplayEvents } from "./eventExpansion";
 import { NeoEvent } from "../../types";
 
@@ -146,4 +147,42 @@ describe("carrying the reminders of an event", () => {
             remind({ title: "Lunch", type: "single", date: "2026-07-22" })
         ).toEqual([undefined]);
     });
+});
+
+// 02:30 happens twice in Paris on 2026-10-25. Luxon picks between the two
+// with the offset in force on the day the code runs, so the same note moved
+// by an hour when the clocks went back.
+describe("placing a time the clocks go through twice", () => {
+    const meeting = {
+        title: "Reunion",
+        type: "single",
+        allDay: false,
+        date: "2026-10-25",
+        startTime: "02:30",
+        endTime: "03:30",
+    };
+    const start = () =>
+        neoEventToDisplayEvents(
+            meeting as NeoEvent,
+            "42",
+            "cal",
+            "Cal",
+            "#ffffff",
+            true,
+            new Date("2026-10-24T00:00:00"),
+            new Date("2026-10-26T23:59:59")
+        )[0].start.toISOString();
+    const realNow = Settings.now;
+    afterEach(() => {
+        Settings.now = realNow;
+    });
+
+    it.each(["2026-07-15T12:00:00Z", "2026-12-15T12:00:00Z"])(
+        "keeps the first occurrence when read on %s",
+        (today) => {
+            Settings.now = () => Date.parse(today);
+
+            expect(start()).toBe("2026-10-25T00:30:00.000Z");
+        }
+    );
 });

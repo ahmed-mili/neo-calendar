@@ -36,7 +36,10 @@ const DAY_CODE_TO_INDEX: Record<string, number> = {
 function parseTimeToDate(dateStr: string, timeStr: string): Date | null {
     const dt = DateTime.fromISO(`${dateStr}T${timeStr}`, { zone: "local" });
     if (dt.invalidReason) return null;
-    return dt.toJSDate();
+    // Luxon settles a wall time the clocks go through twice with today's
+    // offset, so it changes with the season the app runs in. The Date
+    // constructor always takes the first one, as the Kotlin core does.
+    return new Date(dt.year, dt.month - 1, dt.day, dt.hour, dt.minute, dt.second, dt.millisecond);
 }
 
 function parseDateOnly(dateStr: string): Date {
